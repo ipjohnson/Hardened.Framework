@@ -609,4 +609,92 @@ public class AsyncEnumerableIoFilterTests {
     }
 
     #endregion
+
+    #region a body that refuses synchronous writes
+
+    private static string Rejecting(IExecutionContext context) =>
+        Encoding.UTF8.GetString(((SynchronousWritesRejectedStream)context.Response.Body).ToArray());
+
+    /// <summary>
+    /// Every byte a framing writes goes through <c>WriteAsync</c>. The transport behind a real host
+    /// refuses a synchronous write, and a framing that wrote its prefix that way answered 500 on
+    /// every event stream while passing every test here over a <c>MemoryStream</c>.
+    /// </summary>
+    [Theory]
+    [InlineData("sse", "id: 1\ndata: alpha\n\ndata: beta\n\n")]
+    [InlineData("ndjson", "alpha\nbeta\n\n")]
+    public async Task AFramingWritesNothingSynchronously(string framing, string expected) {
+        var context = Pipeline.Context();
+
+        context.Response.Body = new SynchronousWritesRejectedStream();
+
+        await Pipeline.Chain(context, Filter<object>(framing: Framing(framing)),
+            new Pipeline.Inline(c => {
+                // An event with an id for the SSE framing, so the field line is written too;
+                // plain items for NDJSON, which frames whatever it is handed as it is.
+                c.Context.Response.ResponseValue = framing == "sse" ? Events() : Items("alpha", "beta");
+
+                return Task.CompletedTask;
+            })).Next();
+
+        Assert.Null(context.Response.ExceptionValue);
+        Assert.Equal(expected, Rejecting(context));
+    }
+
+    /// <summary>The completion of an empty stream is a write too, in both framings.</summary>
+    [Theory]
+    [InlineData("sse", ":\n\n")]
+    [InlineData("ndjson", "\n")]
+    public async Task AnEmptyStreamsCompletionIsWrittenAsynchronously(string framing, string expected) {
+        var context = Pipeline.Context();
+
+        context.Response.Body = new SynchronousWritesRejectedStream();
+
+        await Pipeline.Chain(context, Filter<string>(framing: Framing(framing)),
+            new Pipeline.Inline(c => {
+                c.Context.Response.ResponseValue = Items();
+
+                return Task.CompletedTask;
+            })).Next();
+
+        Assert.Null(context.Response.ExceptionValue);
+        Assert.Equal(expected, Rejecting(context));
+    }
+
+    /// <summary>And so is the heartbeat, which #262 added synchronously beside the others.</summary>
+    [Fact]
+    public async Task AHeartbeatIsWrittenAsynchronously() {
+        var context = Pipeline.Context();
+
+        context.Response.Body = new SynchronousWritesRejectedStream();
+
+        await Pipeline.Chain(context,
+            Filter<string>(framing: SseFraming.Instance, heartbeat: TimeSpan.FromMilliseconds(10)),
+            new Pipeline.Inline(c => {
+                c.Context.Response.ResponseValue = Slowly("late");
+
+                return Task.CompletedTask;
+            })).Next();
+
+        Assert.Null(context.Response.ExceptionValue);
+        Assert.Contains(": keep-alive\n\n", Rejecting(context));
+        Assert.EndsWith("data: late\n\n", Rejecting(context));
+    }
+
+    /// <summary>One event carrying an id, one bare, so both the field and the data lines are covered.</summary>
+    private static async IAsyncEnumerable<object> Events() {
+        yield return new SseItem<string>("alpha", Id: "1");
+
+        await Task.Yield();
+
+        yield return "beta";
+    }
+
+    private static async IAsyncEnumerable<string> Slowly(string value) {
+        await Task.Delay(100);
+
+        yield return value;
+    }
+
+    #endregion
 }

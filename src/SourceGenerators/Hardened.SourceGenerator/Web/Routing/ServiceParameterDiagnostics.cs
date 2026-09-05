@@ -15,11 +15,19 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// that decided this nor the parameter whose meaning changed.
 /// </para>
 /// <para>
-/// The rule is narrow because the two shapes are otherwise indistinguishable: a body model is a
+/// The rule was narrow because the two shapes are otherwise indistinguishable: a body model is a
 /// concrete class too. What separates them is that the deserializer cannot construct an interface,
 /// so a type whose every public constructor takes one has no reading as a body at all. That test
 /// is made at the syntax transform, where the semantic model is in hand, and carried on
 /// <see cref="RequestParameterInformation.ConstructorRequiresServices"/>.
+/// </para>
+/// <para>
+/// The other statement that settles it is the registration. A type carrying
+/// <c>[SingletonService]</c>, <c>[ScopedService]</c> or <c>[TransientService]</c> is a service
+/// whatever its constructors take, and a body model never carries one - so a parameterless
+/// service that passed the constructor test, bound from the body, answered 400 on every request
+/// and published a request body on a GET, which is what the 0.20 trial's <c>TodoStore</c> did. It
+/// travels on <see cref="RequestParameterInformation.RegisteredAsService"/>.
 /// </para>
 /// </remarks>
 public static class ServiceParameterDiagnostics {
@@ -45,7 +53,8 @@ public static class ServiceParameterDiagnostics {
         isEnabledByDefault: true);
 
     /// <summary>
-    /// Every body parameter whose type can only be constructed from services.
+    /// Every body parameter whose type can only be constructed from services, or is registered as
+    /// one.
     /// </summary>
     /// <remarks>
     /// Split from <see cref="Report"/> for the reason <c>RouteBindingDiagnostics.Find</c> is: a
@@ -57,7 +66,7 @@ public static class ServiceParameterDiagnostics {
 
         foreach (var parameter in model.RequestParameterInformationList) {
             if (parameter.BindingType == ParameterBindType.Body &&
-                parameter.ConstructorRequiresServices) {
+                (parameter.ConstructorRequiresServices || parameter.RegisteredAsService)) {
                 (found ??= new List<RequestParameterInformation>()).Add(parameter);
             }
         }
@@ -71,10 +80,16 @@ public static class ServiceParameterDiagnostics {
     /// type as well as the parameter.
     /// </summary>
     public static string Advice(RequestParameterInformation parameter) =>
-        $"A parameter that names no route token and is not an interface binds from the body, and " +
-        $"'{parameter.ParameterType.Name}' has no constructor that does not take one, so no body " +
-        $"can be read into it. Mark '{parameter.Name}' [FromServices], or type it as the " +
-        $"interface it is registered against.";
+        parameter.RegisteredAsService
+            ? $"A parameter that names no route token and is not an interface binds from the " +
+              $"body, and '{parameter.ParameterType.Name}' is registered as a service by its " +
+              $"[SingletonService], [ScopedService] or [TransientService] attribute, so it was " +
+              $"never a body. Mark '{parameter.Name}' [FromServices], or type it as the interface " +
+              $"it is registered against."
+            : $"A parameter that names no route token and is not an interface binds from the " +
+              $"body, and '{parameter.ParameterType.Name}' has no constructor that does not take " +
+              $"one, so no body can be read into it. Mark '{parameter.Name}' [FromServices], or " +
+              $"type it as the interface it is registered against.";
 
     /// <summary>Reports every finding, if the handler has any.</summary>
     public static void Report(SourceProductionContext context, RequestHandlerModel model) {

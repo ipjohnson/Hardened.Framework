@@ -95,13 +95,14 @@ public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
             await _middlewareService.GetExecutionChain(executionContext).Next();
         }
         catch (Exception exception) {
-            _requestLogger.RequestFailed(executionContext, exception);
-
             // Once the response has started the status line is already on the wire and there is
-            // nothing left to say. Setting it would throw in its own right.
+            // nothing left to say. Setting it would throw in its own right. Decided before the
+            // logger is told, because the logger reads the status to pick its level.
             if (!executionContext.Response.ResponseStarted) {
                 executionContext.Response.Status = 500;
             }
+
+            _requestLogger.RequestFailed(executionContext, exception);
         }
     }
 

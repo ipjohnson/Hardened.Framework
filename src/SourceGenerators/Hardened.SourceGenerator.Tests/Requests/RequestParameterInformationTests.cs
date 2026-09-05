@@ -64,4 +64,31 @@ public class RequestParameterInformationTests {
         Assert.Equal(left, right);
         Assert.Equal(left.GetHashCode(), right.GetHashCode());
     }
+
+    /// <summary>
+    /// <c>RegisteredAsService</c> rides on the model for the reason
+    /// <c>ConstructorRequiresServices</c> does: adding <c>[SingletonService]</c> to the type has to
+    /// break the model's equality, or HRDR007 waits for whatever else forces a regeneration.
+    /// </summary>
+    [Fact]
+    public void ARegisteredServiceDoesNotCompareEqualToAnOrdinaryBody() {
+        var body = Body();
+        var service = new RequestParameterInformation(
+            TypeDefinition.Get("TestApp", "EventStore"),
+            "store", true, null, ParameterBindType.Body, "store", 0,
+            registeredAsService: true);
+
+        Assert.NotEqual(body, service);
+        Assert.NotEqual(body.GetHashCode(), service.GetHashCode());
+    }
+
+    [Fact]
+    public void MovingARegisteredServiceKeepsItRegistered() {
+        var original = new RequestParameterInformation(
+            TypeDefinition.Get("TestApp", "EventStore"),
+            "store", true, null, ParameterBindType.Body, "store", 0,
+            registeredAsService: true);
+
+        Assert.True(original.WithIndex(3).RegisteredAsService);
+    }
 }

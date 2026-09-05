@@ -30,6 +30,19 @@ public static class EntryPointSelector {
         /// </summary>
         public IReadOnlyList<ImportedLinksModel> ImportedLinks { get; set; } =
             Array.Empty<ImportedLinksModel>();
+
+        /// <summary>
+        /// The handlers declaring <c>[CacheResponse]</c> in the modules this entry point imports,
+        /// so <c>HRDW005</c> can be asked where the store is registered. See
+        /// <see cref="ImportedCachedHandlers"/>.
+        /// </summary>
+        public IReadOnlyList<string> ImportedCachedHandlers { get; set; } = Array.Empty<string>();
+
+        /// <summary>
+        /// Whether a module this entry point imports applies a response cache store itself. See
+        /// <see cref="Shared.ImportedCachedHandlers.ImportsAStore"/>.
+        /// </summary>
+        public bool ImportsAStore { get; set; }
     }
 
     public class Comparer : IEqualityComparer<Model> {
@@ -50,7 +63,9 @@ public static class EntryPointSelector {
                    CompareMethodDefinitions(x, y) &&
                    CompareProperties(x, y) &&
                    x.EnabledFeatures.SequenceEqual(y.EnabledFeatures) &&
-                   x.ImportedLinks.SequenceEqual(y.ImportedLinks);
+                   x.ImportedLinks.SequenceEqual(y.ImportedLinks) &&
+                   x.ImportedCachedHandlers.SequenceEqual(y.ImportedCachedHandlers, StringComparer.Ordinal) &&
+                   x.ImportsAStore == y.ImportsAStore;
         }
 
         private bool CompareProperties(Model x, Model y) {
@@ -131,6 +146,8 @@ public static class EntryPointSelector {
             IReadOnlyList<AttributeModel> attributes = Array.Empty<AttributeModel>();
             IReadOnlyList<EnabledFeatureModel> features = Array.Empty<EnabledFeatureModel>();
             IReadOnlyList<ImportedLinksModel> importedLinks = Array.Empty<ImportedLinksModel>();
+            IReadOnlyList<string> importedCachedHandlers = Array.Empty<string>();
+            var importsAStore = false;
 
             if (syntaxContext.Node is ClassDeclarationSyntax classDeclarationSyntax) {
                 attributes = AttributeModelHelper
@@ -146,6 +163,10 @@ public static class EntryPointSelector {
                 // reach, and what survives is names and type definitions that compare by value.
                 importedLinks =
                     ImportedLinksModel.Read(syntaxContext, classDeclarationSyntax, attributes);
+
+                // And for the same reason again: which of the imported modules' handlers cache.
+                importedCachedHandlers = ImportedCachedHandlers.Read(syntaxContext, attributes);
+                importsAStore = ImportedCachedHandlers.ImportsAStore(syntaxContext, attributes);
             }
 
             return new Model {
@@ -155,7 +176,9 @@ public static class EntryPointSelector {
                 AttributeModels = attributes,
                 PropertyDefinitions = GeneratePropertyDefinitions(syntaxContext),
                 EnabledFeatures = features,
-                ImportedLinks = importedLinks
+                ImportedLinks = importedLinks,
+                ImportedCachedHandlers = importedCachedHandlers,
+                ImportsAStore = importsAStore
             };
         };
     }

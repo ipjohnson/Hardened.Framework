@@ -61,6 +61,13 @@ public class WebExecutionHandlerCodeGenerator {
         // silently over the class's.
         CompressDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
+        // Two body parameters compile into a CS7036 in generated code, and one body parameter on
+        // a GET compiles into a handler that refuses every request.
+        BodyParameterDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
+        // A zero budget compiles, publishes, and fails the first request.
+        TimeoutDeclarationDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 
         sourceProductionContext.AddSource(requestHandlerModel.InvokeHandlerType.Name, GeneratedSource.Header(sourceFile));

@@ -91,4 +91,35 @@ public class ServerSentEventsDiagnosticTests {
 
         Assert.Empty(Reported(result));
     }
+
+    /// <summary>
+    /// The one fact about a handler only the return type knows, written onto its handler info so
+    /// the conditional-GET stage can stand down rather than buffer the stream. Both framings, and
+    /// not a buffered handler.
+    /// </summary>
+    [Theory]
+    [InlineData("[ServerSentEvents]")]
+    [InlineData("")]
+    public void AStreamingHandlerSaysSoOnItsHandlerInfo(string framing) {
+        var result = Generate($$"""
+            [Get("/feed")]
+            {{framing}}
+            public async IAsyncEnumerable<string> Feed() {
+                yield return "one";
+                await Task.CompletedTask;
+            }
+            """).AssertNoErrors();
+
+        Assert.Contains("streamsResponse: true", result.SourceContaining("FeedController_Feed"));
+    }
+
+    [Fact]
+    public void ABufferedHandlerDoesNotClaimToStream() {
+        var result = Generate("""
+            [Get("/latest")]
+            public Task<List<string>> Latest() => Task.FromResult(new List<string>());
+            """).AssertNoErrors();
+
+        Assert.DoesNotContain("streamsResponse", result.SourceContaining("FeedController_Latest"));
+    }
 }

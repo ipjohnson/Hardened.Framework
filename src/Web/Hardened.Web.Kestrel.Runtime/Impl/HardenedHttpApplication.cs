@@ -90,13 +90,14 @@ public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.
             await _middlewareService.GetExecutionChain(execution).Next();
         }
         catch (Exception exception) {
-            _requestLogger.RequestFailed(execution, exception);
-
             // Once the response has started the status line is already on the wire and there is
-            // nothing left to say; the connection will be torn down by the server.
+            // nothing left to say; the connection will be torn down by the server. Decided before
+            // the logger is told, because the logger reads the status to pick its level.
             if (!execution.Response.ResponseStarted) {
                 execution.Response.Status = 500;
             }
+
+            _requestLogger.RequestFailed(execution, exception);
         }
         finally {
             // Required by Kestrel. A response that wrote no body — a 204, or a 500 set above —

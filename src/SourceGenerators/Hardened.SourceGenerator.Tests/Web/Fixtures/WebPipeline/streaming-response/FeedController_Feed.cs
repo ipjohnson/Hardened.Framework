@@ -6,7 +6,7 @@ namespace TestApp.Generated
     public partial class FeedController_Feed : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::TestApp.FeedController>
     {
         private static readonly object[] _metadata = new object[] { new global::Hardened.Web.Runtime.Attributes.ServerSentEventsAttribute() };
-        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/feed", "GET", typeof(global::TestApp.FeedController), "Feed", null, _metadata)
+        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/feed", "GET", typeof(global::TestApp.FeedController), "Feed", null, _metadata, streamsResponse: true)
 ;
 
         public FeedController_Feed(global::System.IServiceProvider serviceProvider, string? routePath = null)

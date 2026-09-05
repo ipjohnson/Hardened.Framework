@@ -57,7 +57,8 @@ internal static class OpenApiGenerator {
     internal static GeneratorResult Run(
         IReadOnlyDictionary<string, string> specs,
         string source,
-        IReadOnlyDictionary<string, string>? buildProperties = null) {
+        IReadOnlyDictionary<string, string>? buildProperties = null,
+        IReadOnlyList<Microsoft.CodeAnalysis.MetadataReference>? additionalReferences = null) {
         // Must resolve exactly as the generator does, and against the same defaults the harness
         // supplies. The two halves emit into one namespace and bind across it, so a harness that
         // resolves differently produces a handler referencing a service interface that was emitted
@@ -109,7 +110,9 @@ internal static class OpenApiGenerator {
             models[ModelFileNameFor(spec.Key)] = SpecModelSerializer.Write(model);
         }
 
-        var result = GeneratorTestHarness.Run(sources, [new SpecSourceGenerator()], Anchors, models, buildProperties);
+        var result = GeneratorTestHarness.Run(
+            sources, [new SpecSourceGenerator()], Anchors, models, buildProperties,
+            additionalReferences: additionalReferences);
 
         // GeneratedSources carries both halves, because that is what the project ends up compiling.
         // Splitting them would make every assertion depend on which side of the task/generator line

@@ -71,6 +71,12 @@ public sealed class OperationSymbols {
     /// </remarks>
     public bool RequestBodyRequiresServices { get; set; }
 
+    /// <summary>
+    /// Whether the body parameter's type is registered as a service by attribute. Carried for the
+    /// reason <see cref="RequestBodyRequiresServices"/> is: the other half of what HRDR007 reads.
+    /// </summary>
+    public bool RequestBodyRegisteredAsService { get; set; }
+
     /// <summary>Parameter types by parameter name, for the ones already resolved.</summary>
     public Dictionary<string, ITypeDefinition>? ParameterTypes { get; set; }
 

@@ -138,13 +138,16 @@ makes it the body parameter, and the build fails as a `CS7036` inside `obj/**/ge
 file the author did not write, naming neither the convention that decided this nor the parameter
 whose meaning changed.
 
-Reported narrowly, because the two shapes are otherwise indistinguishable: a body model is a
-concrete class too. What separates them is that the deserializer cannot construct an interface, so
-a type whose every public constructor takes one has no reading as a body at all. A body model with
-a parameterless constructor, and an immutable one whose constructor takes its own data, are left
-alone — as is a service the deserializer could construct, which arrives empty instead. Both fixes
-in the message work; `[FromServices]` is the one that does not require the service to have an
-interface.
+Reported on two signals, because the two shapes are otherwise indistinguishable: a body model is a
+concrete class too. The first is the constructor: the deserializer cannot construct an interface,
+so a type whose every public constructor takes one has no reading as a body at all. The second is
+the registration: a type carrying `[SingletonService]`, `[ScopedService]` or `[TransientService]`
+is a service whatever its constructors take, and a body model never carries one. The 0.20 trial's
+`TodoStore` - parameterless, and registered - passed the first test and was caught by neither; it
+bound from the body, answered 400 on every request and published a request body on a GET. A body
+model with a parameterless constructor, and an immutable one whose constructor takes its own data,
+are left alone. Both fixes in the message work; `[FromServices]` is the one that does not require
+the service to have an interface.
 
 ### HRDR008 — more than one routing generator is compiling this assembly
 
@@ -163,9 +166,46 @@ the reference says PrivateAssets="all". Add it to the one that brought the secon
 
 The same marker HRDR006 reads for absence answers this one by being declared twice — it is
 `partial` so that the second declaration merges rather than raising a `CS0101` that says nothing
-about why there are two. The generators are named from the paths Roslyn gives generated files,
-which start with the generator's assembly, because the fix is on whichever reference brought the
-second one rather than anywhere in the code.
+about why there are two. The generators are named from the paths Roslyn gives generated files -
+`<base>/<generator assembly>/<generator type>/<hint name>` - because the fix is on whichever
+reference brought the second one rather than anywhere in the code. The assembly is the third
+segment from the end: with `EmitCompilerGeneratedFiles` on, which the templates turn on, the base
+is an absolute directory, and reading the first segment made both generators `Users` and reported
+nothing, which is how this sat silent through the 0.20 trial.
+
+### HRDR009 — more than one parameter binds from the request body
+
+Two parameters that name no route token and are not interfaces, on one handler.
+
+```
+'EventController.Handle' reads 'counter' and 'reading' from the request body, and a request
+carries one body. A parameter that names no route token and is not an interface binds from the
+body: mark a service [FromServices] or type it as the interface it is registered against, and
+bind a value with [FromQueryString], [FromHeader], [FromForm] or a route token.
+```
+
+A request carries one body, so the second parameter was dropped from the generated invocation, and
+the build failed as a `CS7036` inside `obj/**/generated/**` naming neither the parameter nor the
+convention that discarded it. That `CS7036` still appears beside this; this is the line that says
+what it means. An error, with no `NoWarn`.
+
+### HRDR010 — parameter binds from the body of a request that carries none
+
+One body parameter on a `GET`, `HEAD`, `OPTIONS` or `TRACE` handler, where nothing else explains
+how it got there.
+
+```
+Parameter 'reading' of 'EventController.Handle' is read from the request body, and a GET carries
+none, so a request that sends no body is refused before the handler runs and the published
+document gives the operation a body it should not have. Bind 'reading' with [FromQueryString] or
+[FromHeader], mark it [FromServices] if it is a service, or suppress HRDR010 if this operation
+deliberately reads a body from a GET.
+```
+
+HRDR005 reports the parameter a route token displaced and HRDR007 the one that is a service; this
+is the remainder. A warning rather than an error, because a `GET` carrying a body is a thing some
+APIs deliberately do, and `<NoWarn>HRDR010</NoWarn>` is how they say so. `DELETE` is not treated
+as bodyless, for the reason HRDR005 gives.
 
 ## Validation
 
@@ -316,6 +356,38 @@ A **warning**, unlike the two above. The check reads the entry point's module at
 where `[HardenedMemoryResponseCache]` goes; a store registered by hand inside `ConfigureServices` is
 a legitimate arrangement and invisible to it. `<NoWarn>HRDW005</NoWarn>` if that is what you are
 doing.
+
+Asked of the application, which is the compilation whose entry point applies a web runtime -
+`[KestrelRuntime]`, `[AspNetCoreRuntime]` or `[LambdaWebModule]`. The template splits an
+application into a library that declares the handlers and a host that applies the runtime, and the
+store goes beside the runtime; asked of the library, this warned whatever the host registered. A
+library compilation now says nothing, and the host is handed the cached handlers of every module it
+imports, read from their metadata, so the report names a library's handlers from the host that
+forgot the store. Putting the store on the library module instead is also fine, and is what makes
+the store visible to a test project that boots the library - see `docs/response-caching.md`; a
+host importing such a library is told nothing, since the store arrives with the import.
+
+Reported by both routing tables. The described one never called the shared report, so a
+specification-first application whose `[Handler]` implementation declared `[CacheResponse]` was
+told nothing and found out from a request.
+
+## Timeouts
+
+### HRDW006 — `[Timeout]` declares no budget
+
+A `[Timeout]` reaching a handler - on the operation, its class or its assembly - whose
+`Milliseconds` is zero or less.
+
+```
+'RatesController.Read' is bounded by a [Timeout] declaring 0 milliseconds, on the operation, its
+class or its assembly. A budget has to be greater than zero; a handler that should not be bounded
+declares no timeout instead. The runtime refuses this on the first request, and the document would
+publish x-hardened-timeout: 0.
+```
+
+The runtime already refuses it, as the handler's chain is composed, naming the handler and the
+rung - but that is the first request, answered 500, and the document export runs ahead of it. An
+error, with no `NoWarn`: there is no reading of zero that means anything else.
 
 ## Other diagnostics
 

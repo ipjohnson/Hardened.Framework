@@ -45,6 +45,12 @@ internal static class SpecRoutingTableGenerator {
         IReadOnlyList<RouteConstraintModel> constraints,
         bool excludeFromCoverage = false,
         DocumentIdentity? identity = null) {
+        // Per application, as the attribute-routed table reports it: a described operation whose
+        // implementation declares [CacheResponse], or one in a module this application imports,
+        // fails every request in an application that registers no store - and a described
+        // application was told nothing.
+        ResponseCacheStoreDiagnostics.Report(context, models.Left, models.Right);
+
         var outputString = GenerateCSharpRouteFile(
             models.Left, models.Right, handlerInfos, specRegistrations,
             context.CancellationToken, excludeFromCoverage, constraints);

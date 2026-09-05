@@ -15,9 +15,10 @@ public class RequestParameterInformation {
         string bindingName,
         int parameterIndex,
         AttributeModel? customAttribute = null,
-        bool constructorRequiresServices = false) {
+        bool constructorRequiresServices = false,
+        bool registeredAsService = false) {
         ConstructorRequiresServices = constructorRequiresServices;
-
+        RegisteredAsService = registeredAsService;
 
 
         ParameterType = parameterType;
@@ -122,6 +123,14 @@ public class RequestParameterInformation {
     /// </remarks>
     public bool ConstructorRequiresServices { get; }
 
+    /// <summary>
+    /// Whether the parameter's type carries a DependencyModules registration -
+    /// <c>[SingletonService]</c>, <c>[ScopedService]</c> or <c>[TransientService]</c> - and so is
+    /// a service whatever its constructors look like. Asked only of a parameter that fell to the
+    /// body; the other half of what <c>HRDR007</c> reads.
+    /// </summary>
+    public bool RegisteredAsService { get; }
+
     public int ParameterIndex {
         get;
     }
@@ -145,7 +154,8 @@ public class RequestParameterInformation {
             BindingName,
             parameterIndex,
             CustomAttribute,
-            ConstructorRequiresServices) {
+            ConstructorRequiresServices,
+            RegisteredAsService) {
             Description = Description,
             SpecParameter = SpecParameter,
             SchemaFacets = SchemaFacets,
@@ -206,6 +216,10 @@ public class RequestParameterInformation {
             return false;
         }
 
+        if (RegisteredAsService != requestParameterInformation.RegisteredAsService) {
+            return false;
+        }
+
         return true;
     }
 
@@ -227,6 +241,7 @@ public class RequestParameterInformation {
             }
 
             hashCode = (hashCode * 397) ^ ConstructorRequiresServices.GetHashCode();
+            hashCode = (hashCode * 397) ^ RegisteredAsService.GetHashCode();
             
             return hashCode;
         }

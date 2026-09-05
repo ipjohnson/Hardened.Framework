@@ -24,6 +24,15 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// it, and that is a legitimate arrangement - so this says "nothing here registers one" and lets
 /// an author who knows better carry on.
 /// </para>
+/// <para>
+/// <b>Asked of the application, not of a library.</b> The template splits an application into a
+/// library that declares the handlers and a host that applies the runtime, and the store goes
+/// beside the runtime. Asked of the library, this warned whatever the host had registered - the
+/// 0.20 trial's first finding against the template's own layout. So a compilation whose entry
+/// point applies no web runtime says nothing, and the compilation that does is handed the cached
+/// handlers of every module it imports, read from their metadata, so the question is still
+/// answered for the layout that split it.
+/// </para>
 /// </remarks>
 public static class ResponseCacheStoreDiagnostics {
     public const string DiagnosticId = "HRDW005";
@@ -39,6 +48,17 @@ public static class ResponseCacheStoreDiagnostics {
     /// </summary>
     private static readonly string[] StoreModuleAttributes = {
         "HardenedMemoryResponseCacheAttribute"
+    };
+
+    /// <summary>
+    /// The module attributes that make an entry point an application: the web runtimes this
+    /// repository ships, and the Lambda web runtime Hardened.Amz ships. Named for the reason the
+    /// store attributes are.
+    /// </summary>
+    private static readonly string[] WebRuntimeModuleAttributes = {
+        "KestrelRuntimeAttribute",
+        "AspNetCoreRuntimeAttribute",
+        "LambdaWebModuleAttribute"
     };
 
     /// <summary>
@@ -67,15 +87,27 @@ public static class ResponseCacheStoreDiagnostics {
         model.Filters.Any(filter => IsCacheResponse(filter.TypeDefinition));
 
     /// <summary>
-    /// Whether the entry point applies a module that registers a store.
+    /// Whether the entry point applies a module that registers a store, itself or through a
+    /// module it imports.
     /// </summary>
     /// <remarks>
     /// Off the entry point's attributes, which carry the class's and the assembly's both - the same
-    /// place <c>[BasePath]</c> and <c>[RequireAuthorization]</c> are read from.
+    /// place <c>[BasePath]</c> and <c>[RequireAuthorization]</c> are read from - and off the
+    /// modules those attributes apply, since a library that carries the store attribute registers
+    /// it for whoever imports the library.
     /// </remarks>
     public static bool RegistersAStore(EntryPointSelector.Model applicationModel) =>
+        applicationModel.ImportsAStore ||
+        (applicationModel.AttributeModels?.Any(
+            attribute => StoreModuleAttributes.Contains(attribute.TypeDefinition.Name)) ?? false);
+
+    /// <summary>
+    /// Whether the entry point applies a web runtime, and so is the application rather than a
+    /// library some other compilation hosts.
+    /// </summary>
+    public static bool IsApplication(EntryPointSelector.Model applicationModel) =>
         applicationModel.AttributeModels?.Any(
-            attribute => StoreModuleAttributes.Contains(attribute.TypeDefinition.Name)) ?? false;
+            attribute => WebRuntimeModuleAttributes.Contains(attribute.TypeDefinition.Name)) ?? false;
 
     /// <summary>
     /// One report per assembly, naming every handler that would fail.
@@ -89,13 +121,15 @@ public static class ResponseCacheStoreDiagnostics {
         SourceProductionContext context,
         EntryPointSelector.Model applicationModel,
         IReadOnlyList<RequestHandlerModel> handlers) {
-        if (RegistersAStore(applicationModel)) {
+        if (!IsApplication(applicationModel) || RegistersAStore(applicationModel)) {
             return;
         }
 
         var declaring = handlers
             .Where(DeclaresCaching)
             .Select(handler => handler.ControllerType.Name + "." + handler.HandlerMethod)
+            .Concat(applicationModel.ImportedCachedHandlers)
+            .Distinct()
             .ToList();
 
         if (declaring.Count == 0) {

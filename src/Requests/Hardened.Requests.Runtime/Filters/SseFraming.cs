@@ -23,6 +23,12 @@ namespace Hardened.Requests.Runtime.Filters;
 /// <c>data:</c> lines, which is why <see cref="ContentType"/> resolves to a JSON serializer and
 /// nothing else claims it.
 /// </para>
+/// <para>
+/// <b>Every write is asynchronous.</b> Kestrel's response body refuses a synchronous
+/// <c>Write</c> unless the host turns <c>AllowSynchronousIO</c> on, and neither host does - so a
+/// framing that wrote its prefix synchronously answered 500 on a real socket while passing every
+/// test over a <c>MemoryStream</c>, which accepts either.
+/// </para>
 /// </remarks>
 public class SseFraming : IStreamFraming {
     /// <summary>The one instance, because it holds nothing.</summary>
@@ -58,40 +64,58 @@ public class SseFraming : IStreamFraming {
     public async ValueTask WriteItem(
         IExecutionContext context, Func<IExecutionContext, Task> serialize) {
         var body = context.Response.Body;
+        var cancellationToken = context.CancellationToken;
 
         if (context.Response.ResponseValue is ISseEvent metadata) {
-            WriteField(body, "id", metadata.Id);
-            WriteField(body, "event", metadata.Event);
-            WriteField(body, "retry",
-                metadata.Retry?.ToString(CultureInfo.InvariantCulture));
+            await WriteField(body, "id", metadata.Id, cancellationToken);
+            await WriteField(body, "event", metadata.Event, cancellationToken);
+            await WriteField(body, "retry",
+                metadata.Retry?.ToString(CultureInfo.InvariantCulture), cancellationToken);
 
             // The payload is what the handler yielded, not the wrapper around it - serializing the
             // wrapper would put the id and the event name inside data as well as beside it.
             context.Response.ResponseValue = metadata.Data;
         }
 
-        body.Write(DataPrefix, 0, DataPrefix.Length);
+        await body.WriteAsync(DataPrefix, 0, DataPrefix.Length, cancellationToken);
 
         await serialize(context);
 
-        body.Write(EventTerminator, 0, EventTerminator.Length);
+        await body.WriteAsync(EventTerminator, 0, EventTerminator.Length, cancellationToken);
     }
 
-    public ValueTask WriteCompletion(IExecutionContext context) {
+    public async ValueTask WriteCompletion(IExecutionContext context) {
         // Only when nothing was written, a heartbeat included. Every event already ends with a
         // blank line, so a stream that produced anything is complete, and adding to it would
         // dispatch an empty event.
-        if (context.Response.Body.Position == 0) {
-            context.Response.Body.Write(EmptyStreamComment, 0, EmptyStreamComment.Length);
+        if (NothingWritten(context)) {
+            await context.Response.Body.WriteAsync(
+                EmptyStreamComment, 0, EmptyStreamComment.Length, context.CancellationToken);
         }
-
-        return default;
     }
 
-    public ValueTask<bool> WriteHeartbeat(IExecutionContext context) {
-        context.Response.Body.Write(Heartbeat, 0, Heartbeat.Length);
+    /// <summary>
+    /// Whether the stream has put nothing on the wire yet.
+    /// </summary>
+    /// <remarks>
+    /// Asked of the body's position where the body can answer - a buffer the cache or a test
+    /// holds - and of the response otherwise. Kestrel's response body throws
+    /// <c>NotSupportedException</c> from <c>Position</c>, so reading it unconditionally ended
+    /// every event stream on a real socket with a logged fault after the last event had already
+    /// gone out. On a transport the filter flushes after every item and every heartbeat, so a
+    /// response that has started is one that carried something.
+    /// </remarks>
+    private static bool NothingWritten(IExecutionContext context) {
+        var body = context.Response.Body;
 
-        return new ValueTask<bool>(true);
+        return body.CanSeek ? body.Position == 0 : !context.Response.ResponseStarted;
+    }
+
+    public async ValueTask<bool> WriteHeartbeat(IExecutionContext context) {
+        await context.Response.Body.WriteAsync(
+            Heartbeat, 0, Heartbeat.Length, context.CancellationToken);
+
+        return true;
     }
 
     /// <summary>
@@ -104,7 +128,8 @@ public class SseFraming : IStreamFraming {
     /// specification says an id containing U+0000 must be ignored and says nothing useful about
     /// newlines, which is exactly the gap somebody eventually puts a header value into.
     /// </remarks>
-    private static void WriteField(Stream body, string name, string? value) {
+    private static async ValueTask WriteField(
+        Stream body, string name, string? value, CancellationToken cancellationToken) {
         if (string.IsNullOrEmpty(value) ||
             value!.IndexOf('\n') >= 0 || value.IndexOf('\r') >= 0) {
             return;
@@ -112,6 +137,6 @@ public class SseFraming : IStreamFraming {
 
         var line = Encoding.UTF8.GetBytes(name + ": " + value + "\n");
 
-        body.Write(line, 0, line.Length);
+        await body.WriteAsync(line, 0, line.Length, cancellationToken);
     }
 }

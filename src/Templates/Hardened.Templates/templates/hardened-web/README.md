@@ -94,11 +94,17 @@ served at `/todos/{id}`. `[Get]`, `[Post]`, `[Put]`, `[Delete]` and `[Patch]` al
 way.
 
 Services arrive as parameters, and you ask for an interface. A parameter typed as a concrete class
-is bound from the request body instead - `HRDR007`, where the class can only be constructed from
-services. A service is registered next to the class it belongs to,
+is bound from the request body instead - `HRDR007`, where the class is registered as a service or
+can only be constructed from one. A service is registered next to the class it belongs to,
 with `[SingletonService]`, `[ScopedService]` or `[TransientService]` - the module lists nothing, so
 it cannot fall out of step.
 #endif
+
+Every route is in the published document, and `tests/Hardened1.Tests/DocumentStatusTests.cs` holds
+the document to the statuses this suite exercises, operation by operation. Adding a route fails
+that test until its `Expected` table names the new operation and the statuses a test drives - which
+is the point: a status the document declares and nothing answers is the defect a reference page
+cannot show.
 #if (specFirst)
 #if (openapi)
 The contract is `src/Hardened1/contracts/todos.yaml`.

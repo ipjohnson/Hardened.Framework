@@ -50,7 +50,6 @@ public class SerializerPrecedenceTests {
     private static IRequestDeserializer SystemTextJsonReader() =>
         new SystemTextJsonRequestDeserializer(
             JsonConfiguration(),
-            NullLogger<SystemTextJsonRequestDeserializer>.Instance,
             Array.Empty<IJsonTypeInfoResolver>());
 
     private static SerializationLocatorService Locator(

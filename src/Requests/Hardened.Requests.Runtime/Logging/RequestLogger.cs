@@ -287,13 +287,58 @@ public partial class RequestLogger : IRequestLogger {
         CloseCorrelationScope(context);
     }
 
+    /// <summary>
+    /// Debug rather than Error. The failure is recorded on the response and answered through
+    /// <c>ExceptionResponseSerializer</c>, which calls <see cref="RequestFailed"/> once the
+    /// status is decided - so this line is the detail behind that one, not a second copy of it.
+    /// A malformed body used to be logged here at Error with its stack, and again from
+    /// <see cref="RequestFailed"/> at Error with the same stack, for a 400.
+    /// </summary>
     public void RequestParameterBindFailed(IExecutionContext context, Exception? exp) {
-        _logger.LogError(exp, "{method} {path} failed to bind parameters",
+        _logger.LogDebug(exp, "{method} {path} failed to bind parameters",
             context.Request.Method, context.Request.Path);
     }
 
+    /// <summary>
+    /// One line per failed request, at the level the answer decides.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A refusal is the caller's mistake: a 400 for a body that did not parse, a 404 a throws-mode
+    /// handler raised, a 415 for a coding the service does not decode. Those are answered, not
+    /// failed, and a stack trace for each of them at Error buries the faults that are. They go out
+    /// as one Warning line carrying the status and the exception's message, which is what the
+    /// caller was told. The same rule <see cref="RequestEnd"/> applies to the span: Unset below
+    /// 500, Error at it.
+    /// </para>
+    /// <para>
+    /// A budget that ran out is the one 5xx that is not a fault either. The operation declared the
+    /// deadline and the framework answered the status it declared, so the line says how long the
+    /// operation was given and nothing about a stack that ends in <c>Task.Delay</c>.
+    /// </para>
+    /// <para>
+    /// Everything else - and anything after the response started, whatever status was on it - is
+    /// a fault, logged at Error with the exception, which is where an unhandled exception belongs.
+    /// The status is read off the response, which <c>ExceptionResponseSerializer</c> assigns before
+    /// calling this and the hosts assign before calling this for an exception that escaped the
+    /// chain.
+    /// </para>
+    /// </remarks>
     public void RequestFailed(IExecutionContext context, Exception exp) {
-        _logger.LogError(exp, "{method} {path} request failed", context.Request.Method, context.Request.Path);
+        var status = context.Response.Status;
+        var started = context.Response.ResponseStarted;
+
+        if (!started && exp is OperationCanceledException &&
+            context.HandlerInfo?.Timeout is { } budget && status == budget.Status) {
+            LogRequestTimedOut(
+                context.Request.Method, context.Request.Path, budget.Milliseconds, budget.Status);
+        }
+        else if (!started && status is >= 400 and < 500) {
+            LogRequestRefused(context.Request.Method, context.Request.Path, status.Value, exp.Message);
+        }
+        else {
+            _logger.LogError(exp, "{method} {path} request failed", context.Request.Method, context.Request.Path);
+        }
 
         if (!_spans.TryGetValue(context, out var span)) {
             return;
@@ -340,4 +385,16 @@ public partial class RequestLogger : IRequestLogger {
         Level = LogLevel.Information,
         Message = "{httpMethod} {path} Resource Not Found")]
     protected partial void LogResourceNotFound(string httpMethod, string path);
+
+    [LoggerMessage(
+        EventId = 78004,
+        Level = LogLevel.Warning,
+        Message = "{httpMethod} {path} refused with {statusCode}: {reason}")]
+    protected partial void LogRequestRefused(string httpMethod, string path, int statusCode, string reason);
+
+    [LoggerMessage(
+        EventId = 78005,
+        Level = LogLevel.Warning,
+        Message = "{httpMethod} {path} did not finish inside its {milliseconds} ms budget, answered {statusCode}")]
+    protected partial void LogRequestTimedOut(string httpMethod, string path, int milliseconds, int statusCode);
 }

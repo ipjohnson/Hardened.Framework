@@ -37,8 +37,9 @@ Change the thing it was generated from.
 | Duplicate definitions under `obj/**/generated/` | A generator was renamed and its old output is still there. Delete `obj/`. |
 | `HRDR008` | Two routing generators reached this project. Add `PrivateAssets="all"` to the reference that brought the second. |
 | Builds clean, every route answers 404 | The routing generator is absent. The runtime packages carry no analyzers. |
-| `HRDR007` on a handler parameter | A concrete class as a handler parameter is bound from the request body. Type it as an interface, or mark it `[FromServices]`. |
-| A handler parameter arrives empty, or `CS0128` on `contentSerializationService` | The same mistake with a type the deserializer can construct, so `HRDR007` does not fire. Same two fixes. |
+| `HRDR007` on a handler parameter | A concrete class as a handler parameter is bound from the request body - its constructor takes services, or it carries `[SingletonService]`. Type it as an interface, or mark it `[FromServices]`. |
+| `HRDR009` | Two handler parameters both fell to the request body. One of them is a service or a value: `[FromServices]`, an interface, or `[FromQueryString]`. |
+| `HRDR010` on a `GET` | A parameter typed as a plain class, so it is read from a body a `GET` does not carry. Same fixes, or `NoWarn` if the body is deliberate. |
 #if (specFirst)
 | `HOAT001` naming a contract that exists | The path in the csproj does not match the file |
 #endif
@@ -99,9 +100,9 @@ method's exact signature.
 
 **Services arrive as handler parameters**, alongside route and body values — `ITodoStore store` in
 every handler here. Ask for an interface. A parameter typed as a concrete class is bound from the
-request body instead. Where the class can only be constructed from services, that is `HRDR007`;
-where the deserializer could construct it, the parameter simply arrives empty, and on a route that
-also takes a body it generates two body reads and does not compile.
+request body instead. Where the class can only be constructed from services, or is registered with
+`[SingletonService]` and its siblings, that is `HRDR007`; a second parameter that fell to the body
+is `HRDR009`, and one on a `GET` is `HRDR010`.
 #endif
 
 ## How this application declares its responses

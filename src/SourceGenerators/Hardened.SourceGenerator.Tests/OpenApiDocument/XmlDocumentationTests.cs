@@ -84,4 +84,39 @@ public class XmlDocumentationTests {
         Assert.Null(description);
         Assert.Null(XmlDocumentation.ReadParameter(method, "id"));
     }
+
+    private const string Entities = """
+        class C {
+            /// <summary>Created&lt;T&gt; carries the body &amp; the Location, &quot;both&quot;.</summary>
+            /// <remarks>Copyright &#169; and &#x263A; are characters too; a stray & is prose.</remarks>
+            public string Create() => "";
+        }
+        """;
+
+    private static MethodDeclarationSyntax Entity(DocumentationMode mode) =>
+        CSharpSyntaxTree
+            .ParseText(Entities, new CSharpParseOptions(documentationMode: mode),
+                cancellationToken: TestContext.Current.CancellationToken)
+            .GetRoot(TestContext.Current.CancellationToken)
+            .DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .Single();
+
+    /// <summary>
+    /// A doc comment has to write <c>&amp;lt;</c> to say <c>&lt;</c>, and the template's own
+    /// exported document carried <c>Created&amp;lt;T&amp;gt;</c> through as text. Both paths decode.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Modes))]
+    public void AnEntityIsTheCharacterItStandsFor(DocumentationMode mode) =>
+        Assert.Equal(
+            "Created<T> carries the body & the Location, \"both\".",
+            XmlDocumentation.Read(Entity(mode)).Summary);
+
+    [Theory]
+    [MemberData(nameof(Modes))]
+    public void ANumericEntityIsDecodedAndAStrayAmpersandIsKept(DocumentationMode mode) =>
+        Assert.Equal(
+            "Copyright \u00a9 and \u263a are characters too; a stray & is prose.",
+            XmlDocumentation.Read(Entity(mode)).Description);
 }

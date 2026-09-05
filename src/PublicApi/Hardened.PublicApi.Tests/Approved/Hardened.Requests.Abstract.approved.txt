@@ -414,6 +414,7 @@ namespace Hardened.Requests.Abstract.Execution
         string Path { get; }
         System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
+        bool StreamsResponse { get; }
         int? SuccessStatus { get; }
         Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Timeout { get; }
         int? ValidationErrorStatus { get; }

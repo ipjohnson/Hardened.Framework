@@ -395,6 +395,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
                 RequestBodyType = body?.ParameterType,
                 RequestBodyName = body?.Name,
                 RequestBodyRequiresServices = body?.ConstructorRequiresServices ?? false,
+                RequestBodyRegisteredAsService = body?.RegisteredAsService ?? false,
                 ParameterOrder = parameters.OrderBy(p => p.ParameterIndex).Select(Wire).ToList(),
                 ParameterTypes = described.ToDictionary(Wire, p => p.ParameterType, StringComparer.Ordinal),
                 ParameterBindings = described.ToDictionary(Wire, p => p.BindingType, StringComparer.Ordinal),

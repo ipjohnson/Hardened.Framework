@@ -27,6 +27,13 @@ namespace Hardened.Web.Runtime.Conditional;
 /// installed here is a global provider that stands down for any handler whose metadata carries
 /// one, so explicit beats convention without the registration having to say so.
 /// </para>
+/// <para>
+/// A handler that streams gets nothing from this either. Tagging a response means holding it
+/// back until it is all there, and a stream held back until it is all there is not a stream: a
+/// server-sent event feed enabled application-wide arrived as one packet, after the last event,
+/// with an <c>ETag</c> on it. <c>IExecutionRequestHandlerInfo.StreamsResponse</c> is what the
+/// provider reads to leave those alone.
+/// </para>
 /// </summary>
 /// <remarks>
 /// No module attribute is generated for this class, so that <c>[ConditionalGet]</c> can be the
@@ -40,7 +47,8 @@ public partial class ConditionalGet : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         services.AddGlobalFilter(
             new ConditionalGetAttribute(),
-            when: handlerInfo => !ConditionalGetAttribute.Declares(handlerInfo));
+            when: handlerInfo =>
+                !ConditionalGetAttribute.Declares(handlerInfo) && !handlerInfo.StreamsResponse);
     }
 
     /// <summary>

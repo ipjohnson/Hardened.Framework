@@ -18,7 +18,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         IReadOnlyList<string>? producedContentTypes = null,
         string? bodyParameterName = null,
         int? validationErrorStatus = null,
-        TimeoutPolicy? timeout = null) {
+        TimeoutPolicy? timeout = null,
+        bool streamsResponse = false) {
         Path = path;
         Method = method;
         HandlerType = handlerType;
@@ -32,6 +33,7 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         BodyParameterName = bodyParameterName;
         ValidationErrorStatus = validationErrorStatus;
         Timeout = timeout ?? IExecutionRequestHandlerInfo.TimeoutFrom(Metadata);
+        StreamsResponse = streamsResponse;
     }
 
     /// <summary>
@@ -74,7 +76,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
             source.ProducedContentTypes,
             source.BodyParameterName,
             source.ValidationErrorStatus,
-            timeout ?? source.Timeout) { }
+            timeout ?? source.Timeout,
+            source.StreamsResponse) { }
 
     public string Path { get; }
 
@@ -109,6 +112,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
 
     /// <inheritdoc />
     public int? ValidationErrorStatus { get; }
+
+    /// <inheritdoc />
+    public bool StreamsResponse { get; }
 
     /// <inheritdoc />
     /// <remarks>

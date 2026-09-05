@@ -341,7 +341,7 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public class ExecutionRequestHandlerInfo : Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo
     {
-        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null, string? bodyParameterName = null, int? validationErrorStatus = default, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout = null) { }
+        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null, string? bodyParameterName = null, int? validationErrorStatus = default, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout = null, bool streamsResponse = false) { }
         public string? BodyParameterName { get; }
         public System.Type HandlerType { get; }
         public string InvokeMethod { get; }
@@ -352,6 +352,7 @@ namespace Hardened.Requests.Runtime.Execution
         public string Path { get; }
         public System.Collections.Generic.IReadOnlyList<string> ProducedContentTypes { get; }
         public Hardened.Requests.Abstract.Authorization.Requirement? Requirement { get; }
+        public bool StreamsResponse { get; }
         public int? SuccessStatus { get; }
         public Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Timeout { get; }
         public int? ValidationErrorStatus { get; }
@@ -635,8 +636,13 @@ namespace Hardened.Requests.Runtime.Logging
         protected void LogRequestFinished(string httpMethod, string path, int? statusCode, System.TimeSpan durationMs) { }
         [Microsoft.Extensions.Logging.LoggerMessage(EventId=78001, Level=Microsoft.Extensions.Logging.LogLevel.Information, Message="{httpMethod} {path} mapped to {typeName}.{methodName}")]
         protected void LogRequestMapped(string httpMethod, string path, string typeName, string methodName) { }
+        [Microsoft.Extensions.Logging.LoggerMessage(EventId=78004, Level=Microsoft.Extensions.Logging.LogLevel.Warning, Message="{httpMethod} {path} refused with {statusCode}: {reason}")]
+        protected void LogRequestRefused(string httpMethod, string path, int statusCode, string reason) { }
         [Microsoft.Extensions.Logging.LoggerMessage(EventId=78000, Level=Microsoft.Extensions.Logging.LogLevel.Information, Message="{httpMethod} {path} started")]
         protected void LogRequestStarted(string httpMethod, string path) { }
+        [Microsoft.Extensions.Logging.LoggerMessage(EventId=78005, Level=Microsoft.Extensions.Logging.LogLevel.Warning, Message="{httpMethod} {path} did not finish inside its {milliseconds} ms budget, answered " +
+            "{statusCode}")]
+        protected void LogRequestTimedOut(string httpMethod, string path, int milliseconds, int statusCode) { }
         [Microsoft.Extensions.Logging.LoggerMessage(EventId=78003, Level=Microsoft.Extensions.Logging.LogLevel.Information, Message="{httpMethod} {path} Resource Not Found")]
         protected void LogResourceNotFound(string httpMethod, string path) { }
         public void RequestBegin(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
@@ -877,7 +883,7 @@ namespace Hardened.Requests.Runtime.Serializer
         "stead.")]
     public class SystemTextJsonRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
     {
-        public SystemTextJsonRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.SystemTextJsonRequestDeserializer> logger, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
+        public SystemTextJsonRequestDeserializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
         public bool IsDefaultSerializer { get; }
         public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
