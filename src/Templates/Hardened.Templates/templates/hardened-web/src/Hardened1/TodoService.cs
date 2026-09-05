@@ -29,16 +29,13 @@ public class TodoService : ITodosService {
         _store = store;
     }
 
-    // The one thing the two contract languages do not agree on. An OpenAPI description declares a
-    // shared Problem schema for every error; a Smithy model declares a named @error structure per
-    // failure. The signatures either produces are identical, so isolating the body here keeps every
-    // call site below the same in both.
+#if (throwsMode)
+    // The body a thrown error carries. An OpenAPI description declares a shared Problem schema for
+    // every error; a Smithy model declares a named @error structure per failure. Only the throw
+    // below builds one by hand - a returned case is built by the conversion the build writes.
 #if (openapi)
     private static Problem NotFoundBody(string detail) =>
         new() { Type = "about:blank", Title = "Not Found", Status = 404, Detail = detail };
-
-    private static Problem ConflictBody(string detail) =>
-        new() { Type = "about:blank", Title = "Conflict", Status = 409, Detail = detail };
 #endif
 #if (smithy)
     private static TodoNotFound NotFoundBody(string message) => new(message);
@@ -46,30 +43,7 @@ public class TodoService : ITodosService {
     private static TodoTitleTaken ConflictBody(string message) => new(message);
 #endif
 
-    // And the type that carries the body to the wire, which is where the languages diverge again.
-    //
-    // An anonymous OpenAPI error binds to the record the framework already ships for its status -
-    // NotFound<Problem>, Conflict<Problem> - so the build generates nothing for it and the same
-    // type serves a code-first handler. A Smithy error is a named shape, so the build generates one
-    // type named for the shape and every operation binding it uses that one. Neither is named after
-    // an operation, which is why adding a second operation with the same 404 adds no type.
-#if (declaredMode)
-#if (openapi)
-    private static NotFound<Problem> NotFoundCase(string detail) => new(NotFoundBody(detail));
 #endif
-#if (smithy)
-    private static TodoNotFoundError NotFoundCase(string message) => new(NotFoundBody(message));
-#endif
-#endif
-#if (openapi)
-    private static Conflict<Problem> ConflictCase(string detail) => new(ConflictBody(detail));
-#endif
-#if (smithy)
-#if (declaredMode)
-    private static TodoTitleTakenError ConflictCase(string message) => new(ConflictBody(message));
-#endif
-#endif
-
     /// <summary>
     /// Every todo, as the array the contract declares.
     /// </summary>
@@ -112,8 +86,11 @@ public class TodoService : ITodosService {
     /// </remarks>
     public Task<CreateTodoResponse> CreateTodo(NewTodo body) {
         if (_store.TitleExists(body.Title)) {
+            // The framework's own Conflict, converted by the build into the case the contract
+            // declares: its Problem, with type, title and status filled from the record and the
+            // detail from here.
             return Task.FromResult<CreateTodoResponse>(
-                ConflictCase($"A todo titled '{body.Title}' already exists."));
+                new Conflict($"A todo titled '{body.Title}' already exists."));
         }
 
         var created = _store.Add(body.Title);
@@ -164,23 +141,48 @@ public class TodoService : ITodosService {
     /// The build generated one case per declared response and a container that holds exactly one of
     /// them, so there is no null to interpret and no exception to remember. Returning the wrong
     /// status for this operation is a compile error rather than a wrong answer.
+    ///
+    /// The 404 is the framework's own NotFound. The build wrote the conversion into the case the
+    /// contract declares - the declared body with type, title and status filled from the record and
+    /// the detail from here - so a handler says why and nothing else. NotFound.Default is the same
+    /// answer with a generic detail, shared, for a handler with nothing to add.
     /// </remarks>
-    public Task<GetTodoResponse> GetTodo(int id) {
-        var todo = _store.Find(id);
-
-        if (todo is null) {
-            return Task.FromResult<GetTodoResponse>(
-                NotFoundCase($"No todo has id {id}."));
-        }
-
-        return Task.FromResult<GetTodoResponse>(todo);
-    }
+#if (responseMode)
+    public Task<GetTodoResponse> GetTodo(int id) =>
+        Task.FromResult<GetTodoResponse>(
+            _store.Find(id) is { } todo ? todo : new NotFound("todo", $"No todo has id {id}."));
+#else
+    // A union is declared without a body, so the conversion the response model gets cannot be
+    // written on it. The Problems holder is the method that conversion calls - named for the
+    // contract file under OpenAPI and for the module under Smithy - and calling it here is the
+    // same one line.
+    public Task<GetTodoResponse> GetTodo(int id) =>
+        Task.FromResult<GetTodoResponse>(
+            _store.Find(id) is { } todo
+                ? todo
+#if (openapi)
+                : TodosProblems.NotFoundProblem(new NotFound("todo", $"No todo has id {id}.")));
+#endif
+#if (smithy)
+                : TemplateModuleNameProblems.NotFoundTodoNotFound(new NotFound("todo", $"No todo has id {id}.")));
+#endif
+#endif
 
     /// <summary>201 with the new todo, or 409.</summary>
     public Task<CreateTodoResponse> CreateTodo(NewTodo body) {
         if (_store.TitleExists(body.Title)) {
+#if (responseMode)
             return Task.FromResult<CreateTodoResponse>(
-                ConflictCase($"A todo titled '{body.Title}' already exists."));
+                new Conflict($"A todo titled '{body.Title}' already exists."));
+#endif
+#if (unionMode && openapi)
+            return Task.FromResult<CreateTodoResponse>(
+                TodosProblems.ConflictProblem(new Conflict($"A todo titled '{body.Title}' already exists.")));
+#endif
+#if (unionMode && smithy)
+            return Task.FromResult<CreateTodoResponse>(
+                TemplateModuleNameProblems.ConflictTodoTitleTaken(new Conflict($"A todo titled '{body.Title}' already exists.")));
+#endif
         }
 
         var created = _store.Add(body.Title);
@@ -204,13 +206,18 @@ public class TodoService : ITodosService {
     /// nothing. Before that existed this operation's response set held only the 404 and there was
     /// no way to say it had worked.
     /// </remarks>
-    public Task<RemoveTodoResponse> RemoveTodo(int id) {
-        if (!_store.Remove(id)) {
-            return Task.FromResult<RemoveTodoResponse>(
-                NotFoundCase($"No todo has id {id}."));
-        }
-
-        return Task.FromResult<RemoveTodoResponse>(new RemoveTodoNoContent());
-    }
+    public Task<RemoveTodoResponse> RemoveTodo(int id) =>
+        Task.FromResult<RemoveTodoResponse>(
+            _store.Remove(id)
+                ? new RemoveTodoNoContent()
+#if (responseMode)
+                : new NotFound("todo", $"No todo has id {id}."));
+#endif
+#if (unionMode && openapi)
+                : TodosProblems.NotFoundProblem(new NotFound("todo", $"No todo has id {id}.")));
+#endif
+#if (unionMode && smithy)
+                : TemplateModuleNameProblems.NotFoundTodoNotFound(new NotFound("todo", $"No todo has id {id}.")));
+#endif
 #endif
 }

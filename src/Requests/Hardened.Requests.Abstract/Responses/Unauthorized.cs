@@ -26,6 +26,12 @@ namespace Hardened.Requests.Abstract.Responses;
 public sealed record Unauthorized(string? Detail = null, AuthorizationChallenge? Challenge = null)
     : IHttpStatusResponse, IProvidesResponseHeaders, IDeclaresStatus {
 
+    /// <summary>
+    /// The Unauthorized with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly Unauthorized Default = new("Authentication is required.");
+
     public string Type => ProblemTypes.Unauthorized;
 
     public string Title => "Unauthorized";

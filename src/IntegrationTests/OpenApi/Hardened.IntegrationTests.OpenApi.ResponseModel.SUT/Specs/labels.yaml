@@ -98,3 +98,5 @@ components:
         status:
           type: integer
           format: int32
+        detail:
+          type: string

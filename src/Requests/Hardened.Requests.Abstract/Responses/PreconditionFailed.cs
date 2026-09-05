@@ -13,6 +13,12 @@ namespace Hardened.Requests.Abstract.Responses;
 public sealed record PreconditionFailed(string? Detail = null)
     : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The PreconditionFailed with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly PreconditionFailed Default = new("A precondition on the request did not hold.");
+
     public string Type => ProblemTypes.PreconditionFailed;
 
     public string Title => "Precondition Failed";

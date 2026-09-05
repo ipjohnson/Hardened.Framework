@@ -65,9 +65,10 @@ public class DeclaredStatusTests {
     /// And carries the body the document declared for it, rather than nothing.
     /// </summary>
     /// <remarks>
-    /// The status and its reason phrase are facts about the response - RFC 7807 defines
-    /// <c>status</c> as the HTTP status code, so filling it is conformance. Nothing else is filled,
-    /// because nothing else could be without inventing a domain value.
+    /// The status, its reason phrase and its problem type are facts about the response - RFC 7807
+    /// defines <c>status</c> as the HTTP status code, so filling it is conformance, and the type is
+    /// the same URI a code-first handler's <c>NotFound</c> sends. Nothing else is filled, because
+    /// nothing else could be without inventing a domain value.
     /// </remarks>
     [HardenedTest]
     public async Task GetPet_CarriesTheDeclaredProblemBodyOnTheNotFound(ITestWebApp testWebApp) {
@@ -78,7 +79,7 @@ public class DeclaredStatusTests {
         Assert.NotNull(problem);
         Assert.Equal(404, problem.Status);
         Assert.Equal("Not Found", problem.Title);
-        Assert.Equal("about:blank", problem.Type);
+        Assert.Equal(Hardened.Requests.Abstract.Responses.ProblemTypes.NotFound, problem.Type);
     }
 
     /// <summary>

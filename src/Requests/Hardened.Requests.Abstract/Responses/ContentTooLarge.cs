@@ -18,6 +18,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(413)]
 public sealed record ContentTooLarge(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The ContentTooLarge with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly ContentTooLarge Default = new("The request body is too large.");
+
     public string Type => ProblemTypes.ContentTooLarge;
 
     public string Title => "Content Too Large";

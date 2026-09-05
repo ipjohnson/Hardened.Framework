@@ -21,6 +21,12 @@ namespace Hardened.Requests.Abstract.Responses;
 public sealed record InternalServerError(string? Detail = null)
     : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The InternalServerError with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly InternalServerError Default = new("An unexpected error occurred.");
+
     public string Type => ProblemTypes.InternalServerError;
 
     public string Title => "Internal Server Error";

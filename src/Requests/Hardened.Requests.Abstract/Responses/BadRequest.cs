@@ -20,6 +20,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(400)]
 public sealed record BadRequest(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The BadRequest with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly BadRequest Default = new("The request could not be understood.");
+
     public string Type => ProblemTypes.BadRequest;
 
     public string Title => "Bad Request";

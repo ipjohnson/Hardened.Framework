@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Primitives;
 
+using Hardened.Requests.Abstract.Responses;
+
 namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 
 /// <summary>
@@ -44,8 +46,12 @@ public class ScalarSuccessBodyTests {
 
         var problem = response.Deserialize<Problem>();
 
-        Assert.Equal("No such label", problem!.Title);
+        // The handler returned the framework's NotFound; the conversion the build wrote filled the
+        // contract's Problem from it, title and status from the record and the detail from the
+        // handler.
+        Assert.Equal("Not Found", problem!.Title);
         Assert.Equal(404, problem.Status);
+        Assert.Equal("No such label", problem.Detail);
     }
 
     /// <summary>
@@ -82,7 +88,9 @@ public class ScalarSuccessBodyTests {
 
         var problem = response.Deserialize<Problem>();
 
+        // NotFound.Default, converted to the cached case: the generic detail, and the status.
         Assert.Equal(404, problem!.Status);
+        Assert.Equal(NotFound.Default.Detail, problem.Detail);
     }
 
     private static async Task<string> Body(TestWebResponse response) {

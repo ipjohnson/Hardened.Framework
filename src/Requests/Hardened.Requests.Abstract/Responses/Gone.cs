@@ -11,6 +11,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(410)]
 public sealed record Gone(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The Gone with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly Gone Default = new("The resource is no longer available.");
+
     public string Type => ProblemTypes.Gone;
 
     public string Title => "Gone";

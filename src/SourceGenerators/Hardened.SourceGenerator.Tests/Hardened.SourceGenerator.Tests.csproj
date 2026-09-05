@@ -55,4 +55,18 @@
         <None Include="Web/Fixtures/**/*.cs"/>
     </ItemGroup>
 
+    <!--
+        The shared generation rules are compiled into this generator as source, so they are this
+        assembly's code as much as the build tasks', and the tests that hold them are linked in
+        from the OpenAPI build task's project the way the Smithy build task links its emitter tests.
+    -->
+    <ItemGroup>
+        <Compile Include="../Hardened.OpenApi.BuildTask.Tests/DefaultErrorBodyTests.cs"
+                 Link="Shared/DefaultErrorBodyTests.cs"/>
+        <Compile Include="../Hardened.OpenApi.BuildTask.Tests/ShippedResponsesTests.cs"
+                 Link="Shared/ShippedResponsesTests.cs"/>
+        <Compile Include="../Hardened.OpenApi.BuildTask.Tests/ProblemConversionRuleTests.cs"
+                 Link="Shared/ProblemConversionRuleTests.cs"/>
+    </ItemGroup>
+
 </Project>

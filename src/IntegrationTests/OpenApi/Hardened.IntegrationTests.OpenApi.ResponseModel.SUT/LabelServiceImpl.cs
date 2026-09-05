@@ -19,10 +19,14 @@ namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT;
 [Handler]
 public class LabelServiceImpl : ILabelService {
 
+    /// <summary>
+    /// The 404 is the framework's own record. The build wrote the conversion into the case the
+    /// contract declares, NotFound&lt;Problem&gt;, with the Problem's title and status filled from
+    /// the record and the detail from here.
+    /// </summary>
     public Task<GetLabelResponse> GetLabel(string labelId) {
         if (labelId == "missing") {
-            return Task.FromResult<GetLabelResponse>(
-                new NotFound<Problem>(new Problem { Title = "No such label", Status = 404 }));
+            return Task.FromResult<GetLabelResponse>(new NotFound("label", "No such label"));
         }
 
         return Task.FromResult<GetLabelResponse>(new GetLabelOk($"Label {labelId}"));
@@ -32,10 +36,10 @@ public class LabelServiceImpl : ILabelService {
         return Task.FromResult<CreateLabelResponse>(body);
     }
 
+    /// <summary>The shared instance, for a handler with nothing to add: no allocation for the 404.</summary>
     public Task<ArchiveLabelResponse> ArchiveLabel(string labelId) {
         if (labelId == "missing") {
-            return Task.FromResult<ArchiveLabelResponse>(
-                new NotFound<Problem>(new Problem { Title = "No such label", Status = 404 }));
+            return Task.FromResult<ArchiveLabelResponse>(NotFound.Default);
         }
 
         return Task.FromResult<ArchiveLabelResponse>(new ArchiveLabelNoContent());

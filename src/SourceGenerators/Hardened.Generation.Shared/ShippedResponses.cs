@@ -181,6 +181,45 @@ internal static class ShippedResponses {
     }
 
     /// <summary>The bare shipped record for a status, or null.</summary>
+    /// <summary>
+    /// Whether the bare record for the status carries <c>Type</c>, <c>Title</c> and <c>Detail</c>,
+    /// which every problem-kind record does and <c>MethodNotAllowed</c> and <c>NotAcceptable</c>
+    /// do not.
+    /// </summary>
+    public static bool HasProblemMembers(int statusCode) =>
+        GenericForm(statusCode) != null && statusCode != 405 && statusCode != 406;
+
+    /// <summary>
+    /// The <c>ProblemTypes</c> constant naming the status's problem kind, or null where the
+    /// framework declares none. The constant is named after the record.
+    /// </summary>
+    public static string? ProblemType(int statusCode) =>
+        HasProblemMembers(statusCode) ? GenericForm(statusCode) : null;
+
+    /// <summary>
+    /// Whether the bare record for the status has a <c>Default</c> instance - one built with a
+    /// generic message and nothing a caller would have to supply. <c>RateLimited</c> needs a delay
+    /// and <c>MethodNotAllowed</c> an <c>Allow</c>, so neither has one; <c>NotAcceptable</c> carries
+    /// no message to be generic about.
+    /// </summary>
+    public static bool HasDefaultInstance(int statusCode) =>
+        HasProblemMembers(statusCode) && statusCode != 429;
+
+    /// <summary>
+    /// The generic form's constructor arguments, from the body a bare record converts into and
+    /// the record itself. Four records carry a header the generic form takes beside the body, in
+    /// the order that form declares.
+    /// </summary>
+    public static string GenericArguments(int statusCode, string body, string record) {
+        switch (statusCode) {
+            case 401: return body + ", " + record + ".Challenge";
+            case 405: return body + ", " + record + ".Allow";
+            case 429: return record + ".RetryAfter, " + body;
+            case 503: return body + ", " + record + ".After";
+            default: return body;
+        }
+    }
+
     public static string? BareForm(int statusCode) =>
         statusCode == 304 ? "NotModified"
             : statusCode == 406 ? "NotAcceptable"

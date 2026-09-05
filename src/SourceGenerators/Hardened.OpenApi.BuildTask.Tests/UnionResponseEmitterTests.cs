@@ -70,6 +70,25 @@ public class UnionResponseEmitterTests {
             EmitterHarness.ModelsNamespace,
             asLanguageUnion));
 
+    /// <summary>The same, with the schemas the errors' bodies resolve against, which is what the shorthand needs.</summary>
+    private static string EmitWithSchemas(IReadOnlyList<SchemaModel> schemas, params OperationModel[] operations) =>
+        EmitterHarness.Write(ns => UnionResponseEmitter.Emit(
+            ns,
+            new ServiceModel { Tag = "pets", Operations = new List<OperationModel>(operations) },
+            EmitterHarness.ModelsNamespace,
+            schemas: schemas,
+            specFileName: "petstore"));
+
+    private static SchemaModel ProblemSchema(string name) {
+        var schema = new SchemaModel { Name = name, Kind = SchemaKind.Object };
+
+        schema.Properties.Add(new PropertyModel { Name = "title", Type = "string" });
+        schema.Properties.Add(new PropertyModel { Name = "status", Type = "integer" });
+        schema.Properties.Add(new PropertyModel { Name = "detail", Type = "string" });
+
+        return schema;
+    }
+
     #region the case types
 
     /// <summary>
@@ -239,6 +258,43 @@ public class UnionResponseEmitterTests {
         Assert.Contains(
             $"implicit operator GetPetResponse({Shipped("NotFound")}<Test.Api.Models.ApiError> value)",
             emitted);
+    }
+
+    /// <summary>
+    /// The shorthand: the bare shipped record converts too, through the holder that fills the
+    /// contract's body from it, so a handler returns <c>new NotFound("pet", "...")</c>.
+    /// </summary>
+    [Fact]
+    public void TheContainerConvertsFromTheBareRecordWhereTheBodyCanBeFilled() {
+        var emitted = EmitWithSchemas(
+            [ProblemSchema("ApiError")], Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+
+        Assert.Contains(
+            $"public static implicit operator GetPetResponse({Shipped("NotFound")} value) => " +
+            "new(global::Test.Api.Models.PetstoreProblems.NotFoundApiError(value));",
+            emitted);
+    }
+
+    /// <summary>
+    /// A body the record's facts have no members in gets no shorthand, so the wrong shape is a
+    /// compile error rather than a body with nothing in it.
+    /// </summary>
+    [Fact]
+    public void ABodyThatIsNotProblemShapedGetsNoShorthand() {
+        var plain = new SchemaModel { Name = "ApiError", Kind = SchemaKind.Object };
+        plain.Properties.Add(new PropertyModel { Name = "message", Type = "string" });
+
+        var emitted = EmitWithSchemas([plain], Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+
+        Assert.DoesNotContain($"operator GetPetResponse({Shipped("NotFound")} value)", emitted);
+    }
+
+    /// <summary>Without the schemas there is no way to tell, and nothing is written.</summary>
+    [Fact]
+    public void WithoutSchemasNoShorthandIsWritten() {
+        var emitted = Emit(Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+
+        Assert.DoesNotContain("PetstoreProblems", emitted);
     }
 
     /// <summary>

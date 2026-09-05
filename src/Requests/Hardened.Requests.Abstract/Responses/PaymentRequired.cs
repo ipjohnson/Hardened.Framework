@@ -18,6 +18,12 @@ namespace Hardened.Requests.Abstract.Responses;
 [HttpStatus(402)]
 public sealed record PaymentRequired(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
 
+    /// <summary>
+    /// The PaymentRequired with a generic message, for a handler with nothing more to say than the status.
+    /// Shared, so returning it allocates nothing.
+    /// </summary>
+    public static readonly PaymentRequired Default = new("Payment is required.");
+
     public string Type => ProblemTypes.PaymentRequired;
 
     public string Title => "Payment Required";

@@ -246,6 +246,9 @@ internal static class NameAllocator {
             // non-generic static class, so unlike the wrappers below it has nowhere else to go.
             file + "Errors",
 
+            // The static class the conversions from a bare record call into, for the same reason.
+            file + "Problems",
+
             // Exactly the names the type mapper resolves by spelling - no more. It looks a type up
             // by its rendered name, so a schema called DateTime became System.DateTime everywhere
             // it was referenced; Zoom declares one, and it is a date range with `from` and `to`,
