@@ -45,7 +45,7 @@
                                 <ModulePath>.*Hardened\..*\.dll$</ModulePath>
                             </Include>
                             <Exclude>
-                                <ModulePath>.*\.Tests\.dll$</ModulePath>
+                                <ModulePath>.*\.(Tests|NUnitTests)\.dll$</ModulePath>
                                 <ModulePath>.*\.SUT\.dll$</ModulePath>
                                 <!-- The Kiota client generated over the Web integration
                                      application: Kiota's code, compiled by a test fixture. -->
