@@ -208,11 +208,7 @@ public async Task GetTodo_ReturnsTheTodo(TemplateModuleNameClient client) {
     var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
 #else
 public async Task GetTodo_ReturnsTheTodo(ITemplateModuleNameClient client) {
-#if (codeFirst)
-    var todo = await client.ById(1).Returns<Ok<ClientModels.Todo>>();
-#else
     var todo = await client.GetTodo(1).Returns<Ok<ClientModels.Todo>>();
-#endif
 #endif
 
 #if (xunit)
@@ -338,26 +334,6 @@ envelope that carries a status and its headers back beside the body, and the mod
 `[assembly: RefitTesting]` in `Bootstrap.cs` is the whole of the wiring - and each call is asserted
 with `Returns<T>()`, naming the response type the contract declares:
 
-#if (codeFirst)
-```csharp
-var created = await client.Create(new ClientModels.NewTodo { Title = "ship it" })
-    .Returns<Created<ClientModels.Todo>>();
-
-#if (xunit)
-Assert.Equal($"/todos/{created.Value.Id}", created.Location);
-#else
-Assert.That(created.Location, Is.EqualTo($"/todos/{created.Value.Id}"));
-#endif
-
-var missing = await client.ById(9999).Returns<NotFound<ClientModels.NotFound>>();
-
-#if (xunit)
-Assert.Contains("9999", missing.Body.Detail);
-#else
-Assert.That(missing.Body.Detail, Does.Contain("9999"));
-#endif
-```
-#else
 ```csharp
 var created = await client.CreateTodo(new ClientModels.NewTodo { Title = "ship it" })
     .Returns<Created<ClientModels.Todo>>();
@@ -368,7 +344,11 @@ Assert.Equal($"/todos/{created.Value.Id}", created.Location);
 Assert.That(created.Location, Is.EqualTo($"/todos/{created.Value.Id}"));
 #endif
 
+#if (codeFirst)
+var missing = await client.GetTodo(9999).Returns<NotFound<ClientModels.NotFound>>();
+#else
 var missing = await client.GetTodo(9999).Returns<NotFound<ClientModels.Problem>>();
+#endif
 
 #if (xunit)
 Assert.Contains("9999", missing.Body.Detail);
@@ -376,7 +356,6 @@ Assert.Contains("9999", missing.Body.Detail);
 Assert.That(missing.Body.Detail, Does.Contain("9999"));
 #endif
 ```
-#endif
 
 That is the status, the body type and the headers the status carries in one word, and nothing
 throws: Refit hands the whole answer back on the envelope, and a refusal's body is read as the

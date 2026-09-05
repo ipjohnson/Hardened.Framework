@@ -59,6 +59,7 @@ public class RequestHandlerModel {
             RequestSchema = RequestSchema,
             Tag = Tag,
             TagDescription = TagDescription,
+            OperationId = OperationId,
             Summary = Summary,
             Description = Description,
             IsDeprecated = IsDeprecated,
@@ -170,6 +171,13 @@ public class RequestHandlerModel {
 
     /// <summary>The request body's JSON Schema, on the same terms.</summary>
     public HandlerSchema? RequestSchema { get; set; }
+
+    /// <summary>
+    /// The <c>operationId</c> the handler declared with <c>[Operation]</c>, or the one its
+    /// description gave it. Null means the default derivation applies - see
+    /// <c>OpenApiDocumentGenerator.OperationIds</c>.
+    /// </summary>
+    public string? OperationId { get; set; }
 
     /// <summary>
     /// The OpenAPI tag this operation is grouped under, when the controller declared one with
@@ -341,6 +349,10 @@ public class RequestHandlerModel {
             return false;
         }
 
+        if (!string.Equals(OperationId, requestHandlerModel.OperationId, StringComparison.Ordinal)) {
+            return false;
+        }
+
         if (!string.Equals(
                 TagDescription, requestHandlerModel.TagDescription, StringComparison.Ordinal)) {
             return false;
@@ -439,6 +451,7 @@ public class RequestHandlerModel {
             hashCode = (hashCode * 397) ^ ResponseSchemas.GetHashCodeAggregation();
             hashCode = (hashCode * 397) ^ Filters.GetHashCodeAggregation();
             hashCode = (hashCode * 397) ^ (Tag?.GetHashCode() ?? 0);
+            hashCode = (hashCode * 397) ^ (OperationId?.GetHashCode() ?? 0);
             hashCode = (hashCode * 397) ^ (Summary?.GetHashCode() ?? 0);
             hashCode = (hashCode * 397) ^ (Description?.GetHashCode() ?? 0);
             hashCode = (hashCode * 397) ^ IsDeprecated.GetHashCode();

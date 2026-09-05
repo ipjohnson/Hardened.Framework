@@ -218,6 +218,7 @@ internal static class SpecHandlerModelBuilder {
             // What the operation says about itself. Carried here rather than left to each caller,
             // because a handler model that has lost its summary cannot be told from one whose
             // operation never had a summary - and the document written from it is silently poorer.
+            OperationId = operation.OperationId,
             Tag = operation.Tag,
             TagDescription = tagDescription,
             Summary = operation.Summary,

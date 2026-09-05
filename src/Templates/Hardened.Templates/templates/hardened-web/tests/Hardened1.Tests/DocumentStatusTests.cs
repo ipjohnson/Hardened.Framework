@@ -18,25 +18,17 @@ namespace Hardened1.Tests;
 public class DocumentStatusTests {
 
     private static readonly Dictionary<string, string[]> Expected = new() {
-#if (codeFirst)
-#if (throwsMode)
+#if (codeFirst && throwsMode)
         // Throws mode documents what the signature declares. The thrown NotFound and Conflict
         // answer at runtime and are invisible here - the declared models close exactly that gap.
+        // The 400s stay: the id and the title are constrained, so binding either can refuse.
         ["GET /todos"] = ["200"],
         ["GET /todos/{id}"] = ["200", "400"],
-        ["POST /todos"] = ["200"],
+        ["POST /todos"] = ["200", "400"],
         ["DELETE /todos/{id}"] = ["200", "400"],
-#endif
-#if (declaredMode)
-        ["GET /todos"] = ["200"],
-        ["GET /todos/{id}"] = ["200", "400", "404"],
-        ["POST /todos"] = ["201", "409"],
-        ["DELETE /todos/{id}"] = ["204", "400", "404"],
-#endif
-#endif
-#if (specFirst)
-        // The contract's statuses, plus the 400 the generated validation answers: the contract
-        // constrains the id and the title, so every operation binding either can refuse.
+#else
+        // The declared statuses, plus the 400 the generated validation answers: the id and the
+        // title are constrained, so every operation binding either can refuse.
         ["GET /todos"] = ["200"],
         ["GET /todos/{id}"] = ["200", "400", "404"],
         ["POST /todos"] = ["201", "400", "409"],

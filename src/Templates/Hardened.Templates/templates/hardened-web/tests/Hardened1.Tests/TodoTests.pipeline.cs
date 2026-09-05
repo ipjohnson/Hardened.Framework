@@ -123,16 +123,15 @@ public class TodoTests {
 #endif
     }
 #endif
-#if (specFirst)
     /// <summary>
-    /// The constraints in the contract are enforced before the handler runs.
+    /// The constraints on the request are enforced before the handler runs.
     /// </summary>
     /// <remarks>
-    /// Nothing in this project validates anything. maxLength on the title became a filter in front
-    /// of the generated handler, so a value too long never reaches the code.
+    /// Nothing in this project validates anything by hand. The title's length limit became a filter
+    /// in front of the handler, so a value too long never reaches the code.
     /// </remarks>
     [HardenedTest]
-    public async Task AValueTheContractDisallowsIsRejected(ITestWebApp app) {
+    public async Task ATitleOverItsLimitIsRejected(ITestWebApp app) {
         var response = await app.Post(new NewTodoRequest(new string('x', 100)), "/todos");
 
 #if (xunit)
@@ -147,7 +146,7 @@ public class TodoTests {
     /// document says so, which DocumentStatusTests holds it to.
     /// </summary>
     [HardenedTest]
-    public async Task GetTodo_IdBelowTheContractsMinimum_IsBadRequest(ITestWebApp app) {
+    public async Task GetTodo_IdBelowItsMinimum_IsBadRequest(ITestWebApp app) {
 #if (xunit)
         Assert.Equal(400, (await app.Get("/todos/0")).StatusCode);
 #else
@@ -156,15 +155,13 @@ public class TodoTests {
     }
 
     [HardenedTest]
-    public async Task RemoveTodo_IdBelowTheContractsMinimum_IsBadRequest(ITestWebApp app) {
+    public async Task RemoveTodo_IdBelowItsMinimum_IsBadRequest(ITestWebApp app) {
 #if (xunit)
         Assert.Equal(400, (await app.Delete("/todos/0")).StatusCode);
 #else
         Assert.That((await app.Delete("/todos/0")).StatusCode, Is.EqualTo(400));
 #endif
     }
-#endif
-#if (codeFirst)
     /// <summary>
     /// An id the parameter's type cannot carry is refused before the handler, with the same
     /// field-level envelope a failed validation answers - and the published document says so,
@@ -187,5 +184,4 @@ public class TodoTests {
         Assert.That((await app.Delete("/todos/not-a-number")).StatusCode, Is.EqualTo(400));
 #endif
     }
-#endif
 }

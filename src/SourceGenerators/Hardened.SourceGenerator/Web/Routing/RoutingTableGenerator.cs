@@ -128,6 +128,8 @@ public static class RoutingTableGenerator {
         // Only for an entry point that asked. The document used to be emitted unconditionally on
         // the grounds that it cost one string, which understated it - see OpenApiDocumentSource -
         // and an application that does not serve one now does not carry one.
+        OpenApiDocumentDiagnostics.ReportDuplicateOperationIds(context, routable);
+
         if (OpenApiDocumentFeature.Path(models.Left) is { } documentPath) {
             // An empty document is the one outcome that looks like success from every angle: the
             // build is clean, the route answers 200, and the reference page renders an API with no

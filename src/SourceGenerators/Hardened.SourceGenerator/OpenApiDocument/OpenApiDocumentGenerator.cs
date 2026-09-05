@@ -929,12 +929,33 @@ public static class OpenApiDocumentGenerator {
     /// the id, so <c>getPet</c> comes back as <c>GetPet</c>. Round-tripping a document through the
     /// build task therefore recovers the method name it started as.
     /// </para>
+    /// <para>
+    /// <c>[Operation]</c> on the handler declares the id outright, and it is written as given: the
+    /// id is what a generated client names its method after, so a declared one holds the contract
+    /// still across a rename. A derived name that collides with a declared one is prefixed with
+    /// its tag, the same way two derived names are. Two declared ones colliding is
+    /// <c>HRDOA004</c>, reported where the handlers are collected.
+    /// </para>
     /// </remarks>
     private static IReadOnlyDictionary<string, string> OperationIds(
         IReadOnlyList<RequestHandlerModel> handlers) {
+        var ids = new Dictionary<string, string>(System.StringComparer.Ordinal);
+        var declared = new HashSet<string>(System.StringComparer.Ordinal);
+
+        foreach (var handler in handlers) {
+            if (handler.OperationId != null) {
+                ids[HandlerKey(handler)] = handler.OperationId;
+                declared.Add(handler.OperationId);
+            }
+        }
+
         var byName = new Dictionary<string, List<RequestHandlerModel>>(System.StringComparer.Ordinal);
 
         foreach (var handler in handlers) {
+            if (handler.OperationId != null) {
+                continue;
+            }
+
             var name = CamelCase(handler.HandlerMethod);
 
             if (!byName.TryGetValue(name, out var sharing)) {
@@ -945,10 +966,8 @@ public static class OpenApiDocumentGenerator {
             sharing.Add(handler);
         }
 
-        var ids = new Dictionary<string, string>(System.StringComparer.Ordinal);
-
         foreach (var pair in byName) {
-            var contested = pair.Value.Count > 1;
+            var contested = pair.Value.Count > 1 || declared.Contains(pair.Key);
 
             foreach (var handler in pair.Value) {
                 ids[HandlerKey(handler)] = contested

@@ -25,6 +25,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         var controller = context.Node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
 
         model.Tag = GetTagFromController(context, controller, cancellationToken);
+        model.OperationId = GetOperationId(context, context.Node as MethodDeclarationSyntax);
 
         // What the document has to say about the operation beyond its shape, taken from where a
         // developer has already written it rather than from a second set of attributes.
@@ -66,6 +67,34 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     /// derive one from the class name. Read here rather than there because it needs the syntax
     /// tree, which is gone by the time a document is written.
     /// </summary>
+    /// <summary>
+    /// The id <c>[Operation]</c> declares on the method, or null where the document derives one
+    /// from the method name.
+    /// </summary>
+    private static string? GetOperationId(GeneratorSyntaxContext context, MethodDeclarationSyntax? method) {
+        var attribute = method?.AttributeLists
+            .SelectMany(list => list.Attributes)
+            .FirstOrDefault(candidate => {
+                var name = candidate.Name.ToString();
+                var simple = name.Substring(name.LastIndexOf('.') + 1);
+
+                return simple == "Operation" || simple == "OperationAttribute";
+            });
+
+        var argument = attribute?.ArgumentList?.Arguments.FirstOrDefault();
+
+        if (argument == null) {
+            return null;
+        }
+
+        var constant = context.SemanticModel.GetConstantValue(argument.Expression);
+        var id = constant.HasValue
+            ? constant.Value?.ToString()
+            : argument.Expression.ToString().Trim('"');
+
+        return string.IsNullOrWhiteSpace(id) ? null : id;
+    }
+
     private static string? GetTagFromController(
         GeneratorSyntaxContext context,
         ClassDeclarationSyntax? classDeclaration,

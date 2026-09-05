@@ -18,7 +18,7 @@
         "tags": [
           "Bank"
         ],
-        "operationId": "getBalance",
+        "operationId": "GetBalance",
         "requestBody": {
           "required": true,
           "content": {
@@ -56,7 +56,7 @@
         "tags": [
           "Bank"
         ],
-        "operationId": "transfer",
+        "operationId": "Transfer",
         "requestBody": {
           "required": true,
           "content": {
@@ -96,7 +96,7 @@
         "tags": [
           "PetStore"
         ],
-        "operationId": "listPets",
+        "operationId": "ListPets",
         "parameters": [
           {
             "name": "limit",
@@ -149,7 +149,7 @@
         "tags": [
           "PetStore"
         ],
-        "operationId": "createPet",
+        "operationId": "CreatePet",
         "requestBody": {
           "required": true,
           "content": {
@@ -207,7 +207,7 @@
         "tags": [
           "PetStore"
         ],
-        "operationId": "getSecuredPet",
+        "operationId": "GetSecuredPet",
         "description": "Requires an authenticated caller.",
         "security": [
           {
@@ -251,7 +251,7 @@
         "tags": [
           "PetStore"
         ],
-        "operationId": "getPet",
+        "operationId": "GetPet",
         "description": "Fetch one pet by id.",
         "parameters": [
           {

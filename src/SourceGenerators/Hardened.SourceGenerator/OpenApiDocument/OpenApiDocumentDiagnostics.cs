@@ -1,14 +1,66 @@
+using Hardened.SourceGenerator.Models.Request;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.OpenApiDocument;
 
 /// <summary>
-/// What <c>[Enable&lt;OpenApiDocumentPublishing&gt;]</c> reports when it cannot describe anything.
+/// What <c>[Enable&lt;OpenApiDocumentPublishing&gt;]</c> reports when it cannot describe anything,
+/// and what a handler's <c>[Operation]</c> reports when two of them name one operation.
 /// </summary>
 public static class OpenApiDocumentDiagnostics {
 
     /// <summary>The marker is on a module that declares no routes.</summary>
     public const string EmptyDocumentId = "HRDOA003";
+
+    /// <summary>Two handlers declare the same <c>[Operation]</c> id.</summary>
+    public const string DuplicateOperationIdId = "HRDOA004";
+
+    internal static DiagnosticDescriptor DuplicateOperationIdDescriptor() => new(
+        id: DuplicateOperationIdId,
+        title: "Two handlers declare the same operation id",
+        messageFormat:
+        "[Operation(\"{0}\")] is declared on {1}. An operationId names one operation in the " +
+        "document, so a client generated from it would have two methods with one name. Give " +
+        "each handler its own id.",
+        category: "Hardened.OpenApi",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    /// <summary>
+    /// Reports every id that more than one handler declared.
+    /// </summary>
+    /// <remarks>
+    /// Reported whether or not the module publishes a document: the id is a declaration on the
+    /// handler, and an exported document reads it the same way a served one does.
+    /// </remarks>
+    public static void ReportDuplicateOperationIds(
+        SourceProductionContext context, IReadOnlyList<RequestHandlerModel> handlers) {
+        var byId = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+        foreach (var handler in handlers) {
+            if (handler.OperationId == null) {
+                continue;
+            }
+
+            if (!byId.TryGetValue(handler.OperationId, out var declaredBy)) {
+                declaredBy = new List<string>();
+                byId[handler.OperationId] = declaredBy;
+            }
+
+            declaredBy.Add(handler.ControllerType.Name + "." + handler.HandlerMethod);
+        }
+
+        foreach (var pair in byId) {
+            if (pair.Value.Count > 1) {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        DuplicateOperationIdDescriptor(),
+                        Location.None,
+                        pair.Key,
+                        string.Join(" and ", pair.Value)));
+            }
+        }
+    }
 
     /// <summary>
     /// Built per call rather than held in a static field, for the reason
