@@ -399,7 +399,7 @@ error, with no `NoWarn`: there is no reading of zero that means anything else.
 | `HOAG020` | An operation declares a markup content type but names no view to render it. |
 | `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. The ones with an entry have a section above. |
 | `HRDOA001` | `<HardenedOpenApiVersion>` is not 3.0.0, 3.1.0 or 3.2.0. |
-| `HRDOA002` | Warning. A streamed response under a document version with no `itemSchema`; the operation is described without a schema. |
+| `HRDOA002` | Warning. A streamed response under a document version with no `itemSchema`; the operation is described as an array of the item under `schema`, so a client generated from the document reads a list rather than a stream. |
 | `HRDOA003` | Warning. `[Enable<OpenApiDocumentPublishing>]` sits on a module declaring no routes, so the document is empty. |
 | `HRDOA004` | Two handlers declare the same `[Operation]` id. An operationId names one operation, so give each handler its own. |
 | `HRDOA018`, `019`, `028`–`030` | The document export, reported under the code-first prefix. The numbers mean the same under `HOAT` and `HSMT`; see below. |
@@ -457,7 +457,7 @@ onward follows the model-diagnostics pass, since `025` is retired and stays so.
 | `019` | The project declares more than one served document - two modules enabling publishing in one compilation - and one output path cannot express both. Keep one, or move the other to a project of its own. |
 | `028` | The output path's extension names no format. Use `.json` for indented JSON, or `.yaml` or `.yml` for YAML. |
 | `029` | `<HardenedOpenApiOutputVersion>` is not `3.0.0` or `3.1.0`. Remove it to write the version the application serves. |
-| `030` | Warning. The file was lowered to a version with no `itemSchema`, and the named operation streams its response; the file describes it with its media type and no schema. Remove `<HardenedOpenApiOutputVersion>` to export the 3.2 document the application serves. Once per operation. |
+| `030` | Warning. The file was lowered to a version with no `itemSchema`, and the named operation streams its response; the file keeps the item type as an array under `schema`, so a client generated from it reads a list rather than a stream. Remove `<HardenedOpenApiOutputVersion>` to export the 3.2 document the application serves. Once per operation. |
 | `031` | Warning. The served document puts more than one operation at the named path under the same method, so the file repeats a key OpenAPI cannot tell apart: readers refuse it and no client can be generated from it. Once per path. |
 
 ```

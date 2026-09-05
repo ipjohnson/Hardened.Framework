@@ -3911,6 +3911,12 @@
             "description": "OK",
             "content": {
               "application/x-ndjson": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -3944,6 +3950,12 @@
             "description": "OK",
             "content": {
               "application/x-ndjson": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -3976,6 +3988,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4008,6 +4026,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4040,6 +4064,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4072,6 +4102,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4104,6 +4140,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4157,6 +4199,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4189,6 +4237,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4222,6 +4276,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4254,6 +4314,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4287,6 +4353,12 @@
             "description": "OK",
             "content": {
               "text/event-stream": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4319,6 +4391,12 @@
             "description": "OK",
             "content": {
               "application/x-ndjson": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4351,6 +4429,12 @@
             "description": "OK",
             "content": {
               "application/x-ndjson": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  }
+                },
                 "itemSchema": {
                   "$ref": "#/components/schemas/Measurement"
                 }
@@ -4393,6 +4477,12 @@
             "description": "OK",
             "content": {
               "application/x-ndjson": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
                 "itemSchema": {
                   "type": "string"
                 }

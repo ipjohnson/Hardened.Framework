@@ -178,10 +178,10 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
         if (version != null) {
             foreach (var operation in OpenApiDocumentLowering.Lower(document, version)) {
                 Log.LogWarning(null, prefix + StreamLostItemSchemaCode, null, ProjectFile(), 0, 0, 0, 0,
-                    $"'{operation}' streams its response, and OpenAPI {version} has no way to describe one - " +
-                    "itemSchema arrived in 3.2. The exported file describes the operation with its media type " +
-                    "and no schema. Remove <HardenedOpenApiOutputVersion> to export the 3.2 document the " +
-                    "application serves.");
+                    $"'{operation}' streams its response, and OpenAPI {version} has no itemSchema - it arrived " +
+                    "in 3.2. The exported file keeps the item type as an array under schema, so a client " +
+                    "generated from it reads a list rather than a stream. Remove <HardenedOpenApiOutputVersion> " +
+                    "to export the 3.2 document the application serves.");
             }
         }
 

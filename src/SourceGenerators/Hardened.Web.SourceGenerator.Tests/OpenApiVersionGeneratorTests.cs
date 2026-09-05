@@ -90,6 +90,57 @@ public class OpenApiVersionGeneratorTests {
     private static Diagnostic? Reported(GeneratorResult result, string id) =>
         result.GeneratorDiagnostics.FirstOrDefault(diagnostic => diagnostic.Id == id);
 
+    /// <summary>The media type object under the streamed operation's 200, whatever it is framed as.</summary>
+    private static JsonElement StreamedMediaType(GeneratorResult result) {
+        var source = result.GeneratedSources
+            .First(pair => pair.Key.Contains("OpenApiDocument")).Value;
+
+        using var document = JsonDocument.Parse(GeneratedOpenApiDocument.Extract(source));
+
+        var content = document.RootElement
+            .GetProperty("paths").GetProperty("/feed").GetProperty("get")
+            .GetProperty("responses").GetProperty("200").GetProperty("content");
+
+        return content.EnumerateObject().Single().Value.Clone();
+    }
+
+    /// <summary>
+    /// At 3.2 a streamed response is written twice over: the item under <c>itemSchema</c>, and the
+    /// complete content as an array of it under <c>schema</c>.
+    /// </summary>
+    /// <remarks>
+    /// Both, because OpenAPI 3.2 says both may be written and they answer different questions, and
+    /// because they have different readers. Refitter takes a stream's element type from
+    /// <c>schema</c> and never reads <c>itemSchema</c>; the specification-first reader in this
+    /// repository does the opposite. A document carrying only <c>itemSchema</c> gave Refitter
+    /// <c>IAsyncEnumerable&lt;object&gt;</c>.
+    /// </remarks>
+    [Fact]
+    public void AStreamedResponseCarriesTheItemAndTheArrayAtThreeTwo() {
+        var media = StreamedMediaType(Generate(StreamingHandler, "3.2.0"));
+
+        var item = media.GetProperty("itemSchema");
+        var whole = media.GetProperty("schema");
+
+        Assert.Equal("array", whole.GetProperty("type").GetString());
+        Assert.Equal(item.GetRawText(), whole.GetProperty("items").GetRawText());
+    }
+
+    /// <summary>
+    /// Below 3.2 the array stays and <c>itemSchema</c> goes, so a reader is told the item type and
+    /// that there are many, which is everything the version can say.
+    /// </summary>
+    [Theory]
+    [InlineData("3.0.0")]
+    [InlineData("3.1.0")]
+    public void AStreamedResponseKeepsTheArrayBelowThreeTwo(string version) {
+        var media = StreamedMediaType(Generate(StreamingHandler, version));
+
+        Assert.False(media.TryGetProperty("itemSchema", out _));
+        Assert.Equal("array", media.GetProperty("schema").GetProperty("type").GetString());
+        Assert.True(media.GetProperty("schema").TryGetProperty("items", out _));
+    }
+
     /// <summary>
     /// Unset emits the default, and the default is 3.2.0.
     /// </summary>
