@@ -39,13 +39,13 @@ public sealed class RefitClientRoute : ITestClientRoute, ITestClientReader {
     }
 
     public object Build(TestClientContext context, Type clientType) {
-        ArgumentNullException.ThrowIfNull(context);
-
         if (!CanBuild(clientType)) {
             throw new InvalidOperationException(
                 $"{clientType.FullName} is not a Refit client: it is not an interface declaring a " +
                 "method with a Refit verb attribute.");
         }
+
+        ArgumentNullException.ThrowIfNull(context);
 
         return RestService.For(clientType, context.Http);
     }

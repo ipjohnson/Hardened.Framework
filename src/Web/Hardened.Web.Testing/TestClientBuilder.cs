@@ -218,13 +218,17 @@ internal static class TestClientBuilder {
     /// because the attribute is the declaration and a mistyped one is a mistake about this
     /// assembly rather than about any one test.
     /// </remarks>
-    private static IReadOnlyList<ITestClientRoute> DiscoverRoutes(Assembly assembly) {
+    private static IReadOnlyList<ITestClientRoute> DiscoverRoutes(Assembly assembly) =>
+        DiscoverRoutes(assembly.GetCustomAttributes<TestClientRouteAttribute>(), assembly.GetName().Name!);
+
+    internal static IReadOnlyList<ITestClientRoute> DiscoverRoutes(
+        IEnumerable<TestClientRouteAttribute> attributes, string assemblyName) {
         var routes = new List<ITestClientRoute>();
 
-        foreach (var attribute in assembly.GetCustomAttributes<TestClientRouteAttribute>()) {
+        foreach (var attribute in attributes) {
             if (!typeof(ITestClientRoute).IsAssignableFrom(attribute.RouteType)) {
                 throw new InvalidOperationException(
-                    $"{assembly.GetName().Name} names {attribute.RouteType.FullName} as a test client " +
+                    $"{assemblyName} names {attribute.RouteType.FullName} as a test client " +
                     "route, and it does not implement ITestClientRoute.");
             }
 

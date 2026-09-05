@@ -110,12 +110,8 @@ public sealed class KiotaClientRoute : ITestClientRoute, ITestClientReader {
         return null;
     }
 
-    private static IReadOnlyDictionary<string, string> Flatten(IDictionary<string, IEnumerable<string>>? headers) {
+    private static IReadOnlyDictionary<string, string> Flatten(IDictionary<string, IEnumerable<string>> headers) {
         var flattened = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-        if (headers == null) {
-            return flattened;
-        }
 
         foreach (var header in headers) {
             flattened[header.Key] = string.Join(", ", header.Value);

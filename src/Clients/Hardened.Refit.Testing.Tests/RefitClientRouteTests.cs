@@ -52,6 +52,14 @@ public class RefitClientRouteTests {
         Assert.False(Route.CanBuild(typeof(NotAnInterface)));
     }
 
+    /// <summary>The harness never asks a route to build what it did not claim; the route says so anyway.</summary>
+    [Fact]
+    public void BuildingWhatItCannotBuildFailsNamingTheShape() {
+        var failure = Assert.Throws<InvalidOperationException>(() => Route.Build(null!, typeof(INoRoutes)));
+
+        Assert.Contains("is not a Refit client", failure.Message);
+    }
+
     [Fact]
     public void TheAttributeNamesTheRoute() {
         TestClientRouteAttribute attribute = new RefitTestingAttribute();

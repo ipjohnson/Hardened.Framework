@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.ExceptionServices;
 using Hardened.Requests.Abstract.Responses;
 using Xunit;
@@ -131,13 +132,17 @@ public static class ClientAssertions {
                 "needs a running xUnit test, and there is none.");
         }
 
-        var readers = TestClientBuilder.ReadersFor(testClass.Assembly);
+        return ReadersOf(testClass.Assembly, expectation);
+    }
+
+    internal static IReadOnlyList<ITestClientReader> ReadersOf(Assembly testAssembly, string expectation) {
+        var readers = TestClientBuilder.ReadersFor(testAssembly);
 
         if (readers.Count == 0) {
             throw new InvalidOperationException(
                 $"{expectation} reads the call through a route that can read answers, and " +
-                $"{testClass.Assembly.GetName().Name} names none. Declare the client testing " +
-                "package's assembly attribute - the one that builds the client for a test parameter.");
+                $"{testAssembly.GetName().Name} names none. Declare the client testing package's " +
+                "assembly attribute - the one that builds the client for a test parameter.");
         }
 
         return readers;

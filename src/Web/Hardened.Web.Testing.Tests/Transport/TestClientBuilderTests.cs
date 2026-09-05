@@ -163,6 +163,35 @@ public class TestClientBuilderTests {
         Assert.Equal("factory", client.Marker);
     }
 
+    /// <summary>
+    /// A mistyped declaration is a mistake about the assembly, and fails at discovery rather than
+    /// when a client happens to need the route.
+    /// </summary>
+    [Fact]
+    public void ADeclaredTypeThatIsNotARouteFailsAtDiscovery() {
+        var failure = Assert.Throws<InvalidOperationException>(() => TestClientBuilder.DiscoverRoutes(
+            [new TestClientRouteAttribute(typeof(ConventionClient))], "Some.Tests"));
+
+        Assert.Contains("Some.Tests names", failure.Message);
+        Assert.Contains("does not implement ITestClientRoute", failure.Message);
+    }
+
+    [Fact]
+    public void ARouteWithNoParameterlessConstructorFailsAtDiscovery() {
+        var failure = Assert.Throws<InvalidOperationException>(() => TestClientBuilder.DiscoverRoutes(
+            [new TestClientRouteAttribute(typeof(ConfiguredRoute))], "Some.Tests"));
+
+        Assert.Contains("no parameterless constructor", failure.Message);
+    }
+
+    private sealed class ConfiguredRoute(string marker) : ITestClientRoute {
+        public string Marker { get; } = marker;
+
+        public bool CanBuild(Type clientType) => false;
+
+        public object Build(TestClientContext context, Type clientType) => throw new NotSupportedException();
+    }
+
     [Fact]
     public void NoRouteFailsNamingAllThree() {
         Assert.False(TestClientBuilder.HasRoute(typeof(OrphanClient), TestAssembly));

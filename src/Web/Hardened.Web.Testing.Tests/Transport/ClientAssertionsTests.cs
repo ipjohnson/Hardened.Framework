@@ -21,6 +21,14 @@ public sealed class Refusal(int status, object? body, string? caveat = null) : E
 /// <summary>What a fake client's method returns for a success.</summary>
 public sealed record Reply(int Status, object? Body, IReadOnlyDictionary<string, string> Headers);
 
+/// <summary>An expectation with two type arguments and no way to tell which is the body.</summary>
+public sealed record Pair<TA, TB>(TA A, TB B) : IResponseExpectation<Pair<TA, TB>> {
+    public static int StatusCode => 200;
+
+    public static Pair<TA, TB> FromResponse(object? body, IReadOnlyDictionary<string, string> headers) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>
 /// A route that reads answers, in the shape a generator's package would: it recognises its own
 /// two shapes and nothing else, and remembers the body type it was handed for the test to read.
@@ -141,11 +149,62 @@ public class ClientAssertionsTests {
         await Task.FromResult(new Reply(418, "tea", Headers())).Returns<Status<Http.ImATeapot, string>>();
         Assert.Equal(typeof(string), ReadingRoute.BodyTypeHanded);
 
+        await Task.FromResult(new Reply(418, null, Headers())).Returns<Status<Http.ImATeapot>>();
+        Assert.Null(ReadingRoute.BodyTypeHanded);
+
         await Task.FromResult(new Reply(204, null, Headers())).Returns<NoContent>();
         Assert.Null(ReadingRoute.BodyTypeHanded);
 
         await Task.FromResult(new Reply(404, "gone", Headers())).ReturnsStatus<NotFound>();
         Assert.Null(ReadingRoute.BodyTypeHanded);
+    }
+
+    /// <summary>An expectation with two candidates for the body is refused before the call is read.</summary>
+    [Fact]
+    public async Task AnExpectationWithTwoBodyCandidatesIsRefused() {
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Task.FromResult(new Reply(200, "a", Headers())).Returns<Pair<string, int>>());
+
+        Assert.Contains("Pair<String, Int32> has 2 type arguments", failure.Message);
+    }
+
+    /// <summary>A task that is not a Task&lt;T&gt; at all - Task.Delay's - carries no value either.</summary>
+    [Fact]
+    public async Task ATaskWithNoResultTypeReturnsNoValue() {
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Task.Delay(1, Xunit.TestContext.Current.CancellationToken).ReturnsStatus<NoContent>());
+
+        Assert.Contains("which returned no value", failure.Message);
+    }
+
+    /// <summary>
+    /// The readers come from the running test's assembly, so outside a test there is nothing to
+    /// read through, and the failure says so rather than reading through nothing.
+    /// </summary>
+    [Fact]
+    public async Task OutsideARunningTestItSaysSo() {
+        Task<Exception?> probe;
+
+        // A thread with no execution context flowed into it has no xUnit test context either.
+        using (ExecutionContext.SuppressFlow()) {
+            probe = Task.Run(
+                async () => await Record.ExceptionAsync(() => Task.FromResult("x").Returns<Ok<string>>()),
+                Xunit.TestContext.Current.CancellationToken);
+        }
+
+        var failure = Assert.IsType<InvalidOperationException>(await probe);
+
+        Assert.Contains("needs a running xUnit test, and there is none", failure.Message);
+    }
+
+    /// <summary>An assembly that names no reader is told which attribute to declare.</summary>
+    [Fact]
+    public void AnAssemblyNamingNoReaderIsToldWhatToDeclare() {
+        var failure = Assert.Throws<InvalidOperationException>(
+            () => ClientAssertions.ReadersOf(typeof(string).Assembly, "Returns<Ok<String>>()"));
+
+        Assert.Contains("System.Private.CoreLib names none", failure.Message);
+        Assert.Contains("assembly attribute", failure.Message);
     }
 
     private static async Task Nothing() => await Task.Yield();
