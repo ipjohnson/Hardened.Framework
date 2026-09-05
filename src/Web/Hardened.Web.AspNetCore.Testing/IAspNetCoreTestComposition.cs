@@ -11,7 +11,7 @@ namespace Hardened.Web.AspNetCore.Testing;
 /// A type rather than a lambda because an attribute argument has to be. The default composition
 /// is <c>app.UseHardened()</c> and nothing else; a project whose <c>Program.cs</c> puts
 /// authentication in front and static files behind writes a composition of two methods that do
-/// the same, and names it in <c>[AspNetCoreHost(typeof(...))]</c>.
+/// the same, and names it in <c>[assembly: AspNetCoreTesting(typeof(...))]</c>.
 /// </remarks>
 public interface IAspNetCoreTestComposition {
 

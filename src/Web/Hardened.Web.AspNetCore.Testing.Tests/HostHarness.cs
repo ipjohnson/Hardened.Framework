@@ -12,9 +12,10 @@ namespace Hardened.Web.AspNetCore.Testing.Tests;
 
 /// <summary>
 /// A container with the ASP.NET Core runtime module and one filter that does what a test says,
-/// built and started the way the runner does it with <c>[AspNetCoreHost]</c> in scope: the host
-/// created before the container, registered through a factory, the container built by the
-/// attribute, the host resolved from it and started over it.
+/// built and started the way the runner does it with <c>[AspNetCoreRuntime]</c> on the test and
+/// <c>[assembly: AspNetCoreTesting]</c> in scope: the host created before the container,
+/// registered through a factory, the container built by the attribute, the host resolved from it
+/// and started over it.
 /// </summary>
 internal sealed class HostHarness : IAsyncDisposable {
     private readonly IServiceProvider _provider;
@@ -43,7 +44,7 @@ internal sealed class HostHarness : IAsyncDisposable {
 
         new AspNetCoreRuntime().PopulateServiceCollection(services);
 
-        var attribute = composition == null ? new AspNetCoreHostAttribute() : new AspNetCoreHostAttribute(composition);
+        var attribute = composition == null ? new AspNetCoreTestingAttribute() : new AspNetCoreTestingAttribute(composition);
         var context = new FakeTestMethodContext(attributesInScope);
         var created = attribute.CreateHost(context, services);
 

@@ -1,6 +1,6 @@
 using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
-using Hardened.Web.AspNetCore.Testing;
+using Hardened.Web.AspNetCore.Runtime;
 using NSubstitute;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
@@ -9,7 +9,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
 /// The ASP.NET Core host under NUnit, whose runner builds the container through the attribute
 /// the same way xUnit's does.
 /// </summary>
-[AspNetCoreHost]
+[AspNetCoreRuntime]
 public class AspNetCoreHostUnderNUnitTests {
 
     [HardenedTest]

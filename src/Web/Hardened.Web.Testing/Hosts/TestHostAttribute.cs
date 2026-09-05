@@ -4,21 +4,20 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Hardened.Web.Testing;
 
 /// <summary>
-/// Names the host a test's application runs on.
+/// Names a host for a test explicitly, where the runtime attributes do not.
 /// </summary>
 /// <remarks>
 /// <para>
-/// One per test: the narrowest declaration wins, so a class of socket tests carries
-/// <c>[KestrelHost]</c> once and a method that wants the fast path opts back with
-/// <see cref="PipelineHostAttribute"/>. With none in scope the pipeline host is used.
+/// Hardened's own hosts are named by the runtime attribute the application uses:
+/// <c>[KestrelRuntime]</c> or <c>[AspNetCoreRuntime]</c> on a method, a class or the assembly,
+/// with the testing package that answers for it named once in
+/// <see cref="TestHostProviderAttribute"/>. This is the explicit form beside that: the narrowest
+/// declaration of either kind wins, and <see cref="PipelineHostAttribute"/> is the one Hardened
+/// ships, for opting a method back to the pipeline inside a class that runs on a socket.
 /// </para>
 /// <para>
-/// A host package derives from this and ships one attribute -
-/// <c>Hardened.Web.Kestrel.Testing</c> ships <c>[KestrelHost]</c> - because hosting needs the
-/// ASP.NET Core shared framework and a test project on the pipeline must not be forced onto it.
-/// A host attribute that also implements <c>IDependencyModuleProvider</c> has its module loaded
-/// beside the application's, deduplicated when the application already carries it, which is
-/// what lets an application declaring another host, or none, run on a socket in a test.
+/// A host of a consumer's own derives from this: one attribute, one host, and a module loaded
+/// beside the application's when the attribute also implements <c>IDependencyModuleProvider</c>.
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = false)]

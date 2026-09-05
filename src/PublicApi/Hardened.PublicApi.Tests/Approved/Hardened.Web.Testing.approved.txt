@@ -154,6 +154,13 @@ namespace Hardened.Web.Testing
         protected TestHostAttribute() { }
         public abstract Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services);
     }
+    [System.AttributeUsage(System.AttributeTargets.Assembly, AllowMultiple=true)]
+    public abstract class TestHostProviderAttribute : System.Attribute
+    {
+        protected TestHostProviderAttribute() { }
+        public abstract System.Type RuntimeAttribute { get; }
+        public abstract Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services);
+    }
     public sealed class TestHostRequest : System.IEquatable<Hardened.Web.Testing.TestHostRequest>
     {
         public TestHostRequest(string Method, string PathAndQuery, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers, System.IO.Stream Body, Hardened.Web.Testing.TestCredential? Credential) { }

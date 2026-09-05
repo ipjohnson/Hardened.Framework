@@ -5,7 +5,7 @@ namespace Hardened.Web.AspNetCore.Testing;
 
 /// <summary>
 /// The ASP.NET Core pipeline on Kestrel over the test's container, which is the application's
-/// own container: <see cref="AspNetCoreHostAttribute"/> built it and handed the runner
+/// own container: <see cref="AspNetCoreTestingAttribute"/> built it and handed the runner
 /// <c>app.Services</c>.
 /// </summary>
 /// <remarks>
@@ -28,9 +28,9 @@ public sealed class AspNetCoreTestHost : SocketHost {
     /// <summary>The environment name the application is built under: the Hardened one in scope.</summary>
     public string EnvironmentName { get; }
 
-    /// <summary>The application, once <see cref="AspNetCoreHostAttribute"/> has built it.</summary>
+    /// <summary>The application, once <see cref="AspNetCoreTestingAttribute"/> has built it.</summary>
     public WebApplication Application =>
-        _app ?? throw new InvalidOperationException("The application has not been built; [AspNetCoreHost] builds it when the runner asks for the container.");
+        _app ?? throw new InvalidOperationException("The application has not been built; [assembly: AspNetCoreTesting] builds it when the runner asks for the container.");
 
     public override bool IsTerminal => false;
 

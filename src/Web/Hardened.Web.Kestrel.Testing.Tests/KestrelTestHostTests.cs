@@ -46,16 +46,17 @@ public class KestrelTestHostTests {
 
     [Fact]
     public void BeforeStartThereIsNoAddress() {
-        var host = new KestrelHostAttribute().CreateHost(null!, new Microsoft.Extensions.DependencyInjection.ServiceCollection());
+        var host = new KestrelTestingAttribute().CreateHost(null!, new Microsoft.Extensions.DependencyInjection.ServiceCollection());
 
         var failure = Assert.Throws<InvalidOperationException>(() => host.BaseAddress);
 
         Assert.Contains("has not started", failure.Message);
     }
 
+    /// <summary>The attribute an application names its host with is the one a test names it with.</summary>
     [Fact]
-    public void TheModuleTheRunnerLoadsBesideTheApplicationsIsKestrels() {
-        Assert.IsType<KestrelRuntime>(new KestrelHostAttribute().GetModule());
+    public void TheProviderAnswersForTheKestrelRuntimeAttribute() {
+        Assert.Equal(typeof(KestrelRuntimeAttribute), new KestrelTestingAttribute().RuntimeAttribute);
     }
 
     /// <summary>

@@ -1,7 +1,7 @@
 using Hardened.IntegrationTests.WebApp.SUT.Client;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Responses;
-using Hardened.Web.AspNetCore.Testing;
+using Hardened.Web.AspNetCore.Runtime;
 using Microsoft.Kiota.Abstractions;
 using NSubstitute;
 using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
@@ -9,9 +9,10 @@ using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 
 /// <summary>
-/// The harness inside the real ASP.NET Core pipeline: <c>[AspNetCoreHost]</c> on the class builds
-/// the application the way <c>Program.cs</c> does, over each test's own container, and everything
-/// the test holds sends to its socket.
+/// The harness inside the real ASP.NET Core pipeline: <c>[AspNetCoreRuntime]</c> on the class -
+/// the attribute the application names its host with - builds the application the way
+/// <c>Program.cs</c> does, over each test's own container, and everything the test holds sends
+/// to its socket.
 /// </summary>
 /// <remarks>
 /// The shapes <see cref="KestrelHostTests"/> asserts on Kestrel alone, plus the one thing this
@@ -19,7 +20,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// through to ASP.NET's own 404, with no body, where the Kestrel host and the pipeline answer
 /// Hardened's.
 /// </remarks>
-[AspNetCoreHost]
+[AspNetCoreRuntime]
 public class AspNetCoreHostTests {
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;

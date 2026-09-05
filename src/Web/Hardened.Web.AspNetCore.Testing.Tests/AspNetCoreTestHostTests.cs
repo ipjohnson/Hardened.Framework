@@ -122,15 +122,39 @@ public class AspNetCoreTestHostTests {
         await Assert.ThrowsAsync<SocketException>(() => probe.ConnectAsync(IPAddress.Loopback, port, Token).AsTask());
     }
 
+    /// <summary>The attribute an application names its host with is the one a test names it with.</summary>
     [Fact]
-    public void TheModuleTheRunnerLoadsBesideTheApplicationsIsAspNetCores() {
-        Assert.IsType<AspNetCoreRuntime>(new AspNetCoreHostAttribute().GetModule());
+    public void TheProviderAnswersForTheAspNetCoreRuntimeAttribute() {
+        Assert.Equal(typeof(AspNetCoreRuntimeAttribute), new AspNetCoreTestingAttribute().RuntimeAttribute);
+    }
+
+    /// <summary>
+    /// The runner asks the assembly's builder for every test's container, and a test whose
+    /// narrowest host is another gets the plain container it would have had.
+    /// </summary>
+    [Fact]
+    public void ForATestOnAnotherHostTheBuilderBuildsThePlainContainer() {
+        var services = new ServiceCollection();
+
+        services.AddSingleton<ITestHost>(_ => new PipelineHost(services.BuildServiceProvider()));
+
+        var provider = new AspNetCoreTestingAttribute().BuildServiceProvider(null!, services);
+
+        Assert.Null(provider.GetService<IServer>());
+    }
+
+    [Fact]
+    public void WithNoHostAtAllTheBuilderNamesTheMissingAttribute() {
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            new AspNetCoreTestingAttribute().BuildServiceProvider(null!, new ServiceCollection()));
+
+        Assert.Contains("[assembly: WebTesting]", failure.Message);
     }
 
     [Fact]
     public void ACompositionThatIsNotOneIsRefusedByName() {
         var failure = Assert.Throws<InvalidOperationException>(() =>
-            new AspNetCoreHostAttribute(typeof(string)).CreateHost(null!, new ServiceCollection()));
+            new AspNetCoreTestingAttribute(typeof(string)).CreateHost(null!, new ServiceCollection()));
 
         Assert.Contains("System.String", failure.Message);
     }

@@ -2,7 +2,7 @@ using Hardened.IntegrationTests.WebApp.SUT.Client;
 using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Responses;
-using Hardened.Web.Kestrel.Testing;
+using Hardened.Web.Kestrel.Runtime;
 using NSubstitute;
 using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
 
@@ -10,9 +10,9 @@ namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
 
 /// <summary>
 /// The socket host under NUnit: the same shapes the xUnit project asserts with
-/// <c>[KestrelHost]</c>, on the other runner.
+/// <c>[KestrelRuntime]</c>, on the other runner.
 /// </summary>
-[KestrelHost]
+[KestrelRuntime]
 public class KestrelHostUnderNUnitTests {
 
     private static CancellationToken Token => TestContext.CurrentContext.CancellationToken;

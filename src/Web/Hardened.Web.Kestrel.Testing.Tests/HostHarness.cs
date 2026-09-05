@@ -10,7 +10,7 @@ namespace Hardened.Web.Kestrel.Testing.Tests;
 
 /// <summary>
 /// A container with the Kestrel runtime module and one filter that does what a test says, started
-/// through the attribute's host the way <c>[WebTesting]</c> starts it: registered through a
+/// through the provider's host the way <c>[WebTesting]</c> starts it: registered through a
 /// factory, built, started over the built provider.
 /// </summary>
 /// <remarks>
@@ -45,7 +45,7 @@ internal sealed class HostHarness : IAsyncDisposable {
 
         new KestrelRuntime().PopulateServiceCollection(services);
 
-        var created = new KestrelHostAttribute().CreateHost(null!, services);
+        var created = new KestrelTestingAttribute().CreateHost(null!, services);
 
         services.AddSingleton<ITestHost>(_ => created);
 
