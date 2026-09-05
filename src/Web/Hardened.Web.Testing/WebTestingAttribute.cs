@@ -1,13 +1,10 @@
 using DependencyModules.Testing.Attributes.Interfaces;
-using DependencyModules.Testing.Impl;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Errors;
-using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
-using Hardened.Shared.Testing.Attributes;
-using Hardened.Web.Runtime.Handlers;
+using Hardened.Shared.Testing.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -28,6 +25,12 @@ namespace Hardened.Web.Testing;
 /// asked for its own value and builds one with its own credential.
 /// </para>
 /// <para>
+/// The host the test's application runs on is the narrowest <see cref="TestHostAttribute"/> in
+/// scope, or the pipeline with none. It is registered through a factory so the container disposes
+/// it with itself, it decides whether an unmatched path is a 404 here, and it is what composes the
+/// chain and, on a socket host, begins listening.
+/// </para>
+/// <para>
 /// <see cref="TestGrantsPrincipalSource"/> is registered beside whatever sources the application
 /// has, so the attributes work in any test project. It answers only a request carrying the test
 /// headers, and <c>AuthenticationMiddleware</c> asks each source in turn until one answers, so an
@@ -38,18 +41,33 @@ namespace Hardened.Web.Testing;
 [AttributeUsage(AttributeTargets.Assembly)]
 public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestStartupAttribute {
     public void SetupServiceCollection(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
-        // The harness is a terminal host: there is nothing behind it to hand an unmatched request
-        // to, so a path with no route is a 404 here, exactly as it is on Kestrel and on Lambda.
-        //
-        // It has to be stated rather than inherited, because the application under test names its
-        // deployment runtime and that runtime's policy arrives with it. An application carrying
-        // [AspNetCoreRuntime] registers AspNetResourceNotFoundHandler, which deliberately leaves
-        // the status unset so UseHardened() can defer to the rest of the ASP.NET pipeline. Correct
-        // there; wrong here, where deferring means answering nothing at all.
-        //
-        // Registration attributes run after the application's modules, which is what lets this win.
-        serviceCollection.RemoveAll<IResourceNotFoundHandler>();
-        serviceCollection.AddSingleton<IResourceNotFoundHandler, ResourceNotFoundHandler>();
+        // Widest first, so the last is the narrowest: a method's host beats the class's beats the
+        // assembly's.
+        var hostAttribute = testMethod.Attributes.OfType<TestHostAttribute>().LastOrDefault()
+                            ?? new PipelineHostAttribute();
+        var host = hostAttribute.CreateHost(testMethod, serviceCollection);
+
+        // Through a factory and never as an instance: the container disposes only what it
+        // created, and an instance handed to AddSingleton comes back from a constant call site
+        // nothing tracks. Disposing the container is what stops a socket host's server.
+        serviceCollection.AddSingleton<ITestHost>(_ => host);
+
+        if (host.IsTerminal) {
+            // A terminal host has nothing behind it to hand an unmatched request to, so a path
+            // with no route is a 404 here, exactly as it is on Kestrel and on Lambda.
+            //
+            // It has to be stated rather than inherited, because the application under test names
+            // its deployment runtime and that runtime's policy arrives with it. An application
+            // carrying [AspNetCoreRuntime] registers AspNetResourceNotFoundHandler, which
+            // deliberately leaves the status unset so UseHardened() can defer to the rest of the
+            // ASP.NET pipeline. Correct there, and correct on the ASP.NET Core test host, which is
+            // why that host is not terminal; wrong here, where deferring means answering nothing.
+            //
+            // Registration attributes run after the application's modules, which is what lets
+            // this win.
+            serviceCollection.RemoveAll<IResourceNotFoundHandler>();
+            serviceCollection.AddSingleton<IResourceNotFoundHandler, ResourceNotFoundHandler>();
+        }
 
         // Beside the application's own sources rather than instead of them. TryAddEnumerable
         // registers this implementation once however many test projects' attributes run, and the
@@ -123,22 +141,14 @@ public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestS
         }
     }
 
-    public async Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider) {
-        var entryPoint = testMethod.Method.GetTestAttribute<HardenedTestEntryPointAttribute>();
+    /// <summary>
+    /// The host composes the chain: it runs the startup services through the guarded
+    /// <c>ApplicationLogic.Start</c>, so they run once whichever attribute the runner reaches
+    /// first, appends the routing and handler filter, and on a socket host begins listening.
+    /// </summary>
+    public Task StartupAsync(ITestMethodContext testMethod, IServiceProvider serviceProvider) {
+        var token = serviceProvider.GetService<TestCancellationToken>()?.Token ?? CancellationToken.None;
 
-        // Through the guard rather than a loop of this attribute's own. HardenedTestEntryPoint
-        // runs the same services through ApplicationLogic.Start, and the runner awaits both
-        // attributes in an order that is a sort rather than a declaration, so a loop here ran
-        // every startup service a second time per container: the authentication middleware and
-        // the CORS filter were each in the chain twice, behind the handler, and the authorization
-        // filter provider was registered twice. The guard runs them once whichever attribute the
-        // runner reaches first, and still runs them here for a test with no entry point attribute.
-        await ApplicationLogic.Start(serviceProvider, null);
-
-        if (entryPoint != null && !typeof(IApplicationRoot).IsAssignableFrom(entryPoint.EntryPoint)) {
-            var handler = serviceProvider.GetRequiredService<IWebExecutionHandlerService>();
-            var middleware = serviceProvider.GetRequiredService<IMiddlewareService>();
-            middleware.Use(_ => handler);
-        }
+        return serviceProvider.GetRequiredService<ITestHost>().StartAsync(serviceProvider, token);
     }
 }

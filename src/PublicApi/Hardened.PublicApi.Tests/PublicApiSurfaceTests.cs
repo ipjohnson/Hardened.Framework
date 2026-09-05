@@ -48,6 +48,7 @@ public class PublicApiSurfaceTests {
         "Hardened.Templates.RazorBlade",
         "Hardened.Web.AspNetCore.Runtime",
         "Hardened.Web.Kestrel.Runtime",
+        "Hardened.Web.Kestrel.Testing",
         "Hardened.Web.Runtime",
         "Hardened.Web.StaticContent",
         "Hardened.Web.Testing"

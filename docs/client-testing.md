@@ -137,6 +137,20 @@ that are its own. For the Refit package one convention applies on top: a type th
 declares one type argument for it, because that argument is what the error text is read as.
 `Status<TCode, TBody>` follows it; a marker implementing `IStatusCode` is never taken for the body.
 
+## Over a socket
+
+A client is the same parameter on a socket host. `[KestrelHost]` on a test, a class or the
+assembly runs the application on Kestrel over the test's own container, on a loopback port the
+kernel picks, and every `HttpClient` the harness hands out sends there: a route builds its client
+over the host's handler and reads `TestClientContext.BaseAddress`, which is the bound address
+rather than `http://harness/`, so a Kiota client's `BaseUrl` and a Refit interface's relative paths
+resolve against the socket without a change in either package. `Returns<T>()` reads the same
+answer, because Kiota's recorder sits in the client's own chain and Refit's envelope carries what
+it always carried, and `LastResponse` is recorded from what came back over the wire. What changes
+is what the wire changes: `TestWebResponse.Failure` is null, and the headers are the ones Kestrel
+wrote. `KestrelHostTests` in the web SUT's test project runs the shapes above through it, and the
+NUnit project beside it runs them again on the other runner.
+
 ## Where the code is
 
 | | |
@@ -145,6 +159,8 @@ declares one type argument for it, because that argument is what the error text 
 | `src/Web/Hardened.Web.Testing/ITestClientRoute.cs` | the seam, `TestClientContext`, `TestClientRouteAttribute` |
 | `src/Clients/Hardened.Kiota.Testing` | `KiotaTestingAttribute`, `KiotaClientRoute` as route and reader, the recording handler |
 | `src/Clients/Hardened.Refit.Testing` | `RefitTestingAttribute`, `RefitClientRoute` as route and reader, `RefitAnswers` |
+| `src/Web/Hardened.Web.Testing/Hosts` | the host seam: `ITestHost`, `TestHostAttribute`, `PipelineHost`, `SocketHost` |
+| `src/Web/Hardened.Web.Kestrel.Testing` | `KestrelHostAttribute` and the Kestrel host over `KestrelServerRunner` |
 | `src/Requests/Hardened.Requests.Abstract/Responses/ResponseExpectation.cs` | `Match`, `MatchStatus`, the body and header readers every `FromResponse` uses |
 | `Hardened.IntegrationTests.WebApp.SUT.Tests/Transport` | `KiotaReturnsTests` and `RefitReturnsTests`, the same statuses through both generators |
 

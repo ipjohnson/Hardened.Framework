@@ -15,6 +15,7 @@ public class TestWebApp : TestContext, ITestWebApp {
     private readonly TestCancellationToken _testCancellationToken;
     private readonly TestCredential? _credential;
     private readonly Assembly? _testAssembly;
+    private ITestHost? _host;
 
     public TestWebApp(IApplicationRoot applicationRoot, ILogger logger)
         : this(applicationRoot, logger, null, null) {
@@ -110,14 +111,15 @@ public class TestWebApp : TestContext, ITestWebApp {
             ? new MemoryStream(testWebRequest.Body)
             : SetupBodyStream(bodyValue);
 
-        var request = PipelineRequest.CreateRequest(httpMethod, path, headers, body, _credential);
-        var responseBody = new MemoryStream();
-
-        var response = await PipelineRequest.Run(
-            _applicationRoot.Provider, request, responseBody, testWebRequest.Token.Value);
-
-        return new TestWebResponse(response);
+        return await Host.SendAsync(
+            new TestHostRequest(httpMethod, path, headers, body, _credential), testWebRequest.Token.Value);
     }
+
+    /// <summary>
+    /// The host the container was built with, or the pipeline over the container for a harness
+    /// built by hand, which no attribute registered a host for.
+    /// </summary>
+    private ITestHost Host => _host ??= TestClientBuilder.HostOf(_applicationRoot.Provider);
 
     private Stream SetupBodyStream(object? bodyValue) {
         if (bodyValue == null)

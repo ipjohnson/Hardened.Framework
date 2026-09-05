@@ -32,7 +32,7 @@ namespace Hardened.Web.Testing;
 /// </remarks>
 internal static class TestClientBuilder {
 
-    /// <summary>The base address a client resolves relative URLs against; the handler ignores it.</summary>
+    /// <summary>The pipeline host's base address, which its handler ignores and a client resolves relative URLs against.</summary>
     public static readonly Uri BaseAddress = new("http://harness/");
 
     private static readonly ConcurrentDictionary<Assembly, IReadOnlyDictionary<Type, Type>> Factories = new();
@@ -40,14 +40,23 @@ internal static class TestClientBuilder {
     private static readonly ConcurrentDictionary<Assembly, IReadOnlyList<ITestClientReader>> Readers = new();
 
     public static HttpClient CreateHttpClient(IServiceProvider rootServiceProvider, TestCredential? credential) {
-        var client = new HttpClient(new PipelineHttpMessageHandler(rootServiceProvider, credential)) {
-            BaseAddress = BaseAddress
+        var host = HostOf(rootServiceProvider);
+
+        var client = new HttpClient(host.CreateHandler(credential)) {
+            BaseAddress = host.BaseAddress
         };
 
         credential?.ApplyTo(client);
 
         return client;
     }
+
+    /// <summary>
+    /// The host the container was built with, or the pipeline over the container for one no
+    /// attribute registered a host in - a harness built by hand over a bare provider.
+    /// </summary>
+    public static ITestHost HostOf(IServiceProvider rootServiceProvider) =>
+        rootServiceProvider.GetService<ITestHost>() ?? new PipelineHost(rootServiceProvider);
 
     /// <summary>Whether any of the three routes applies to <paramref name="clientType"/>.</summary>
     public static bool HasRoute(Type clientType, Assembly testAssembly) =>
@@ -79,7 +88,7 @@ internal static class TestClientBuilder {
     }
 
     public static TestClientContext CreateContext(IServiceProvider rootServiceProvider, TestCredential? credential) =>
-        new(rootServiceProvider, credential, CreateHttpClient(rootServiceProvider, credential));
+        new(HostOf(rootServiceProvider), credential, CreateHttpClient(rootServiceProvider, credential));
 
     public static string NoRouteMessage(Type clientType, Assembly testAssembly) =>
         $"{clientType.FullName} cannot be built for a test parameter. None of the three routes " +

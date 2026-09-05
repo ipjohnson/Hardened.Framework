@@ -54,6 +54,24 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
         }
     }
 
+    /// <summary>
+    /// Sets the two headers on a request that carries neither, in a socket host's chain - the
+    /// same rule the pipeline host applies to the execution request it builds.
+    /// </summary>
+    internal void ApplyTo(HttpRequestMessage request) {
+        if (IsAnonymous ||
+            request.Headers.Contains(TestGrantsPrincipalSource.GrantsHeader) ||
+            request.Headers.Contains(TestGrantsPrincipalSource.SubjectHeader)) {
+            return;
+        }
+
+        request.Headers.TryAddWithoutValidation(TestGrantsPrincipalSource.GrantsHeader, GrantsHeaderValue);
+
+        if (Subject != null) {
+            request.Headers.TryAddWithoutValidation(TestGrantsPrincipalSource.SubjectHeader, Subject);
+        }
+    }
+
     /// <summary>Sets the two headers as the client's defaults, so every request it sends carries them.</summary>
     public void ApplyTo(HttpClient client) {
         if (IsAnonymous) {

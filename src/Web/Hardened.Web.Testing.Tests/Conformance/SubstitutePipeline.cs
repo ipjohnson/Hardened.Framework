@@ -20,9 +20,9 @@ namespace Hardened.Web.Testing.Tests.Conformance;
 /// the transport's translation in and out, not what a handler does inside it - the same footing
 /// the Kestrel adapters stand on.
 /// </remarks>
-internal sealed class PipelineHost {
+internal sealed class SubstitutePipeline {
 
-    public PipelineHost(Func<IExecutionContext, Task>? handler = null) {
+    public SubstitutePipeline(Func<IExecutionContext, Task>? handler = null) {
         var chain = Substitute.For<IExecutionChain>();
         var middleware = Substitute.For<IMiddlewareService>();
 

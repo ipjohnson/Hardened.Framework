@@ -1,0 +1,10 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Web.Kestrel.Testing.Tests")]
+namespace Hardened.Web.Kestrel.Testing
+{
+    public sealed class KestrelHostAttribute : Hardened.Web.Testing.TestHostAttribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public KestrelHostAttribute() { }
+        public override Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}

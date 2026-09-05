@@ -1,4 +1,4 @@
-﻿using System.IO.Compression;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
@@ -9,18 +9,32 @@ using Microsoft.Extensions.Primitives;
 namespace Hardened.Web.Testing;
 
 public class TestWebResponse {
-    private readonly IExecutionResponse _executionResponse;
+    private readonly int _status;
+    private readonly IDictionary<string, StringValues> _headers;
+    private readonly Stream _body;
+    private readonly Exception? _failure;
     private IWebAssertThat? _assertThat;
 
-    public TestWebResponse(IExecutionResponse executionResponse) {
-        _executionResponse = executionResponse;
+    public TestWebResponse(IExecutionResponse executionResponse)
+        : this(executionResponse.Status.GetValueOrDefault(200), executionResponse.Headers, executionResponse.Body, executionResponse.ExceptionValue) {
     }
 
-    public int StatusCode => _executionResponse.Status.GetValueOrDefault(200);
+    /// <summary>
+    /// What a socket host answered: the status, every header as the wire carried it, the body
+    /// bytes, and no failure, because an exception does not cross a wire.
+    /// </summary>
+    internal TestWebResponse(int status, IDictionary<string, StringValues> headers, Stream body, Exception? failure) {
+        _status = status;
+        _headers = headers;
+        _body = body;
+        _failure = failure;
+    }
 
-    public IDictionary<string, StringValues> Headers => _executionResponse.Headers;
+    public int StatusCode => _status;
 
-    public Stream Body => _executionResponse.Body;
+    public IDictionary<string, StringValues> Headers => _headers;
+
+    public Stream Body => _body;
 
     /// <summary>
     /// What the pipeline recorded when it refused or failed the request, or null.
@@ -29,9 +43,9 @@ public class TestWebResponse {
     /// A failure ahead of serialization, a handler that threw and a handler the container could not
     /// build all reach the client as the error envelope, whose 500 body says nothing about the
     /// cause on purpose. This is the cause, for a test asserting which failure it was and what it
-    /// named.
+    /// named. Null on a socket host, where the envelope is all that crosses the wire.
     /// </remarks>
-    public Exception? Failure => _executionResponse.ExceptionValue;
+    public Exception? Failure => _failure;
 
     public IWebAssertThat Assert => _assertThat ??= new WebAssertThat(this);
 

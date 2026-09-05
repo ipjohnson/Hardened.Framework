@@ -84,9 +84,11 @@ public sealed class KestrelServerRunner : IAsyncDisposable {
 
         _started = true;
 
-        foreach (var startupService in _provider.GetServices<IStartupService>()) {
-            await startupService.Startup(_provider);
-        }
+        // Through the guard, so the services run once per provider however the host was reached:
+        // a Program.cs that already called ApplicationLogic.Start, or a test whose entry point
+        // attribute did. A loop of this class's own ran them a second time, and a startup service
+        // that appends a filter appended it twice.
+        await ApplicationLogic.Start(_provider, null);
 
         // The equivalent of what UseHardened does for the ASP.NET pipeline: put the routing and
         // handler filter at the end of the middleware chain. MiddlewareService is a singleton

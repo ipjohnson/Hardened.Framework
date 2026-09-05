@@ -13,7 +13,7 @@ public class PipelineTelemetryConformanceTests : RequestTelemetryConformanceTest
         public string TransportName => "PipelineHttpMessageHandler";
 
         public async Task Dispatch(TelemetryConformanceRequest request) {
-            var host = new PipelineHost(context => {
+            var host = new SubstitutePipeline(context => {
                 request.Handler?.Invoke(context);
 
                 return Task.CompletedTask;
