@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # No source-url, and no NUGET_AUTH_TOKEN. Restore reads src/nuget.config, which is nuget.org
+      # No source-url, and no NUGET_AUTH_TOKEN. Restore reads nuget.config, which is nuget.org
       # and nothing else since ValidationModules was published there at 0.1.0-alpha.1.
       #
       # It used to point setup-dotnet at GitHub Packages, which writes a nuget.config whose
@@ -35,7 +35,7 @@ jobs:
       #
       # The push step below is unaffected: it names its feed and key on the command line.
       #
-      # Two SDKs, and both are load-bearing. src/global.json pins the build to the .NET 11 preview,
+      # Two SDKs, and both are load-bearing. global.json pins the build to the .NET 11 preview,
       # which is the compiler that can read a C# 15 union. But every project here targets net8.0 and
       # every test assembly is framework-dependent on Microsoft.NETCore.App 8.0.0 with no
       # rollForward of its own - and the default policy is Minor, which does not cross a major
@@ -94,7 +94,7 @@ jobs:
 
       - run: dotnet restore src/Hardened.Framework.sln
 
-      # ContinuousIntegrationBuild turns warnings into errors (see src/Directory.Build.props).
+      # ContinuousIntegrationBuild turns warnings into errors (see Directory.Build.props).
       # The solution builds warning-free; this is what stops that drifting back.
       - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 

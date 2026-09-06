@@ -31,7 +31,7 @@ Before opening a pull request, build the way CI does:
 dotnet build src/Hardened.Framework.sln --configuration Release -p:ContinuousIntegrationBuild=true
 ```
 
-`ContinuousIntegrationBuild` sets `TreatWarningsAsErrors` (`src/Directory.Build.props`). Local
+`ContinuousIntegrationBuild` sets `TreatWarningsAsErrors` (`Directory.Build.props`). Local
 builds deliberately do not, so a build that is green locally can still fail CI on a warning.
 
 **Check the exit code, not the tail of the output.** A restore that resolves an assembly two ways
@@ -40,7 +40,7 @@ error above it. Capture to a file and test `$?`.
 
 ## Two SDKs, and both are load-bearing
 
-`src/global.json` pins the build to a .NET 11 preview, which is the compiler that can read a C# 15
+`global.json` pins the build to a .NET 11 preview, which is the compiler that can read a C# 15
 `union`. Every project targets `net8.0` and every test assembly is framework-dependent on
 `Microsoft.NETCore.App` 8.0.0 with no `rollForward`, and the default policy does not cross a major
 version — so a machine with only the .NET 11 SDK compiles everything and then starts no test host

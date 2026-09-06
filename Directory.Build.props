@@ -42,9 +42,9 @@
       same reason - one image serves both themes only if it brings its own background.
     -->
     <ItemGroup>
-        <None Include="$(MSBuildThisFileDirectory)../assets/hardened-icon-128.png"
+        <None Include="$(MSBuildThisFileDirectory)assets/hardened-icon-128.png"
               Pack="true" PackagePath="/" Visible="false" />
-        <None Include="$(MSBuildThisFileDirectory)../README.md"
+        <None Include="$(MSBuildThisFileDirectory)README.md"
               Pack="true" PackagePath="/" Visible="false" />
     </ItemGroup>
 
@@ -109,11 +109,11 @@
     </PropertyGroup>
 
     <!--
-      Applies to every project under src/.
+      Applies to every project in the repository.
 
       Test projects get Microsoft.CodeCoverage, so collecting "Code Coverage" during `dotnet test`
       produces Cobertura reports. Collection settings - what is excluded from the numbers - live
-      in coverage.runsettings at the repository root.
+      in coverage.runsettings beside this file.
 
       This was coverlet.collector until the build moved to the .NET 11 SDK, which coverlet does
       not instrument under. It failed silently rather than erroring: every test ran and passed

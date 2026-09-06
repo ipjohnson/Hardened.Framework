@@ -41,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # No authenticated feed - src/nuget.config is nuget.org alone since ValidationModules was
+      # No authenticated feed - nuget.config is nuget.org alone since ValidationModules was
       # published there. This had the same %NUGET_AUTH_TOKEN% arrangement build-package.yaml did,
       # and the same hazard: the credential is expanded at restore time, but the env was scoped to
       # this step, so it was already gone. It went unnoticed here because a scheduled benchmark run

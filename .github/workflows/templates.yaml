@@ -27,7 +27,7 @@ jobs:
 
       # Both named explicitly rather than leaning on whatever SDK the runner image ships, which is
       # what "both" used to mean here and moves without notice. 8.0.x is the floor the template
-      # pins; the .NET 11 preview is what src/global.json selects to pack the solution with, and
+      # pins; the .NET 11 preview is what global.json selects to pack the solution with, and
       # what the net8.0 test assemblies would otherwise have no runtime under.
       - uses: actions/setup-dotnet@v4
         with:

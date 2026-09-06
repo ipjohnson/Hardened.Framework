@@ -29,7 +29,7 @@ naming convention and Hardened's controllers follow that convention too — in o
 `ApplicationPartManager` would pick up Hardened's controllers and the baseline would stop being a
 baseline. `Contracts` exists so neither SUT has to reference the other.
 
-The harness is not named `*.Tests`, because `src/Directory.Build.props` injects `coverlet.collector`
+The harness is not named `*.Tests`, because `Directory.Build.props` injects `Microsoft.CodeCoverage`
 into any project whose name ends that way, and `dotnet test` would sweep it up. A benchmark run is
 neither of those things.
 
