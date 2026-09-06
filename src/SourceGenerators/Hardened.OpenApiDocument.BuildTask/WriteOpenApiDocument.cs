@@ -27,7 +27,7 @@ namespace Hardened.OpenApiDocument.BuildTask;
 /// <para>
 /// Every failure is a diagnostic under the front end's prefix - <c>HRDOA</c> for code-first,
 /// <c>HOAT</c> and <c>HSMT</c> for the two described front ends - with the number meaning the same
-/// thing under each. The table is docs/generator-diagnostics.md.
+/// thing under each. The table is docs/design/generator-diagnostics.md.
 /// </para>
 /// </remarks>
 public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {

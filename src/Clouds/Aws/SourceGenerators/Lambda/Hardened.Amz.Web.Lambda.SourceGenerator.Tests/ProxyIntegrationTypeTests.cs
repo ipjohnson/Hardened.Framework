@@ -18,7 +18,7 @@ namespace Hardened.Amz.Web.Lambda.SourceGenerator.Tests;
 /// <para>
 /// Only the v2 format is implemented. <c>Version</c> used to be declared, settable and read by
 /// nothing — recorded on 2026-08-12 and reported rather than asserted as intended, per
-/// <c>docs/testing-conventions.md</c> §6 — so selecting the REST integration produced a v2 handler
+/// <c>docs/design/aws/testing-conventions.md</c> §6 — so selecting the REST integration produced a v2 handler
 /// that a REST API would feed a v1 payload, and the function failed at the runtime's
 /// deserialisation in a deployed environment. Since 2026-08-15 it is a build error (HRDAWS001).
 /// The tests below are the ones that were reporting the gap, turned into assertions now that there

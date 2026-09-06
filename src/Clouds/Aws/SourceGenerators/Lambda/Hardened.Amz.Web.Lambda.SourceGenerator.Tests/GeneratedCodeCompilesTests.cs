@@ -10,7 +10,7 @@ namespace Hardened.Amz.Web.Lambda.SourceGenerator.Tests;
 /// A test asserting on an emitted string proves the generator produced the characters expected; it
 /// does not prove a consumer can build. Three defects in the framework's web generator emitted
 /// uncompilable C#, passed every string-matching test, and were caught by integration tests after
-/// shipping — see <c>docs/testing-conventions.md</c> §1.
+/// shipping — see <c>docs/design/aws/testing-conventions.md</c> §1.
 /// </para>
 ///
 /// <para>

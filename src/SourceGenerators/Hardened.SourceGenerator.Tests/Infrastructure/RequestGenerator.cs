@@ -83,7 +83,7 @@ public static class RequestGeneratorHarness {
 
     /// <summary>
     /// Runs the generator over one source file. Every caller is expected to finish with
-    /// <see cref="GeneratorResult.AssertNoErrors"/> — see docs/testing-conventions.md §1.
+    /// <see cref="GeneratorResult.AssertNoErrors"/> — see docs/design/testing-conventions.md §1.
     /// </summary>
     public static GeneratorResult Generate(string source) =>
         GeneratorTestHarness.Run(source, new RequestGenerator(), Anchors);

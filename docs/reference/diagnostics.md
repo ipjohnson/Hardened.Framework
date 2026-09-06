@@ -11,7 +11,7 @@ fails CI. Where a warning describes something you meant, silence it by id:
 </PropertyGroup>
 ```
 
-The framework's own [`docs/generator-diagnostics.md`](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/generator-diagnostics.md)
+The framework's own [`docs/design/generator-diagnostics.md`](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/design/generator-diagnostics.md)
 carries the long-form entry for each, with the message text and the fix.
 
 ## Prefixes

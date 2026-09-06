@@ -256,7 +256,7 @@ pack() {
 # and the first spec-first build failed with MSB4062. It passed locally only because the tree had
 # been built by hand first.
 say "building the framework"
-if ! dotnet build "$REPO/src/Hardened.Framework.sln" -c Release \
+if ! dotnet build "$REPO/Hardened.slnx" -c Release \
         -p:HardenedSmithyPinCliVersion=false -v q --nologo >"$WORK/build.log" 2>&1; then
     grep -E ": error" "$WORK/build.log" | head -20
     echo "   full log: $WORK/build.log"
@@ -297,7 +297,7 @@ echo "   the integration client pins the same pair"
 
 # UseLocalValidationModules=false so a sibling checkout cannot leak a version that was never
 # published into the packed dependency graph.
-pack framework "$REPO/src/Hardened.Framework.sln" \
+pack framework "$REPO/Hardened.slnx" \
     -p:UseLocalValidationModules=false \
     -p:HardenedSmithyPinCliVersion=false
 

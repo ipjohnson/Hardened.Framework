@@ -92,11 +92,11 @@ jobs:
           test "$(smithy --version)" = "$SMITHY_VERSION"
           smithy --version
 
-      - run: dotnet restore src/Hardened.Framework.sln
+      - run: dotnet restore Hardened.slnx
 
       # ContinuousIntegrationBuild turns warnings into errors (see Directory.Build.props).
       # The solution builds warning-free; this is what stops that drifting back.
-      - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
+      - run: dotnet build Hardened.slnx --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
       # The claim the framework is sold on, checked rather than asserted.
       #
@@ -229,7 +229,7 @@ jobs:
       - name: Test with coverage
         run: |
           set -o pipefail
-          dotnet test src/Hardened.Framework.sln \
+          dotnet test Hardened.slnx \
             --no-build --configuration Release \
             --settings coverage.runsettings \
             --collect:"Code Coverage" \
@@ -333,7 +333,7 @@ jobs:
         run: |
           BUILD=$(printf '%06d' "$GITHUB_RUN_NUMBER")
           echo "Packing $RELEASE_LINE-preview$BUILD"
-          dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=$RELEASE_LINE-preview$BUILD
+          dotnet pack Hardened.slnx --configuration Release --no-build /p:PackageVersion=$RELEASE_LINE-preview$BUILD
 
       # Packing the solution takes whatever is not marked IsPackable=false, which is how
       # Hardened.IntegrationTests.Console.SUT and .OpenApi.SUT reached the feed as packages -

@@ -13,7 +13,7 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// <c>driver.GetRunResult().Diagnostics</c> — what the generator <em>reported</em> — so three
 /// separate defects that emitted uncompilable C# passed every test and shipped. Each case here ends
 /// in <see cref="GeneratorResult.AssertNoErrors"/>, which compiles the input together with the
-/// generated trees. See docs/testing-conventions.md §1.
+/// generated trees. See docs/design/testing-conventions.md §1.
 /// </para>
 /// </summary>
 public class BindingSourceCompilesTests {
@@ -247,7 +247,7 @@ public class BindingSourceCompilesTests {
     /// <c>AttributeModel.Arguments</c> and never <c>AttributeModel.PropertyAssignment</c>, where
     /// HandlerInfoCodeGenerator.CreateMetadataField does emit both for filters. That is reported as
     /// a defect rather than asserted here: a test that pinned the current output would make the fix
-    /// look like the regression. See docs/testing-conventions.md §6.
+    /// look like the regression. See docs/design/testing-conventions.md §6.
     /// </para>
     /// </summary>
     [Fact]

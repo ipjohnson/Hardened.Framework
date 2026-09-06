@@ -15,7 +15,7 @@ namespace Hardened.Amz.Shared.Lambda.Runtime.Tests.Development;
 /// <remarks>
 /// Needs <c>dotnet tool restore</c> to have run, which CI does before the tests. Without the tool
 /// the start fails naming the manifest, and the test fails with it rather than skipping, per
-/// docs/testing-conventions.md.
+/// docs/design/aws/testing-conventions.md.
 /// </remarks>
 public class LambdaEmulatorTests {
 

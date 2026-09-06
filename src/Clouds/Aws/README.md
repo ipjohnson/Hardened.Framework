@@ -133,8 +133,8 @@ rather than against a released package. `src/Directory.Build.targets` used to sw
 version to take.
 
 ```bash
-dotnet build src/Hardened.Framework.sln
-dotnet test  src/Hardened.Framework.sln
+dotnet build Hardened.slnx
+dotnet test  Hardened.slnx
 ```
 
 CI adds `-p:ContinuousIntegrationBuild=true`, which turns warnings into errors — run a build with

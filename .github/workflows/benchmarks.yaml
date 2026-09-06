@@ -71,7 +71,7 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - run: dotnet restore src/Hardened.Framework.sln
+      - run: dotnet restore Hardened.slnx
 
       - run: dotnet build src/Benchmarks/Hardened.Benchmarks --no-restore --configuration Release
 

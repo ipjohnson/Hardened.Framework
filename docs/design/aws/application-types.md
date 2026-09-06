@@ -298,8 +298,8 @@ Conventions for what to assert are in [testing-conventions.md](testing-conventio
 ## Building
 
 ```bash
-dotnet build src/Hardened.Framework.sln
-dotnet test  src/Hardened.Framework.sln
+dotnet build Hardened.slnx
+dotnet test  Hardened.slnx
 ```
 
 These projects are `src/Clouds/Aws` in Hardened.Framework and build against the framework in the
@@ -310,7 +310,7 @@ the other repository's files. There is one repository now, so there is nothing t
 Before opening a pull request, run a build with the gate CI applies:
 
 ```bash
-dotnet build src/Hardened.Framework.sln -p:ContinuousIntegrationBuild=true
+dotnet build Hardened.slnx -p:ContinuousIntegrationBuild=true
 ```
 
 That turns warnings into errors. Local builds do not.

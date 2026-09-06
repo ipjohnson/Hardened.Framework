@@ -5,7 +5,10 @@ and how an application consumes it; this file does not repeat that.
 
 ## Layout
 
-The solution is `src/Hardened.Framework.sln`. There is none at the repository root.
+`Hardened.slnx` at the repository root holds every project, and that is what CI builds. A filter
+under `filters/` is what an editor opens: `framework.slnf` is 95 projects, `aws.slnf` is 45 - the
+AWS projects and the framework projects they reference. The repository stays whole; what is loaded
+into an IDE does not have to be.
 
 | Path | Contents |
 |---|---|
@@ -27,14 +30,16 @@ this repository has to be released for a change here to be tested.
 ## Commands
 
 ```bash
-dotnet build src/Hardened.Framework.sln
-dotnet test  src/Hardened.Framework.sln
+dotnet build Hardened.slnx
+dotnet test  Hardened.slnx
+
+dotnet build filters/aws.slnf        # or framework.slnf, for daily work
 ```
 
 Before opening a pull request, build the way CI does:
 
 ```bash
-dotnet build src/Hardened.Framework.sln --configuration Release -p:ContinuousIntegrationBuild=true
+dotnet build Hardened.slnx --configuration Release -p:ContinuousIntegrationBuild=true
 ```
 
 `ContinuousIntegrationBuild` sets `TreatWarningsAsErrors` (`Directory.Build.props`). Local
@@ -219,9 +224,11 @@ without anyone touching a test — re-baseline those two when that happens.
 
 ## Things that will catch you out
 
-**Editing `.sln` through `dotnet sln`.** `dotnet sln remove` followed by `dotnet sln add
---solution-folder` silently drops projects and exits 0. Edit the solution file directly and check
-the diff.
+**Editing the solution through `dotnet sln`.** `dotnet sln remove` followed by `dotnet sln add
+--solution-folder` silently drops projects and exits 0, and `dotnet sln add` given many projects at
+once flattens them into one folder and then refuses on the first name collision. `Hardened.slnx` is
+short and readable; edit it directly and check the diff. A project added there has to be added to
+its filter too, and to the pack list in `release.yaml` if it ships.
 
 **An optional `CancellationToken` on a shared test helper.** Every call site that omits it trips
 `xUnit1051`, which is a warning locally and an error under `ContinuousIntegrationBuild` — so the
@@ -235,18 +242,22 @@ whether that source compiles in a consumer, which is why the AWS generators comp
 `src/SourceGenerators/Hardened.SourceGenerator` rather than restoring the package. They are the
 in-repository consumer; a change to it that does not compile fails the same build.
 
+**Every package version is in `Directory.Packages.props`.** A `Version` on a `PackageReference` is
+`NU1008`. A project that genuinely needs a different version says so with `VersionOverride` and a
+comment giving the reason; four do. Adding a package means adding a `PackageVersion` there first.
+
 **Placement between `Abstract` and `Runtime`.** The contract stays in `Hardened.Requests.Abstract`;
 behaviour moves. A type a function handler needs cannot move to `Hardened.Web.Runtime` — the Lambda
 function runtimes do not reference it.
 
 ## Where the rest is written down
 
-- `docs/testing-conventions.md` — what to assert, and what not to
-- `docs/generator-diagnostics.md` — every diagnostic the generators raise
-- `docs/described-authorization.md` — what a contract's `security` becomes
-- `docs/validation-usage.md` — constraints, custom validators, the error response
-- `docs/response-caching.md` — `[CacheResponse<T>]`, the store package, who a stored answer is for, invalidating by tag, revalidating with a 304
-- `docs/request-timeouts.md` — `[Timeout]`, the four rungs it resolves through, `x-hardened-timeout` and the Smithy `@timeout` trait, tighten-only conventions, why the token is put back
-- `docs/client-testing.md` — `Returns<T>()` in `Hardened.Web.Testing`, the route and reader seam it reads through, `[assembly: KiotaTesting]` and `[assembly: RefitTesting]`, why there is a package per generator
+- `docs/design/testing-conventions.md` — what to assert, and what not to
+- `docs/design/generator-diagnostics.md` — every diagnostic the generators raise
+- `docs/design/described-authorization.md` — what a contract's `security` becomes
+- `docs/design/validation-usage.md` — constraints, custom validators, the error response
+- `docs/design/response-caching.md` — `[CacheResponse<T>]`, the store package, who a stored answer is for, invalidating by tag, revalidating with a 304
+- `docs/design/request-timeouts.md` — `[Timeout]`, the four rungs it resolves through, `x-hardened-timeout` and the Smithy `@timeout` trait, tighten-only conventions, why the token is put back
+- `docs/design/client-testing.md` — `Returns<T>()` in `Hardened.Web.Testing`, the route and reader seam it reads through, `[assembly: KiotaTesting]` and `[assembly: RefitTesting]`, why there is a package per generator
 - `docs/` — the published site. `npm run build` there fails on a dead internal link
 - Full user documentation: <https://ipjohnson.github.io/Hardened.Framework>
