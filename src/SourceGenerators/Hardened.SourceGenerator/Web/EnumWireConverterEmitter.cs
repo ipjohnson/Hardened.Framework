@@ -88,14 +88,21 @@ internal static class EnumWireConverterEmitter {
             ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
         instance.InitializeValue = new CodeOutputComponent("new()") { Indented = false };
 
-        EmitRead(converter, vocabulary, enumType);
-        EmitWrite(converter, vocabulary, enumType);
+        EmitRead(converter, vocabulary, enumType, "Read");
+        EmitWrite(converter, vocabulary, enumType, "Write", "writer.WriteStringValue(wire);");
+
+        // The same vocabulary as a dictionary key. System.Text.Json reads and writes a key through
+        // these two rather than Read and Write, and refuses the type as a key when a converter
+        // does not override them: an enum-keyed dictionary serialized until any handler bound the
+        // enum and this converter was registered, and then answered 500 with an empty body.
+        EmitRead(converter, vocabulary, enumType, "ReadAsPropertyName");
+        EmitWrite(converter, vocabulary, enumType, "WriteAsPropertyName", "writer.WritePropertyName(wire);");
         EmitTryParseWire(converter, vocabulary, enumType);
     }
 
     private static void EmitRead(
-        ClassDefinition converter, EnumVocabulary vocabulary, ITypeDefinition enumType) {
-        var method = converter.AddMethod("Read");
+        ClassDefinition converter, EnumVocabulary vocabulary, ITypeDefinition enumType, string name) {
+        var method = converter.AddMethod(name);
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
         method.SetReturnType(enumType);
@@ -128,8 +135,9 @@ internal static class EnumWireConverterEmitter {
     }
 
     private static void EmitWrite(
-        ClassDefinition converter, EnumVocabulary vocabulary, ITypeDefinition enumType) {
-        var method = converter.AddMethod("Write");
+        ClassDefinition converter, EnumVocabulary vocabulary, ITypeDefinition enumType,
+        string name, string write) {
+        var method = converter.AddMethod(name);
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
         method.AddParameter(TypeDefinition.Get("System.Text.Json", "Utf8JsonWriter"), "writer");
@@ -149,7 +157,7 @@ internal static class EnumWireConverterEmitter {
         lines.Add($"        \"The value is not one {Escape(vocabulary.Name)} declares.\")");
         lines.Add("};");
         lines.Add("");
-        lines.Add("writer.WriteStringValue(wire);");
+        lines.Add(write);
 
         Write(method, lines);
     }
