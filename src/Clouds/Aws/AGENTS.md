@@ -62,7 +62,7 @@ it is released.
 ## Versions
 
 Amz releases on the **same version line as the Framework**, from a `v*` tag. The current line is
-`0.19.0-rc1000`. Bumping means editing `src/Directory.Packages.props` and waiting for the Framework
+`0.22.0-rc1000`. Bumping means editing `src/Directory.Packages.props` and waiting for the Framework
 packages to reach nuget.org first — `scripts/check-framework-dependencies.py` fails the release
 otherwise.
 
