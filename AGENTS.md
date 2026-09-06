@@ -217,9 +217,19 @@ opens through lives in Core and is wired by RuntimeSupport; a mismatch throws
 "LambdaResponseStreamFactory is not initialized" on the first streamed write.
 
 **The AWS sample applications are gated.** `DynamoDbStreamApp` and `SqsTest` are in
-`coverage-baseline.json`, and they are the only two entries not named `Hardened.*`. A framework
-change regenerates their handlers and routing, which grows the denominator and drops the percentage
-without anyone touching a test — re-baseline those two when that happens.
+`coverage-baseline.json`, and they are the only two entries not named `Hardened.*` — which is why
+the report filter in the workflows names them, since `+Hardened.*` alone would drop them and a
+baseline entry no run reported is fatal. A framework change regenerates their handlers and routing,
+which grows the denominator and drops the percentage without anyone touching a test; re-baseline
+those two when that happens.
+
+**The seventeen AWS floors have not been re-measured here yet.** They came across as Hardened.Amz
+measured them, with coverlet under the .NET 8 SDK, and this repository measures with
+Microsoft.CodeCoverage under .NET 11. That moves numbers on its own: a local run has
+`Hardened.Amz.Web.Lambda.SourceGenerator` at 35.9% against a 98.5% floor, because the generator
+assemblies compile `Hardened.SourceGenerator` and ValidationModules in as source and the two
+collectors disagree about whether that counts. The same tests pass, and none is skipped. Take the
+first CI run on this branch and `--update` from it, as below — not from a local run.
 
 
 ## Things that will catch you out
