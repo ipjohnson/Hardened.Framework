@@ -192,3 +192,8 @@ BenchmarkDotNet.Artifacts/
 
 # Release packages, produced by .github/workflows/release.yaml.
 artifacts/
+
+# The documentation site under docs/ is VitePress.
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/

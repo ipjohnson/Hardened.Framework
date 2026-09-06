@@ -134,7 +134,7 @@ carries what it uses.
 | Repository | What it holds |
 |---|---|
 | [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework) | Modules, DI, configuration, routing, binding, templates, testing |
-| [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) | Lambda runtimes, DynamoDB and SQS clients, CDK constructs |
+| [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework) | Lambda runtimes, DynamoDB and SQS clients, CDK constructs |
 
 </div>
 

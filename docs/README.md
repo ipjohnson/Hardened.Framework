@@ -1,16 +1,18 @@
-# <picture><source media="(prefers-color-scheme: dark)" srcset="website/public/hardened-mark-dark.svg"><img src="website/public/hardened-mark.svg" alt="" width="34"></picture> Hardened.Docs
+# <picture><source media="(prefers-color-scheme: dark)" srcset="public/hardened-mark-dark.svg"><img src="public/hardened-mark.svg" alt="" width="34"></picture> Documentation
 
-Documentation for the [Hardened](https://ipjohnson.github.io/Hardened.Docs/) ecosystem — a
-compile-time, source-generated .NET framework for web APIs and serverless functions.
-
-The site is built with VitePress from `website/`:
+The user-facing site for [Hardened](https://ipjohnson.github.io/Hardened.Framework/), built with
+VitePress from this directory:
 
 ```bash
-cd website
-npm install
+cd docs
+npm ci
 npm run dev     # local preview
-npm run build   # what CI publishes
+npm run build   # what CI publishes; fails on a dead internal link
 ```
 
-Related repositories: [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework) ·
-[Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz)
+`design/` is not part of the site. Those are maintainer notes — why an API behaves the way it does,
+and what will catch you out — kept beside the code they describe and excluded from the build by
+`srcExclude` in `.vitepress/config.ts`.
+
+This lived in `ipjohnson-org/Hardened.Docs` until the move to one repository, which is why the
+published URL changed from `/Hardened.Docs/` to `/Hardened.Framework/`.

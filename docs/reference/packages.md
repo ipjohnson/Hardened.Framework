@@ -1,8 +1,8 @@
 # Packages
 
-Every published package, by repository. All of them are on **nuget.org**, with no private feed and no
-token. [Project templates](/guide/project-templates) reference the right ones for you; this page is
-for assembling a project by hand.
+Every published package. All of them are on **nuget.org**, with no private feed and no token, and
+all of them ship together on one version. [Project templates](/guide/project-templates) reference
+the right ones for you; this page is for assembling a project by hand.
 
 Source generator packages are referenced as analysers:
 
@@ -11,9 +11,7 @@ Source generator packages are referenced as analysers:
                   OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 ```
 
-## Hardened.Framework
-
-[github.com/ipjohnson/Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework)
+## Framework
 
 ### Core
 
@@ -107,9 +105,11 @@ and answers 404 to everything.
 | `Hardened.Idl.SourceGenerator` | Back end for both front ends: models, service interfaces, handlers, routes and validation |
 | `Hardened.SourceGenerator` | The shared generator library the others build on. Not referenced directly |
 
-## Hardened.Amz
+## AWS
 
-[github.com/ipjohnson/Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz)
+Under [`src/Clouds/Aws`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws),
+and on the same version as everything above. They were `Hardened.Amz` in a repository of their own
+until 0.22.0-rc1000.
 
 ### Lambda runtimes
 
@@ -150,14 +150,13 @@ package choice; see [Response mode](/aws/lambda-web#response-mode).
 
 ## Versioning
 
-Both repositories release on the same version line, from a `v*` tag:
+Everything releases on one version line, from a `v*` tag:
 
-| Repository | Released | Continuous feed |
+| | Released | Continuous feed |
 |---|---|---|
-| Hardened.Framework | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
-| Hardened.Amz | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
+| Every package | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
 
-The current line is **`0.21.0-rc1000`**. Releases go to nuget.org; the continuous feed is
+The current line is **`0.22.0-rc1000`**. Releases go to nuget.org; the continuous feed is
 [GitHub Packages](https://nuget.pkg.github.com/ipjohnson/index.json). Under one line, `preview`
 sorts below `rc`, so a preview never shadows the release it precedes.
 
@@ -167,7 +166,6 @@ so mixing framework builds within one application is not a supported combination
 Avoid a floating pin. A float that stops matching anything new does not fail. It keeps resolving
 whatever it last found, with a green build throughout.
 
-The one deliberate float is the `Hardened.Amz` version in the Lambda project templates, which is
-open-ended (`0.*-*`). The two repositories release in sequence, so for a short window the framework
-is ahead and an exact pin would name a version that does not exist yet. The template gate prints the
-version it resolved to.
+The Lambda templates used to float their `Hardened.Amz` pin for exactly that reason: two
+repositories released in sequence, so for a window an exact pin named a version that did not exist
+yet. One repository releases once, so the templates pin every package to the same version.

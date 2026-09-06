@@ -47,8 +47,8 @@ public async Task ProjectsAnInsert(TestDynamoDbStream stream, IProjectionStore s
 }
 ```
 
-Source: [`src/Lambda/DynamoDbStream`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/DynamoDbStream)
-in [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
+Source: [`src/Clouds/Aws/Lambda/DynamoDbStream`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Lambda/DynamoDbStream)
+in [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
 
 ## The images
 

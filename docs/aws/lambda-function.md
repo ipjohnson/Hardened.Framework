@@ -32,8 +32,8 @@ public async Task ProcessesAnOrder(LambdaTestApp app) {
 
 The test invokes the function through the real pipeline, with no AWS account and nothing to
 deploy. `dotnet new hardened-function` writes this shape. Source:
-[`src/Lambda/Function`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/Function)
-in [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
+[`src/Clouds/Aws/Lambda/Function`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Lambda/Function)
+in [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
 
 ## Packages
 

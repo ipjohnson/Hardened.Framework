@@ -231,7 +231,7 @@ DependencyModules module has its registrations applied too. A view is named on a
 
 ## AWS
 
-From [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
+From [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
 
 | Attribute | Namespace | Purpose |
 |---|---|---|

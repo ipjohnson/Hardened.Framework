@@ -1,13 +1,13 @@
 import { defineConfig } from 'vitepress';
 
 // Published under the repository name on GitHub Pages, so every absolute path needs it as a base.
-const base = '/Hardened.Docs/';
+//
+// It was '/Hardened.Docs/' until the site moved into the repository it documents. That changes the
+// published URL, and the old one is not redirected from here: Hardened.Docs has to keep a page that
+// points at this one, because a repository cannot forward a path it no longer serves.
+const base = '/Hardened.Framework/';
 
-const repos = {
-  framework: 'https://github.com/ipjohnson/Hardened.Framework',
-  amz: 'https://github.com/ipjohnson/Hardened.Amz',
-  docs: 'https://github.com/ipjohnson/Hardened.Docs',
-};
+const repo = 'https://github.com/ipjohnson/Hardened.Framework';
 
 // One sidebar for the guide and the AWS pages, so AWS is the section after Testing rather than a
 // separate tree.
@@ -112,6 +112,11 @@ export default defineConfig({
   lang: 'en-GB',
   cleanUrls: true,
 
+  // docs/ holds more than the site. design/ is the maintainer notes that used to live in each
+  // repository's own docs folder, and README.md tells a contributor how to build this. Neither is
+  // a page, and without this every one of them would be published as an unlinked orphan.
+  srcExclude: ['design/**', 'README.md'],
+
   // A broken internal link fails the build rather than shipping.
   ignoreDeadLinks: false,
 
@@ -146,14 +151,6 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
       { text: 'AWS', link: '/aws/', activeMatch: '/aws/' },
       { text: 'Reference', link: '/reference/attributes', activeMatch: '/reference/' },
-      {
-        text: 'Repositories',
-        items: [
-          { text: 'Hardened.Framework', link: repos.framework },
-          { text: 'Hardened.Amz (AWS)', link: repos.amz },
-          { text: 'Hardened.Docs', link: repos.docs },
-        ],
-      },
     ],
 
     sidebar: {
@@ -166,18 +163,18 @@ export default defineConfig({
             { text: 'Attributes', link: '/reference/attributes' },
             { text: 'Diagnostics', link: '/reference/diagnostics' },
             { text: 'Packages', link: '/reference/packages' },
-            { text: 'Repositories', link: '/reference/repositories' },
+            { text: 'Repository', link: '/reference/repository' },
           ],
         },
       ],
     },
 
-    socialLinks: [{ icon: 'github', link: repos.framework }],
+    socialLinks: [{ icon: 'github', link: repo }],
 
     search: { provider: 'local' },
 
     editLink: {
-      pattern: 'https://github.com/ipjohnson/Hardened.Docs/edit/main/website/:path',
+      pattern: `${repo}/edit/main/docs/:path`,
       text: 'Edit this page on GitHub',
     },
 
