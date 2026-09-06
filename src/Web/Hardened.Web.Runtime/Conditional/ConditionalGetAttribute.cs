@@ -1,5 +1,7 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Requests.Abstract.Responses;
+using Hardened.Requests.Abstract.Headers;
 
 namespace Hardened.Web.Runtime.Conditional;
 
@@ -39,8 +41,33 @@ namespace Hardened.Web.Runtime.Conditional;
 /// a write.
 /// </para>
 /// </summary>
+// What the document says about an operation carrying this. It published nothing at all: no 304,
+// no ETag and no If-None-Match, so a generated client could not make the conditional request the
+// filter exists to answer, and the 304 it would be sent had no branch. GET and HEAD only, and not
+// on a streamed handler, because those are exactly the operations GetFilters installs nothing on.
+[AnswersStatus(304, Methods = Reads, NotWhenStreaming = true,
+    Description = "The caller's copy is current; nothing is sent.")]
+[AnswersHeader(304, KnownHeaders.ETag, Methods = Reads, NotWhenStreaming = true,
+    Description = "The tag the caller already holds, repeated.")]
+[AnswersHeader(200, KnownHeaders.ETag, Methods = Reads, NotWhenStreaming = true,
+    Description = "A tag for this response, to send back in If-None-Match.")]
+[ReadsHeader(KnownHeaders.IfNoneMatch, Methods = Reads, NotWhenStreaming = true,
+    Description = "A tag a previous response carried. Matching it is answered 304.")]
+[ReadsHeader(KnownHeaders.IfModifiedSince, Methods = Reads, NotWhenStreaming = true,
+    Description = "When the caller last read this. Unchanged since then is answered 304.")]
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
 public sealed class ConditionalGetAttribute : Attribute, IRequestFilterProvider {
+
+    /// <summary>
+    /// The methods this answers on, as the document declarations above state it.
+    /// </summary>
+    /// <remarks>
+    /// Spelled once rather than five times, and beside <c>GetFilters</c>'s own check, because a
+    /// document claiming a 304 on an operation the filter stood down on is the defect the
+    /// declarations were added to close.
+    /// </remarks>
+    private const string Reads = "GET,HEAD";
+
     private readonly ConditionalGetFilter _filter = new();
 
     /// <summary>

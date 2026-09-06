@@ -1,6 +1,7 @@
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Responses;
 
 namespace Hardened.Requests.Runtime.RateLimiting;
@@ -41,6 +42,10 @@ public enum RateLimitScope {
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
 [AnswersStatus(429, typeof(ErrorModel),
     Description = "The caller has spent this operation's allowance. Retry-After says when it returns.")]
+// The headers the limiter writes on every refusal, which the description above already names and
+// the document did not carry.
+[AnswersHeader(429, KnownHeaders.RetryAfter,
+    Description = "How long to wait before the allowance returns, in seconds.")]
 public class RateLimitAttribute : Attribute, IRequestFilterProvider {
 
     /// <summary>Requests allowed per <see cref="WindowSeconds"/>.</summary>

@@ -451,9 +451,20 @@ public class SpecFirstDocumentTests {
         public class QuoteServiceImpl : IQuoteService {
             [Hardened.Requests.Runtime.RateLimiting.RateLimit(PermitLimit = 2)]
             [Hardened.Requests.Runtime.Authorization.AuthorizeGrants("quotes:read")]
+            [AnswersHeader(200, "X-Quote-Source", Description = "Which book priced it.")]
+            [ReadsHeader("X-Quote-Currency", Description = "The currency to price in.")]
             public Task<string> GetQuote() => Task.FromResult("40.00");
         }
         """);
+
+    private static JsonElement GuardedOperationElement() {
+        var result = OpenApiGenerator.Run(GuardedOperation, GuardedHandler);
+
+        Assert.Empty(result.Errors);
+
+        return PublishedDocumentFrom(result)
+            .GetProperty("paths").GetProperty("/quotes").GetProperty("get");
+    }
 
     private static JsonElement GuardedResponses() {
         var result = OpenApiGenerator.Run(GuardedOperation, GuardedHandler);
@@ -545,6 +556,56 @@ public class SpecFirstDocumentTests {
                   type: object
                   additionalProperties: { type: integer }
         """;
+
+    /// <summary>
+    /// A header written on a described handler reaches its document, the way one written on an
+    /// attribute-routed handler does.
+    /// </summary>
+    /// <remarks>
+    /// The implementation is the only place an author can write anything about a described
+    /// operation - its signature is generated - so a header the handler sends had nowhere to be
+    /// declared and the document described the response as bare.
+    /// </remarks>
+    [Fact]
+    public void AHeaderDeclaredOnADescribedHandlerReachesItsDocument() =>
+        Assert.Equal(
+            "Which book priced it.",
+            GuardedOperationElement().GetProperty("responses").GetProperty("200")
+                .GetProperty("headers").GetProperty("X-Quote-Source")
+                .GetProperty("description").GetString());
+
+    /// <summary>And a header it says it reads becomes a parameter a generated client can send.</summary>
+    [Fact]
+    public void AHeaderADescribedHandlerReadsBecomesAParameter() {
+        var parameters = GuardedOperationElement().GetProperty("parameters");
+
+        var declared = parameters.EnumerateArray()
+            .Single(parameter => parameter.GetProperty("name").GetString() == "X-Quote-Currency");
+
+        Assert.Equal("header", declared.GetProperty("in").GetString());
+        Assert.False(declared.GetProperty("required").GetBoolean());
+        Assert.Equal("The currency to price in.", declared.GetProperty("description").GetString());
+    }
+
+    /// <summary>
+    /// The rate limiter's <c>Retry-After</c>, which travels on the attribute rather than being
+    /// written by hand.
+    /// </summary>
+    [Fact]
+    public void ARateLimitPublishesTheHeaderItWrites() =>
+        Assert.True(
+            GuardedOperationElement().GetProperty("responses").GetProperty("429")
+                .GetProperty("headers").TryGetProperty("Retry-After", out _));
+
+    /// <summary>Described responses are in status order too, synthesized ones included.</summary>
+    [Fact]
+    public void DescribedResponsesAreInStatusOrder() {
+        var statuses = GuardedOperationElement().GetProperty("responses").EnumerateObject()
+            .Select(status => int.Parse(status.Name)).ToList();
+
+        Assert.True(statuses.Count > 2);
+        Assert.Equal(statuses.OrderBy(status => status).ToList(), statuses);
+    }
 
     #endregion
 }

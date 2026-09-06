@@ -204,6 +204,11 @@ namespace Hardened.Web.Runtime.Conditional
         public override int GetHashCode() { }
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
+    [Hardened.Requests.Abstract.Responses.AnswersHeader(200, "ETag", Description="A tag for this response, to send back in If-None-Match.", Methods="GET,HEAD", NotWhenStreaming=true)]
+    [Hardened.Requests.Abstract.Responses.AnswersHeader(304, "ETag", Description="The tag the caller already holds, repeated.", Methods="GET,HEAD", NotWhenStreaming=true)]
+    [Hardened.Requests.Abstract.Responses.AnswersStatus(304, Description="The caller\'s copy is current; nothing is sent.", Methods="GET,HEAD", NotWhenStreaming=true)]
+    [Hardened.Requests.Abstract.Responses.ReadsHeader("If-Modified-Since", Description="When the caller last read this. Unchanged since then is answered 304.", Methods="GET,HEAD", NotWhenStreaming=true)]
+    [Hardened.Requests.Abstract.Responses.ReadsHeader("If-None-Match", Description="A tag a previous response carried. Matching it is answered 304.", Methods="GET,HEAD", NotWhenStreaming=true)]
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
     public sealed class ConditionalGetAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {

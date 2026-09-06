@@ -179,22 +179,22 @@
               }
             }
           },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PetNotFound"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PetNotFound"
                 }
               }
             }
@@ -291,6 +291,16 @@
               }
             }
           },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
           "404": {
             "description": "Not Found",
             "content": {
@@ -307,16 +317,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Throttled"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RequestValidationError"
                 }
               }
             }
