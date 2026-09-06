@@ -1,5 +1,7 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Metrics;
+using Hardened.Requests.Abstract.Timeouts;
+using Hardened.Shared.Runtime.Diagnostics;
 
 namespace Hardened.Requests.Runtime.Filters;
 
@@ -23,14 +25,25 @@ namespace Hardened.Requests.Runtime.Filters;
 /// a thread runs to completion and the request answers late; nothing here can take a thread back.
 /// </para>
 /// <para>
-/// See <see cref="CancellationScope"/> for why the token is put back rather than left swapped.
+/// <b>It also publishes the budget, for the handler that has to decide before it starts.</b>
+/// The token says stop and says nothing about how long there was;
+/// <see cref="IRequestDeadline"/> carries both readings, published together from here so they
+/// cannot describe different budgets. Publishing writes an <c>AsyncLocal</c>, which every
+/// continuation after it copies, so <c>[Timeout(Deadline = false)]</c> turns it off for a handler
+/// that will not read it.
+/// </para>
+/// <para>
+/// See <see cref="CancellationScope"/> for why the token is put back rather than left swapped, and
+/// <see cref="DeadlineScope"/> for the deadline's own restore.
 /// </para>
 /// </remarks>
 public class TimeoutFilter : IExecutionFilter {
     private readonly int _milliseconds;
+    private readonly bool _publishDeadline;
 
-    public TimeoutFilter(int milliseconds) {
+    public TimeoutFilter(int milliseconds, bool publishDeadline = true) {
         _milliseconds = milliseconds;
+        _publishDeadline = publishDeadline;
     }
 
     public async Task Execute(IExecutionChain chain) {
@@ -44,7 +57,8 @@ public class TimeoutFilter : IExecutionFilter {
         deadline.CancelAfter(_milliseconds);
 
         try {
-            using (context.WithCancellation(deadline.Token)) {
+            using (context.WithCancellation(deadline.Token))
+            using (RequestDeadline.Until(Published(), deadline.Token)) {
                 await chain.Next();
             }
         }
@@ -63,4 +77,13 @@ public class TimeoutFilter : IExecutionFilter {
             }
         }
     }
+
+    /// <summary>The deadline to publish, or null when this handler declined it.</summary>
+    /// <remarks>
+    /// Taken now rather than from the request's start, because now is when the budget starts
+    /// running: <c>CancelAfter</c> is called on the same pass, and a deadline measured from
+    /// anywhere else would disagree with the token enforcing it.
+    /// </remarks>
+    private MachineTimestamp? Published() =>
+        _publishDeadline ? MachineTimestamp.Now.AddMs(_milliseconds) : null;
 }

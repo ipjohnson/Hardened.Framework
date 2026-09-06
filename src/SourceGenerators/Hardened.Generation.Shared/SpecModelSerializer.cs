@@ -68,6 +68,7 @@ internal static class SpecModelSerializer {
         spec.Add("JsonTypeInfoResolverName", model.JsonTypeInfoResolverName);
         spec.Add("ContentNegotiation", model.ContentNegotiation);
         spec.Add("ResponseModel", model.ResponseModel.ToString());
+        spec.Add("BindCancellationToken", model.BindCancellationToken);
         spec.Add("PublishUrl", model.PublishUrl);
         spec.Add("SourceUrl", model.SourceUrl);
         spec.Add("UiUrl", model.UiUrl);
@@ -146,6 +147,7 @@ internal static class SpecModelSerializer {
                     model.JsonTypeInfoResolverName = record.String("JsonTypeInfoResolverName") ?? "";
                     model.ContentNegotiation = record.String("ContentNegotiation") ?? "";
                     model.ResponseModel = ParseResponseModel(record.String("ResponseModel"));
+                    model.BindCancellationToken = record.Bool("BindCancellationToken");
                     model.PublishUrl = record.String("PublishUrl") ?? "";
                     model.SourceUrl = record.String("SourceUrl") ?? "";
                     model.UiUrl = record.String("UiUrl") ?? "";

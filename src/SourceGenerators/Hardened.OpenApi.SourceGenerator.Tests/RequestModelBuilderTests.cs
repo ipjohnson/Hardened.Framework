@@ -427,4 +427,93 @@ public class RequestModelBuilderTests {
 
         Assert.Equal(ParameterBindType.Header, authParam.BindingType);
     }
+
+    /// <summary>
+    /// The dispatch half of <c>$(HardenedBindCancellationToken)</c>: the argument the generated
+    /// call passes, matching the parameter <c>ServiceInterfaceEmitter</c> put on the interface it
+    /// calls through.
+    /// </summary>
+    /// <remarks>
+    /// Bound the way a code-first handler's own <c>CancellationToken</c> parameter is, which is off
+    /// the context at <c>FilterOrder.Serialization</c> - inside <c>TimeoutFilter</c>'s span, and so
+    /// the budget's token rather than the transport's.
+    /// </remarks>
+    [Fact]
+    public void BuildModels_BindCancellationToken_AddsABoundTokenLast() {
+        var spec = CreatePetstoreSpec();
+        spec.BindCancellationToken = true;
+
+        var models = RequestModelBuilder.BuildModels(
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+
+        var createPet = models.First(m => m.HandlerMethod == "CreatePet");
+        var parameters = createPet.RequestParameterInformationList;
+        var token = parameters[parameters.Count - 1];
+
+        Assert.Equal(ParameterBindType.CancellationToken, token.BindingType);
+        Assert.Equal("cancellationToken", token.Name);
+        Assert.Equal("CancellationToken", token.ParameterType.Name);
+
+        // After the body, matching the signature. A transposed argument list still compiles when the
+        // types happen to line up, so the position is what this pins.
+        Assert.Equal(ParameterBindType.Body, parameters[parameters.Count - 2].BindingType);
+    }
+
+    [Fact]
+    public void BuildModels_WithoutTheFlag_BindsNoToken() {
+        var spec = CreatePetstoreSpec();
+
+        var models = RequestModelBuilder.BuildModels(
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+
+        Assert.DoesNotContain(
+            models.SelectMany(m => m.RequestParameterInformationList),
+            p => p.BindingType == ParameterBindType.CancellationToken);
+    }
+
+    /// <summary>
+    /// Every operation, because the flag is a whole-spec answer and the interface it has to match
+    /// puts the parameter on every method.
+    /// </summary>
+    [Fact]
+    public void BuildModels_BindCancellationToken_ReachesEveryOperation() {
+        var spec = CreatePetstoreSpec();
+        spec.BindCancellationToken = true;
+
+        var models = RequestModelBuilder.BuildModels(
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+
+        Assert.All(models, model => Assert.Contains(
+            model.RequestParameterInformationList,
+            p => p.BindingType == ParameterBindType.CancellationToken));
+    }
+
+    /// <summary>
+    /// A streamed operation binds it the same way. Its dispatch is wired to the async-enumerable
+    /// filters rather than the standard ones, so the argument list is worth pinning separately.
+    /// </summary>
+    [Fact]
+    public void BuildModels_BindCancellationToken_ReachesAStreamedOperation() {
+        var spec = CreatePetstoreSpec();
+        spec.BindCancellationToken = true;
+        spec.Schemas.Add(new SchemaModel { Name = "PetEvent", Kind = SchemaKind.Object });
+        spec.Services[0].Operations.Add(new OperationModel {
+            OperationId = "petEvents",
+            Path = "/pets/{petId}/events",
+            HttpMethod = "GET",
+            ItemSchemaRef = "#/components/schemas/PetEvent",
+            Parameters = new List<ParameterModel> {
+                new() { Name = "petId", In = "path", IsRequired = true, Type = "string" }
+            }
+        });
+
+        var models = RequestModelBuilder.BuildModels(
+            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+
+        var events = models.First(m => m.HandlerMethod == "PetEvents");
+        var parameters = events.RequestParameterInformationList;
+
+        Assert.Equal(
+            ParameterBindType.CancellationToken, parameters[parameters.Count - 1].BindingType);
+    }
 }

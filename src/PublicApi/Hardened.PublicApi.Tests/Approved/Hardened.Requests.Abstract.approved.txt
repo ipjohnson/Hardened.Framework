@@ -1846,6 +1846,11 @@ namespace Hardened.Requests.Abstract.Timeouts
     {
         Hardened.Requests.Abstract.Timeouts.TimeoutPolicy Timeout { get; }
     }
+    public interface IRequestDeadline
+    {
+        System.Threading.CancellationToken? CancellationToken { get; }
+        Hardened.Shared.Runtime.Diagnostics.MachineTimestamp? Deadline { get; }
+    }
     public interface IRequestTimeoutConvention
     {
         Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Apply(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo);
@@ -1854,7 +1859,8 @@ namespace Hardened.Requests.Abstract.Timeouts
     {
         public const int DefaultMilliseconds = 30000;
         public const int DefaultStatus = 504;
-        public TimeoutPolicy(int Milliseconds, int Status = 504, int RetryAfterSeconds = 0) { }
+        public TimeoutPolicy(int Milliseconds, int Status = 504, int RetryAfterSeconds = 0, bool Deadline = true) { }
+        public bool Deadline { get; init; }
         public int Milliseconds { get; init; }
         public int RetryAfterSeconds { get; init; }
         public int Status { get; init; }

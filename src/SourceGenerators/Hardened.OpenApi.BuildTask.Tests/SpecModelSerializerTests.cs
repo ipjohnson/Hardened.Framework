@@ -368,6 +368,7 @@ public class SpecModelSerializerTests {
 
         return new ServiceSpecModel {
             FileName = "petstore",
+            BindCancellationToken = true,
             Schemas = {
                 new SchemaModel {
                     Name = "Pet",

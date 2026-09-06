@@ -56,8 +56,10 @@ internal static class EmitterHarness {
             ns, schema, ModelsNamespace,
             new PatternRegistry(RootNamespace + ".Validation", "petstore"), allSchemas));
 
-    internal static string ServiceInterface(ServiceModel service) =>
-        Write(ns => ServiceInterfaceEmitter.Emit(ns, service, ModelsNamespace),
+    internal static string ServiceInterface(
+        ServiceModel service, bool bindCancellationToken = false) =>
+        Write(ns => ServiceInterfaceEmitter.Emit(
+                ns, service, ModelsNamespace, SpecResponseModel.Throws, bindCancellationToken),
             RootNamespace + ".Services");
 
     internal static string JsonTypeInfo(

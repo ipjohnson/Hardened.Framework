@@ -49,7 +49,7 @@ internal static class SpecHandlerModelBuilder {
                     spec.ResponseModel,
                     spec.ValidatedOperations, filterTypeLookup, spec.Schemas,
                     service.DispatchHeader, Symbols(symbols, operation),
-                    service.TagDescription);
+                    service.TagDescription, spec.BindCancellationToken);
                 models.Add(model);
             }
         }
@@ -93,7 +93,8 @@ internal static class SpecHandlerModelBuilder {
         IReadOnlyList<SchemaModel> schemas,
         string? dispatchHeader = null,
         OperationSymbols? symbols = null,
-        string? tagDescription = null) {
+        string? tagDescription = null,
+        bool bindCancellationToken = false) {
         var methodName = operation.MethodName;
 
         // Derived by convention from the service's name for a described application, because a
@@ -111,7 +112,8 @@ internal static class SpecHandlerModelBuilder {
         var nameModel = new RequestHandlerNameModel(
             ConstrainedPath(operation), operation.HttpMethod, dispatchHeader, operation.DispatchKey);
 
-        var parameters = BuildParameters(operation, modelsNamespace, schemas, symbols);
+        var parameters = BuildParameters(
+            operation, modelsNamespace, schemas, symbols, bindCancellationToken);
         var responseInfo = symbols?.ResponseInformation
                            ?? BuildResponseInfo(operation, schemas, modelsNamespace, responseModel);
 
@@ -263,7 +265,7 @@ internal static class SpecHandlerModelBuilder {
 
     private static IReadOnlyList<RequestParameterInformation> BuildParameters(
         OperationModel operation, string modelsNamespace, IReadOnlyList<SchemaModel> schemas,
-        OperationSymbols? symbols = null) {
+        OperationSymbols? symbols = null, bool bindCancellationToken = false) {
         var parameters = new List<RequestParameterInformation>();
         var index = 0;
 
@@ -369,6 +371,25 @@ internal static class SpecHandlerModelBuilder {
                 true,
                 null,
                 ParameterBindType.Body,
+                "",
+                index++));
+        }
+
+        // Last, matching the parameter ServiceInterfaceEmitter puts at the end of the same
+        // signature. Bound the way a code-first handler's own CancellationToken parameter is, so
+        // the value read is whatever the context holds at FilterOrder.Serialization - which is
+        // inside TimeoutFilter's span, and therefore the budget's token rather than the transport's.
+        //
+        // Only where the signature came from a description. A hand-written handler declares its own
+        // parameters and the front end has already read them, so adding one here would be a second
+        // token the method never asked for.
+        if (bindCancellationToken && symbols == null) {
+            parameters.Add(new RequestParameterInformation(
+                TypeDefinition.Get("System.Threading", "CancellationToken"),
+                "cancellationToken",
+                true,
+                null,
+                ParameterBindType.CancellationToken,
                 "",
                 index++));
         }

@@ -13,7 +13,8 @@ internal static class ServiceInterfaceEmitter {
 
     public static InterfaceDefinition Emit(
         IConstructContainer container, ServiceModel service, string modelsNamespace,
-        SpecResponseModel responseModel = SpecResponseModel.Throws) {
+        SpecResponseModel responseModel = SpecResponseModel.Throws,
+        bool bindCancellationToken = false) {
         var interfaceDefinition = container.AddInterface(NamingHelper.ToInterfaceName(service.TypeBaseName));
 
         interfaceDefinition.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
@@ -48,7 +49,7 @@ internal static class ServiceInterfaceEmitter {
 
             method.SetReturnType(GetReturnType(operation, modelsNamespace, responseModel));
 
-            AddParameters(method, operation, modelsNamespace);
+            AddParameters(method, operation, modelsNamespace, bindCancellationToken);
         }
 
         return interfaceDefinition;
@@ -213,8 +214,26 @@ internal static class ServiceInterfaceEmitter {
         return TypeDefinition.Get("System.Threading.Tasks", "Task");
     }
 
+    /// <summary>
+    /// The operation's own parameters, its body, and the request's token where the build asked for
+    /// one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The token goes last, after the body, which is where a C# author writes one and where the
+    /// binder's own ordering leaves it: a description names its parameters and its body separately,
+    /// so nothing else in the list is interleaved either.
+    /// </para>
+    /// <para>
+    /// No default value on it. An interface method may declare one, but the implementation is then
+    /// free to omit or contradict it, and a described handler is called by generated code that
+    /// always passes the argument - so a default would only be a second place for the two to
+    /// disagree.
+    /// </para>
+    /// </remarks>
     private static void AddParameters(
-        MethodDefinition method, OperationModel operation, string modelsNamespace) {
+        MethodDefinition method, OperationModel operation, string modelsNamespace,
+        bool bindCancellationToken = false) {
         foreach (var parameter in operation.Parameters) {
             var csType = TypeMapper.MapParameterToCSharpType(parameter);
 
@@ -230,6 +249,17 @@ internal static class ServiceInterfaceEmitter {
         } else if (operation.RequestBodyType != null) {
             var csType = TypeMapper.MapToCSharpType(operation.RequestBodyType, null);
             method.AddParameter(TypeMapper.GetTypeDefinition(modelsNamespace, csType, false), "body");
+        }
+
+        if (bindCancellationToken) {
+            // By name rather than typeof(CancellationToken), for the reason IAsyncEnumerable above
+            // is named that way: this assembly targets netstandard2.0 and declares no package
+            // references, and naming the type keeps it that way.
+            var token = method.AddParameter(
+                TypeDefinition.Get("System.Threading", "CancellationToken"), "cancellationToken");
+
+            token.Comment = DocComment.Format(
+                "Cancelled when the request's budget runs out or its caller hangs up.");
         }
     }
 

@@ -81,7 +81,9 @@ internal static class SpecFileEmitter {
 
             foreach (var service in model.Services) {
                 Coverage.Apply(
-                    ServiceInterfaceEmitter.Emit(services, service, modelsNamespace, responseModel),
+                    ServiceInterfaceEmitter.Emit(
+                        services, service, modelsNamespace, responseModel,
+                        model.BindCancellationToken),
                     excludeFromCoverage);
 
                 // In the models namespace, beside the payloads they carry, rather than beside the

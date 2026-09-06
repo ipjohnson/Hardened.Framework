@@ -14,7 +14,12 @@
             the branch that decided a scalar success was bodyless, never executed there.
         -->
         <HardenedResponseModel>Response</HardenedResponseModel>
-    </PropertyGroup>
+    
+        <!-- The described half of the token binding, end to end. The sibling SUT keeps the flag
+             off, so between them both shapes of the generated interface are built and dispatched
+             against. -->
+        <HardenedBindCancellationToken>true</HardenedBindCancellationToken>
+</PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>

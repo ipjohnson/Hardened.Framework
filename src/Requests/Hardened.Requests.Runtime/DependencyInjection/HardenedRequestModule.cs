@@ -12,6 +12,8 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Runtime.DependencyInjection;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Abstract.Timeouts;
+using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Streaming;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,6 +67,14 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         // else reads the interface, which is what keeps the setter off the contract.
         services.AddScoped<CurrentCaller>();
         services.AddScoped<ICurrentCaller>(provider => provider.GetRequiredService<CurrentCaller>());
+
+        // The deadline, as a service a handler can take. Singleton rather than scoped, because a
+        // described handler can only reach this through its constructor - its signature is the
+        // contract's - and may itself be a singleton, which a scoped registration would let it
+        // capture. One registration rather than the two above: the per-request value lives in a
+        // static AsyncLocal that TimeoutFilter writes, so nothing needs a second registration to
+        // fill an instance with.
+        services.AddSingleton<IRequestDeadline, RequestDeadline>();
 
         // Always installed. It costs one call per handler at startup and returns null for a handler
         // that carries no authorization attribute, so an application that has not opted in to
