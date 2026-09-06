@@ -144,28 +144,42 @@ public class PublicApiSurfaceTests {
     }
 
     /// <summary>
-    /// A package added to the repository without an entry in <see cref="ShippedAssemblies"/> would
-    /// ship with no approved surface and nobody would notice. This catches that.
+    /// A package added to the csproj without an entry in <see cref="Shipped"/> would ship with no
+    /// approved surface and nobody would notice. This catches that.
+    ///
+    /// <para>
+    /// Read from the assemblies beside this one rather than from
+    /// <see cref="Assembly.GetReferencedAssemblies"/>, which does not answer the question. The
+    /// compiler records a reference only where the code uses a type from it, and this file uses
+    /// none: with all thirty-two projects referenced, removing an entry from <see cref="Shipped"/>
+    /// left the reference set empty and this test passed. It asserted nothing for as long as it has
+    /// existed. A <c>ProjectReference</c> copies its output here whether or not a type is used, so
+    /// the directory is the honest signal.
+    /// </para>
     /// </summary>
     [Fact]
-    public void EveryReferencedShippedAssemblyIsCovered() {
+    public void EveryShippedAssemblyBesideThisOneIsCovered() {
         var covered = Shipped.ToHashSet(StringComparer.Ordinal);
 
-        var referenced = typeof(PublicApiSurfaceTests).Assembly
-            .GetReferencedAssemblies()
-            .Select(name => name.Name)
-            .Where(name => name != null && name.StartsWith("Hardened.", StringComparison.Ordinal))
+        var present = Directory
+            .EnumerateFiles(AppContext.BaseDirectory, "Hardened.*.dll")
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(name => name != null && name != "Hardened.PublicApi.Tests")
             .Select(name => name!)
             .ToHashSet(StringComparer.Ordinal);
 
-        var uncovered = referenced.Except(covered).OrderBy(name => name, StringComparer.Ordinal).ToList();
+        // The test project itself is the only Hardened assembly here that ships nothing. If that
+        // stops being true, this fails and says so rather than quietly widening.
+        Assert.NotEmpty(present);
+
+        var uncovered = present.Except(covered).OrderBy(name => name, StringComparer.Ordinal).ToList();
 
         Assert.True(uncovered.Count == 0,
-            "These Hardened assemblies are referenced but have no approved public API:" +
+            "These Hardened assemblies are built beside this test but have no approved public API:" +
             Environment.NewLine +
             string.Join(Environment.NewLine, uncovered.Select(name => "  " + name)) +
             Environment.NewLine +
-            "Add each to ShippedAssemblies and approve its surface.");
+            "Add each to Shipped and approve its surface.");
     }
 
     /// <summary>

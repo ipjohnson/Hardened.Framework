@@ -108,8 +108,18 @@ The integration fixture compiles `.smithy` sources with the Smithy CLI, pinned b
 build enforces the pin rather than trusting it: a mismatch is `HSMT011`, an error under
 `ContinuousIntegrationBuild` and a warning otherwise.
 
-`scripts/verify-templates.sh` **skips the smithy combinations silently** when the CLI is absent.
-Install it before trusting a green run from that script.
+`scripts/verify-templates.sh` skips the smithy combinations when the CLI is absent or on the wrong
+version, and prints why:
+
+```
+note: skipping the smithy contract - it needs the Smithy CLI at 1.73.0, found 1.56.0
+```
+
+It used to skip them silently, which is what the warning here used to say. Read the note rather than
+the exit code — the run is still green, and the smithy rows still did not run.
+
+Passing explicit combinations to that script skips the whole block, note included, because the
+smithy rows are only ever added to the default list.
 
 ## The approved public surface
 
@@ -119,9 +129,13 @@ deliberately.
 
 Thirty-two assemblies, the twelve AWS ones included. A source generator package is not among them on
 either side: it sets `IncludeBuildOutput=false` and packs an analyzer into `analyzers/dotnet/cs`, so
-no consumer binds against it and there is no `lib` assembly to have a surface. A new package means a
-`ProjectReference` in the csproj **and** a name in `Shipped`; the second is checked against the
-first.
+no consumer binds against it and there is no `lib` assembly to have a surface.
+
+A new package means a `ProjectReference` in the csproj **and** a name in `Shipped`, and
+`EveryShippedAssemblyBesideThisOneIsCovered` holds the second to the first. It reads the assemblies
+in the build output rather than `GetReferencedAssemblies`, which asserted nothing: the compiler
+records a reference only where a type is used, this test uses none, so the reference set was empty
+and the check passed however many packages were missing.
 
 ```bash
 APPROVE_PUBLIC_API=1 dotnet test src/PublicApi/Hardened.PublicApi.Tests
@@ -164,7 +178,9 @@ recommend it.
 `hardened-web` template pins the tool in `templates/hardened-web/.config/dotnet-tools.json` and the
 bundle as `KiotaBundleVersion` in its `Directory.Packages.props`; the repository pins the same pair
 for the client it generates over the Web integration application, in `.config/dotnet-tools.json` at
-the root and in `Hardened.IntegrationTests.WebApp.SUT.Client.csproj`. All four are bumped together,
+the root and as `KiotaBundleVersion` in `Directory.Build.props` — at the root, because
+`Directory.Packages.props` pins the package to that property and is imported before any project
+body. All four are bumped together,
 by a deliberate commit, to one Kiota release; `kiota info --language CSharp --json` says which
 bundle a tool expects. `scripts/verify-templates.sh` checks both pairs before it scaffolds anything
 and is the gate, as it is for everything else in the template; the two client projects check their
