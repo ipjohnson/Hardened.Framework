@@ -118,6 +118,29 @@ internal static class PipelineRequest {
         try {
             await chain.Next();
         }
+        catch (Exception exception) when (!response.ResponseStarted) {
+            // The answer both socket hosts give, for the reason they give it - see
+            // HardenedHttpApplication.ProcessRequestAsync and AspNetCoreRequestHandler. This host
+            // caught nothing, so a failure that got past IoFilter unwound out of app.Get and the
+            // test read a raw exception where the same request over a socket read a 500. IoFilter
+            // records parameter binding and the handler; what escapes it is the response writer
+            // itself, which is where an unserializable payload throws.
+            //
+            // Only where nothing has been written. Once bytes are with the client a socket host
+            // stops and lets the connection tear down, and this host has no connection to tear
+            // down - so the exception reaching the caller is how a stream that failed after its
+            // first event says so, and swallowing it into a 500 would describe a response the
+            // client never got. Hence the filter rather than a branch inside: a rethrow here would
+            // report this frame as the origin.
+            response.Status = 500;
+
+            // Only where nothing was recorded. A handler that threw is already on the response and
+            // is the cause a test wants named; the envelope's own serializer failing afterwards is
+            // a consequence, and overwriting would hide the first.
+            response.ExceptionValue ??= exception;
+
+            requestLogger.RequestFailed(context, exception);
+        }
         finally {
             // In a finally because these ran as straight-line statements after the chain, so a
             // request that threw closed out nothing: no duration, no end, and the scope leaked.

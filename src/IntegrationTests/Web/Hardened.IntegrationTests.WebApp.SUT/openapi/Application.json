@@ -3170,6 +3170,39 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/errors/unwritable": {
+      "get": {
+        "tags": [
+          "Error"
+        ],
+        "operationId": "unwritable",
+        "summary": "A handler that succeeds and a response that cannot be written.",
+        "description": "The one failure IoFilter does not record. It catches parameter binding and it catches the handler; the response writer runs after both, so a payload the serializer refuses throws past every filter. Over a socket the host answers 500. Through the pipeline host it used to unwind out of app.Get and fail the test with the raw exception, which is the divergence a harness exists not to have.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnwritableBody"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/form/optional": {
       "post": {
         "tags": [
@@ -5740,6 +5773,18 @@
           },
           "priority": {
             "$ref": "#/components/schemas/Priority"
+          }
+        }
+      },
+      "UnwritableBody": {
+        "type": "object",
+        "description": "A payload whose getter throws, so writing it fails and running it does not.",
+        "required": [
+          "value"
+        ],
+        "properties": {
+          "value": {
+            "type": "string"
           }
         }
       }

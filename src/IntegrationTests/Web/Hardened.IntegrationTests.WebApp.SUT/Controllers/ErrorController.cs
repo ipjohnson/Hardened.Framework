@@ -76,7 +76,25 @@ public class ErrorController {
     public byte[] RawServerError() =>
         throw new InvalidOperationException("the image was not ready");
 
+    /// <summary>
+    /// A handler that succeeds and a response that cannot be written.
+    /// </summary>
+    /// <remarks>
+    /// The one failure <c>IoFilter</c> does not record. It catches parameter binding and it
+    /// catches the handler; the response writer runs after both, so a payload the serializer
+    /// refuses throws past every filter. Over a socket the host answers 500. Through the pipeline
+    /// host it used to unwind out of <c>app.Get</c> and fail the test with the raw exception,
+    /// which is the divergence a harness exists not to have.
+    /// </remarks>
+    [Get("/unwritable")]
+    public UnwritableBody Unwritable() => new();
+
     public record ConflictBody(string Code, string Message);
+
+    /// <summary>A payload whose getter throws, so writing it fails and running it does not.</summary>
+    public class UnwritableBody {
+        public string Value => throw new NotSupportedException("this value cannot be written");
+    }
 
     public class TenantMismatchException : BadRequestException {
         public TenantMismatchException() : base("tenant does not match") { }
