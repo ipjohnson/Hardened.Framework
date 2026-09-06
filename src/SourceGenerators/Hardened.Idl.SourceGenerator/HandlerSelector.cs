@@ -77,11 +77,17 @@ internal static class HandlerSelector {
 
             var outputType = OutputAttributeSelector.Read(context, methodDeclaration);
 
-            if (methodAttrs.Count > 0 || outputType != null) {
+            // The same reading the attribute-routed path makes on its own handler method, over the
+            // method, its class and the assembly. A described operation's guards can only be
+            // written here, so this is the only place they can be read from.
+            var refusals = FilterResponseSelector.Read(context, methodDeclaration, cancellationToken);
+
+            if (methodAttrs.Count > 0 || outputType != null || refusals.Count > 0) {
                 methodFilters.Add(new HandlerMethodFilterInfo(
                     methodDeclaration.Identifier.Text,
                     methodAttrs,
-                    outputType));
+                    outputType,
+                    refusals));
             }
         }
 

@@ -193,6 +193,18 @@ internal static class SpecSchemaWriter {
 
                 break;
 
+            case SchemaKind.Dictionary:
+                builder.Append(Map(schema.DictionaryValueRef, schema.DictionaryValueType,
+                    schema.DictionaryValueFormat, schema.Description, schemas, components, seen));
+
+                break;
+
+            case SchemaKind.Primitive:
+                builder.Append(Inline(null, schema.Type, schema.Format, schema.Description,
+                    null, false, schemas, components, seen));
+
+                break;
+
             default:
                 builder.Append("{\"type\":\"object\"");
                 Describe(builder, schema.Description);
@@ -203,6 +215,28 @@ internal static class SpecSchemaWriter {
         }
 
         return builder.ToString();
+    }
+
+    /// <summary>
+    /// A map, as the <c>additionalProperties</c> object it is.
+    /// </summary>
+    /// <remarks>
+    /// Both spellings landed in <c>default</c>: a named map schema was published as an object with
+    /// no members, and a map property fell through to <see cref="Inline"/>, whose type defaults to
+    /// string when the model names none - so <c>Dictionary&lt;string,int&gt;</c> was published as
+    /// <c>{"type":"string"}</c>. Refitter generated a string and failed to read the object; Kiota
+    /// generated one and read null. The model carried the value type the whole time.
+    /// </remarks>
+    private static string Map(
+        string? valueRef, string? valueType, string? valueFormat, string? description,
+        IReadOnlyList<SchemaModel> schemas, Dictionary<string, string> components,
+        HashSet<string> seen) {
+        var builder = new StringBuilder("{\"type\":\"object\",\"additionalProperties\":")
+            .Append(Inline(valueRef, valueType, valueFormat, null, null, false, schemas, components, seen));
+
+        Describe(builder, description);
+
+        return builder.Append('}').ToString();
     }
 
     private static void WriteProperties(
@@ -239,6 +273,12 @@ internal static class SpecSchemaWriter {
                 Describe(array, property.Description);
 
                 builder.Append(Nullable(array.Append('}').ToString(), property.IsNullable));
+            }
+            else if (property.IsDictionary) {
+                builder.Append(Nullable(
+                    Map(property.DictionaryValueRef, property.DictionaryValueType,
+                        property.DictionaryValueFormat, property.Description, schemas, components, seen),
+                    property.IsNullable));
             }
             else {
                 builder.Append(Inline(property.Ref, property.Type, property.Format,

@@ -1,4 +1,6 @@
+using System.Linq;
 using CSharpAuthor;
+using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
@@ -115,15 +117,31 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
     public HandlerMethodFilterInfo(
         string methodName,
         IReadOnlyList<AttributeModel> filters,
-        ITypeDefinition? outputType = null) {
+        ITypeDefinition? outputType = null,
+        IReadOnlyList<ResponseSchemaModel>? refusals = null) {
         MethodName = methodName;
         Filters = filters;
         OutputType = outputType;
+        Refusals = refusals ?? Array.Empty<ResponseSchemaModel>();
     }
 
     public string MethodName { get; }
 
     public IReadOnlyList<AttributeModel> Filters { get; }
+
+    /// <summary>
+    /// The statuses the declarations covering this method can answer, from their
+    /// <c>[AnswersStatus]</c>.
+    /// </summary>
+    /// <remarks>
+    /// Read here rather than in the bridge for the reason <see cref="OutputType"/> is: a described
+    /// operation's signature is generated, so the implementation is the only place an author can
+    /// write <c>[AuthorizeGrants]</c> or <c>[RateLimit]</c> - and this pass is the only one holding
+    /// both that syntax and a semantic model to resolve the attribute's declared body type against.
+    /// The filters themselves already travelled, which is why the runtime answered a 403 and a 429
+    /// the document did not mention.
+    /// </remarks>
+    public IReadOnlyList<ResponseSchemaModel> Refusals { get; }
 
     /// <summary>
     /// What writes this operation's response, named by <c>[Output&lt;T&gt;]</c>, or null.
@@ -142,7 +160,8 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
         if (ReferenceEquals(this, other)) return true;
         return MethodName == other.MethodName &&
                Equals(OutputType, other.OutputType) &&
-               Filters.DeepEquals(other.Filters);
+               Filters.DeepEquals(other.Filters) &&
+               Refusals.SequenceEqual(other.Refusals);
     }
 
     public override bool Equals(object? obj) => Equals(obj as HandlerMethodFilterInfo);
@@ -153,6 +172,7 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
 
             hash = (hash * 397) ^ Filters.GetHashCodeAggregation();
             hash = (hash * 397) ^ (OutputType?.GetHashCode() ?? 0);
+            hash = (hash * 397) ^ Refusals.GetHashCodeAggregation();
 
             return hash;
         }

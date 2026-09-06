@@ -200,4 +200,106 @@ public class SpecSchemaWriterTests {
         Assert.Equal("Created", SpecSchemaWriter.DescriptionFor("", 201));
         Assert.Equal("Pet created", SpecSchemaWriter.DescriptionFor("Pet created", 201));
     }
+
+    /// <summary>
+    /// A map property, as the object it is rather than as the string it fell back to.
+    /// </summary>
+    /// <remarks>
+    /// The writer had no dictionary branch at either level, so a member the model typed
+    /// <c>Dictionary&lt;string,int&gt;</c> reached the scalar writer with no type and took its
+    /// <c>string</c> default. Refitter generated a string and threw reading the object; Kiota
+    /// generated one and read null.
+    /// </remarks>
+    [Fact]
+    public void AMapPropertyIsPublishedAsAnObjectWithAdditionalProperties() {
+        var schemas = new List<SchemaModel> {
+            Object("Report", new PropertyModel {
+                Name = "byStatus", IsDictionary = true, DictionaryValueType = "integer",
+                DictionaryValueFormat = "int32"
+            })
+        };
+
+        var byStatus = Component(SpecSchemaWriter.ForRef("#/components/schemas/Report", schemas)!, "Report")
+            .GetProperty("properties").GetProperty("byStatus");
+
+        Assert.Equal("object", byStatus.GetProperty("type").GetString());
+        Assert.Equal("integer", byStatus.GetProperty("additionalProperties").GetProperty("type").GetString());
+        Assert.Equal("int32", byStatus.GetProperty("additionalProperties").GetProperty("format").GetString());
+    }
+
+    /// <summary>A map whose values name a component references it rather than inlining it.</summary>
+    [Fact]
+    public void AMapOfReferencesReferencesTheValueSchema() {
+        var schemas = new List<SchemaModel> {
+            Object("Store", new PropertyModel {
+                Name = "pets", IsDictionary = true,
+                DictionaryValueRef = "#/components/schemas/Pet"
+            }),
+            Object("Pet", Property("id"))
+        };
+
+        var written = SpecSchemaWriter.ForRef("#/components/schemas/Store", schemas)!;
+
+        Assert.Equal(
+            "#/components/schemas/Pet",
+            Component(written, "Store").GetProperty("properties").GetProperty("pets")
+                .GetProperty("additionalProperties").GetProperty("$ref").GetString());
+
+        Assert.Equal("object", Component(written, "Pet").GetProperty("type").GetString());
+    }
+
+    /// <summary>
+    /// A nullable map keeps both facts. <c>Nullable</c> rewrites the type it finds first, which is
+    /// the map's own and not its value's.
+    /// </summary>
+    [Fact]
+    public void ANullableMapIsAnObjectOrNull() {
+        var schemas = new List<SchemaModel> {
+            Object("Pet", new PropertyModel {
+                Name = "tags", IsDictionary = true, DictionaryValueType = "string", IsNullable = true
+            })
+        };
+
+        var tags = Component(SpecSchemaWriter.ForRef("#/components/schemas/Pet", schemas)!, "Pet")
+            .GetProperty("properties").GetProperty("tags");
+        var type = tags.GetProperty("type");
+
+        Assert.Equal(2, type.GetArrayLength());
+        Assert.Equal("object", type[0].GetString());
+        Assert.Equal("null", type[1].GetString());
+        Assert.Equal("string", tags.GetProperty("additionalProperties").GetProperty("type").GetString());
+    }
+
+    /// <summary>A schema that is itself a map, which the object branch published members-less.</summary>
+    [Fact]
+    public void ANamedMapSchemaIsPublishedAsAMap() {
+        var schemas = new List<SchemaModel> {
+            new() {
+                Name = "Counts", Kind = SchemaKind.Dictionary, DictionaryValueType = "integer",
+                Description = "How many of each."
+            }
+        };
+
+        var counts = Component(SpecSchemaWriter.ForRef("#/components/schemas/Counts", schemas)!, "Counts");
+
+        Assert.Equal("object", counts.GetProperty("type").GetString());
+        Assert.Equal("How many of each.", counts.GetProperty("description").GetString());
+        Assert.Equal("integer", counts.GetProperty("additionalProperties").GetProperty("type").GetString());
+    }
+
+    /// <summary>
+    /// A schema the contract names for a scalar, which the same missing branch published as an
+    /// object.
+    /// </summary>
+    [Fact]
+    public void ANamedPrimitiveSchemaKeepsItsTypeAndFormat() {
+        var schemas = new List<SchemaModel> {
+            new() { Name = "Sku", Kind = SchemaKind.Primitive, Type = "string", Format = "uuid" }
+        };
+
+        var sku = Component(SpecSchemaWriter.ForRef("#/components/schemas/Sku", schemas)!, "Sku");
+
+        Assert.Equal("string", sku.GetProperty("type").GetString());
+        Assert.Equal("uuid", sku.GetProperty("format").GetString());
+    }
 }

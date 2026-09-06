@@ -200,4 +200,27 @@ public class SmithyServedDocumentTests {
 
         Assert.Fail("No limit parameter in the served document.");
     }
+
+    /// <summary>
+    /// A Smithy <c>map</c> member is published as the map it is.
+    /// </summary>
+    /// <remarks>
+    /// The described schema writer had no dictionary branch, so <c>TagMap</c> reached the scalar
+    /// writer with no type and took its <c>string</c> default: the document said the member was a
+    /// string while the generated record was a <c>Dictionary</c> and the wire carried an object.
+    /// Refitter generated a string and threw reading it; Kiota generated one and read null.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AMapMemberIsPublishedAsAMap(ITestWebApp app) {
+        var tags = (await Document(app))
+            .GetProperty("components").GetProperty("schemas").GetProperty("CreatePetInput")
+            .GetProperty("properties").GetProperty("tags");
+
+        Assert.Contains(
+            "object",
+            tags.GetProperty("type").EnumerateArray().Select(entry => entry.GetString()));
+
+        Assert.Equal(
+            "string", tags.GetProperty("additionalProperties").GetProperty("type").GetString());
+    }
 }

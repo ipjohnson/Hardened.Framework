@@ -73,4 +73,30 @@ public class SmithyTimeoutTraitTests {
         Assert.True(operation.TryGetProperty("x-hardened-timeout", out var published));
         Assert.True(published.GetInt32() > 0);
     }
+
+    /// <summary>
+    /// The status the deadline answers, beside the budget it bounds.
+    /// </summary>
+    /// <remarks>
+    /// <c>x-hardened-timeout</c> says how long the operation may take and nothing about what the
+    /// caller is told, so the document published the budget and left the 504 unmentioned while the
+    /// runtime answered it. A code-first handler had this from <c>TimeoutAttribute</c>'s
+    /// <c>[AnswersStatus]</c> all along.
+    /// </remarks>
+    [HardenedTest]
+    public void ThePublishedDeadlineDeclaresTheStatusItAnswers(ITestWebApp app) {
+        var responses = Operation(app, "/pets/{petId}", "get").GetProperty("responses");
+
+        Assert.Contains("budget", responses.GetProperty("504").GetProperty("description").GetString());
+        Assert.Equal(
+            "#/components/schemas/ErrorModel",
+            responses.GetProperty("504").GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString());
+    }
+
+    /// <summary>An unbounded operation declares no gateway timeout either.</summary>
+    [HardenedTest]
+    public void AnOperationDeclaringNoDeadlineDeclaresNoGatewayTimeout(ITestWebApp app) =>
+        Assert.False(
+            Operation(app, "/pets", "get").GetProperty("responses").TryGetProperty("504", out _));
 }

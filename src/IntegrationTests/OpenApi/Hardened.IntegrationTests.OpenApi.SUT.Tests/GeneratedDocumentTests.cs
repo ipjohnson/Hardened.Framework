@@ -251,4 +251,51 @@ public class GeneratedDocumentTests {
     }
 
     #endregion
+
+    private static JsonElement Responses(JsonElement document, string path) =>
+        document.GetProperty("paths").GetProperty(path).GetProperty("get").GetProperty("responses");
+
+    /// <summary>
+    /// The 403 an <c>[AuthorizeGrants]</c> on the implementation produces, over the operation the
+    /// contract declares public.
+    /// </summary>
+    /// <remarks>
+    /// <c>AttributeAuthorizationTests</c> holds the other half: the route is guarded. It was
+    /// guarded and undocumented, so a generated client had no branch for the refusal it would
+    /// meet.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnAttributeGuardedOperationDeclaresItsRefusal(ITestWebApp app) =>
+        Assert.Contains(
+            "does not hold",
+            Responses(await Document(app), "/guarded/by-attribute")
+                .GetProperty("403").GetProperty("description").GetString());
+
+    /// <summary>
+    /// The 403 a described scope produces, beside the 401 that was already there.
+    /// </summary>
+    [HardenedTest]
+    public async Task AScopedRequirementDeclaresBothRefusals(ITestWebApp app) {
+        var responses = Responses(await Document(app), "/secured/scoped");
+
+        Assert.True(responses.TryGetProperty("401", out _));
+        Assert.True(responses.TryGetProperty("403", out _));
+    }
+
+    /// <summary>
+    /// An OR with one unscoped alternative declares no 403, because nobody past the 401 can be
+    /// refused by it.
+    /// </summary>
+    /// <remarks>
+    /// The control on the rule above. Publishing the 403 wherever any entry names a scope would
+    /// put a status here that the operation cannot answer, which is the defect this closes with
+    /// the sign flipped.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnUnscopedAlternativeDeclaresNoForbidden(ITestWebApp app) {
+        var responses = Responses(await Document(app), "/secured/either");
+
+        Assert.True(responses.TryGetProperty("401", out _));
+        Assert.False(responses.TryGetProperty("403", out _));
+    }
 }

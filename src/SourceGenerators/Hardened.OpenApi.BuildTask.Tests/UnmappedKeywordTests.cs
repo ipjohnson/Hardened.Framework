@@ -247,4 +247,70 @@ public class UnmappedKeywordTests {
         Assert.Equal(withKeyword.Schemas.Count, withoutKeyword.Schemas.Count);
         Assert.Equal(withKeyword, withoutKeyword);
     }
+
+    /// <summary>
+    /// <c>nullable</c> under a 3.1 banner, which the version removed and the reader parks
+    /// unread.
+    /// </summary>
+    /// <remarks>
+    /// The member generated as non-null, the service sent null through it and a generated client's
+    /// <c>int</c> failed to deserialize the response, with nothing between the document and that.
+    /// </remarks>
+    [Fact]
+    public void NullableUnderThreeOneIsRecordedAsUnmapped() {
+        var model = Parse(Nullable.Replace("openapi: 3.0.0", "openapi: 3.1.0"));
+
+        Assert.Contains(model.UnmappedKeywords, u => u.Keyword == "nullable");
+        Assert.Contains(
+            "courierId", model.UnmappedKeywords.Single(u => u.Keyword == "nullable").Location);
+    }
+
+    /// <summary>
+    /// The same keyword under 3.0, where the reader folds it into the type and the member does
+    /// generate nullable. Warning there would fire on every correct 3.0 document there is.
+    /// </summary>
+    [Fact]
+    public void NullableUnderThreeZeroIsRead() {
+        var model = Parse(Nullable);
+        var courierId = model.Schemas.Single(s => s.Name == "Job").Properties
+            .Single(p => p.Name == "courierId");
+
+        Assert.True(courierId.IsNullable);
+        Assert.DoesNotContain(model.UnmappedKeywords, u => u.Keyword == "nullable");
+    }
+
+    /// <summary>Its own code, so a bulk-converted document can silence it and keep 024.</summary>
+    [Fact]
+    public void TheDroppedNullableDiagnosticIsItsOwnWarning() {
+        var problem = SpecDiagnostics
+            .Find(Parse(Nullable.Replace("openapi: 3.0.0", "openapi: 3.1.0")), "HOAT")
+            .Single(p => p.Code == "HOAT032");
+
+        Assert.False(problem.Fatal);
+        Assert.Contains("courierId", problem.Message);
+        Assert.Contains("type: [<type>, \"null\"]", problem.Message);
+    }
+
+    private const string Nullable = """
+        openapi: 3.0.0
+        info: { title: Depot, version: '1.0' }
+        paths:
+          /jobs:
+            get:
+              operationId: listJobs
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Job' }
+        components:
+          schemas:
+            Job:
+              type: object
+              properties:
+                courierId:
+                  type: integer
+                  nullable: true
+        """;
 }

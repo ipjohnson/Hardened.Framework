@@ -406,4 +406,145 @@ public class SpecFirstDocumentTests {
     }
 
     #endregion
+
+    #region What the runtime answers
+
+    /// <summary>
+    /// A guarded, rate-limited, bounded operation the contract describes as none of those things.
+    /// </summary>
+    /// <remarks>
+    /// The three guards a described service can carry. The deadline is in the contract, because
+    /// that is where a described one is written; the other two are on the implementation, because
+    /// a generated signature has nowhere to put them.
+    /// </remarks>
+    private const string GuardedOperation =
+        """
+        openapi: "3.0.0"
+        info: { title: Dispatch, version: "1.0" }
+        paths:
+          /quotes:
+            get:
+              tags: [Quote]
+              operationId: getQuote
+              x-hardened-timeout: 2000
+              security:
+                - dispatchOAuth: ["quotes:read"]
+              responses:
+                '200':
+                  description: A quote
+                  content:
+                    application/json:
+                      schema: { type: string }
+        components:
+          securitySchemes:
+            dispatchOAuth:
+              type: oauth2
+              flows:
+                clientCredentials:
+                  tokenUrl: https://example.test/token
+                  scopes: { "quotes:read": Read quotes }
+        """;
+
+    private static readonly string GuardedHandler = OpenApiGenerator.EntryPointWithHandler(
+        """
+        [Handler]
+        public class QuoteServiceImpl : IQuoteService {
+            [Hardened.Requests.Runtime.RateLimiting.RateLimit(PermitLimit = 2)]
+            [Hardened.Requests.Runtime.Authorization.AuthorizeGrants("quotes:read")]
+            public Task<string> GetQuote() => Task.FromResult("40.00");
+        }
+        """);
+
+    private static JsonElement GuardedResponses() {
+        var result = OpenApiGenerator.Run(GuardedOperation, GuardedHandler);
+
+        Assert.Empty(result.Errors);
+
+        return PublishedDocumentFrom(result)
+            .GetProperty("paths").GetProperty("/quotes").GetProperty("get")
+            .GetProperty("responses");
+    }
+
+    /// <summary>
+    /// A rate limit written on the implementation reaches the document, as it does code-first.
+    /// </summary>
+    /// <remarks>
+    /// The filter always travelled - <c>RequestModelBuilder.EnrichWithHandlerFilters</c> appends
+    /// it - so the runtime refused the third call with a 429 that the document did not mention,
+    /// and a generated client had no branch for it.
+    /// </remarks>
+    [Fact]
+    public void ARateLimitOnTheImplementationPublishesItsRefusal() {
+        var refusal = GuardedResponses().GetProperty("429");
+
+        Assert.Contains("allowance", refusal.GetProperty("description").GetString());
+        Assert.Equal(
+            "#/components/schemas/ErrorModel",
+            refusal.GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString());
+    }
+
+    /// <summary>An authorization attribute on the implementation, on the same terms.</summary>
+    [Fact]
+    public void AnAuthorizationAttributeOnTheImplementationPublishesItsRefusal() =>
+        Assert.Contains(
+            "does not hold",
+            GuardedResponses().GetProperty("403").GetProperty("description").GetString());
+
+    /// <summary>
+    /// The contract's own deadline, whose status nothing published while
+    /// <c>x-hardened-timeout</c> published the budget beside it.
+    /// </summary>
+    [Fact]
+    public void ADescribedDeadlinePublishesTheStatusItAnswers() {
+        var responses = GuardedResponses();
+
+        Assert.Contains("budget", responses.GetProperty("504").GetProperty("description").GetString());
+        Assert.Equal(
+            "#/components/schemas/ErrorModel",
+            responses.GetProperty("504").GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString());
+    }
+
+    /// <summary>
+    /// A map, which the described schema writer had no branch for at all: the member took the
+    /// scalar writer's <c>string</c> default while the wire carried an object.
+    /// </summary>
+    [Fact]
+    public void AMapInTheContractIsPublishedAsAMap() {
+        var byStatus = PublishedDocument(MappedBody)
+            .GetProperty("components").GetProperty("schemas").GetProperty("Report")
+            .GetProperty("properties").GetProperty("byStatus");
+
+        Assert.Equal("object", byStatus.GetProperty("type").GetString());
+        Assert.Equal(
+            "integer",
+            byStatus.GetProperty("additionalProperties").GetProperty("type").GetString());
+    }
+
+    private const string MappedBody =
+        """
+        openapi: "3.0.0"
+        info: { title: Dispatch, version: "1.0" }
+        paths:
+          /reports:
+            get:
+              operationId: getReport
+              responses:
+                '200':
+                  description: A report
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Report' }
+        components:
+          schemas:
+            Report:
+              type: object
+              properties:
+                byStatus:
+                  type: object
+                  additionalProperties: { type: integer }
+        """;
+
+    #endregion
 }

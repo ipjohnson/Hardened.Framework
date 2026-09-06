@@ -320,6 +320,16 @@
                 }
               }
             }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
         },
         "x-hardened-timeout": 2000
@@ -415,9 +425,12 @@
           },
           "tags": {
             "type": [
-              "string",
+              "object",
               "null"
-            ]
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "birthday": {
             "type": [

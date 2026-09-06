@@ -42,7 +42,8 @@ public class RequestHandlerModel {
     /// </remarks>
     public RequestHandlerModel WithFilters(
         IReadOnlyList<AttributeModel> filters,
-        ResponseInformationModel? responseInformation = null) =>
+        ResponseInformationModel? responseInformation = null,
+        IReadOnlyList<ResponseSchemaModel>? responseSchemas = null) =>
         new(Name,
             ControllerType,
             HandlerMethod,
@@ -53,7 +54,7 @@ public class RequestHandlerModel {
             ParametersInterface = ParametersInterface,
             ParametersValidator = ParametersValidator,
             ResponseSchema = ResponseSchema,
-            ResponseSchemas = ResponseSchemas,
+            ResponseSchemas = responseSchemas ?? ResponseSchemas,
             DeclaredResponsesAreComplete = DeclaredResponsesAreComplete,
             DeclaredTimeout = DeclaredTimeout,
             RequestSchema = RequestSchema,

@@ -46,6 +46,7 @@ internal static class RequestModelBuilder {
 
                 // Find method-level filters matching this handler's method
                 var responseInformation = model.ResponseInformation;
+                var responseSchemas = model.ResponseSchemas;
 
                 foreach (var methodFilter in handlerInfo.MethodFilters) {
                     if (string.Equals(methodFilter.MethodName, model.HandlerMethod,
@@ -60,6 +61,8 @@ internal static class RequestModelBuilder {
                                 responseInformation with { OutputType = methodFilter.OutputType };
                         }
 
+                        responseSchemas = WithRefusals(responseSchemas, methodFilter.Refusals);
+
                         break;
                     }
                 }
@@ -68,7 +71,7 @@ internal static class RequestModelBuilder {
                 // hand-rolled copy. This used to restate the members one by one, and each field
                 // added to the model was silently dropped here until someone noticed - the tag's
                 // description was the latest. One copy site is the fix, not a longer list.
-                result.Add(model.WithFilters(filters, responseInformation));
+                result.Add(model.WithFilters(filters, responseInformation, responseSchemas));
             } else {
                 result.Add(model);
             }
@@ -76,6 +79,56 @@ internal static class RequestModelBuilder {
 
         return result;
     }
+
+    /// <summary>
+    /// The contract's responses plus the ones the implementation's guards can answer.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The contract wins on a status both name. A described 429 carries the author's wording and
+    /// the body their document declared; the attribute's is the framework's fallback for a
+    /// contract that said nothing, and replacing one with the other would make writing the
+    /// response down cost its description.
+    /// </para>
+    /// <para>
+    /// Which is the whole of the difference from the attribute-routed path, where nothing else
+    /// declares these and <c>FilterResponseSelector</c>'s answer stands alone.
+    /// </para>
+    /// <para>
+    /// Appended rather than merged into status order, because the declared order is the
+    /// document's and reordering it here would rewrite every described operation's responses to
+    /// fix three that were missing. <c>FilterResponseSelector</c> hands these over in status
+    /// order already.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<ResponseSchemaModel> WithRefusals(
+        IReadOnlyList<ResponseSchemaModel> declared,
+        IReadOnlyList<ResponseSchemaModel> refusals) {
+        if (refusals.Count == 0) {
+            return declared;
+        }
+
+        var merged = new List<ResponseSchemaModel>(declared);
+
+        foreach (var refusal in refusals) {
+            var already = false;
+
+            foreach (var response in declared) {
+                if (response.Status == refusal.Status) {
+                    already = true;
+
+                    break;
+                }
+            }
+
+            if (!already) {
+                merged.Add(refusal);
+            }
+        }
+
+        return merged;
+    }
+
     /// <summary>
     /// The handler implementing this operation's service, wherever it sits in the base list.
     /// </summary>
