@@ -28,8 +28,8 @@
 
     <ItemGroup>
         <!-- See Hardened.OpenApi.BuildTask for why these are pinned and why runtime is excluded. -->
-        <PackageReference Include="Microsoft.Build.Framework" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
     </ItemGroup>
 
     <!--
@@ -41,10 +41,12 @@
         version above the redirect range resolves from the task's directory.
     -->
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-        <PackageReference Include="System.Reflection.Metadata" Version="8.0.0"/>
+        <PackageReference Include="System.Reflection.Metadata"/>
         <!-- See Hardened.OpenApi.BuildTask: unifies System.Memory upward to the contract MSBuild's
              reference assemblies are on, which is what keeps the net472 leg free of MSB3277. -->
-        <PackageReference Include="System.Memory" Version="4.6.0"/>
+        <!-- The build tasks are on 4.6.0 and the generators on 4.5.5. Kept apart rather than
+             unified, because a build task runs in MSBuild and a generator in the compiler. -->
+        <PackageReference Include="System.Memory" VersionOverride="4.6.0"/>
     </ItemGroup>
 
     <!--

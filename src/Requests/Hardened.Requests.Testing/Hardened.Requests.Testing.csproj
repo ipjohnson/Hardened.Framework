@@ -10,8 +10,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Primitives"/>
         <!-- Referenced directly rather than relied on transitively through
              Hardened.Shared.Testing, because the Conformance suite exposes xUnit types
              (Fact, Assert) as part of this package's public surface.
@@ -20,9 +20,9 @@
              projects reference, not a test project itself, and xunit.v3 pulls in
              xunit.v3.core.mtp-v1, whose targets hard-error unless the project is an executable
              test project. Microsoft.NET.Test.Sdk went with it for the same reason. -->
-        <PackageReference Include="xunit.v3.extensibility.core" Version="3.2.2" />
+        <PackageReference Include="xunit.v3.extensibility.core"/>
         <!-- Assert is not part of the extensibility surface; the Conformance suite asserts. -->
-        <PackageReference Include="xunit.v3.assert" Version="3.2.2" />
+        <PackageReference Include="xunit.v3.assert"/>
     </ItemGroup>
 
     <ItemGroup>

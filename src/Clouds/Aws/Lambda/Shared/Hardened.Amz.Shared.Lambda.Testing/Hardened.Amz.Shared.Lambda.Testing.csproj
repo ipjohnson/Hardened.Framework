@@ -10,8 +10,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Amazon.Lambda.Core" />
-        <PackageReference Include="Hardened.Requests.Runtime" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Primitives" />
     </ItemGroup>

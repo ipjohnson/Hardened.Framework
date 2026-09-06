@@ -21,46 +21,6 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     </ItemGroup>
 
-    <PropertyGroup>
-        <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
-
-        <!--
-          From ValidationModules 1.0.0-rc1012 the Impl sources compiled in below bridge ITypeSymbol
-          to ITypeDefinition through CSharpAuthor's opt-in Roslyn root, so RegionEmitter opens with
-          a using of CSharpAuthor.Roslyn. Neither source-only package can flow this switch to the
-          project compiling it - that is what PrivateAssets=all costs - so the consumer sets it.
-        -->
-        <PackageCSharpAuthorIncludeRoslyn>true</PackageCSharpAuthorIncludeRoslyn>
-
-        <PackageHardenedIncludeSource>true</PackageHardenedIncludeSource>
-
-        <!--
-            Hardened.SourceGenerator ships source-only and is compiled in above. Its validation
-            files build ValidatedTypeModel and emit validators, so they reference ValidationModules'
-            generator internals - which have to be compiled in here too, or those files do not
-            resolve. Hardened.Framework does the same thing through
-            src/SourceGenerators/ValidationModulesImpl.props.
-        -->
-        <PackageValidationModulesIncludeSource>true</PackageValidationModulesIncludeSource>
-    </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="CSharpAuthor">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>build</IncludeAssets>
-        </PackageReference>
-
-        <PackageReference Include="Hardened.SourceGenerator">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>build</IncludeAssets>
-        </PackageReference>
-
-        <PackageReference Include="ValidationModules.SourceGenerator.Impl">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>build</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
-
     <ItemGroup>
         <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
     </ItemGroup>
@@ -71,39 +31,39 @@
         <DevelopmentDependency>true</DevelopmentDependency>
     </PropertyGroup>
 
+
+    <Import Project="../../../../../SourceGenerators/CSharpAuthor.props"/>
+    <Import Project="../../../../../SourceGenerators/ValidationModulesImpl.props"/>
+
+    <!--
+      Hardened.SourceGenerator compiled in from the checkout rather than restored as a package.
+
+      It ships source rather than an assembly, because a Roslyn generator is loaded with no probing
+      path of its own and a sibling DLL is a FileNotFoundException at initialization. The package's
+      own targets glob src/**/*.cs into whichever project references it; this is the same glob
+      against the project in this repository, which is what makes a change to it fail here instead
+      of after a release.
+    -->
     <ItemGroup>
-        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Configuration/**/*">
-            <Link>Configuration\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
-        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/DependencyInjection/**/*">
-            <Link>DependencyInjection\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
-        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Models/**/*">
-            <Link>Models\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
-        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Web/**/*">
-            <Link>Web\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
-        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Requests/**/*">
-            <Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
-        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Shared/**/*">
-            <Link>Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
-        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Templates/**/*">
-            <Link>Templates\%(RecursiveDir)/%(FileName)%(Extension)</Link>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </Compile>
+        <Compile Include="../../../../../SourceGenerators/Hardened.SourceGenerator/**/*.cs"
+                 Exclude="../../../../../SourceGenerators/Hardened.SourceGenerator/obj/**/*.cs;../../../../../SourceGenerators/Hardened.SourceGenerator/bin/**/*.cs"
+                 Visible="false"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <Compile Remove="..\..\Hardened.SourceGenerator\Web\CreateControllerAndAssignToContextCodeGenerator.cs"/>
-    </ItemGroup>
+
+    <!--
+      The shared generation model, compiled in the way every other generator here takes it. The
+      Hardened.SourceGenerator package packs these files under its own src/ folder, so consuming
+      that package brought them along; the local glob above reaches only the project's own files.
+
+      Model rather than Full, matching Hardened.Web.SourceGenerator and
+      Hardened.Function.SourceGenerator: this is code-first, so it builds an OperationModel in
+      memory and never writes one out for a build task to read back.
+    -->
+    <PropertyGroup>
+        <HardenedGenerationScope>Model</HardenedGenerationScope>
+    </PropertyGroup>
+
+    <Import Project="../../../../../SourceGenerators/Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
 
 </Project>

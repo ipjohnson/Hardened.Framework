@@ -84,6 +84,18 @@
     </PropertyGroup>
 
     <!--
+      The Kiota bundle, in one place because two things read it: Directory.Packages.props pins the
+      package, and Hardened.IntegrationTests.WebApp.SUT.Client checks it against the version the
+      kiota tool in .config/dotnet-tools.json expects (HTPL003). A generated client registers the
+      serializers itself, so the tool and the bundle move together or the client does not compile.
+
+      This follows Kiota's release line rather than this repository's. See AGENTS.md, "Releasing".
+    -->
+    <PropertyGroup>
+        <KiotaBundleVersion Condition="'$(KiotaBundleVersion)' == ''">2.0.0</KiotaBundleVersion>
+    </PropertyGroup>
+
+    <!--
       The solution builds warning-free. Escalating warnings to errors is what keeps it that
       way; without it the count drifts back up one commit at a time.
 
@@ -128,7 +140,7 @@
       Requests.Abstract 93.9% against 93.5% - so the baseline moved rather than the tests.
     -->
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
-        <PackageReference Include="Microsoft.CodeCoverage" Version="18.9.0">
+        <PackageReference Include="Microsoft.CodeCoverage">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>

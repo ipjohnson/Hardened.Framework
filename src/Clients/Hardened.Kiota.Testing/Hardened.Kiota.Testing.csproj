@@ -16,8 +16,8 @@
              itself in its own constructor. Adding it here would put a second copy of that
              decision in every test project.
         -->
-        <PackageReference Include="Microsoft.Kiota.Abstractions" Version="2.0.0" />
-        <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary" Version="2.0.0" />
+        <PackageReference Include="Microsoft.Kiota.Abstractions"/>
+        <PackageReference Include="Microsoft.Kiota.Http.HttpClientLibrary"/>
     </ItemGroup>
 
     <ItemGroup>

@@ -7,15 +7,15 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3" Version="3.2.2" />
-        <PackageReference Include="SimpleFixture.NSubstitute" Version="4.0.0-RC191" />
-        <PackageReference Include="SimpleFixture.xUnit" Version="4.0.0-RC191" />
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="SimpleFixture.NSubstitute"/>
+        <PackageReference Include="SimpleFixture.xUnit"/>
 
         <!--
             Referenced directly rather than relied on transitively, which is the same thing every
@@ -24,7 +24,7 @@
             Hardened.Templates.RazorBlade - without this line the .cshtml files below compile to
             nothing and every test here fails on a missing type.
         -->
-        <PackageReference Include="RazorBlade" Version="1.0.0" />
+        <PackageReference Include="RazorBlade"/>
     </ItemGroup>
 
     <ItemGroup>

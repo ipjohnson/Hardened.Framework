@@ -10,8 +10,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Amazon.Lambda.Core" />
-        <PackageReference Include="Hardened.Shared.Testing" />
         <!--
              The framework-neutral test contracts this attribute implements. Referenced directly
              rather than taken through Hardened.Shared.Testing, because they are this project's own

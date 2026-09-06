@@ -1,0 +1,143 @@
+<Project>
+
+    <!--
+      Every package version in the repository, in one list.
+
+      The AWS half has been managed this way since 2026-08-15, and the reason is recorded there:
+      versions lived in the individual csproj files and had drifted - three test projects on
+      Microsoft.NET.Test.Sdk 17.10 against sixteen on 17.12, two still on xunit 2.9, two packages
+      on floating versions. The framework half had drifted the same way and nothing said so: one
+      project on Microsoft.CodeAnalysis.CSharp 4.11.0 against fourteen on 4.10.0, one on
+      Microsoft.Extensions.DependencyInjection 8.0.0 against nineteen on 8.0.1, System.Memory
+      4.5.5 against 4.6.0. A single list is the only arrangement where that cannot happen quietly.
+
+      Where a project genuinely needs a different version it says so with VersionOverride, in the
+      csproj, where the reason can be written next to it. Four do.
+
+      Nothing here floats. Central package management rejects floating versions by default (NU1011)
+      and that default is left in place: a float that stops matching anything new does not fail, it
+      keeps resolving whatever it last found, and Hardened.Amz shipped a package to nuget.org
+      declaring a dependency nobody could restore because of one.
+    -->
+    <PropertyGroup>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <!--
+      CSharpAuthor has to be exactly what the generators are written against, not merely at least
+      it. From 2.0 the Global output mode qualifies types in the global namespace, so the version
+      decides what the compiled-in generators emit and not only whether they compile - and
+      HARDENED001 cannot say so, because it skips any prerelease pin.
+
+      ValidationModules moves with it: from 1.0.0-rc1012 its emitters are authored with CSharpAuthor
+      rather than a StringBuilder and need 2.0's Roslyn bridge.
+
+      DependencyModules is one version across the runtime, the generator and the xUnit runner. The
+      generator emits calls against contracts the runtime supplies, so a skew between them is a
+      compile error in generated code, which reads as a generator defect.
+    -->
+    <ItemGroup Label="Code generation">
+        <PackageVersion Include="CSharpAuthor" Version="2.0.0-preview1005" />
+        <PackageVersion Include="DependencyModules.NSubstitute" Version="$(DependencyModulesVersion)" />
+        <PackageVersion Include="DependencyModules.NUnit" Version="$(DependencyModulesVersion)" />
+        <PackageVersion Include="DependencyModules.Runtime" Version="$(DependencyModulesVersion)" />
+        <PackageVersion Include="DependencyModules.SourceGenerator" Version="$(DependencyModulesVersion)" />
+        <PackageVersion Include="DependencyModules.SourceGenerator.Impl" Version="$(DependencyModulesVersion)" />
+        <PackageVersion Include="DependencyModules.Testing" Version="$(DependencyModulesVersion)" />
+        <PackageVersion Include="DependencyModules.xUnit" Version="$(DependencyModulesVersion)" />
+        <PackageVersion Include="Microsoft.Build.Framework" Version="17.8.43" />
+        <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="17.8.43" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.10.0" />
+        <PackageVersion Include="ValidationModules.Runtime" Version="$(ValidationModulesVersion)" />
+        <PackageVersion Include="ValidationModules.SourceGenerator.Impl" Version="$(ValidationModulesVersion)" />
+    </ItemGroup>
+
+    <!--
+      The two Abstractions packages are on 8.0.2, not 8.0.1, and Logging is on 8.0.1, not 8.0.0.
+      Microsoft.Extensions.Logging 8.0.1 requires Logging.Abstractions >= 8.0.2 and pulls
+      DependencyInjection 8.0.1, which requires DependencyInjection.Abstractions >= 8.0.2, so
+      pinning either Abstractions at 8.0.1 is a package downgrade (NU1605). The framework half was
+      pinned that way and the AWS half was not; the list takes the coherent set.
+    -->
+    <ItemGroup Label="Microsoft.Extensions and BCL">
+        <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+        <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
+        <PackageVersion Include="System.Memory" Version="4.5.5" />
+        <PackageVersion Include="System.Reflection.Metadata" Version="8.0.0" />
+        <PackageVersion Include="System.Text.Json" Version="8.0.5" />
+        <PackageVersion Include="System.Threading.RateLimiting" Version="8.0.0" />
+    </ItemGroup>
+
+    <!--
+      The Kiota and Refit pins follow their own lines rather than this repository's, and they move
+      by hand together with the tool versions in .config/dotnet-tools.json and in the templates.
+      See AGENTS.md, "Releasing".
+    -->
+    <ItemGroup Label="Contracts, clients and views">
+        <PackageVersion Include="Microsoft.Kiota.Abstractions" Version="2.0.0" />
+        <PackageVersion Include="Microsoft.Kiota.Bundle" Version="$(KiotaBundleVersion)" />
+        <PackageVersion Include="Microsoft.Kiota.Http.HttpClientLibrary" Version="2.0.0" />
+        <PackageVersion Include="Microsoft.OpenApi" Version="3.10.0" />
+        <PackageVersion Include="Microsoft.OpenApi.YamlReader" Version="3.10.0" />
+        <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageVersion Include="RazorBlade" Version="1.0.0" />
+        <PackageVersion Include="Refit" Version="8.0.0" />
+    </ItemGroup>
+
+    <!--
+      Amazon.Lambda.Core 3.3.0 and RuntimeSupport 2.2.0 are the pair that ships response streaming
+      through LambdaResponseStreamFactory. They move together: the factory in Core is wired by the
+      bootstrap in RuntimeSupport, and a mismatch throws "LambdaResponseStreamFactory is not
+      initialized" on the first streamed write.
+
+      AWSSDK.DynamoDBv2 is pinned. It was "3.7.*", which makes a build non-reproducible: the same
+      commit can pick up a different SDK between a green CI run and a rebuild of it.
+    -->
+    <ItemGroup Label="AWS">
+        <PackageVersion Include="Amazon.CDK.Lib" Version="2.263.0" />
+        <PackageVersion Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.0" />
+        <PackageVersion Include="Amazon.Lambda.Core" Version="3.3.0" />
+        <PackageVersion Include="Amazon.Lambda.DynamoDBEvents" Version="3.1.1" />
+        <PackageVersion Include="Amazon.Lambda.Logging.AspNetCore" Version="3.1.0" />
+        <PackageVersion Include="Amazon.Lambda.RuntimeSupport" Version="2.2.0" />
+        <PackageVersion Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.3" />
+        <PackageVersion Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
+        <PackageVersion Include="AWSSDK.DynamoDBv2" Version="3.7.513.4" />
+        <PackageVersion Include="Cdklabs.CdkMonitoringConstructs" Version="8.1.1" />
+    </ItemGroup>
+
+    <!--
+      xunit.v3, never xunit 2.x. Hardened.Shared.Testing depends on DependencyModules.xUnit, which
+      brings v3, and referencing it alongside 2.x makes every Fact and Assert ambiguous.
+
+      NUnit is a range because Hardened.Shared.Testing.NUnit ships it as a dependency and the
+      runner reads NUnit's own attributes: a consumer on any 4.x works, a 5.0 has not been checked.
+      It resolves to 4.2.2 for the two test projects that used to name that version directly.
+
+      Testcontainers.DynamoDb is pinned, was "4.*". Same reproducibility argument as AWSSDK.
+    -->
+    <ItemGroup Label="Testing">
+        <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
+        <PackageVersion Include="Microsoft.CodeCoverage" Version="18.9.0" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+        <PackageVersion Include="NSubstitute" Version="5.1.0" />
+        <PackageVersion Include="NUnit" Version="[4.2.2,5.0.0)" />
+        <PackageVersion Include="NUnit3TestAdapter" Version="4.6.0" />
+        <PackageVersion Include="PublicApiGenerator" Version="11.4.6" />
+        <PackageVersion Include="SimpleFixture.NSubstitute" Version="4.0.0-RC191" />
+        <PackageVersion Include="SimpleFixture.xUnit" Version="4.0.0-RC191" />
+        <PackageVersion Include="Testcontainers.DynamoDb" Version="4.14.0" />
+        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+        <PackageVersion Include="xunit.v3" Version="3.2.2" />
+        <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
+        <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
+    </ItemGroup>
+
+</Project>

@@ -18,7 +18,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\LambdaWebTest\LambdaWebTest.csproj" />
-        <ProjectReference Include="..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Testing\Hardened.Amz.Shared.Lambda.Testing.csproj" />
+        <ProjectReference Include="..\..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Testing\Hardened.Amz.Shared.Lambda.Testing.csproj" />
     </ItemGroup>
 
 </Project>

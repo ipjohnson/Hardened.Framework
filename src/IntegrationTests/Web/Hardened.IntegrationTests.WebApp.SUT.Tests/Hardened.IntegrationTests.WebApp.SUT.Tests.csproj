@@ -8,12 +8,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="xunit.v3" Version="3.2.2" />
+        <PackageReference Include="xunit.v3"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -31,7 +31,7 @@
       <!-- The mock library behind [Mock]: [NSubstituteSupport] in Bootstrap.cs, and NSubstitute with it. -->
       <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj"
                         Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
-      <PackageReference Include="DependencyModules.NSubstitute" Version="$(DependencyModulesVersion)"
+      <PackageReference Include="DependencyModules.NSubstitute"
                         Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
           <!-- The Kestrel test host: [KestrelHost] on the socket smoke tests. -->
       <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Testing\Hardened.Web.Kestrel.Testing.csproj" />

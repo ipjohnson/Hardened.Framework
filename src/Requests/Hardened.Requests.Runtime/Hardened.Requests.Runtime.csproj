@@ -11,11 +11,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="DependencyModules.Runtime" Version="$(DependencyModulesVersion)" />
-        <PackageReference Include="DependencyModules.SourceGenerator" Version="$(DependencyModulesVersion)" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+        <PackageReference Include="DependencyModules.Runtime"/>
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Primitives"/>
 
         <!--
             The rate limiting primitives. Microsoft-published, no transitive dependencies, and the
@@ -24,7 +24,7 @@
             fewer eyes on it. It is a separate package rather than part of the shared framework,
             which is the only reason this line exists.
         -->
-        <PackageReference Include="System.Threading.RateLimiting" Version="8.0.0" />
+        <PackageReference Include="System.Threading.RateLimiting"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -50,7 +50,7 @@
 
     <ItemGroup>
         <ProjectReference Condition="'$(UseLocalValidationModules)' == 'true'" Include="$(ValidationModulesRuntimeProject)"/>
-        <PackageReference Condition="'$(UseLocalValidationModules)' != 'true'" Include="ValidationModules.Runtime" Version="$(ValidationModulesVersion)"/>
+        <PackageReference Condition="'$(UseLocalValidationModules)' != 'true'" Include="ValidationModules.Runtime"/>
     </ItemGroup>
 
     <!-- RequestDeadline reads a static AsyncLocal that TimeoutFilter writes, and the tests for

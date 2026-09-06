@@ -10,6 +10,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Amazon.Lambda.Core" />
         <!--
           The bootstrap every Hardened Lambda application runs on. Referenced here rather than in
@@ -33,7 +37,6 @@
         -->
         <PackageReference Include="DependencyModules.Runtime" />
         <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" />
-        <PackageReference Include="Hardened.Requests.Runtime" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Logging" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />

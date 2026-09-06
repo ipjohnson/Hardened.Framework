@@ -8,9 +8,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Hardened.Shared.Testing" />
+      <ProjectReference Include="..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+      <ProjectReference Include="..\..\..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
       <!-- The runner behind [HardenedTest]. Split out of Hardened.Shared.Testing in 0.21.0-rc1000. -->
-      <PackageReference Include="Hardened.Shared.Testing.xUnit" />
       <PackageReference Include="Microsoft.NET.Test.Sdk" />
       <PackageReference Include="xunit.v3" />
       <PackageReference Include="xunit.runner.visualstudio">
@@ -20,8 +23,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Lambda\Sqs\Hardened.Amz.Function.Sqs.Runtime\Hardened.Amz.Function.Sqs.Runtime.csproj" />
-      <ProjectReference Include="..\Lambda\Sqs\Hardened.Amz.Function.Sqs.Testing\Hardened.Amz.Function.Sqs.Testing.csproj" />
+      <ProjectReference Include="..\..\Lambda\Sqs\Hardened.Amz.Function.Sqs.Runtime\Hardened.Amz.Function.Sqs.Runtime.csproj" />
+      <ProjectReference Include="..\..\Lambda\Sqs\Hardened.Amz.Function.Sqs.Testing\Hardened.Amz.Function.Sqs.Testing.csproj" />
       <ProjectReference Include="..\SqsTest\SqsTest.csproj" />
     </ItemGroup>
 

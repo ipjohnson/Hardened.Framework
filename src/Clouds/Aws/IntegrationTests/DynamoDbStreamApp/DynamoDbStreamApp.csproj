@@ -8,10 +8,12 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Hardened.Library.SourceGenerator" />
-        <PackageReference Include="Hardened.Function.SourceGenerator" PrivateAssets="all" />
-        <PackageReference Include="Hardened.Requests.Runtime" />
+        <ProjectReference Include="..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>
+
 
     <ItemGroup>
       <ProjectReference Include="..\..\Lambda\DynamoDbStream\Hardened.Amz.Function.DDB.Runtime\Hardened.Amz.Function.DDB.Runtime.csproj" />
