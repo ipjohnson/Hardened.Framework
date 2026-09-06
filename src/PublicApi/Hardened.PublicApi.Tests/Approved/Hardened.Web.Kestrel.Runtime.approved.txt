@@ -112,7 +112,7 @@ namespace Hardened.Web.Kestrel.Runtime.Impl
     [DependencyModules.Runtime.Attributes.SingletonService]
     public class HardenedHttpApplication : Microsoft.AspNetCore.Hosting.Server.IHttpApplication<Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication.RequestContext>
     {
-        public HardenedHttpApplication(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger) { }
+        public HardenedHttpApplication(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Execution.IRequestExecutor executor, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider) { }
         public Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication.RequestContext CreateContext(Microsoft.AspNetCore.Http.Features.IFeatureCollection contextFeatures) { }
         public void DisposeContext(Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication.RequestContext context, System.Exception? exception) { }
         public System.Threading.Tasks.Task ProcessRequestAsync(Hardened.Web.Kestrel.Runtime.Impl.HardenedHttpApplication.RequestContext context) { }

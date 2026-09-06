@@ -3,6 +3,7 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Diagnostics;
@@ -90,11 +91,18 @@ internal static class PipelineRequest {
         TestExecutionRequest request,
         MemoryStream responseBody,
         CancellationToken cancellationToken) {
-        var startTimestamp = MachineTimestamp.Now;
-
         var middlewareService = rootServiceProvider.GetRequiredService<IMiddlewareService>();
         var requestLogger = rootServiceProvider.GetRequiredService<IRequestLogger>();
         var metricLoggerProvider = rootServiceProvider.GetRequiredService<IMetricLoggerProvider>();
+
+        // Resolved if the container has one, constructed from the two services this method already
+        // requires if it does not. Asking for it with GetRequiredService made it a fifth mandatory
+        // registration, and a harness caller builds its own container by hand - the conformance
+        // suites in this repository register exactly the four above, so twenty-six of them stopped
+        // with a resolution failure. The executor is a pure function of those two, so there is
+        // nothing to configure and no reason to make a caller register it.
+        var executor = rootServiceProvider.GetService<IRequestExecutor>()
+                       ?? new RequestExecutor(middlewareService, requestLogger);
 
         var scope = rootServiceProvider.CreateScope();
 
@@ -113,7 +121,7 @@ internal static class PipelineRequest {
 
         var chain = middlewareService.GetExecutionChain(context);
 
-        requestLogger.RequestBegin(context);
+        executor.Begin(context);
 
         try {
             await chain.Next();
@@ -144,15 +152,13 @@ internal static class PipelineRequest {
         finally {
             // In a finally because these ran as straight-line statements after the chain, so a
             // request that threw closed out nothing: no duration, no end, and the scope leaked.
-            context.RequestMetrics.Record(
-                RequestMetrics.TotalRequestDuration, startTimestamp.GetElapsedMilliseconds());
-
-            requestLogger.RequestEnd(context);
-
-            // The logger is per request and nothing else owns it. Disposal is how a provider learns
-            // the request finished, so a harness assertion about what a request emitted has nothing
-            // to read without it.
-            context.RequestMetrics.Dispose();
+            //
+            // The close-out itself is IRequestExecutor's - the duration, the end line and the
+            // disposal that makes a provider emit, which is what a harness assertion about what a
+            // request emitted has to read. The chain above is still driven here rather than through
+            // RunChain, because this host's answer to a throw is genuinely its own: see the filter
+            // on the catch.
+            executor.End(context);
 
             scope.Dispose();
         }

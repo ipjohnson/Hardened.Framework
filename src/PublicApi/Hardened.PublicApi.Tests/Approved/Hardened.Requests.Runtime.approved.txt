@@ -412,6 +412,15 @@ namespace Hardened.Requests.Runtime.Execution
         public Hardened.Requests.Abstract.Forms.IFormReader FormReader { get; }
         public Hardened.Requests.Abstract.Serializer.IStringConverterService StringConverterService { get; }
     }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class RequestExecutor : Hardened.Requests.Abstract.Execution.IRequestExecutor
+    {
+        public RequestExecutor(Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger) { }
+        public void Begin(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public void End(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task Run(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.HostFailurePolicy onFailure) { }
+        public System.Threading.Tasks.Task RunChain(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.HostFailurePolicy onFailure) { }
+    }
 }
 namespace Hardened.Requests.Runtime.Filters
 {

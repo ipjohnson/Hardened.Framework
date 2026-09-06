@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
+using Hardened.Requests.Runtime.Execution;
 
 namespace Hardened.Web.AspNetCore.Runtime.Tests.Impl;
 
@@ -292,7 +293,8 @@ public class AspNetCoreRequestHandlerTests {
                 start();
             }
 
-            Handler = new AspNetCoreRequestHandler(metricLoggerProvider, middlewareService, RequestLogger);
+            Handler = new AspNetCoreRequestHandler(
+                metricLoggerProvider, new RequestExecutor(middlewareService, RequestLogger));
         }
 
         public IRequestLogger RequestLogger { get; }

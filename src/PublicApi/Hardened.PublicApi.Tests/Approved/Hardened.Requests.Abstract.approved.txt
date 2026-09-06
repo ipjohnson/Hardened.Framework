@@ -351,6 +351,11 @@ namespace Hardened.Requests.Abstract.Execution
     {
         public static Hardened.Requests.Abstract.Execution.CancellationScope WithCancellation(this Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Threading.CancellationToken replacement) { }
     }
+    public enum HostFailurePolicy
+    {
+        Answer500 = 0,
+        Rethrow = 1,
+    }
     public interface IExecutionChain
     {
         Hardened.Requests.Abstract.Execution.IExecutionContext Context { get; }
@@ -463,6 +468,13 @@ namespace Hardened.Requests.Abstract.Execution
         Hardened.Requests.Abstract.Serializer.IContextSerializationService ContextSerializationService { get; }
         Hardened.Requests.Abstract.Forms.IFormReader FormReader { get; }
         Hardened.Requests.Abstract.Serializer.IStringConverterService StringConverterService { get; }
+    }
+    public interface IRequestExecutor
+    {
+        void Begin(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        void End(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.Task Run(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.HostFailurePolicy onFailure);
+        System.Threading.Tasks.Task RunChain(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.HostFailurePolicy onFailure);
     }
     public interface ITransportInfo
     {

@@ -1,9 +1,5 @@
 ﻿using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Abstract.Logging;
-using Hardened.Requests.Abstract.Metrics;
-using Hardened.Requests.Abstract.Middleware;
 using DependencyModules.Runtime.Attributes;
-using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.AspNetCore.Http;
 
@@ -15,94 +11,58 @@ public interface IAspNetCoreRequestHandler {
 
 [TransientService]
 public class AspNetCoreRequestHandler : IAspNetCoreRequestHandler {
-    private IMetricLoggerProvider _metricLoggerProvider;
-    private IMiddlewareService _middlewareService;
-    private IRequestLogger _requestLogger;
+    private readonly IMetricLoggerProvider _metricLoggerProvider;
+    private readonly IRequestExecutor _executor;
 
     public AspNetCoreRequestHandler(
         IMetricLoggerProvider metricLoggerProvider,
-        IMiddlewareService middlewareService,
-        IRequestLogger requestLogger) {
+        IRequestExecutor executor) {
         _metricLoggerProvider = metricLoggerProvider;
-        _middlewareService = middlewareService;
-        _requestLogger = requestLogger;
+        _executor = executor;
     }
 
     /// <summary>
     /// Runs the Hardened chain, and hands the request on if the chain produced nothing.
-    ///
-    /// The request logging and duration metric around it are what every other host already does —
-    /// <c>ApiGatewayEventProcessor</c> on Lambda and <c>TestWebApp</c> in the test harness both
-    /// bracket the chain this way, and <c>HardenedHttpApplication</c> does on Kestrel. This host
-    /// did not, so an ASP.NET-hosted application saw <c>RequestMapped</c> and <c>RequestFailed</c>
-    /// from inside the pipeline but never a begin, an end, or a <c>TotalRequestDuration</c>.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The begin, the duration and the end come from <c>IRequestExecutor</c>, which is what every
+    /// other host uses. This one used to bracket the chain itself and, before that, not at all: an
+    /// ASP.NET-hosted application saw <c>RequestMapped</c> and <c>RequestFailed</c> from inside the
+    /// pipeline but never a begin, an end, or a <c>TotalRequestDuration</c>.
+    /// </para>
+    /// <para>
+    /// <see cref="HostFailurePolicy.Answer500"/>, so a throw from the chain is answered here rather
+    /// than reaching ASP.NET, whose handler logs against the server rather than the application's
+    /// <c>IRequestLogger</c> and aborts the connection mid-body once the response has started. The
+    /// commonest way to arrive there is a filter writing a response header after <c>Next()</c>: the
+    /// ASP.NET header dictionary is read-only once the response has started and its setter throws.
+    /// </para>
+    /// <para>
+    /// Only the Hardened chain is covered. An exception from the fallthrough delegate belongs to
+    /// whatever middleware is behind <c>UseHardened</c>, and to the exception handling that
+    /// application installed for it — so the fallthrough sits outside <c>RunChain</c> and inside
+    /// the <c>finally</c> that closes the request out.
+    /// </para>
+    /// </remarks>
     public async Task HandleRequest(HttpContext context, RequestDelegate requestDelegate) {
-        var requestStartTimestamp = MachineTimestamp.Now;
-
         var executionContext = GetExecutionContext(context, _metricLoggerProvider);
 
-        _requestLogger.RequestBegin(executionContext);
+        _executor.Begin(executionContext);
 
         try {
-            await RunChain(executionContext);
+            await _executor.RunChain(executionContext, HostFailurePolicy.Answer500);
 
             if (!Answered(executionContext)) {
                 await requestDelegate(context);
             }
         }
         finally {
-            // In a finally because these ran as straight-line statements after the chain, so an
-            // exception escaping to ASP.NET's own handler took the whole close-out with it: no
-            // duration, no end, and no flush. A request that threw is one worth having a record of.
-            executionContext.RequestMetrics.Record(
-                RequestMetrics.TotalRequestDuration, requestStartTimestamp.GetElapsedMilliseconds());
-
-            _requestLogger.RequestEnd(executionContext);
-
-            // The logger is per request and nothing else owns it. Disposal is how a provider learns
-            // the request finished - EmbeddedMetricLogger writes its EMF line here - so without it
-            // any provider that emits on completion emitted nothing at all.
-            executionContext.RequestMetrics.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Runs the Hardened chain, and answers the failure itself rather than letting it reach
-    /// ASP.NET.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// What <c>HardenedHttpApplication</c> does on Kestrel, for the same reasons: the server's own
-    /// handler logs against the server rather than the application's <c>IRequestLogger</c>, and
-    /// once the response has started it aborts the connection mid-body. The two hosts answered the
-    /// same application differently on the one path where that matters most.
-    /// </para>
-    /// <para>
-    /// The commonest way to arrive here is a filter writing a response header after
-    /// <c>Next()</c> - the ASP.NET header dictionary is read-only once the response has started,
-    /// and its setter throws. That request now ends as a logged failure rather than a torn-down
-    /// connection.
-    /// </para>
-    /// <para>
-    /// Only the Hardened chain is covered. An exception from the fallthrough delegate belongs to
-    /// whatever middleware is behind <c>UseHardened</c>, and to the exception handling that
-    /// application installed for it.
-    /// </para>
-    /// </remarks>
-    private async Task RunChain(IExecutionContext executionContext) {
-        try {
-            await _middlewareService.GetExecutionChain(executionContext).Next();
-        }
-        catch (Exception exception) {
-            // Once the response has started the status line is already on the wire and there is
-            // nothing left to say. Setting it would throw in its own right. Decided before the
-            // logger is told, because the logger reads the status to pick its level.
-            if (!executionContext.Response.ResponseStarted) {
-                executionContext.Response.Status = 500;
-            }
-
-            _requestLogger.RequestFailed(executionContext, exception);
+            // In a finally because the close-out ran as straight-line statements after the chain,
+            // so an exception escaping to ASP.NET's own handler took it all with it: no duration,
+            // no end, and no flush. The fallthrough delegate can still throw, which is what makes
+            // this a finally rather than IRequestExecutor.Run.
+            _executor.End(executionContext);
         }
     }
 
