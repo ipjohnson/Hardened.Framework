@@ -23,8 +23,9 @@ Three things happened before the method body ran.
 - `client` is the Kiota client generated from the application's own OpenAPI document. It sends
   through an `HttpClient` whose handler runs the application's pipeline in-process. See
   [Typed clients](/guide/testing-clients).
-- `store` is an NSubstitute mock, registered in the container the handler resolves from. The
-  handler behind `POST /todos` used it. See [Substituting services](/guide/testing-mocks).
+- `store` is an NSubstitute mock, from the `DependencyModules.NSubstitute` package the test
+  project references, registered in the container the handler resolves from. The handler behind
+  `POST /todos` used it. See [Substituting services](/guide/testing-mocks).
 - `Returns<Created<ClientModels.Todo>>()` checked that the call answered 201 and handed back the
   body and the `Location` header. See [Asserting a response](/guide/testing-responses).
 
@@ -59,6 +60,7 @@ The test project references the testing package and a runner package:
 <ItemGroup>
     <PackageReference Include="Hardened.Shared.Testing" />
     <PackageReference Include="Hardened.Shared.Testing.xUnit" />
+    <PackageReference Include="DependencyModules.NSubstitute" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
@@ -95,7 +97,7 @@ A web application adds `[assembly: WebTesting]` from `Hardened.Web.Testing`; see
 | Parameter | What arrives |
 |---|---|
 | Any registered service | The application's own registration, resolved from the test's container |
-| `[Mock] T` | An NSubstitute substitute for `T`, registered over the application's registration. [Substituting services](/guide/testing-mocks) |
+| `[Mock] T` | A mock of `T` from the library the test project names, NSubstitute, Moq or FakeItEasy, registered over the application's registration. [Substituting services](/guide/testing-mocks) |
 | `ITestContext` | Named steps, a retry engine, a logger and the test's cancellation token. [Steps and retries](/guide/testing-steps) |
 | `ITestWebApp` | Sends requests through the pipeline. [Sending requests](/guide/testing-web) |
 | A client type | A Kiota client, a Refit interface or any class taking one `HttpClient`, built over the pipeline. [Typed clients](/guide/testing-clients) |

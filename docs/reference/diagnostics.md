@@ -31,6 +31,7 @@ carries the long-form entry for each, with the message text and the fix.
 | `HSMT` | The Smithy description build task |
 | `HTPL` | The `hardened-web` template's own project checks |
 | `HRDAWS` | Hardened.Amz |
+| `VM` | [ValidationModules](/guide/validation), whose constraints the validation generator compiles. `VM1503`: a `[ValidateNested]` target is not sealed and declares no polymorphism mode |
 
 `HOAT` and `HSMT` share one numbering: a number means the same thing under each, and a finding is
 reported under the prefix of the front end that read the description. A number that exists for one
@@ -59,6 +60,8 @@ front end only leaves a gap in the other.
 | `HRDR006` | warning | No routing generator is compiling this assembly's routes |
 | `HRDR007` | error | A service parameter binds from the request body |
 | `HRDR008` | error | More than one routing generator is compiling this assembly |
+| `HRDR009` | error | More than one parameter binds from the request body. The message names them and the ways out |
+| `HRDR010` | warning | A parameter binds from the body of a request that carries none, on a `GET`, `HEAD` or `DELETE` |
 
 ## Validation
 
@@ -69,6 +72,7 @@ front end only leaves a gap in the other.
 | `HRDV003` | warning | A required member of a value type cannot be found missing, so `[Required]` there does nothing |
 | `HRDV004` | warning | Nested constraints are never reached |
 | `HRDV005` | error | A `When` or `Unless` on a parameter's constraint names a member of a model the parameter does not sit on |
+| `HRDV006` | warning | Constraints are declared and nothing compiles them into a validator, so none is enforced. Reference `Hardened.Validation.SourceGenerator` |
 
 ## Web handlers
 
@@ -77,6 +81,8 @@ front end only leaves a gap in the other.
 | `HRDW002` | error | A handler binds both a form and a body |
 | `HRDW003` | error | A handler declares [`[Compress]`](/guide/compression) more than once, on the method and on its class |
 | `HRDW004` | error | [`[ServerSentEvents]`](/guide/streaming) on a handler that does not return `IAsyncEnumerable<T>` |
+| `HRDW005` | warning | [Response caching](/guide/response-caching) is declared and no store is registered. Names the package and the module attribute |
+| `HRDW006` | error | [`[Timeout]`](/guide/request-timeouts) declares no budget. The budget must be positive; an unbounded handler declares none |
 
 ## Responses
 
@@ -100,6 +106,7 @@ front end only leaves a gap in the other.
 | `HRDOA001` | error | `<HardenedOpenApiVersion>` is not `3.0.0`, `3.1.0` or `3.2.0` |
 | `HRDOA002` | warning | A [streamed response](/guide/streaming#what-the-document-says) under a document version with no `itemSchema`; the operation is described without a schema |
 | `HRDOA003` | warning | `[Enable<OpenApiDocumentPublishing>]` sits on a module declaring no routes, so the document is empty |
+| `HRDOA004` | error | Two handlers declare the same [`[Operation]`](/guide/openapi-document) id, so a generated client would have two methods with one name |
 
 ## The description build tasks
 
@@ -112,7 +119,7 @@ Shared between `HOAT` and `HSMT`.
 | `003` | error | The description was declared as the wrong item kind |
 | `004` | error | A model or generated source the extract step should have written is missing. Delete the model directory and rebuild |
 | `005` | error | The targets file was imported before the specs were declared. Move the `<Import>` below the item group |
-| `006` | warning | The reader had something to say, including what a degraded trait promises that the code does not enforce |
+| `006` | warning | The reader had something to say, including what a degraded trait promises that the code does not enforce: a Smithy `BigDecimal` or `BigInteger` member narrowed to `decimal`, once per member, or scopes on an `http` scheme, which cannot carry them. `NoWarn` is the answer where the narrowing is meant |
 | `007` | error | A slice selected no operations |
 | `008` | warning | A slice removed a schema that is still referenced; the reference degrades to `JsonElement` |
 | `009` | warning | The spec is sliced but its document is embedded whole, so the served description claims operations the application does not implement |

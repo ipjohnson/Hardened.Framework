@@ -4,6 +4,9 @@ Authentication decides who the caller is. A handler names the scheme it requires
 that presents nothing is refused before the handler runs:
 
 ```csharp
+using Hardened.Requests.Abstract.Authorization;
+using Hardened.Requests.Runtime.Authorization;
+
 [HttpAuthenticationScheme("bearer", BearerFormat = "JWT")]
 public sealed class BearerAuth : IAuthenticationScheme;
 
@@ -23,6 +26,10 @@ WWW-Authenticate: Bearer
 The scheme is a type, and using it anywhere declares it. The generator writes every scheme the
 handlers name into the document's `components.securitySchemes`, with each operation's
 requirement beside it.
+
+The requirement `[Authorize<BearerAuth>]` adds is an authenticated caller. Which scheme
+established the caller is not checked at runtime, so the type argument is documentation for the
+contract, and a test's own scheme satisfies it.
 
 ## Establishing the caller
 

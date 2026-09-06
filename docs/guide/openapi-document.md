@@ -19,12 +19,12 @@ $ curl localhost:5080/openapi.json
 
 The document is generated from the routing table during the build: the paths, the verbs, the
 bound parameters and the response schemas. Contract-first, the document is the contract you
-wrote, embedded verbatim:
+wrote, normalised:
 
 | | The document is | Served by |
 |---|---|---|
 | **Code-first** | generated from your handlers during the build | `[Enable<OpenApiDocumentPublishing>]` |
-| **Contract-first** | the contract you wrote, embedded verbatim | `PublishUrl` on the spec item |
+| **Contract-first** | the contract you wrote, normalised: references inlined, and the 400 and 401 the runtime answers added | `PublishUrl` on the spec item |
 
 Both end at the same two endpoints, and the reference page is the same module either way. The
 build can also write the served document to a file, which is what a
@@ -107,9 +107,10 @@ declares it:
 </ItemGroup>
 ```
 
-Nothing is registered in code. The document is embedded verbatim and served at `PublishUrl` with
-the content type its file extension implies, so a `.yaml` spec is served as `application/yaml`.
-The reference page at `UiUrl` reads it.
+Nothing is registered in code. `PublishUrl` serves the document the build normalised, with the
+content type its file extension implies, so a `.yaml` spec is served as `application/yaml`, and
+the reference page at `UiUrl` reads it. The file as you wrote it is served at `SourceUrl`, when
+the item sets one beside `EmbedDocument`.
 
 `UiEnvironments` limits which [environments](/guide/environments) serve the page. Empty means all
 of them:
@@ -219,6 +220,10 @@ All three answer the framework's error envelope, so a [generated client](/guide/
 typed case for the refusal it will be sent. Declarations on the method, its class and the
 assembly are all read, nearest first. A `401` is published separately for any operation carrying
 a security requirement, with the `WWW-Authenticate` challenge beside it.
+
+This holds for the code-first document. A described contract publishes the `401` and the
+`x-hardened-timeout` it declares, and none of the `403`, `429` or `504` the guards on its
+implementation answer. Declare those in the contract until the writer reads the implementation.
 
 An authorization attribute of your own publishes the `403` without doing anything, because the
 declaration lives on `IAuthorizeAttribute`. A filter vocabulary of your own publishes its status

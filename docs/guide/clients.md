@@ -127,7 +127,8 @@ middleware made of it. In production it is what you want.
 
 `BaseUrl` is required by Kiota. A code-first document with no
 [`[Server]`](/guide/openapi-document#what-else-reaches-the-document) has no `servers` entry, so
-Kiota warns on every generation and this is the line that settles it.
+Kiota warns on every generation and this is the line that settles it. The template's library
+module carries `[Server("http://localhost:5080", "Local")]` for that reason.
 
 ### Authenticate it
 

@@ -4,6 +4,8 @@ A client that polls a resource every ten seconds downloads the same bytes every 
 `[ConditionalGet]` answers a caller who already holds the response with a 304 and no body.
 
 ```csharp
+using Hardened.Web.Runtime.Conditional;
+
 [Get("/rates/{symbol}")]
 [ConditionalGet]
 public Rate Read(string symbol) => _rates.Latest(symbol);
@@ -63,6 +65,8 @@ A handler that knows its resource's version writes it, and is passed straight th
 than held back:
 
 ```csharp
+using Hardened.Requests.Abstract.Headers;
+
 [Get("/documents/{id}")]
 [ConditionalGet]
 public Document Read(string id, IExecutionContext context) {
@@ -113,9 +117,19 @@ recorded, so a caller who may not read the resource is not told that it has not 
 ## Compression and the tag
 
 The tag covers the bytes as sent. The compression filter sits inside the conditional stage, so a
-client that accepts gzip holds a weak tag, `W/"..."`, and an identity client holds the strong
-one. Each is revalidated against its own, and `If-None-Match` compares weakly either way. This is
-the same thing that happens for a compressed static file.
+client that accepts gzip holds a different tag from an identity client, and both are strong: each
+is computed over the bytes that client received, and each revalidates against its own. A tag the
+handler wrote is the exception. It names the identity bytes, so `CompressingResponseStream`
+weakens it, `W/"..."`, on the way out through gzip, and `If-None-Match` compares weakly either
+way. This is the same thing that happens for a compressed static file.
+
+## In a contract
+
+A described operation leaves the `ETag` header out of its contract. `[ConditionalGet]` on the
+implementation writes the tag itself, and a header declared on the 200 becomes a member the
+handler must fill: in throws mode the operation turns into a response set with a
+`GetTodoOk(Todo Body, string ETag)` case, and in the declared modes the success case gains the
+member.
 
 ## Not built
 
@@ -126,5 +140,5 @@ the same thing that happens for a compressed static file.
 ## Next
 
 - [Response caching](/guide/response-caching): skipping the handler as well as the transfer
-- [Compression](/guide/compression): why a gzip client holds a weak tag
+- [Compression](/guide/compression): why a gzip client holds a different tag
 - [The execution pipeline](/guide/execution-pipeline#ordering): where the conditional stage sits

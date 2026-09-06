@@ -4,6 +4,8 @@ A handler says what it needs, and the pipeline decides whether the caller has it
 string, and `[AuthorizeGrants]` names the grants an operation requires:
 
 ```csharp
+using Hardened.Requests.Runtime.Authorization;
+
 [Get("/pets")]
 [AuthorizeGrants("pets:read")]
 public Task<Pet[]> List() => ...;
@@ -114,8 +116,10 @@ public Task<Pet> Get(string petId) => ...;
 `&` binds tighter than `|`, so the parentheses are documentation rather than necessity.
 
 The first type argument is the [authentication scheme](/guide/authentication), not the policy.
-`[Authorize<T>]` with one argument requires an authenticated caller established through `T`, and
-the policy rides second. A policy written in the first position fails the constraint at the call
+`[Authorize<T>]` with one argument requires an authenticated caller and nothing more,
+`Requirement.Authenticated()`: the scheme names what the document declares, and the runtime does
+not check which scheme established the caller, which is why the test harness's `test` scheme
+satisfies it. The policy rides second. A policy written in the first position fails the constraint at the call
 site, which names `IAuthenticationScheme`.
 
 `[Authorize<TAuth, TPolicy>]` conjoins `Requirement.Authenticated()` with the policy's own, so a

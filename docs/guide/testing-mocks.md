@@ -29,8 +29,16 @@ application's registration of `T`. The last registration wins, so the container 
 substitute wherever `T` is asked for. The test receives the same instance, so a `Returns` set up
 in the test and a `Received()` check afterwards are against what the application used.
 
-NSubstitute arrives with `Hardened.Shared.Testing`. The test project adds `using NSubstitute;`
-and nothing else.
+The mock library is a package and an assembly attribute. `DependencyModules.NSubstitute` with
+`[assembly: NSubstituteSupport]` gives `[Mock]` NSubstitute; `DependencyModules.Moq` with
+`[assembly: MoqSupport]` and `DependencyModules.FakeItEasy` with `[assembly: FakeItEasySupport]`
+give it Moq and FakeItEasy. Without the attribute a `[Mock]` parameter fails with *Mock library
+not found*. `dotnet new hardened-web --mocks` writes the pair for the library named, and `[Mock]`
+itself is `DependencyModules.Testing.Attributes.MockAttribute`, which `Hardened.Shared.Testing`
+brings in.
+
+With Moq, a parameter typed `Mock<T>` is the mock to configure and the container is given its
+`Object`; a parameter typed as the service and marked `[Mock]` receives that `Object`.
 
 ## Behind a route
 

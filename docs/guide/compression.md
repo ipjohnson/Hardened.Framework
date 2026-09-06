@@ -24,7 +24,7 @@ For one operation or one class, `[Compress]` as above. For the whole application
 
 ```csharp
 [HardenedModule]
-[Enable<HardenedCompression>]
+[Enable<ResponseCompression>]
 [KestrelRuntime]
 public partial class Application { }
 ```
@@ -127,7 +127,7 @@ services.ConfigureCompression(compression => {
 | `MaxDecompressedRequestBytes` | `30_000_000` |
 
 This is an amender rather than a replacement, so it composes with the defaults. It applies whether
-or not `[Enable<HardenedCompression>]` is written, because the request-side cap applies to every
+or not `[Enable<ResponseCompression>]` is written, because the request-side cap applies to every
 application.
 
 ## How it composes
@@ -151,5 +151,5 @@ is work for nothing.
 ## Next
 
 - [Response caching](/guide/response-caching): the cache stores identity bytes
-- [Conditional requests](/guide/conditional-requests): the weak tag a gzip client holds
+- [Conditional requests](/guide/conditional-requests): the tag a gzip client holds
 - [Streaming responses](/guide/streaming#compression): what a stream does

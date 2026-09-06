@@ -36,12 +36,18 @@ Expected 404 (NotFound<NotFound>), the call was answered 200 carrying a Todo.
 
 | Expectation | Status | Carries |
 |---|---|---|
-| `Ok<T>` | 200 | `Value` |
+| `Ok<T>` | 200 | `Value`, `Headers` |
 | `Created<T>` | 201 | `Value`, `Location` |
 | `NoContent` | 204 | nothing |
 | `BadRequest<T>` | 400 | `Body` |
 | `NotFound<T>` | 404 | `Body` |
 | `Conflict<T>` | 409 | `Body` |
+| `Unauthorized<T>` | 401 | `Body`, `Challenge` |
+| `Forbidden<T>` | 403 | `Body` |
+| `RateLimited<T>` | 429 | `Body`, `RetryAfter` |
+| `GatewayTimeout<T>` | 504 | `Body` |
+| `Accepted` | 202 | `Location` |
+| `NotModified` | 304 | `ETag` |
 
 Every status in the [built-in response types](/guide/responses#the-built-in-response-types) has
 its `<T>` form here, and the bodiless ones (`Accepted`, `NoContent`, `NotModified`,
@@ -82,7 +88,7 @@ public async Task CreateTodo_AnswersCreated(TodosClient client) {
 }
 ```
 
-`LastResponse` carries `Status`, `Headers`, `ContentType` and `Body` as bytes. It is keyed on the
+`LastResponse`, in `Hardened.Web.Testing`, carries `Status`, `Headers`, `ContentType` and `Body` as bytes. It is keyed on the
 runner's current test, so parallel tests read their own answers. Reading it before anything was
 answered fails naming the test, and `IsAvailable` says whether there is one. On a socket host it
 is what came back over the wire.

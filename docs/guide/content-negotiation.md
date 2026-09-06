@@ -151,6 +151,10 @@ model and let negotiation choose.
 Deserialization is simpler. `IRequestDeserializer.CanProcessContext` returns a bool against the
 request's `Content-Type`, which is a single stated value with nothing to rank.
 
+A `Content-Type` no deserializer claims falls back to the default deserializer, which is JSON, so
+a `text/plain` body is parsed as JSON and refused 400 with the parser's message rather than 415.
+The 415 is answered for a `Content-Encoding` nothing can decode.
+
 ## Next
 
 - [JSON serialization](/guide/json): the serializer at `Normal`

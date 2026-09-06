@@ -35,6 +35,8 @@ dotnet new hardened-web -n Todos [options]
 | `-c, --contract` | `code`, `openapi`, `smithy` | `code` |
 | `-rm, --response-model` | `response`, `throws`, `union` | `response` |
 | `-cl, --client` | `kiota`, `refit`, `none` | `kiota` |
+| `--test-framework` | `xunit`, `nunit` | `xunit` |
+| `--mocks` | `nsubstitute`, `moq`, `fakeiteasy` | `nsubstitute` |
 | `--openapi-ui` | `true`, `false` | `true` |
 | `--hardened-version` | a published version | the version the template shipped with |
 | `--skip-restore` | `true`, `false` | `false` |
@@ -95,8 +97,8 @@ under `response` and `union` and 200 under `throws`. [Declared responses](/guide
 the three.
 
 `union` writes a `net11.0` project pinned to the .NET 11 SDK in `global.json`. It cannot be
-combined with `--host aws-lambda`, whose managed runtime is `net8.0`; the template refuses with
-`HTPL001`.
+combined with `--host aws-lambda`, whose managed runtime is `net8.0`. `dotnet new` cannot refuse a
+combination of options, so the first build refuses with `HTPL001`.
 
 `standard` is accepted as the old name for `throws` and writes the same project.
 
@@ -129,6 +131,8 @@ dotnet new hardened-function -n OrderIntake [options]
 | Option | Values | Default |
 |---|---|---|
 | `--trigger` | `invoke`, `sqs` | `invoke` |
+| `--test-framework` | `xunit`, `nunit` | `xunit` |
+| `--mocks` | `nsubstitute`, `moq`, `fakeiteasy` | `nsubstitute` |
 | `--hardened-version` | a published version | the version the template shipped with |
 | `--skip-restore` | `true`, `false` | `false` |
 
@@ -183,7 +187,7 @@ routes as well as services, add `[HardenedWebModule]` to the module class and re
 Every template writes a `Directory.Packages.props` with one version for every Hardened package:
 
 ```xml
-<HardenedVersion>0.20.0-rc1000</HardenedVersion>
+<HardenedVersion>0.21.0-rc1000</HardenedVersion>
 ```
 
 It is the version the template package shipped with, and `--hardened-version` overrides it.
@@ -193,7 +197,7 @@ Templates do not update themselves. A newer release is a newer template package:
 
 ```bash
 dotnet new install Hardened.Templates                     # latest
-dotnet new install Hardened.Templates::0.20.0-rc1000      # a specific one
+dotnet new install Hardened.Templates@0.21.0-rc1000       # a specific one
 ```
 
 Existing projects keep the version in their own `Directory.Packages.props` until you change it.

@@ -70,7 +70,7 @@ Two unrelated senses of the word, in two packages.
 | Package | Contents |
 |---|---|
 | `Hardened.Templates` | The `dotnet new` project templates: `hardened-web`, `hardened-function`, `hardened-library`. See [Project templates](/guide/project-templates) |
-| `Hardened.Templates.RazorBlade` | View rendering: `HardenedRazorTemplates`, `HardenedHtmlTemplate<T>`. Renders `.cshtml` with no ASP.NET Core dependency. See [Views](/guide/templates) |
+| `Hardened.Templates.RazorBlade` | View rendering: `RazorTemplates`, `HardenedHtmlTemplate<T>`. Renders `.cshtml` with no ASP.NET Core dependency. See [Views](/guide/templates) |
 
 `IHardenedResponseOutput<T>`, what a view implements, and the `[TemplateBase]` /
 `[TemplateContentType]` vocabulary a rendering engine's marker declares both live in
@@ -158,7 +158,7 @@ Both repositories release on the same version line, from a `v*` tag:
 | Hardened.Framework | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
 | Hardened.Amz | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
 
-The current line is **`0.20.0-rc1000`**. Releases go to nuget.org; the continuous feed is
+The current line is **`0.21.0-rc1000`**. Releases go to nuget.org; the continuous feed is
 [GitHub Packages](https://nuget.pkg.github.com/ipjohnson/index.json). Under one line, `preview`
 sorts below `rc`, so a preview never shadows the release it precedes.
 

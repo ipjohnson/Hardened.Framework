@@ -49,11 +49,17 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[FromBody]` | Parameter | Binds from the request body |
 | `[FromServices]` | Parameter | Binds from the container |
 | `[Output<T>]` | Method | Hands the response to a [view or other output](/guide/templates) instead of serialising it. Takes the response out of negotiation: unsupported `Accept` is a `406` |
-| `[RawResponse(contentType?)]` | Method | [Commits](/guide/content-negotiation#forcing-a-content-type) the response to a content type and writes the value unstructured. Defaults to `text/plain` |
-| `[Throws<T>(status?)]` | Method | [Declares a thrown response](/guide/responses#declaring-what-a-handler-throws) for the document. The status comes from `T`'s `[HttpStatus]`, or from the argument |
+| `[RawResponse(contentType?)]` | Method | [Commits](/guide/content-negotiation#forcing-a-content-type) the response to a content type and writes the value unstructured. Defaults to `text/plain`. Read from code-first handlers only; on a `[Handler]` implementation it does nothing |
 
 `ICustomBindingAttribute` is the interface an attribute implements to bind a parameter itself. See
 [Parameter binding](/guide/parameter-binding#custom-binding).
+
+`Hardened.Requests.Abstract.Responses`
+
+| Attribute | Target | Purpose |
+|---|---|---|
+| `[Throws<T>(status?)]` | Method | [Declares a thrown response](/guide/responses#declaring-what-a-handler-throws) for the document. The status comes from `T`'s `[HttpStatus]`, or from the argument |
+| `[AnswersStatus(status, typeof(body))]` | Class, interface | On a filter attribute: every operation carrying it [publishes](/guide/openapi-document#what-a-guard-on-the-operation-publishes) that status. How `[RateLimit]` publishes its 429 |
 
 `Hardened.Requests.Runtime.Filters`
 
@@ -61,6 +67,12 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 |---|---|---|
 | `[Retry]` | Class, method | Re-runs the handler after a failure. `Attempts` (3), `SleepTime` (500 ms), `TotalBudget` (10 s), `AllowNonIdempotent`. Declines client errors, and non-idempotent verbs unless told otherwise |
 | `[Timeout]` | Class, method, assembly | [Bounds how long the operation may take](/guide/request-timeouts). `Milliseconds` (30 s), `Status` (504), `RetryAfterSeconds`. The nearest declaration wins, and nothing is bounded until one is written |
+
+`Hardened.Requests.Runtime.RateLimiting`
+
+| Attribute | Target | Purpose |
+|---|---|---|
+| `[RateLimit]` | Class, method | [Caps how often the operation may be called](/guide/rate-limiting). `PermitLimit` (100), `WindowSeconds` (60). Publishes the 429 |
 
 `Hardened.Requests.Runtime.Caching`
 
@@ -82,7 +94,7 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 |---|---|---|
 | `[AuthorizeGrants(grants)]` | Class, method | Requires every grant named. What a generator emits from a specification |
 | `[AuthorizeGrants<T>]` | Class, method | Requires every grant in the [`IGrantProvider`](/guide/authorization#typed-grant-sets) `T` names. The typed spelling |
-| `[Authorize<TAuth>]` | Class, method | Requires a caller established through the [authentication scheme](/guide/authentication) `TAuth`. Declares the scheme in the document |
+| `[Authorize<TAuth>]` | Class, method | Requires an authenticated caller and declares the [authentication scheme](/guide/authentication) `TAuth` in the document. Which scheme established the caller is not checked at runtime |
 | `[Authorize<TAuth, TPolicy>]` | Class, method | The same, and the [policy](/guide/authorization#policies)'s requirement as well. The only form that can express *or* |
 | `[AllowAnonymous]` | Class, method | Makes an operation public on purpose. Beats every requirement on the same handler, including a convention |
 | `[RequireAuthorization]` | Class, assembly | On the module: a handler declaring nothing is denied rather than public, and reported as `HAUTH001` at build |
@@ -117,6 +129,7 @@ See [Authorization](/guide/authorization).
 | `[ServerSentEvents]` | Method | Frames an `IAsyncEnumerable<T>` as [`text/event-stream`](/guide/streaming) rather than NDJSON |
 | `[WebLibrary]` | Class | Marks a web library entry point |
 | `[Tag(name)]` | Class | The [OpenAPI tag](/guide/openapi-document) this controller's operations group under. Defaults to the class name minus `Controller` |
+| `[Operation(id)]` | Method | The [`operationId`](/guide/openapi-document) the handler publishes, which a generated client names its method after. Defaults to the method name in camelCase. Two handlers declaring one id is `HRDOA004` |
 | `[Server(url, description?)]` | Class, assembly | A base URL the generated document lists under `servers` |
 | `[CaseInsensitiveRoutes]` | Class | Matches this module's routes [without regard to case](/guide/routing#case-and-trailing-slashes) |
 | `[RouteConstraint(name)]` | Method | Declares a [route constraint](/guide/routing#declaring-your-own-constraint). `static bool(ReadOnlySpan<char>)` |
@@ -139,7 +152,7 @@ handler from the module instead:
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[Enable<HardenedCompression>]` | Class | [Compresses](/guide/compression) every response the media-type rule admits, for every client that accepts it |
+| `[Enable<ResponseCompression>]` | Class | [Compresses](/guide/compression) every response the media-type rule admits, for every client that accepts it |
 | `[Enable<ConditionalGet>]` | Class | Answers a [conditional GET](/guide/conditional-requests) at every GET handler |
 | `[Enable<RequestTimeouts>]` | Class | [Bounds](/guide/request-timeouts) every operation that declares no budget of its own, at 30 seconds |
 | `[RequestTimeouts(ms)]` | Class | The same, with the number written. `[Enable<T>]` takes no arguments, so this is where one goes |
@@ -159,7 +172,7 @@ and the document publishes; unset means 200. The `NullReturnStatus`, `Validation
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[Enable<HardenedRazorTemplates>]` | Class | Generates a RazorBlade template base for a module |
+| `[Enable<RazorTemplates>]` | Class | Generates a RazorBlade template base for a module |
 | `[TemplateBase(typeof(T<>))]` | Class | On an engine's marker: the class a generated base derives from |
 | `[TemplateContentType(type)]` | Class | On an engine's marker: what views on that base produce |
 
@@ -187,7 +200,8 @@ DependencyModules module has its registrations applied too. A view is named on a
 |---|---|---|
 | `[HardenedTest]` | Method | Boots the application and injects the parameters. From `Hardened.Shared.Testing.xUnit` or `Hardened.Shared.Testing.NUnit` |
 | `[HardenedTestEntryPoint(type)]` | Assembly, class, method | Names the application module under test |
-| `[Mock]` | Parameter | Substitutes an NSubstitute mock and hands it to the test |
+| `[Mock]` | Parameter | Substitutes a mock from the library the test project names and hands it to the test. `DependencyModules.Testing.Attributes`, brought in by `Hardened.Shared.Testing` |
+| `[assembly: NSubstituteSupport]`, `[MoqSupport]`, `[FakeItEasySupport]` | Assembly | Names the library `[Mock]` builds with. From `DependencyModules.NSubstitute`, `.Moq` and `.FakeItEasy`; without one, `[Mock]` fails with *Mock library not found* |
 | `[EnvironmentName(name)]` | Assembly, class, method | The environment name for the test. Defaults to `test` |
 | `[EnvironmentValue(variable, value)]` | Assembly, class, method | Sets an environment value for the test |
 

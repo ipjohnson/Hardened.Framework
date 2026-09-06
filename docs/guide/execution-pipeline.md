@@ -40,6 +40,8 @@ public interface IExecutionFilter {
 ```
 
 ```csharp
+using Hardened.Requests.Abstract.Execution;
+
 public interface IExecutionChain {
     Task Next();
     IExecutionContext Context { get; }

@@ -3,6 +3,8 @@
 `[RateLimit]` caps how often a handler may be called.
 
 ```csharp
+using Hardened.Requests.Runtime.RateLimiting;
+
 [Post("/tokens")]
 [RateLimit(PermitLimit = 10, WindowSeconds = 60)]
 public Task<Token> Issue(Credentials credentials) => _tokens.Issue(credentials);

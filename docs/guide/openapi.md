@@ -297,7 +297,32 @@ paths:
 The scalar is the budget in milliseconds. An object carries `status` and `retryAfterSeconds`
 beside it for an operation shedding load. It reaches the handler as the same
 [`[Timeout]`](/guide/request-timeouts) a code-first handler carries, and the nearest declaration
-wins: a `[Timeout]` on the implementation's method overrides what the description said.
+wins: a `[Timeout]` on the implementation's method overrides what the description said. The
+generated interface binds no token unless `$(HardenedBindCancellationToken)` is set;
+[Reaching a described handler](/guide/request-timeouts#reaching-a-described-handler) covers that
+and `IRequestDeadline`.
+
+## Security
+
+A `security` requirement becomes the grants the operation requires, read from the scopes and not
+from the scheme:
+
+| Declaration | Requirement |
+|---|---|
+| `oauth2: ["pets:read"]` | `Requirement.Grant("pets:read")` |
+| `oauth2: ["pets:read", "pets:write"]` | both grants |
+| `apiKey: []`, or any scheme with no scopes | `Requirement.Authenticated()` |
+| `[{ oauth2: [...] }, { apiKey: [] }]` | either entry: the array is *or* |
+| `{ oauth2: [...], apiKey: [] }` | every key: one entry is *and* |
+| `security: []` on an operation | nothing, whatever the document default says |
+| no `security` at all | the document-level default, or nothing |
+
+Only `oauth2` and `openIdConnect` carry scopes. Scopes on an `http` scheme are not read, and
+`HOAT006` names them. Which issuer, token shape or key a caller proves themselves against stays
+application configuration: the scheme is declared in the document, and the runtime checks that a
+caller was established. To require grants the contract does not name, put
+[`[AuthorizeGrants]`](/guide/authorization) on the implementation. A contract can narrow what is
+admitted and never widen it.
 
 ## Serving the document
 

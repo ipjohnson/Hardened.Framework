@@ -54,7 +54,7 @@ Reference both packages:
 ```xml
 <ItemGroup>
     <PackageReference Include="RazorBlade" Version="1.0.0" />
-    <PackageReference Include="Hardened.Templates.RazorBlade" Version="0.20.0-rc1000" />
+    <PackageReference Include="Hardened.Templates.RazorBlade" Version="0.21.0-rc1000" />
 </ItemGroup>
 ```
 
@@ -69,7 +69,7 @@ Then turn it on for a module:
 [HardenedModule]
 [HardenedWebModule]
 [KestrelRuntime]
-[Enable<HardenedRazorTemplates>]
+[Enable<RazorTemplates>]
 public partial class Application { }
 ```
 
@@ -92,7 +92,7 @@ The marker decides what the view produces:
 
 | Marker | Base | Content type | Encoding |
 |---|---|---|---|
-| `HardenedRazorTemplates` | `HardenedHtmlTemplate<T>` | `text/html; charset=utf-8` | HTML-encoded |
+| `RazorTemplates` | `HardenedHtmlTemplate<T>` | `text/html; charset=utf-8` | HTML-encoded |
 
 The content type comes from the marker rather than the file extension. Two markers on one module
 produce two bases, `ApplicationRazorTemplates<T>` and `ApplicationFluidTemplates<T>`.

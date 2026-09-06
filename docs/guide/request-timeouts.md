@@ -5,6 +5,8 @@
 out.
 
 ```csharp
+using Hardened.Requests.Runtime.Filters;
+
 [Get("/rates/{symbol}")]
 [Timeout(Milliseconds = 2000)]
 public Task<Rate> Read(string symbol, CancellationToken cancellationToken) =>
@@ -140,6 +142,29 @@ contract is bounded the way the one that published it was. A bounded operation a
 the status it can be answered with, so a [generated client](/guide/clients) has a typed case for
 the refusal.
 
+### Reaching a described handler
+
+A described handler implements a signature it did not write, so the budget reaches it two ways,
+both from `Hardened.Requests.Abstract.Timeouts`:
+
+```xml
+<PropertyGroup>
+  <HardenedBindCancellationToken>true</HardenedBindCancellationToken>
+</PropertyGroup>
+```
+
+`$(HardenedBindCancellationToken)` puts a `CancellationToken` last on every method of every
+generated interface, bound the way a code-first handler's own token parameter is bound. It is off
+by default: turning it on adds a parameter to every method and stops an existing implementation
+compiling until each one is changed, and the compiler names them.
+
+`IRequestDeadline` answers how long there is, which the token cannot. Take it through the
+constructor. It is a singleton over the request's execution context, published by the timeout
+filter for the span it bounds, and it carries the deadline as a `MachineTimestamp?` that is null
+when nothing bounds the request. A handler that has to decide before it starts whether there is
+time for a retry or the slow path reads it; `[Timeout(Deadline = false)]` declines it for a
+bounded handler that never will.
+
 ## Where it sits in the pipeline
 
 One filter per handler, one half-gap ahead of `FilterOrder.Serialization`:
@@ -162,9 +187,9 @@ answer flushed and its cache entry written on an already-cancelled token.
   answers late. Pass the token to everything you await.
 - **A started response cannot be recalled.** A deadline firing mid-stream cuts the body, with no
   status left to send. A [streaming handler](/guide/streaming) should bound its own work.
-- **AWS Lambda.** The Lambda execution contexts do not yet support replacing the request's token,
-  so a `[Timeout]` there fails the request rather than bounding it. A function that declares no
-  budget is unaffected. Client disconnect is not observable on Lambda either.
+- **Client disconnect on AWS Lambda.** An invocation ends when the handler answers, so a caller
+  going away is not observable there. `[Timeout]` itself bounds a Lambda handler as on any host:
+  the Lambda execution contexts replace the request's token, and the budget fires on time.
 - **The entry point's budget is not published.** A host-wide default is a deployment property
   rather than part of an operation's contract.
 

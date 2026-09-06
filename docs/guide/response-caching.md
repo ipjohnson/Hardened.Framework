@@ -5,6 +5,9 @@ thousand times to do it. `[CacheResponse<T>]` stores what the handler answered a
 again without running the handler, without binding the request and without serializing anything.
 
 ```csharp
+using Hardened.Requests.Runtime.Caching;
+using Hardened.Web.Runtime.Caching;
+
 [Get("/catalog")]
 [CacheResponse<VaryByQuery>("culture", "region", Duration = 60)]
 public Catalog Browse([FromQueryString] string culture, [FromQueryString] string region) =>
@@ -20,7 +23,7 @@ nothing. The two compose.
 A store is a package and an attribute on the module:
 
 ```xml
-<PackageReference Include="Hardened.Requests.Caching.Memory" Version="0.20.0-rc1000" />
+<PackageReference Include="Hardened.Requests.Caching.Memory" Version="0.21.0-rc1000" />
 ```
 
 ```csharp
@@ -30,6 +33,10 @@ A store is a package and an attribute on the module:
 [KestrelRuntime]
 public partial class Application { }
 ```
+
+On a project the template wrote, put the store on the library module rather than the host. The
+tests boot the library module alone, so a store on the host answers the "no store" 500 in every
+test.
 
 Nothing registers a store by default, so an application that caches nothing does not carry the
 cache. Without a store, the first request to a handler declaring `[CacheResponse]` answers the

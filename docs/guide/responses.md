@@ -172,6 +172,8 @@ A throw is a statement in a method body, and nothing about the signature says it
 `[Throws<T>]` is the declaration the signature cannot make:
 
 ```csharp
+using Hardened.Requests.Abstract.Responses;
+
 [Get("/pets/{petId}")]
 [Throws<NotFound>]
 [Throws<RateLimited>]
@@ -223,7 +225,8 @@ today.
 The contract is the source of the statuses, so a description declaring a 404 produces a signature
 that can answer one whatever mode you are in.
 
-In `Throws`, an operation declaring a 404 generates a nullable return, and `null` is the 404:
+In `Throws`, a `GET` or `PUT` operation declaring a 404 generates a nullable return, and `null`
+is the 404. A `POST` or `PATCH` declaring one keeps the non-nullable return and throws it:
 
 ```csharp
 public Task<Todo?> GetTodo(int id) => _store.Find(id);

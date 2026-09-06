@@ -66,6 +66,24 @@ filter and is a 400.
 A parameter's constraint cannot carry a `When` or `Unless`, which names a member of the model the
 constraint sits on. A parameter sits on no model, and `HRDV005` says so at build time.
 
+### Nested models
+
+A constraint on a member of a nested model runs only when the member carries `[ValidateNested]`:
+
+```csharp
+public record Address([property: StringLength(Min = 1, Max = 8)] string Postcode);
+
+public record NewJob(
+    [property: Required] string Title,
+    [property: ValidateNested] Address Pickup);
+```
+
+Without it the nested constraints compile and never run, and `HRDV004` says so at build time:
+*'NewJob.Pickup' does not declare [ValidateNested] and its Address type declares constraints, so
+none of them run and an invalid 'Address' is accepted with no error. Add [ValidateNested] to the
+property, or set NoWarn HRDV004 if the skip is intended.* The nested record must be sealed, or
+declare a polymorphism mode, or ValidationModules reports `VM1503`.
+
 ## Declaring constraints in a contract
 
 A contract-first application declares constraints as ordinary OpenAPI facets, on schema

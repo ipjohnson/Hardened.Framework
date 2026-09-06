@@ -39,8 +39,8 @@ in [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="Hardened.Amz.Function.Lambda.Runtime" Version="0.20.0-rc1000" />
-    <PackageReference Include="Hardened.Amz.Function.Lambda.SourceGenerator" Version="0.20.0-rc1000"
+    <PackageReference Include="Hardened.Amz.Function.Lambda.Runtime" Version="0.21.0-rc1000" />
+    <PackageReference Include="Hardened.Amz.Function.Lambda.SourceGenerator" Version="0.21.0-rc1000"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 </ItemGroup>
 ```

@@ -181,6 +181,9 @@ Three things in the interface came from the model rather than from a choice:
 - `RemoveTodo` returns bare `Task` because its `@http` code is 204 and it declares no output.
 - `id` is `int` rather than `string` because `@httpLabel` binds a member whose type the model
   states.
+- The operation's id in the document is the shape name as written, `GetTodo`, so a generated
+  client's method is `GetTodo()`. The service's `rename` property is not read, and `[Operation]`
+  does not apply to a described operation.
 
 The interface is one per service shape, in `<RootNamespace>.Services`, named for the service. The
 models are positional records in `<RootNamespace>.Models`, carrying each shape's constraints as
@@ -282,7 +285,10 @@ operation GetPet { }
 
 A budget stated here is the operation's own, and the nearest declaration wins: a
 [`[Timeout]`](/guide/request-timeouts) on the generated implementation's method or class
-overrides it, and it overrides the assembly's and the application's default.
+overrides it, and it overrides the assembly's and the application's default. The generated
+interface binds no token unless `$(HardenedBindCancellationToken)` is set;
+[Reaching a described handler](/guide/request-timeouts#reaching-a-described-handler) covers that
+and `IRequestDeadline`.
 
 ## Authentication
 
