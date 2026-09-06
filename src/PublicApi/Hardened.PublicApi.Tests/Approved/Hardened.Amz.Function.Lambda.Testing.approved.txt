@@ -1,0 +1,34 @@
+namespace Hardened.Amz.Function.Lambda.Testing
+{
+    [System.AttributeUsage(System.AttributeTargets.Assembly)]
+    public class LambdaFunctionTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute, DependencyModules.Testing.Attributes.Interfaces.ITestStartupAttribute
+    {
+        public LambdaFunctionTestingAttribute() { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+        public System.Threading.Tasks.Task StartupAsync(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, System.IServiceProvider serviceProvider) { }
+    }
+    public class LambdaResponse
+    {
+        public LambdaResponse(int status, byte[] payload) { }
+        public byte[] Payload { get; }
+        public int Status { get; }
+    }
+    public class LambdaTestApp : Hardened.Shared.Testing.Impl.TestContext
+    {
+        public LambdaTestApp(Hardened.Shared.Testing.Impl.TestCancellationToken cancellationToken, Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaFunctionImplService functionImplService, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> serializerOptions, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Microsoft.Extensions.Logging.ILogger<Hardened.Amz.Function.Lambda.Testing.LambdaTestApp> logger) { }
+        public System.Threading.Tasks.Task<System.IO.Stream> Invoke(string lambdaName, object payload, System.Action<Hardened.Amz.Shared.Lambda.Testing.TestLambdaContext>? contextAction = null) { }
+        public System.Threading.Tasks.Task<T> Invoke<T>(string lambdaName, object payload, System.Action<Hardened.Amz.Shared.Lambda.Testing.TestLambdaContext>? contextAction = null) { }
+        public System.Threading.Tasks.Task<System.IO.Stream> InvokeRaw(string lambdaName, string rawJson, System.Action<Hardened.Amz.Shared.Lambda.Testing.TestLambdaContext>? contextAction = null) { }
+        public System.Threading.Tasks.Task<T> InvokeRaw<T>(string lambdaName, string rawJson, System.Action<Hardened.Amz.Shared.Lambda.Testing.TestLambdaContext>? contextAction = null) { }
+    }
+    public class TestLambdaFunctionInvokeFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public TestLambdaFunctionInvokeFilter(Hardened.Amz.Shared.Lambda.Runtime.Execution.ILambdaContextAccessor lambdaContextAccessor, System.Collections.Generic.IEnumerable<Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaHandlerPackage> handlerPackages) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public class TestLambdaInvokeFilterProvider : Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaInvokeFilterProvider
+    {
+        public TestLambdaInvokeFilterProvider() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter(System.IServiceProvider serviceProvider) { }
+    }
+}

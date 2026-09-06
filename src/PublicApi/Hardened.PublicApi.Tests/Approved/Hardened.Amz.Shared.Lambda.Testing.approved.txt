@@ -1,0 +1,50 @@
+namespace Hardened.Amz.Shared.Lambda.Testing
+{
+    public class TestClientApplication : Amazon.Lambda.Core.IClientApplication
+    {
+        public TestClientApplication() { }
+        public TestClientApplication(string appPackageName, string appTitle, string appVersionCode, string appVersionName, string installationId) { }
+        public string AppPackageName { get; }
+        public string AppTitle { get; }
+        public string AppVersionCode { get; }
+        public string AppVersionName { get; }
+        public string InstallationId { get; }
+    }
+    public class TestCognitoIdentity : Amazon.Lambda.Core.ICognitoIdentity
+    {
+        public TestCognitoIdentity() { }
+        public TestCognitoIdentity(string identityId, string identityPoolId) { }
+        public string IdentityId { get; }
+        public string IdentityPoolId { get; }
+    }
+    public class TestLambdaContext : Amazon.Lambda.Core.ILambdaContext
+    {
+        public TestLambdaContext(string awsRequestId, Amazon.Lambda.Core.IClientContext clientContext, string functionName, string functionVersion, Amazon.Lambda.Core.ICognitoIdentity identity, string invokedFunctionArn, Amazon.Lambda.Core.ILambdaLogger logger, string logGroupName, string logStreamName, int memoryLimitInMb, System.TimeSpan remainingTime) { }
+        public string AwsRequestId { get; set; }
+        public Amazon.Lambda.Core.IClientContext ClientContext { get; set; }
+        public string FunctionName { get; set; }
+        public string FunctionVersion { get; set; }
+        public Amazon.Lambda.Core.ICognitoIdentity Identity { get; set; }
+        public string InvokedFunctionArn { get; set; }
+        public string LogGroupName { get; set; }
+        public string LogStreamName { get; set; }
+        public Amazon.Lambda.Core.ILambdaLogger Logger { get; set; }
+        public int MemoryLimitInMB { get; set; }
+        public System.TimeSpan RemainingTime { get; set; }
+        public static Hardened.Amz.Shared.Lambda.Testing.TestLambdaContext FromName(string functionName, System.Collections.Generic.IDictionary<string, string>? customData = null) { }
+    }
+    public class TestLambdaLogger : Amazon.Lambda.Core.ILambdaLogger
+    {
+        public TestLambdaLogger() { }
+        public void Log(string message) { }
+        public void Log(Amazon.Lambda.Core.LogLevel level, string message) { }
+        public void Log(string level, string message) { }
+        public void LogCritical(string message) { }
+        public void LogDebug(string message) { }
+        public void LogError(string message) { }
+        public void LogInformation(string message) { }
+        public void LogLine(string message) { }
+        public void LogTrace(string message) { }
+        public void LogWarning(string message) { }
+    }
+}

@@ -30,7 +30,11 @@
 
     <!--
       Every shipped net8.0 assembly. A package added to the repository and not listed here has no
-      approved surface, which AllShippedAssembliesAreCovered turns into a failing test.
+      approved surface, which EveryReferencedShippedAssemblyIsCovered turns into a failing test.
+
+      The two source generator packages on each side are absent for the same reason: they set
+      IncludeBuildOutput=false and pack an analyzer into analyzers/dotnet/cs, so no consumer binds
+      against them and there is no lib assembly to have a surface.
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj"/>
@@ -53,6 +57,26 @@
         <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.StaticContent\Hardened.Web.StaticContent.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
+    </ItemGroup>
+
+    <!--
+      The AWS packages. They were another repository until 2026-09-06, so nothing checked their
+      surface at all; a repository edge was doing the job this file does. Section 7 of the
+      repository move is explicit that the edge is the weaker of the two.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\Clouds\Aws\Hardened.Amz.Cdk\Hardened.Amz.Cdk.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Clients\DynamoDb\Hardened.Amz.DynamoDbClient\Hardened.Amz.DynamoDbClient.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Clients\DynamoDb\Hardened.Amz.DynamoDbClient.Testing\Hardened.Amz.DynamoDbClient.Testing.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Lambda\DynamoDbStream\Hardened.Amz.Function.DDB.Runtime\Hardened.Amz.Function.DDB.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Lambda\DynamoDbStream\Hardened.Amz.Function.DDB.Testing\Hardened.Amz.Function.DDB.Testing.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Lambda\Function\Hardened.Amz.Function.Lambda.Runtime\Hardened.Amz.Function.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Lambda\Function\Hardened.Amz.Function.Lambda.Testing\Hardened.Amz.Function.Lambda.Testing.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Lambda\Sqs\Hardened.Amz.Function.Sqs.Runtime\Hardened.Amz.Function.Sqs.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Lambda\Sqs\Hardened.Amz.Function.Sqs.Testing\Hardened.Amz.Function.Sqs.Testing.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Lambda\Shared\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Lambda\Shared\Hardened.Amz.Shared.Lambda.Testing\Hardened.Amz.Shared.Lambda.Testing.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Lambda\Web\Hardened.Amz.Web.Lambda.Runtime\Hardened.Amz.Web.Lambda.Runtime.csproj"/>
     </ItemGroup>
 
 </Project>

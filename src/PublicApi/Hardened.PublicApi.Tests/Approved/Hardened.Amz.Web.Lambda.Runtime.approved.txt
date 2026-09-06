@@ -1,0 +1,126 @@
+namespace Hardened.Amz.Web.Lambda.Runtime.DependencyInjection
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Amz.Shared.Lambda.Runtime.LambdaRuntimeModule]
+    [Hardened.Web.Runtime.DependencyInjection.HardenedWebModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class LambdaWebModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public LambdaWebModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class LambdaWebModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public LambdaWebModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Amz.Web.Lambda.Runtime
+{
+    public interface IProxyRequestContextAccessor
+    {
+        Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext ProxyRequestContext { get; set; }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class)]
+    public class LambdaWebApplicationAttribute : System.Attribute
+    {
+        public LambdaWebApplicationAttribute() { }
+        public Hardened.Amz.Web.Lambda.Runtime.ProxyIntegrationType Version { get; set; }
+    }
+    public enum ProxyIntegrationType
+    {
+        ApiGateway = 0,
+        HttpApiV2 = 1,
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ProxyRequestContextAccessor : Hardened.Amz.Web.Lambda.Runtime.IProxyRequestContextAccessor
+    {
+        public ProxyRequestContextAccessor() { }
+        public Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext ProxyRequestContext { get; set; }
+    }
+}
+namespace Hardened.Amz.Web.Lambda.Runtime.Impl
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class ApiGatewayEventProcessor : Hardened.Amz.Web.Lambda.Runtime.Impl.IApiGatewayEventProcessor
+    {
+        public ApiGatewayEventProcessor(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Microsoft.Extensions.Logging.ILogger<Hardened.Amz.Web.Lambda.Runtime.Impl.ApiGatewayEventProcessor> logger, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Amz.Shared.Lambda.Runtime.Execution.ILambdaContextAccessor lambdaContextAccessor, Hardened.Shared.Runtime.Collections.IStringBuilderPool stringBuilderPool, Hardened.Amz.Web.Lambda.Runtime.IProxyRequestContextAccessor requestContextAccessor) { }
+        public System.Threading.Tasks.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse> Process(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request, Amazon.Lambda.Core.ILambdaContext context) { }
+    }
+    public sealed class ApiGatewayTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    {
+        public ApiGatewayTransportInfo(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request) { }
+        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        public string? Get(string key) { }
+    }
+    public class ApiGatewayV2CookieSetCollection : Hardened.Requests.Abstract.Headers.ICookieSetCollection
+    {
+        public ApiGatewayV2CookieSetCollection(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse response) { }
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Tuple<string, Hardened.Requests.Abstract.Headers.CookieSetOptions>> Cookies { get; }
+        public void Append(string cookieName, string cookieValue, Hardened.Requests.Abstract.Headers.CookieSetOptions? options = null) { }
+    }
+    public class ApiGatewayV2ExecutionResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    {
+        public ApiGatewayV2ExecutionResponse(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse response) { }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; set; }
+        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        public System.Exception? ExceptionValue { get; set; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public bool IsBinary { get; set; }
+        public Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
+        public bool ResponseStarted { get; }
+        public object? ResponseValue { get; set; }
+        public bool ShouldSerialize { get; set; }
+        public int? Status { get; set; }
+        public object Clone() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+    public interface IApiGatewayEventProcessor
+    {
+        System.Threading.Tasks.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse> Process(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request, Amazon.Lambda.Core.ILambdaContext context);
+    }
+    public interface IApiGatewayV2Handler
+    {
+        System.Threading.Tasks.Task<Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse> Invoke(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request, Amazon.Lambda.Core.ILambdaContext context);
+    }
+    public interface ILambdaWebHost
+    {
+        System.Threading.Tasks.Task<System.IO.Stream> Invoke(System.IO.Stream input, Amazon.Lambda.Core.ILambdaContext context);
+    }
+    public interface IStreamingEventProcessor
+    {
+        System.Threading.Tasks.Task Process(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request, Amazon.Lambda.Core.ILambdaContext context, Hardened.Amz.Shared.Lambda.Runtime.Streaming.IResponseStreamFactory streams);
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class LambdaWebHost : Hardened.Amz.Web.Lambda.Runtime.Impl.ILambdaWebHost
+    {
+        public LambdaWebHost(Hardened.Amz.Web.Lambda.Runtime.Impl.IApiGatewayEventProcessor buffered, Hardened.Amz.Web.Lambda.Runtime.Impl.IStreamingEventProcessor streaming, Hardened.Amz.Shared.Lambda.Runtime.Streaming.IResponseStreamFactory streams, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Microsoft.Extensions.Options.IOptions<Hardened.Amz.Shared.Lambda.Runtime.Streaming.ILambdaResponseModeConfiguration> mode) { }
+        public System.Threading.Tasks.Task<System.IO.Stream> Invoke(System.IO.Stream input, Amazon.Lambda.Core.ILambdaContext context) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class StreamingEventProcessor : Hardened.Amz.Web.Lambda.Runtime.Impl.IStreamingEventProcessor
+    {
+        public StreamingEventProcessor(System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Amz.Shared.Lambda.Runtime.Execution.ILambdaContextAccessor lambdaContextAccessor, Hardened.Shared.Runtime.Collections.IStringBuilderPool stringBuilderPool, Hardened.Amz.Web.Lambda.Runtime.IProxyRequestContextAccessor requestContextAccessor) { }
+        public System.Threading.Tasks.Task Process(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request, Amazon.Lambda.Core.ILambdaContext context, Hardened.Amz.Shared.Lambda.Runtime.Streaming.IResponseStreamFactory streams) { }
+    }
+    public static class StreamingHandlerCheck
+    {
+        public static void Warn(System.IServiceProvider services, System.Collections.Generic.IReadOnlyList<string> streamingHandlers) { }
+    }
+}
+namespace Hardened.Amz.Web.Lambda.Runtime.Logging
+{
+    public class LambdaWebLoggerHelper
+    {
+        public LambdaWebLoggerHelper(Microsoft.Extensions.Logging.LogLevel logLevel, string entryNamespace) { }
+        public void BuildLogger(Microsoft.Extensions.Logging.ILoggingBuilder builder) { }
+        public static System.Action<Microsoft.Extensions.Logging.ILoggingBuilder> CreateAction(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, string entryNamespace) { }
+        public static System.Action<Microsoft.Extensions.Logging.ILoggingBuilder> CreateAction(Microsoft.Extensions.Logging.LogLevel logLevel, string entryNamespace) { }
+    }
+}

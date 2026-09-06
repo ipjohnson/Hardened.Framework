@@ -1,0 +1,8 @@
+namespace Hardened.Amz.Function.DDB.Testing
+{
+    public class TestDynamoDbStream : Hardened.Shared.Testing.Impl.TestContext
+    {
+        public TestDynamoDbStream(Microsoft.Extensions.Logging.ILogger<Hardened.Amz.Function.DDB.Testing.TestDynamoDbStream> logger, Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaFunctionImplService functionImplService, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Hardened.Shared.Runtime.Json.IJsonSerializer jsonSerializer) { }
+        public System.Threading.Tasks.Task<Amazon.Lambda.DynamoDBEvents.StreamsEventResponse> ProcessUpdates(params Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.DynamodbStreamRecord[] records) { }
+    }
+}

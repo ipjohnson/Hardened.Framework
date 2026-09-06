@@ -33,6 +33,18 @@ public class PublicApiSurfaceTests {
 
     /// <summary>Every shipped net8.0 assembly, by name.</summary>
     private static readonly string[] Shipped = [
+        "Hardened.Amz.Cdk",
+        "Hardened.Amz.DynamoDbClient",
+        "Hardened.Amz.DynamoDbClient.Testing",
+        "Hardened.Amz.Function.DDB.Runtime",
+        "Hardened.Amz.Function.DDB.Testing",
+        "Hardened.Amz.Function.Lambda.Runtime",
+        "Hardened.Amz.Function.Lambda.Testing",
+        "Hardened.Amz.Function.Sqs.Runtime",
+        "Hardened.Amz.Function.Sqs.Testing",
+        "Hardened.Amz.Shared.Lambda.Runtime",
+        "Hardened.Amz.Shared.Lambda.Testing",
+        "Hardened.Amz.Web.Lambda.Runtime",
         "Hardened.Kiota.Testing",
         "Hardened.Refit.Testing",
         "Hardened.Requests.Abstract",

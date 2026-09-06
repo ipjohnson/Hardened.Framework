@@ -1,0 +1,162 @@
+namespace Hardened.Amz.Function.Lambda.Runtime.DependencyInjection
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Amz.Shared.Lambda.Runtime.LambdaRuntimeModule]
+    [Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class LambdaFunctionModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public LambdaFunctionModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class LambdaFunctionModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public LambdaFunctionModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Amz.Function.Lambda.Runtime.Execution
+{
+    public class LambdaExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
+    {
+        public LambdaExecutionContext(System.IServiceProvider rootServiceProvider, System.IServiceProvider requestServices, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Requests.Abstract.Execution.IExecutionResponse response, Hardened.Shared.Runtime.Metrics.IMetricLogger requestMetrics, Hardened.Shared.Runtime.Diagnostics.MachineTimestamp startTime) { }
+        public Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
+        public System.Threading.CancellationToken CancellationToken { get; }
+        public string CorrelationId { get; init; }
+        public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
+        public object? HandlerInstance { get; set; }
+        public Hardened.Requests.Abstract.Execution.IKnownServices KnownServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Request { get; }
+        public Hardened.Shared.Runtime.Metrics.IMetricLogger RequestMetrics { get; }
+        public System.IServiceProvider RequestServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Response { get; }
+        public System.IServiceProvider RootServiceProvider { get; }
+        public Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request, Hardened.Requests.Abstract.Execution.IExecutionResponse? response, System.IServiceProvider? serviceProvider, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger) { }
+        public void ReplaceCancellationToken(System.Threading.CancellationToken token) { }
+    }
+    public class LambdaExecutionRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public LambdaExecutionRequest(string method, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+    public class LambdaExecutionResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    {
+        public LambdaExecutionResponse(System.IO.Stream body, Hardened.Requests.Abstract.Headers.IHeaderCollection headers) { }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; set; }
+        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        public System.Exception? ExceptionValue { get; set; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public bool IsBinary { get; set; }
+        public Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
+        public bool ResponseStarted { get; }
+        public object? ResponseValue { get; set; }
+        public bool ShouldSerialize { get; set; }
+        public int? Status { get; set; }
+        public object Clone() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+}
+namespace Hardened.Amz.Function.Lambda.Runtime.Filter
+{
+    public abstract class BaseBatchExecutionFilter<TEvent, TRecord> : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        protected readonly Hardened.Shared.Runtime.Json.IJsonSerializer JsonSerializer;
+        protected readonly Hardened.Shared.Runtime.Collections.IMemoryStreamPool MemoryStreamPool;
+        protected BaseBatchExecutionFilter(Hardened.Shared.Runtime.Json.IJsonSerializer jsonSerializer, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Hardened.Amz.Function.Lambda.Runtime.Filter.IBatchProcessorExceptionHandler batchProcessorExceptionHandler, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+        protected abstract System.Collections.Generic.IEnumerable<TRecord> ReadRecords(TEvent tEvent);
+        protected abstract System.Threading.Tasks.Task WriteRequestRecord(Hardened.Requests.Abstract.Execution.IExecutionChain chain, TRecord record, System.IO.Stream inputStream);
+        protected abstract System.Threading.Tasks.Task WriteResultsAsync(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Collections.Generic.IReadOnlyList<Hardened.Amz.Function.Lambda.Runtime.Filter.Result<TRecord>> record);
+    }
+    public class BatchProcessorExceptionHandler : Hardened.Amz.Function.Lambda.Runtime.Filter.IBatchProcessorExceptionHandler
+    {
+        public BatchProcessorExceptionHandler() { }
+        public System.Threading.Tasks.Task<bool> HandleException(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Extensions.Logging.ILogger logger, System.Exception exception) { }
+    }
+    public interface IBatchProcessorExceptionHandler
+    {
+        System.Threading.Tasks.Task<bool> HandleException(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Extensions.Logging.ILogger logger, System.Exception exception);
+    }
+    public class Result<T> : System.IEquatable<Hardened.Amz.Function.Lambda.Runtime.Filter.Result<T>>
+    {
+        public Result(bool Success, T Value) { }
+        public bool Success { get; init; }
+        public T Value { get; init; }
+    }
+}
+namespace Hardened.Amz.Function.Lambda.Runtime
+{
+    public class FromContextAttribute : System.Attribute
+    {
+        public FromContextAttribute(string? name = null) { }
+        public string? Name { get; }
+    }
+    public class ThrowExceptionAttribute : System.Attribute, Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
+    {
+        public ThrowExceptionAttribute() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+        public System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+}
+namespace Hardened.Amz.Function.Lambda.Runtime.Impl
+{
+    public interface ILambdaFunctionImplService
+    {
+        System.Threading.Tasks.Task<System.IO.Stream> InvokeFunction(System.IO.Stream stream, Amazon.Lambda.Core.ILambdaContext context);
+    }
+    public interface ILambdaHandler : Hardened.Shared.Runtime.Application.IApplicationRoot, System.IAsyncDisposable
+    {
+        System.Threading.Tasks.Task<System.IO.Stream> Invoke(System.IO.Stream input, Amazon.Lambda.Core.ILambdaContext lambdaContext);
+    }
+    public interface ILambdaHandlerPackage
+    {
+        Hardened.Requests.Abstract.Execution.IExecutionRequestHandler? GetFunctionHandler(System.IServiceProvider serviceProvider, Amazon.Lambda.Core.ILambdaContext context);
+    }
+    public interface ILambdaHandler<in TResponse> : Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaHandler, Hardened.Shared.Runtime.Application.IApplicationRoot, System.IAsyncDisposable { }
+    public interface ILambdaHandler<TRequest, TResponse> : Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaHandler, Hardened.Shared.Runtime.Application.IApplicationRoot, System.IAsyncDisposable { }
+    public interface ILambdaInvokeFilterProvider
+    {
+        Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter(System.IServiceProvider serviceProvider);
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class LambdaFunctionImplService : Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaFunctionImplService
+    {
+        public LambdaFunctionImplService(Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, System.IServiceProvider serviceProvider, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Amz.Shared.Lambda.Runtime.Execution.ILambdaContextAccessor contextAccessor, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, Hardened.Amz.Shared.Lambda.Runtime.Streaming.IResponseStreamFactory streams, Microsoft.Extensions.Options.IOptions<Hardened.Amz.Shared.Lambda.Runtime.Streaming.ILambdaResponseModeConfiguration> mode) { }
+        public System.Threading.Tasks.Task<System.IO.Stream> InvokeFunction(System.IO.Stream stream, Amazon.Lambda.Core.ILambdaContext context) { }
+    }
+    public sealed class LambdaFunctionInvokeFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public LambdaFunctionInvokeFilter(Hardened.Amz.Shared.Lambda.Runtime.Execution.ILambdaContextAccessor lambdaContextAccessor, System.Collections.Generic.IEnumerable<Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaHandlerPackage> handlerPackages) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public class LambdaInvokeFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public LambdaInvokeFilter(Hardened.Requests.Abstract.Execution.IExecutionRequestHandler executionRequestHandler) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class LambdaInvokeFilterProvider : Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaInvokeFilterProvider
+    {
+        public LambdaInvokeFilterProvider() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter(System.IServiceProvider serviceProvider) { }
+    }
+}

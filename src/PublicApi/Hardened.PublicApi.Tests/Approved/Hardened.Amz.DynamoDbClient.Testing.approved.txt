@@ -1,0 +1,19 @@
+namespace Hardened.Amz.DynamoDbClient.Testing
+{
+    public static class LocalDynamoDb
+    {
+        public const string DefaultImage = "amazon/dynamodb-local:latest";
+        public static string Endpoint { get; }
+        public static Amazon.DynamoDBv2.IAmazonDynamoDB CreateClient(string image = "amazon/dynamodb-local:latest") { }
+        public static string EndpointFor(string image) { }
+        public static void StopAll() { }
+    }
+    public class LocalDynamoDbAttribute : System.Attribute, Hardened.Shared.Testing.Attributes.IHardenedOrderedAttribute, Hardened.Shared.Testing.Attributes.IHardenedTestDependencyRegistrationAttribute, Hardened.Shared.Testing.Attributes.IHardenedTestStartupAttribute
+    {
+        public LocalDynamoDbAttribute() { }
+        public string Image { get; set; }
+        protected virtual System.Threading.Tasks.Task DdbSetup(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.IServiceProvider serviceProvider) { }
+        public void RegisterDependencies(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+        public System.Threading.Tasks.Task Startup(Hardened.Shared.Testing.Attributes.AttributeCollection attributeCollection, System.Reflection.MethodInfo methodInfo, Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.IServiceProvider serviceProvider) { }
+    }
+}

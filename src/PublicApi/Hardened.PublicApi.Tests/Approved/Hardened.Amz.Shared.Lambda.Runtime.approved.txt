@@ -1,0 +1,273 @@
+namespace Hardened.Amz.Shared.Lambda.Runtime
+{
+    public static class ApplicationServices
+    {
+        public static T Require<T>(System.IServiceProvider serviceProvider, string applicationName, string moduleAttribute)
+            where T :  class { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class LambdaRuntimeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public LambdaRuntimeModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class LambdaRuntimeModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public LambdaRuntimeModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Amz.Shared.Lambda.Runtime.Configuration
+{
+    public interface IStageConfiguration<out TRegion, out TStageType>
+        where out TRegion : Hardened.Amz.Shared.Lambda.Runtime.Configuration.ISupportedRegion
+        where out TStageType : Hardened.Amz.Shared.Lambda.Runtime.Configuration.IStageType
+    {
+        TRegion Region { get; }
+        TStageType Stage { get; }
+    }
+    public interface IStageType
+    {
+        bool IsProduction { get; }
+        string StageName { get; }
+    }
+    public interface ISupportedRegion
+    {
+        string Name { get; }
+    }
+    public class KnownRegion : Hardened.Amz.Shared.Lambda.Runtime.Configuration.ISupportedRegion
+    {
+        public KnownRegion(string name) { }
+        public string Name { get; }
+        public static Hardened.Amz.Shared.Lambda.Runtime.Configuration.KnownRegion UsEast1 { get; }
+        public static Hardened.Amz.Shared.Lambda.Runtime.Configuration.KnownRegion UsEast2 { get; }
+        public static Hardened.Amz.Shared.Lambda.Runtime.Configuration.KnownRegion UsWest1 { get; }
+        public static Hardened.Amz.Shared.Lambda.Runtime.Configuration.KnownRegion UsWest2 { get; }
+    }
+    public class StageConfiguration : Hardened.Amz.Shared.Lambda.Runtime.Configuration.IStageConfiguration<Hardened.Amz.Shared.Lambda.Runtime.Configuration.KnownRegion, Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType>
+    {
+        public StageConfiguration(Hardened.Amz.Shared.Lambda.Runtime.Configuration.KnownRegion region, Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType stage) { }
+        public Hardened.Amz.Shared.Lambda.Runtime.Configuration.KnownRegion Region { get; }
+        public Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType Stage { get; }
+    }
+    public class StageDefinition : System.IEquatable<Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageDefinition>
+    {
+        public StageDefinition(string AccountId, string Region, Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType Stage) { }
+        public string AccountId { get; init; }
+        public string Region { get; init; }
+        public Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType Stage { get; init; }
+    }
+    public class StageType : Hardened.Amz.Shared.Lambda.Runtime.Configuration.IStageType, System.IEquatable<Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType>
+    {
+        public static Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType Beta;
+        public static Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType Dev;
+        public static Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType Gamma;
+        public StageType(string StageName, bool IsProduction = false) { }
+        public bool IsProduction { get; init; }
+        public string StageName { get; init; }
+        public static Hardened.Amz.Shared.Lambda.Runtime.Configuration.StageType Production { get; }
+    }
+}
+namespace Hardened.Amz.Shared.Lambda.Runtime.Development
+{
+    public static class LambdaEmulator
+    {
+        public const int DefaultEmulatorPort = 5050;
+        public const int DefaultGatewayPort = 5080;
+        public const string EmulatorPortVariable = "HARDENED_LAMBDA_EMULATOR_PORT";
+        public const string GatewayPortVariable = "PORT";
+        public const string RuntimeApiVariable = "AWS_LAMBDA_RUNTIME_API";
+        public static System.Threading.Tasks.Task<Hardened.Amz.Shared.Lambda.Runtime.Development.LambdaEmulatorSession> Start(Hardened.Amz.Shared.Lambda.Runtime.Development.LambdaEmulatorPlan plan) { }
+        public static System.Threading.Tasks.Task<Hardened.Amz.Shared.Lambda.Runtime.Development.LambdaEmulatorSession> StartIfLocal(System.Type applicationType, bool apiGateway) { }
+    }
+    public sealed class LambdaEmulatorPlan
+    {
+        public const string RouteConfigurationVariable = "APIGATEWAY_EMULATOR_ROUTE_CONFIG";
+        public bool ApiGateway { get; }
+        public string Arguments { get; }
+        public int EmulatorPort { get; }
+        public string EmulatorUrl { get; }
+        public string FunctionName { get; }
+        public int GatewayPort { get; }
+        public string? GatewayUrl { get; }
+        public string? RouteConfiguration { get; }
+        public string RuntimeApiEndpoint { get; }
+        public static Hardened.Amz.Shared.Lambda.Runtime.Development.LambdaEmulatorPlan? From(string functionName, bool apiGateway, System.Func<string, string?> environment) { }
+    }
+    public sealed class LambdaEmulatorSession : System.IDisposable
+    {
+        public bool IsLocal { get; }
+        public Hardened.Amz.Shared.Lambda.Runtime.Development.LambdaEmulatorPlan? Plan { get; }
+        public string? RuntimeApiEndpoint { get; }
+        public bool StartedTheTool { get; }
+        public static Hardened.Amz.Shared.Lambda.Runtime.Development.LambdaEmulatorSession Passive { get; }
+        public void Dispose() { }
+    }
+}
+namespace Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics
+{
+    public class EmbeddedMetricDefinition : System.IEquatable<Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics.EmbeddedMetricDefinition>
+    {
+        public EmbeddedMetricDefinition(string Name, Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics.EmbeddedMetricUnit Unit) { }
+        public string Name { get; init; }
+        public Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics.EmbeddedMetricUnit Unit { get; init; }
+    }
+    public class EmbeddedMetricDirective : System.IEquatable<Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics.EmbeddedMetricDirective>
+    {
+        public EmbeddedMetricDirective(string Namespace, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<string>> Dimensions, System.Collections.Generic.IReadOnlyList<Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics.EmbeddedMetricDefinition> Metrics) { }
+        public System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<string>> Dimensions { get; init; }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics.EmbeddedMetricDefinition> Metrics { get; init; }
+        public string Namespace { get; init; }
+    }
+    public class EmbeddedMetricMetadata : System.IEquatable<Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics.EmbeddedMetricMetadata>
+    {
+        public EmbeddedMetricMetadata(long Timestamp, System.Collections.Generic.IReadOnlyList<Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics.EmbeddedMetricDirective> CloudWatchMetrics) { }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Amz.Shared.Lambda.Runtime.EmbeddedMetrics.EmbeddedMetricDirective> CloudWatchMetrics { get; init; }
+        public long Timestamp { get; init; }
+    }
+    public enum EmbeddedMetricUnit
+    {
+        None = 0,
+        Seconds = 1,
+        Milliseconds = 2,
+        Count = 3,
+    }
+}
+namespace Hardened.Amz.Shared.Lambda.Runtime.Execution
+{
+    public interface ILambdaContextAccessor
+    {
+        Amazon.Lambda.Core.ILambdaContext? Context { get; set; }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class LambdaContextAccessor : Hardened.Amz.Shared.Lambda.Runtime.Execution.ILambdaContextAccessor
+    {
+        public LambdaContextAccessor() { }
+        public Amazon.Lambda.Core.ILambdaContext? Context { get; set; }
+        public void T() { }
+    }
+}
+namespace Hardened.Amz.Shared.Lambda.Runtime.Logging
+{
+    public class LambdaLoggerHelper
+    {
+        public LambdaLoggerHelper(Microsoft.Extensions.Logging.LogLevel logLevel, string entryNamespace) { }
+        public void BuildLogger(Microsoft.Extensions.Logging.ILoggingBuilder builder) { }
+        public static System.Action<Microsoft.Extensions.Logging.ILoggingBuilder> CreateAction(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, string entryNamespace) { }
+        public static System.Action<Microsoft.Extensions.Logging.ILoggingBuilder> CreateAction(Microsoft.Extensions.Logging.LogLevel logLevel, string entryNamespace) { }
+    }
+    public class LambdaLoggerProvider : Microsoft.Extensions.Logging.ILoggerProvider, System.IDisposable
+    {
+        public LambdaLoggerProvider(Hardened.Amz.Shared.Lambda.Runtime.Execution.ILambdaContextAccessor lambdaContextAccessor, Hardened.Shared.Runtime.Json.IJsonSerializer serializer, Hardened.Shared.Runtime.Collections.IStringBuilderPool stringBuilderPool) { }
+        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName) { }
+        public void Dispose() { }
+    }
+    public class LambdaStructuredLogger : Microsoft.Extensions.Logging.ILogger
+    {
+        public LambdaStructuredLogger(Hardened.Shared.Runtime.Json.IJsonSerializer jsonSerializer, Hardened.Amz.Shared.Lambda.Runtime.Execution.ILambdaContextAccessor lambdaContextAccessor, Hardened.Shared.Runtime.Collections.IStringBuilderPool stringBuilderPool, string categoryName) { }
+        public System.IDisposable? BeginScope<TState>(TState state)
+            where TState :  notnull { }
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) { }
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, System.Exception? exception, System.Func<TState, System.Exception?, string> formatter) { }
+    }
+    public class StructuredLogLineBuilder
+    {
+        public StructuredLogLineBuilder(Hardened.Shared.Runtime.Json.IJsonSerializer jsonSerializer, Hardened.Shared.Runtime.Collections.IStringBuilderPool stringBuilderPool, string logger, int maxLogLineLength = 3072, int maxFieldLength = 1024, int maxStackTraceLength = 512) { }
+        public string Build<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, System.Exception? exception, System.Func<TState, System.Exception?, string> formatter, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string, object?>>? scopeProperties = null) { }
+    }
+}
+namespace Hardened.Amz.Shared.Lambda.Runtime.Metrics
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class DimensionSetProvider : Hardened.Amz.Shared.Lambda.Runtime.Metrics.IDimensionSetProvider
+    {
+        public DimensionSetProvider() { }
+        public System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<string>> Get(System.Collections.Generic.IReadOnlyCollection<System.Tuple<string, object>> tags) { }
+    }
+    public class EmbeddedMetricLogger : Hardened.Shared.Runtime.Metrics.IMetricLogger, System.IDisposable
+    {
+        public EmbeddedMetricLogger(string loggerName, Hardened.Amz.Shared.Lambda.Runtime.Metrics.IDimensionSetProvider dimensionSetProvider) { }
+        public void Data(string dataName, object dataValue) { }
+        public void Dispose() { }
+        public System.Threading.Tasks.Task Flush() { }
+        public void Record(Hardened.Shared.Runtime.Metrics.IMetricDefinition metric, double value) { }
+        public void Tag(string tagName, object tagValue) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class EmbeddedMetricLoggerProvider : Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider
+    {
+        public EmbeddedMetricLoggerProvider(Hardened.Amz.Shared.Lambda.Runtime.Metrics.IDimensionSetProvider dimensionSetProvider) { }
+        public Hardened.Shared.Runtime.Metrics.IMetricLogger CreateLogger(string loggerName) { }
+    }
+    public interface IDimensionSetProvider
+    {
+        System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<string>> Get(System.Collections.Generic.IReadOnlyCollection<System.Tuple<string, object>> tags);
+    }
+    public class TagDimensionSetProvider : Hardened.Amz.Shared.Lambda.Runtime.Metrics.IDimensionSetProvider
+    {
+        public TagDimensionSetProvider(System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<string>> dimensionSets) { }
+        public TagDimensionSetProvider(params string[] tagNames) { }
+        public System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<string>> Get(System.Collections.Generic.IReadOnlyCollection<System.Tuple<string, object>> tags) { }
+    }
+}
+namespace Hardened.Amz.Shared.Lambda.Runtime.Streaming
+{
+    public interface ILambdaResponseModeConfiguration
+    {
+        Hardened.Amz.Shared.Lambda.Runtime.Streaming.LambdaResponseMode Mode { get; }
+    }
+    public interface IResponseStreamFactory
+    {
+        System.IO.Stream CreateHttpStream(Amazon.Lambda.Core.ResponseStreaming.HttpResponseStreamPrelude prelude);
+        System.IO.Stream CreateStream();
+    }
+    public enum LambdaResponseMode
+    {
+        Buffered = 0,
+        Stream = 1,
+    }
+    public class LambdaResponseModeConfiguration : Hardened.Amz.Shared.Lambda.Runtime.Streaming.ILambdaResponseModeConfiguration
+    {
+        public const string BufferedValue = "buffered";
+        public const string EnvironmentVariable = "HARDENED_LAMBDA_RESPONSE_MODE";
+        public const string StreamValue = "stream";
+        public LambdaResponseModeConfiguration() { }
+        public Hardened.Amz.Shared.Lambda.Runtime.Streaming.LambdaResponseMode Mode { get; set; }
+        public static void FromEnvironment(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, Hardened.Amz.Shared.Lambda.Runtime.Streaming.LambdaResponseModeConfiguration configuration) { }
+        public static Hardened.Amz.Shared.Lambda.Runtime.Streaming.LambdaResponseMode Parse(string? value) { }
+        public static string ValueOf(Hardened.Amz.Shared.Lambda.Runtime.Streaming.LambdaResponseMode mode) { }
+    }
+    public sealed class ResponseStream : System.IO.Stream
+    {
+        public ResponseStream(System.Func<System.IO.Stream> open) { }
+        public override bool CanRead { get; }
+        public override bool CanSeek { get; }
+        public override bool CanWrite { get; }
+        public bool HasResponseStarted { get; }
+        public override long Length { get; }
+        public override long Position { get; set; }
+        public System.Threading.Tasks.Task CompleteAsync() { }
+        public override void Flush() { }
+        public override System.Threading.Tasks.Task FlushAsync(System.Threading.CancellationToken cancellationToken) { }
+        public override int Read(byte[] buffer, int offset, int count) { }
+        public override long Seek(long offset, System.IO.SeekOrigin origin) { }
+        public override void SetLength(long value) { }
+        public override void Write(System.ReadOnlySpan<byte> buffer) { }
+        public override void Write(byte[] buffer, int offset, int count) { }
+        public override System.Threading.Tasks.ValueTask WriteAsync(System.ReadOnlyMemory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { }
+        public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { }
+        public override void WriteByte(byte value) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public sealed class RuntimeResponseStreamFactory : Hardened.Amz.Shared.Lambda.Runtime.Streaming.IResponseStreamFactory
+    {
+        public RuntimeResponseStreamFactory() { }
+        public System.IO.Stream CreateHttpStream(Amazon.Lambda.Core.ResponseStreaming.HttpResponseStreamPrelude prelude) { }
+        public System.IO.Stream CreateStream() { }
+    }
+}

@@ -117,6 +117,12 @@ Install it before trusting a green run from that script.
 A diff there means the shipped contract changed: review it as an API change, then re-approve
 deliberately.
 
+Thirty-two assemblies, the twelve AWS ones included. A source generator package is not among them on
+either side: it sets `IncludeBuildOutput=false` and packs an analyzer into `analyzers/dotnet/cs`, so
+no consumer binds against it and there is no `lib` assembly to have a surface. A new package means a
+`ProjectReference` in the csproj **and** a name in `Shipped`; the second is checked against the
+first.
+
 ```bash
 APPROVE_PUBLIC_API=1 dotnet test src/PublicApi/Hardened.PublicApi.Tests
 ```

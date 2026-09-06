@@ -1,0 +1,8 @@
+namespace Hardened.Amz.Function.Sqs.Testing
+{
+    public class TestSqsApp : Hardened.Shared.Testing.Impl.TestContext
+    {
+        public TestSqsApp(Microsoft.Extensions.Logging.ILogger<Hardened.Amz.Function.Sqs.Testing.TestSqsApp> logger, Hardened.Amz.Function.Lambda.Runtime.Impl.ILambdaFunctionImplService functionImplService, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool, Hardened.Shared.Runtime.Json.IJsonSerializer jsonSerializer) { }
+        public System.Threading.Tasks.Task<Amazon.Lambda.SQSEvents.SQSBatchResponse> SendMessage<T>(params T[] messages) { }
+    }
+}
