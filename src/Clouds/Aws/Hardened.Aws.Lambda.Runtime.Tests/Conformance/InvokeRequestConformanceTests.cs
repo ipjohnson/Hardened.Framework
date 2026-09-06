@@ -1,4 +1,5 @@
 using Hardened.Aws.Lambda.Runtime.Adapters;
+using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Hardened.Requests.Testing.Conformance;
@@ -40,9 +41,9 @@ public class InvokeRequestConformanceTests : PayloadExecutionRequestConformanceT
             // them; an event source sets none.
             var context = new TestLambdaContext(spec.Headers);
 
-            var body = spec.Body == null ? Stream.Null : new MemoryStream(spec.Body);
+            var payload = new LambdaPayload(spec.Body ?? Array.Empty<byte>());
 
-            var request = _adapter.CreateRequest(body, context);
+            var request = _adapter.CreateRequest(payload, context);
 
             // The suite names a method and a path the way a web transport would, and this shape
             // derives both rather than receiving them: the scheme is the adapter's, the path is the

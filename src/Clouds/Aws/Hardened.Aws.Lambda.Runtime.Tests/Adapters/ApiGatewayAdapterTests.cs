@@ -16,8 +16,11 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 public class ApiGatewayAdapterTests {
     private readonly ApiGatewayAdapter _adapter = new();
 
-    private bool Handles(string json) =>
-        _adapter.Handles(Encoding.UTF8.GetBytes(json));
+    private bool Handles(string json) {
+        using var payload = new LambdaPayload(Encoding.UTF8.GetBytes(json));
+
+        return _adapter.Handles(payload.Json);
+    }
 
     // ------------------------------------------------------------------ the peek
 
@@ -52,6 +55,19 @@ public class ApiGatewayAdapterTests {
     }
 
     /// <summary>
+    /// A payload that is not an object at all. Nothing sends one, but the lookup has to answer
+    /// rather than throw, because the adapter is asked before anything has vouched for the shape.
+    /// </summary>
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("\"a string\"")]
+    [InlineData("42")]
+    [InlineData("null")]
+    public void DeclinesAPayloadThatIsNotAnObject(string json) {
+        Assert.False(Handles(json));
+    }
+
+    /// <summary>
     /// A caller's own payload with a requestContext of its own, but no http inside it. Declining is
     /// what sends it to the direct-invoke adapter, where it belongs.
     /// </summary>
@@ -68,15 +84,6 @@ public class ApiGatewayAdapterTests {
     public void DeclinesAnHttpBuriedDeeperInsideSomeoneElsesContext() {
         Assert.False(Handles(
             """{"requestContext":{"upstream":{"http":{"method":"GET"}},"source":"billing"}}"""));
-    }
-
-    /// <summary>
-    /// The head is a prefix, so the reader can run out mid-value. That is a decline rather than a
-    /// throw: the peek is allowed to be shown less than the whole payload.
-    /// </summary>
-    [Fact]
-    public void DeclinesRatherThanThrowingOnATruncatedHead() {
-        Assert.False(Handles("""{"version":"2.0","requestContext":{"htt"""));
     }
 
     // ------------------------------------------------------------------ the request
@@ -165,7 +172,7 @@ public class ApiGatewayAdapterTests {
 
     // ------------------------------------------------------------------ helpers
 
-    private static Stream Event(string? body = null, bool base64 = false) {
+    private static LambdaPayload Event(string? body = null, bool base64 = false) {
         var proxy = new APIGatewayHttpApiV2ProxyRequest {
             RawPath = "/orders",
             Version = "2.0",
@@ -176,12 +183,8 @@ public class ApiGatewayAdapterTests {
             }
         };
 
-        var stream = new MemoryStream();
-
-        JsonSerializer.Serialize(stream, proxy, LambdaEventSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest);
-        stream.Position = 0;
-
-        return stream;
+        return new LambdaPayload(JsonSerializer.SerializeToUtf8Bytes(
+            proxy, LambdaEventSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest));
     }
 
     /// <summary>Runs the response half: build one, let the caller write to it, read the payload.</summary>

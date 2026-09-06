@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
@@ -10,17 +11,18 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The fallback, and the only adapter that recognises everything. <see cref="Handles"/> always
-/// answers true, so it is registered last and reached when no envelope matched. That is not a
-/// weakness of the peek: detection identifies AWS's own event shapes, and a payload that is none of
-/// them is by definition the application's own.
+/// <b>Its own function, so it never competes with an event adapter.</b> A direct invocation is the
+/// one payload that does not describe itself: the caller sends whatever they like, and a field that
+/// happens to be named <c>Records</c> or <c>requestContext</c> is theirs rather than AWS's. Nothing
+/// can tell those apart by inspection, which is why the family split puts invoke in a function of
+/// its own instead of asking a detector to guess.
 /// </para>
 /// <para>
-/// <b>It does not parse the payload, and that is the point of D3.</b> The raw stream becomes the
+/// <b>It does not parse the payload, and that is the point of D3.</b> The raw bytes become the
 /// request body and decoding is the binder's job further down, against the handler's own parameter
-/// type. If the executor deserialised first and handed an adapter a typed event, this adapter would
-/// have nothing to receive - and every other adapter would be forced into a payload type it may not
-/// want.
+/// type - so an invoke-only function never triggers <see cref="LambdaPayload.Json"/> and never
+/// parses. If the executor deserialised first and handed an adapter a typed event, this adapter
+/// would have nothing to receive.
 /// </para>
 /// </remarks>
 public sealed class InvokeAdapter : IPayloadAdapter {
@@ -41,10 +43,13 @@ public sealed class InvokeAdapter : IPayloadAdapter {
     /// </remarks>
     public const string OperationField = "operation";
 
-    /// <summary>Always. Nothing else claimed the payload, so it belongs to the application.</summary>
-    public bool Handles(ReadOnlySpan<byte> head) => true;
+    /// <summary>
+    /// Always, and never asked. The invoke family holds this adapter alone, so there is nothing to
+    /// discriminate against - and a caller's payload is the application's own by definition.
+    /// </summary>
+    public bool Handles(JsonElement payload) => true;
 
-    public IExecutionRequest CreateRequest(Stream payload, ILambdaContext context) {
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
         // The client context's custom values, which is the only header-like channel a direct
@@ -57,7 +62,8 @@ public sealed class InvokeAdapter : IPayloadAdapter {
             }
         }
 
-        return new LambdaPayloadRequest(Scheme, "/" + context.FunctionName, payload, headers);
+        return new LambdaPayloadRequest(
+            Scheme, "/" + context.FunctionName, payload.AsStream(), headers);
     }
 
     public IExecutionResponse CreateResponse(Stream output) =>

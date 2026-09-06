@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Amazon.Lambda.Core;
+using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
 
 namespace Hardened.Aws.Lambda.Runtime.Adapters;
@@ -16,12 +18,11 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters;
 /// may reimplement.
 /// </para>
 /// <para>
-/// <b>The adapter owns deserialization, not the executor.</b> D3. If the executor deserialized
-/// first and handed over a typed event, every adapter would be forced into a payload type it may
-/// not want - and the direct-invoke adapter wants none at all, because the raw stream is the body
-/// and decoding is the binder's job further down. So the adapter takes the stream. Each one brings
-/// its own <c>JsonTypeInfo</c>, which is also what keeps ahead-of-time publishing honest: no
-/// adapter can reach a serializer the application did not declare.
+/// <b>An adapter recognises a payload and binds a payload, and those are two different reads.</b>
+/// Recognising is a property lookup on an already-parsed document, cheap enough to ask every
+/// candidate. Binding is a typed deserialize against the adapter's own event, which only the winner
+/// pays for. Keeping them apart is what lets one function serve several sources without every
+/// adapter deserializing the payload to find out it was not theirs.
 /// </para>
 /// <para>
 /// <b>Every adapter produces a route.</b> An adapter has to put the payload somewhere, and once it
@@ -39,30 +40,51 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters;
 /// </remarks>
 public interface IPayloadAdapter {
     /// <summary>
-    /// Whether this adapter recognises the invocation, decided from the head of the payload rather
-    /// than by parsing all of it.
+    /// Whether this adapter recognises the payload.
     /// </summary>
     /// <remarks>
-    /// AWS's own event shapes carry the discriminator: <c>Records[0].eventSource</c> separates
-    /// <c>aws:sqs</c> from <c>aws:dynamodb</c>, <c>requestContext.http</c> means API Gateway v2,
-    /// and an invocation matching nothing is a direct invoke. A function with one source registers
-    /// its adapter alone and never pays for the peek.
+    /// <para>
+    /// Only ever called where a function serves several sources, which after the family split means
+    /// inside the event family: SQS, SNS, streams and timers can share a function because they
+    /// share a failure policy, a shape and a timeout profile. HTTP is its own function and direct
+    /// invoke is its own function, so neither ever discriminates.
+    /// </para>
+    /// <para>
+    /// That is what makes this cheap and safe. Every candidate is a documented schema, they are
+    /// mutually exclusive, and a payload arriving at that function is one of the sources the
+    /// deployment wired - so matching none of them is an error worth raising rather than a guess to
+    /// fall back from. A property lookup on an already-parsed document is the whole of the check.
+    /// </para>
     /// </remarks>
-    bool Handles(ReadOnlySpan<byte> head);
+    bool Handles(JsonElement payload);
 
     /// <summary>
-    /// Builds the request. <paramref name="payload"/> is the invocation's stream, positioned at the
-    /// start; the adapter reads as much of it as its own shape needs and no more.
+    /// Builds the request.
     /// </summary>
-    IExecutionRequest CreateRequest(Stream payload, ILambdaContext context);
+    /// <remarks>
+    /// <para>
+    /// Takes the payload rather than a stream so an adapter can choose. An event adapter binds
+    /// <see cref="LambdaPayload.Raw"/> to its own type; the direct-invoke adapter hands the same
+    /// bytes on as the request body and never parses at all, because decoding them is the binder's
+    /// job further down, against the handler's own parameter type.
+    /// </para>
+    /// <para>
+    /// <b>Bind from <see cref="LambdaPayload.Raw"/>, not from the element.</b>
+    /// <c>JsonElement.Deserialize</c> does not read an element in place: it writes the element back
+    /// out to a pooled buffer and parses that, so it costs a re-encode on top of the parse. Binding
+    /// from the bytes also leaves the result owning its own strings, which is what keeps the
+    /// document's lifetime a concern of <see cref="Handles"/> alone.
+    /// </para>
+    /// </remarks>
+    IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context);
 
     /// <summary>
     /// Builds the response the request will be answered into.
     /// </summary>
     /// <remarks>
     /// Separate from <see cref="CreateRequest"/> because the two are not always symmetric: a
-    /// buffered gateway response collects into a pooled stream and is serialised at the end, and a
-    /// streamed one opens the Lambda response stream at its first body byte.
+    /// buffered gateway response collects into a stream and is written at the end, and a streamed
+    /// one opens the Lambda response stream at its first body byte.
     /// </remarks>
     IExecutionResponse CreateResponse(Stream output);
 
@@ -70,7 +92,7 @@ public interface IPayloadAdapter {
     /// Writes what the runtime expects, once the chain has finished.
     /// </summary>
     /// <remarks>
-    /// A gateway adapter serialises status, headers and body into the proxy response shape here. A
+    /// A gateway adapter writes status, headers and body into the proxy response shape here. A
     /// direct-invoke adapter has already written the handler's return value and does nothing. A
     /// batched source writes its per-record failure report, which is why this takes the context
     /// rather than only the response.

@@ -22,6 +22,11 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters;
 /// honest: an adapter cannot reach a serializer the application did not declare, and the two proxy
 /// types are declared in <see cref="LambdaEventSerializerContext"/> rather than reflected over.
 /// </para>
+/// <para>
+/// On its own function it is the only adapter, so <see cref="Handles"/> is never called and the
+/// deserialize below is the only pass over the payload. The lookup exists for the case where a
+/// function does serve several sources and something has to choose.
+/// </para>
 /// </remarks>
 public sealed class ApiGatewayAdapter : IPayloadAdapter {
     /// <summary>
@@ -37,52 +42,29 @@ public sealed class ApiGatewayAdapter : IPayloadAdapter {
 
     private const string Http = "http";
 
-    public bool Handles(ReadOnlySpan<byte> head) {
-        var reader = new Utf8JsonReader(head, isFinalBlock: false, state: default);
+    /// <remarks>
+    /// A direct property of <c>requestContext</c>, so a caller's own payload carrying an <c>http</c>
+    /// object somewhere further down inside its own context is not a match. Reading the parsed
+    /// document is what makes that free: the byte-level peek this replaced had to track depth by
+    /// hand to say the same thing, and got it wrong.
+    /// </remarks>
+    public bool Handles(JsonElement payload) =>
+        payload.ValueKind == JsonValueKind.Object &&
+        payload.TryGetProperty(RequestContext, out var context) &&
+        context.ValueKind == JsonValueKind.Object &&
+        context.TryGetProperty(Http, out var http) &&
+        http.ValueKind == JsonValueKind.Object;
 
-        try {
-            // One level down inside requestContext, looking for http. Reading the head rather than
-            // the whole payload is the point: whichever adapter wins then does its own typed parse,
-            // and one that loses has paid for a few tokens rather than a deserialization.
-            while (reader.Read()) {
-                if (reader.TokenType != JsonTokenType.PropertyName ||
-                    !reader.ValueTextEquals(RequestContext)) {
-                    continue;
-                }
-
-                if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject) {
-                    return false;
-                }
-
-                // The depth of the object itself. Its own properties sit one deeper, and anything
-                // deeper than that belongs to a nested object rather than to requestContext - so a
-                // caller's payload with an "http" buried somewhere inside its own context does not
-                // count as a match.
-                var objectDepth = reader.CurrentDepth;
-
-                while (reader.Read() && reader.CurrentDepth > objectDepth) {
-                    if (reader.TokenType == JsonTokenType.PropertyName &&
-                        reader.CurrentDepth == objectDepth + 1 &&
-                        reader.ValueTextEquals(Http)) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-        }
-        catch (JsonException) {
-            // The head is a prefix, so a value can be cut in half. That is a "no" rather than a
-            // failure: an adapter that cannot recognise the payload from what it was shown declines,
-            // and the direct-invoke adapter takes anything nothing else claimed.
-            return false;
-        }
-
-        return false;
-    }
-
-    public IExecutionRequest CreateRequest(Stream payload, ILambdaContext context) {
-        var proxy = JsonSerializer.Deserialize(payload, LambdaEventSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest)
+    /// <remarks>
+    /// From <see cref="LambdaPayload.Raw"/> rather than from the element the peek read.
+    /// <c>JsonElement.Deserialize</c> does not read an element in place - it writes the element back
+    /// out to a pooled buffer and parses that - so binding from the bytes skips a whole re-encode.
+    /// It also leaves the proxy request owning its own strings, so nothing here outlives the
+    /// document.
+    /// </remarks>
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
+        var proxy = JsonSerializer.Deserialize(
+                        payload.Raw.Span, LambdaEventSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest)
                     ?? throw new InvalidOperationException(
                         "The API Gateway adapter was given a payload that deserialized to null. " +
                         "The peek identified it as payload format 2.0 by its requestContext.http " +
