@@ -378,6 +378,12 @@ public class StreamingTests {
     /// honest answer is to stop; on the in-memory harness the failure reaches the caller the way an
     /// aborted connection reaches a host, and a client sees the connection end and comes back with
     /// <c>Last-Event-ID</c>.
+    ///
+    /// <para>
+    /// This is the half of <c>PipelineRequest.Run</c>'s rule that does not answer 500. A failure
+    /// before anything is written becomes one, as it does over a socket; a failure after is the
+    /// tear-down itself, and there is no connection here to tear down.
+    /// </para>
     /// </summary>
     [HardenedTest]
     public async Task AFailureAfterTheFirstEventEndsTheStream(ITestWebApp testWebApp) {

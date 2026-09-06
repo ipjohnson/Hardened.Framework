@@ -214,4 +214,45 @@ public class ErrorHandlingTests {
 
         Assert.Equal("ServerError", error.Type);
     }
+
+    /// <summary>
+    /// A response the serializer cannot write is a 500 through the pipeline host, as it is over a
+    /// socket.
+    /// </summary>
+    /// <remarks>
+    /// <c>IoFilter</c> catches parameter binding and it catches the handler. The response writer
+    /// runs after both, so a payload the serializer refuses throws past every filter - and this
+    /// host caught nothing, so it unwound out of <c>app.Get</c> and failed the test with the raw
+    /// exception. Both socket hosts have always answered 500 here.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AResponseThatCannotBeSerializedIsAServerError(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/errors/unwritable");
+
+        Assert.Equal(500, response.StatusCode);
+    }
+
+    /// <summary>
+    /// And the cause is on the response, which is what <c>testing-responses.md</c> promises of a
+    /// failure and what a test asserting which one it was has to read.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheSerializerFailureIsRecordedOnTheResponse(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/errors/unwritable");
+
+        Assert.NotNull(response.Failure);
+        Assert.Contains("cannot be written", response.Failure!.ToString());
+    }
+
+    /// <summary>
+    /// A handler that threw keeps its own exception as the cause. The envelope is written after
+    /// it, and a failure there would be a consequence rather than the thing to name.
+    /// </summary>
+    [HardenedTest]
+    public async Task AHandlerFailureIsStillTheRecordedCause(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/errors/server");
+
+        Assert.Equal(500, response.StatusCode);
+        Assert.IsType<InvalidOperationException>(response.Failure);
+    }
 }
