@@ -61,6 +61,22 @@ public class EnumWireConverterTests {
     }
 
     /// <summary>
+    /// The dictionary-key half. System.Text.Json reads and writes a key through the property-name
+    /// overrides and refuses the type as a key when a converter has none, so a converter that only
+    /// read and wrote values broke every enum-keyed dictionary the moment it was registered.
+    /// </summary>
+    [Fact]
+    public void AnEnumOnTheWireGetsAConverterForDictionaryKeys() {
+        var routing = RequestGeneratorHarness.Generate(Application(PriorityController))
+            .AssertNoErrors()
+            .SourceContaining("Application.Routing");
+
+        Assert.Contains("ReadAsPropertyName", routing);
+        Assert.Contains("WriteAsPropertyName", routing);
+        Assert.Contains("writer.WritePropertyName(wire);", routing);
+    }
+
+    /// <summary>
     /// The binder's half. A path or query value is text and never reaches a JSON converter, so the
     /// same vocabulary has to be registered for it separately.
     /// </summary>

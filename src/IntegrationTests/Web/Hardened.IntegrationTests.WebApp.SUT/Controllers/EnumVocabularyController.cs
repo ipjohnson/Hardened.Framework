@@ -56,4 +56,15 @@ public class EnumVocabularyController {
     [Get("/by-shipping")]
     public string DeclaredNamingFromQuery([FromQueryString] Shipping shipping) =>
         shipping.ToString();
+
+    /// <summary>
+    /// The enum as a dictionary key, which System.Text.Json refuses unless the converter reads
+    /// and writes property names. Priority is bound above, so its converter is registered here.
+    /// </summary>
+    [Get("/by-priority/counts")]
+    public Dictionary<Priority, int> Counts() =>
+        new() { [Priority.Low] = 1, [Priority.InProgress] = 2 };
+
+    [Post("/by-priority/counts")]
+    public int ReadCounts(Dictionary<Priority, int> counts) => counts[Priority.OnHold];
 }

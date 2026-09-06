@@ -2400,6 +2400,86 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/enum-vocabulary/by-priority/counts": {
+      "get": {
+        "tags": [
+          "EnumVocabulary"
+        ],
+        "operationId": "counts",
+        "summary": "The enum as a dictionary key, which System.Text.Json refuses unless the converter reads and writes property names. Priority is bound above, so its converter is registered here.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer",
+                    "format": "int32"
+                  }
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      },
+      "post": {
+        "tags": [
+          "EnumVocabulary"
+        ],
+        "operationId": "readCounts",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/enum-vocabulary/by-shipping": {
       "get": {
         "tags": [

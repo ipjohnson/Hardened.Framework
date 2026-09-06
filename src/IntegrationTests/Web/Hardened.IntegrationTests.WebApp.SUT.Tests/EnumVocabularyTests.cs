@@ -49,6 +49,34 @@ public class EnumVocabularyTests {
     }
 
     /// <summary>
+    /// A dictionary keyed by the enum writes its keys in the vocabulary, and reads them back. It
+    /// answered 500 with an empty body once the converter was registered, because the converter
+    /// read and wrote values and System.Text.Json wants the property-name pair for a key.
+    /// </summary>
+    [HardenedTest]
+    public async Task ADictionaryKeyIsWrittenInTheVocabulary(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/enum-vocabulary/by-priority/counts");
+
+        Assert.Equal(200, response.StatusCode);
+
+        var body = await response.ReadTextAsync();
+
+        Assert.Contains("\"low\":1", body);
+        Assert.Contains("\"inProgress\":2", body);
+    }
+
+    [HardenedTest]
+    public async Task ADictionaryKeyIsReadInTheVocabulary(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post(
+            "{\"onHold\":3}",
+            "/enum-vocabulary/by-priority/counts",
+            request => request.Headers["Content-Type"] = "application/json");
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.Equal("3", await response.ReadTextAsync());
+    }
+
+    /// <summary>
     /// A value the application does not declare is refused rather than guessed at.
     /// </summary>
     [HardenedTest]
