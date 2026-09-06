@@ -691,6 +691,20 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
         # on PORT, and a function brings the tool's page up on the emulator port. Random ports, so
         # a row never talks to a tool an earlier row left behind, and the tool is restored by the
         # generated project's own build from the manifest the template pins it in.
+        #
+        # Only once the Hardened.Amz the float resolved can do it. The starting is
+        # LambdaEmulator in Hardened.Amz.Shared.Lambda.Runtime (Hardened.Amz #89), and the float
+        # takes the newest published release, so between that merge and its release the generated
+        # Main runs the bootstrap with no runtime API and dies on a UriFormatException - which is
+        # what turned main red on 2026-09-06. Keyed on the resolved runtime assembly rather than on
+        # the generated code: a runtime that has the type and a Main that does not call it is a
+        # generator defect, and that one has to fail here rather than skip.
+        AMZ_RUNTIME=$(grep -hoE '"Hardened\.Amz\.Shared\.Lambda\.Runtime/[^"]+"' \
+            "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null | tr -d '"' | head -1)
+        AMZ_RUNTIME_DLL="${NUGET_PACKAGES:-$HOME/.nuget/packages}/hardened.amz.shared.lambda.runtime/${AMZ_RUNTIME#*/}/lib/net8.0/Hardened.Amz.Shared.Lambda.Runtime.dll"
+        if ! grep -qa 'LambdaEmulator' "$AMZ_RUNTIME_DLL" 2>/dev/null; then
+            echo "   skipped the local run: ${AMZ_RUNTIME:-no Hardened.Amz.Shared.Lambda.Runtime resolved} has no LambdaEmulator, so nothing starts the tool yet (Hardened.Amz #89)"
+        else
         EMULATOR_PORT=$((5600 + RANDOM % 200))
         if [ "$AMZ_TEMPLATE" = hardened-web ]; then
             LAMBDA_PORT=$((5800 + RANDOM % 200))
@@ -716,6 +730,7 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
             echo "   FAILED: $AMZ_TEMPLATE $*: $PROBE answered $CODE"
             tail -20 "$AMZ_OUT/serve.log"
             FAILED=1
+        fi
         fi
         # Worth printing: a float that silently stopped resolving would otherwise look identical
         # to one that resolved to the right thing.
