@@ -76,28 +76,38 @@ public partial class Application : IServiceCollectionConfiguration {
 
 ## Running it locally
 
-A Lambda web application has no HTTP server. The harness package wraps it in one: a small
-ASP.NET Core host that converts each incoming request into an API Gateway event, invokes the
-handler, and writes the proxy response back out.
+Run the application project, from the IDE or with `dotnet run`:
 
-```csharp
-using Hardened.Amz.Web.Lambda.Harness;
-
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddLambdaApplication<Application>();
-
-var app = builder.Build();
-
-app.UseLambdaApplication();
-
-app.Run();
+```bash
+dotnet run --project src/MyApi
+Started the AWS Lambda Test Tool on http://localhost:5050
+Listening on http://localhost:5080
 ```
 
-Keep this in its own project, `MyApi.Harness` beside `MyApi`, so the deployed artefact does not
-carry a web server it will never start. The request goes through the same event conversion,
-routing and proxy response serialization that API Gateway drives, so base64 bodies, header casing
-and status mapping behave as they will once deployed.
+```bash
+curl localhost:5080/api/products/42
+```
+
+A Lambda web application has no HTTP server of its own, and nothing starts it locally the way the
+Lambda service does. So when `AWS_LAMBDA_RUNTIME_API` is unset, the generated `Main` starts the
+[AWS Lambda Test Tool](https://github.com/aws/aws-lambda-dotnet/tree/master/Tools/LambdaTestTool-v2)
+as a child process and points its bootstrap at it. The tool's API Gateway emulator takes HTTP on
+5080, turns each request into a payload format 2.0 event, and hands the function's response back
+as HTTP. The debugger is on the process the Lambda service would start, running the same `Main`,
+bootstrap and event serialization.
+
+| Variable | Default | |
+|---|---|---|
+| `PORT` | `5080` | The API Gateway emulator, where the application answers |
+| `HARDENED_LAMBDA_EMULATOR_PORT` | `5050` | The Lambda Runtime API emulator and the tool's page |
+| `AWS_LAMBDA_RUNTIME_API` | unset | Set by Lambda and by the runtime interface emulator. When set, none of this runs |
+
+The tool is a dotnet tool. The [templates](/guide/project-templates) pin it in a tool manifest and
+restore it in the build. Elsewhere, `dotnet tool install -g amazon.lambda.testtool`. A tool left
+running by the debugger's stop button is found on its port and reused by the next start.
+
+The gateway emulator buffers, so a stream-mode application is exercised by its tests and by a
+deployment; see [Response mode](#response-mode).
 
 ## Response mode
 

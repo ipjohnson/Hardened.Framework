@@ -1,7 +1,8 @@
 # Testing AWS handlers
 
 Every AWS runtime has a test harness that invokes the real pipeline in-process. There is no
-`sam local`, no emulator for Lambda itself, and no deployment in the loop.
+`sam local` and no deployment in the loop. Running the application locally is a different thing,
+with the AWS Lambda Test Tool underneath; see [Running it locally](/aws/lambda-web#running-it-locally).
 
 ```csharp
 [HardenedTest]

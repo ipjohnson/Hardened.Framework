@@ -118,7 +118,6 @@ and answers 404 to everything.
 | `Hardened.Amz.Shared.Lambda.Runtime` | Bootstrap, structured logging, embedded CloudWatch metrics, stage and region types |
 | `Hardened.Amz.Function.Lambda.Runtime` | `[LambdaFunctionModule]`, function invocation and the batch execution filter base |
 | `Hardened.Amz.Web.Lambda.Runtime` | `[LambdaWebModule]`, API Gateway proxy events onto the pipeline |
-| `Hardened.Amz.Web.Lambda.Harness` | Runs a Lambda web application behind a local HTTP listener |
 | `Hardened.Amz.Function.DDB.Runtime` | DynamoDB Streams, with `[NewImage]` and `[OldImage]` |
 | `Hardened.Amz.Function.Sqs.Runtime` | SQS batches, with partial batch responses |
 

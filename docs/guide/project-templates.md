@@ -67,9 +67,10 @@ authorization, or its hosting diagnostics. Instrumentation that subscribes to th
 the trade-offs.
 
 `aws-lambda` puts the application behind API Gateway. The host project has no `Program.cs`,
-because the generator writes the entry point Lambda invokes. A `Todos.Harness` project runs the
-same application locally over HTTP, so `dotnet run --project src/Todos.Harness` still gives you
-something to curl.
+because the generator writes the entry point Lambda invokes. Running the host starts the AWS
+Lambda Test Tool beside it and answers on 5080 through the tool's API Gateway emulator, so
+`dotnet run --project src/Todos.Host` and F5 work the way they do on the other hosts; see
+[Running it locally](/aws/lambda-web#running-it-locally).
 
 [kestrel]: https://github.com/ipjohnson/Hardened.Framework/blob/main/src/Web/Hardened.Web.Kestrel.Runtime/README.md
 
