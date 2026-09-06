@@ -85,6 +85,10 @@ jobs:
 
       - run: dotnet restore Hardened.slnx
 
+      # The AWS Lambda Test Tool, pinned in .config/dotnet-tools.json. LambdaEmulatorTests starts
+      # it for real, and fails rather than skips without it.
+      - run: dotnet tool restore
+
       # Same warnings-as-errors treatment the branch build gets. A release is the last place to
       # relax it.
       # The Smithy CLI turns the .smithy models in the integration fixture into the JSON AST the
@@ -160,6 +164,7 @@ jobs:
           reportgenerator \
             -reports:"coverage/**/*.cobertura.xml" \
             -targetdir:coverage-report \
+            -assemblyfilters:"+Hardened.*;+DynamoDbStreamApp;+SqsTest;-Hardened.DependencyModules.SourceGenerator" \
             -reporttypes:"TextSummary;MarkdownSummaryGithub;JsonSummary"
           cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
           python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
@@ -253,7 +258,21 @@ jobs:
             src/Clients/Hardened.Kiota.Testing/Hardened.Kiota.Testing.csproj \
             src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj \
             src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj \
-            src/Templates/Hardened.Templates/Hardened.Templates.csproj; do
+            src/Templates/Hardened.Templates/Hardened.Templates.csproj \
+            src/Clouds/Aws/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj \
+            src/Clouds/Aws/Lambda/Shared/Hardened.Amz.Shared.Lambda.Testing/Hardened.Amz.Shared.Lambda.Testing.csproj \
+            src/Clouds/Aws/Lambda/Function/Hardened.Amz.Function.Lambda.Runtime/Hardened.Amz.Function.Lambda.Runtime.csproj \
+            src/Clouds/Aws/Lambda/Function/Hardened.Amz.Function.Lambda.Testing/Hardened.Amz.Function.Lambda.Testing.csproj \
+            src/Clouds/Aws/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj \
+            src/Clouds/Aws/Lambda/Sqs/Hardened.Amz.Function.Sqs.Runtime/Hardened.Amz.Function.Sqs.Runtime.csproj \
+            src/Clouds/Aws/Lambda/Sqs/Hardened.Amz.Function.Sqs.Testing/Hardened.Amz.Function.Sqs.Testing.csproj \
+            src/Clouds/Aws/Lambda/DynamoDbStream/Hardened.Amz.Function.DDB.Runtime/Hardened.Amz.Function.DDB.Runtime.csproj \
+            src/Clouds/Aws/Lambda/DynamoDbStream/Hardened.Amz.Function.DDB.Testing/Hardened.Amz.Function.DDB.Testing.csproj \
+            src/Clouds/Aws/SourceGenerators/Lambda/Function/Hardened.Amz.Function.Lambda.SourceGenerator.csproj \
+            src/Clouds/Aws/SourceGenerators/Lambda/Web/Hardened.Amz.Web.Lambda.SourceGenerator.csproj \
+            src/Clouds/Aws/Clients/DynamoDb/Hardened.Amz.DynamoDbClient/Hardened.Amz.DynamoDbClient.csproj \
+            src/Clouds/Aws/Clients/DynamoDb/Hardened.Amz.DynamoDbClient.Testing/Hardened.Amz.DynamoDbClient.Testing.csproj \
+            src/Clouds/Aws/Hardened.Amz.Cdk/Hardened.Amz.Cdk.csproj; do
             dotnet pack "$project" --configuration Release --no-build --output ./artifacts \
               "/p:PackageVersion=${{ steps.version.outputs.version }}"
           done
@@ -293,7 +312,15 @@ jobs:
           # Hardened.Shared.Testing.NUnit, with Hardened.Shared.Testing left runner-neutral.
           # 28 after Hardened.Web.Kestrel.Testing, the [KestrelHost] test host.
           # 29 after Hardened.Web.AspNetCore.Testing, the [AspNetCoreHost] test host.
-          EXPECTED=29
+          # 43 after Hardened.Amz's fourteen joined the list, when the repositories became one.
+          # That repository ran the same gate at EXPECTED=14. This is the largest edit the list
+          # has taken, and the fourteen are the last release of that package line: the design
+          # they encode - Function against Web - is the thing the host seam removes, so they are
+          # renamed with the break that collapses them rather than before it.
+          #
+          # Hardened.Amz.Function.DDB.Runtime declared no <IsPackable> at all, so it packed by
+          # default and the coverage check above could not see it. It says true now.
+          EXPECTED=43
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
@@ -339,20 +366,31 @@ jobs:
             ${prerelease} \
             ./artifacts/*.nupkg
 
-      # The docs site went two releases stale silently, because nothing told it a release
-      # happened. This is not automation of the docs, just an interrupt that fires: one issue
-      # naming the version, into the repository that declares its package version once.
+      # The documented version used to be an issue opened in another repository from here, by a
+      # step that could not fail the release: the site declared its own package version, nothing
+      # checked it, and the pages sat a release behind for as long as nobody acted on the issue.
+      # They were on 0.21.0-rc1000 when 0.22.0-rc1000 shipped. The pages are in this repository
+      # now, so the release checks them.
       #
-      # Cross-repo issue creation needs a token with issues:write on Hardened.Docs, which
-      # GITHUB_TOKEN does not carry - set a DOCS_ISSUE_TOKEN fine-grained PAT for this to fire.
-      # continue-on-error, because a release must never fail over its reminder.
-      - name: Open the Docs version-bump issue
+      # Only versions a reader would copy - a PackageReference, HardenedVersion, a template
+      # install - so prose naming an older release on purpose does not trip it. docs/design is
+      # maintainer notes and is a record of when things happened, not of what to install.
+      - name: Check the documented version is this one
         if: startsWith(github.ref, 'refs/tags/v')
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.DOCS_ISSUE_TOKEN != '' && secrets.DOCS_ISSUE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          gh issue create \
-            --repo ipjohnson/Hardened.Docs \
-            --title "Point the documented version at ${{ steps.version.outputs.version }}" \
-            --body "Hardened.Framework ${{ steps.version.outputs.version }} is on nuget.org. The site declares its package version once, as hardenedVersion in website/.vitepress/config.ts; move it and the whole site follows."
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+
+          FOUND=$(grep -rhoE '(Version="|<HardenedVersion>|Hardened\.Templates@)[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+' \
+                    docs --include='*.md' \
+                    --exclude-dir=design \
+                  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+' | sort -u)
+
+          WRONG=$(echo "$FOUND" | grep -vxF "$VERSION" || true)
+
+          if [ -n "$WRONG" ]; then
+            echo "::error::Pages under docs/ tell a reader to install a version that is not $VERSION: $(echo $WRONG)."
+            grep -rnE "($(echo $WRONG | tr ' ' '|'))" docs --include='*.md' --exclude-dir=design || true
+            exit 1
+          fi
+          echo "Every version the documentation tells a reader to install is $VERSION."

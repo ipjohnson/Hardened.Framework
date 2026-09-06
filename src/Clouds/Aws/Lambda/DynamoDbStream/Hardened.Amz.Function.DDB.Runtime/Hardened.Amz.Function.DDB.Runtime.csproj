@@ -5,6 +5,7 @@
         <Description>DynamoDB Streams processing for Hardened function handlers.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>

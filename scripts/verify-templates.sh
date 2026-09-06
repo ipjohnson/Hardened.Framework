@@ -27,11 +27,11 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # content however many times the framework has been rebuilt since - a green run over stale
 # packages, which is worse than no run at all.
 #
-# 99.0.0 rather than 0.0.0, and that is not cosmetic either. Hardened.Amz depends on published
-# Hardened packages with a floor - ">= 0.10.0-rc1000" today - and a 0.0.0 version sits below it,
-# so every Lambda project failed to restore with NU1605 rather than exercising anything. A real
-# release is always above that floor, so the verification version has to be too, or the Amz
-# templates can only ever be tested against the previous release instead of the build in hand.
+# 99.0.0 rather than 0.0.0, and that is not cosmetic either. It has to sit above every floor any
+# package declares, or a project fails to restore with NU1605 rather than exercising anything. It
+# was Hardened.Amz that made this necessary: it depended on published Hardened packages with a
+# floor of its own. Those packages pack from this run now, at this version, so that particular
+# floor is gone and the reason to stay above the others is not.
 VERSION="99.0.0-verify$(date +%s)"
 FEED="${TMPDIR:-/tmp}/hardened-template-feed"
 # Resolved with pwd -P, which is not cosmetic on macOS. $TMPDIR there is /var/folders/... and /var
@@ -234,7 +234,7 @@ rm -rf "$FEED" "$WORK"
 mkdir -p "$FEED" "$WORK"
 
 # Previous runs' packages, which are never referenced again.
-find "${NUGET_PACKAGES:-$HOME/.nuget/packages}" -maxdepth 2 -type d -name '0.0.0-verify*' \
+find "${NUGET_PACKAGES:-$HOME/.nuget/packages}" -maxdepth 2 -type d -name '99.0.0-verify*' \
     -exec rm -rf {} + 2>/dev/null || true
 
 # Pack output is noisy with pre-existing NU5100/NU5128 about build tasks that deliberately sit
@@ -657,12 +657,11 @@ for TEMPLATE in hardened-library hardened-web; do
     fi
 done
 
-# The Amz pin floats, which is what lets these be gated against the build under test at all.
-# Hardened.Amz depends on published Hardened packages, so an exact pin here would name a version
-# that does not exist yet for the whole window between the two repositories' releases. Floating it
-# means the framework packages come from this run's feed while Hardened.Amz stays on its newest
-# published release - which is precisely the state a release leaves the world in, so verifying it
-# is verifying the thing that actually ships.
+# These rows test the build in hand rather than the last release. The template pinned
+# Hardened.Amz.* at 0.*-* because the two repositories released in sequence, so an exact pin named
+# a version that did not exist yet for the whole window between them - which meant the framework
+# packages came from this run's feed while Hardened.Amz came from nuget.org. One repository packs
+# both into the same feed at the same version, so every package under test is one this run built.
 say "AWS Lambda templates"
 # The function template has no seam to mock, so its two option rows prove the other runner and the
 # other libraries restore, build and run the handler tests beside the Amz testing packages.
@@ -724,8 +723,8 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
             tail -20 "$AMZ_OUT/serve.log"
             FAILED=1
         fi
-        # Worth printing: a float that silently stopped resolving would otherwise look identical
-        # to one that resolved to the right thing.
+        # Worth printing: it is what says these resolved to this run's packages rather than to
+        # something left in the global cache.
         grep -hoE '"Hardened\.Amz\.[A-Za-z.]+/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
             | tr -d '"' | sort -u | head -2 | sed 's/^/     resolved /'
     else

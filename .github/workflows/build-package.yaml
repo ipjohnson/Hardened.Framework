@@ -94,6 +94,10 @@ jobs:
 
       - run: dotnet restore Hardened.slnx
 
+      # The AWS Lambda Test Tool, pinned in .config/dotnet-tools.json. LambdaEmulatorTests starts
+      # it for real, and fails rather than skips without it.
+      - run: dotnet tool restore
+
       # ContinuousIntegrationBuild turns warnings into errors (see Directory.Build.props).
       # The solution builds warning-free; this is what stops that drifting back.
       - run: dotnet build Hardened.slnx --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
@@ -277,6 +281,12 @@ jobs:
           # not restrict it, and a report-level filter does not depend on one collector's schema -
           # which is the property being bought by this change in the first place.
           #
+          # DynamoDbStreamApp and SqsTest are named because they are the two entries in
+          # coverage-baseline.json that are not Hardened.*: the AWS sample applications, gated
+          # deliberately because a framework change regenerates their handlers and routing. Under
+          # +Hardened.* alone they would vanish from the report, and an assembly the baseline names
+          # and the run does not report is fatal to the gate below.
+          #
           # Hardened.DependencyModules.SourceGenerator is excluded because it is not this
           # repository's code. It holds two files of its own - 148 lines - and compiles in the whole
           # of DependencyModules.SourceGenerator.Impl, 8,554 lines, via Compile Include. A floor on
@@ -285,7 +295,7 @@ jobs:
           reportgenerator \
             -reports:"coverage/**/*.cobertura.xml" \
             -targetdir:coverage-report \
-            -assemblyfilters:"+Hardened.*;-Hardened.DependencyModules.SourceGenerator" \
+            -assemblyfilters:"+Hardened.*;+DynamoDbStreamApp;+SqsTest;-Hardened.DependencyModules.SourceGenerator" \
             -reporttypes:"TextSummary;MarkdownSummaryGithub;Html;JsonSummary"
           cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
           cat coverage-report/Summary.txt
@@ -339,12 +349,15 @@ jobs:
       # Hardened.IntegrationTests.Console.SUT and .OpenApi.SUT reached the feed as packages -
       # a public ID claimed by a test fixture, and on nuget.org that would be permanent.
       # IsPackable=false was added to those projects; this is what notices the next one.
+      #
+      # find rather than src/**/bin, which without shopt -s globstar is one directory level and
+      # matched nothing here even before src/Clouds/Aws put the AWS packages three levels down.
       - name: Verify no test fixture was packed
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          LEAKED=$(ls -1 src/**/bin/Release/*.nupkg 2>/dev/null \
+          LEAKED=$(find src -path '*/bin/Release/*.nupkg' \
             | xargs -n1 basename \
-            | grep -Ei '^(Hardened\.IntegrationTests|.*\.Tests\.)' || true)
+            | grep -Ei '^(Hardened\.IntegrationTests|.*\.Tests\.|DynamoDbStreamApp|SqsTest|LambdaWebTest)' || true)
 
           if [ -n "$LEAKED" ]; then
             echo "::error::Test fixtures were packed. Mark them IsPackable=false."
@@ -352,6 +365,10 @@ jobs:
             exit 1
           fi
 
+      # Same reason as above: the glob has to reach src/Clouds/Aws/Lambda/<area>/<project>/bin.
       - name: Push
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: dotnet nuget push src/**/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/ipjohnson/index.json" --skip-duplicate
+        run: |
+          find src -path '*/bin/Release/*.nupkg' -print0 | xargs -0 -n1 \
+            dotnet nuget push --api-key ${{secrets.GITHUB_TOKEN}} \
+              --source "https://nuget.pkg.github.com/ipjohnson/index.json" --skip-duplicate

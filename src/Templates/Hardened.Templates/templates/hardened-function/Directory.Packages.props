@@ -9,22 +9,15 @@
          version, and the mock package below has to be the same line. -->
     <DependencyModulesVersion>0.0.0-DEPENDENCYMODULES-VERSION</DependencyModulesVersion>
     <!--
-      Hardened.Amz releases on its own line, and this pins the same version the framework is on
-      because the two are released together. If they ever diverge, this is the one line to change.
-    -->
-    <!--
-      Floated rather than pinned to $(HardenedVersion), because the two repositories release in
-      sequence and cannot both be at the new version at the same instant. Hardened.Amz depends on
-      published Hardened packages, so the framework releases first - and for the window between the
-      two, an exact pin here names a Hardened.Amz version that does not exist yet and every Lambda
-      project fails to restore.
+      Hardened.Amz.* ships from the same repository and the same release as everything above, so it
+      takes the same version.
 
-      The float resolves to the newest 0.x Hardened.Amz, prereleases included. During the window
-      that is the previous release, which still works: this file pins the framework packages
-      higher, and a dependency asking for a lower version is satisfied by a higher one.
+      It was floated at 0.*-*, with CentralPackageFloatingVersionsEnabled turned on to allow it,
+      because the two repositories released in sequence: for the window between them an exact pin
+      named a Hardened.Amz version that did not exist yet, and every Lambda project failed to
+      restore. One repository releases once, so there is no window and no float.
     -->
-    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
-    <HardenedAmzVersion>0.*-*</HardenedAmzVersion>
+    <HardenedAmzVersion>$(HardenedVersion)</HardenedAmzVersion>
   </PropertyGroup>
 
   <ItemGroup Label="Hardened">
