@@ -25,20 +25,41 @@ namespace Hardened1.Tests;
 /// [Mock] on a parameter registers the double over the application's own registration and hands
 /// the test the same instance, so what the test configures is what the handler was built against.
 #endif
-/// ITestWebApp sends the request through the pipeline, so this reads the same whichever client the
-/// project generates.
+#if (hasClient)
+/// The request goes through the generated client, like every request the client can make.
+#else
+/// ITestWebApp sends the request through the pipeline.
+#endif
 /// </remarks>
 public class TodoStoreMockTests {
+#if (!hasClient)
 
     /// <summary>The response shape as a client sees it, asserted on the wire rather than on an internal type.</summary>
     private record TodoResponse(int Id, string Title, bool Done);
+#endif
 
     [HardenedTest]
 #if (moq)
+#if (kiotaClient)
+    public async Task GetTodo_ReadsTheMockedStore(TemplateModuleNameClient client, Mock<ITodoStore> store) {
+#endif
+#if (refitClient)
+    public async Task GetTodo_ReadsTheMockedStore(ITemplateModuleNameClient client, Mock<ITodoStore> store) {
+#endif
+#if (!hasClient)
     public async Task GetTodo_ReadsTheMockedStore(ITestWebApp app, Mock<ITodoStore> store) {
+#endif
         store.Setup(s => s.Find(1)).ReturnsAsync(new Todo(1, "from the mock", false));
 #else
+#if (kiotaClient)
+    public async Task GetTodo_ReadsTheMockedStore(TemplateModuleNameClient client, [Mock] ITodoStore store) {
+#endif
+#if (refitClient)
+    public async Task GetTodo_ReadsTheMockedStore(ITemplateModuleNameClient client, [Mock] ITodoStore store) {
+#endif
+#if (!hasClient)
     public async Task GetTodo_ReadsTheMockedStore(ITestWebApp app, [Mock] ITodoStore store) {
+#endif
 #if (nsubstitute)
         store.Find(1).Returns(new Todo(1, "from the mock", false));
 #endif
@@ -47,6 +68,25 @@ public class TodoStoreMockTests {
 #endif
 #endif
 
+#if (kiotaClient)
+        var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
+
+#if (xunit)
+        Assert.Equal("from the mock", todo.Value.Title);
+#else
+        Assert.That(todo.Value.Title, Is.EqualTo("from the mock"));
+#endif
+#endif
+#if (refitClient)
+        var todo = await client.GetTodo(1).Returns<Ok<ClientModels.Todo>>();
+
+#if (xunit)
+        Assert.Equal("from the mock", todo.Value.Title);
+#else
+        Assert.That(todo.Value.Title, Is.EqualTo("from the mock"));
+#endif
+#endif
+#if (!hasClient)
         var response = await app.Get("/todos/1");
 
         response.Assert.Ok();
@@ -54,6 +94,7 @@ public class TodoStoreMockTests {
         Assert.Equal("from the mock", response.Deserialize<TodoResponse>().Title);
 #else
         Assert.That(response.Deserialize<TodoResponse>().Title, Is.EqualTo("from the mock"));
+#endif
 #endif
     }
 }

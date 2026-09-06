@@ -117,6 +117,13 @@ check_generated() {
             echo "   FAILED: $out/README.md does not end where the template's does"
             FAILED=1
         fi
+        # A directive written inline on a fence line is swallowed to the next #endif with everything
+        # between, so the fence never closes and the README still ends where it should. The 0.17
+        # and 0.21 trials both shipped that; fences pair up, so an odd count is the tell.
+        if [ $(( $(grep -c '^```' "$out/README.md") % 2 )) -ne 0 ]; then
+            echo "   FAILED: $out/README.md has an unclosed code fence"
+            FAILED=1
+        fi
     fi
 }
 

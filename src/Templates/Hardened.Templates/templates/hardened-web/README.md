@@ -54,7 +54,7 @@ Four routes. `GET /todos` has one answer; the other three each declare more than
 
 ```bash
 curl -i -X POST localhost:5080/todos -H 'Content-Type: application/json' \
-     -d '{"title":"Add an endpoint"}'
+     -d '{"title":"Write a test"}'
 ```
 
 #if (OpenApiUi)
@@ -78,7 +78,11 @@ from a terminal browse to the page yourself.
 | | |
 |---|---|
 | `src/Hardened1` | Everything the application does — routes, services, models. Knows nothing about where it runs. |
+#if (lambda)
+| `src/Hardened1.Host` | Which runtime hosts it. `Main` is generated, so there is no `Program.cs`. The only host-specific project. |
+#else
 | `src/Hardened1.Host` | Which runtime hosts it, and `Program.cs`. The only host-specific project. |
+#endif
 #if (kiotaClient)
 | `src/Hardened1.Client` | The generated client. No hand-written code; Kiota writes it from the document the library's build wrote. |
 #endif
@@ -98,10 +102,25 @@ would be tied to a deployment target for no reason.
 A route is an attribute on a method of a plain class - no base type, no interface, no registration.
 `src/Hardened1/TodoController.cs` is the whole pattern:
 
+#if (throwsMode)
 ```csharp
 [Get("/{id}")]
-public async Task<#if (throwsMode)Todo#endif#if (responseMode)Response<Todo, NotFound>#endif#if (unionMode)TodoResult#endif> ById(ITodoStore store, int id)
+[Throws<NotFound>]
+public async Task<Todo> ById(ITodoStore store, int id)
 ```
+#endif
+#if (responseMode)
+```csharp
+[Get("/{id}")]
+public async Task<Response<Todo, NotFound>> ById(ITodoStore store, int id)
+```
+#endif
+#if (unionMode)
+```csharp
+[Get("/{id}")]
+public async Task<TodoResult> ById(ITodoStore store, int id)
+```
+#endif
 
 `[BasePath]` on `TemplateModuleNameLibrary` prefixes every route in the assembly, so that one is
 served at `/todos/{id}`. `[Get]`, `[Post]`, `[Put]`, `[Delete]` and `[Patch]` all behave the same
@@ -120,6 +139,7 @@ that test until its `Expected` table names the new operation and the statuses a 
 is the point: a status the document declares and nothing answers is the defect a reference page
 cannot show.
 #if (specFirst)
+
 #if (openapi)
 The contract is `src/Hardened1/contracts/todos.yaml`.
 #endif

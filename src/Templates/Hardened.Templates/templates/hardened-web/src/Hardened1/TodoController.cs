@@ -55,10 +55,12 @@ public class TodoController {
     /// <remarks>
     /// Throws mode: the signature names the success type, and every other status is thrown. The
     /// thrown value is the same NotFound record the declared modes return, so the 404 body is
-    /// identical either way - what differs is whether the compiler knows the route can answer it.
+    /// identical either way. [Throws&lt;NotFound&gt;] is what puts the 404 in the document; nothing
+    /// checks that the method throws it, which is the difference from the declared modes.
     /// </remarks>
     [Operation("getTodo")]
     [Get("/{id}")]
+    [Throws<NotFound>]
     public async Task<Todo> ById(ITodoStore store, [Range(Min = 1)] int id) {
         var todo = await store.Find(id);
 
@@ -78,6 +80,7 @@ public class TodoController {
     /// </remarks>
     [Operation("createTodo")]
     [Post("/")]
+    [Throws<Conflict>]
     public async Task<Todo> Create(ITodoStore store, NewTodo request) {
         if (await store.TitleExists(request.Title)) {
             throw new Conflict($"A todo titled '{request.Title}' already exists.").AsException();
@@ -89,6 +92,7 @@ public class TodoController {
     /// <summary>Removes one, or 404. Answers 200 with the removed todo, for the reason above.</summary>
     [Operation("removeTodo")]
     [Delete("/{id}")]
+    [Throws<NotFound>]
     public async Task<Todo> Remove(ITodoStore store, [Range(Min = 1)] int id) {
         var todo = await store.Find(id);
 
