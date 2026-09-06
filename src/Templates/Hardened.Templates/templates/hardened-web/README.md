@@ -13,6 +13,17 @@ dotnet run --project src/Hardened1.Host
 ```
 
 It listens on **5080** and prints its address. Set `PORT` to change it.
+#if (lambda)
+
+On Lambda there is no web server in the project. Running the host starts the
+[AWS Lambda Test Tool](https://github.com/aws/aws-lambda-dotnet/tree/master/Tools/LambdaTestTool-v2)
+beside it and points the function at it, so the address above is the tool's API Gateway emulator
+and the function runs the way the Lambda service runs it: the same `Main`, bootstrap and event
+serialiser, with the debugger attached to it. The tool's own page is at <http://localhost:5050>;
+`HARDENED_LAMBDA_EMULATOR_PORT` moves it. The tool is pinned in
+`src/Hardened1.Host/.config/dotnet-tools.json` and restored by the build. A deployed function sets
+`AWS_LAMBDA_RUNTIME_API`, and then none of this runs.
+#endif
 
 ```bash
 curl localhost:5080/todos

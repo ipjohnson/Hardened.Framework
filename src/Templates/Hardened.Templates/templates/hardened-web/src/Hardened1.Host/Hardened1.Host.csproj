@@ -5,11 +5,15 @@
     cases: Hardened brings ASP.NET Core in through a framework reference where it needs it, and
     the Web SDK's Razor pipeline only gets in the way.
   -->
-<!--#if (!lambda) -->
+  <!--
+    An executable on every host. On Lambda the generated Main runs the AWS bootstrap, and the
+    handler Hardened.Amz.Cdk deploys is the assembly name alone, which the managed runtime starts
+    only when the assembly has an entry point. Until 2026-09-05 this was a class library on Lambda,
+    so that handler failed on the first invocation with "Entry point not found".
+  -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
   </PropertyGroup>
-<!--#endif -->
 
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Runtime" />
@@ -32,5 +36,25 @@
   <ItemGroup>
     <ProjectReference Include="..\Hardened1\Hardened1.csproj" />
   </ItemGroup>
+<!--#if (lambda) -->
+
+  <!--
+    Running this project locally starts the AWS Lambda Test Tool, the dotnet tool pinned in
+    this project's .config/dotnet-tools.json. It is restored inside the build, so F5 on a fresh clone needs no instruction
+    beyond `dotnet build`; the first restore on a machine needs network. A failed restore is a
+    warning here and a message at run time naming the manifest, not a broken build: the deployed
+    artifact does not need the tool.
+  -->
+  <Target Name="RestoreLambdaTestTool" BeforeTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="dotnet tool restore"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          StandardOutputImportance="low"
+          ContinueOnError="true">
+      <Output TaskParameter="ExitCode" PropertyName="_LambdaTestToolRestoreExitCode" />
+    </Exec>
+    <Warning Condition="'$(_LambdaTestToolRestoreExitCode)' != '0'"
+             Text="The AWS Lambda Test Tool could not be restored, so running this project locally will not start it. The pin is amazon.lambda.testtool in this project's .config/dotnet-tools.json; `dotnet tool restore` there shows what NuGet said." />
+  </Target>
+<!--#endif -->
 
 </Project>

@@ -9,10 +9,19 @@ deserialisation and the dependency injection are all written during the build.
 ```bash
 dotnet build
 dotnet test
+dotnet run --project src/Hardened1
 ```
 
-There is nothing to `dotnet run`. The tests are how this function is exercised locally: they invoke
-it through the real pipeline, with no AWS account and nothing to deploy.
+The tests are how this function is exercised most of the time: they invoke it through the real
+pipeline, with no AWS account and nothing to deploy.
+
+`dotnet run`, or F5, runs the function the way the Lambda service runs it. There is no Lambda to
+start it, so the generated `Main` starts the
+[AWS Lambda Test Tool](https://github.com/aws/aws-lambda-dotnet/tree/master/Tools/LambdaTestTool-v2)
+beside it and points the bootstrap at it. Invoke the function from the tool's page at
+<http://localhost:5050> with a payload of your own; `HARDENED_LAMBDA_EMULATOR_PORT` moves the
+page. The tool is pinned in `.config/dotnet-tools.json` and restored by the build. A deployed
+function sets `AWS_LAMBDA_RUNTIME_API`, and then none of this runs.
 
 ## The two projects
 
