@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Hardened — tile version of the Plate mark. Fixed gunmetal tile so it reads on any tab or feed background.
+       Bands are drawn slightly bolder than the bare mark for 16px legibility. -->
+  <rect width="48" height="48" rx="11" fill="#1B242E"/>
+  <path fill="#7FA9CA" d="M24 8.5 38 15.5 V21.5 L24 14.5 10 21.5 V15.5 Z"/>
+  <path fill="#EBEFF3" d="M24 17.5 38 24.5 V30.5 L24 23.5 10 30.5 V24.5 Z"/>
+  <path fill="#EBEFF3" d="M24 26.5 38 33.5 V39.5 L24 32.5 10 39.5 V33.5 Z"/>
+</svg>
