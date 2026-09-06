@@ -150,6 +150,6 @@ there.
 
 ## Where to go next
 
-- [Documentation](https://ipjohnson.github.io/Hardened.Docs)
+- [Documentation](https://ipjohnson.github.io/Hardened.Framework)
 - `AGENTS.md` in this directory — the invariants and gotchas, for anyone or anything editing the
   code rather than reading it

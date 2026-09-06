@@ -395,7 +395,7 @@ same way through `Hardened.Kiota.Testing` and `[assembly: KiotaTesting]`.
 #endif
 
 Other generators, other languages, and Kiota's multi-language workspace are on the site's
-[Clients](https://ipjohnson.github.io/Hardened.Docs/guide/clients) page; every one of them reads the
+[Clients](https://ipjohnson.github.io/Hardened.Framework/guide/clients) page; every one of them reads the
 same file.
 
 #endif
@@ -413,6 +413,6 @@ and the module registration are all there.
 
 ## Where to go next
 
-- [Documentation](https://ipjohnson.github.io/Hardened.Docs)
+- [Documentation](https://ipjohnson.github.io/Hardened.Framework)
 - `AGENTS.md` in this directory — the invariants and gotchas, for anyone or anything editing the
   code rather than reading it

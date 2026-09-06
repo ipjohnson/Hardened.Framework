@@ -298,19 +298,19 @@ Conventions for what to assert are in [testing-conventions.md](testing-conventio
 ## Building
 
 ```bash
-dotnet build Hardened.Amz.sln -p:UseLocalHardenedFramework=false
-dotnet test  Hardened.Amz.sln -p:UseLocalHardenedFramework=false
+dotnet build src/Hardened.Framework.sln
+dotnet test  src/Hardened.Framework.sln
 ```
 
-`src/Directory.Build.targets` prefers a sibling `../Hardened.Framework` checkout when one exists. A
-checkout at an incompatible commit fails the build with errors in *the other repository's* files.
-Pass `-p:UseLocalHardenedFramework=false` to build against the pinned packages, which is what CI
-does.
+These projects are `src/Clouds/Aws` in Hardened.Framework and build against the framework in the
+same checkout. `src/Directory.Build.targets` used to swap a sibling `../Hardened.Framework` checkout
+in for the pinned packages, and a checkout at an incompatible commit failed the build with errors in
+the other repository's files. There is one repository now, so there is nothing to swap.
 
 Before opening a pull request, run a build with the gate CI applies:
 
 ```bash
-dotnet build Hardened.Amz.sln -p:UseLocalHardenedFramework=false -p:ContinuousIntegrationBuild=true
+dotnet build src/Hardened.Framework.sln -p:ContinuousIntegrationBuild=true
 ```
 
 That turns warnings into errors. Local builds do not.
@@ -351,5 +351,6 @@ The response mode and the URL's invoke mode disagree. `stream` needs `RESPONSE_S
 The variable is set to something else. It fails the application at startup rather than falling
 back to buffered behind a front door that expects the prelude.
 
-**Errors in files under `Hardened.Framework/`**
-The sibling-checkout build. Pass `-p:UseLocalHardenedFramework=false`.
+**Errors in framework files**
+Expected, and the point of one repository: these projects compile against the framework in this
+checkout, so a framework change that breaks them fails here rather than after a release.

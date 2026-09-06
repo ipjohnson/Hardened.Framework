@@ -1,17 +1,16 @@
 <Project>
 
     <!--
-      Package metadata shared by every package in this repository. Centralised so it cannot
-      drift per project the way the previous copy-pasted metadata did - it claimed every
-      package belonged to the CSharpAuthor repository and shipped the default
-      "Package Description".
+      Package metadata for the AWS packages. Everything but the tags is what the root
+      Directory.Build.props says, and it is repeated rather than inherited only until the two
+      files become one.
 
       Per-package Description and PackageId stay in the individual csproj files.
     -->
     <PropertyGroup>
         <Authors>Ian Johnson</Authors>
-        <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Amz</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/ipjohnson/Hardened.Amz</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Framework</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/ipjohnson/Hardened.Framework</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless</PackageTags>
 
@@ -27,9 +26,9 @@
       packed alongside being declared - a declaration without the file is NU5046 for the icon
       and NU5039 for the readme, both at pack time.
 
-      Same icon as Hardened.Framework's packages, from assets/ at the repository root, and the
-      repository readme on every package for the same reason that repository does it: these
-      packages are one runtime, and a per-package readme is a second place to keep current.
+      The same icon and the same readme every other package in the repository carries, from the
+      repository root: these packages are one framework, and a per-package readme is a second
+      place for the story to drift out of date.
 
       Note that nuget.org renders the readme through Markdig with inline HTML disabled, so raw
       HTML in README.md is displayed as escaped text rather than rendered, and links have to be
@@ -41,9 +40,9 @@
       brings its own background.
     -->
     <ItemGroup>
-        <None Include="$(MSBuildThisFileDirectory)../assets/hardened-icon-128.png"
+        <None Include="$(MSBuildThisFileDirectory)../../../assets/hardened-icon-128.png"
               Pack="true" PackagePath="/" Visible="false" />
-        <None Include="$(MSBuildThisFileDirectory)../README.md"
+        <None Include="$(MSBuildThisFileDirectory)../../../README.md"
               Pack="true" PackagePath="/" Visible="false" />
     </ItemGroup>
 
@@ -110,40 +109,19 @@
     </PropertyGroup>
 
     <!--
-      NU1603, for a dependency version the Framework mis-stamped rather than one this repository
-      chose.
-
-      Hardened.Requests.Runtime 0.12.0-rc1000 was packed declaring
-      ValidationModules.Runtime (>= 0.12.0-rc1000) - its own version, on another product's
-      dependency. 0.11.0-rc1000 declares 1.0.0-rc1006 correctly, so this is a regression in that
-      one release. The version it names does not exist, so NuGet resolves upward and warns, and
-      ContinuousIntegrationBuild turns the warning into an error in every project that reaches
-      Hardened.Requests.Runtime - which is all of them.
-
-      Suppressed rather than worked around with a direct pin, because a pin here would silently
-      satisfy the wrong range and read as though this repository had an opinion about which
-      ValidationModules to use. It does not; the Framework does, and its package says the wrong
-      thing.
-
-      nuget.org is append-only, so 0.12.0-rc1000 cannot be corrected in place. Remove this the
-      moment the pins above move to a Framework release whose nuspec names a ValidationModules
-      version that exists.
-    -->
-    <PropertyGroup>
-        <NoWarn>$(NoWarn);NU1603</NoWarn>
-    </PropertyGroup>
-
-    <!--
       Applies to every project under src/.
 
-      Test projects get coverlet.collector so that collecting "XPlat Code Coverage" during
-      `dotnet test` produces Cobertura reports. Collection settings (what is excluded from
-      the numbers) live in coverlet.runsettings at the repository root.
+      Test projects get Microsoft.CodeCoverage, so collecting "Code Coverage" during `dotnet test`
+      produces Cobertura reports. Collection settings live in coverage.runsettings at the
+      repository root.
+
+      This was coverlet.collector, which does not instrument under the .NET 11 SDK this repository
+      builds with - it reports 0.0% for every assembly rather than failing.
 
       The version lives in Directory.Packages.props with everything else.
     -->
     <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
-        <PackageReference Include="coverlet.collector">
+        <PackageReference Include="Microsoft.CodeCoverage">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>

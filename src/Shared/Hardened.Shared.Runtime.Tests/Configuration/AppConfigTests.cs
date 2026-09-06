@@ -11,7 +11,7 @@ namespace Hardened.Shared.Runtime.Tests.Configuration;
 /// <para>
 /// Asserted through a real <see cref="ConfigurationManager"/> wherever the observable outcome is
 /// "what the application ends up resolving", because that is what an amender exists to change.
-/// The behaviours come from <c>Hardened.Docs/website/guide/configuration.md</c>, "Amending
+/// The behaviours come from <c>docs/guide/configuration.md</c>, "Amending
 /// configuration".
 /// </para>
 /// </summary>

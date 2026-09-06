@@ -1,11 +1,14 @@
-# ![Hardened](https://raw.githubusercontent.com/ipjohnson/Hardened.Amz/main/assets/hardened-mark-32.png) Hardened.Amz
+# AWS
 
-Runs [Hardened](https://ipjohnson.github.io/Hardened.Docs) applications on AWS Lambda. The handlers,
-parameter binding, configuration and tests are the core framework's. This repository supplies what
-runs underneath: the Lambda runtimes, response streaming, the local emulator session, the test
-harnesses, a DynamoDB client and CDK constructs.
+Runs [Hardened](https://ipjohnson.github.io/Hardened.Framework/) applications on AWS Lambda. The
+handlers, parameter binding, configuration and tests are the framework's. What is here is what runs
+underneath: the Lambda runtimes, response streaming, the local emulator session, the test harnesses,
+a DynamoDB client and CDK constructs.
 
-AWS documentation: **[ipjohnson.github.io/Hardened.Docs/aws](https://ipjohnson.github.io/Hardened.Docs/aws/)**
+AWS documentation: **[ipjohnson.github.io/Hardened.Framework/aws](https://ipjohnson.github.io/Hardened.Framework/aws/)**
+
+This was `ipjohnson/Hardened.Amz` until 2026-09-06. The packages are still `Hardened.Amz.*` and are
+renamed with the breaking change that collapses them, not before.
 
 ## Start here
 
@@ -53,17 +56,17 @@ public class OrderHandler(OrderLog log) {
 
 The runtime module is not optional. An application without one compiles, then throws
 `'Application' is missing [LambdaFunctionModule]` the moment it is constructed.
-[Lambda application types](https://github.com/ipjohnson/Hardened.Amz/blob/main/docs/application-types.md)
+[Lambda application types](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/design/aws/application-types.md)
 covers the project shape, handler and test setup for each transport.
 
 ## Pick your trigger
 
 | You are handling | Module | Runtime package |
 |---|---|---|
-| [HTTP behind API Gateway or a function URL](https://ipjohnson.github.io/Hardened.Docs/aws/lambda-web) | `[LambdaWebModule]` | `Hardened.Amz.Web.Lambda.Runtime` |
-| [Direct invocation](https://ipjohnson.github.io/Hardened.Docs/aws/lambda-function) | `[LambdaFunctionModule]` | `Hardened.Amz.Function.Lambda.Runtime` |
-| [SQS batches](https://ipjohnson.github.io/Hardened.Docs/aws/sqs) | `[LambdaFunctionModule]` + `[SqsLambda]` | `Hardened.Amz.Function.Sqs.Runtime` |
-| [DynamoDB Streams](https://ipjohnson.github.io/Hardened.Docs/aws/ddb-streams) | `[LambdaFunctionModule]` + `[DynamoStreamLambda]` | `Hardened.Amz.Function.DDB.Runtime` |
+| [HTTP behind API Gateway or a function URL](https://ipjohnson.github.io/Hardened.Framework/aws/lambda-web) | `[LambdaWebModule]` | `Hardened.Amz.Web.Lambda.Runtime` |
+| [Direct invocation](https://ipjohnson.github.io/Hardened.Framework/aws/lambda-function) | `[LambdaFunctionModule]` | `Hardened.Amz.Function.Lambda.Runtime` |
+| [SQS batches](https://ipjohnson.github.io/Hardened.Framework/aws/sqs) | `[LambdaFunctionModule]` + `[SqsLambda]` | `Hardened.Amz.Function.Sqs.Runtime` |
+| [DynamoDB Streams](https://ipjohnson.github.io/Hardened.Framework/aws/ddb-streams) | `[LambdaFunctionModule]` + `[DynamoStreamLambda]` | `Hardened.Amz.Function.DDB.Runtime` |
 
 SQS and DynamoDB Streams take a second attribute because they are event sources layered on the
 direct-invoke path. The SQS runtime deserialises each message body into your handler's parameter
@@ -76,7 +79,7 @@ Response streaming is a deployment setting rather than a separate host: with
 every response opens a stream at its first body byte, and a handler returning
 `IAsyncEnumerable<T>` writes one chunk per item. `Hardened.Amz.Cdk` sets the variable and the
 invoke mode together; see
-[Response mode](https://github.com/ipjohnson/Hardened.Amz/blob/main/docs/application-types.md#response-mode).
+[Response mode](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/design/aws/application-types.md#response-mode).
 
 ## Running locally
 
@@ -89,7 +92,8 @@ host uses; a function is invoked from the tool's UI at `http://localhost:5050`. 
 `HARDENED_LAMBDA_EMULATOR_PORT` move them. The debugger is on the process the Lambda service would
 start, running the same `Main`, bootstrap and event serialiser.
 
-The tool is a dotnet tool, pinned in `.config/dotnet-tools.json` here and in the templates, so
+The tool is a dotnet tool, pinned in `.config/dotnet-tools.json` at the repository root and in
+the templates, so
 `dotnet tool restore` is the only setup. A tool left running by the debugger's stop button is found
 and reused by the next start. Until 2026-09-05 this took a second project,
 `Hardened.Amz.Web.Lambda.Harness`, which wrapped the application in ASP.NET Core and never ran
@@ -106,43 +110,35 @@ and no mocked SDK types:
 - `Hardened.Amz.Function.DDB.Testing` feeds stream records.
 - `[LocalDynamoDb]` (`Hardened.Amz.DynamoDbClient.Testing`) runs DynamoDB in Testcontainers.
 
-See [testing AWS handlers](https://ipjohnson.github.io/Hardened.Docs/aws/testing) and
-[testing conventions](https://github.com/ipjohnson/Hardened.Amz/blob/main/docs/testing-conventions.md).
+See [testing AWS handlers](https://ipjohnson.github.io/Hardened.Framework/aws/testing) and
+[testing conventions](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/design/aws/testing-conventions.md).
 
 ## Clients and infrastructure
 
 `Hardened.Amz.DynamoDbClient` provides `IDynamoDbClientProvider` and DynamoDB extensions
-([docs](https://ipjohnson.github.io/Hardened.Docs/aws/dynamodb)). There is no SQS client package —
+([docs](https://ipjohnson.github.io/Hardened.Framework/aws/dynamodb)). There is no SQS client package —
 the SQS runtime consumes a queue; writing to one means taking a direct `AWSSDK.SQS` dependency.
 `Hardened.Amz.Cdk` carries the CDK constructs
-([docs](https://ipjohnson.github.io/Hardened.Docs/aws/cdk)).
+([docs](https://ipjohnson.github.io/Hardened.Framework/aws/cdk)).
 
 All packages ship to nuget.org as `Hardened.Amz.*`, releasing in step with the Framework's version
 line. The full list is in the
-[package reference](https://ipjohnson.github.io/Hardened.Docs/reference/packages).
+[package reference](https://ipjohnson.github.io/Hardened.Framework/reference/packages).
 
 ## Building from source
 
-```bash
-dotnet build Hardened.Amz.sln
-dotnet test  Hardened.Amz.sln
-```
-
-`src/Directory.Build.targets` prefers a sibling `../Hardened.Framework` checkout over the pinned
-packages when one exists, so the two repositories can be edited together. A checkout at an
-incompatible commit fails the build with errors in *the other repository's* files. Force either side
-explicitly:
+These projects build with the rest of the repository, against the framework in the same checkout
+rather than against a released package. `src/Directory.Build.targets` used to swap a sibling
+`../Hardened.Framework` checkout in for the pinned packages; there is nothing to swap now, and no
+version to take.
 
 ```bash
-dotnet build Hardened.Amz.sln -p:UseLocalHardenedFramework=false   # pinned packages, as CI builds
-dotnet build Hardened.Amz.sln -p:UseLocalHardenedFramework=true    # sibling checkout
+dotnet build src/Hardened.Framework.sln
+dotnet test  src/Hardened.Framework.sln
 ```
 
 CI adds `-p:ContinuousIntegrationBuild=true`, which turns warnings into errors — run a build with
 it set before opening a pull request. The DynamoDB client tests need a running Docker daemon, and
-fail rather than skip without one — see [testing conventions](https://github.com/ipjohnson/Hardened.Amz/blob/main/docs/testing-conventions.md).
+fail rather than skip without one — see [testing conventions](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/design/aws/testing-conventions.md).
 
-## Related repositories
-
-- [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework) — the core framework: contracts, routing, DI, testing
-- [Hardened.Docs](https://github.com/ipjohnson/Hardened.Docs) — the documentation site
+`AGENTS.md` at the repository root carries the invariants for this directory, under **AWS**.

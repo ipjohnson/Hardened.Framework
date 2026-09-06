@@ -130,7 +130,7 @@
       had moved them - and they are the two a new test project is most likely to be copied from.
     -->
     <ItemGroup Label="Testing">
-        <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+        <PackageVersion Include="Microsoft.CodeCoverage" Version="18.9.0" />
         <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
         <PackageVersion Include="NSubstitute" Version="5.1.0" />
         <PackageVersion Include="SimpleFixture.NSubstitute" Version="4.0.0-RC191" />

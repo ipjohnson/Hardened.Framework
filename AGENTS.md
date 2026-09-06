@@ -1,4 +1,4 @@
-# Hardened.Framework
+# Hardened
 
 Invariants and traps for anyone editing this repository. `README.md` covers what the framework is
 and how an application consumes it; this file does not repeat that.
@@ -13,10 +13,16 @@ The solution is `src/Hardened.Framework.sln`. There is none at the repository ro
 | `src/Requests` | The execution pipeline and its abstractions |
 | `src/Web` | Routing, the Kestrel and ASP.NET Core hosts, static content, the web test client |
 | `src/Templates` | The `dotnet new` templates, and RazorBlade view rendering |
+| `src/Clients` | The Kiota and Refit test clients |
 | `src/SourceGenerators` | Every generator and build task, and the shared library they build on |
+| `src/Clouds/Aws` | The AWS packages: `Lambda/` per transport, `Clients/DynamoDb`, the CDK constructs, the two generators, and the applications that exercise them |
 | `src/IntegrationTests` | Working applications driven through the real pipeline |
 | `src/PublicApi` | The approved public surface of every shipped assembly |
 | `src/Benchmarks` | The figures in the Kestrel host's README |
+| `docs` | The published site, and the maintainer notes under `design/` |
+
+`Hardened.Amz` and `Hardened.Docs` were repositories of their own until 2026-09-06. Nothing outside
+this repository has to be released for a change here to be tested.
 
 ## Commands
 
@@ -173,6 +179,44 @@ changes, change this one the same way.
 Dry-run a release before tagging: pack at the real version into a local folder feed and restore a
 generated project against it, with `NUGET_PACKAGES` redirected so the global cache is not poisoned.
 
+## AWS
+
+The packages under `src/Clouds/Aws` run a Hardened application on Lambda. `docs/design/aws/` holds
+the two notes that came across with them, and `docs/aws/` is the user-facing half.
+
+**The DynamoDB client tests need a running Docker daemon.** They **fail rather than skip** without
+one.
+
+**A missing `[assembly: LambdaFunctionTesting]` fails silently.** `MiddlewareService` holds no
+filters, the execution chain is empty, the handler never runs, and the invocation returns an empty
+stream. A test asserting only "no exception" passes against an application that did nothing.
+
+**Assert partial batch failures by identifier, not by count.** A right count against the wrong
+identifiers redelivers every message and deletes the poison one.
+
+**`ProxyIntegrationType.ApiGateway` is not implemented.** Payload format 2.0 is the only one, and
+selecting REST API format 1.0 is a build error, `HRDAWS001`.
+
+**No SQS client package exists.** The SQS runtime consumes a queue; writing to one means a direct
+`AWSSDK.SQS` dependency.
+
+**The response mode has to match the front door.** `HARDENED_LAMBDA_RESPONSE_MODE=stream` needs a
+function URL in `RESPONSE_STREAM` invoke mode and nothing else; `buffered` needs anything else. The
+function cannot detect which it is behind, so the CDK writes both from one request and refuses
+stream mode behind an HTTP API. There is no streaming host any more: both hosts run on
+`Amazon.Lambda.RuntimeSupport` and open the stream at the first body byte through
+`IResponseStreamFactory`, which is the seam tests substitute.
+
+**`Amazon.Lambda.Core` and `Amazon.Lambda.RuntimeSupport` move together.** The factory the stream
+opens through lives in Core and is wired by RuntimeSupport; a mismatch throws
+"LambdaResponseStreamFactory is not initialized" on the first streamed write.
+
+**The AWS sample applications are gated.** `DynamoDbStreamApp` and `SqsTest` are in
+`coverage-baseline.json`, and they are the only two entries not named `Hardened.*`. A framework
+change regenerates their handlers and routing, which grows the denominator and drops the percentage
+without anyone touching a test — re-baseline those two when that happens.
+
+
 ## Things that will catch you out
 
 **Editing `.sln` through `dotnet sln`.** `dotnet sln remove` followed by `dotnet sln add
@@ -186,8 +230,10 @@ failure is CI-only and lands at dozens of call sites at once.
 **Check `main` is synced before branching.** An unpushed local commit gets absorbed into your pull
 request's squash merge.
 
-**`Hardened.SourceGenerator` ships source, not an assembly.** Green CI here says nothing about
-whether that source compiles in a consumer. Validate a change to it against Hardened.Amz.
+**`Hardened.SourceGenerator` ships source, not an assembly.** Its own build says nothing about
+whether that source compiles in a consumer, which is why the AWS generators compile it in from
+`src/SourceGenerators/Hardened.SourceGenerator` rather than restoring the package. They are the
+in-repository consumer; a change to it that does not compile fails the same build.
 
 **Placement between `Abstract` and `Runtime`.** The contract stays in `Hardened.Requests.Abstract`;
 behaviour moves. A type a function handler needs cannot move to `Hardened.Web.Runtime` — the Lambda
@@ -202,4 +248,5 @@ function runtimes do not reference it.
 - `docs/response-caching.md` — `[CacheResponse<T>]`, the store package, who a stored answer is for, invalidating by tag, revalidating with a 304
 - `docs/request-timeouts.md` — `[Timeout]`, the four rungs it resolves through, `x-hardened-timeout` and the Smithy `@timeout` trait, tighten-only conventions, why the token is put back
 - `docs/client-testing.md` — `Returns<T>()` in `Hardened.Web.Testing`, the route and reader seam it reads through, `[assembly: KiotaTesting]` and `[assembly: RefitTesting]`, why there is a package per generator
-- Full user documentation: <https://ipjohnson.github.io/Hardened.Docs>
+- `docs/` — the published site. `npm run build` there fails on a dead internal link
+- Full user documentation: <https://ipjohnson.github.io/Hardened.Framework>
