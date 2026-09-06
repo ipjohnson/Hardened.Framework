@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+    <DataCollectionRunSettings>
+        <DataCollectors>
+            <DataCollector friendlyName="XPlat code coverage">
+                <Configuration>
+                    <Format>cobertura</Format>
+
+                    <!--
+                      Excluded from coverage because none of it is shipped, hand-written
+                      product code:
+                        *.Tests       - the test suites themselves
+                        LambdaWebTest - local sample/harness apps, not shipped
+
+                      The *.Testing packages (Hardened.Amz.Shared.Lambda.Testing,
+                      Hardened.Amz.Function.Lambda.Testing, Hardened.Amz.Function.DDB.Testing,
+                      Hardened.Amz.Function.Sqs.Testing) are deliberately NOT excluded - they
+                      ship to consumers and their coverage counts.
+
+                      CSharpAuthor, Hardened.SourceGenerator and ValidationModules all ship as
+                      source: their build targets compile src/**/*.cs into whichever assembly
+                      references them, which is what keeps a Roslyn analyzer self-contained. The
+                      two generator assemblies here are 97% that borrowed source - 6737 lines of
+                      it against roughly 170 of their own - so the gate was measuring three other
+                      libraries and reporting the number as Hardened.Amz's:
+
+                        Hardened.Amz.Function.Lambda.SourceGenerator   35.6% measured, 97.8% own
+                        Hardened.Amz.Web.Lambda.SourceGenerator        46.9% measured, 97.7% own
+
+                      It also moved for reasons that have nothing to do with this repository.
+                      Tracking Hardened.Framework 0.4.0 after being stuck on a 1.0.0-preview from
+                      before the 0.1.0 line brought in Links/, Templates/ and the compiled route
+                      constraints, and CSharpAuthor went 1.1.1006 to 1.1.1010 - so the denominator
+                      grew by framework code this repository does not execute, and the gate failed
+                      a pull request in which nothing became less tested.
+
+                      Scoped to [Hardened.Amz.*] so this repository's own namespaces are untouched:
+                      Hardened.Amz.* stays measured, Hardened.SourceGenerator.* does not. The type
+                      filters matter here - both start with "Hardened".
+
+                      Hardened.Framework carries the same filters for the same reason.
+
+                      Hardened.Idl.* is listed because the borrowed source is not all under one
+                      namespace. Hardened.SourceGenerator 0.9.0-rc1000 began shipping
+                      GZipLiteral.cs, which OpenApiDocumentSource.cs has always used and which
+                      0.8.0-rc1000 omitted from the package - that omission was a build failure
+                      for every consumer, fixed in Hardened.Framework#151. It declares
+                      namespace Hardened.Idl, so the filter above did not reach it and one
+                      borrowed file landed in the denominator of two assemblies whose own code is
+                      about 170 lines. That is enough to move the gate a long way:
+
+                        Hardened.Amz.Function.Lambda.SourceGenerator  line 97.7 -> 91.3, branch 84.3 -> 71.0
+                        Hardened.Amz.Web.Lambda.SourceGenerator       line 97.7 -> 87.2, branch 83.3 -> 55.5
+
+                      Excluded rather than re-baselined, deliberately. Lowering the floor would
+                      record a permanent drop in this repository's own coverage to account for a
+                      file it does not execute and did not write, and would hide a real regression
+                      in the ~170 lines that are actually its own. Match by namespace, not by
+                      assembly: this source is compiled into Hardened.Amz.* assemblies, so there is
+                      no separate assembly to filter on.
+
+                      Hardened.Generation.* is the same borrowed source under the name it took in
+                      Hardened.Framework 0.13.0-rc1000. It had been Hardened.Idl.Shared, which was
+                      wrong twice over: nothing referenced it as an assembly, and it held the
+                      operation model code-first builds as well - so the rename says what it is.
+                      The filter has to follow, and the cost of it not following is the same
+                      failure as before, larger, because the shared model is 26 files rather than
+                      one:
+
+                        Hardened.Amz.Function.Lambda.SourceGenerator  line 97.7 -> 23.9, branch 84.3 -> 2.4
+                        Hardened.Amz.Web.Lambda.SourceGenerator       line 97.7 -> 21.0, branch 83.3 -> 3.7
+
+                      Hardened.Idl.* stays listed. The IDL front ends keep that namespace for what
+                      is genuinely IDL, and a later package may ship some of it as source again.
+                    -->
+                    <Exclude>[*.Tests]*,[LambdaWebTest*]*,[Hardened.Amz.*]CSharpAuthor.*,[Hardened.Amz.*]Hardened.SourceGenerator.*,[Hardened.Amz.*]Hardened.Idl.*,[Hardened.Amz.*]Hardened.Generation.*,[Hardened.Amz.*]ValidationModules.*</Exclude>
+
+                    <!--
+                      Source-generated output is verified through behaviour, not by line
+                      coverage of emitted files. This matters most in this repository:
+                      StreamingEventSerializerContext alone is ~1,400 lines of
+                      System.Text.Json generated source that otherwise dominates the numbers.
+                    -->
+                    <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+                    <ExcludeByFile>**/*.g.cs</ExcludeByFile>
+
+                    <SkipAutoProps>true</SkipAutoProps>
+                    <DeterministicReport>true</DeterministicReport>
+                </Configuration>
+            </DataCollector>
+        </DataCollectors>
+    </DataCollectionRunSettings>
+</RunSettings>

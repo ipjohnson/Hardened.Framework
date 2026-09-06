@@ -1,0 +1,114 @@
+name: build-package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          source-url: https://nuget.pkg.github.com/ipjohnson/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      - run: dotnet restore
+
+      # The AWS Lambda Test Tool, pinned in .config/dotnet-tools.json. LambdaEmulatorTests starts
+      # it for real, and fails rather than skips without it.
+      - run: dotnet tool restore
+
+      # ContinuousIntegrationBuild turns warnings into errors (see src/Directory.Build.props).
+      # Local builds do not set it, so an in-progress edit does not block someone's inner loop.
+      - run: dotnet build --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
+
+      - name: Test with coverage
+        run: |
+          set -o pipefail
+          dotnet test \
+            --no-build --configuration Release \
+            --settings coverlet.runsettings \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage \
+            | tee test-output.log
+
+      # xUnit drops test cases that share a unique ID, reporting it only as an
+      # informational line. A green run can therefore hide tests that never executed.
+      # Treat any such message as a build failure.
+      - name: Fail if any test was silently skipped
+        run: |
+          if grep -q "duplicate ID" test-output.log; then
+            echo "::error::Test cases were silently skipped due to duplicate test-case IDs. Give the colliding test methods distinct names."
+            grep "duplicate ID" test-output.log
+            exit 1
+          fi
+          echo "No silently skipped tests."
+
+      # Nothing in this repository skips itself today - docs/testing-conventions.md is explicit
+      # that a Docker-dependent test fails rather than skips, and no test carries a Skip
+      # condition. This guard is for the skip that gets added later: a skipped test is one the
+      # suite is not running, and it costs nothing to say so at the point it appears rather than
+      # after a green run has been trusted.
+      #
+      # This comment claimed the opposite until 2026-08-27 - that the DynamoDB Local tests skip
+      # without a daemon - which was never true of the code and contradicted the conventions doc
+      # it sits next to.
+      - name: Fail if any test skipped
+        run: |
+          if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log; then
+            echo "::error::Tests skipped in CI. Everything the suite needs is available on the runner, so a skip means a requirement went missing - not that the test is optional."
+            grep -E "Skipped:[[:space:]]*[1-9]" test-output.log
+            exit 1
+          fi
+          echo "Every test ran."
+
+      - name: Coverage summary
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator \
+            -reports:"coverage/**/*.cobertura.xml" \
+            -targetdir:coverage-report \
+            -reporttypes:"TextSummary;MarkdownSummaryGithub;Html;JsonSummary"
+          cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          cat coverage-report/Summary.txt
+
+      # Coverage was measured and printed on every build and enforced nothing, so it could fall to
+      # zero and stay green. This gate holds each assembly at the coverage it already had.
+      # Raising a floor is a deliberate act: scripts/coverage-gate.py --update, reviewed and committed.
+      - name: Coverage gate
+        run: python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
+
+      # always(), because the report is most wanted exactly when the gate rejected the run - and
+      # the gate is the step before this one, so a failure meant no artifact to look at. Matching
+      # Hardened.Framework, where the same omission cost a round trip.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage-report
+
+      # GitHub Actions expressions have no arithmetic operators, so the 10000 offset
+      # is applied in the shell. The offset keeps the build number at five digits:
+      # NuGet compares alphanumeric prerelease labels lexically, so preview9999 would
+      # sort above preview10000.
+      - name: Pack
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          BUILD=$(( 10000 + GITHUB_RUN_NUMBER ))
+          echo "Packing 1.0.0-preview$BUILD"
+          dotnet pack --configuration Release --no-build /p:PackageVersion=1.0.0-preview$BUILD
+
+      - name: Push
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: dotnet nuget push **/bin/Release/*.nupkg --api-key ${{ secrets.GITHUB_TOKEN }} --source "https://nuget.pkg.github.com/ipjohnson/index.json" --skip-duplicate

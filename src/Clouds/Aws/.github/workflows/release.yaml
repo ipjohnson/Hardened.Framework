@@ -1,0 +1,217 @@
+name: release
+
+# Cutting a release:
+#   git tag v1.0.0 && git push origin v1.0.0
+#
+# The tag is the single source of truth for the published version. Requires a NUGET_API_KEY
+# repository secret with push rights for the Hardened.Amz.* package IDs on nuget.org.
+#
+# This is separate from build-package.yaml, which keeps publishing 1.0.0-preview{10000+run} to
+# GitHub Packages on every merge to main. That remains the continuous feed; this is the
+# deliberate one, and a version pushed to nuget.org can be unlisted but never removed.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (without the leading v), e.g. 1.0.0'
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    # Job scope, not step scope. setup-dotnet writes a nuget.config whose credential is the literal
+    # string %NUGET_AUTH_TOKEN%, which NuGet expands when it restores rather than when the config is
+    # written - so scoped to the setup step it is already gone by the time restore runs, and the
+    # GitHub Packages source answers 401. A source that cannot be reached fails the whole restore
+    # rather than the packages it serves, so the first tag pushed would have failed before packing.
+    #
+    # Unlike Hardened.Framework, this feed cannot simply be dropped: nuget.config maps Hardened.*
+    # to it, and this repository consumes those packages. A released Hardened.* goes to both feeds,
+    # so what is pinned here restores from this one and is installable from nuget.org - which is
+    # what the check after restore exists to keep true.
+    env:
+      NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+          source-url: https://nuget.pkg.github.com/ipjohnson/index.json
+
+      - name: Resolve version
+        id: version
+        run: |
+          # A manual dispatch runs against whatever ref was selected, and that selector remembers
+          # the last branch used. Without this, an unreviewed branch could be published to
+          # nuget.org, where a version can be unlisted but never removed.
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] && [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::Releases may only be dispatched from main. This run is on '${GITHUB_REF_NAME}'."
+            exit 1
+          fi
+
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+
+          # Guard against a mistyped tag producing a bad package version.
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::'$VERSION' is not a valid semantic version"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION"
+
+      - run: dotnet restore
+
+
+      # The AWS Lambda Test Tool, pinned in .config/dotnet-tools.json, for LambdaEmulatorTests.
+
+      - run: dotnet tool restore
+
+      # Every Hardened.* this repository resolved has to exist on nuget.org, because pack writes
+      # the resolved version into the nuspec and this release publishes there.
+      #
+      # Hardened.Amz.Web.Lambda.Runtime 0.1.0-rc1 shipped depending on Hardened.Requests.Abstract
+      # 1.0.0-preview10197 - a preview, which only ever exists on GitHub Packages. It 404s on
+      # nuget.org, so the published package cannot be restored by anyone using that feed alone.
+      # Nothing failed: the restore here had the private feed, and pack does not care where a
+      # version came from. A version on nuget.org can be unlisted but never removed, so this is
+      # checked before packing rather than after.
+      - name: Framework dependencies must be on nuget.org
+        run: python3 scripts/check-framework-dependencies.py
+
+      - run: dotnet build --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
+
+      - name: Test with coverage
+        run: |
+          set -o pipefail
+          dotnet test \
+            --no-build --configuration Release \
+            --settings coverlet.runsettings \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./coverage \
+            | tee test-output.log
+
+      # Nothing skips itself today - a Docker-dependent test fails rather than skips, per
+      # docs/testing-conventions.md - so this guards the skip added later rather than one that
+      # exists. A skipped test is one the suite is not running, and a release is the worst place
+      # to find that out afterwards. (This comment described the DynamoDB Local tests as
+      # self-skipping until 2026-08-27; they never did.)
+      - name: Fail if any test was skipped
+        run: |
+          if grep -q "duplicate ID" test-output.log; then
+            echo "::error::Test cases were silently skipped due to duplicate test-case IDs."
+            grep "duplicate ID" test-output.log
+            exit 1
+          fi
+          if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log; then
+            echo "::error::Tests skipped in CI. A skipped test is one the suite is not running."
+            grep -E "Skipped:[[:space:]]*[1-9]" test-output.log
+            exit 1
+          fi
+
+      - name: Coverage gate
+        run: |
+          dotnet tool install --global dotnet-reportgenerator-globaltool
+          reportgenerator \
+            -reports:"coverage/**/*.cobertura.xml" \
+            -targetdir:coverage-report \
+            -reporttypes:"TextSummary;MarkdownSummaryGithub;JsonSummary"
+          cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
+
+      # An explicit list rather than packing the solution, so nothing that is merely missing an
+      # IsPackable=false gets a public package ID by accident. On nuget.org that claim is
+      # permanent.
+      #
+      # Hardened.Amz.SourceGeneration.Testing is deliberately absent: it is the in-repo copy of
+      # Hardened.SourceGeneration.Testing, which the framework publishes, and shipping both
+      # would put two packages with the same purpose on the feed. It is marked IsPackable=False
+      # and produces no package, which is why the count below is 15 rather than 16.
+      - name: Pack
+        run: |
+          for project in \
+            src/Clients/DynamoDb/Hardened.Amz.DynamoDbClient/Hardened.Amz.DynamoDbClient.csproj \
+            src/Clients/DynamoDb/Hardened.Amz.DynamoDbClient.Testing/Hardened.Amz.DynamoDbClient.Testing.csproj \
+            src/Hardened.Amz.Cdk/Hardened.Amz.Cdk.csproj \
+            src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Runtime/Hardened.Amz.Shared.Lambda.Runtime.csproj \
+            src/Lambda/Shared/Hardened.Amz.Shared.Lambda.Testing/Hardened.Amz.Shared.Lambda.Testing.csproj \
+            src/Lambda/DynamoDbStream/Hardened.Amz.Function.DDB.Runtime/Hardened.Amz.Function.DDB.Runtime.csproj \
+            src/Lambda/DynamoDbStream/Hardened.Amz.Function.DDB.Testing/Hardened.Amz.Function.DDB.Testing.csproj \
+            src/Lambda/Function/Hardened.Amz.Function.Lambda.Runtime/Hardened.Amz.Function.Lambda.Runtime.csproj \
+            src/Lambda/Function/Hardened.Amz.Function.Lambda.Testing/Hardened.Amz.Function.Lambda.Testing.csproj \
+            src/Lambda/Sqs/Hardened.Amz.Function.Sqs.Runtime/Hardened.Amz.Function.Sqs.Runtime.csproj \
+            src/Lambda/Sqs/Hardened.Amz.Function.Sqs.Testing/Hardened.Amz.Function.Sqs.Testing.csproj \
+            src/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj \
+            src/SourceGenerators/Lambda/Function/Hardened.Amz.Function.Lambda.SourceGenerator.csproj \
+            src/SourceGenerators/Lambda/Web/Hardened.Amz.Web.Lambda.SourceGenerator.csproj; do
+            dotnet pack "$project" --configuration Release --no-build --output ./artifacts \
+              "/p:PackageVersion=${{ steps.version.outputs.version }}"
+          done
+          ls -la ./artifacts
+
+      # Checked rather than assumed: a project silently dropped from the list above would
+      # otherwise ship a partial release, and the missing package would only surface when a
+      # consumer failed to restore it.
+      - name: Verify every expected package was produced
+        run: |
+          EXPECTED=14
+          ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
+
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Packed $ACTUAL packages, expected $EXPECTED. Update the list in this workflow if a package was added or removed."
+            ls -1 ./artifacts/*.nupkg || true
+            exit 1
+          fi
+          echo "All $EXPECTED packages present."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: ./artifacts/*
+
+      - name: Push to nuget.org
+        run: |
+          dotnet nuget push "./artifacts/*.nupkg" \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: Push to GitHub Packages
+        run: |
+          dotnet nuget push "./artifacts/*.nupkg" \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --source "https://nuget.pkg.github.com/ipjohnson/index.json" \
+            --skip-duplicate --no-symbols
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # A version carrying a prerelease label must not appear as a stable release.
+          case "${{ steps.version.outputs.version }}" in
+            *-*) prerelease="--prerelease" ;;
+            *)   prerelease="" ;;
+          esac
+
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            ${prerelease} \
+            ./artifacts/*.nupkg

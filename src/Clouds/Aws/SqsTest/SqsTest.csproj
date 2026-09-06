@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Hardened.Library.SourceGenerator" />
+      <PackageReference Include="Hardened.Function.SourceGenerator" PrivateAssets="all" />
+      <PackageReference Include="Hardened.Requests.Runtime" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Lambda\Function\Hardened.Amz.Function.Lambda.Runtime\Hardened.Amz.Function.Lambda.Runtime.csproj" />
+      <ProjectReference Include="..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj" />
+      <ProjectReference Include="..\Lambda\Sqs\Hardened.Amz.Function.Sqs.Runtime\Hardened.Amz.Function.Sqs.Runtime.csproj" />
+      <ProjectReference Include="..\SourceGenerators\Lambda\Function\Hardened.Amz.Function.Lambda.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>

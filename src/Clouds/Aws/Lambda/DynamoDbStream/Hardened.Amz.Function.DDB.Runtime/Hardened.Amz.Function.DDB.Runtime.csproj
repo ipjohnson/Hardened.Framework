@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>DynamoDB Streams processing for Hardened function handlers.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Amazon.Lambda.DynamoDBEvents" />
+        <PackageReference Include="Hardened.Library.SourceGenerator" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Requests.Runtime" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Function\Hardened.Amz.Function.Lambda.Runtime\Hardened.Amz.Function.Lambda.Runtime.csproj" />
+    </ItemGroup>
+</Project>

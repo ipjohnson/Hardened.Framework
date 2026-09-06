@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Hardened.Shared.Testing" />
+      <!-- The runner behind [HardenedTest]. Split out of Hardened.Shared.Testing in 0.21.0-rc1000. -->
+      <PackageReference Include="Hardened.Shared.Testing.xUnit" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" />
+        <PackageReference Include="xunit.v3" />
+      <PackageReference Include="xunit.runner.visualstudio">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Lambda\DynamoDbStream\Hardened.Amz.Function.DDB.Testing\Hardened.Amz.Function.DDB.Testing.csproj" />
+      <ProjectReference Include="..\..\Lambda\Function\Hardened.Amz.Function.Lambda.Testing\Hardened.Amz.Function.Lambda.Testing.csproj" />
+      <ProjectReference Include="..\DynamoDbStreamApp\DynamoDbStreamApp.csproj" />
+    </ItemGroup>
+</Project>

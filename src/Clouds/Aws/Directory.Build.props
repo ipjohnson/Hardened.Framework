@@ -1,0 +1,152 @@
+<Project>
+
+    <!--
+      Package metadata shared by every package in this repository. Centralised so it cannot
+      drift per project the way the previous copy-pasted metadata did - it claimed every
+      package belonged to the CSharpAuthor repository and shipped the default
+      "Package Description".
+
+      Per-package Description and PackageId stay in the individual csproj files.
+    -->
+    <PropertyGroup>
+        <Authors>Ian Johnson</Authors>
+        <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Amz</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/ipjohnson/Hardened.Amz</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless</PackageTags>
+
+        <!-- licenseUrl is deprecated (NU5125) and pointed at another project's licence. -->
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+        <PackageIcon>hardened-icon-128.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <!--
+      PackageIcon and PackageReadmeFile both name a file inside the nupkg, so each has to be
+      packed alongside being declared - a declaration without the file is NU5046 for the icon
+      and NU5039 for the readme, both at pack time.
+
+      Same icon as Hardened.Framework's packages, from assets/ at the repository root, and the
+      repository readme on every package for the same reason that repository does it: these
+      packages are one runtime, and a per-package readme is a second place to keep current.
+
+      Note that nuget.org renders the readme through Markdig with inline HTML disabled, so raw
+      HTML in README.md is displayed as escaped text rather than rendered, and links have to be
+      absolute because a relative one resolves against nuget.org and is dropped.
+
+      That is also why the title names assets/hardened-mark-32.png rather than the 128px icon:
+      with no way to set a width, the file has to be the size it should render at. It is the
+      gunmetal tile for a related reason - one image serves both nuget.org themes only if it
+      brings its own background.
+    -->
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)../assets/hardened-icon-128.png"
+              Pack="true" PackagePath="/" Visible="false" />
+        <None Include="$(MSBuildThisFileDirectory)../README.md"
+              Pack="true" PackagePath="/" Visible="false" />
+    </ItemGroup>
+
+    <!--
+      Ship the XML documentation file.
+
+      Until 2026-08-27 no project set this, so every package contained lib/net8.0/<name>.dll and
+      nothing else. That is the whole reason it is worth changing: the prose already exists. Forty
+      three files under src/ carry <summary> blocks, and several of them are the only written
+      record of why an API behaves the way it does - BaseBatchExecutionFilter on why a metric sink
+      is per record rather than per batch, LambdaWebModule on what happens without the module
+      attribute. None of it reached a consumer, because IntelliSense reads the .xml beside the
+      .dll and there was no .xml. The comments were being written for readers of this repository
+      only, which was not the intent.
+
+      CS1591 (missing XML comment on a publicly visible type or member) is suppressed rather than
+      fixed. Turning documentation generation on is what makes the warning appear at all, and it
+      fires per public member rather than per type: 1,833 distinct sites across the solution as of
+      this change. With ContinuousIntegrationBuild escalating warnings to errors, leaving it on
+      would mean either a permanently red build or 1,833 placeholder summaries written to silence
+      a compiler, which is how a codebase ends up with "Gets or sets the Value." on every
+      property. Undocumented members are no worse off than they were yesterday; the documented
+      ones are now visible. Drop this line if the public surface is ever fully documented and the
+      gate is wanted to keep it that way.
+
+      SourceGenerator projects are excluded, for the same reason RS2008 is suppressed for them
+      below. They set IncludeBuildOutput=false and pack their assembly by hand into
+      analyzers/dotnet/cs, so there is no lib/ folder for an .xml to sit beside and nothing would
+      ship even if it were generated. What it does produce is errors: Hardened.SourceGenerator and
+      ValidationModules.SourceGenerator.Impl ship their .cs and are compiled into these projects,
+      so their doc comments are analysed here - and they name types that are not compiled in
+      (CS1574), and document some but not all parameters of a method (CS1573). Eight of them,
+      every one in another repository's file. Nothing here can fix those comments, and buying
+      eight errors for a project that ships no documentation is the wrong trade twice over.
+    -->
+    <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests')) And !$(MSBuildProjectName.Contains('SourceGenerator'))">
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      The solution builds warning-free. Escalating warnings to errors is what keeps it that way;
+      without it the count drifts back up one commit at a time. Copied from Hardened.Framework,
+      which has had this since before the split - this repository had no gate at all until
+      2026-08-15.
+
+      Deliberately scoped to CI rather than local builds, so an in-progress edit with an unused
+      variable does not block someone's inner loop. CI sets ContinuousIntegrationBuild.
+    -->
+    <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <!--
+      RS2008 asks an analyzer project to keep an AnalyzerReleases.Shipped.md tracking file. It
+      fires here for rules this repository does not own: Hardened.SourceGenerator and
+      ValidationModules.SourceGenerator.Impl ship their .cs under src/ in the package, so their
+      DiagnosticDescriptors are compiled into whichever generator project references them and
+      reported against it. Nothing in this repository can add release tracking for another
+      repository's rules.
+    -->
+    <PropertyGroup Condition="$(MSBuildProjectName.Contains('SourceGenerator'))">
+        <NoWarn>$(NoWarn);RS2008</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      NU1603, for a dependency version the Framework mis-stamped rather than one this repository
+      chose.
+
+      Hardened.Requests.Runtime 0.12.0-rc1000 was packed declaring
+      ValidationModules.Runtime (>= 0.12.0-rc1000) - its own version, on another product's
+      dependency. 0.11.0-rc1000 declares 1.0.0-rc1006 correctly, so this is a regression in that
+      one release. The version it names does not exist, so NuGet resolves upward and warns, and
+      ContinuousIntegrationBuild turns the warning into an error in every project that reaches
+      Hardened.Requests.Runtime - which is all of them.
+
+      Suppressed rather than worked around with a direct pin, because a pin here would silently
+      satisfy the wrong range and read as though this repository had an opinion about which
+      ValidationModules to use. It does not; the Framework does, and its package says the wrong
+      thing.
+
+      nuget.org is append-only, so 0.12.0-rc1000 cannot be corrected in place. Remove this the
+      moment the pins above move to a Framework release whose nuspec names a ValidationModules
+      version that exists.
+    -->
+    <PropertyGroup>
+        <NoWarn>$(NoWarn);NU1603</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      Applies to every project under src/.
+
+      Test projects get coverlet.collector so that collecting "XPlat Code Coverage" during
+      `dotnet test` produces Cobertura reports. Collection settings (what is excluded from
+      the numbers) live in coverlet.runsettings at the repository root.
+
+      The version lives in Directory.Packages.props with everything else.
+    -->
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+        <PackageReference Include="coverlet.collector">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+</Project>

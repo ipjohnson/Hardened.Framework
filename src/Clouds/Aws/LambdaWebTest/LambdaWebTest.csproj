@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <!--
+          An executable, because that is what a deployed Hardened Lambda application is: the
+          generated Main runs the AWS bootstrap, and the handler the CDK deploys is the assembly
+          name alone. It is also what makes `dotnet run` here start the function against the AWS
+          Lambda Test Tool, which replaced LambdaWebTest.Harness on 2026-09-05.
+        -->
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Hardened.Library.SourceGenerator" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Requests.Abstract" />
+        <PackageReference Include="Hardened.Requests.Runtime" />
+        <PackageReference Include="Hardened.Shared.Runtime" />
+        <PackageReference Include="Hardened.SourceGenerator" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Web.Runtime" />
+        <PackageReference Include="Hardened.Web.SourceGenerator" PrivateAssets="all" />
+    </ItemGroup>
+    
+    <ItemGroup>
+      <ProjectReference Include="..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj" />
+      <ProjectReference Include="..\Lambda\Web\Hardened.Amz.Web.Lambda.Runtime\Hardened.Amz.Web.Lambda.Runtime.csproj" />
+      <ProjectReference Include="..\SourceGenerators\Lambda\Web\Hardened.Amz.Web.Lambda.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>

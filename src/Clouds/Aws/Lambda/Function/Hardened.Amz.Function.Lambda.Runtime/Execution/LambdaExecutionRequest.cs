@@ -1,0 +1,73 @@
+﻿using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.PathTokens;
+using Hardened.Requests.Abstract.QueryString;
+using Hardened.Requests.Runtime.PathTokens;
+using Hardened.Requests.Runtime.QueryString;
+using Hardened.Shared.Runtime.Collections;
+using Microsoft.Extensions.Primitives;
+
+namespace Hardened.Amz.Function.Lambda.Runtime.Execution;
+
+public class LambdaExecutionRequest : IExecutionRequest {
+    private IPathTokenCollection? _pathTokens;
+
+    public LambdaExecutionRequest(
+        string method, 
+        string path, 
+        Stream body, 
+        IDictionary<string, StringValues> headers) {
+        Method = method;
+        Path = path;
+        Body = body;
+        Headers = headers;
+    }
+
+
+    public IExecutionRequest Clone(
+        string? method = null,
+        string? path = null,
+        IDictionary<string, StringValues>? headers = null,
+        IQueryStringCollection? queryString = null,
+        IReadOnlyList<string>? cookies = null) {
+        // Null means keep the current value, matching the rest of the Clone contract.
+        // Passing headers straight through would leave Headers null on a Clone() with no
+        // arguments, which the interface has always permitted.
+        return new LambdaExecutionRequest(method ?? this.Method, path ?? this.Path, this.Body,
+            headers ?? this.Headers);
+    }
+
+    public string Method { get; }
+
+    public string Path { get; }
+
+    public string? ContentType => Headers.GetOrDefault("Content-Type");
+
+    public string? Accept => Headers.GetOrDefault("Accept");
+
+    public IExecutionRequestParameters? Parameters { get; set; }
+
+    public Stream Body { get; set; }
+
+    public IDictionary<string, StringValues> Headers { get; }
+
+    public IQueryStringCollection QueryString => EmptyQueryStringCollection.Instance;
+
+    public IPathTokenCollection PathTokens {
+        get => _pathTokens ?? PathTokenCollection.Empty;
+        set => _pathTokens = value;
+    }
+
+    public IReadOnlyList<string> Cookies => Array.Empty<string>();
+
+    /// <summary>
+    /// Nothing, because a direct invocation has no connection to describe.
+    /// </summary>
+    /// <remarks>
+    /// The honest answer rather than a gap. A function invoked through the Lambda API - by the SDK,
+    /// by an event source, by a console - has no client address, no protocol version and no scheme,
+    /// and inventing one from the invoking identity would put something in a field callers read as
+    /// the caller's network address.
+    /// </remarks>
+    public ITransportInfo Transport => EmptyTransportInfo.Instance;
+}

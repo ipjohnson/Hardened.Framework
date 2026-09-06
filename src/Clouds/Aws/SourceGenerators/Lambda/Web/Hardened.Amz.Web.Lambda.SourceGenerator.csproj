@@ -1,0 +1,109 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Description>Source generator for Hardened web applications hosted on AWS Lambda and API Gateway.</Description>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Amz.Web.Lambda.SourceGenerator</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+        <PackageReference Include="System.Memory" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <PackageCSharpAuthorIncludeSource>true</PackageCSharpAuthorIncludeSource>
+
+        <!--
+          From ValidationModules 1.0.0-rc1012 the Impl sources compiled in below bridge ITypeSymbol
+          to ITypeDefinition through CSharpAuthor's opt-in Roslyn root, so RegionEmitter opens with
+          a using of CSharpAuthor.Roslyn. Neither source-only package can flow this switch to the
+          project compiling it - that is what PrivateAssets=all costs - so the consumer sets it.
+        -->
+        <PackageCSharpAuthorIncludeRoslyn>true</PackageCSharpAuthorIncludeRoslyn>
+
+        <PackageHardenedIncludeSource>true</PackageHardenedIncludeSource>
+
+        <!--
+            Hardened.SourceGenerator ships source-only and is compiled in above. Its validation
+            files build ValidatedTypeModel and emit validators, so they reference ValidationModules'
+            generator internals - which have to be compiled in here too, or those files do not
+            resolve. Hardened.Framework does the same thing through
+            src/SourceGenerators/ValidationModulesImpl.props.
+        -->
+        <PackageValidationModulesIncludeSource>true</PackageValidationModulesIncludeSource>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CSharpAuthor">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
+
+        <PackageReference Include="Hardened.SourceGenerator">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
+
+        <PackageReference Include="ValidationModules.SourceGenerator.Impl">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>build</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <!-- Build-only: consumers must not inherit it as a runtime dependency. -->
+        <DevelopmentDependency>true</DevelopmentDependency>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Configuration/**/*">
+            <Link>Configuration\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/DependencyInjection/**/*">
+            <Link>DependencyInjection\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Models/**/*">
+            <Link>Models\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Web/**/*">
+            <Link>Web\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Requests/**/*">
+            <Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Shared/**/*">
+            <Link>Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Templates/**/*">
+            <Link>Templates\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="..\..\Hardened.SourceGenerator\Web\CreateControllerAndAssignToContextCodeGenerator.cs"/>
+    </ItemGroup>
+
+</Project>

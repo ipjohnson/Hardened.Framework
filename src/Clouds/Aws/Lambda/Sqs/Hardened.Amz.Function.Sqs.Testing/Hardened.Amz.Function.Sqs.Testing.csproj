@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Test support for Hardened SQS handlers.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Amz.Function.Sqs.Testing</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Function\Hardened.Amz.Function.Lambda.Testing\Hardened.Amz.Function.Lambda.Testing.csproj" />
+      <ProjectReference Include="..\Hardened.Amz.Function.Sqs.Runtime\Hardened.Amz.Function.Sqs.Runtime.csproj" />
+    </ItemGroup>
+
+</Project>

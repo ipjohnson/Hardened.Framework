@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>SQS batch message processing for Hardened function handlers.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Amazon.Lambda.SQSEvents" />
+      <PackageReference Include="Hardened.Library.SourceGenerator" PrivateAssets="all" />
+      <PackageReference Include="Hardened.Requests.Runtime" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\Function\Hardened.Amz.Function.Lambda.Runtime\Hardened.Amz.Function.Lambda.Runtime.csproj" />
+    </ItemGroup>
+
+</Project>

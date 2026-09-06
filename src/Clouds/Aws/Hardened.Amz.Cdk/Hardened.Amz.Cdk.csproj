@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>AWS CDK constructs for deploying Hardened Lambda applications, including alias deployment groups and CloudWatch alarms.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Hardened.Library.SourceGenerator" PrivateAssets="all" />
+        <PackageReference Include="Hardened.Requests.Runtime" />
+        <PackageReference Include="Amazon.CDK.Lib" />
+        <PackageReference Include="Cdklabs.CdkMonitoringConstructs" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\Lambda\Shared\Hardened.Amz.Shared.Lambda.Runtime\Hardened.Amz.Shared.Lambda.Runtime.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+      <!--
+        Stack ordering is the one piece of logic here worth asserting directly. Driving it through
+        Deploy() means a CDK App, a synth and a jsii process per case, which is a slow way to ask
+        which of two stacks sorts first.
+      -->
+      <InternalsVisibleTo Include="Hardened.Amz.Cdk.Tests" />
+    </ItemGroup>
+</Project>
