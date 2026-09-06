@@ -197,3 +197,6 @@ artifacts/
 docs/node_modules/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+
+# Hang dumps and sequence files from --blame runs.
+TestResults/

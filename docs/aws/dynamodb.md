@@ -24,7 +24,7 @@ public class OrderRepository(IDynamoDbClientProvider clients) {
 Deployed, nothing needs to be set: the SDK resolves credentials from the role and the region from
 the environment. Locally, `DYNAMODB_SERVICE_URL=http://localhost:8000` points the default client
 at DynamoDB Local. Source:
-[`src/Clouds/Aws/Clients/DynamoDb`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Clients/DynamoDb)
+[`src/Clients/DynamoDb`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Clients/DynamoDb)
 in [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
 
 ## A provider rather than a client

@@ -9,15 +9,15 @@
          version, and the mock package below has to be the same line. -->
     <DependencyModulesVersion>0.0.0-DEPENDENCYMODULES-VERSION</DependencyModulesVersion>
     <!--
-      Hardened.Amz.* ships from the same repository and the same release as everything above, so it
-      takes the same version.
+      Hardened.Amz.* is the AWS line as it was last released, 0.22.0-rc1000 on nuget.org. Its source
+      is not in Hardened.Framework: it is being replaced by new Hardened.Aws projects rather than
+      renamed, so the old line stays where it was published, restorable and no longer moving.
 
-      It was floated at 0.*-*, with CentralPackageFloatingVersionsEnabled turned on to allow it,
-      because the two repositories released in sequence: for the window between them an exact pin
-      named a Hardened.Amz version that did not exist yet, and every Lambda project failed to
-      restore. One repository releases once, so there is no window and no float.
+      Pinned rather than floated. It was 0.*-* while the two repositories released in sequence,
+      because for the window between them an exact pin named a version that did not exist yet. The
+      line does not move at all now, so the pin names the release it stopped at.
     -->
-    <HardenedAmzVersion>$(HardenedVersion)</HardenedAmzVersion>
+    <HardenedAmzVersion>0.22.0-rc1000</HardenedAmzVersion>
   </PropertyGroup>
 
   <ItemGroup Label="Hardened">

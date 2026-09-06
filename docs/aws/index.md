@@ -65,12 +65,12 @@ the trimmer can follow.
 
 | Area | Page | Repository path |
 |---|---|---|
-| HTTP behind API Gateway | [API Gateway](/aws/lambda-web) | [`src/Clouds/Aws/Lambda/Web`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Lambda/Web) |
-| Plain Lambda functions | [Lambda functions](/aws/lambda-function) | [`src/Clouds/Aws/Lambda/Function`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Lambda/Function) |
-| SQS batches | [SQS](/aws/sqs) | [`src/Clouds/Aws/Lambda/Sqs`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Lambda/Sqs) |
-| DynamoDB stream records | [DynamoDB Streams](/aws/ddb-streams) | [`src/Clouds/Aws/Lambda/DynamoDbStream`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Lambda/DynamoDbStream) |
-| DynamoDB clients | [DynamoDB client](/aws/dynamodb) | [`src/Clouds/Aws/Clients/DynamoDb`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Clients/DynamoDb) |
-| Infrastructure | [CDK](/aws/cdk) | [`src/Clouds/Aws/Hardened.Amz.Cdk`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Hardened.Amz.Cdk) |
+| HTTP behind API Gateway | [API Gateway](/aws/lambda-web) | [`src/Lambda/Web`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/Web) |
+| Plain Lambda functions | [Lambda functions](/aws/lambda-function) | [`src/Lambda/Function`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/Function) |
+| SQS batches | [SQS](/aws/sqs) | [`src/Lambda/Sqs`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/Sqs) |
+| DynamoDB stream records | [DynamoDB Streams](/aws/ddb-streams) | [`src/Lambda/DynamoDbStream`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/DynamoDbStream) |
+| DynamoDB clients | [DynamoDB client](/aws/dynamodb) | [`src/Clients/DynamoDb`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Clients/DynamoDb) |
+| Infrastructure | [CDK](/aws/cdk) | [`src/Hardened.Amz.Cdk`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Hardened.Amz.Cdk) |
 | Test harnesses | [Testing AWS handlers](/aws/testing) | the `*.Testing` packages beside each runtime |
 
 The AWS integrations live in [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework) and ship

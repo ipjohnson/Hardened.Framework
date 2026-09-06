@@ -39,7 +39,7 @@ $ cdk deploy --all
 The deploy command resolves the configuration, orders the stacks, creates each `Stack` and calls
 `Synth()`. Infrastructure and runtime read the same configuration and share the same notion of a
 stage and a region. Source:
-[`src/Clouds/Aws/Hardened.Amz.Cdk`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Hardened.Amz.Cdk)
+[`src/Hardened.Amz.Cdk`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Hardened.Amz.Cdk)
 in [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
 
 ## Stages and regions
@@ -152,7 +152,7 @@ mode from one `ResponseMode` setting, so the two cannot disagree. See
 ::: warning This package is less settled than the rest
 The Lambda runtimes and clients are in production use. The CDK layer is younger and its surface
 is still moving, so read
-[the source](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Hardened.Amz.Cdk) alongside
+[the source](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Hardened.Amz.Cdk) alongside
 this page.
 :::
 

@@ -2,12 +2,6 @@
   "version": 1,
   "isRoot": true,
   "tools": {
-    "amazon.lambda.testtool": {
-      "version": "0.15.1",
-      "commands": [
-        "dotnet-lambda-test-tool"
-      ]
-    },
     "microsoft.openapi.kiota": {
       "version": "1.34.1",
       "commands": [

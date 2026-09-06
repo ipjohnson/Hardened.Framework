@@ -13,7 +13,6 @@ version, so a change and the page describing it land in the same commit.
 | [`src/Templates`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Templates) | The `dotnet new` templates, and RazorBlade view rendering |
 | [`src/Clients`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clients) | Kiota and Refit test clients |
 | [`src/SourceGenerators`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/SourceGenerators) | Every generator and build task, and the shared library they build on |
-| [`src/Clouds/Aws`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws) | The AWS packages: Lambda runtimes, DynamoDB Streams, SQS, the DynamoDB client, CDK |
 | [`src/IntegrationTests`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/IntegrationTests) | Working applications driven through the real pipeline. The worked examples in the codebase |
 | [`src/PublicApi`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/PublicApi) | The approved public surface of every shipped assembly |
 | [`docs`](https://github.com/ipjohnson/Hardened.Framework/tree/main/docs) | This site, and the maintainer notes under `design/` |
@@ -23,11 +22,13 @@ The framework is documented in the [Guide](/guide/getting-started), the AWS pack
 
 ## What used to be separate
 
-`Hardened.Amz` held the AWS packages and `Hardened.Docs` held this site, each with its own release.
-Every framework release then needed a commit in `Hardened.Amz` to take it, and a framework change
-that broke an AWS package was found after the release rather than in the pull request that caused
-it. Both are now directories here. `Hardened.Amz` stays on nuget.org at `0.22.0-rc1000`, restorable
-and no longer moving.
+`Hardened.Docs` held this site and is now `docs/`, so a page and the change that made it wrong land
+in the same commit.
+
+`Hardened.Amz` held the AWS packages. Its history is here and its source is not: the line is being
+replaced by new `Hardened.Aws` projects rather than renamed, so there was nothing to carry forward.
+It stays on nuget.org at `0.22.0-rc1000`, restorable and no longer moving, and the
+[AWS pages](/aws/) describe it as released.
 
 ## What is deliberately outside
 
@@ -43,8 +44,8 @@ dotnet build Hardened.slnx
 dotnet test  Hardened.slnx
 ```
 
-Solution filters cut it down for daily work: `filters/framework.slnf`, `filters/aws.slnf`. The
-repository stays whole; what an editor loads does not have to be.
+`filters/framework.slnf` cuts it down for daily work. The repository stays whole; what an editor
+loads does not have to be.
 
 The site is [VitePress](https://vitepress.dev), built from `docs/`:
 

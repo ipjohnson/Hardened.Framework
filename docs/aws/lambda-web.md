@@ -30,7 +30,7 @@ public async Task GetsAProduct(ITestWebApp testWebApp) {
 ```
 
 `dotnet new hardened-web --host aws-lambda` writes this shape, with a harness project that runs
-it locally over HTTP. Source: [`src/Clouds/Aws/Lambda/Web`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Lambda/Web)
+it locally over HTTP. Source: [`src/Lambda/Web`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/Web)
 in [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
 
 ## The module

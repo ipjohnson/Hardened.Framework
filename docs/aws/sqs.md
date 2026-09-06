@@ -39,7 +39,7 @@ public async Task ReportsOnlyTheBadMessage(TestSqsApp sqs) {
 
 The message body is deserialized into the parameter, so the handler works in terms of your type
 rather than an `SQSMessage`. `dotnet new hardened-function --trigger sqs` writes this shape.
-Source: [`src/Clouds/Aws/Lambda/Sqs`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Lambda/Sqs)
+Source: [`src/Lambda/Sqs`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/Sqs)
 in [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
 
 ## The envelope

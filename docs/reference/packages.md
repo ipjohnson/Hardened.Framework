@@ -1,7 +1,7 @@
 # Packages
 
-Every published package. All of them are on **nuget.org**, with no private feed and no token, and
-all of them ship together on one version. [Project templates](/guide/project-templates) reference
+Every published package. All of them are on **nuget.org**, with no private feed and no token. The
+framework packages ship together on one version; the AWS ones are a separate line that has stopped. [Project templates](/guide/project-templates) reference
 the right ones for you; this page is for assembling a project by hand.
 
 Source generator packages are referenced as analysers:
@@ -107,9 +107,9 @@ and answers 404 to everything.
 
 ## AWS
 
-Under [`src/Clouds/Aws`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws),
-and on the same version as everything above. They were `Hardened.Amz` in a repository of their own
-until 0.22.0-rc1000.
+The AWS line as it was last released, `0.22.0-rc1000` on nuget.org, from
+[Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz). It is not on the version line above and
+does not move: it is being replaced by new `Hardened.Aws` packages rather than renamed.
 
 ### Lambda runtimes
 
@@ -154,7 +154,8 @@ Everything releases on one version line, from a `v*` tag:
 
 | | Released | Continuous feed |
 |---|---|---|
-| Every package | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
+| Every framework package | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
+| `Hardened.Amz.*` | `0.22.0-rc1000`, its last | none |
 
 The current line is **`0.22.0-rc1000`**. Releases go to nuget.org; the continuous feed is
 [GitHub Packages](https://nuget.pkg.github.com/ipjohnson/index.json). Under one line, `preview`
@@ -166,6 +167,6 @@ so mixing framework builds within one application is not a supported combination
 Avoid a floating pin. A float that stops matching anything new does not fail. It keeps resolving
 whatever it last found, with a green build throughout.
 
-The Lambda templates used to float their `Hardened.Amz` pin for exactly that reason: two
-repositories released in sequence, so for a window an exact pin named a version that did not exist
-yet. One repository releases once, so the templates pin every package to the same version.
+The Lambda templates used to float their `Hardened.Amz` pin, because two repositories released in
+sequence and for a window an exact pin named a version that did not exist yet. That line has
+stopped, so they pin the release it stopped at.

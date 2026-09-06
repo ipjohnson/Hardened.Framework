@@ -5,10 +5,9 @@ and how an application consumes it; this file does not repeat that.
 
 ## Layout
 
-`Hardened.slnx` at the repository root holds every project, and that is what CI builds. A filter
-under `filters/` is what an editor opens: `framework.slnf` is 95 projects, `aws.slnf` is 45 - the
-AWS projects and the framework projects they reference. The repository stays whole; what is loaded
-into an IDE does not have to be.
+`Hardened.slnx` at the repository root holds every project, and that is what CI builds.
+`filters/framework.slnf` is what an editor opens. A cloud gets a filter of its own when it has
+projects to filter.
 
 | Path | Contents |
 |---|---|
@@ -18,14 +17,16 @@ into an IDE does not have to be.
 | `src/Templates` | The `dotnet new` templates, and RazorBlade view rendering |
 | `src/Clients` | The Kiota and Refit test clients |
 | `src/SourceGenerators` | Every generator and build task, and the shared library they build on |
-| `src/Clouds/Aws` | The AWS packages: `Lambda/` per transport, `Clients/DynamoDb`, the CDK constructs, the two generators, and the applications that exercise them |
 | `src/IntegrationTests` | Working applications driven through the real pipeline |
 | `src/PublicApi` | The approved public surface of every shipped assembly |
 | `src/Benchmarks` | The figures in the Kestrel host's README |
 | `docs` | The published site, and the maintainer notes under `design/` |
 
-`Hardened.Amz` and `Hardened.Docs` were repositories of their own until 2026-09-06. Nothing outside
-this repository has to be released for a change here to be tested.
+`Hardened.Docs` was a repository of its own until 2026-09-06 and is now `docs/`. `Hardened.Amz` was
+imported and then removed: the AWS line is being replaced by new `Hardened.Aws` projects rather than
+renamed, so its source earns no place here. It stays on nuget.org at `0.22.0-rc1000`, restorable and
+no longer moving, and its history is in this repository's — `git log` and `git blame` answer for it
+under `src/Clouds/Aws` at any commit before it was removed.
 
 ## Commands
 
@@ -33,7 +34,7 @@ this repository has to be released for a change here to be tested.
 dotnet build Hardened.slnx
 dotnet test  Hardened.slnx
 
-dotnet build filters/aws.slnf        # or framework.slnf, for daily work
+dotnet build filters/framework.slnf   # for daily work
 ```
 
 Before opening a pull request, build the way CI does:
@@ -101,6 +102,36 @@ changes name leaves its old directory behind, and Rider compiles both. Debug and
 separate directories, so an IDE reading one while you build the other reports errors `dotnet build`
 does not. Delete `obj/` when the IDE and the CLI disagree.
 
+## One executor
+
+`IRequestExecutor` in `Hardened.Requests.Abstract`, `RequestExecutor` in
+`Hardened.Requests.Runtime`. Everything a host does around the middleware chain — the begin line,
+the try/catch, the total duration, the end line, disposing the metric logger — is there and nowhere
+else. **A new host does not write its own.**
+
+It was written five times before 2026-09-06, and the cost is on the record: the same defect fixed
+three times independently, in three files, by three commits that named none of the others. A request
+that threw lost its duration, its end line and its metrics, because the close-out ran as
+straight-line statements after the chain rather than in a `finally`.
+
+Three steps rather than one call, because `IHttpApplication<TContext>` hands Kestrel the lifecycle in
+pieces: `CreateContext` has to return before `ProcessRequestAsync` is called. `Run` is the same three
+in order, for a host that owns the whole invocation.
+
+**The host still owns the scope.** `End` does not dispose one, because the hosts disagree about when
+it ends — Kestrel holds it across three callbacks, the Lambda drivers have it in an `await using`,
+and ASP.NET Core never made one.
+
+**A throw is `HostFailurePolicy`.** `Answer500` where the server's own handler would log against the
+server and abort the connection; `Rethrow` where the runtime marking an invocation failed is the
+existing contract and a 500 would hide it from retries and the dead letter queue. A host needing a
+third answer writes its own catch and still calls `Begin` and `End`: `PipelineRequest` in
+`Hardened.Web.Testing` is the one that does, because it has no connection to tear down and the
+exception reaching the caller is how a stream that failed after its first event says so.
+
+`Hardened.Benchmarks` is deliberately not on it. It runs the chain and nothing else, which is what it
+is measuring; putting the telemetry back would change the figures in the Kestrel host's README.
+
 ## Smithy needs the CLI
 
 The integration fixture compiles `.smithy` sources with the Smithy CLI, pinned by
@@ -127,9 +158,9 @@ smithy rows are only ever added to the default list.
 A diff there means the shipped contract changed: review it as an API change, then re-approve
 deliberately.
 
-Thirty-two assemblies, the twelve AWS ones included. A source generator package is not among them on
-either side: it sets `IncludeBuildOutput=false` and packs an analyzer into `analyzers/dotnet/cs`, so
-no consumer binds against it and there is no `lib` assembly to have a surface.
+Twenty assemblies. A source generator package is not among them: it sets
+`IncludeBuildOutput=false` and packs an analyzer into `analyzers/dotnet/cs`, so no consumer binds
+against it and there is no `lib` assembly to have a surface.
 
 A new package means a `ProjectReference` in the csproj **and** a name in `Shipped`, and
 `EveryShippedAssemblyBesideThisOneIsCovered` holds the second to the first. It reads the assemblies
@@ -206,54 +237,6 @@ changes, change this one the same way.
 Dry-run a release before tagging: pack at the real version into a local folder feed and restore a
 generated project against it, with `NUGET_PACKAGES` redirected so the global cache is not poisoned.
 
-## AWS
-
-The packages under `src/Clouds/Aws` run a Hardened application on Lambda. `docs/design/aws/` holds
-the two notes that came across with them, and `docs/aws/` is the user-facing half.
-
-**The DynamoDB client tests need a running Docker daemon.** They **fail rather than skip** without
-one.
-
-**A missing `[assembly: LambdaFunctionTesting]` fails silently.** `MiddlewareService` holds no
-filters, the execution chain is empty, the handler never runs, and the invocation returns an empty
-stream. A test asserting only "no exception" passes against an application that did nothing.
-
-**Assert partial batch failures by identifier, not by count.** A right count against the wrong
-identifiers redelivers every message and deletes the poison one.
-
-**`ProxyIntegrationType.ApiGateway` is not implemented.** Payload format 2.0 is the only one, and
-selecting REST API format 1.0 is a build error, `HRDAWS001`.
-
-**No SQS client package exists.** The SQS runtime consumes a queue; writing to one means a direct
-`AWSSDK.SQS` dependency.
-
-**The response mode has to match the front door.** `HARDENED_LAMBDA_RESPONSE_MODE=stream` needs a
-function URL in `RESPONSE_STREAM` invoke mode and nothing else; `buffered` needs anything else. The
-function cannot detect which it is behind, so the CDK writes both from one request and refuses
-stream mode behind an HTTP API. There is no streaming host any more: both hosts run on
-`Amazon.Lambda.RuntimeSupport` and open the stream at the first body byte through
-`IResponseStreamFactory`, which is the seam tests substitute.
-
-**`Amazon.Lambda.Core` and `Amazon.Lambda.RuntimeSupport` move together.** The factory the stream
-opens through lives in Core and is wired by RuntimeSupport; a mismatch throws
-"LambdaResponseStreamFactory is not initialized" on the first streamed write.
-
-**The AWS sample applications are gated.** `DynamoDbStreamApp` and `SqsTest` are in
-`coverage-baseline.json`, and they are the only two entries not named `Hardened.*` — which is why
-the report filter in the workflows names them, since `+Hardened.*` alone would drop them and a
-baseline entry no run reported is fatal. A framework change regenerates their handlers and routing,
-which grows the denominator and drops the percentage without anyone touching a test; re-baseline
-those two when that happens.
-
-**The seventeen AWS floors have not been re-measured here yet.** They came across as Hardened.Amz
-measured them, with coverlet under the .NET 8 SDK, and this repository measures with
-Microsoft.CodeCoverage under .NET 11. That moves numbers on its own: a local run has
-`Hardened.Amz.Web.Lambda.SourceGenerator` at 35.9% against a 98.5% floor, because the generator
-assemblies compile `Hardened.SourceGenerator` and ValidationModules in as source and the two
-collectors disagree about whether that counts. The same tests pass, and none is skipped. Take the
-first CI run on this branch and `--update` from it, as below — not from a local run.
-
-
 ## Things that will catch you out
 
 **Editing the solution through `dotnet sln`.** `dotnet sln remove` followed by `dotnet sln add
@@ -270,9 +253,10 @@ failure is CI-only and lands at dozens of call sites at once.
 request's squash merge.
 
 **`Hardened.SourceGenerator` ships source, not an assembly.** Its own build says nothing about
-whether that source compiles in a consumer, which is why the AWS generators compile it in from
-`src/SourceGenerators/Hardened.SourceGenerator` rather than restoring the package. They are the
-in-repository consumer; a change to it that does not compile fails the same build.
+whether that source compiles in a consumer, and there is no in-repository consumer of it today —
+Hardened.Amz was one until its source was removed. The `Hardened.Aws` generators, if the design ends
+up wanting any, compile it in from `src/SourceGenerators/Hardened.SourceGenerator` rather than
+restoring the package, which is what makes a break in it fail the same build.
 
 **Every package version is in `Directory.Packages.props`.** A `Version` on a `PackageReference` is
 `NU1008`. A project that genuinely needs a different version says so with `VersionOverride` and a

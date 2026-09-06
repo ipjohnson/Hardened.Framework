@@ -666,11 +666,11 @@ for TEMPLATE in hardened-library hardened-web; do
     fi
 done
 
-# These rows test the build in hand rather than the last release. The template pinned
-# Hardened.Amz.* at 0.*-* because the two repositories released in sequence, so an exact pin named
-# a version that did not exist yet for the whole window between them - which meant the framework
-# packages came from this run's feed while Hardened.Amz came from nuget.org. One repository packs
-# both into the same feed at the same version, so every package under test is one this run built.
+# The framework packages come from this run's feed and Hardened.Amz.* comes from nuget.org at
+# 0.22.0-rc1000, which is where that line stopped. Its source is not in this repository - it is
+# being replaced by new Hardened.Aws projects rather than renamed - so these rows check that the
+# build in hand still works behind the last published AWS packages. They are removed when the
+# templates move to the new line.
 say "AWS Lambda templates"
 # The function template has no seam to mock, so its two option rows prove the other runner and the
 # other libraries restore, build and run the handler tests beside the Amz testing packages.

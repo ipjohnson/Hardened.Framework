@@ -7,7 +7,7 @@ C# you can open and read.
 
 The core is provider-agnostic: a handler never learns what host it runs on, and swapping the
 runtime module is the whole migration. AWS Lambda is the function compute supported today, through
-the `Hardened.Amz.*` packages under [`src/Clouds/Aws`](src/Clouds/Aws).
+the `Hardened.Amz.*` packages on nuget.org at `0.22.0-rc1000`.
 
 Full documentation: **[ipjohnson.github.io/Hardened.Framework](https://ipjohnson.github.io/Hardened.Framework/)**
 
@@ -413,5 +413,5 @@ the [package reference](https://ipjohnson.github.io/Hardened.Framework/reference
 
 ## Related repositories
 
-- [`src/Clouds/Aws`](src/Clouds/Aws) — the AWS packages: Lambda runtimes, test harnesses, DynamoDB client, CDK constructs
+- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — the AWS packages as last released, `0.22.0-rc1000`. Being replaced by new `Hardened.Aws` projects rather than renamed
 - [`docs/`](docs) — the documentation site, published from this repository
