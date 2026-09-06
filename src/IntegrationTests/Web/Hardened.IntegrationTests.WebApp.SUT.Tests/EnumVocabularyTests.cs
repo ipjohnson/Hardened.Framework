@@ -152,12 +152,21 @@ public class EnumVocabularyTests {
         Assert.Equal(new[] { "next-day", "two-day" }, Values(schemas, "Order", "shipping"));
     }
 
-    private static string[] Values(JsonElement schemas, string schema, string property) =>
-        schemas.GetProperty(schema)
+    /// <summary>
+    /// Through the reference: an enum is one component, and the member refers to it, so a client
+    /// generator produces one type per server enum rather than one per property.
+    /// </summary>
+    private static string[] Values(JsonElement schemas, string schema, string property) {
+        var reference = schemas.GetProperty(schema)
             .GetProperty("properties")
             .GetProperty(property)
+            .GetProperty("$ref")
+            .GetString()!;
+
+        return schemas.GetProperty(reference.Substring("#/components/schemas/".Length))
             .GetProperty("enum")
             .EnumerateArray()
             .Select(value => value.GetString()!)
             .ToArray();
+    }
 }

@@ -105,10 +105,16 @@ public class EnumWireVocabularyTests {
 
         using var document = JsonDocument.Parse(GeneratedOpenApiDocument.Extract(source));
 
-        var values = document.RootElement
-            .GetProperty("components").GetProperty("schemas")
-            .GetProperty("Ticket").GetProperty("properties").GetProperty("priority")
-            .GetProperty("enum")
+        var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
+
+        // One component per enum, referenced from the member, so a client generator produces one
+        // type per server enum rather than one per property.
+        Assert.Equal(
+            "#/components/schemas/Priority",
+            schemas.GetProperty("Ticket").GetProperty("properties").GetProperty("priority")
+                .GetProperty("$ref").GetString());
+
+        var values = schemas.GetProperty("Priority").GetProperty("enum")
             .EnumerateArray().Select(value => value.GetString()).ToArray();
 
         Assert.Equal(new[] { "low", "inProgress" }, values);

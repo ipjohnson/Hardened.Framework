@@ -2356,12 +2356,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "enum": [
-                "low",
-                "inProgress",
-                "onHold"
-              ]
+              "$ref": "#/components/schemas/Priority"
             }
           }
         ],
@@ -2492,11 +2487,7 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string",
-              "enum": [
-                "next-day",
-                "two-day"
-              ]
+              "$ref": "#/components/schemas/Shipping"
             }
           }
         ],
@@ -2617,12 +2608,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "string",
-                  "enum": [
-                    "low",
-                    "inProgress",
-                    "onHold"
-                  ]
+                  "$ref": "#/components/schemas/Priority"
                 }
               }
             }
@@ -5306,6 +5292,13 @@
           }
         }
       },
+      "LegacyCode": {
+        "type": "string",
+        "enum": [
+          "AB12",
+          "CD34"
+        ]
+      },
       "MathAddModel": {
         "type": "object",
         "properties": {
@@ -5349,20 +5342,20 @@
         ],
         "properties": {
           "code": {
-            "type": "string",
-            "enum": [
-              "AB12",
-              "CD34"
-            ]
+            "$ref": "#/components/schemas/LegacyCode"
           },
           "shipping": {
-            "type": "string",
-            "enum": [
-              "next-day",
-              "two-day"
-            ]
+            "$ref": "#/components/schemas/Shipping"
           }
         }
+      },
+      "Priority": {
+        "type": "string",
+        "enum": [
+          "low",
+          "inProgress",
+          "onHold"
+        ]
       },
       "Reading": {
         "type": "object",
@@ -5463,6 +5456,13 @@
           }
         }
       },
+      "Shipping": {
+        "type": "string",
+        "enum": [
+          "next-day",
+          "two-day"
+        ]
+      },
       "Ticket": {
         "type": "object",
         "required": [
@@ -5474,12 +5474,7 @@
             "type": "string"
           },
           "priority": {
-            "type": "string",
-            "enum": [
-              "low",
-              "inProgress",
-              "onHold"
-            ]
+            "$ref": "#/components/schemas/Priority"
           }
         }
       }
