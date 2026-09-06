@@ -6,6 +6,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>Hardened.Requests.Serializers.Newtonsoft</PackageId>
+        <IsPackable>true</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
