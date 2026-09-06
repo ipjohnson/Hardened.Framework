@@ -118,7 +118,7 @@ public static class JsonSchemaWriter {
             }
 
             if (named.TypeKind == TypeKind.Enum) {
-                return EnumSchema(named, enums, compilationAssembly);
+                return EnumRef(named, components, enums, compilationAssembly);
             }
 
             if (named.TypeKind is TypeKind.Class or TypeKind.Struct or TypeKind.Interface) {
@@ -151,6 +151,27 @@ public static class JsonSchemaWriter {
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// An enum as one component, referenced from every member typed with it.
+    /// </summary>
+    /// <remarks>
+    /// The values were written inline at every use, so a document with three enums carried
+    /// thirteen copies and a client generator produced one type per property: Refitter's
+    /// <c>JobStatus</c>, <c>JobSummaryStatus</c>, <c>JobEventStatus</c> and <c>Status</c> were one
+    /// server enum, and every test that moved a value between models converted by hand. One
+    /// component under the enum's name is one generated type. The parameter writer in
+    /// <c>OpenApiDocumentGenerator</c> refers to the same component from the vocabulary it holds.
+    /// </remarks>
+    private static string EnumRef(
+        INamedTypeSymbol named, Dictionary<string, string> components,
+        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
+        var name = SchemaName(named);
+
+        components[name] = EnumSchema(named, enums, compilationAssembly);
+
+        return "{\"$ref\":\"#/components/schemas/" + Escape(name) + "\"}";
     }
 
     /// <summary>

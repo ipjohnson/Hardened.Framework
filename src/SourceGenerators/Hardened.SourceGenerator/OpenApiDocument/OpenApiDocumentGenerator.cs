@@ -81,6 +81,14 @@ public static class OpenApiDocumentGenerator {
             enums[vocabulary.QualifiedName] = vocabulary;
         }
 
+        // Every vocabulary is a component, whether a body reached it or only a parameter did. A
+        // parameter's schema refers to the component by name, and a parameter-only enum has no
+        // body schema to carry it in. A body schema that reaches the same enum writes the same
+        // component again, byte for byte.
+        foreach (var vocabulary in enums.Values) {
+            components[vocabulary.Name] = EnumComponent(vocabulary);
+        }
+
         // Grouped by path, because a document keys operations under one path entry rather than
         // repeating the path per verb.
         // Grouped by the template, which is what the document keys on - not by the route, which is
@@ -1113,6 +1121,10 @@ public static class OpenApiDocumentGenerator {
     /// Consulting it is what keeps a parameter's <c>enum</c> array agreeing with what the binder
     /// accepts - the fourth of the four places <c>EnumWireNaming</c>'s remarks require to agree.
     /// </remarks>
+    /// <summary>
+    /// A reference to the component an enum parameter's vocabulary is written as, or null for a
+    /// type that is not one of the application's enums.
+    /// </summary>
     private static string? EnumSchema(
         ITypeDefinition type, IReadOnlyDictionary<string, EnumVocabulary> enums) {
         var qualified = "global::" + type.Namespace + "." + type.Name.TrimEnd('?');
@@ -1121,6 +1133,11 @@ public static class OpenApiDocumentGenerator {
             return null;
         }
 
+        return "{\"$ref\":\"#/components/schemas/" + JsonSchemaWriter.Escape(vocabulary.Name) + "\"}";
+    }
+
+    /// <summary>The component an enum is written as: its values, in the vocabulary the wire carries.</summary>
+    private static string EnumComponent(EnumVocabulary vocabulary) {
         var builder = new StringBuilder("{\"type\":\"string\",\"enum\":[");
 
         for (var i = 0; i < vocabulary.Values.Count; i++) {

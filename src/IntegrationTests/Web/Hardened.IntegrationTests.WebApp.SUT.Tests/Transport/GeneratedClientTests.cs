@@ -72,7 +72,7 @@ public class GeneratedClientTests {
         var ticket = await client.EnumVocabulary.Ticket.GetAsync(cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("Ship it", ticket!.Title);
-        Assert.Equal(ClientModels.Ticket_priority.InProgress, ticket.Priority);
+        Assert.Equal(ClientModels.Priority.InProgress, ticket.Priority);
     }
 
     /// <summary>

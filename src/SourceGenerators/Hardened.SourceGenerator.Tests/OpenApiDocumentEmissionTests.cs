@@ -407,12 +407,19 @@ public class OpenApiDocumentEmissionTests {
     /// </summary>
     [Fact]
     public void AnEnumParameterCarriesItsVocabulary() {
-        var schema = ListParameter(FidelityDocument(), "carrier").GetProperty("schema");
+        var document = FidelityDocument();
+        var schema = ListParameter(document, "carrier").GetProperty("schema");
 
-        Assert.Equal("string", schema.GetProperty("type").GetString());
+        // One component per enum, referenced from the parameter as from a member, so a client
+        // generator produces one type per server enum rather than one per use.
+        Assert.Equal("#/components/schemas/Carrier", schema.GetProperty("$ref").GetString());
+
+        var carrier = document.GetProperty("components").GetProperty("schemas").GetProperty("Carrier");
+
+        Assert.Equal("string", carrier.GetProperty("type").GetString());
         Assert.Equal(
             new[] { "dhl", "fedex", "royalMail" },
-            schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+            carrier.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
     }
 
     /// <summary>
@@ -423,13 +430,17 @@ public class OpenApiDocumentEmissionTests {
     /// </summary>
     [Fact]
     public void AParameterOnlyEnumCarriesItsVocabulary() {
-        var schema = Parameter(FidelityDocument(), "/shipments/urgent", "priority")
-            .GetProperty("schema");
+        var document = FidelityDocument();
+        var schema = Parameter(document, "/shipments/urgent", "priority").GetProperty("schema");
 
-        Assert.Equal("string", schema.GetProperty("type").GetString());
+        Assert.Equal("#/components/schemas/Priority", schema.GetProperty("$ref").GetString());
+
+        var priority = document.GetProperty("components").GetProperty("schemas").GetProperty("Priority");
+
+        Assert.Equal("string", priority.GetProperty("type").GetString());
         Assert.Equal(
             new[] { "low", "high" },
-            schema.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+            priority.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
     }
 
     /// <summary>
