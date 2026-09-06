@@ -431,6 +431,7 @@ the other.
 | `026` | Warning. `$(HardenedResponseModel)` is `Standard`, the throws mode's name before 0.19.0. The mode selected is unchanged; write `Throws`. Reported once per project. |
 | `027` | The description references something it does not declare. Part of the model-diagnostics pass; see below. |
 | `018`, `019`, `028`–`031` | The document export, which the three generator packages share. See below. |
+| `032` | Warning. `nullable` declared under a banner that removed the keyword. Part of the model-diagnostics pass; see below. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 
@@ -511,7 +512,7 @@ The `hardened-web` template's project files carry three checks of their own, in 
 | `HTPL003` | The Kiota tool and `Microsoft.Kiota.Bundle` disagree. The tool version in `.config/dotnet-tools.json` and `KiotaBundleVersion` in `Directory.Packages.props` move together; the message names both versions and both files. |
 | `HTPL004` | The Refitter tool could not be restored, so the client cannot be generated (`--client refit`). The pin is in `.config/dotnet-tools.json`; a fresh machine needs network for the first restore. There is no counterpart to `HTPL003` for the Refit pair, because Refitter does not report the Refit version it writes for. |
 
-### The model-diagnostics pass (020–027)
+### The model-diagnostics pass (020–027, 032)
 
 Problems any description can state that would generate C# which does not compile, found before
 anything is emitted so they are reported against the document rather than as compiler errors in a
@@ -526,6 +527,10 @@ generated file.
 | `024` | Warning. A declared keyword or trait the generator does not enforce, named with a representative location. Remove it, or enforce the rule in the handler. |
 | `026` | Warning. A path template names a token the operation declares no path parameter for. The route matches and the value is discarded. |
 | `027` | A reference to something the description does not declare. |
+| `032` | Warning. `nullable` written under a 3.1 or later banner, which removed the keyword. The reader does not read it, so the member generates non-null and a null the service sends fails to deserialize. Write `type: [<type>, "null"]`. |
+
+`028`–`031` were taken by the document export before this pass needed another number, which is
+why the newest finder is `032`.
 
 `025` is retired. It rejected two error responses at one status on one operation, and a valid
 Smithy model says that routinely — two `@error("client")` shapes both default to 400. The reason it

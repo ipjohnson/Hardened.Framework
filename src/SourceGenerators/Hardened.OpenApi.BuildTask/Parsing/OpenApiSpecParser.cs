@@ -1300,7 +1300,35 @@ internal static class OpenApiSpecParser {
             unmapped.Add(new UnmappedKeywordModel("not", location));
         }
 
+        NoteUnmappedNullable(schema, location, unmapped);
         NoteUnmappedItemConstraints(schema, location, unmapped);
+    }
+
+    /// <summary>
+    /// <c>nullable</c> written under a banner that removed it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// OpenAPI 3.1 dropped the keyword in favour of <c>"null"</c> in the type, and the reader
+    /// honours that: under a 3.0 banner <c>nullable: true</c> arrives folded into
+    /// <see cref="JsonSchemaType.Null"/> and <see cref="IsNullable"/> reads it; under 3.1 or 3.2
+    /// it is not a keyword at all, so the reader parks it here and nothing looked. The member
+    /// generated as non-null, the service sent null through it, and a generated client's
+    /// <c>int</c> failed to read the response - with no build output between the document and
+    /// that.
+    /// </para>
+    /// <para>
+    /// Reported rather than honoured. The document is what the author asked for, and a parser
+    /// that quietly restores a keyword the version removed makes the file mean something no other
+    /// reader would agree with. <c>type: [integer, "null"]</c> is the spelling, and the message
+    /// says so.
+    /// </para>
+    /// </remarks>
+    private static void NoteUnmappedNullable(
+        IOpenApiSchema schema, string location, ICollection<UnmappedKeywordModel> unmapped) {
+        if (schema.UnrecognizedKeywords is { } keywords && keywords.ContainsKey("nullable")) {
+            unmapped.Add(new UnmappedKeywordModel("nullable", location));
+        }
     }
 
     /// <summary>

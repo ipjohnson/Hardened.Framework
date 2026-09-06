@@ -24,7 +24,10 @@ namespace Hardened.Idl;
 /// left with it.
 /// </para>
 /// <para>
-/// Codes are the front end's prefix plus 020-024 and 027, one number per finder. The prefix is a
+/// Codes are the front end's prefix plus 020-024, 027 and 032, one number per finder. 032 rather
+/// than the retired 025, because a project still carrying a NoWarn for what 025 used to be would
+/// silence a diagnostic about something else; 028-031 belong to the document export. The prefix
+/// is a
 /// parameter because this pass runs for every front end and a finding belongs to the document
 /// that caused it: a Smithy model's mixed enum reported as HOAT anything sends its author to the
 /// OpenAPI documentation. 020 up is this pass's block; everything below it belongs to the task
@@ -159,6 +162,21 @@ internal static class SpecDiagnostics {
                 : $"at {locations[0]} and {locations.Count - 1} other " +
                   (locations.Count == 2 ? "place" : "places");
 
+            // A keyword the version removed is a different thing from a rule that is not
+            // enforced, and takes different advice: nothing was promised and left unapplied, the
+            // reader never saw the keyword at all. See NullableKeyword.
+            if (keyword == NullableKeyword) {
+                problems.Add(new Problem(
+                    prefix + "032",
+                    $"'nullable' is declared {where} and was not read. OpenAPI 3.1 removed the " +
+                    "keyword, so a reader on this document's version ignores it: the member " +
+                    "generates as non-null and a null the service sends fails to deserialize. " +
+                    "Write the null in the type instead, as type: [<type>, \"null\"].",
+                    fatal: false));
+
+                continue;
+            }
+
             problems.Add(new Problem(
                 prefix + "024",
                 $"'{keyword}' is declared {where} and is not enforced. The description promises it " +
@@ -171,6 +189,16 @@ internal static class SpecDiagnostics {
                 fatal: false));
         }
     }
+
+    /// <summary>
+    /// The keyword <c>OpenApiSpecParser.NoteUnmappedNullable</c> records, which earns its own code.
+    /// </summary>
+    /// <remarks>
+    /// Its own code so it can be silenced on its own. A document carrying <c>nullable</c> under a
+    /// 3.1 banner is usually one converted from 3.0 in bulk, which is exactly the case where the
+    /// warning fires on every member at once and the author wants to keep the rest of 024.
+    /// </remarks>
+    private const string NullableKeyword = "nullable";
 
     /// <summary>
     /// An <c>enum</c> declaring both strings and numbers, which is not a C# enum in either form.

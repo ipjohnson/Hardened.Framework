@@ -496,9 +496,126 @@ public static class OpenApiDocumentGenerator {
 
         WriteValidationResponse(builder, handler, components);
         WriteAuthenticationResponse(builder, handler, components);
+        WriteAuthorizationResponse(builder, handler, components);
+        WriteTimeoutResponse(builder, handler, components);
         WriteConstrainedPathResponse(builder, handler);
 
         builder.Append('}');
+    }
+
+    /// <summary>
+    /// The 403 an operation whose security requires a scope can answer, declared rather than
+    /// implied.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A scoped entry becomes <c>Requirement.Grant</c>, which refuses an authenticated caller who
+    /// does not hold it - so the status is a fact about the operation the way the 401 beside it
+    /// is. An entry with no scopes becomes <c>Requirement.Authenticated</c> and can refuse nobody
+    /// who got past the 401, which is why this is keyed on the scopes rather than on there being a
+    /// requirement at all. <c>docs/described-authorization.md</c> is the table both readings come
+    /// from.
+    /// </para>
+    /// <para>
+    /// Every alternative, because the array is an OR. One unscoped entry beside a scoped one is
+    /// satisfied by anybody who got past the 401, so the 403 is unreachable and publishing it
+    /// would be the second half of the same defect this closes.
+    /// </para>
+    /// <para>
+    /// Only a described operation reaches this. An attribute-routed one gets the same 403 from
+    /// <c>IAuthorizeAttribute</c>'s <c>[AnswersStatus]</c>, which lands in <c>ResponseSchemas</c>
+    /// and takes <see cref="DeclaresStatus"/>'s branch out.
+    /// </para>
+    /// </remarks>
+    private static void WriteAuthorizationResponse(
+        StringBuilder builder, RequestHandlerModel handler,
+        SortedDictionary<string, string> components) {
+        if (!EveryAlternativeRequiresAScope(handler) || DeclaresStatus(handler, 403)) {
+            return;
+        }
+
+        components["ErrorModel"] = ErrorModelSchema;
+
+        builder.Append(",\"403\":{\"description\":\"The caller does not hold what this operation requires.\"," +
+                       "\"content\":{\"application/json\":{\"schema\":" +
+                       "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}");
+    }
+
+    /// <summary>
+    /// Whether the operation declares security and every alternative names at least one scope.
+    /// </summary>
+    /// <remarks>
+    /// The entries are written as OpenAPI requirement objects - <c>{"oauth2":["pets:read"]}</c> -
+    /// so a scope is a non-empty array under some scheme. Read as text rather than reparsed,
+    /// because this generator writes the same strings a few lines further down and holds no JSON
+    /// reader; a bracket pair with something between it is the whole of the question.
+    /// </remarks>
+    private static bool EveryAlternativeRequiresAScope(RequestHandlerModel handler) {
+        if (handler.SecurityRequirements.Count == 0) {
+            return false;
+        }
+
+        foreach (var requirement in handler.SecurityRequirements) {
+            if (!NamesAScope(requirement)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Whether one requirement object carries a non-empty scope array.</summary>
+    private static bool NamesAScope(string requirement) {
+        var open = requirement.IndexOf('[');
+
+        while (open >= 0) {
+            var close = requirement.IndexOf(']', open);
+
+            if (close < 0) {
+                return false;
+            }
+
+            if (requirement.Substring(open + 1, close - open - 1).Trim().Length > 0) {
+                return true;
+            }
+
+            open = requirement.IndexOf('[', close);
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The status a bounded operation answers when its budget runs out, declared rather than
+    /// implied.
+    /// </summary>
+    /// <remarks>
+    /// <c>x-hardened-timeout</c> says how long the operation may take and nothing about what the
+    /// caller is told, so a described contract that declared a deadline published a budget and no
+    /// status while the runtime answered 504 all along. An attribute-routed handler already has
+    /// this from <c>TimeoutAttribute</c>'s <c>[AnswersStatus]</c>, which is where the wording is
+    /// taken from so the two paths publish one sentence.
+    /// </remarks>
+    private static void WriteTimeoutResponse(
+        StringBuilder builder, RequestHandlerModel handler,
+        SortedDictionary<string, string> components) {
+        if (handler.DeclaredTimeout is not { } timeout || DeclaresStatus(handler, timeout.Status)) {
+            return;
+        }
+
+        components["ErrorModel"] = ErrorModelSchema;
+
+        builder.Append(",\"").Append(timeout.Status)
+            .Append("\":{\"description\":\"The operation did not finish inside its budget.\"");
+
+        if (timeout.RetryAfterSeconds > 0) {
+            builder.Append(",\"headers\":{\"Retry-After\":{" +
+                           "\"description\":\"How long to wait before trying again, in seconds.\"," +
+                           "\"schema\":{\"type\":\"integer\"}}}");
+        }
+
+        builder.Append(",\"content\":{\"application/json\":{\"schema\":" +
+                       "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}");
     }
 
     /// <summary>
