@@ -316,6 +316,20 @@ public class OpenApiDocumentEmissionTests {
             [property: ValidationModules.Constraints.ItemCount(Min = 1, Max = 10)]
             List<Shipment> Batch);
 
+        public record Eta(
+            [property: System.Text.Json.Serialization.JsonPropertyName("mins")] int Minutes,
+            string Kind = "standard",
+            Carrier Carrier = Carrier.Dhl,
+            int? Retries = null,
+            bool Express = false,
+            double Factor = 1.5,
+            char Zone = 'A',
+            DayOfWeek Day = DayOfWeek.Monday);
+
+        public record Page<T>(List<T> Items, int Total);
+
+        public record Courier(string Name);
+
         public class ShipmentController {
             [Get("/shipments")]
             public Task<List<Shipment>> List(
@@ -337,6 +351,25 @@ public class OpenApiDocumentEmissionTests {
 
             [Post("/shipments/{id}/archive")]
             public Task Archive(string id) => Task.CompletedTask;
+
+            [Get("/shipments/{id}/eta")]
+            public Task<Eta> Eta(string id) => Task.FromResult(new Eta(7));
+
+            [Get("/shipments/pages")]
+            public Task<Page<Shipment>> ShipmentPage() =>
+                Task.FromResult(new Page<Shipment>(new List<Shipment>(), 0));
+
+            [Get("/couriers/pages")]
+            public Task<Page<Courier>> CourierPage() =>
+                Task.FromResult(new Page<Courier>(new List<Courier>(), 0));
+
+            [Get("/couriers/batches")]
+            public Task<Page<Courier[]>> CourierBatches() =>
+                Task.FromResult(new Page<Courier[]>(new List<Courier[]>(), 0));
+
+            [Get("/couriers/counts")]
+            public Task<Page<int?>> CourierCounts() =>
+                Task.FromResult(new Page<int?>(new List<int?>(), 0));
         }
         """;
 
@@ -507,6 +540,68 @@ public class OpenApiDocumentEmissionTests {
         Assert.Contains("quantity", required);
         Assert.Contains("carrier", required);
         Assert.DoesNotContain("note", required);
+    }
+
+    private static JsonElement Schema(string name) =>
+        FidelityDocument().GetProperty("components").GetProperty("schemas").GetProperty(name);
+
+    private static List<string?> Required(JsonElement schema) =>
+        schema.GetProperty("required").EnumerateArray().Select(value => value.GetString()).ToList();
+
+    /// <summary>
+    /// A member renamed for the wire with [JsonPropertyName] is published under that name. It was
+    /// published under the camelCased member name, which the wire never carries, so a client
+    /// generated from the document read nothing for it and nothing failed.
+    /// </summary>
+    [Fact]
+    public void AJsonPropertyNameIsTheDocumentsName() {
+        var eta = Schema("Eta");
+        var properties = eta.GetProperty("properties");
+
+        Assert.True(properties.TryGetProperty("mins", out _));
+        Assert.False(properties.TryGetProperty("minutes", out _));
+        Assert.Contains("mins", Required(eta));
+    }
+
+    /// <summary>
+    /// A positional parameter with a default is a member the caller may omit: it is not required,
+    /// and the default is written in the wire's vocabulary. Every non-nullable member was required.
+    /// </summary>
+    [Fact]
+    public void APositionalDefaultIsPublishedAndTheMemberIsNotRequired() {
+        var eta = Schema("Eta");
+        var properties = eta.GetProperty("properties");
+
+        Assert.Equal("standard", properties.GetProperty("kind").GetProperty("default").GetString());
+        Assert.Equal("dhl", properties.GetProperty("carrier").GetProperty("default").GetString());
+        Assert.False(properties.GetProperty("express").GetProperty("default").GetBoolean());
+        Assert.Equal(1.5, properties.GetProperty("factor").GetProperty("default").GetDouble());
+        Assert.Equal("A", properties.GetProperty("zone").GetProperty("default").GetString());
+        Assert.Equal("Monday", properties.GetProperty("day").GetProperty("default").GetString());
+        Assert.False(properties.GetProperty("retries").TryGetProperty("default", out _));
+        Assert.Equal(new[] { "mins" }, Required(eta));
+    }
+
+    /// <summary>
+    /// A constructed type is one component per set of arguments. Page&lt;Shipment&gt; and
+    /// Page&lt;Courier&gt; shared one component named Page, written from whichever was reached
+    /// first, so the second operation was documented as returning the first one's items.
+    /// </summary>
+    [Fact]
+    public void AConstructedTypeIsNamedByItsArguments() {
+        var schemas = FidelityDocument().GetProperty("components").GetProperty("schemas");
+
+        Assert.False(schemas.TryGetProperty("Page", out _));
+
+        var shipments = schemas.GetProperty("PageOfShipment").GetProperty("properties")
+            .GetProperty("items").GetProperty("items").GetProperty("$ref").GetString();
+        var couriers = schemas.GetProperty("PageOfCourier").GetProperty("properties")
+            .GetProperty("items").GetProperty("items").GetProperty("$ref").GetString();
+
+        Assert.Equal("#/components/schemas/Shipment", shipments);
+        Assert.Equal("#/components/schemas/Courier", couriers);
+        Assert.True(schemas.TryGetProperty("PageOfCourierArray", out _));
+        Assert.True(schemas.TryGetProperty("PageOfInt32", out _));
     }
 
     /// <summary>
