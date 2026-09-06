@@ -83,6 +83,7 @@ public class LambdaApplicationEntryPointWriter : ApplicationEntryPointFileWriter
 
         mainMethod.Assign(New(model.EntryPointType)).ToVar("app");
 
+        mainMethod.AddIndentedStatement(BootstrapEmitter.StartEmulator(apiGateway: false));
         mainMethod.AddIndentedStatement(BootstrapEmitter.Build("app.Invoke"));
         mainMethod.AddIndentedStatement(BootstrapEmitter.Run());
     }

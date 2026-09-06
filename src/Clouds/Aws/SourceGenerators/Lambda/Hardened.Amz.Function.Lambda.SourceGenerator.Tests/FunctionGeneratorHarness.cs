@@ -1,5 +1,6 @@
 using Amazon.Lambda.Core;
 using Amazon.Lambda.RuntimeSupport;
+using Hardened.Amz.Shared.Lambda.Runtime.Development;
 using DependencyModules.Runtime.Helpers;
 using Hardened.Amz.Function.Lambda.Runtime.Impl;
 using Hardened.Amz.SourceGeneration.Testing;
@@ -24,6 +25,7 @@ public static class FunctionGeneratorHarness {
     /// </summary>
     public static readonly Type[] Anchors = [
         typeof(ILambdaHandlerPackage),      // Hardened.Amz.Function.Lambda.Runtime
+        typeof(LambdaEmulator),                    // Hardened.Amz.Shared.Lambda.Runtime, for the emitted Main
         typeof(LambdaBootstrapBuilder),     // Amazon.Lambda.RuntimeSupport, for the emitted Main
         typeof(IExecutionRequestHandler),   // Hardened.Requests.Abstract
         typeof(HardenedFunctionAttribute),  // Hardened.Requests.Abstract (attributes)

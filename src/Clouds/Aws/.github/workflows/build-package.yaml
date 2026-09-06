@@ -25,6 +25,10 @@ jobs:
 
       - run: dotnet restore
 
+      # The AWS Lambda Test Tool, pinned in .config/dotnet-tools.json. LambdaEmulatorTests starts
+      # it for real, and fails rather than skips without it.
+      - run: dotnet tool restore
+
       # ContinuousIntegrationBuild turns warnings into errors (see src/Directory.Build.props).
       # Local builds do not set it, so an in-progress edit does not block someone's inner loop.
       - run: dotnet build --configuration Release --no-restore -p:ContinuousIntegrationBuild=true

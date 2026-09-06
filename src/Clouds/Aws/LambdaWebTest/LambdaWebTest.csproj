@@ -1,6 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <!--
+          An executable, because that is what a deployed Hardened Lambda application is: the
+          generated Main runs the AWS bootstrap, and the handler the CDK deploys is the assembly
+          name alone. It is also what makes `dotnet run` here start the function against the AWS
+          Lambda Test Tool, which replaced LambdaWebTest.Harness on 2026-09-05.
+        -->
+        <OutputType>Exe</OutputType>
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

@@ -11,8 +11,7 @@ namespace Hardened.Amz.Shared.Lambda.Runtime.Streaming;
 /// <para>
 /// <see cref="LambdaResponseStreamFactory"/> is static and its setter is internal to the AWS
 /// packages, so nothing built on it can be exercised outside a real invocation. This is the seam:
-/// the hosts open every stream through it, tests capture the prelude and the bytes through it, and
-/// the local harness supplies one that writes to the ASP.NET response.
+/// the hosts open every stream through it, and tests capture the prelude and the bytes through it.
 /// </para>
 /// </remarks>
 public interface IResponseStreamFactory {

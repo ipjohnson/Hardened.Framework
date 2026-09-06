@@ -11,7 +11,7 @@ The solution is `Hardened.Amz.sln` at the repository root.
 | Path | Contents |
 |---|---|
 | `src/Lambda/Function` | Direct invocation and the batch filter base |
-| `src/Lambda/Web` | API Gateway and function URLs, the local harness |
+| `src/Lambda/Web` | API Gateway and function URLs |
 | `src/Lambda/DynamoDbStream` | Stream records, `[NewImage]`, `[OldImage]` |
 | `src/Lambda/Sqs` | SQS batches and partial batch responses |
 | `src/Lambda/Shared` | Structured logging, embedded metrics, stage and region types, the response mode and the response stream both hosts share |
@@ -110,7 +110,7 @@ function URL in `RESPONSE_STREAM` invoke mode and nothing else; `buffered` needs
 function cannot detect which it is behind, so the CDK writes both from one request and refuses
 stream mode behind an HTTP API. There is no streaming host any more: both hosts run on
 `Amazon.Lambda.RuntimeSupport` and open the stream at the first body byte through
-`IResponseStreamFactory`, which is the seam tests and the harness substitute.
+`IResponseStreamFactory`, which is the seam tests substitute.
 
 **`Amazon.Lambda.Core` and `Amazon.Lambda.RuntimeSupport` move together.** The factory the stream
 opens through lives in Core and is wired by RuntimeSupport; a mismatch throws

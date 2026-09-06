@@ -39,9 +39,30 @@ public class BootstrapEntryPointTests {
         FunctionGeneratorHarness.AssertEmits(application,
             "using var bootstrap = global::Amazon.Lambda.RuntimeSupport.LambdaBootstrapBuilder.Create(" +
             "(global::System.Func<global::System.IO.Stream, global::Amazon.Lambda.Core.ILambdaContext, " +
-            "global::System.Threading.Tasks.Task<global::System.IO.Stream>>)app.Invoke).Build();");
+            "global::System.Threading.Tasks.Task<global::System.IO.Stream>>)app.Invoke)" +
+            ".ConfigureOptions(options => options.RuntimeApiEndpoint = emulator.RuntimeApiEndpoint).Build();");
         FunctionGeneratorHarness.AssertEmits(application,
             "await bootstrap.RunAsync(global::System.Threading.CancellationToken.None);");
+    }
+
+
+    /// <summary>
+    /// Before the bootstrap is built, <c>Main</c> asks for the AWS Lambda Test Tool: started as a
+    /// child process when the function is run locally, passive on Lambda. The bootstrap is then
+    /// pointed at whatever came back, which is null on Lambda and leaves it reading
+    /// <c>AWS_LAMBDA_RUNTIME_API</c>. This one gets no gateway, since a function is invoked from the tool's UI or an event source.
+    /// </summary>
+    [Fact]
+    public void MainStartsTheEmulatorWhenLocalAndPointsTheBootstrapAtIt() {
+        var application = Application();
+
+        FunctionGeneratorHarness.AssertEmits(application,
+            "using var emulator = await global::Hardened.Amz.Shared.Lambda.Runtime.Development.LambdaEmulator" +
+            ".StartIfLocal(app.GetType(), false);");
+        Assert.True(
+            application.IndexOf("LambdaEmulator.StartIfLocal", StringComparison.Ordinal) <
+            application.IndexOf("LambdaBootstrapBuilder.Create", StringComparison.Ordinal),
+            "the emulator has to exist before the bootstrap that is pointed at it");
     }
 
     /// <summary>

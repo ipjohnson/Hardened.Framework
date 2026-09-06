@@ -55,10 +55,6 @@
     "line": 59.4,
     "branch": 41.9
   },
-  "Hardened.Amz.Web.Lambda.Harness": {
-    "line": 87.5,
-    "branch": 100.0
-  },
   "Hardened.Amz.Web.Lambda.Runtime": {
     "line": 99.4,
     "branch": 98.2

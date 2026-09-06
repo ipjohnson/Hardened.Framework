@@ -54,9 +54,9 @@ public class ProductController {
 The generated class has two entry points. `Main` runs the application on
 `Amazon.Lambda.RuntimeSupport`'s bootstrap and is what a deployed function starts; see
 [Project shape](#project-shape). `Invoke(request, context)`, taking an
-`APIGatewayHttpApiV2ProxyRequest`, is the buffered handler: it is what tests and the local harness
-drive, and a class library deployed with an `Assembly::Type::Invoke` handler on the managed
-runtime keeps working through it.
+`APIGatewayHttpApiV2ProxyRequest`, is the buffered handler: it is what tests drive, and a class
+library deployed with an `Assembly::Type::Invoke` handler on the managed runtime keeps working
+through it.
 
 Payload format 2.0 only. `[LambdaWebApplication(Version = ProxyIntegrationType.ApiGateway)]`
 selects REST API payload format 1.0, which is not implemented and is a build error (`HRDAWS001`).
@@ -225,6 +225,24 @@ Web projects swap the function runtime and generator for
 
 Versions are not written here. Central package management is on, and every version lives in
 `src/Directory.Packages.props`.
+
+## Running locally
+
+`Main` asks `LambdaEmulator.StartIfLocal` for a session before it builds the bootstrap. With
+`AWS_LAMBDA_RUNTIME_API` set - on Lambda, under the runtime interface emulator, or against a tool
+started by hand - the session is passive and the bootstrap reads the variable as before. Otherwise
+the AWS Lambda Test Tool is started as a child process, or reused when one is already listening,
+and the bootstrap is pointed at it through `LambdaBootstrapOptions.RuntimeApiEndpoint`.
+
+| | Web application | Function |
+|---|---|---|
+| Emulator and its UI | `http://localhost:5050` | `http://localhost:5050` |
+| API Gateway emulator | `http://localhost:5080`, payload format 2.0, every method on `/` and `/{proxy+}` | none; invoke from the UI |
+| Moved by | `HARDENED_LAMBDA_EMULATOR_PORT`, `PORT` | `HARDENED_LAMBDA_EMULATOR_PORT` |
+
+The tool is `amazon.lambda.testtool`, pinned in `.config/dotnet-tools.json`; `dotnet tool restore`
+is the setup. The gateway emulator buffers, so a stream-mode application is exercised by
+`LambdaWebTest.Tests` and a deployment, not locally.
 
 ## Testing
 

@@ -2,8 +2,8 @@
 
 Runs [Hardened](https://ipjohnson.github.io/Hardened.Docs) applications on AWS Lambda. The handlers,
 parameter binding, configuration and tests are the core framework's. This repository supplies what
-runs underneath: the Lambda runtimes, response streaming, the test harnesses, a DynamoDB client and
-CDK constructs.
+runs underneath: the Lambda runtimes, response streaming, the local emulator session, the test
+harnesses, a DynamoDB client and CDK constructs.
 
 AWS documentation: **[ipjohnson.github.io/Hardened.Docs/aws](https://ipjohnson.github.io/Hardened.Docs/aws/)**
 
@@ -18,9 +18,9 @@ dotnet new hardened-web -n Todos --host aws-lambda        # web API behind API G
 dotnet new hardened-function -n OrderQueue --trigger sqs  # SQS batch processor
 ```
 
-The first generates the same todo API the Kestrel host does, and a harness that runs it locally
-over HTTP. A Lambda application is an ordinary Hardened application with a runtime module on it,
-and the module is the only line that differs from the Kestrel bootstrap:
+The first generates the same todo API the Kestrel host does. A Lambda application is an ordinary
+Hardened application with a runtime module on it, and the module is the only line that differs
+from the Kestrel bootstrap:
 
 ```csharp
 [HardenedModule]
@@ -78,6 +78,24 @@ every response opens a stream at its first body byte, and a handler returning
 invoke mode together; see
 [Response mode](https://github.com/ipjohnson/Hardened.Amz/blob/main/docs/application-types.md#response-mode).
 
+## Running locally
+
+Run the application project, from the IDE or with `dotnet run`. When nothing has set
+`AWS_LAMBDA_RUNTIME_API`, the generated `Main` starts the
+[AWS Lambda Test Tool](https://github.com/aws/aws-lambda-dotnet/tree/master/Tools/LambdaTestTool-v2)
+as a child process and points the bootstrap at it. A web application answers on
+`http://localhost:5080` through the tool's API Gateway emulator, the same address the Kestrel
+host uses; a function is invoked from the tool's UI at `http://localhost:5050`. `PORT` and
+`HARDENED_LAMBDA_EMULATOR_PORT` move them. The debugger is on the process the Lambda service would
+start, running the same `Main`, bootstrap and event serialiser.
+
+The tool is a dotnet tool, pinned in `.config/dotnet-tools.json` here and in the templates, so
+`dotnet tool restore` is the only setup. A tool left running by the debugger's stop button is found
+and reused by the next start. Until 2026-09-05 this took a second project,
+`Hardened.Amz.Web.Lambda.Harness`, which wrapped the application in ASP.NET Core and never ran
+the generated `Main`; it is gone. The tool has no response streaming, so stream mode is exercised
+by the tests below and by a deployment.
+
 ## Testing without AWS
 
 Each runtime has a matching harness that drives the real pipeline in-process. No deployed function,
@@ -87,8 +105,6 @@ and no mocked SDK types:
 - `TestSqsApp` (`Hardened.Amz.Function.Sqs.Testing`) delivers batches and asserts partial failures.
 - `Hardened.Amz.Function.DDB.Testing` feeds stream records.
 - `[LocalDynamoDb]` (`Hardened.Amz.DynamoDbClient.Testing`) runs DynamoDB in Testcontainers.
-- `Hardened.Amz.Web.Lambda.Harness` puts the API Gateway pipeline behind a local HTTP listener,
-  streaming when the application is deployed in stream mode.
 
 See [testing AWS handlers](https://ipjohnson.github.io/Hardened.Docs/aws/testing) and
 [testing conventions](https://github.com/ipjohnson/Hardened.Amz/blob/main/docs/testing-conventions.md).

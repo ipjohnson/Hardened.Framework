@@ -1,6 +1,7 @@
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.RuntimeSupport;
+using Hardened.Amz.Shared.Lambda.Runtime.Development;
 using DependencyModules.Runtime.Helpers;
 using Hardened.Amz.SourceGeneration.Testing;
 using Hardened.Amz.Web.Lambda.Runtime;
@@ -27,6 +28,7 @@ public static class WebGeneratorHarness {
     public static readonly Type[] Anchors = [
         typeof(IApiGatewayEventProcessor),         // Hardened.Amz.Web.Lambda.Runtime
         typeof(LambdaWebApplicationAttribute),     // Hardened.Amz.Web.Lambda.Runtime (attributes)
+        typeof(LambdaEmulator),                    // Hardened.Amz.Shared.Lambda.Runtime, for the emitted Main
         typeof(LambdaBootstrapBuilder),            // Amazon.Lambda.RuntimeSupport, for the emitted Main
         typeof(IWebExecutionHandlerService),       // Hardened.Web.Runtime
         typeof(ServerSentEventsAttribute),         // Hardened.Web.Runtime (attributes)

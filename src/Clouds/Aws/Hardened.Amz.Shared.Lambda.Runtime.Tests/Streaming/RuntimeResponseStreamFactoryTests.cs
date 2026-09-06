@@ -7,7 +7,7 @@ namespace Hardened.Amz.Shared.Lambda.Runtime.Tests.Streaming;
 /// <summary>
 /// The default seam is the AWS factory, which only the bootstrap can initialise. Outside an
 /// invocation it says so rather than handing back a stream that goes nowhere - which is the
-/// reason the seam exists, and why tests and the harness substitute it.
+/// reason the seam exists, and why tests substitute it.
 /// </summary>
 public class RuntimeResponseStreamFactoryTests {
 

@@ -11,7 +11,7 @@ namespace Hardened.Amz.Web.Lambda.SourceGenerator.Tests;
 /// <c>Main</c>, and it drove the Lambda Runtime API through a hand-rolled host. Every entry point
 /// gets one now, the host is the AWS bootstrap, and whether a response streams is a deployment
 /// setting the running application reads. The buffered <c>Invoke</c> stays beside it for the
-/// managed runtime's class-library handler shape, the tests and the local harness.
+/// managed runtime's class-library handler shape and the tests.
 /// </para>
 /// </summary>
 public class BootstrapEntryPointTests {
@@ -43,7 +43,8 @@ public class BootstrapEntryPointTests {
         WebGeneratorHarness.AssertEmits(application,
             "using var bootstrap = global::Amazon.Lambda.RuntimeSupport.LambdaBootstrapBuilder.Create(" +
             "(global::System.Func<global::System.IO.Stream, global::Amazon.Lambda.Core.ILambdaContext, " +
-            "global::System.Threading.Tasks.Task<global::System.IO.Stream>>)host.Invoke).Build();");
+            "global::System.Threading.Tasks.Task<global::System.IO.Stream>>)host.Invoke)" +
+            ".ConfigureOptions(options => options.RuntimeApiEndpoint = emulator.RuntimeApiEndpoint).Build();");
         WebGeneratorHarness.AssertEmits(application,
             "await bootstrap.RunAsync(global::System.Threading.CancellationToken.None);");
     }
@@ -62,6 +63,26 @@ public class BootstrapEntryPointTests {
             "global::Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyResponse> Invoke(",
             application);
         Assert.Contains("Task Main(string[] args)", application);
+    }
+
+
+    /// <summary>
+    /// Before the bootstrap is built, <c>Main</c> asks for the AWS Lambda Test Tool: started as a
+    /// child process when the function is run locally, passive on Lambda. The bootstrap is then
+    /// pointed at whatever came back, which is null on Lambda and leaves it reading
+    /// <c>AWS_LAMBDA_RUNTIME_API</c>. This one gets an API Gateway emulator in front of it.
+    /// </summary>
+    [Fact]
+    public void MainStartsTheEmulatorWhenLocalAndPointsTheBootstrapAtIt() {
+        var application = Application();
+
+        WebGeneratorHarness.AssertEmits(application,
+            "using var emulator = await global::Hardened.Amz.Shared.Lambda.Runtime.Development.LambdaEmulator" +
+            ".StartIfLocal(app.GetType(), true);");
+        Assert.True(
+            application.IndexOf("LambdaEmulator.StartIfLocal", StringComparison.Ordinal) <
+            application.IndexOf("LambdaBootstrapBuilder.Create", StringComparison.Ordinal),
+            "the emulator has to exist before the bootstrap that is pointed at it");
     }
 
     /// <summary>

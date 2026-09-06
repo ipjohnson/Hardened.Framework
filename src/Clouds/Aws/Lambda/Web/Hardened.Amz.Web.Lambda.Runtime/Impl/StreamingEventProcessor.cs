@@ -24,8 +24,8 @@ public interface IStreamingEventProcessor {
     /// <param name="request">The payload format 2.0 event.</param>
     /// <param name="context">The invocation's context.</param>
     /// <param name="streams">
-    /// Where the stream is opened. The host passes the runtime's; the local harness passes one that
-    /// writes to the ASP.NET response; a test passes one that captures the prelude and the bytes.
+    /// Where the stream is opened. The host passes the runtime's; a test passes one that captures
+    /// the prelude and the bytes.
     /// </param>
     Task Process(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext context, IResponseStreamFactory streams);
 }

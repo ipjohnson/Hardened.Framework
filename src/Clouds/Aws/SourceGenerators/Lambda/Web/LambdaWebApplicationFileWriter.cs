@@ -96,7 +96,7 @@ public class LambdaWebApplicationFileWriter : ApplicationEntryPointFileWriter {
 
     /// <summary>
     /// The buffered handler, for the managed runtime's class-library handler shape and for tests
-    /// and the local harness that drive the application directly.
+    /// that drive the application directly.
     /// </summary>
     private static void CreateInvoke(ClassDefinition classDefinition) {
         var eventProcessor = classDefinition.Fields.First(f => f.Name == "_eventProcessor");
@@ -140,6 +140,7 @@ public class LambdaWebApplicationFileWriter : ApplicationEntryPointFileWriter {
 
         mainMethod.Assign(resolveHost).ToVar("host");
 
+        mainMethod.AddIndentedStatement(BootstrapEmitter.StartEmulator(apiGateway: true));
         mainMethod.AddIndentedStatement(BootstrapEmitter.Build("host.Invoke"));
         mainMethod.AddIndentedStatement(BootstrapEmitter.Run());
     }

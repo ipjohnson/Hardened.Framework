@@ -130,7 +130,7 @@ public class ResponseModeTests {
     }
 
     /// <summary>
-    /// The buffered <c>Invoke</c> the tests and the harness drive is unchanged by the mode: a
+    /// The buffered <c>Invoke</c> the tests drive is unchanged by the mode: a
     /// stream-mode application still answers it with the payload.
     /// </summary>
     [Fact]

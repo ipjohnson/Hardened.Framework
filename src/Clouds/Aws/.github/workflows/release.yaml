@@ -78,6 +78,11 @@ jobs:
 
       - run: dotnet restore
 
+
+      # The AWS Lambda Test Tool, pinned in .config/dotnet-tools.json, for LambdaEmulatorTests.
+
+      - run: dotnet tool restore
+
       # Every Hardened.* this repository resolved has to exist on nuget.org, because pack writes
       # the resolved version into the nuspec and this release publishes there.
       #
@@ -153,7 +158,6 @@ jobs:
             src/Lambda/Sqs/Hardened.Amz.Function.Sqs.Runtime/Hardened.Amz.Function.Sqs.Runtime.csproj \
             src/Lambda/Sqs/Hardened.Amz.Function.Sqs.Testing/Hardened.Amz.Function.Sqs.Testing.csproj \
             src/Lambda/Web/Hardened.Amz.Web.Lambda.Runtime/Hardened.Amz.Web.Lambda.Runtime.csproj \
-            src/Lambda/Web/Hardened.Amz.Web.Lambda.Harness/Hardened.Amz.Web.Lambda.Harness.csproj \
             src/SourceGenerators/Lambda/Function/Hardened.Amz.Function.Lambda.SourceGenerator.csproj \
             src/SourceGenerators/Lambda/Web/Hardened.Amz.Web.Lambda.SourceGenerator.csproj; do
             dotnet pack "$project" --configuration Release --no-build --output ./artifacts \
