@@ -1,6 +1,6 @@
-using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Hardened.Requests.Testing.Conformance;
 
 namespace Hardened.Aws.Lambda.Runtime.Tests.Conformance;
@@ -38,7 +38,7 @@ public class InvokeRequestConformanceTests : PayloadExecutionRequestConformanceT
             // The client context's custom values are the only header-like channel a direct
             // invocation has, so that is where the spec's headers go. A caller using the SDK sets
             // them; an event source sets none.
-            var context = new ConformanceLambdaContext(spec.Headers);
+            var context = new TestLambdaContext(spec.Headers);
 
             var body = spec.Body == null ? Stream.Null : new MemoryStream(spec.Body);
 
@@ -56,39 +56,4 @@ public class InvokeRequestConformanceTests : PayloadExecutionRequestConformanceT
         }
     }
 
-    /// <summary>
-    /// Enough <see cref="ILambdaContext"/> to build a request. Every member the adapter does not
-    /// read throws rather than answering a plausible default, so a change that starts reading one
-    /// says so here instead of silently binding a fabricated value.
-    /// </summary>
-    private sealed class ConformanceLambdaContext : ILambdaContext {
-        public ConformanceLambdaContext(IDictionary<string, string> custom) {
-            ClientContext = new ConformanceClientContext(custom);
-        }
-
-        public string FunctionName => "conformance";
-
-        public IClientContext ClientContext { get; }
-
-        public string AwsRequestId => throw new NotSupportedException();
-        public string FunctionVersion => throw new NotSupportedException();
-        public ICognitoIdentity Identity => throw new NotSupportedException();
-        public string InvokedFunctionArn => throw new NotSupportedException();
-        public ILambdaLogger Logger => throw new NotSupportedException();
-        public string LogGroupName => throw new NotSupportedException();
-        public string LogStreamName => throw new NotSupportedException();
-        public int MemoryLimitInMB => throw new NotSupportedException();
-        public TimeSpan RemainingTime => throw new NotSupportedException();
-    }
-
-    private sealed class ConformanceClientContext : IClientContext {
-        public ConformanceClientContext(IDictionary<string, string> custom) {
-            Custom = custom;
-        }
-
-        public IDictionary<string, string> Custom { get; }
-
-        public IClientApplication Client => throw new NotSupportedException();
-        public IDictionary<string, string> Environment => throw new NotSupportedException();
-    }
 }
