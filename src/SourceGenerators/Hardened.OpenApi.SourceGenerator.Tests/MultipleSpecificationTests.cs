@@ -119,4 +119,84 @@ public class MultipleSpecificationTests {
             result.GeneratedSources[OpenApiGenerator.DiagnosticHintName]);
         Assert.Contains("IPetService", result.GeneratedSources["pets.g.cs"]);
     }
+
+    /// <summary>
+    /// A document whose null return writes a body, twice.
+    /// </summary>
+    /// <remarks>
+    /// The holder every generated instance is a field on was called <c>DefaultErrorBodies</c>
+    /// whatever document produced it, so two contracts that each declared a fillable 404 emitted
+    /// the class twice into one namespace: CS0101 on the second document, and a CS0229 on every
+    /// handler naming a field. Every other per-document holder this emitter writes already carried
+    /// the file name.
+    /// </remarks>
+    [Fact]
+    public void TwoDocumentsThatEachWriteAnErrorBodyCompile() {
+        var result = OpenApiGenerator.Run(
+            new Dictionary<string, string> {
+                ["pets.yaml"] = ErrorBodySpec("pets", "Pet", "PetProblem"),
+                ["stores.yaml"] = ErrorBodySpec("stores", "Store", "StoreProblem")
+            },
+            OpenApiGenerator.MinimalEntryPoint);
+
+        Assert.Empty(result.Errors);
+    }
+
+    /// <summary>And each holder is named after the document that produced it.</summary>
+    [Fact]
+    public void EachDocumentsErrorBodyHolderIsNamedAfterIt() {
+        var result = OpenApiGenerator.Run(
+            new Dictionary<string, string> {
+                ["pets.yaml"] = ErrorBodySpec("pets", "Pet", "PetProblem"),
+                ["stores.yaml"] = ErrorBodySpec("stores", "Store", "StoreProblem")
+            },
+            OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
+
+        Assert.Contains("class PetsErrorBodies", result.GeneratedSources["pets.g.cs"]);
+        Assert.Contains("class StoresErrorBodies", result.GeneratedSources["stores.g.cs"]);
+        Assert.DoesNotContain("DefaultErrorBodies", result.GeneratedSources["pets.g.cs"]);
+    }
+
+    /// <summary>
+    /// A GET declaring a 404 over a schema whose members can all be filled, which is what puts an
+    /// instance in the holder.
+    /// </summary>
+    private static string ErrorBodySpec(string tag, string model, string problem) =>
+        $$"""
+        openapi: "3.0.0"
+        info: { title: {{tag}}, version: "1.0" }
+        paths:
+          /{{tag}}/{id}:
+            get:
+              tags: [{{tag}}]
+              operationId: get{{tag}}
+              parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema: { type: string }
+              responses:
+                '200':
+                  description: found
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/{{model}}' }
+                '404':
+                  description: missing
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/{{problem}}' }
+        components:
+          schemas:
+            {{model}}:
+              type: object
+              properties:
+                id: { type: string }
+            {{problem}}:
+              type: object
+              properties:
+                type: { type: string }
+                title: { type: string }
+                status: { type: integer }
+        """;
 }

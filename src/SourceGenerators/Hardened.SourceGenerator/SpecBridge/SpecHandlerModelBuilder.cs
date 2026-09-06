@@ -49,7 +49,7 @@ internal static class SpecHandlerModelBuilder {
                     spec.ResponseModel,
                     spec.ValidatedOperations, filterTypeLookup, spec.Schemas,
                     service.DispatchHeader, Symbols(symbols, operation),
-                    service.TagDescription, spec.BindCancellationToken);
+                    service.TagDescription, spec.BindCancellationToken, spec.FileName);
                 models.Add(model);
             }
         }
@@ -94,7 +94,8 @@ internal static class SpecHandlerModelBuilder {
         string? dispatchHeader = null,
         OperationSymbols? symbols = null,
         string? tagDescription = null,
-        bool bindCancellationToken = false) {
+        bool bindCancellationToken = false,
+        string specFileName = "") {
         var methodName = operation.MethodName;
 
         // Derived by convention from the service's name for a described application, because a
@@ -115,7 +116,8 @@ internal static class SpecHandlerModelBuilder {
         var parameters = BuildParameters(
             operation, modelsNamespace, schemas, symbols, bindCancellationToken);
         var responseInfo = symbols?.ResponseInformation
-                           ?? BuildResponseInfo(operation, schemas, modelsNamespace, responseModel);
+                           ?? BuildResponseInfo(
+                               operation, schemas, modelsNamespace, responseModel, specFileName);
 
         var filters = new List<AttributeModel>();
 
@@ -399,7 +401,7 @@ internal static class SpecHandlerModelBuilder {
 
     private static ResponseInformationModel BuildResponseInfo(
         OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace,
-        SpecResponseModel responseModel) {
+        SpecResponseModel responseModel, string specFileName) {
         ITypeDefinition? returnType = null;
 
         // A stream, ahead of everything else, exactly as ServiceInterfaceEmitter.GetReturnType
@@ -509,7 +511,8 @@ internal static class SpecHandlerModelBuilder {
             DefaultStatusCode =
                 operation.SuccessStatusCode == 200 ? null : operation.SuccessStatusCode,
 
-            NullResponseBodyExpression = NullResponseBody(operation, schemas, modelsNamespace),
+            NullResponseBodyExpression =
+                NullResponseBody(operation, schemas, modelsNamespace, specFileName),
 
             // The set the response is negotiated against. Empty means the description said nothing,
             // which leaves negotiation exactly as it was rather than declaring an empty set.
@@ -546,7 +549,8 @@ internal static class SpecHandlerModelBuilder {
     /// compile - the shared decision is what stops the two drifting.
     /// </remarks>
     private static string? NullResponseBody(
-        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace) {
+        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace,
+        string specFileName) {
         var schemaName = DefaultErrorBody.SchemaFor(operation);
 
         if (schemaName == null) {
@@ -559,7 +563,7 @@ internal static class SpecHandlerModelBuilder {
             return null;
         }
 
-        return $"global::{modelsNamespace}.{DefaultErrorBody.HolderTypeName}." +
+        return $"global::{modelsNamespace}.{DefaultErrorBody.HolderTypeName(specFileName)}." +
                DefaultErrorBody.FieldName(schemaName, DefaultErrorBody.NullResponseStatus);
     }
 

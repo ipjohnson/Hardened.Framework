@@ -58,6 +58,29 @@ public static class UnresolvedHandler {
     }
 
     /// <summary>
+    /// Whether emitting this handler would produce code that does not compile.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two reasons, and the second is why this is separate from
+    /// <see cref="UnresolvedParameter"/>. A parameter whose type does not resolve cannot be bound.
+    /// And two parameters that both fall to the request body leave the second with nothing to
+    /// pass, because a request carries one body and the bridge keeps the first - so the emitted
+    /// invocation omits an argument the method requires, and the build fails on a <c>CS7036</c>
+    /// inside <c>obj/</c> beside the <c>HRDR009</c> that explains it. The generated file was a
+    /// second, worse account of a defect already reported in full.
+    /// </para>
+    /// <para>
+    /// Both output stages read this, for the reason the type doc gives: routing to a handler class
+    /// that was never written is uncompilable output, which is worse than the missing route. The
+    /// build fails either way - HRDR009 is an error - so nothing reaches a running service on the
+    /// strength of the skip.
+    /// </para>
+    /// </remarks>
+    public static bool CannotBeEmitted(this RequestHandlerModel model) =>
+        model.UnresolvedParameter() != null || model.AdditionalBodyParameters.Count > 0;
+
+    /// <summary>
     /// True when the handler was skipped, having reported why. Callers emit nothing further.
     /// </summary>
     public static bool ReportIfUnresolved(this RequestHandlerModel model, SourceProductionContext context) {

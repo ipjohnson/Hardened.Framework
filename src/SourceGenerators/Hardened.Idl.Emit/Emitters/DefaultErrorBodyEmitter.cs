@@ -25,7 +25,8 @@ internal static class DefaultErrorBodyEmitter {
         IConstructContainer container,
         IReadOnlyList<SchemaModel> schemas,
         IReadOnlyCollection<(string SchemaName, int StatusCode)> wanted,
-        string modelsNamespace) {
+        string modelsNamespace,
+        string specFileName) {
         if (wanted.Count == 0) {
             return;
         }
@@ -49,7 +50,7 @@ internal static class DefaultErrorBodyEmitter {
                 continue;
             }
 
-            holder ??= CreateHolder(container);
+            holder ??= CreateHolder(container, specFileName);
 
             var typeName = NamingHelper.ToPascalCase(schema.Name);
 
@@ -69,8 +70,8 @@ internal static class DefaultErrorBodyEmitter {
         }
     }
 
-    private static ClassDefinition CreateHolder(IConstructContainer container) {
-        var holder = container.AddClass(DefaultErrorBody.HolderTypeName);
+    private static ClassDefinition CreateHolder(IConstructContainer container, string specFileName) {
+        var holder = container.AddClass(DefaultErrorBody.HolderTypeName(specFileName));
 
         holder.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         holder.Comment = DocComment.Format(

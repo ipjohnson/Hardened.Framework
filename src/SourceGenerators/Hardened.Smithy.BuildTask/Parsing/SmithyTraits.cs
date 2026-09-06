@@ -36,6 +36,18 @@ internal static class SmithyTraits {
     /// </remarks>
     internal const string Timeout = "hardened.api#timeout";
 
+    /// <summary>
+    /// That a member's narrowing to a C# type is intended. This framework's own, not the prelude's.
+    /// </summary>
+    /// <remarks>
+    /// <c>BigDecimal</c> and <c>BigInteger</c> narrow, and HSMT006 says so once per member. A model
+    /// that reached for <c>BigDecimal</c> to get exactness rather than range has arrived, and had
+    /// no way to say so - the only route to a warning-free build was suppressing the code for the
+    /// whole project, which silences the members that did lose something. Defined in
+    /// <c>hardened.smithy</c> beside <see cref="Timeout"/>.
+    /// </remarks>
+    internal const string Narrowed = "hardened.api#narrowed";
+
     internal const string Http = "smithy.api#http";
     internal const string HttpLabel = "smithy.api#httpLabel";
     internal const string HttpQuery = "smithy.api#httpQuery";
@@ -115,6 +127,7 @@ internal static class SmithyTraits {
         Readonly, Idempotent, Input, Output, Private, Internal, Mixin,
         Trait,
         Timeout,
+        Narrowed,
         Streaming
     };
 

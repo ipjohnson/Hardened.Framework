@@ -61,12 +61,21 @@ public class WebExecutionHandlerCodeGenerator {
         // silently over the class's.
         CompressDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
-        // Two body parameters compile into a CS7036 in generated code, and one body parameter on
-        // a GET compiles into a handler that refuses every request.
+        // Two body parameters, and one body parameter on a GET that refuses every request.
         BodyParameterDiagnostics.Report(sourceProductionContext, requestHandlerModel);
 
         // A zero budget compiles, publishes, and fails the first request.
         TimeoutDeclarationDiagnostics.Report(sourceProductionContext, requestHandlerModel);
+
+        // Every diagnostic first, then the decision. Two body parameters are the one case above
+        // whose generated file does not compile: the invocation omits an argument the method
+        // requires, so a CS7036 in obj/ was reported beside the HRDR009 that already said what was
+        // wrong and how to fix it. Skipping is safe here for the reason it is safe for an
+        // unresolved parameter and unsafe for the rest - the routing table skips the same
+        // handlers, and HRDR009 fails the build regardless.
+        if (requestHandlerModel.CannotBeEmitted()) {
+            return;
+        }
 
         var sourceFile = GenerateFile(requestHandlerModel, sourceProductionContext.CancellationToken, excludeFromCoverage);
 
