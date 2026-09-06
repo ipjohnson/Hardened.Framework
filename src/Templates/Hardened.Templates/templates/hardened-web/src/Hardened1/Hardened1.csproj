@@ -78,6 +78,7 @@
       later would otherwise compile and silently never run.
     -->
     <PackageReference Include="Hardened.Validation.SourceGenerator" />
+<!--#if (specFirst) -->
     <!--
       PrivateAssets="all" so the generators stay in this project.
       
@@ -91,6 +92,7 @@
       One attribute stops the whole subtree at this project's boundary, which is where a build-time
       generator belongs anyway.
     -->
+<!--#endif -->
 <!--#if (openapi) -->
     <PackageReference Include="Hardened.OpenApi.SourceGenerator" PrivateAssets="all" />
 <!--#endif -->

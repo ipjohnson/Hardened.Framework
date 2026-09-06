@@ -39,33 +39,20 @@ public class TodoTests {
 #endif
     }
 
-#if (codeFirst && throwsMode)
+#if (codeFirst)
+#if (throwsMode)
     /// <summary>
-    /// Throws mode documents only the 200, so the document declares no body for the 404 and there
-    /// is no type to name: the status is what is asserted. The declared models close exactly that gap.
+    /// [Throws&lt;NotFound&gt;] on the handler puts the 404 in the document, so Refitter generated a
+    /// model for its body - named after the case, NotFound - and the refusal is read as it, through
+    /// the client's own serializer. Without the attribute the status is all the client can see.
     /// </summary>
-    [HardenedTest]
-    public async Task GetTodo_UnknownId_IsAnUntypedNotFound(ITemplateModuleNameClient client) {
-        await client.GetTodo(9999).ReturnsStatus<NotFound>();
-    }
-
-    [HardenedTest]
-    public async Task RemoveTodo_UnknownId_IsAnUntypedNotFound(ITemplateModuleNameClient client) {
-        await client.RemoveTodo(9999).ReturnsStatus<NotFound>();
-    }
-
-    /// <summary>Titles are unique, which is what gives the sample a real 409 - thrown and undocumented, like the 404.</summary>
-    [HardenedTest]
-    public async Task CreateTodo_DuplicateTitle_IsAnUntypedConflict(ITemplateModuleNameClient client) {
-        await client.CreateTodo(new ClientModels.NewTodo { Title = "Add an endpoint" }).ReturnsStatus<Conflict>();
-    }
-#endif
-#if (codeFirst && declaredMode)
+#else
     /// <summary>
     /// The 404 is in the signature, so it is in the document, so Refitter generated a model for its
     /// body - named after the case, NotFound - and the refusal is read as it, through the client's
     /// own serializer.
     /// </summary>
+#endif
     [HardenedTest]
     public async Task GetTodo_UnknownId_IsATypedNotFound(ITemplateModuleNameClient client) {
         var missing = await client.GetTodo(9999).Returns<NotFound<ClientModels.NotFound>>();

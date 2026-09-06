@@ -7,10 +7,10 @@ namespace Hardened1.Tests;
 /// The client is a test parameter; [assembly: KiotaTesting] in Bootstrap.cs is what builds it, over
 /// the same in-process chain ITestWebApp drives - routing, filters, binding, the handler and
 /// serialisation. A call is asserted with Returns&lt;T&gt;(), naming the response type the contract
-/// declares - Created&lt;Todo&gt;, NotFound&lt;Problem&gt;, NoContent - which is the status, the
-/// body type and the headers that status carries in one word, for a success the client returns and
-/// a refusal it throws alike. ReturnsStatus&lt;T&gt;() asserts the status alone, for one the
-/// document declares no body for.
+/// declares - Created&lt;Todo&gt;, a NotFound carrying the 404 body the contract declares,
+/// NoContent - which is the status, the body type and the headers that status carries in one word,
+/// for a success the client returns and a refusal it throws alike. ReturnsStatus&lt;T&gt;() asserts
+/// the status alone, for one the document declares no body for.
 ///
 /// Every declared status is asserted, not only the happy one. A response model that is only ever
 /// exercised at 200 is indistinguishable from one that has no declared set at all, which is the
@@ -40,35 +40,19 @@ public class TodoTests {
 #endif
     }
 
-#if (codeFirst && throwsMode)
+#if (codeFirst)
+#if (throwsMode)
     /// <summary>
-    /// Throws mode documents only the 200, so the generated client has no 404 branch: the same
-    /// request that answers a typed NotFound under the response model is a bare ApiException here,
-    /// with no body type to name. The status is what is asserted, and the declared models close
-    /// exactly that gap.
+    /// [Throws&lt;NotFound&gt;] on the handler puts the 404 in the document, so Kiota generated a
+    /// typed exception for it - named after the case, NotFound, and carrying the body the server
+    /// answered. Without the attribute the same request is a bare ApiException with no body type.
     /// </summary>
-    [HardenedTest]
-    public async Task GetTodo_UnknownId_IsAnUntypedNotFound(TemplateModuleNameClient client) {
-        await client.Todos[9999].GetAsync().ReturnsStatus<NotFound>();
-    }
-
-    [HardenedTest]
-    public async Task RemoveTodo_UnknownId_IsAnUntypedNotFound(TemplateModuleNameClient client) {
-        await client.Todos[9999].DeleteAsync().ReturnsStatus<NotFound>();
-    }
-
-    /// <summary>Titles are unique, which is what gives the sample a real 409 - thrown and undocumented, like the 404.</summary>
-    [HardenedTest]
-    public async Task CreateTodo_DuplicateTitle_IsAnUntypedConflict(TemplateModuleNameClient client) {
-        await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
-            .ReturnsStatus<Conflict>();
-    }
-#endif
-#if (codeFirst && declaredMode)
+#else
     /// <summary>
     /// The 404 is in the signature, so it is in the document, so Kiota generated a typed exception
     /// for it - named after the case, NotFound, and carrying the body the server answered.
     /// </summary>
+#endif
     [HardenedTest]
     public async Task GetTodo_UnknownId_IsATypedNotFound(TemplateModuleNameClient client) {
         var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.NotFound>>();

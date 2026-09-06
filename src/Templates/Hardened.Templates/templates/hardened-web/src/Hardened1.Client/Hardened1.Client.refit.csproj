@@ -50,15 +50,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!--
-      The generated client, so it is visible in the IDE and compiled on every build after the
-      first. obj/ is outside the SDK's default glob, so nothing here is a duplicate of it.
-
-      On a clean tree this matches nothing, because item globs are evaluated before any target
-      runs and the file does not exist yet - IncludeClient below covers that one build, adding only
-      what this missed.
-    -->
-    <Compile Include="$(RefitterOutput)**/*.cs" />
 
     <!-- Version from Directory.Packages.props, beside the tool's pin. -->
     <PackageReference Include="Refit" />
@@ -116,15 +107,13 @@
   </Target>
 
   <!--
-    The first build only. The item glob above runs before any target, so on a clean tree it sees
-    nothing and this is what compiles the freshly generated client; on every build after that the
-    glob has already matched and Exclude keeps the same file from being compiled twice, which is
-    CS2002 and an error in a warning-free build.
+    Inside a target, after the client is generated, and never as a static item. A static glob is
+    evaluated before any target runs, so on a clean tree it matches nothing; evaluated here, the
+    list is the client as it is now, the same way the Kiota project includes its output.
   -->
   <Target Name="IncludeClient" AfterTargets="GenerateClient" BeforeTargets="CoreCompile">
     <ItemGroup>
-      <_RefitterGenerated Include="$(RefitterOutput)**/*.cs" />
-      <Compile Include="@(_RefitterGenerated)" Exclude="@(Compile)" />
+      <Compile Include="$(RefitterOutput)**/*.cs" />
     </ItemGroup>
   </Target>
 

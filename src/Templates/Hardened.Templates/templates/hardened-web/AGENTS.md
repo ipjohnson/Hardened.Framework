@@ -20,8 +20,12 @@ is wrong. Run `dotnet build` first.
 
 ```
 src/Hardened1/obj/<configuration>/<tfm>/generated/     one directory per generator
-#if (specFirst)
+#if (openapi)
 src/Hardened1/obj/<configuration>/<tfm>/openapi/       the normalised contract and the code built from it
+#endif
+#if (smithy)
+src/Hardened1/obj/<configuration>/<tfm>/smithy/ast/    the model's AST, written by the Smithy CLI
+src/Hardened1/obj/<configuration>/<tfm>/smithy/generated/  the normalised contract and the code built from it
 #endif
 ```
 

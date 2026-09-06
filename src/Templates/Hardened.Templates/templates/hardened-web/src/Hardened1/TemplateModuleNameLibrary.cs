@@ -22,6 +22,9 @@ namespace Hardened1;
 #if (codeFirst)
 // This assembly's URL space. Every route below it is relative to this.
 [BasePath("/todos")]
+// The address the document lists under servers, which is where a client generated from it sends
+// by default and what keeps Kiota from warning that there is none. A deployment adds its own.
+[Server("http://localhost:5080", "Local")]
 // Embeds the document the build wrote from this assembly's routes, and serves it at
 // /openapi.json.
 //
