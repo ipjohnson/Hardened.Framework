@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Hardened.SourceGenerator.Models.Request;
@@ -228,16 +229,22 @@ public static class JsonSchemaWriter {
     }
 
     /// <summary>Adds a description to a schema that has been written already.</summary>
-    /// <remarks>
-    /// A <c>$ref</c> takes no siblings in OpenAPI 3.0 - they are ignored - so a described reference
-    /// is wrapped in <c>allOf</c>, which every tool reads. Anything else takes the key directly.
-    /// </remarks>
-    private static string Describe(string schema, string? description) {
-        if (description == null) {
-            return schema;
-        }
+    private static string Describe(string schema, string? description) =>
+        description == null
+            ? schema
+            : Append(schema, "\"description\":\"" + Escape(description) + "\"");
 
-        var suffix = ",\"description\":\"" + Escape(description) + "\"}";
+    /// <summary>Adds a <c>default</c> to a schema that has been written already.</summary>
+    private static string WithDefault(string schema, string? literal) =>
+        literal == null ? schema : Append(schema, "\"default\":" + literal);
+
+    /// <summary>Adds a keyword to a schema that has been written already.</summary>
+    /// <remarks>
+    /// A <c>$ref</c> takes no siblings in OpenAPI 3.0 - they are ignored - so a reference is
+    /// wrapped in <c>allOf</c>, which every tool reads. Anything else takes the key directly.
+    /// </remarks>
+    private static string Append(string schema, string keyword) {
+        var suffix = "," + keyword + "}";
 
         return schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal)
             ? "{\"allOf\":[" + schema + "]" + suffix
@@ -247,7 +254,7 @@ public static class JsonSchemaWriter {
     private static string ObjectRef(
         INamedTypeSymbol named, Dictionary<string, string> components, HashSet<string> inProgress,
         Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
-        var name = named.Name;
+        var name = SchemaName(named);
         var reference = "{\"$ref\":\"#/components/schemas/" + Escape(name) + "\"}";
 
         // Already written, or being written further up the stack - a type reaching itself.
@@ -270,25 +277,33 @@ public static class JsonSchemaWriter {
                 properties.Append(',');
             }
 
+            var wireName = WireName(property);
+            var (hasDefault, defaultLiteral) = DefaultOf(named, property, compilationAssembly);
+
             properties
-                .Append('"').Append(Escape(CamelCase(property.Name))).Append("\":")
-                .Append(Describe(
-                    Nullable(
-                        SchemaConstraintWriter.Apply(
-                            SchemaFor(property.Type, components, inProgress, enums, compilationAssembly),
-                            property),
-                        property.Type),
-                    DocumentationOf(property)));
+                .Append('"').Append(Escape(wireName)).Append("\":")
+                .Append(WithDefault(
+                    Describe(
+                        Nullable(
+                            SchemaConstraintWriter.Apply(
+                                SchemaFor(property.Type, components, inProgress, enums, compilationAssembly),
+                                property),
+                            property.Type),
+                        DocumentationOf(property)),
+                    defaultLiteral));
 
             // A member that is always present belongs in required: a non-nullable reference type
             // because the author said so, a non-nullable value type because C# serialization
             // cannot omit one, and anything carrying [Required]. Value types were left out, so a
             // document described int members as optional in every response that always sends them.
-            if ((property.Type.NullableAnnotation == NullableAnnotation.NotAnnotated &&
-                 property.Type.IsReferenceType) ||
-                (property.Type.IsValueType && !IsNullableValueType(property.Type)) ||
-                SchemaConstraintWriter.IsRequired(property)) {
-                required.Add(CamelCase(property.Name));
+            // A member with a constructor default is the exception whatever its type: the caller may
+            // omit it, and the server fills it in.
+            if (!hasDefault &&
+                ((property.Type.NullableAnnotation == NullableAnnotation.NotAnnotated &&
+                  property.Type.IsReferenceType) ||
+                 (property.Type.IsValueType && !IsNullableValueType(property.Type)) ||
+                 SchemaConstraintWriter.IsRequired(property))) {
+                required.Add(wireName);
             }
 
             first = false;
@@ -315,6 +330,134 @@ public static class JsonSchemaWriter {
         inProgress.Remove(name);
 
         return reference;
+    }
+
+    /// <summary>
+    /// The name the serializer writes for a member: <c>[JsonPropertyName]</c> where the member
+    /// carries one, otherwise the property name in camelCase.
+    /// </summary>
+    /// <remarks>
+    /// The document camelCased the member name unconditionally, so a member renamed for the wire
+    /// was published under a name the wire never carries, and a client generated from the document
+    /// read nothing for it without anything failing. The attribute on a positional record
+    /// parameter reaches the property it declares, which is where this reads it.
+    /// </remarks>
+    private static string WireName(IPropertySymbol property) {
+        foreach (var attribute in property.GetAttributes()) {
+            if (attribute.AttributeClass?.Name == "JsonPropertyNameAttribute" &&
+                attribute.AttributeClass.ContainingNamespace?.ToDisplayString() ==
+                "System.Text.Json.Serialization" &&
+                attribute.ConstructorArguments.Length == 1 &&
+                attribute.ConstructorArguments[0].Value is string name &&
+                name.Length > 0) {
+                return name;
+            }
+        }
+
+        return CamelCase(property.Name);
+    }
+
+    /// <summary>
+    /// The component a type is written as: its name, with a constructed type's arguments spelled
+    /// into it.
+    /// </summary>
+    /// <remarks>
+    /// <c>Paged&lt;Todo&gt;</c> and <c>Paged&lt;Courier&gt;</c> used to share one component named
+    /// <c>Paged</c>, written from whichever was reached first, so the second operation was
+    /// documented as returning the first one's items and nothing said so. <c>PagedOfTodo</c> and
+    /// <c>PagedOfCourier</c> are two components, in the spelling client generators already produce
+    /// for a constructed type.
+    /// </remarks>
+    private static string SchemaName(ITypeSymbol type) {
+        if (type is IArrayTypeSymbol array) {
+            return SchemaName(array.ElementType) + "Array";
+        }
+
+        if (type is INamedTypeSymbol { IsGenericType: true } named) {
+            if (named.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T) {
+                return SchemaName(named.TypeArguments[0]);
+            }
+
+            return named.Name + "Of" + string.Join("And", named.TypeArguments.Select(SchemaName));
+        }
+
+        return type.Name;
+    }
+
+    /// <summary>
+    /// Whether a member's positional parameter declares a default, and that default as the JSON
+    /// literal the document writes under <c>default</c>.
+    /// </summary>
+    /// <remarks>
+    /// A member whose constructor parameter carries a default is one the caller may omit: the
+    /// server fills it in and answers as if it had been sent. The document said required for every
+    /// non-nullable member, so a strictly validating client was made to send what the server did
+    /// not need. Only positional parameters are read, matched to the property by name the way a
+    /// record declares them; a property initializer is syntax rather than a symbol and is not seen.
+    /// A default the document cannot spell still makes the member optional, it just carries no
+    /// <c>default</c>, and so does a null one, which the member's nullability already says.
+    /// </remarks>
+    private static (bool Declared, string? Literal) DefaultOf(
+        INamedTypeSymbol owner, IPropertySymbol property, IAssemblySymbol? compilationAssembly) {
+        foreach (var constructor in owner.InstanceConstructors) {
+            foreach (var parameter in constructor.Parameters) {
+                if (parameter.HasExplicitDefaultValue && parameter.Name == property.Name) {
+                    return (true, DefaultLiteral(parameter, compilationAssembly));
+                }
+            }
+        }
+
+        return (false, null);
+    }
+
+    private static string? DefaultLiteral(IParameterSymbol parameter, IAssemblySymbol? compilationAssembly) {
+        var value = parameter.ExplicitDefaultValue;
+
+        if (value == null) {
+            return null;
+        }
+
+        var type = parameter.Type is INamedTypeSymbol { IsGenericType: true } nullable &&
+                   nullable.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T
+            ? nullable.TypeArguments[0]
+            : parameter.Type;
+
+        if (type is INamedTypeSymbol { TypeKind: TypeKind.Enum } enumType) {
+            return EnumMemberLiteral(enumType, value, compilationAssembly);
+        }
+
+        return value switch {
+            string text => "\"" + Escape(text) + "\"",
+            char character => "\"" + Escape(character.ToString()) + "\"",
+            bool flag => flag ? "true" : "false",
+            IFormattable number => number.ToString(null, CultureInfo.InvariantCulture),
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// An enum default in the vocabulary the wire carries, resolved the way <see cref="EnumSchema"/>
+    /// resolves the values beside it.
+    /// </summary>
+    private static string? EnumMemberLiteral(
+        INamedTypeSymbol enumType, object value, IAssemblySymbol? compilationAssembly) {
+        var naming = EnumWireNaming.IsOwned(enumType, compilationAssembly)
+            ? EnumWireNaming.For(enumType, EnumWireNaming.AssemblyDefault(enumType))
+            : "MemberName";
+
+        foreach (var field in enumType.GetMembers().OfType<IFieldSymbol>()) {
+            if (!field.HasConstantValue || !Equals(field.ConstantValue, value)) {
+                continue;
+            }
+
+            foreach (var (member, wire) in EnumWireNaming.Members(enumType, naming)) {
+                if (member == field.Name) {
+                    return "\"" + Escape(wire) + "\"";
+                }
+            }
+        }
+
+        return null;
     }
 
     private static string? Primitive(ITypeSymbol type) =>
