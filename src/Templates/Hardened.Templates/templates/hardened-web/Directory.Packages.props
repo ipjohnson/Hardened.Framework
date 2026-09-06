@@ -100,7 +100,6 @@
     -->
     <PackageVersion Include="Hardened.Amz.Shared.Lambda.Runtime" Version="$(HardenedAmzVersion)" />
     <PackageVersion Include="Hardened.Amz.Web.Lambda.Runtime" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Web.Lambda.Harness" Version="$(HardenedAmzVersion)" />
     <PackageVersion Include="Hardened.Amz.Web.Lambda.SourceGenerator" Version="$(HardenedAmzVersion)" />
   </ItemGroup>
 

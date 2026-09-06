@@ -275,24 +275,19 @@
           ]
         },
         {
-          "comment": "One solution reaches the output and it is always named Hardened1.sln, so `dotnet build` in the generated folder has exactly one thing to build. Dropping these left both, and the generated application could not be built at all - MSB1011, from the bare `dotnet build` in scripts/verify-templates.sh.",
+          "comment": "The Host's own tool manifest pins the AWS Lambda Test Tool, which the generated Main starts when the application is run locally. Nothing else starts a tool, so the other hosts do not carry it.",
           "condition": "(!lambda)",
           "exclude": [
-            "src/Hardened1.Harness/**",
-            "Hardened1.Lambda.sln"
+            "src/Hardened1.Host/.config/**"
           ]
         },
         {
-          "comment": "The socket smoke test runs the application on the host it deploys to, and a Lambda application has none to bind.",
+          "comment": "Main is generated on Lambda, so there is no Program.cs to keep. The socket smoke test runs the application on the host it deploys to, and a Lambda application has none to bind.",
           "condition": "(lambda)",
           "exclude": [
             "src/Hardened1.Host/Program.cs",
-            "Hardened1.sln",
             "tests/Hardened1.Tests/Hardened1SocketTests.cs"
-          ],
-          "rename": {
-            "Hardened1.Lambda.sln": "Hardened1.sln"
-          }
+          ]
         },
         {
           "comment": "The launch profile exists to open /docs on F5. Without the page there is nothing for it to open, and a profile pointing at a 404 is worse than no profile.",
@@ -318,7 +313,7 @@
           ]
         },
         {
-          "comment": "Everything a client brings, as one unit: the project, the tool manifest that pins the generator, and the tests that drive it. The export property in the library csproj, the testing package and its assembly attribute in the test project, and the client project's lines in both solution files sit behind the same symbol in their own files. The handler tests have a variant per client and one that drives the pipeline directly, and exactly one reaches the output as TodoTests.cs - here the pipeline one, by the same rename the Lambda solution and the union global.json use.",
+          "comment": "Everything a client brings, as one unit: the project, the tool manifest that pins the generator, and the tests that drive it. The export property in the library csproj, the testing package and its assembly attribute in the test project, and the client project's lines in the solution file sit behind the same symbol in their own files. The handler tests have a variant per client and one that drives the pipeline directly, and exactly one reaches the output as TodoTests.cs - here the pipeline one, by the same rename the union global.json uses.",
           "condition": "(!hasClient)",
           "exclude": [
             "src/Hardened1.Client/**",
@@ -337,7 +332,7 @@
           ]
         },
         {
-          "comment": "Each generator has its own tool manifest, client project and client tests, and the Refit set reaches the output under the names the Kiota set has - the same rename the Lambda solution and the union global.json use.",
+          "comment": "Each generator has its own tool manifest, client project and client tests, and the Refit set reaches the output under the names the Kiota set has - the same rename the union global.json uses.",
           "condition": "(!kiotaClient)",
           "exclude": [
             ".config/dotnet-tools.json",
