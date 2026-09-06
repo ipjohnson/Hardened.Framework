@@ -30,7 +30,14 @@ public abstract class BaseRequestModelGenerator {
         var thrown = ThrownResponseSelector.Read(
             context, methodDeclaration, response, cancellationToken);
 
-        var refusals = FilterResponseSelector.Read(context, methodDeclaration, cancellationToken);
+        // Narrowed here rather than in the selector, because this is the first place the verb and
+        // the response shape are both known - and a declaration on a class reaches only the
+        // operations it says it does. [ConditionalGet] on a controller installs on the reads.
+        var declared = FilterResponseSelector
+            .Read(context, methodDeclaration, cancellationToken)
+            .For(nameModel.Method, response.IsAsyncEnumerable);
+
+        var refusals = declared.Refusals;
 
         var model = Compose(
             nameModel,
@@ -48,10 +55,11 @@ public abstract class BaseRequestModelGenerator {
             // handler. The document writer groups by status and does not care which produced an
             // entry. Filter-declared responses go last, so a status the handler declared itself
             // keeps the shape the handler gave it.
-            DeclaredResponses(context, response)
-                .Concat(thrown)
-                .Concat(refusals)
-                .ToList(),
+            declared.WithHeaders(
+                DeclaredResponses(context, response)
+                    .Concat(thrown)
+                    .Concat(refusals)
+                    .ToList()),
             // Complete unless a declaration named only failures and left the success to the return
             // type. [Throws<T>] is one such, and a guard that can refuse the operation is another:
             // both add a status the handler can be answered with instead of running, and neither
@@ -69,6 +77,16 @@ public abstract class BaseRequestModelGenerator {
         model.AdditionalBodyParameters = AdditionalBodyParameters(parameters);
 
         model.DeclaredTimeout = DeclaredTimeoutSelector.Read(context, methodDeclaration);
+
+        // The headers a filter reads before the handler runs, which nothing in the signature
+        // mentions and the document therefore published no parameter for.
+        model.DeclaredHeaderParameters = declared.HeaderParameters();
+
+        // And the ones it writes on a status the handler answers by returning a value, which
+        // WriteSingleResponse rather than WriteDeclaredResponses publishes.
+        model.SingleResponseHeaders = declared.Headers(
+            model.ResponseInformation.DefaultStatusCode ?? 200,
+            System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>());
 
         model.ParameterEnums = ParameterEnums(context, methodDeclaration);
 

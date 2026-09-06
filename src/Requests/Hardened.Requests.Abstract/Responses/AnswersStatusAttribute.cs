@@ -31,21 +31,56 @@ namespace Hardened.Requests.Abstract.Responses;
 /// into the same list.
 /// </para>
 /// </remarks>
-/// <param name="status">The status an operation carrying this declaration may be answered with.</param>
-/// <param name="body">
-/// The envelope that status carries. Every refusal the framework raises is serialized through
-/// <c>ExceptionToModelConverter</c>, so that is <c>ErrorModel</c> for all of them; a declaration
-/// answering something else names it here.
-/// </param>
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = true, Inherited = true)]
-public sealed class AnswersStatusAttribute(int status, Type body) : Attribute {
+public sealed class AnswersStatusAttribute : Attribute {
+
+    /// <summary>A status carrying a body.</summary>
+    /// <param name="status">The status an operation carrying this declaration may be answered with.</param>
+    /// <param name="body">
+    /// The envelope that status carries. Every refusal the framework raises is serialized through
+    /// <c>ExceptionToModelConverter</c>, so that is <c>ErrorModel</c> for all of them; a declaration
+    /// answering something else names it here.
+    /// </param>
+    public AnswersStatusAttribute(int status, Type body) {
+        Status = status;
+        Body = body;
+    }
+
+    /// <summary>
+    /// A status carrying nothing.
+    /// </summary>
+    /// <remarks>
+    /// A 304 has no body by definition, and neither does a 204. Naming an envelope for one would
+    /// describe a payload the runtime never sends, and the alternative before this existed was to
+    /// publish nothing at all - which is what <c>[ConditionalGet]</c> did.
+    /// </remarks>
+    /// <param name="status">The status an operation carrying this declaration may be answered with.</param>
+    public AnswersStatusAttribute(int status) {
+        Status = status;
+    }
 
     /// <summary>The status, unless <see cref="StatusFrom"/> names a property that overrode it.</summary>
-    public int Status { get; } = status;
+    public int Status { get; }
 
-    /// <summary>The envelope the status carries.</summary>
-    public Type Body { get; } = body;
+    /// <summary>The envelope the status carries, or null where it carries none.</summary>
+    public Type? Body { get; }
+
+    /// <summary>
+    /// The HTTP methods this reaches, comma-separated, or null for every method.
+    /// </summary>
+    /// <remarks>
+    /// For a declaration written on a class, where it covers operations a filter stands down on.
+    /// <c>[ConditionalGet]</c> on a controller installs on the reads and on nothing else, so
+    /// without this the document claimed a 304 on the writes beside them.
+    /// </remarks>
+    public string? Methods { get; set; }
+
+    /// <summary>
+    /// Whether a handler that streams its response is left out, for the reason
+    /// <see cref="Methods"/> exists.
+    /// </summary>
+    public bool NotWhenStreaming { get; set; }
 
     /// <summary>
     /// The response's <c>description</c>, or null for the status's standard reason phrase.

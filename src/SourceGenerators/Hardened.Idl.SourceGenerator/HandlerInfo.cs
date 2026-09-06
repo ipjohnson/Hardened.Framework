@@ -1,6 +1,5 @@
-using System.Linq;
 using CSharpAuthor;
-using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
@@ -118,11 +117,11 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
         string methodName,
         IReadOnlyList<AttributeModel> filters,
         ITypeDefinition? outputType = null,
-        IReadOnlyList<ResponseSchemaModel>? refusals = null) {
+        DeclaredOperationFacts? declared = null) {
         MethodName = methodName;
         Filters = filters;
         OutputType = outputType;
-        Refusals = refusals ?? Array.Empty<ResponseSchemaModel>();
+        Declared = declared ?? DeclaredOperationFacts.Empty;
     }
 
     public string MethodName { get; }
@@ -130,8 +129,8 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
     public IReadOnlyList<AttributeModel> Filters { get; }
 
     /// <summary>
-    /// The statuses the declarations covering this method can answer, from their
-    /// <c>[AnswersStatus]</c>.
+    /// What the declarations covering this method say the operation answers with and reads, from
+    /// their <c>[AnswersStatus]</c>, <c>[AnswersHeader]</c> and <c>[ReadsHeader]</c>.
     /// </summary>
     /// <remarks>
     /// Read here rather than in the bridge for the reason <see cref="OutputType"/> is: a described
@@ -140,8 +139,13 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
     /// both that syntax and a semantic model to resolve the attribute's declared body type against.
     /// The filters themselves already travelled, which is why the runtime answered a 403 and a 429
     /// the document did not mention.
+    ///
+    /// <para>
+    /// Unnarrowed, because the operation's verb comes from the contract and this pass has not seen
+    /// it. <c>RequestModelBuilder</c> narrows.
+    /// </para>
     /// </remarks>
-    public IReadOnlyList<ResponseSchemaModel> Refusals { get; }
+    public DeclaredOperationFacts Declared { get; }
 
     /// <summary>
     /// What writes this operation's response, named by <c>[Output&lt;T&gt;]</c>, or null.
@@ -161,7 +165,7 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
         return MethodName == other.MethodName &&
                Equals(OutputType, other.OutputType) &&
                Filters.DeepEquals(other.Filters) &&
-               Refusals.SequenceEqual(other.Refusals);
+               Declared.Equals(other.Declared);
     }
 
     public override bool Equals(object? obj) => Equals(obj as HandlerMethodFilterInfo);
@@ -172,7 +176,7 @@ internal class HandlerMethodFilterInfo : IEquatable<HandlerMethodFilterInfo> {
 
             hash = (hash * 397) ^ Filters.GetHashCodeAggregation();
             hash = (hash * 397) ^ (OutputType?.GetHashCode() ?? 0);
-            hash = (hash * 397) ^ Refusals.GetHashCodeAggregation();
+            hash = (hash * 397) ^ Declared.GetHashCode();
 
             return hash;
         }

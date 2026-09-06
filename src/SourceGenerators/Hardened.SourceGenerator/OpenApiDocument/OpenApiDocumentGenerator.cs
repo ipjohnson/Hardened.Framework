@@ -393,7 +393,16 @@ public static class OpenApiDocumentGenerator {
             .Where(p => Location(p.BindingType) != null)
             .ToList();
 
-        if (bound.Count == 0) {
+        // A header a filter reads is dropped where the handler binds one of that name: the
+        // handler's carries a type, a constraint and a description of its own, and two entries
+        // under one name is a document no generator can read.
+        var declared = handler.DeclaredHeaderParameters
+            .Where(header => !bound.Any(parameter => string.Equals(
+                string.IsNullOrEmpty(parameter.BindingName) ? parameter.Name : parameter.BindingName,
+                header.Name, System.StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        if (bound.Count == 0 && declared.Count == 0) {
             return;
         }
 
@@ -429,6 +438,19 @@ public static class OpenApiDocumentGenerator {
             builder.Append("")
                 .Append(",\"schema\":").Append(ParameterSchema(parameter, version, enums))
                 .Append('}');
+        }
+
+        for (var i = 0; i < declared.Count; i++) {
+            if (bound.Count > 0 || i > 0) {
+                builder.Append(',');
+            }
+
+            builder.Append("{\"name\":\"").Append(JsonSchemaWriter.Escape(declared[i].Name))
+                .Append("\",\"in\":\"header\",\"required\":false");
+
+            WriteText(builder, "description", declared[i].Description);
+
+            builder.Append(",\"schema\":{\"type\":\"string\"}}");
         }
 
         builder.Append(']');
@@ -482,23 +504,41 @@ public static class OpenApiDocumentGenerator {
         // of them.
         var returnTypeDeclaredThem = handler.DeclaredResponsesAreComplete;
 
+        // Keyed and sorted rather than appended in the order the writers run. A synthesized 400 or
+        // 401 used to land after every declared response, so an operation answering 200, 404 and
+        // 401 published them in that order - which reads as arbitrary next to the declared block,
+        // which has always been sorted, and made the two halves of one responses object disagree
+        // about what order means.
+        var responses = new SortedDictionary<int, string>();
+
         if (handler.ResponseSchemas.Count == 0) {
-            WriteSingleResponse(builder, handler, components, version, successStatus);
+            WriteSingleResponse(responses, handler, components, version, successStatus);
         }
         else if (returnTypeDeclaredThem) {
-            WriteDeclaredResponses(builder, handler, components, version);
+            WriteDeclaredResponses(responses, handler, components, version);
         }
         else {
-            WriteSingleResponse(builder, handler, components, version, successStatus);
-            builder.Append(',');
-            WriteDeclaredResponses(builder, handler, components, version);
+            WriteSingleResponse(responses, handler, components, version, successStatus);
+            WriteDeclaredResponses(responses, handler, components, version);
         }
 
-        WriteValidationResponse(builder, handler, components);
-        WriteAuthenticationResponse(builder, handler, components);
-        WriteAuthorizationResponse(builder, handler, components);
-        WriteTimeoutResponse(builder, handler, components);
-        WriteConstrainedPathResponse(builder, handler);
+        WriteValidationResponse(responses, handler, components);
+        WriteAuthenticationResponse(responses, handler, components);
+        WriteAuthorizationResponse(responses, handler, components);
+        WriteTimeoutResponse(responses, handler, components);
+        WriteConstrainedPathResponse(responses, handler);
+
+        var first = true;
+
+        foreach (var response in responses) {
+            if (!first) {
+                builder.Append(',');
+            }
+
+            builder.Append('"').Append(response.Key).Append("\":").Append(response.Value);
+
+            first = false;
+        }
 
         builder.Append('}');
     }
@@ -528,7 +568,7 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static void WriteAuthorizationResponse(
-        StringBuilder builder, RequestHandlerModel handler,
+        SortedDictionary<int, string> responses, RequestHandlerModel handler,
         SortedDictionary<string, string> components) {
         if (!EveryAlternativeRequiresAScope(handler) || DeclaresStatus(handler, 403)) {
             return;
@@ -536,9 +576,9 @@ public static class OpenApiDocumentGenerator {
 
         components["ErrorModel"] = ErrorModelSchema;
 
-        builder.Append(",\"403\":{\"description\":\"The caller does not hold what this operation requires.\"," +
-                       "\"content\":{\"application/json\":{\"schema\":" +
-                       "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}");
+        responses[403] = "{\"description\":\"The caller does not hold what this operation requires.\"," +
+                          "\"content\":{\"application/json\":{\"schema\":" +
+                          "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}";
     }
 
     /// <summary>
@@ -597,7 +637,7 @@ public static class OpenApiDocumentGenerator {
     /// taken from so the two paths publish one sentence.
     /// </remarks>
     private static void WriteTimeoutResponse(
-        StringBuilder builder, RequestHandlerModel handler,
+        SortedDictionary<int, string> responses, RequestHandlerModel handler,
         SortedDictionary<string, string> components) {
         if (handler.DeclaredTimeout is not { } timeout || DeclaresStatus(handler, timeout.Status)) {
             return;
@@ -605,17 +645,21 @@ public static class OpenApiDocumentGenerator {
 
         components["ErrorModel"] = ErrorModelSchema;
 
-        builder.Append(",\"").Append(timeout.Status)
-            .Append("\":{\"description\":\"The operation did not finish inside its budget.\"");
+        var builder = new StringBuilder(
+            "{\"description\":\"The operation did not finish inside its budget.\"");
 
+        // A string, like every other response header this writes. A header is a string on the
+        // wire whatever it carries, which is the rule ResponseHeaderModel states.
         if (timeout.RetryAfterSeconds > 0) {
             builder.Append(",\"headers\":{\"Retry-After\":{" +
                            "\"description\":\"How long to wait before trying again, in seconds.\"," +
-                           "\"schema\":{\"type\":\"integer\"}}}");
+                           "\"schema\":{\"type\":\"string\"}}}");
         }
 
-        builder.Append(",\"content\":{\"application/json\":{\"schema\":" +
-                       "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}");
+        responses[timeout.Status] = builder
+            .Append(",\"content\":{\"application/json\":{\"schema\":" +
+                    "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}")
+            .ToString();
     }
 
     /// <summary>
@@ -666,11 +710,18 @@ public static class OpenApiDocumentGenerator {
     /// A handler that returns one type: the status it succeeds with, and the body it sends.
     /// </summary>
     private static void WriteSingleResponse(
-        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components,
+        SortedDictionary<int, string> responses, RequestHandlerModel handler,
+        SortedDictionary<string, string> components,
         OpenApiVersion version, int successStatus) {
-        builder.Append('"').Append(successStatus).Append("\":{\"description\":\"")
+        var builder = new StringBuilder("{\"description\":\"")
             .Append(JsonSchemaWriter.Escape(HttpResponseDescription.For(successStatus)))
             .Append('"');
+
+        // A handler returning a plain value has no ResponseSchemas entry to hang a declared header
+        // on, and this is the writer that describes its success.
+        if (handler.SingleResponseHeaders is { Count: > 0 } headers) {
+            WriteResponseHeaders(builder, headers);
+        }
 
         if (handler.ResponseInformation.IsAsyncEnumerable) {
             WriteStreamedResponse(builder, handler, components, version);
@@ -682,7 +733,7 @@ public static class OpenApiDocumentGenerator {
                 .Append("\":{\"schema\":").Append(handler.ResponseSchema.Schema).Append("}}");
         }
 
-        builder.Append('}');
+        responses[successStatus] = builder.Append('}').ToString();
     }
 
     /// <summary>
@@ -701,7 +752,8 @@ public static class OpenApiDocumentGenerator {
     /// </para>
     /// </remarks>
     private static void WriteDeclaredResponses(
-        StringBuilder builder, RequestHandlerModel handler, SortedDictionary<string, string> components,
+        SortedDictionary<int, string> responses, RequestHandlerModel handler,
+        SortedDictionary<string, string> components,
         OpenApiVersion version) {
         var streamedStatus = handler.ResponseInformation.IsAsyncEnumerable
             ? handler.ResponseInformation.DefaultStatusCode ?? 200
@@ -712,14 +764,9 @@ public static class OpenApiDocumentGenerator {
             .OrderBy(group => group.Key);
 
         var successContentType = ContentType(handler);
-        var first = true;
 
         foreach (var group in byStatus) {
-            if (!first) {
-                builder.Append(',');
-            }
-
-            builder.Append('"').Append(group.Key).Append("\":{\"description\":\"")
+            var builder = new StringBuilder("{\"description\":\"")
                 .Append(JsonSchemaWriter.Escape(group.First().Description))
                 .Append('"');
 
@@ -764,9 +811,7 @@ public static class OpenApiDocumentGenerator {
                 builder.Append("}}");
             }
 
-            builder.Append('}');
-
-            first = false;
+            responses[group.Key] = builder.Append('}').ToString();
         }
     }
 
@@ -782,12 +827,16 @@ public static class OpenApiDocumentGenerator {
     /// <c>ResponseHeaderModel</c> gives - a header is a string on the wire whatever it carries.
     /// </remarks>
     private static void WriteResponseHeaders(
-        StringBuilder builder, IEnumerable<ResponseSchemaModel> responses) {
+        StringBuilder builder, IEnumerable<ResponseSchemaModel> responses) =>
+        WriteResponseHeaders(builder, responses.SelectMany(response => response.Headers));
+
+    private static void WriteResponseHeaders(
+        StringBuilder builder, IEnumerable<Generation.Models.ResponseHeaderModel> headers) {
         var seen = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
         var first = true;
 
-        foreach (var response in responses) {
-            foreach (var header in response.Headers) {
+        {
+            foreach (var header in headers) {
                 if (!seen.Add(header.Name)) {
                     continue;
                 }
@@ -839,7 +888,7 @@ public static class OpenApiDocumentGenerator {
     /// 400, whose description then wins.
     /// </remarks>
     private static void WriteValidationResponse(
-        StringBuilder builder, RequestHandlerModel handler,
+        SortedDictionary<int, string> responses, RequestHandlerModel handler,
         SortedDictionary<string, string> components) {
         if (handler.ParametersValidator == null && !handler.HasGeneratedValidation &&
             !HasBindingRefusals(handler)) {
@@ -859,9 +908,9 @@ public static class OpenApiDocumentGenerator {
 
         components["RequestValidationError"] = ValidationErrorSchema;
 
-        builder.Append(",\"400\":{\"description\":\"The request failed validation.\"," +
-                       "\"content\":{\"application/json\":{\"schema\":" +
-                       "{\"$ref\":\"#/components/schemas/RequestValidationError\"}}}}");
+        responses[400] = "{\"description\":\"The request failed validation.\"," +
+                         "\"content\":{\"application/json\":{\"schema\":" +
+                         "{\"$ref\":\"#/components/schemas/RequestValidationError\"}}}}";
     }
 
     /// <summary>
@@ -924,7 +973,7 @@ public static class OpenApiDocumentGenerator {
     /// whose description then wins.
     /// </remarks>
     private static void WriteAuthenticationResponse(
-        StringBuilder builder, RequestHandlerModel handler,
+        SortedDictionary<int, string> responses, RequestHandlerModel handler,
         SortedDictionary<string, string> components) {
         if (handler.SecurityRequirements.Count == 0) {
             return;
@@ -936,12 +985,12 @@ public static class OpenApiDocumentGenerator {
 
         components["ErrorModel"] = ErrorModelSchema;
 
-        builder.Append(",\"401\":{\"description\":\"Authentication required.\"," +
-                       "\"headers\":{\"WWW-Authenticate\":{" +
-                       "\"description\":\"The challenge naming the scheme to authenticate with.\"," +
-                       "\"schema\":{\"type\":\"string\"}}}," +
-                       "\"content\":{\"application/json\":{\"schema\":" +
-                       "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}");
+        responses[401] = "{\"description\":\"Authentication required.\"," +
+                         "\"headers\":{\"WWW-Authenticate\":{" +
+                         "\"description\":\"The challenge naming the scheme to authenticate with.\"," +
+                         "\"schema\":{\"type\":\"string\"}}}," +
+                         "\"content\":{\"application/json\":{\"schema\":" +
+                         "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}";
     }
 
     /// <summary>
@@ -955,7 +1004,7 @@ public static class OpenApiDocumentGenerator {
     /// Skipped where the operation declares its own 404, whose description then wins.
     /// </remarks>
     private static void WriteConstrainedPathResponse(
-        StringBuilder builder, RequestHandlerModel handler) {
+        SortedDictionary<int, string> responses, RequestHandlerModel handler) {
         if (!HasConstrainedPathToken(handler.Name.Path)) {
             return;
         }
@@ -964,8 +1013,8 @@ public static class OpenApiDocumentGenerator {
             return;
         }
 
-        builder.Append(",\"404\":{\"description\":" +
-                       "\"The path did not name a resource: a token failed its route constraint.\"}");
+        responses[404] = "{\"description\":" +
+                         "\"The path did not name a resource: a token failed its route constraint.\"}";
     }
 
     private static bool HasConstrainedPathToken(string path) {

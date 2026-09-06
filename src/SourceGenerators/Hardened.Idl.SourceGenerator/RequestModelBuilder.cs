@@ -47,6 +47,7 @@ internal static class RequestModelBuilder {
                 // Find method-level filters matching this handler's method
                 var responseInformation = model.ResponseInformation;
                 var responseSchemas = model.ResponseSchemas;
+                OperationDeclarations? declared = null;
 
                 foreach (var methodFilter in handlerInfo.MethodFilters) {
                     if (string.Equals(methodFilter.MethodName, model.HandlerMethod,
@@ -61,7 +62,13 @@ internal static class RequestModelBuilder {
                                 responseInformation with { OutputType = methodFilter.OutputType };
                         }
 
-                        responseSchemas = WithRefusals(responseSchemas, methodFilter.Refusals);
+                        // Narrowed here, where the operation's verb and response shape are known.
+                        // HandlerSelector read the implementation's syntax and had neither.
+                        declared = methodFilter.Declared.For(
+                            model.Name.Method, responseInformation.IsAsyncEnumerable);
+
+                        responseSchemas =
+                            declared.WithHeaders(WithRefusals(responseSchemas, declared.Refusals));
 
                         break;
                     }
@@ -71,7 +78,21 @@ internal static class RequestModelBuilder {
                 // hand-rolled copy. This used to restate the members one by one, and each field
                 // added to the model was silently dropped here until someone noticed - the tag's
                 // description was the latest. One copy site is the fix, not a longer list.
-                result.Add(model.WithFilters(filters, responseInformation, responseSchemas));
+                var enriched = model.WithFilters(filters, responseInformation, responseSchemas);
+
+                if (declared != null) {
+                    enriched.DeclaredHeaderParameters = declared.HeaderParameters();
+
+                    // For the same reason the attribute-routed path sets it: a success the
+                    // document writes from the return type has no ResponseSchemas entry to carry
+                    // a header on. Every described operation declares its responses, so this is
+                    // usually empty - and symmetry is cheaper than working out when it is not.
+                    enriched.SingleResponseHeaders = declared.Headers(
+                        enriched.ResponseInformation.DefaultStatusCode ?? 200,
+                        System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>());
+                }
+
+                result.Add(enriched);
             } else {
                 result.Add(model);
             }

@@ -791,12 +791,25 @@ namespace Hardened.Requests.Abstract.Responses
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
         public static Hardened.Requests.Abstract.Responses.Accepted FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Interface, AllowMultiple=true, Inherited=true)]
+    public sealed class AnswersHeaderAttribute : System.Attribute
+    {
+        public AnswersHeaderAttribute(int status, string name) { }
+        public string? Description { get; set; }
+        public string? Methods { get; set; }
+        public string Name { get; }
+        public bool NotWhenStreaming { get; set; }
+        public int Status { get; }
+    }
     [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Interface, AllowMultiple=true, Inherited=true)]
     public sealed class AnswersStatusAttribute : System.Attribute
     {
+        public AnswersStatusAttribute(int status) { }
         public AnswersStatusAttribute(int status, System.Type body) { }
-        public System.Type Body { get; }
+        public System.Type? Body { get; }
         public string? Description { get; set; }
+        public string? Methods { get; set; }
+        public bool NotWhenStreaming { get; set; }
         public int Status { get; }
         public string? StatusFrom { get; set; }
     }
@@ -1403,6 +1416,15 @@ namespace Hardened.Requests.Abstract.Responses
         public static int StatusCode { get; }
         public void ApplyHeaders(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
         public static Hardened.Requests.Abstract.Responses.RateLimited<T> FromResponse(object? body, System.Collections.Generic.IReadOnlyDictionary<string, string> headers) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Interface, AllowMultiple=true, Inherited=true)]
+    public sealed class ReadsHeaderAttribute : System.Attribute
+    {
+        public ReadsHeaderAttribute(string name) { }
+        public string? Description { get; set; }
+        public string? Methods { get; set; }
+        public string Name { get; }
+        public bool NotWhenStreaming { get; set; }
     }
     [Hardened.Requests.Abstract.Responses.HttpStatus(408)]
     public sealed class RequestTimeout : Hardened.Requests.Abstract.Responses.IDeclaresStatus, Hardened.Requests.Abstract.Responses.IHttpStatusResponse, System.IEquatable<Hardened.Requests.Abstract.Responses.RequestTimeout>

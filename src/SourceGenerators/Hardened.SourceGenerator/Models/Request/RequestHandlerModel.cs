@@ -55,6 +55,8 @@ public class RequestHandlerModel {
             ParametersValidator = ParametersValidator,
             ResponseSchema = ResponseSchema,
             ResponseSchemas = responseSchemas ?? ResponseSchemas,
+            DeclaredHeaderParameters = DeclaredHeaderParameters,
+            SingleResponseHeaders = SingleResponseHeaders,
             DeclaredResponsesAreComplete = DeclaredResponsesAreComplete,
             DeclaredTimeout = DeclaredTimeout,
             RequestSchema = RequestSchema,
@@ -169,6 +171,28 @@ public class RequestHandlerModel {
 
     public IReadOnlyList<ResponseSchemaModel> ResponseSchemas { get; set; } =
         Array.Empty<ResponseSchemaModel>();
+
+    /// <summary>
+    /// Header parameters a declaration contributes that no handler parameter binds.
+    /// </summary>
+    /// <remarks>
+    /// A filter reading <c>If-None-Match</c> reads it before the handler runs, so the signature
+    /// says nothing about it and the document published no parameter for it - which left a
+    /// generated client unable to make the conditional request the operation answers.
+    /// </remarks>
+    public IReadOnlyList<DeclaredHeaderParameterModel> DeclaredHeaderParameters { get; set; } =
+        Array.Empty<DeclaredHeaderParameterModel>();
+
+    /// <summary>
+    /// Headers declared on the success of a handler whose return type declares no response set.
+    /// </summary>
+    /// <remarks>
+    /// Beside <see cref="ResponseSchemas"/> rather than in it, because a handler returning a plain
+    /// value has no entry there at all - the document writer describes its success from the return
+    /// type. Empty for every handler whose responses are declared, where the headers travel on the
+    /// entry they belong to.
+    /// </remarks>
+    internal IReadOnlyList<Generation.Models.ResponseHeaderModel>? SingleResponseHeaders { get; set; }
 
     /// <summary>The request body's JSON Schema, on the same terms.</summary>
     public HandlerSchema? RequestSchema { get; set; }

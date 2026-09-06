@@ -30,6 +30,9 @@
       "name": "Constraints"
     },
     {
+      "name": "DeclaredHeader"
+    },
+    {
       "name": "EnumVocabulary"
     },
     {
@@ -582,22 +585,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -834,6 +837,9 @@
               }
             }
           },
+          "404": {
+            "description": "The path did not name a resource: a token failed its route constraint."
+          },
           "504": {
             "description": "The operation did not finish inside its budget.",
             "content": {
@@ -843,9 +849,6 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "The path did not name a resource: a token failed its route constraint."
           }
         },
         "x-hardened-timeout": 300000
@@ -881,16 +884,6 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -903,6 +896,16 @@
           },
           "404": {
             "description": "The path did not name a resource: a token failed its route constraint."
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
         },
         "x-hardened-timeout": 300000
@@ -937,22 +940,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -1171,22 +1174,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -1226,22 +1229,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -1283,22 +1286,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -1377,22 +1380,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -1652,7 +1655,7 @@
         "tags": [
           "CollectionRoot"
         ],
-        "operationId": "create",
+        "operationId": "collectionRootCreate",
         "responses": {
           "200": {
             "description": "OK",
@@ -1931,22 +1934,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -1991,14 +1994,53 @@
         "tags": [
           "Conditional"
         ],
-        "operationId": "read",
+        "operationId": "conditionalRead",
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "description": "A tag a previous response carried. Matching it is answered 304.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Modified-Since",
+            "in": "header",
+            "required": false,
+            "description": "When the caller last read this. Unchanged since then is answered 304.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "A tag for this response, to send back in If-None-Match.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Document"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The caller's copy is current; nothing is sent.",
+            "headers": {
+              "ETag": {
+                "description": "The tag the caller already holds, repeated.",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -2032,13 +2074,50 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "description": "A tag a previous response carried. Matching it is answered 304.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Modified-Since",
+            "in": "header",
+            "required": false,
+            "description": "When the caller last read this. Unchanged since then is answered 304.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "A tag for this response, to send back in If-None-Match.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The caller's copy is current; nothing is sent.",
+            "headers": {
+              "ETag": {
+                "description": "The tag the caller already holds, repeated.",
                 "schema": {
                   "type": "string"
                 }
@@ -2091,16 +2170,6 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
@@ -2113,6 +2182,16 @@
           },
           "404": {
             "description": "The path did not name a resource: a token failed its route constraint."
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
           }
         },
         "x-hardened-timeout": 300000
@@ -2150,22 +2229,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -2204,22 +2283,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -2257,22 +2336,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -2343,6 +2422,116 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/declared-header/notes": {
+      "get": {
+        "tags": [
+          "DeclaredHeader"
+        ],
+        "operationId": "declaredHeaderRead",
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "description": "A tag a previous response carried. Matching it is answered 304.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Modified-Since",
+            "in": "header",
+            "required": false,
+            "description": "When the caller last read this. Unchanged since then is answered 304.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "A tag for this response, to send back in If-None-Match.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The caller's copy is current; nothing is sent.",
+            "headers": {
+              "ETag": {
+                "description": "The tag the caller already holds, repeated.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      },
+      "post": {
+        "tags": [
+          "DeclaredHeader"
+        ],
+        "operationId": "declaredHeaderCreate",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "Location": {
+                "description": "Where the note was created.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/enum-vocabulary/by-priority": {
       "get": {
         "tags": [
@@ -2371,22 +2560,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -2502,22 +2691,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -3033,22 +3222,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -3382,22 +3571,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -3580,22 +3769,22 @@
               }
             }
           },
-          "504": {
-            "description": "The operation did not finish inside its budget.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
-                }
-              }
-            }
-          },
           "400": {
             "description": "The request failed validation.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -3618,13 +3807,50 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "description": "A tag a previous response carried. Matching it is answered 304.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Modified-Since",
+            "in": "header",
+            "required": false,
+            "description": "When the caller last read this. Unchanged since then is answered 304.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "A tag for this response, to send back in If-None-Match.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The caller's copy is current; nothing is sent.",
+            "headers": {
+              "ETag": {
+                "description": "The tag the caller already holds, repeated.",
                 "schema": {
                   "type": "string"
                 }
@@ -3695,11 +3921,50 @@
         "operationId": "granted",
         "summary": "Guarded by grants alone, which settle before serialization and so ahead of the cache, and the case the resource-scoped rule must not also refuse.",
         "description": "This comment used to say \"safe to cache behind\" and stopped there, which is how the authorization bypass shipped. Settling ahead of the cache is not by itself what makes it safe: a refusal ahead of serialization is recorded and travels on, so the cache has to read it. AWarmCacheStillRefusesTheGrantlessCaller is the test that says so.",
+        "parameters": [
+          {
+            "name": "If-None-Match",
+            "in": "header",
+            "required": false,
+            "description": "A tag a previous response carried. Matching it is answered 304.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Modified-Since",
+            "in": "header",
+            "required": false,
+            "description": "When the caller last read this. Unchanged since then is answered 304.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "A tag for this response, to send back in If-None-Match.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
               "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The caller's copy is current; nothing is sent.",
+            "headers": {
+              "ETag": {
+                "description": "The tag the caller already holds, repeated.",
                 "schema": {
                   "type": "string"
                 }
