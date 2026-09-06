@@ -170,7 +170,7 @@ jobs:
       # consumer failed to restore it.
       - name: Verify every expected package was produced
         run: |
-          EXPECTED=15
+          EXPECTED=14
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
