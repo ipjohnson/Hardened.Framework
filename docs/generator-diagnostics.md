@@ -54,6 +54,25 @@ public class CatalogHandler : HandlerBase, ICatalogService { }
 C# requires the base class to come first, and the base list is searched by name, so HOAG031 fires
 only when *no* entry matches a described service.
 
+### HOAG032 — declaration is not read on a described handler
+
+A `[Handler]` method carries a declaration the described path never reads, so it compiles, reads as
+a commitment, and changes nothing.
+
+```
+'ReportServiceImpl.Export' carries [RawResponse], which is read from a handler's own syntax and a
+described operation's signature is generated - so it compiles, reads as a commitment, and changes
+nothing. Remove it: the content type a described response commits to comes from the contract's
+media type.
+```
+
+`[RawResponse]` is the only one today. The generator reads it off the handler's own syntax, and a
+described operation has none — its signature is generated from the contract, which says the same
+thing with the response's media type.
+
+A warning, so a project that wants to keep the attribute for its own reasons can say
+`<NoWarn>$(NoWarn);HOAG032</NoWarn>`.
+
 ## Routing
 
 ### HRDR002 — unsupported route token syntax
@@ -419,7 +438,7 @@ the other.
 | `003` | The description was declared as the wrong item kind. `HOAT003`: a spec left in `AdditionalFiles`, which the generator no longer reads. `HSMT003`: a `.smithy` IDL file pointed at `HardenedSmithyAst`, which takes a JSON AST. |
 | `004` | A model or generated source the extract step should have written is missing. Delete the model directory and rebuild. |
 | `005` | The targets file was imported before the specs were declared, so no generated source reached the compilation. Move the `<Import>` below the item group. |
-| `006` | Warning. The reader parsed the document and had something to say about it, including what a degraded trait promises that the code does not enforce. Under `HSMT`, this is also where a prelude shape with no exact C# type is reported - `BigDecimal` becomes `decimal`, `BigInteger` becomes `long` - once per member, naming it. |
+| `006` | Warning. The reader parsed the document and had something to say about it, including what a degraded trait promises that the code does not enforce. Under `HSMT`, this is also where a shape with no exact C# type is reported - `BigDecimal` becomes `decimal`, `BigInteger` becomes `long` - once per member, naming it. A member that meant the narrowing says so with `@narrowed`, and is not reported; see below. |
 | `007` | A slice selected no operations, so nothing would be generated. |
 | `008` | Warning. A slice removed a schema that is still referenced; the reference degrades to `JsonElement`. |
 | `009` | Warning. The spec is sliced but its document is embedded whole, so the served description claims operations the application does not implement. |
@@ -442,6 +461,35 @@ the other.
 | `HSMT012` | The CLI refused the model. One error per finding, at the file, line and column the CLI named; a report that does not parse is passed through whole. |
 | `HSMT013` | Warning. What the CLI said without failing, with the same per-finding attribution. |
 | `HSMT014` | The CLI exited cleanly but wrote no AST. Unlike `HSMT012`, the fix is not in a `.smithy` file. |
+
+### HSMT006 and the narrowed shapes
+
+`BigDecimal` and `BigInteger` have no exact C# type. `BigDecimal` becomes `decimal`, which is exact
+and holds 28 significant digits rather than arbitrarily many; `BigInteger` becomes `long`. Both are
+reported once per member, naming it, whether the member targets the prelude shape or a named shape
+of that type.
+
+A model that reached for `BigDecimal` to get exactness rather than range has arrived, and the
+warning is noise on every build. Say so in the model:
+
+```smithy
+use hardened.api#narrowed
+
+structure Charge {
+    @narrowed
+    amount: BigDecimal
+}
+```
+
+Or once on a shape every such member targets:
+
+```smithy
+@narrowed
+bigDecimal Usd
+```
+
+`<NoWarn>HSMT006</NoWarn>` is the blunt alternative and silences the members that *did* lose
+something, which is why the trait exists.
 
 ### The document export (018, 019, 028–031)
 

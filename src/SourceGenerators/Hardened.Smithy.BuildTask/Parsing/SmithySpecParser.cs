@@ -966,7 +966,8 @@ internal static class SmithySpecParser {
         // second naming authority, which is the exact defect NameAllocator was built to remove.
         if (target != null) {
             Describe(context, target, out var type, out var format, out var reference, out var array,
-                model.OperationId + "." + parameter.Name);
+                model.OperationId + "." + parameter.Name,
+                SmithyAst.HasTrait(member.Value, SmithyTraits.Narrowed));
 
             parameter.Type = type;
             parameter.Format = format;
@@ -1000,7 +1001,8 @@ internal static class SmithySpecParser {
 
         if (target != null) {
             Describe(context, target, out var type, out var format, out var reference, out var shape,
-                owner + "." + property.Name);
+                owner + "." + property.Name,
+                SmithyAst.HasTrait(member, SmithyTraits.Narrowed));
 
             property.Type = type;
             property.Format = format;
@@ -1124,6 +1126,10 @@ internal static class SmithySpecParser {
     /// The member being described, for a narrowing diagnostic. Null where the caller has no name
     /// to give - a payload targeting a prelude shape directly, say.
     /// </param>
+    /// <param name="narrowingAccepted">
+    /// Whether the member carries <c>@narrowed</c>, which says the narrowing is what the model
+    /// intended and the diagnostic is not wanted.
+    /// </param>
     private static void Describe(
         ParseContext context,
         string target,
@@ -1131,7 +1137,8 @@ internal static class SmithySpecParser {
         out string? format,
         out string? reference,
         out ShapeFacts facts,
-        string? memberName = null) {
+        string? memberName = null,
+        bool narrowingAccepted = false) {
         type = null;
         format = null;
         reference = null;
@@ -1141,7 +1148,7 @@ internal static class SmithySpecParser {
             type = preludeType;
             format = preludeFormat;
 
-            if (SmithyPrelude.LossDescription(target) is { } loss) {
+            if (!narrowingAccepted && SmithyPrelude.LossDescription(target) is { } loss) {
                 // Once per member, naming it. Three BigDecimal members used to produce three
                 // byte-identical warnings naming none of them, so the count was the only way to
                 // tell how many there were and no way to tell which - and a set of identical
@@ -1212,11 +1219,37 @@ internal static class SmithySpecParser {
                 format = member switch {
                     "long" or "bigInteger" => "int64",
                     "float" => "float",
-                    "double" or "bigDecimal" => "double",
+                    "double" => "double",
+
+                    // decimal, the same answer the prelude path gives smithy.api#BigDecimal and
+                    // for the same reason: a model reaching for bigDecimal reached for exactness,
+                    // and double loses it at every magnitude. This said "double", so naming a
+                    // shape - which is what a model does to use one type in twenty places - was
+                    // the difference between money that adds up and money that does not.
+                    "bigDecimal" => "decimal",
                     "blob" => "byte",
                     "timestamp" => "date-time",
                     _ => null
                 };
+
+                // And the same narrowing, so it is reported the same way. Read off the named shape
+                // as well as the member, so a model that says @narrowed once on the shape does not
+                // have to repeat it at every use.
+                if (!narrowingAccepted && member is "bigDecimal" or "bigInteger" &&
+                    !SmithyAst.HasTrait(shape, SmithyTraits.Narrowed)) {
+                    var where = memberName == null ? "" : $"'{memberName}' ";
+
+                    var message =
+                        $"{where}targets {SmithyPrelude.LocalName(target)}, which " +
+                        (member == "bigDecimal"
+                            ? "becomes decimal, which is exact but holds 28 significant digits " +
+                              "rather than arbitrarily many"
+                            : "becomes long, so a value outside 64 bits does not round-trip") + ".";
+
+                    if (!context.Diagnostics.Contains(message)) {
+                        context.Diagnostics.Add(message);
+                    }
+                }
 
                 return;
         }

@@ -164,4 +164,92 @@ public class BigDecimalTests {
         Assert.Contains(diagnostics, d => d.Contains("'Money.discount'"));
         Assert.Contains(diagnostics, d => d.Contains("'Money.total'"));
     }
+
+    /// <summary>
+    /// <c>@narrowed</c> on the member, which is the model saying the narrowing is what it wanted.
+    /// </summary>
+    /// <remarks>
+    /// A model reaching for <c>BigDecimal</c> to get exactness rather than range has arrived, and
+    /// had no way to say so: the only route to a warning-free build was suppressing HSMT006 for
+    /// the whole project, which silences the members that did lose something too. The mapping is
+    /// unchanged - only the report.
+    /// </remarks>
+    [Fact]
+    public void NarrowedOnTheMemberSilencesTheReportAndKeepsTheMapping() {
+        var schema = Parse("""
+            "amount": {
+              "target": "smithy.api#BigDecimal",
+              "traits": { "hardened.api#narrowed": {} } }
+            """, out var diagnostics);
+
+        Assert.Empty(diagnostics);
+        Assert.Equal("decimal", Assert.Single(schema.Properties).Format);
+    }
+
+    /// <summary>A member beside it that says nothing is still reported.</summary>
+    [Fact]
+    public void NarrowedSilencesOnlyTheMemberItIsOn() {
+        Parse("""
+            "amount": {
+              "target": "smithy.api#BigDecimal",
+              "traits": { "hardened.api#narrowed": {} } },
+            "fee": { "target": "smithy.api#BigDecimal" }
+            """, out var diagnostics);
+
+        var reported = Assert.Single(diagnostics);
+
+        Assert.Contains("fee", reported);
+        Assert.DoesNotContain("amount", reported);
+    }
+
+    /// <summary>
+    /// A named <c>bigDecimal</c> shape reaches <c>decimal</c>, the same answer the prelude shape
+    /// gets.
+    /// </summary>
+    /// <remarks>
+    /// It reached <c>double</c>. Naming a shape is what a model does to use one type in twenty
+    /// places, so the spelling that scales was the one that lost exactness - and silently, because
+    /// only the prelude path reported the narrowing.
+    /// </remarks>
+    [Fact]
+    public void ANamedBigDecimalShapeReachesDecimalAndIsReported() {
+        var schema = Parse("""
+            "amount": { "target": "com.example#Usd" }
+            """, out var diagnostics, """
+            , "com.example#Usd": { "type": "bigDecimal" }
+            """);
+
+        Assert.Equal("decimal", Assert.Single(schema.Properties).Format);
+        Assert.Contains("becomes decimal", Assert.Single(diagnostics));
+    }
+
+    /// <summary>
+    /// And <c>@narrowed</c> on that shape says it once for every member targeting it.
+    /// </summary>
+    [Fact]
+    public void NarrowedOnTheNamedShapeSilencesEveryMemberTargetingIt() {
+        var schema = Parse("""
+            "amount": { "target": "com.example#Usd" },
+            "fee": { "target": "com.example#Usd" }
+            """, out var diagnostics, """
+            , "com.example#Usd": {
+                "type": "bigDecimal",
+                "traits": { "hardened.api#narrowed": {} } }
+            """);
+
+        Assert.Empty(diagnostics);
+        Assert.All(schema.Properties, property => Assert.Equal("decimal", property.Format));
+    }
+
+    /// <summary>The trait is read rather than reported as one the front end does not model.</summary>
+    [Fact]
+    public void NarrowedIsNotReportedAsAnUnknownTrait() {
+        Parse("""
+            "amount": {
+              "target": "smithy.api#BigDecimal",
+              "traits": { "hardened.api#narrowed": {} } }
+            """, out var diagnostics);
+
+        Assert.DoesNotContain(diagnostics, entry => entry.Contains("narrowed"));
+    }
 }

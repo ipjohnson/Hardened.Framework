@@ -6,7 +6,8 @@ using Microsoft.CodeAnalysis;
 namespace Hardened.Idl.SourceGenerator;
 
 /// <summary>
-/// The two ways a described operation ends up with no code behind it and a clean build.
+/// The three ways a described operation ends up doing less than its implementation says, with a
+/// clean build.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -30,6 +31,24 @@ internal static class HandlerBindingDiagnostics {
     /// <summary>A handler whose base list names no described service.</summary>
     public const string NoServiceInterfaceId = "HOAG031";
 
+    /// <summary>A declaration the described path does not read, written on a handler method.</summary>
+    public const string InertDeclarationId = "HOAG032";
+
+    /// <summary>
+    /// The declarations that are code-first syntax only, by attribute name.
+    /// </summary>
+    /// <remarks>
+    /// <c>[RawResponse]</c> commits a response to a content type, and the generator reads it off
+    /// the handler's own syntax. A described operation's signature is generated, so there is no
+    /// syntax to read it from: the attribute compiles on the implementation, reads as a commitment
+    /// in review, and changes nothing. A contract says the same thing with the response's media
+    /// type.
+    /// </remarks>
+    private static readonly Dictionary<string, string> InertDeclarations = new(StringComparer.Ordinal) {
+        ["RawResponseAttribute"] =
+            "the content type a described response commits to comes from the contract's media type"
+    };
+
     /// <summary>
     /// Built per call rather than held in a static field, for the RS2008 reason the other
     /// descriptors in this repository are - see <c>UnresolvedHandler</c>.
@@ -41,6 +60,17 @@ internal static class HandlerBindingDiagnostics {
         "'{0}' is declared by the description but no class carrying [Handler] implements it, so " +
         "its {1} route(s) exist and fail at request time. Implement it, or set " +
         "<NoWarn>$(NoWarn);" + NoHandlerId + "</NoWarn> if this project ships the interface alone.",
+        category: "Hardened.Generation",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static DiagnosticDescriptor InertDeclarationDescriptor() => new(
+        id: InertDeclarationId,
+        title: "Declaration is not read on a described handler",
+        messageFormat:
+        "'{0}.{1}' carries [{2}], which is read from a handler's own syntax and a described " +
+        "operation's signature is generated - so it compiles, reads as a commitment, and changes " +
+        "nothing. Remove it: {3}.",
         category: "Hardened.Generation",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -95,6 +125,8 @@ internal static class HandlerBindingDiagnostics {
         foreach (var handler in handlers) {
             cancellationToken.ThrowIfCancellationRequested();
 
+            ReportInertDeclarations(handler, diagnostics);
+
             var service = handler.ServiceInterface(declaredNames);
 
             if (service != null) {
@@ -123,5 +155,31 @@ internal static class HandlerBindingDiagnostics {
         }
 
         return diagnostics;
+    }
+
+    /// <summary>
+    /// Every declaration on this handler's methods that the described path does not read.
+    /// </summary>
+    /// <remarks>
+    /// Read off the filters <c>HandlerSelector</c> already collected rather than from a walk of
+    /// its own, so an attribute added to <see cref="InertDeclarations"/> is one line. The location
+    /// is the class's, which is what <c>HandlerInfo</c> carries; the message names the method.
+    /// </remarks>
+    private static void ReportInertDeclarations(HandlerInfo handler, List<Diagnostic> diagnostics) {
+        foreach (var method in handler.MethodFilters) {
+            foreach (var filter in method.Filters) {
+                if (!InertDeclarations.TryGetValue(filter.TypeDefinition.Name, out var instead)) {
+                    continue;
+                }
+
+                diagnostics.Add(Diagnostic.Create(
+                    InertDeclarationDescriptor(),
+                    handler.Location ?? Location.None,
+                    handler.ImplementationType.Name,
+                    method.MethodName,
+                    filter.TypeDefinition.Name.Replace("Attribute", ""),
+                    instead));
+            }
+        }
     }
 }

@@ -29,3 +29,20 @@ structure timeout {
     /// a deadline out at a dependency knows nothing about when that dependency recovers.
     retryAfterSeconds: Integer
 }
+
+/// States that a member's narrowing to a C# type is what the model intended, so the build stops
+/// reporting it.
+///
+/// `BigDecimal` and `BigInteger` have no exact C# type. `BigDecimal` becomes `decimal`, which is
+/// exact and holds 28 significant digits rather than arbitrarily many, and `BigInteger` becomes
+/// `long`. Both are reported, because a model that wanted arbitrary precision has lost something
+/// and nothing else would say so.
+///
+/// A model that reached for `BigDecimal` to get exactness rather than range has arrived, and had
+/// no way to say so: the only way to a warning-free build was to suppress `HSMT006` for the whole
+/// project, which silences the members that did lose something too. This is the member saying it
+/// is satisfied.
+///
+/// It goes on the member, or once on a named shape every such member targets.
+@trait(selector: ":is(member, simpleType)")
+structure narrowed {}

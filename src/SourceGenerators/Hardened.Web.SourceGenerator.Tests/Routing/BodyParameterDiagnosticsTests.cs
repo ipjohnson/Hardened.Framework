@@ -76,6 +76,51 @@ public class BodyParameterDiagnosticsTests {
         Assert.Contains("[FromServices]", diagnostic.GetMessage());
     }
 
+    /// <summary>
+    /// And it is the only thing reported: the handler is not emitted, so no compiler error
+    /// arrives beside it.
+    /// </summary>
+    /// <remarks>
+    /// The generated invocation omitted an argument the method requires, so the build failed on a
+    /// <c>CS7036</c> inside <c>obj/</c> as well - a second, worse account of a defect HRDR009
+    /// already stated in full, pointing at a file nobody wrote. Skipping is safe for the reason it
+    /// is safe for an unresolved parameter: the routing table skips the same handlers, and
+    /// HRDR009 is an error, so nothing reaches a running service either way.
+    /// </remarks>
+    [Fact]
+    public void TwoBodyParametersReportNothingBesideHRDR009() {
+        var result = Generate("""
+            [Post("/events")]
+            public string Handle(Reading first, Reading second) => "";
+            """);
+
+        var error = Assert.Single(result.Errors).ToString();
+
+        Assert.Contains(BodyParameterDiagnostics.SeveralBodiesDiagnosticId, error);
+        Assert.DoesNotContain("CS7036", error);
+    }
+
+    /// <summary>
+    /// The routing table skips it too. Routing to a handler class that was never written is
+    /// uncompilable output, which is the failure the skip exists to prevent.
+    /// </summary>
+    [Fact]
+    public void AHandlerWithTwoBodyParametersIsNotRoutedTo() {
+        var result = Generate("""
+            [Post("/events")]
+            public string Handle(Reading first, Reading second) => "";
+
+            [Post("/readings")]
+            public string One(Reading reading) => "";
+            """);
+
+        var routing = result.GeneratedSources
+            .Single(source => source.Key.Contains("Routing", StringComparison.Ordinal)).Value;
+
+        Assert.DoesNotContain("EventController_Handle", routing);
+        Assert.Contains("EventController_One", routing);
+    }
+
     [Fact]
     public void OneBodyParameterIsNotReported() {
         var result = Generate("""

@@ -8,12 +8,14 @@ using Xunit;
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
 /// <summary>
-/// The two ways a described operation ends up with nothing behind it and a clean build.
+/// The three ways a described operation ends up doing less than its implementation says, with a
+/// clean build.
 /// </summary>
 /// <remarks>
-/// Both were silent. A missing <c>[Handler]</c> produced routes that existed and failed at request
-/// time; a handler whose base list started with a base class was registered against that class, so
-/// the service resolved to nothing. Neither produced a diagnostic of any kind.
+/// All three were silent. A missing <c>[Handler]</c> produced routes that existed and failed at
+/// request time; a handler whose base list started with a base class was registered against that
+/// class, so the service resolved to nothing; and a declaration the described path never reads
+/// compiled on the implementation and changed nothing.
 /// </remarks>
 public class HandlerBindingDiagnosticsTests {
 
@@ -126,4 +128,65 @@ public class HandlerBindingDiagnosticsTests {
         Assert.All(diagnostics, d =>
             Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, d.Severity));
     }
+
+    private static HandlerInfo HandlerDeclaring(string method, string attributeName) =>
+        new(TypeDefinition.Get("Test.Api", "PetServiceImpl"),
+            new[] { (ITypeDefinition)TypeDefinition.Get("Test.Api", "IPetService") },
+            Array.Empty<AttributeModel>(),
+            new[] {
+                new HandlerMethodFilterInfo(
+                    method,
+                    new[] {
+                        new AttributeModel(
+                            TypeDefinition.Get("Hardened.Requests.Abstract.Attributes", attributeName),
+                            "", "")
+                    })
+            });
+
+    /// <summary>
+    /// <c>[RawResponse]</c> on a described handler, which the generator reads from a handler's own
+    /// syntax and a described operation does not have.
+    /// </summary>
+    /// <remarks>
+    /// It compiled, read as a commitment to a content type in review, and did nothing at all - the
+    /// described path takes the media type from the contract.
+    /// </remarks>
+    [Fact]
+    public void ADeclarationTheDescribedPathDoesNotReadIsReported() {
+        var diagnostics = Report(
+            new[] { Operation("IPetService", "/pets") },
+            new[] { HandlerDeclaring("ListPets", "RawResponseAttribute") });
+
+        var diagnostic = Assert.Single(diagnostics);
+
+        Assert.Equal(HandlerBindingDiagnostics.InertDeclarationId, diagnostic.Id);
+
+        var message = diagnostic.GetMessage();
+
+        Assert.Contains("PetServiceImpl.ListPets", message);
+        Assert.Contains("[RawResponse]", message);
+        Assert.Contains("media type", message);
+    }
+
+    /// <summary>
+    /// A warning, so a project can silence it. The described path ignoring the attribute is not a
+    /// reason to refuse to build an otherwise correct application.
+    /// </summary>
+    [Fact]
+    public void TheInertDeclarationIsAWarning() =>
+        Assert.Equal(
+            Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
+            Assert.Single(Report(
+                new[] { Operation("IPetService", "/pets") },
+                new[] { HandlerDeclaring("ListPets", "RawResponseAttribute") })).Severity);
+
+    /// <summary>
+    /// A declaration the described path does read is left alone. Without this the rule could pass
+    /// its other tests by firing on every attribute.
+    /// </summary>
+    [Fact]
+    public void ADeclarationTheDescribedPathReadsIsNotReported() =>
+        Assert.Empty(Report(
+            new[] { Operation("IPetService", "/pets") },
+            new[] { HandlerDeclaring("ListPets", "RateLimitAttribute") }));
 }

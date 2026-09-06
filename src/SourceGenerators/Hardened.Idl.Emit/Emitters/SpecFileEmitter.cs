@@ -143,7 +143,7 @@ internal static class SpecFileEmitter {
             // answer with. Beside the exceptions for the same reason: it is a payload, not part of
             // the contract the implementation implements.
             DefaultErrorBodyEmitter.Emit(
-                models, model.Schemas, NullResponseBodies(model), modelsNamespace);
+                models, model.Schemas, NullResponseBodies(model), modelsNamespace, model.FileName);
 
             // The cases a bare shipped record converts into, one method per record and body the
             // file's response sets need. Beside the null-return bodies, which fill the same members

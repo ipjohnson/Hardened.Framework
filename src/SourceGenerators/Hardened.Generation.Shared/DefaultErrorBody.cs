@@ -50,8 +50,16 @@ namespace Hardened.Generation;
 /// </remarks>
 internal static class DefaultErrorBody {
 
-    /// <summary>The holder every generated instance is a field on.</summary>
-    public const string HolderTypeName = "DefaultErrorBodies";
+    /// <summary>The holder this document's generated instances are fields on.</summary>
+    /// <remarks>
+    /// Named after the document, the way <c>ErrorFactoryEmitter.HolderName</c> is. It was
+    /// <c>DefaultErrorBodies</c> for every document, so two contracts in one project that each
+    /// declared a fillable 404 body emitted the class twice into one namespace: CS0101, and a
+    /// CS0229 on every handler that named a field on it. Every other per-document holder in this
+    /// emitter already carried the file name; this one did not.
+    /// </remarks>
+    public static string HolderTypeName(string specFileName) =>
+        NamingHelper.ToPascalCase(specFileName) + "ErrorBodies";
 
     /// <summary>The field's simple name for a schema and status.</summary>
     /// <remarks>

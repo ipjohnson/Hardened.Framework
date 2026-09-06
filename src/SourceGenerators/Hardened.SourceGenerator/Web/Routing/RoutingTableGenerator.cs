@@ -69,7 +69,7 @@ public static class RoutingTableGenerator {
         // worse than the missing route. Skipped silently: WebExecutionHandlerCodeGenerator has
         // already reported each one, and it runs per handler rather than per table.
         var routable = models.Right
-            .Where(handler => handler.UnresolvedParameter() == null)
+            .Where(handler => !handler.CannotBeEmitted())
             .ToList();
 
         // Before anything is emitted. An ambiguous pair still produces a table - one of the two
