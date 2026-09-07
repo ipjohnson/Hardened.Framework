@@ -62,6 +62,29 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
         await _handler.Invoke(input, new TestContext(name));
     }
 
+    /// <summary>
+    /// One direct invocation: the caller's own bytes in, the handler's answer out.
+    /// </summary>
+    /// <remarks>
+    /// No envelope, because a direct invocation has none - the payload is whatever the caller sent,
+    /// which is the whole distinction that gives this family a function of its own. What the
+    /// envelope path does add is the invocation loop and the invoke adapter, so the answer is read
+    /// back out of the response stream exactly as a caller would receive it.
+    /// </remarks>
+    public async Task<object?> Call(object message, string scheme, string path, Type? responseType) {
+        var payload = JsonSerializer.Serialize(message, Wire);
+
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(payload));
+
+        var output = await _handler.Invoke(input, new TestContext(path.TrimStart('/')));
+
+        if (responseType == null) {
+            return null;
+        }
+
+        return await JsonSerializer.DeserializeAsync(output, responseType, Wire);
+    }
+
     private string Sqs(string queue, System.Collections.IEnumerable messages) {
         var records = new List<string>();
         var index = 0;

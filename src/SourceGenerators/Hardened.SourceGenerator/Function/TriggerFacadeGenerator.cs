@@ -46,10 +46,16 @@ namespace Hardened.SourceGenerator.Function;
 public static class TriggerFacadeGenerator {
 
     /// <summary>The kinds that get a façade, what a test calls to reach one, and what to call it.</summary>
+    /// <remarks>
+    /// <c>INVOKE</c> is here and shaped differently, and the difference is the reason it is worth
+    /// having: a direct invocation answers. Its methods return what the handler returns and take
+    /// one message rather than a batch, because there is a caller waiting and nothing to fan out.
+    /// </remarks>
     private static readonly (string Scheme, string Facade, string Noun)[] Kinds = {
         ("QUEUE", "Queues", "queue"),
         ("TOPIC", "Topics", "topic"),
-        ("TIMER", "Timers", "timer")
+        ("TIMER", "Timers", "timer"),
+        ("INVOKE", "Invocations", "operation")
     };
 
     /// <summary>
@@ -134,7 +140,26 @@ public static class TriggerFacadeGenerator {
 
             taken.Add(methodName, source);
 
-            methods.Append(Method(methodName, scheme, handler));
+            methods.Append(
+                scheme == "INVOKE"
+                    ? Call(methodName, handler)
+                    : Method(methodName, scheme, handler));
+        }
+
+        if (scheme == "INVOKE") {
+            // A different delegate, because an invocation answers: the type it should come back as
+            // goes in, and the value comes out. Still all BCL types, so a façade compiled into an
+            // application references no testing package.
+            return $@"        public class {name}
+        {{
+            private readonly global::System.Func<object, string, string, global::System.Type?, global::System.Threading.Tasks.Task<object?>> _call;
+
+            public {name}(global::System.Func<object, string, string, global::System.Type?, global::System.Threading.Tasks.Task<object?>> call)
+            {{
+                _call = call;
+            }}
+{methods}        }}
+";
         }
 
         return $@"        public class {name}
@@ -146,6 +171,56 @@ public static class TriggerFacadeGenerator {
                 _invoke = invoke;
             }}
 {methods}        }}
+";
+    }
+
+    /// <summary>
+    /// One invocation, and what it answered.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Returns the handler's own return type, so a test reads the receipt rather than a stream it
+    /// has to parse - which is what a caller of a direct invocation actually gets back, and the one
+    /// thing no trigger façade can offer.
+    /// </para>
+    /// <para>
+    /// The response type is passed to the delivery rather than deserialized here, because how a
+    /// response comes back differs by delivery: through the pipeline it is the object the handler
+    /// returned, through an envelope it is bytes that have to be read with the framework's own
+    /// conventions. Generated code should not have to know which.
+    /// </para>
+    /// </remarks>
+    private static string Call(string methodName, RequestHandlerModel handler) {
+        var payload = handler.RequestParameterInformationList
+            .FirstOrDefault(parameter => parameter.BindingType == ParameterBindType.Body);
+
+        var argument = payload == null
+            ? "new object()"
+            : "message";
+
+        var parameter = payload == null
+            ? ""
+            : "global::" + payload.ParameterType.Namespace + "." + payload.ParameterType.Name +
+              " message";
+
+        var returns = handler.ResponseInformation.ReturnType;
+        var route = $"\"INVOKE\", \"{handler.Name.Path}\"";
+
+        // A void handler arrives as System.Void rather than as no type at all, and System.Void
+        // cannot be written in C# - Task<System.Void> is a compile error, not a task with nothing
+        // in it.
+        if (returns == null || (returns.Namespace == "System" && returns.Name == "Void")) {
+            return $@"
+            public async global::System.Threading.Tasks.Task {methodName}({parameter}) =>
+                await _call({argument}, {route}, null);
+";
+        }
+
+        var type = "global::" + returns.Namespace + "." + returns.Name;
+
+        return $@"
+            public async global::System.Threading.Tasks.Task<{type}> {methodName}({parameter}) =>
+                ({type})(await _call({argument}, {route}, typeof({type})))!;
 ";
     }
 

@@ -38,6 +38,19 @@ public interface ITopicsOf<out TTopics> {
 }
 
 /// <summary>
+/// The operations an application answers when it is invoked directly.
+/// </summary>
+/// <remarks>
+/// The one façade whose methods return something. A direct invocation has a caller waiting and the
+/// handler's return value is what they receive, so these methods answer with the handler's own type
+/// rather than a task with nothing in it - and they take one message rather than a batch, because
+/// there is nothing to fan out.
+/// </remarks>
+public interface IInvokeOf<out TInvocations> {
+    TInvocations Call { get; }
+}
+
+/// <summary>
 /// The schedules an application runs on.
 /// </summary>
 /// <remarks>

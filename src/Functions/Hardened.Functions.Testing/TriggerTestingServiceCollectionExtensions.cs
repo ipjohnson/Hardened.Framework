@@ -25,6 +25,7 @@ public static class TriggerTestingServiceCollectionExtensions {
         services.AddSingleton(typeof(IQueuesOf<>), typeof(QueuesOf<>));
         services.AddSingleton(typeof(ITopicsOf<>), typeof(TopicsOf<>));
         services.AddSingleton(typeof(ITimersOf<>), typeof(TimersOf<>));
+        services.AddSingleton(typeof(IInvokeOf<>), typeof(InvokeOf<>));
 
         return services;
     }
@@ -45,5 +46,11 @@ public static class TriggerTestingServiceCollectionExtensions {
         public TimersOf(TriggerInvoker invoker) => Fire = invoker.Facade<TTimers>();
 
         public TTimers Fire { get; }
+    }
+
+    private sealed class InvokeOf<TInvocations> : IInvokeOf<TInvocations> {
+        public InvokeOf(TriggerInvoker invoker) => Call = invoker.Facade<TInvocations>();
+
+        public TInvocations Call { get; }
     }
 }

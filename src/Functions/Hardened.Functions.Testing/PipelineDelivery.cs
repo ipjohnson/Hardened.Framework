@@ -61,6 +61,35 @@ public sealed class PipelineDelivery : ITriggerDelivery {
             .Run(context, HostFailurePolicy.Rethrow);
     }
 
+    /// <remarks>
+    /// The answer is read off <c>ResponseValue</c> rather than deserialized from the body: the
+    /// handler's return value is set there before the IO filter turns it into bytes, so taking it
+    /// from there is both exact and free. An envelope delivery has no such shortcut, which is why
+    /// the response type is passed rather than assumed.
+    /// </remarks>
+    public async Task<object?> Call(object message, string scheme, string path, Type? responseType) {
+        Install();
+
+        var body = JsonSerializer.SerializeToUtf8Bytes(message, Wire);
+
+        using var scope = _provider.CreateScope();
+
+        var response = new TestExecutionResponse(new MemoryStream());
+
+        var context = new TestExecutionContext(
+            _provider,
+            scope.ServiceProvider,
+            scope.ServiceProvider.GetRequiredService<IKnownServices>(),
+            new InvocationRequest(scheme, path, body),
+            response,
+            CancellationToken.None);
+
+        await _provider.GetRequiredService<IRequestExecutor>()
+            .Run(context, HostFailurePolicy.Rethrow);
+
+        return response.ResponseValue;
+    }
+
     /// <summary>
     /// Appends the application's dispatch to the middleware chain, once.
     /// </summary>
@@ -96,6 +125,18 @@ public sealed class PipelineDelivery : ITriggerDelivery {
         }
 
         _provider.GetRequiredService<IMiddlewareService>().Use(_ => dispatch[0]);
+    }
+
+    /// <summary>
+    /// One invocation, which is not a batch and never fans out.
+    /// </summary>
+    private sealed class InvocationRequest : TestExecutionRequest {
+        public InvocationRequest(string scheme, string path, byte[] body)
+            : base(scheme, path, "application/json",
+                new SimpleQueryStringCollection((IDictionary<string, string>?)null)) {
+            Body = new MemoryStream(body, writable: false);
+            Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     /// <summary>

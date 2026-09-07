@@ -75,7 +75,7 @@ public class FunctionEntryPointTests {
             """)).AssertNoErrors();
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("NotAHandler"));
-        Assert.Equal(2, result.GeneratedSources.Count);
+        Assert.Equal(3, result.GeneratedSources.Count);
     }
 
     /// <summary>

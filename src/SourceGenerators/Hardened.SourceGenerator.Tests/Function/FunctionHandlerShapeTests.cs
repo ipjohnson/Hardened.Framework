@@ -222,7 +222,7 @@ public class FunctionHandlerShapeTests {
             """, FunctionGeneratorHarness.SupportTypes)).AssertNoErrors();
 
         // Six invokers plus the one provider file.
-        Assert.Equal(7, result.GeneratedSources.Count);
+        Assert.Equal(8, result.GeneratedSources.Count);
     }
 
     /// <summary>

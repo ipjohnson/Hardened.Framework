@@ -1,9 +1,6 @@
-using System.Text;
-using System.Text.Json;
-using Amazon.Lambda.Core;
 using DependencyModules.Testing.Attributes;
 using Hardened.Aws.Lambda.Runtime.Adapters;
-using Hardened.Aws.Lambda.Runtime.Hosting;
+using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.Invoke.SUT;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,50 +13,34 @@ namespace Hardened.IntegrationTests.Invoke.SUT.Tests;
 /// A directly invoked function: whatever the caller sent, and an answer back.
 ///
 /// <para>
-/// The family that must not share a function with the others, and this is where that stops being an
-/// argument. The payloads carry fields called <c>records</c> and <c>requestContext</c> - the fields
-/// SQS, SNS, streams and API Gateway are recognised by - because a caller is entitled to them and
-/// nothing can tell them from AWS's by inspection.
-/// </para>
-/// <para>
-/// Sent as raw payloads rather than through a façade, because there is no source to send from: a
-/// direct invocation is the caller's own bytes, which is the whole distinction.
+/// The one façade whose methods return something. Every trigger is fire-and-forget - a queue
+/// message is handled or redelivered - but a direct invocation has a caller waiting, so
+/// <c>Call.Handle(...)</c> answers with the handler's own type rather than a task with nothing in
+/// it.
 /// </para>
 /// </summary>
 public class DirectInvokeTests {
 
-    private static async Task<string> Invoke(
-        IServiceProvider provider, string payload, string functionName = "place-order") {
-        var output = await provider.GetRequiredService<LambdaInvocationHandler>()
-            .Invoke(
-                new MemoryStream(Encoding.UTF8.GetBytes(payload)),
-                new Context(functionName));
-
-        return new StreamReader(output).ReadToEnd();
-    }
-
     [HardenedTest]
     public async Task ACallersPayloadReachesTheHandler(
-        IServiceProvider provider, [Mock] IOrderLog log) {
-        await Invoke(provider, """{"id":"o-1","quantity":3}""");
+        IInvokeOf<InvokeTestApp.Invocations> invoke, [Mock] IOrderLog log) {
+        await invoke.Call.Handle(new OrderRequest { Id = "o-1", Quantity = 3 });
 
         log.Received().Placed(
             Arg.Is<OrderRequest>(request => request.Id == "o-1" && request.Quantity == 3));
     }
 
     /// <summary>
-    /// The answer is the payload. Unlike every event source, a direct invocation has a caller
-    /// waiting and the handler's return value is what they receive.
+    /// The answer is the payload, and the façade hands it back typed - which is the whole reason
+    /// invoke gets a façade shape of its own.
     /// </summary>
     [HardenedTest]
     public async Task TheHandlersReturnValueIsTheResponse(
-        IServiceProvider provider, [Mock] IOrderLog log) {
-        var response = await Invoke(provider, """{"id":"o-1","quantity":3}""");
+        IInvokeOf<InvokeTestApp.Invocations> invoke, [Mock] IOrderLog log) {
+        var receipt = await invoke.Call.Handle(new OrderRequest { Id = "o-1", Quantity = 3 });
 
-        using var document = JsonDocument.Parse(response);
-
-        Assert.Equal("o-1", document.RootElement.GetProperty("id").GetString());
-        Assert.Equal("placed", document.RootElement.GetProperty("status").GetString());
+        Assert.Equal("o-1", receipt.Id);
+        Assert.Equal("placed", receipt.Status);
     }
 
     /// <summary>
@@ -67,28 +48,24 @@ public class DirectInvokeTests {
     /// event adapter if one were registered here, and every one is legitimately the caller's.
     /// </summary>
     [HardenedTest]
-    [InlineData("""{"id":"o-1","records":["a","b"]}""")]
-    [InlineData("""{"id":"o-1","requestContext":"from-billing"}""")]
-    [InlineData("""{"id":"o-1","records":["a"],"requestContext":"from-billing"}""")]
+    [InlineData("records")]
+    [InlineData("requestContext")]
     public async Task APayloadShapedLikeAnAwsEventIsStillTheCallers(
-        string payload, IServiceProvider provider, [Mock] IOrderLog log) {
-        await Invoke(provider, payload);
+        string field, IInvokeOf<InvokeTestApp.Invocations> invoke, [Mock] IOrderLog log) {
+        var request = new OrderRequest { Id = "o-1" };
 
-        log.Received().Placed(Arg.Is<OrderRequest>(request => request.Id == "o-1"));
-    }
+        if (field == "records") {
+            request.Records = ["a", "b"];
+        }
+        else {
+            request.RequestContext = "from-billing";
+        }
 
-    /// <summary>
-    /// An unnamed handler answers whatever the deployment called the function, so the handler is
-    /// not tied to a name that belongs to the infrastructure.
-    /// </summary>
-    [HardenedTest]
-    [InlineData("place-order")]
-    [InlineData("orders-prod-PlaceOrderFunction-A1B2C3")]
-    public async Task TheHandlerAnswersWhateverTheFunctionIsCalled(
-        string functionName, IServiceProvider provider, [Mock] IOrderLog log) {
-        await Invoke(provider, """{"id":"o-1","quantity":1}""", functionName);
+        var receipt = await invoke.Call.Handle(request);
 
-        log.Received().Placed(Arg.Any<OrderRequest>());
+        Assert.Equal("o-1", receipt.Id);
+
+        log.Received().Placed(Arg.Is<OrderRequest>(one => one.Id == "o-1"));
     }
 
     /// <summary>
@@ -99,24 +76,5 @@ public class DirectInvokeTests {
     [HardenedTest]
     public void TheInvokeAdapterIsTheOnlyOne(IServiceProvider provider) {
         Assert.IsType<InvokeAdapter>(Assert.Single(provider.GetServices<IPayloadAdapter>()));
-    }
-
-    private sealed class Context : ILambdaContext {
-        public Context(string functionName) {
-            FunctionName = functionName;
-        }
-
-        public string FunctionName { get; }
-
-        public string AwsRequestId => "integration";
-        public IClientContext ClientContext => null!;
-        public string FunctionVersion => "$LATEST";
-        public ICognitoIdentity Identity => null!;
-        public string InvokedFunctionArn => "arn:aws:lambda:us-east-1:123456789012:function:place-order";
-        public ILambdaLogger Logger => null!;
-        public string LogGroupName => "/aws/lambda/place-order";
-        public string LogStreamName => "stream";
-        public int MemoryLimitInMB => 512;
-        public TimeSpan RemainingTime => TimeSpan.FromSeconds(30);
     }
 }

@@ -252,7 +252,7 @@ public class FunctionHandlerProviderTests {
         Assert.Contains("case \"INVOKE /second\":", provider);
         Assert.Contains("case \"INVOKE /third\":", provider);
 
-        Assert.Equal(4, result.GeneratedSources.Count);
+        Assert.Equal(5, result.GeneratedSources.Count);
     }
 
     /// <summary>

@@ -27,4 +27,16 @@ public interface ITriggerDelivery {
     /// the fan-out is what a handler runs behind.
     /// </param>
     Task Deliver(IReadOnlyList<object> messages, string scheme, string path);
+
+    /// <summary>
+    /// One invocation, and what it answered.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="Deliver"/> because a batch has no single answer to return, and a
+    /// direct invocation is never a batch. <paramref name="responseType"/> is what the caller
+    /// expects back, or null for a handler that returns nothing; how a delivery produces it differs
+    /// - through the pipeline it is the object the handler returned, through an envelope it is
+    /// bytes to be read with the framework's conventions.
+    /// </remarks>
+    Task<object?> Call(object message, string scheme, string path, Type? responseType);
 }

@@ -21,6 +21,8 @@
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.Invoke.SUT\Hardened.IntegrationTests.Invoke.SUT.csproj"/>
         <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
     </ItemGroup>
 
 </Project>

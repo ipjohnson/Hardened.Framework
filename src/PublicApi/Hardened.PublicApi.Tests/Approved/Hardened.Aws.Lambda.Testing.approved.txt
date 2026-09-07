@@ -3,6 +3,7 @@ namespace Hardened.Aws.Lambda.Testing
     public sealed class LambdaEnvelopeDelivery : Hardened.Functions.Testing.ITriggerDelivery
     {
         public LambdaEnvelopeDelivery(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler, string region = "us-east-1", string account = "123456789012") { }
+        public System.Threading.Tasks.Task<object?> Call(object message, string scheme, string path, System.Type? responseType) { }
         public System.Threading.Tasks.Task Deliver(System.Collections.Generic.IReadOnlyList<object> messages, string scheme, string path) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method)]
