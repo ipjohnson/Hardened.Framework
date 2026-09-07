@@ -14,6 +14,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules;
 /// Kestrel and inside ASP.NET Core with only this binding changing.
 /// </remarks>
 [DependencyModule]
+[LambdaRuntimeModule]
 public partial class ApiGatewayModule : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         services.AddSingleton<IPayloadAdapter, ApiGatewayAdapter>();

@@ -15,6 +15,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules;
 /// inspection.
 /// </remarks>
 [DependencyModule]
+[LambdaRuntimeModule]
 public partial class InvokeModule : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         services.AddSingleton<IPayloadAdapter, InvokeAdapter>();

@@ -9,12 +9,58 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Hardened.SourceGenerator.Function;
 
 public class FunctionModelGenerator : BaseRequestModelGenerator {
-    private readonly List<string> _attributeNames = new() {
-        "HardenedFunction"
-    };
+    /// <summary>
+    /// The attributes that declare a handler rather than bind a parameter, so the binder skips
+    /// them. Every trigger is one: <c>[Queue("orders-new")]</c> names a route, it does not describe
+    /// an argument.
+    /// </summary>
+    private readonly List<string> _attributeNames =
+        new List<string> { "HardenedFunction" }
+            .Concat(TriggerModuleGenerator.Triggers.Select(trigger => trigger.Name))
+            .ToList();
 
+    /// <summary>
+    /// The route and scheme a handler is registered under.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A trigger routes under its own scheme and the source's own name: <c>[Queue("orders-new")]</c>
+    /// becomes <c>QUEUE /orders-new</c>. The scheme has to match what the adapter puts on the
+    /// request it builds from a delivered message, or the message arrives and finds no handler.
+    /// </para>
+    /// <para>
+    /// <c>[Event]</c> takes two arguments rather than one, because a bus carries events from many
+    /// publishers and neither the source nor the detail type identifies one on its own.
+    /// </para>
+    /// <para>
+    /// <c>[HardenedFunction]</c> keeps <c>POST</c> and the method's own name, which is what it has
+    /// always used - a direct invocation has no source to name it after.
+    /// </para>
+    /// </remarks>
     protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation) {
+        foreach (var trigger in TriggerModuleGenerator.Triggers) {
+            // Every spelling, because the selector that admitted this method accepts every
+            // spelling. Looking for the bare name alone let a fully qualified [Queue] through the
+            // selector and then find nothing here, so the method fell to the [HardenedFunction]
+            // lookup below and the generator threw on a null attribute.
+            var triggerAttribute = trigger.Spellings
+                .Select(spelling => methodDeclaration.GetAttribute(spelling))
+                .FirstOrDefault(found => found != null);
+
+            if (triggerAttribute == null) {
+                continue;
+            }
+
+            var arguments = triggerAttribute.ArgumentList?.Arguments;
+
+            var path = string.Join(
+                "/",
+                (arguments ?? default).Select(argument => Value(context, argument)));
+
+            return new RequestHandlerNameModel("/" + path, trigger.Scheme);
+        }
+
         var attribute =
             methodDeclaration.GetAttribute(
                 KnownTypes.Requests.HardenedFunctionAttribute.Name.Replace("Attribute", ""))!;
@@ -23,16 +69,27 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
         var functionName = methodDeclaration.Identifier.Text;
 
         if (argument != null) {
-            var constantValue = context.SemanticModel.GetConstantValue(argument.Expression);
-
-            if (constantValue.HasValue && constantValue.Value != null) {
-                functionName = constantValue.Value.ToString();
-            } else {
-                functionName = argument.Expression.ToString().Trim('"');
-            }
+            functionName = Value(context, argument);
         }
 
         return new RequestHandlerNameModel(functionName, "POST");
+    }
+
+    /// <summary>
+    /// An attribute argument as text, taking the constant where the compiler can fold one.
+    /// </summary>
+    /// <remarks>
+    /// The fallback strips quotes off the written expression, which is what a <c>nameof</c> or an
+    /// interpolation the compiler cannot fold arrives as. Both paths existed for
+    /// <c>[HardenedFunction]</c> already; the triggers use the same one so a queue named by a
+    /// constant routes the same way as one named by a literal.
+    /// </remarks>
+    private static string Value(GeneratorSyntaxContext context, AttributeArgumentSyntax argument) {
+        var constant = context.SemanticModel.GetConstantValue(argument.Expression);
+
+        return constant.HasValue && constant.Value != null
+            ? constant.Value.ToString()
+            : argument.Expression.ToString().Trim('"');
     }
 
     protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context,

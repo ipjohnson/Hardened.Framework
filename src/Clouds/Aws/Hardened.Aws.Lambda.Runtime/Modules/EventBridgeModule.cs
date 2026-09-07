@@ -15,6 +15,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules;
 /// is harmless: modules deduplicate by equality.
 /// </remarks>
 [DependencyModule]
+[LambdaRuntimeModule]
 public partial class EventBridgeModule : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         services.AddSingleton<IPayloadAdapter, EventBridgeAdapter>();

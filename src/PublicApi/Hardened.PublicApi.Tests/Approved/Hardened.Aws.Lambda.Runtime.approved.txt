@@ -206,6 +206,11 @@ namespace Hardened.Aws.Lambda.Runtime.Execution
 }
 namespace Hardened.Aws.Lambda.Runtime.Hosting
 {
+    public class FunctionDispatchFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public FunctionDispatchFilter() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
     public static class HardenedLambdaBootstrap
     {
         public static System.Threading.Tasks.Task Run(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler) { }
@@ -215,12 +220,14 @@ namespace Hardened.Aws.Lambda.Runtime.Hosting
     {
         public LambdaInvocationHandler(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Execution.IRequestExecutor executor, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, System.Collections.Generic.IEnumerable<Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter> adapters) { }
         public System.Collections.Generic.IReadOnlyList<Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter> Adapters { get; }
+        public Hardened.Requests.Abstract.Middleware.IMiddlewareService Middleware { get; }
         public System.Threading.Tasks.Task<System.IO.Stream> Invoke(System.IO.Stream input, Amazon.Lambda.Core.ILambdaContext lambdaContext) { }
     }
 }
 namespace Hardened.Aws.Lambda.Runtime.Modules
 {
     [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class ApiGatewayModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
@@ -237,6 +244,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class EventBridgeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
@@ -253,6 +261,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class InvokeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
@@ -269,6 +278,24 @@ namespace Hardened.Aws.Lambda.Runtime.Modules
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class LambdaRuntimeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public LambdaRuntimeModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class LambdaRuntimeModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public LambdaRuntimeModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class SnsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
@@ -285,6 +312,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class SqsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {

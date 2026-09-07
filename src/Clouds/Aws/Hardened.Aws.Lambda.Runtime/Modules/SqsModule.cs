@@ -27,6 +27,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules;
 /// </para>
 /// </remarks>
 [DependencyModule]
+[LambdaRuntimeModule]
 public partial class SqsModule : IServiceCollectionConfiguration {
     /// <summary>
     /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>, letting a

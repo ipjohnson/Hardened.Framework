@@ -50,14 +50,28 @@ public static class TriggerModuleGenerator {
     /// One trigger: the attribute a handler writes, and the property naming what serves it.
     /// </summary>
     public sealed class Trigger {
-        public Trigger(string name, string attribute, string property) {
+        public Trigger(string name, string attribute, string property, string scheme) {
             Name = name;
             Attribute = attribute;
             Property = property;
+            Scheme = scheme;
             Spellings = Names(attribute);
+            Type = TypeDefinition.Get(
+                attribute.Substring(0, attribute.LastIndexOf('.')),
+                attribute.Substring(attribute.LastIndexOf('.') + 1));
         }
 
         public string Name { get; }
+
+        /// <summary>
+        /// The scheme this trigger's routes are registered under - <c>QUEUE</c>, <c>TOPIC</c>,
+        /// <c>TIMER</c>, <c>EVENT</c> - which is what the adapter puts on the request it builds.
+        /// The two have to agree or a delivered message finds no handler.
+        /// </summary>
+        public string Scheme { get; }
+
+        /// <summary>The attribute as a type, for the selector that finds handlers carrying it.</summary>
+        public ITypeDefinition Type { get; }
 
         public string Attribute { get; }
 
@@ -89,10 +103,10 @@ public static class TriggerModuleGenerator {
     /// own; what serves them is not.
     /// </summary>
     public static readonly IReadOnlyList<Trigger> Triggers = new[] {
-        new Trigger("Queue", "Hardened.Functions.Runtime.Attributes.QueueAttribute", "HardenedQueueModule"),
-        new Trigger("Topic", "Hardened.Functions.Runtime.Attributes.TopicAttribute", "HardenedTopicModule"),
-        new Trigger("Timer", "Hardened.Functions.Runtime.Attributes.TimerAttribute", "HardenedTimerModule"),
-        new Trigger("Event", "Hardened.Functions.Runtime.Attributes.EventAttribute", "HardenedEventModule")
+        new Trigger("Queue", "Hardened.Functions.Runtime.Attributes.QueueAttribute", "HardenedQueueModule", "QUEUE"),
+        new Trigger("Topic", "Hardened.Functions.Runtime.Attributes.TopicAttribute", "HardenedTopicModule", "TOPIC"),
+        new Trigger("Timer", "Hardened.Functions.Runtime.Attributes.TimerAttribute", "HardenedTimerModule", "TIMER"),
+        new Trigger("Event", "Hardened.Functions.Runtime.Attributes.EventAttribute", "HardenedEventModule", "EVENT")
     };
 
     /// <summary>

@@ -2,6 +2,7 @@ using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -41,6 +42,12 @@ public class LambdaInvocationHandler {
         _adapters = adapters.ToArray();
     }
 
+    /// <summary>
+    /// The middleware chain dispatch is appended to, exposed so a test can see it was appended once.
+    /// </summary>
+    public IMiddlewareService Middleware =>
+        _rootServiceProvider.GetRequiredService<IMiddlewareService>();
+
     /// <summary>The adapters this function was built with, in registration order.</summary>
     public IReadOnlyList<IPayloadAdapter> Adapters => _adapters;
 
@@ -53,6 +60,8 @@ public class LambdaInvocationHandler {
     /// nothing at all for SNS and a scheduled rule.
     /// </remarks>
     public async Task<Stream> Invoke(Stream input, ILambdaContext lambdaContext) {
+        Install();
+
         using var payload = await Buffer(input);
 
         var adapter = Select(payload);
@@ -79,6 +88,36 @@ public class LambdaInvocationHandler {
         output.Position = 0;
 
         return output;
+    }
+
+    private bool _installed;
+
+    /// <summary>
+    /// Puts handler dispatch at the end of the middleware chain, once.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The same thing <c>KestrelServerRunner</c> does at start and <c>UseHardened</c> does for
+    /// ASP.NET Core, and for the same reason it lives outside a constructor there:
+    /// <c>MiddlewareService</c> is a singleton holding a plain list, so appending twice puts two
+    /// copies of dispatch in every chain.
+    /// </para>
+    /// <para>
+    /// On first invocation rather than at construction because a Lambda function has no start
+    /// signal of its own - the runtime hands over an invocation and that is the whole lifecycle.
+    /// The bootstrap resolves this handler once and the sandbox is single-threaded per invocation,
+    /// so a plain flag is enough.
+    /// </para>
+    /// </remarks>
+    private void Install() {
+        if (_installed) {
+            return;
+        }
+
+        _installed = true;
+
+        _rootServiceProvider.GetRequiredService<IMiddlewareService>()
+            .Use(_ => new FunctionDispatchFilter());
     }
 
     /// <summary>

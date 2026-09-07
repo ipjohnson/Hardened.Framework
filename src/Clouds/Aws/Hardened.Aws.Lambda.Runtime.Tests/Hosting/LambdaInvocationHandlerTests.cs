@@ -5,6 +5,8 @@ using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Runtime.Middleware;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -47,6 +49,11 @@ public class LambdaInvocationHandlerTests {
         var services = new ServiceCollection();
 
         services.AddSingleton<IKnownServices>(new StubKnownServices());
+
+        // The handler appends its dispatch filter here on first invocation, the way a web host
+        // appends routing at start. The real one is used rather than a substitute because appending
+        // twice is the failure the once-only guard exists for, and a substitute would not show it.
+        services.AddSingleton<IMiddlewareService, MiddlewareService>();
 
         var provider = services.BuildServiceProvider();
 
@@ -204,6 +211,45 @@ public class LambdaInvocationHandlerTests {
             new TestLambdaContext(remainingTime: TimeSpan.FromMilliseconds(10)));
 
         Assert.True(executor.Context!.CancellationToken.IsCancellationRequested);
+    }
+
+    /// <summary>
+    /// Dispatch is appended once however many invocations a warm sandbox serves.
+    /// </summary>
+    /// <remarks>
+    /// <c>MiddlewareService</c> holds a plain list and every invocation goes through the same
+    /// handler instance, so appending per invocation would put a second copy of dispatch in the
+    /// chain on the second message and run every handler twice.
+    /// </remarks>
+    [Fact]
+    public async Task DispatchIsInstalledOnlyOnce() {
+        var (handler, _) = Build(new SqsAdapter());
+
+        await handler.Invoke(Input(Payloads.SqsJson), Context());
+        await handler.Invoke(Input(Payloads.SqsJson), Context());
+
+        Assert.Equal(1, DispatchFilters(handler));
+    }
+
+    /// <summary>
+    /// How many dispatch filters the middleware service would put in a chain.
+    /// </summary>
+    /// <remarks>
+    /// Read off the service's own list by reflection, which is unpleasant and is still the honest
+    /// way to ask: the alternative is running a chain and counting how often a handler was reached,
+    /// which needs a routed handler and turns a two-line assertion into a second integration test.
+    /// </remarks>
+    private static int DispatchFilters(LambdaInvocationHandler handler) {
+        var middleware = (MiddlewareService)handler.Middleware;
+
+        var field = typeof(MiddlewareService).GetField(
+            "_filters",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+
+        var filters =
+            (List<Func<IExecutionContext, IExecutionFilter>>)field!.GetValue(middleware)!;
+
+        return filters.Count(factory => factory(null!) is FunctionDispatchFilter);
     }
 
     /// <summary>Counts how often the peek was run, without changing what the adapter answers.</summary>

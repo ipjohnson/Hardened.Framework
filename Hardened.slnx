@@ -11,6 +11,10 @@
     <Project Path="src/Clients/Hardened.Refit.Testing.Tests/Hardened.Refit.Testing.Tests.csproj" />
     <Project Path="src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj" />
   </Folder>
+  <Folder Name="/IntegrationTests/Sqs/">
+    <Project Path="src/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT/Hardened.IntegrationTests.Sqs.SUT.csproj" />
+    <Project Path="src/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT.Tests/Hardened.IntegrationTests.Sqs.SUT.Tests.csproj" />
+  </Folder>
   <Folder Name="/Functions/">
     <Project Path="src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj" />
   </Folder>

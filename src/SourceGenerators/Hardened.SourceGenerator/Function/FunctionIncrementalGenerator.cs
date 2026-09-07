@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Threading;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
@@ -14,15 +15,23 @@ public static class FunctionIncrementalGenerator {
     public static void Setup(
         IncrementalGeneratorInitializationContext initializationContext,
         IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider) {
-        var methodSelector =
-            new SyntaxSelector<MethodDeclarationSyntax>(KnownTypes.Requests.HardenedFunctionAttribute);
+        // [HardenedFunction] plus every trigger attribute. A trigger is a handler declaration as
+        // much as [HardenedFunction] is - it names a route and a scheme - so it goes through the
+        // same model, invoker and registration as the rest rather than a parallel pipeline.
+        var selectors = new[] { KnownTypes.Requests.HardenedFunctionAttribute }
+            .Concat(TriggerModuleGenerator.Triggers.Select(trigger => trigger.Type))
+            .Select(attribute => new SyntaxSelector<MethodDeclarationSyntax>(attribute))
+            .ToArray();
+
+        bool MethodSelector(SyntaxNode node, CancellationToken token) =>
+            selectors.Any(selector => selector.Where(node, token));
         var modelGenerator = new FunctionModelGenerator();
 
         // See WebIncrementalGenerator: validation builds the model and attaches its own filter, so
         // a [HardenedFunction] whose payload type carries constraints validates without the author
         // writing anything.
         var modelProvider = HandlerValidationGenerator.Setup(
-            initializationContext, modelGenerator, methodSelector.Where);
+            initializationContext, modelGenerator, MethodSelector);
 
         // Invoker stage - generate invoker classes (one per handler)
         initializationContext.RegisterSourceOutput(
@@ -54,7 +63,13 @@ public static class FunctionIncrementalGenerator {
 
         csharpFile.WriteOutput(outputContext);
 
-        context.AddSource(model.Name.Path + ".FunctionHandler.cs", GeneratedSource.Header(outputContext.Output()));
+        // Trimmed, not rewritten. A trigger routes under a rooted path - "/orders-new" - and a
+        // hint name may not begin with a separator, so the generator threw and emitted nothing for
+        // every trigger handler. An interior slash is legal and is kept: [HardenedFunction] has
+        // always put the function name in the file name verbatim, "orders/received" included.
+        context.AddSource(
+            model.Name.Path.Trim('/') + ".FunctionHandler.cs",
+            GeneratedSource.Header(outputContext.Output()));
     }
 
     private static void GenerateFunctionHandlerProvider(SourceProductionContext context,

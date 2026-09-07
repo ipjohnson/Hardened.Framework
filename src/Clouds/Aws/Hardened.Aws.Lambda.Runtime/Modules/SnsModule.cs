@@ -15,6 +15,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules;
 /// <c>Amazon.Lambda.SNSEvents.dll</c>, because this module is the only thing that references them.
 /// </remarks>
 [DependencyModule]
+[LambdaRuntimeModule]
 public partial class SnsModule : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         services.AddSingleton<IPayloadAdapter, SnsAdapter>();
