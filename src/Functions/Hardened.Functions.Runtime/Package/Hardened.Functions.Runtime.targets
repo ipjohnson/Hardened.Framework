@@ -24,5 +24,7 @@
         <CompilerVisibleProperty Include="HardenedTopicModule"/>
         <CompilerVisibleProperty Include="HardenedTimerModule"/>
         <CompilerVisibleProperty Include="HardenedEventModule"/>
+        <CompilerVisibleProperty Include="HardenedChangeModule"/>
+        <CompilerVisibleProperty Include="HardenedStreamModule"/>
     </ItemGroup>
 </Project>

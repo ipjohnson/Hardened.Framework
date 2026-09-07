@@ -12,20 +12,30 @@ namespace Hardened.Functions.Testing;
 /// that source uses and the metadata it carries.
 /// </para>
 /// <para>
-/// A test method reads the same either way - the façade and the <c>Func</c> it holds do not change -
-/// so a project chooses its fidelity with an assembly attribute and nothing else moves.
+/// A test method reads the same either way - the façade and the named delegate it holds do not
+/// change - so a project chooses its fidelity with an assembly attribute and nothing else moves.
 /// </para>
 /// <para>
-/// Internal to the harness rather than something generated code touches. The façade takes a
-/// <c>Func</c> of BCL types precisely so an application carrying one references no testing package;
-/// that constraint applies to the façade, not to what sits behind it.
+/// Internal to the harness rather than something generated code touches. The façade takes
+/// <c>TriggerSend</c> or <c>TriggerCall</c>, both declared over BCL types, precisely so an
+/// application carrying one references no testing package; that constraint applies to the façade,
+/// not to what sits behind it.
 /// </para>
 /// </remarks>
 public interface ITriggerDelivery {
+    /// <summary>
+    /// Delivers a batch to the handler that serves one source.
+    /// </summary>
     /// <param name="messages">
     /// Always a collection, because every trigger source that carries one message can carry ten and
     /// the fan-out is what a handler runs behind.
     /// </param>
+    /// <param name="scheme">
+    /// Which kind of source this is - <c>QUEUE</c>, <c>TOPIC</c>, <c>TIMER</c>, <c>CHANGE</c>,
+    /// <c>STREAM</c>. The route is the scheme and the path together, so a queue and a table of one
+    /// name are different handlers.
+    /// </param>
+    /// <param name="path">The source's own name, as the handler's attribute named it.</param>
     Task Deliver(IReadOnlyList<object> messages, string scheme, string path);
 
     /// <summary>

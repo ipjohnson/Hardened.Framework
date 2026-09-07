@@ -290,6 +290,57 @@ public class TriggerModuleTests {
     /// the triggers used. Without it the handler compiles, deploys, and is never invoked - the
     /// hardest kind of thing to find, because everything looks right.
     /// </summary>
+    /// <summary>
+    /// A change feed and a stream are separate triggers, so they bind separate properties.
+    /// </summary>
+    /// <remarks>
+    /// The reason they are not one <c>[Stream]</c>: DynamoDB Streams and Kinesis would then be two
+    /// adapter packages setting a single property, which resolves first-import-wins on an import
+    /// order nobody controls. Binding one and using the other has to be the error it is here.
+    /// </remarks>
+    [Fact]
+    public void AChangeAndAStreamDoNotShareABinding() {
+        var result = Generate(
+            """
+                [Change("orders")]
+                public void OnOrderChanged(string body) { }
+
+                [Stream("clickstream")]
+                public void OnClick(string body) { }
+            """,
+            ("HardenedChangeModule", CoreModule));
+
+        var diagnostic = Assert.Single(result.GeneratorDiagnostics);
+
+        Assert.Equal("HRDF001", diagnostic.Id);
+        Assert.Contains("HardenedStreamModule", diagnostic.GetMessage());
+        Assert.Contains("Stream", diagnostic.GetMessage());
+    }
+
+    [Fact]
+    public void AChangeHandlerRegistersTheModuleTheRuntimeNames() {
+        var result = GenerateAndCompile(
+            """
+                [Change("orders")]
+                public void OnOrderChanged(string body) { }
+            """,
+            ("HardenedChangeModule", CoreModule));
+
+        Assert.Contains("AddModule(new global::" + CoreModule + "())", Registration(result));
+    }
+
+    [Fact]
+    public void AStreamHandlerRegistersTheModuleTheRuntimeNames() {
+        var result = GenerateAndCompile(
+            """
+                [Stream("clickstream")]
+                public void OnClick(string body) { }
+            """,
+            ("HardenedStreamModule", CoreModule));
+
+        Assert.Contains("AddModule(new global::" + CoreModule + "())", Registration(result));
+    }
+
     [Fact]
     public void ATriggerNothingBindsIsReported() {
         var result = Generate(

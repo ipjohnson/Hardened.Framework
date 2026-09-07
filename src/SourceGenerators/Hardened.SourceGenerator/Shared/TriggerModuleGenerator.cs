@@ -132,6 +132,13 @@ public static class TriggerModuleGenerator {
         new Trigger("Timer", "Hardened.Functions.Runtime.Attributes.TimerAttribute", "HardenedTimerModule", "TIMER"),
         new Trigger("Event", "Hardened.Functions.Runtime.Attributes.EventAttribute", "HardenedEventModule", "EVENT"),
 
+        // The two ordered sources. One trigger each rather than one shared "stream", because two
+        // adapter packages binding a single property resolve first-import-wins on an import order
+        // nobody controls - and because a change feed's handler binds a row image where a stream's
+        // binds the publisher's own bytes.
+        new Trigger("Change", "Hardened.Functions.Runtime.Attributes.ChangeAttribute", "HardenedChangeModule", "CHANGE"),
+        new Trigger("Stream", "Hardened.Functions.Runtime.Attributes.StreamAttribute", "HardenedStreamModule", "STREAM"),
+
         // Not a trigger in the same sense - nothing delivers to it, a caller invokes it - but it
         // binds a module the same way, and for the same reason: an application that had to write
         // [InvokeModule] itself would name a cloud in the one file that must not.

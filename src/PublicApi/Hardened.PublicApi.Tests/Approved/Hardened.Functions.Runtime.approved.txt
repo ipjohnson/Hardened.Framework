@@ -1,5 +1,10 @@
 namespace Hardened.Functions.Runtime.Attributes
 {
+    public class ChangeAttribute : System.Attribute
+    {
+        public ChangeAttribute(string name) { }
+        public string Name { get; }
+    }
     public class EventAttribute : System.Attribute
     {
         public EventAttribute(string source, string detailType) { }
@@ -9,6 +14,11 @@ namespace Hardened.Functions.Runtime.Attributes
     public class QueueAttribute : System.Attribute
     {
         public QueueAttribute(string name) { }
+        public string Name { get; }
+    }
+    public class StreamAttribute : System.Attribute
+    {
+        public StreamAttribute(string name) { }
         public string Name { get; }
     }
     public class TimerAttribute : System.Attribute

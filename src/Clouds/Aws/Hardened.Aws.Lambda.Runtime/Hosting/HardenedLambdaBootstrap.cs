@@ -28,6 +28,9 @@ public static class HardenedLambdaBootstrap {
     /// <param name="serviceProvider">
     /// The application's root provider, which is what a generated <c>Application</c> exposes.
     /// </param>
+    /// <param name="cancellationToken">
+    /// Stops the loop. See the overload below for why a deployed function never uses it.
+    /// </param>
     public static Task Run(
         IServiceProvider serviceProvider, CancellationToken cancellationToken = default) =>
         Run(serviceProvider.GetRequiredService<LambdaInvocationHandler>(), cancellationToken);
@@ -35,6 +38,10 @@ public static class HardenedLambdaBootstrap {
     /// <summary>
     /// Serves invocations against a handler built by hand, for a host that assembles its own.
     /// </summary>
+    /// <param name="handler">
+    /// The invocation handler to serve, for a host that resolved or built its own rather than
+    /// taking it off an application's provider.
+    /// </param>
     /// <param name="cancellationToken">
     /// Stops the loop. A deployed function is never cancelled - the sandbox is frozen between
     /// invocations and eventually torn down - so this exists for a host that runs the loop as part
