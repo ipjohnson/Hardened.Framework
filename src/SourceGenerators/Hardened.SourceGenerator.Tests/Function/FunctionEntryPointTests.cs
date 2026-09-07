@@ -27,7 +27,7 @@ public class FunctionEntryPointTests {
                 public void Process() { }
             """)).AssertNoErrors();
 
-        Assert.Contains("Process.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.Contains("INVOKE.Process.FunctionHandler.cs", result.GeneratedSources.Keys);
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ public class FunctionEntryPointTests {
             """)).AssertNoErrors();
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("NotAHandler"));
-        Assert.Equal(2, result.GeneratedSources.Count);
+        Assert.Equal(3, result.GeneratedSources.Count);
     }
 
     /// <summary>
@@ -104,7 +104,7 @@ public class FunctionEntryPointTests {
                 """
         }).AssertNoErrors();
 
-        Assert.Contains("Process.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.Contains("INVOKE.Process.FunctionHandler.cs", result.GeneratedSources.Keys);
         Assert.Contains("TestApplication.FunctionHandlers.cs", result.GeneratedSources.Keys);
     }
 

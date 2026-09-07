@@ -58,36 +58,30 @@ error rather than something the first invocation discovers.
 #if (invoke)
 The return value is serialised back as the invocation's response.
 #endif
-#if (sqs)
-The handler is called once per record in the batch. Returning normally marks that record handled;
-throwing reports it as a batch item failure, so only the records that failed are redelivered.
+#if (delivery)
+The handler is called once per item the source delivered. Returning normally handles that item;
+throwing fails the invocation, which is what makes the source redeliver.
 #endif
 
 A service is registered next to the class it belongs to, with `[SingletonService]`,
 `[ScopedService]` or `[TransientService]` — the module lists nothing, so it cannot fall out of step.
 
-## Changing the trigger
+## Changing the trigger, and changing the cloud
 
-`src/Hardened1/Application.cs` names the runtime:
+`src/Hardened1/Application.cs` is the whole of the application declaration:
 
 ```csharp
 [HardenedModule]
-[LambdaFunctionModule]
-#if (sqs)
-[SqsLambda]
-#endif
 public partial class Application;
 ```
 
-#if (invoke)
-`[LambdaFunctionModule]` is the invocation path itself. Adding an event source — `[SqsLambda]` from
-`Hardened.Amz.Function.Sqs.Runtime`, for instance — layers batch handling on top of it, and changes
-the handler's signature rather than the rest of the application.
-#endif
-#if (sqs)
-`[LambdaFunctionModule]` is the invocation path; `[SqsLambda]` is the event source layered on it.
-Swapping the event source changes this file and the handler's signature, and nothing else.
-#endif
+There is no host module attribute here, and that is the point. The adapter, its serializer and the
+filters it needs all arrive because the handler carries a trigger attribute: the generator reads the
+build property the host package declares and registers what serves it.
+
+So moving to another cloud is a package reference. Nothing in this file names one, and the handler
+names a source rather than a service — `[Queue("orders")]` is a queue on whichever provider the
+project references, and the same handler compiles against all of them.
 
 ## Testing
 
@@ -150,6 +144,6 @@ there.
 
 ## Where to go next
 
-- [Documentation](https://ipjohnson.github.io/Hardened.Docs)
+- [Documentation](https://ipjohnson.github.io/Hardened.Framework)
 - `AGENTS.md` in this directory — the invariants and gotchas, for anyone or anything editing the
   code rather than reading it

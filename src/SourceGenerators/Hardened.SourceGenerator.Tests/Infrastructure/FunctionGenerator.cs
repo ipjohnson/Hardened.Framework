@@ -30,6 +30,28 @@ public class FunctionGenerator : IIncrementalGenerator {
 }
 
 /// <summary>
+/// Drives the trigger-to-module binding, which the library generator owns in a real build.
+/// </summary>
+/// <remarks>
+/// Its own driver rather than a call inside <see cref="FunctionGenerator"/>, because that is how
+/// the build is arranged: <c>Hardened.Library.SourceGenerator</c> is referenced by every Hardened
+/// project and owns this, so a project routing with the web generator binds its adapters the same
+/// way one routing with the function generator does. Running it as a second generator here is what
+/// keeps the test arrangement honest about that.
+/// </remarks>
+public class TriggerGenerator : IIncrementalGenerator {
+
+    public void Initialize(IncrementalGeneratorInitializationContext context) {
+        var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
+            EntryPointSelector.UsingAttribute(),
+            EntryPointSelector.TransformModel(false)
+        ).WithComparer(new EntryPointSelector.Comparer());
+
+        global::Hardened.SourceGenerator.Shared.TriggerModuleGenerator.Setup(context, applicationModel);
+    }
+}
+
+/// <summary>
 /// The reference set generated function handlers bind against, and the source shapes every test in
 /// this suite goes through.
 /// </summary>
@@ -57,7 +79,7 @@ public static class FunctionGeneratorHarness {
 
     /// <summary>
     /// Runs the generator over one source file. Every caller is expected to finish with
-    /// <see cref="GeneratorResult.AssertNoErrors"/> — see docs/testing-conventions.md §1.
+    /// <see cref="GeneratorResult.AssertNoErrors"/> — see docs/design/testing-conventions.md §1.
     /// </summary>
     public static GeneratorResult Generate(string source) =>
         GeneratorTestHarness.Run(source, new FunctionGenerator(), Anchors);

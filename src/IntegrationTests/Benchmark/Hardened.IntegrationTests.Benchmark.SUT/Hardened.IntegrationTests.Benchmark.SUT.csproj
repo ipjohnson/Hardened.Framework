@@ -27,7 +27,7 @@
         ships no buildTransitive/ and its .cshtml globbing therefore does not flow transitively.
     -->
     <ItemGroup>
-        <PackageReference Include="RazorBlade" Version="1.0.0"/>
+        <PackageReference Include="RazorBlade"/>
     </ItemGroup>
 
     <!--

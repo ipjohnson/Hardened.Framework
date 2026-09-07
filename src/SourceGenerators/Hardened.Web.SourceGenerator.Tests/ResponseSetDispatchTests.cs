@@ -2,6 +2,7 @@ using Hardened.Requests.Abstract.Responses;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Attributes;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -33,6 +34,7 @@ public class ResponseSetDispatchTests {
     private const string TwoCaseHandler =
         """
         using Hardened.Requests.Abstract.Responses;
+        using Hardened.Web.Runtime.Responses;
         using Hardened.Web.Runtime.Attributes;
 
         namespace TestApp;
@@ -72,6 +74,7 @@ public class ResponseSetDispatchTests {
     public void AResponseSetWithAHeaderContributingCaseCompiles() {
         Generate("""
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Web.Runtime.Attributes;
 
             namespace TestApp;
@@ -94,6 +97,7 @@ public class ResponseSetDispatchTests {
         Generate("""
             using System.Threading.Tasks;
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Web.Runtime.Attributes;
 
             namespace TestApp;
@@ -117,6 +121,7 @@ public class ResponseSetDispatchTests {
         Generate("""
             using System;
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Web.Runtime.Attributes;
 
             namespace TestApp;
@@ -139,6 +144,7 @@ public class ResponseSetDispatchTests {
     public void ABodylessCaseCompiles() {
         Generate("""
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Web.Runtime.Attributes;
 
             namespace TestApp;
@@ -159,6 +165,7 @@ public class ResponseSetDispatchTests {
     public void ACaseCarryingItsBodyCompiles() {
         Generate("""
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Web.Runtime.Attributes;
 
             namespace TestApp;
@@ -210,6 +217,7 @@ public class ResponseSetDispatchTests {
     public void AnUnannotatedCaseTakesTheEndpointSuccessStatus() {
         var handler = Handler((Generate("""
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Web.Runtime.Attributes;
 
             namespace TestApp;
@@ -235,6 +243,7 @@ public class ResponseSetDispatchTests {
     public void OnlyAHeaderContributingCaseCallsApplyHeaders() {
         var withHeaders = Handler((Generate("""
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Web.Runtime.Attributes;
 
             namespace TestApp;
@@ -274,6 +283,7 @@ public class ResponseSetDispatchTests {
     public void OnlyAWrappingCaseUnwrapsItsBody() {
         var handler = Handler((Generate("""
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Web.Runtime.Attributes;
 
             namespace TestApp;

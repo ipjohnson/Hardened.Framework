@@ -1,6 +1,7 @@
 using Hardened.SourceGeneration.Testing;
 using Hardened.SourceGenerator.Tests.Infrastructure;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 
@@ -21,6 +22,7 @@ public class ThrowsAttributeTests {
         using System.Threading.Tasks;
         using Hardened.Requests.Abstract.Attributes;
         using Hardened.Requests.Abstract.Responses;
+        using Hardened.Web.Runtime.Responses;
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Attributes;
         using Hardened.Web.Runtime.OpenApi;

@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Every AWS Lambda adapter in one reference: API Gateway, SQS, SNS, EventBridge, DynamoDB Streams, Kinesis, S3 and direct invoke. Reference the individual packages instead to keep out of the deployment bundle what the function is not triggered by.</Description>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Aws.Lambda</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless</PackageTags>
+
+        <!--
+          No code, and no assembly either. A meta package that shipped an empty lib/ would put a
+          few kilobytes of nothing into every bundle, which is a poor look for the package whose
+          existence is a bundle-size argument. NU5128 is the warning for declaring a dependency
+          group with no lib beside it, which is what a meta package is.
+        -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      Convenience, not the recommended reference. Referencing this gets a function every adapter and
+      therefore every Amazon.Lambda event assembly, whatever it is triggered by - which is the state
+      the package split exists to end. It is here because a function that genuinely serves several
+      families should not have to list five packages to say so.
+
+      HRDF003 is what keeps that honest: the generator reports, at Info, every trigger a binding was
+      set for that the project does not use, and names the packages that would replace this one.
+
+      The adapters' build/ assets reach a consumer through here only because they are packed to
+      buildTransitive/. In build/ they would apply to a direct reference and to nothing else, so a
+      project referencing this package would get no binding at all - and the failure is a function
+      that deploys and is never invoked.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.ApiGateway\Hardened.Aws.Lambda.ApiGateway.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.DynamoDb\Hardened.Aws.Lambda.DynamoDb.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.EventBridge\Hardened.Aws.Lambda.EventBridge.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.Invoke\Hardened.Aws.Lambda.Invoke.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.Kinesis\Hardened.Aws.Lambda.Kinesis.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.S3\Hardened.Aws.Lambda.S3.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.Sns\Hardened.Aws.Lambda.Sns.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.Sqs\Hardened.Aws.Lambda.Sqs.csproj"/>
+    </ItemGroup>
+
+</Project>

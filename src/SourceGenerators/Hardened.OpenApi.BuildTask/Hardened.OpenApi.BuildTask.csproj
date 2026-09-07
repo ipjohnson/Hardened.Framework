@@ -51,8 +51,8 @@
             beside the task shadows the host's and produces type-identity failures that read as a
             missing method on ITaskItem.
         -->
-        <PackageReference Include="Microsoft.Build.Framework" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
-        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.8.43" ExcludeAssets="runtime" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Build.Framework" ExcludeAssets="runtime" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" ExcludeAssets="runtime" PrivateAssets="all"/>
 
         <!--
             Referenced normally rather than embedded as resources. A task is an ordinary assembly
@@ -73,14 +73,14 @@
             .NET Framework MSBuild: 3.x brings System.Text.Json, and resolving that inside Visual
             Studio's own MSBuild is the conflict a task host exists to avoid.
         -->
-        <PackageReference Include="Microsoft.OpenApi" Version="3.10.0"/>
+        <PackageReference Include="Microsoft.OpenApi"/>
 
         <!--
             YAML is a separate package from 2.0 onward - the core package reads JSON and nothing
             else, and its reader has to be registered before a YAML document will parse. Every spec
             this was built against except two is YAML, so this is not optional.
         -->
-        <PackageReference Include="Microsoft.OpenApi.YamlReader" Version="3.10.0"/>
+        <PackageReference Include="Microsoft.OpenApi.YamlReader"/>
     </ItemGroup>
 
     <!-- TypeMapper, which the emitters use, returns CSharpAuthor type definitions. -->
@@ -119,7 +119,9 @@
             inherited from the property above, so this changes the compile-time reference and ships
             nothing beside the task.
         -->
-        <PackageReference Include="System.Memory" Version="4.6.0"/>
+        <!-- The build tasks are on 4.6.0 and the generators on 4.5.5. Kept apart rather than
+             unified, because a build task runs in MSBuild and a generator in the compiler. -->
+        <PackageReference Include="System.Memory" VersionOverride="4.6.0"/>
     </ItemGroup>
 
     <ItemGroup>

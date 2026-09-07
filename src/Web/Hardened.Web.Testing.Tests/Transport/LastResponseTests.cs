@@ -2,6 +2,7 @@ using Hardened.Requests.Testing;
 using Hardened.Web.Testing.Tests.Conformance;
 using Microsoft.Extensions.Primitives;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing.Tests.Transport;
 

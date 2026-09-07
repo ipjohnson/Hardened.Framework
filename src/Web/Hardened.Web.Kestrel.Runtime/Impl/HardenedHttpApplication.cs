@@ -1,7 +1,5 @@
 using DependencyModules.Runtime.Attributes;
-using Hardened.Requests.Abstract.Logging;
-using Hardened.Requests.Abstract.Metrics;
-using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Http.Features;
@@ -25,7 +23,8 @@ namespace Hardened.Web.Kestrel.Runtime.Impl;
 ///   <item>Per-request DI scope — created here, disposed in <see cref="DisposeContext"/>.</item>
 ///   <item>Request logging and metrics — routed to Hardened's <c>IRequestLogger</c> and
 ///         <c>IMetricLogger</c> rather than ASP.NET's.</item>
-///   <item>Unhandled exceptions — caught here (see <see cref="ProcessRequestAsync"/>).</item>
+///   <item>Unhandled exceptions — <c>IRequestExecutor</c>, under
+///         <see cref="HostFailurePolicy.Answer500"/>.</item>
 ///   <item>Hosting diagnostics: <c>Activity</c>, <c>DiagnosticSource</c> and <c>EventSource</c>
 ///         are <b>not</b> raised. This is the significant omission — the standard OpenTelemetry
 ///         instrumentation subscribes to the <c>Microsoft.AspNetCore.Hosting</c> names, so an
@@ -35,19 +34,16 @@ namespace Hardened.Web.Kestrel.Runtime.Impl;
 [SingletonService]
 public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.RequestContext> {
     private readonly IServiceProvider _rootServiceProvider;
-    private readonly IMiddlewareService _middlewareService;
+    private readonly IRequestExecutor _executor;
     private readonly IMetricLoggerProvider _metricLoggerProvider;
-    private readonly IRequestLogger _requestLogger;
 
     public HardenedHttpApplication(
         IServiceProvider rootServiceProvider,
-        IMiddlewareService middlewareService,
-        IMetricLoggerProvider metricLoggerProvider,
-        IRequestLogger requestLogger) {
+        IRequestExecutor executor,
+        IMetricLoggerProvider metricLoggerProvider) {
         _rootServiceProvider = rootServiceProvider;
-        _middlewareService = middlewareService;
+        _executor = executor;
         _metricLoggerProvider = metricLoggerProvider;
-        _requestLogger = requestLogger;
     }
 
     /// <summary>
@@ -69,7 +65,7 @@ public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.
             contextFeatures,
             _metricLoggerProvider.CreateLogger("kestrel-session"));
 
-        _requestLogger.RequestBegin(execution);
+        _executor.Begin(execution);
 
         return new RequestContext { Scope = scope, Execution = execution };
     }
@@ -77,51 +73,32 @@ public class HardenedHttpApplication : IHttpApplication<HardenedHttpApplication.
     /// <summary>
     /// Runs the middleware chain and completes the response.
     ///
-    /// Exceptions are caught rather than allowed to propagate. Kestrel does have its own handler
-    /// for an application that throws, but it treats the request as failed: it logs against the
-    /// server rather than the application's own logger, and once the response has started it
-    /// aborts the connection. Catching here means Hardened's <c>IRequestLogger</c> sees the
-    /// failure and a 500 is still sent whenever the response has not yet been flushed.
+    /// <see cref="HostFailurePolicy.Answer500"/> rather than letting a throw propagate. Kestrel
+    /// does have its own handler for an application that throws, but it treats the request as
+    /// failed: it logs against the server rather than the application's own logger, and once the
+    /// response has started it aborts the connection.
     /// </summary>
     public async Task ProcessRequestAsync(RequestContext context) {
         var execution = context.Execution;
 
         try {
-            await _middlewareService.GetExecutionChain(execution).Next();
-        }
-        catch (Exception exception) {
-            // Once the response has started the status line is already on the wire and there is
-            // nothing left to say; the connection will be torn down by the server. Decided before
-            // the logger is told, because the logger reads the status to pick its level.
-            if (!execution.Response.ResponseStarted) {
-                execution.Response.Status = 500;
-            }
-
-            _requestLogger.RequestFailed(execution, exception);
+            await _executor.RunChain(execution, HostFailurePolicy.Answer500);
         }
         finally {
-            // Required by Kestrel. A response that wrote no body — a 204, or a 500 set above —
-            // never sends its headers otherwise, leaving the connection waiting on a request the
-            // application already considers finished.
+            // Required by Kestrel. A response that wrote no body — a 204, or the 500 the failure
+            // policy sets — never sends its headers otherwise, leaving the connection waiting on a
+            // request the application already considers finished.
             await execution.CompleteAsync();
         }
     }
 
+    /// <summary>
+    /// Closes the request out. Kestrel calls this for every request it created a context for,
+    /// including one that threw, which is the guarantee <see cref="IRequestExecutor.End"/> would
+    /// otherwise want a <c>finally</c> for.
+    /// </summary>
     public void DisposeContext(RequestContext context, Exception? exception) {
-        var execution = context.Execution;
-
-        execution.RequestMetrics.Record(
-            RequestMetrics.TotalRequestDuration, execution.StartTime.GetElapsedMilliseconds());
-
-        _requestLogger.RequestEnd(execution);
-
-        // The logger is created per request in CreateContext and nothing else owns it. Disposal is
-        // how a provider learns the request finished - EmbeddedMetricLogger writes its EMF line
-        // here - so without it any provider that emits on completion emitted nothing at all.
-        //
-        // Kestrel calls DisposeContext for every request it created a context for, including one
-        // that threw, so this needs no guard of its own.
-        execution.RequestMetrics.Dispose();
+        _executor.End(context.Execution);
 
         context.Scope.Dispose();
     }

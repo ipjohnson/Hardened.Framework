@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using Hardened.Requests.Runtime.Execution;
 
 namespace Hardened.Web.AspNetCore.Runtime.Tests.Conformance;
 
@@ -50,8 +51,8 @@ public class AspNetTelemetryConformanceTests : RequestTelemetryConformanceTests 
 
             var handler = new AspNetCoreRequestHandler(
                 new NullMetricLoggerProvider(),
-                middlewareService,
-                new RequestLogger(NullLogger<RequestLogger>.Instance));
+                new RequestExecutor(
+                    middlewareService, new RequestLogger(NullLogger<RequestLogger>.Instance)));
 
             await handler.HandleRequest(HttpContextFor(request), _ => Task.CompletedTask);
         }

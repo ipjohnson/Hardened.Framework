@@ -4,6 +4,7 @@ using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.StaticContent;
 

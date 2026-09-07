@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # No source-url, and no NUGET_AUTH_TOKEN. Restore reads src/nuget.config, which is nuget.org
+      # No source-url, and no NUGET_AUTH_TOKEN. Restore reads nuget.config, which is nuget.org
       # and nothing else since ValidationModules was published there at 0.1.0-alpha.1.
       #
       # It used to point setup-dotnet at GitHub Packages, which writes a nuget.config whose
@@ -35,7 +35,7 @@ jobs:
       #
       # The push step below is unaffected: it names its feed and key on the command line.
       #
-      # Two SDKs, and both are load-bearing. src/global.json pins the build to the .NET 11 preview,
+      # Two SDKs, and both are load-bearing. global.json pins the build to the .NET 11 preview,
       # which is the compiler that can read a C# 15 union. But every project here targets net8.0 and
       # every test assembly is framework-dependent on Microsoft.NETCore.App 8.0.0 with no
       # rollForward of its own - and the default policy is Minor, which does not cross a major
@@ -92,11 +92,11 @@ jobs:
           test "$(smithy --version)" = "$SMITHY_VERSION"
           smithy --version
 
-      - run: dotnet restore src/Hardened.Framework.sln
+      - run: dotnet restore Hardened.slnx
 
-      # ContinuousIntegrationBuild turns warnings into errors (see src/Directory.Build.props).
+      # ContinuousIntegrationBuild turns warnings into errors (see Directory.Build.props).
       # The solution builds warning-free; this is what stops that drifting back.
-      - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
+      - run: dotnet build Hardened.slnx --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
       # The claim the framework is sold on, checked rather than asserted.
       #
@@ -133,12 +133,17 @@ jobs:
 
           echo "using $CLANG ($("$CLANG" --version | head -1))"
 
-          dotnet publish src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.SUT/Hardened.IntegrationTests.Aot.SUT.csproj \
-            --configuration Release \
-            --runtime linux-x64 \
-            -p:CppCompilerAndLinker="$CLANG" \
-            -p:ContinuousIntegrationBuild=true \
-            -warnaserror
+          # Both halves. A native binary that serves an HTTP request says nothing about the
+          # function path: a different adapter, a batch fan-out, and an answer written back to the
+          # Lambda Runtime API rather than to a socket.
+          for app in Hardened.IntegrationTests.Aot.SUT Hardened.IntegrationTests.Aot.Lambda.SUT; do
+            dotnet publish "src/IntegrationTests/Aot/$app/$app.csproj" \
+              --configuration Release \
+              --runtime linux-x64 \
+              -p:CppCompilerAndLinker="$CLANG" \
+              -p:ContinuousIntegrationBuild=true \
+              -warnaserror
+          done
 
       # And that the binary serves a request, which a clean compile does not tell you: a trimmer
       # removes what nothing references, so the failure this catches is a route, a binder or a
@@ -187,6 +192,44 @@ jobs:
             *) echo "::error::Unexpected response from the native binary: $body"; exit 1 ;;
           esac
 
+      # The same question for a function. The binary stubs the Lambda Runtime API in-process, serves
+      # one invocation and exits, so what this reads is the handler's own view of a payload that
+      # went through the adapter's peek, the batch fan-out and a source-generated binder - every one
+      # of which resolves through metadata ILC could have removed.
+      - name: Serve an invocation from the native Lambda binary
+        run: |
+          set -o pipefail
+
+          binary=$(find src/IntegrationTests/Aot -type f -path '*/publish/*' \
+            -name 'Hardened.IntegrationTests.Aot.Lambda.SUT' -perm -u+x | head -1)
+
+          if [ -z "$binary" ]; then
+            echo "::error::No native Lambda binary was produced."
+            find src/IntegrationTests/Aot -name 'Hardened.IntegrationTests.Aot.Lambda.SUT*' -type f || true
+            exit 1
+          fi
+
+          if [ -f "$(dirname "$binary")/Hardened.IntegrationTests.Aot.Lambda.SUT.runtimeconfig.json" ]; then
+            echo "::error::Found the framework-dependent apphost rather than the native binary."
+            exit 1
+          fi
+
+          echo "native binary: $binary ($(du -h "$binary" | cut -f1))"
+
+          # It exits on its own: AWS_LAMBDA_DOTNET_DEBUG_RUN_ONCE is set inside the program.
+          output=$(timeout 60 "$binary" 2>&1) || {
+            echo "::error::The native Lambda binary did not complete."
+            echo "$output"
+            exit 1
+          }
+
+          echo "$output"
+
+          case "$output" in
+            *"HANDLED a-1 x7"*) echo "Native AOT binary served a bound queue message." ;;
+            *) echo "::error::The native Lambda binary did not handle the invocation."; exit 1 ;;
+          esac
+
       # The document the code-first generator emits, checked by a linter rather than only by a
       # reader. Microsoft.OpenApi already proves the specification-first side parses, and that is a
       # weaker claim than it sounds: path templating is prose in the OpenAPI specification rather
@@ -229,7 +272,7 @@ jobs:
       - name: Test with coverage
         run: |
           set -o pipefail
-          dotnet test src/Hardened.Framework.sln \
+          dotnet test Hardened.slnx \
             --no-build --configuration Release \
             --settings coverage.runsettings \
             --collect:"Code Coverage" \
@@ -333,16 +376,19 @@ jobs:
         run: |
           BUILD=$(printf '%06d' "$GITHUB_RUN_NUMBER")
           echo "Packing $RELEASE_LINE-preview$BUILD"
-          dotnet pack src/Hardened.Framework.sln --configuration Release --no-build /p:PackageVersion=$RELEASE_LINE-preview$BUILD
+          dotnet pack Hardened.slnx --configuration Release --no-build /p:PackageVersion=$RELEASE_LINE-preview$BUILD
 
       # Packing the solution takes whatever is not marked IsPackable=false, which is how
       # Hardened.IntegrationTests.Console.SUT and .OpenApi.SUT reached the feed as packages -
       # a public ID claimed by a test fixture, and on nuget.org that would be permanent.
       # IsPackable=false was added to those projects; this is what notices the next one.
+      #
+      # find rather than src/**/bin, which without shopt -s globstar is one directory level and
+      # matched nothing here even before src/Clouds/Aws put the AWS packages three levels down.
       - name: Verify no test fixture was packed
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          LEAKED=$(ls -1 src/**/bin/Release/*.nupkg 2>/dev/null \
+          LEAKED=$(find src -path '*/bin/Release/*.nupkg' \
             | xargs -n1 basename \
             | grep -Ei '^(Hardened\.IntegrationTests|.*\.Tests\.)' || true)
 
@@ -352,6 +398,10 @@ jobs:
             exit 1
           fi
 
+      # Same reason as above: the glob has to reach src/Clouds/Aws/Lambda/<area>/<project>/bin.
       - name: Push
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: dotnet nuget push src/**/bin/Release/*.nupkg --api-key ${{secrets.GITHUB_TOKEN}} --source "https://nuget.pkg.github.com/ipjohnson/index.json" --skip-duplicate
+        run: |
+          find src -path '*/bin/Release/*.nupkg' -print0 | xargs -0 -n1 \
+            dotnet nuget push --api-key ${{secrets.GITHUB_TOKEN}} \
+              --source "https://nuget.pkg.github.com/ipjohnson/index.json" --skip-duplicate

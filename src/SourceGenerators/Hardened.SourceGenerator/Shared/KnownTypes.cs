@@ -50,6 +50,12 @@ public static class KnownTypes {
 
                 public const string RuntimeDependencyInjection = "Hardened.Web.Runtime.DependencyInjection";
 
+                /// <summary>
+                /// Where <c>ILinkContext</c> lives since the HTTP extraction. A Link header is an
+                /// HTTP idea, so it left <c>Hardened.Requests.Abstract</c>.
+                /// </summary>
+                public const string Links = "Hardened.Web.Runtime.Links";
+
                 public const string RuntimeHandlers = "Hardened.Web.Runtime.Handlers";
 
                 public const string Routing = "Hardened.Web.Runtime.Routing";
@@ -71,7 +77,6 @@ public static class KnownTypes {
 
                     public const string Outputs = "Hardened.Requests.Abstract.Outputs";
 
-                    public const string Links = "Hardened.Requests.Abstract.Links";
                 }
 
                 public static class Runtime {
@@ -196,7 +201,7 @@ public static class KnownTypes {
 
         public static readonly ITypeDefinition ILinkContext =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition,
-                Namespace.Hardened.Requests.Abstract.Links, "ILinkContext");
+                Namespace.Hardened.Web.Links, "ILinkContext");
 
         public static readonly ITypeDefinition IHardenedResponseOutput =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition,
@@ -228,6 +233,14 @@ public static class KnownTypes {
         public static readonly ITypeDefinition IFunctionHandlerProvider =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
                 "IFunctionHandlerProvider");
+
+        public static readonly ITypeDefinition IHandlerDispatch =
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
+                "IHandlerDispatch");
+
+        public static readonly ITypeDefinition FunctionDispatchFilter =
+            TypeDefinition.Get(TypeDefinitionEnum.ClassDefinition, "Hardened.Requests.Runtime.Execution",
+                "FunctionDispatchFilter");
 
         public static readonly ITypeDefinition IExecutionRequestHandlerInfo =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,

@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Hardened.Benchmarks.Contracts;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Benchmarks.Infrastructure;
 

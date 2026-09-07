@@ -131,7 +131,7 @@ public class DefaultErrorBodyTests {
         };
 
         Assert.Equal(
-            ["global::Hardened.Requests.Abstract.Responses.ProblemTypes.NotFound", "\"Not Found\"", "404", "default"],
+            ["global::Hardened.Web.Runtime.Responses.ProblemTypes.NotFound", "\"Not Found\"", "404", "default"],
             DefaultErrorBody.Arguments(schemas, "Problem", 404));
     }
 

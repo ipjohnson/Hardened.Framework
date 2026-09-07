@@ -7,10 +7,11 @@ using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Handlers;
 
-public interface IWebExecutionHandlerService : IExecutionFilter { }
+public interface IWebExecutionHandlerService : IHandlerDispatch { }
 
 [SingletonService(Using = RegistrationType.Try)]
 public partial class WebExecutionHandlerService : IWebExecutionHandlerService {

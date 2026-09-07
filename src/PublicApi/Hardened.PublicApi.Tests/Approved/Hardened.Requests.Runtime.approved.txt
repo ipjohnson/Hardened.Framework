@@ -146,43 +146,6 @@ namespace Hardened.Requests.Runtime.Caching
         public string Handler { get; }
     }
 }
-namespace Hardened.Requests.Runtime.Compression
-{
-    public class CompressionConfiguration : Hardened.Requests.Runtime.Compression.ICompressionConfiguration
-    {
-        public const long DefaultMaxDecompressedRequestBytes = 30000000;
-        public CompressionConfiguration() { }
-        public System.Collections.Generic.List<string> Encodings { get; set; }
-        public System.Collections.Generic.List<string> ExcludedMediaTypes { get; set; }
-        public System.IO.Compression.CompressionLevel Level { get; set; }
-        public long MaxDecompressedRequestBytes { get; set; }
-        public System.Collections.Generic.List<string> MediaTypes { get; set; }
-        public bool Compresses(string? contentType) { }
-    }
-    public static class CompressionServiceCollectionExtensions
-    {
-        public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureCompression(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Hardened.Requests.Runtime.Compression.CompressionConfiguration> configure) { }
-    }
-    public class DecompressedBodyTooLargeException : Hardened.Requests.Abstract.Errors.StatusCodeException
-    {
-        public DecompressedBodyTooLargeException(long limit) { }
-        public long Limit { get; }
-    }
-    public interface ICompressionConfiguration
-    {
-        System.Collections.Generic.IReadOnlyList<string> Encodings { get; }
-        System.Collections.Generic.IReadOnlyList<string> ExcludedMediaTypes { get; }
-        System.IO.Compression.CompressionLevel Level { get; }
-        long MaxDecompressedRequestBytes { get; }
-        System.Collections.Generic.IReadOnlyList<string> MediaTypes { get; }
-        bool Compresses(string? contentType);
-    }
-    public sealed class RequestDecompressionFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
-    {
-        public RequestDecompressionFilter(Hardened.Requests.Runtime.Compression.ICompressionConfiguration? configuration = null) { }
-        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
-    }
-}
 namespace Hardened.Requests.Runtime.Configuration
 {
     public interface IJsonSerializerConfiguration
@@ -382,6 +345,11 @@ namespace Hardened.Requests.Runtime.Execution
         public bool TryGetParameter(string parameterName, out object? parameterValue) { }
         public bool TrySetParameter(string parameterName, object parameterValue) { }
     }
+    public class FunctionDispatchFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Requests.Abstract.Execution.IHandlerDispatch
+    {
+        public FunctionDispatchFilter() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
     public static class HeaderDictionaryExtensions
     {
         public static Microsoft.Extensions.Primitives.StringValues Get(this System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, string key) { }
@@ -412,6 +380,15 @@ namespace Hardened.Requests.Runtime.Execution
         public Hardened.Requests.Abstract.Forms.IFormReader FormReader { get; }
         public Hardened.Requests.Abstract.Serializer.IStringConverterService StringConverterService { get; }
     }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class RequestExecutor : Hardened.Requests.Abstract.Execution.IRequestExecutor
+    {
+        public RequestExecutor(Hardened.Requests.Abstract.Middleware.IMiddlewareService middlewareService, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger) { }
+        public void Begin(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public void End(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task Run(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.HostFailurePolicy onFailure) { }
+        public System.Threading.Tasks.Task RunChain(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.HostFailurePolicy onFailure) { }
+    }
 }
 namespace Hardened.Requests.Runtime.Filters
 {
@@ -419,6 +396,15 @@ namespace Hardened.Requests.Runtime.Filters
     {
         public AsyncEnumerableIoFilter(System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serializeResponse, System.Action<Hardened.Requests.Abstract.Execution.IExecutionContext>? headerActions, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing = null, System.TimeSpan heartbeatInterval = default) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public class BatchExecutionFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public BatchExecutionFilter() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public static class BatchFilterServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddBatchExecutionFilter(this Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     public class ConditionalFilterProvider : Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {
@@ -602,32 +588,6 @@ namespace Hardened.Requests.Runtime.Headers
         public void Append(string cookieName, string cookieValue, Hardened.Requests.Abstract.Headers.CookieSetOptions? options = null) { }
     }
 }
-namespace Hardened.Requests.Runtime.Links
-{
-    public interface ILinkConfiguration
-    {
-        string BasePath { get; }
-        string? Host { get; }
-        string? Scheme { get; }
-    }
-    public class LinkConfiguration : Hardened.Requests.Runtime.Links.ILinkConfiguration
-    {
-        public LinkConfiguration() { }
-        public string BasePath { get; set; }
-        public string? Host { get; set; }
-        public string? Scheme { get; set; }
-    }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
-    public class LinkContext : Hardened.Requests.Abstract.Links.ILinkContext
-    {
-        public LinkContext(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Links.ILinkConfiguration> configuration) { }
-        public string BasePath { get; }
-        public string? Host { get; }
-        public string? Scheme { get; }
-        public string Absolute(string path) { }
-        public string Resolve(string path) { }
-    }
-}
 namespace Hardened.Requests.Runtime.Logging
 {
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
@@ -789,6 +749,11 @@ namespace Hardened.Requests.Runtime.RateLimiting
     {
         Transport = 0,
         Principal = 1,
+    }
+    public static class RetryAfter
+    {
+        public static string HeaderValue(System.TimeSpan delay) { }
+        public static int Seconds(System.TimeSpan delay) { }
     }
 }
 namespace Hardened.Requests.Runtime.Serializer

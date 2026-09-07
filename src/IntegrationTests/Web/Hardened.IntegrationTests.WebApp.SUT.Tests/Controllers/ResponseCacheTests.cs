@@ -2,6 +2,7 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Caching;
 using Hardened.Requests.Testing;
 using Microsoft.Extensions.Primitives;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 

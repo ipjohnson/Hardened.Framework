@@ -1,6 +1,7 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Microsoft.Extensions.Primitives;
+using Hardened.Web.Runtime.Headers;
 
 namespace Hardened.Web.Runtime.Conditional;
 

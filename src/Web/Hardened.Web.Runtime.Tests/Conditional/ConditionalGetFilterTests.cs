@@ -4,7 +4,6 @@ using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Caching;
-using Hardened.Requests.Runtime.Compression;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
@@ -14,6 +13,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
+using Hardened.Web.Runtime.Headers;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Conditional;
 

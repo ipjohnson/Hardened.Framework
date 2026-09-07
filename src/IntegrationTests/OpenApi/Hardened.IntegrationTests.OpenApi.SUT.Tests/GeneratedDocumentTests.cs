@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text.Json;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 

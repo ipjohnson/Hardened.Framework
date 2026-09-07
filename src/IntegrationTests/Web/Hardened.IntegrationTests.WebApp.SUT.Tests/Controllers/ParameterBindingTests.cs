@@ -1,5 +1,6 @@
 ﻿using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Microsoft.Extensions.Primitives;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 

@@ -1,0 +1,31 @@
+<Project>
+    <!--
+        The properties that bind a trigger to the module serving it, declared but not set.
+
+        A source generator sees an MSBuild property only if something declares it
+        CompilerVisibleProperty - AnalyzerConfigOptionsProvider.GlobalOptions holds exactly the
+        declared ones and nothing else. Hardened.Web.SourceGenerator learned that the expensive way:
+        <HardenedAmbiguousRoutes> had no effect for months because the generator read it and the
+        package shipped no build assets to declare it.
+
+        Declared here rather than by a runtime package because the declaration has to be visible
+        wherever the attribute can be written. This package owns [Queue], [Topic], [Timer] and
+        [Event], so it owns their four properties; HardenedInvokeModule belongs to
+        Hardened.Requests.Abstract with [HardenedFunction], and HardenedHttpModule to
+        Hardened.Web.Runtime with the verbs. A consumer must be able to point HardenedQueueModule at
+        a third-party module without referencing any cloud package, and before this file that was
+        impossible.
+
+        Setting them is a runtime package's job, and each sets only its own - see
+        Hardened.Aws.Lambda.Sqs and its siblings.
+    -->
+    <ItemGroup>
+        <CompilerVisibleProperty Include="HardenedQueueModule"/>
+        <CompilerVisibleProperty Include="HardenedTopicModule"/>
+        <CompilerVisibleProperty Include="HardenedTimerModule"/>
+        <CompilerVisibleProperty Include="HardenedEventModule"/>
+        <CompilerVisibleProperty Include="HardenedChangeModule"/>
+        <CompilerVisibleProperty Include="HardenedStreamModule"/>
+        <CompilerVisibleProperty Include="HardenedBlobModule"/>
+    </ItemGroup>
+</Project>

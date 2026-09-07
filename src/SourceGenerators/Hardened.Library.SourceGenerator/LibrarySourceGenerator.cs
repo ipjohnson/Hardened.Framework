@@ -23,6 +23,12 @@ public class LibrarySourceGenerator : IIncrementalGenerator {
 
         ConfigurationIncrementalGenerator.Setup(context, applicationModel);
 
+        // Which payload adapter each trigger needs, read off the runtime package's build
+        // properties. Here rather than in a routing generator because it applies to both of them -
+        // [Get] binds an adapter as much as [Queue] does - and because emitting it from each would
+        // give a project using both two copies of the same file.
+        TriggerModuleGenerator.Setup(context, applicationModel);
+
         ReportAMissingRoutingGenerator(context);
 
         // The opposite wrong answer to the same question, and it needs no route declarations to

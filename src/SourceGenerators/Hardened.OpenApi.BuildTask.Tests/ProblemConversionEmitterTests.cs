@@ -16,7 +16,7 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// </remarks>
 public class ProblemConversionEmitterTests {
 
-    private const string Shipped = "global::Hardened.Requests.Abstract.Responses.";
+    private const string Shipped = "global::Hardened.Web.Runtime.Responses.";
 
     private const string Models = "global::" + EmitterHarness.ModelsNamespace + ".";
 

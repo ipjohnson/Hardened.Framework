@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Threading;
 using CSharpAuthor;
 using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
@@ -14,15 +15,23 @@ public static class FunctionIncrementalGenerator {
     public static void Setup(
         IncrementalGeneratorInitializationContext initializationContext,
         IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider) {
-        var methodSelector =
-            new SyntaxSelector<MethodDeclarationSyntax>(KnownTypes.Requests.HardenedFunctionAttribute);
+        // [HardenedFunction] plus every trigger attribute. A trigger is a handler declaration as
+        // much as [HardenedFunction] is - it names a route and a scheme - so it goes through the
+        // same model, invoker and registration as the rest rather than a parallel pipeline.
+        var selectors = TriggerModuleGenerator.Triggers
+            .Where(trigger => trigger.IsFunctionHandler)
+            .Select(trigger => new SyntaxSelector<MethodDeclarationSyntax>(trigger.Type))
+            .ToArray();
+
+        bool MethodSelector(SyntaxNode node, CancellationToken token) =>
+            selectors.Any(selector => selector.Where(node, token));
         var modelGenerator = new FunctionModelGenerator();
 
         // See WebIncrementalGenerator: validation builds the model and attaches its own filter, so
         // a [HardenedFunction] whose payload type carries constraints validates without the author
         // writing anything.
         var modelProvider = HandlerValidationGenerator.Setup(
-            initializationContext, modelGenerator, methodSelector.Where);
+            initializationContext, modelGenerator, MethodSelector);
 
         // Invoker stage - generate invoker classes (one per handler)
         initializationContext.RegisterSourceOutput(
@@ -54,7 +63,17 @@ public static class FunctionIncrementalGenerator {
 
         csharpFile.WriteOutput(outputContext);
 
-        context.AddSource(model.Name.Path + ".FunctionHandler.cs", GeneratedSource.Header(outputContext.Output()));
+        // The scheme is part of the name because it is part of the route. Without it a queue and a
+        // topic of the same name produced one file name twice, the generator threw on a duplicate
+        // hint name, and every handler in the project vanished behind a message that mentioned
+        // neither queues nor topics.
+        //
+        // Trimmed rather than rewritten beyond that: a hint name may not begin with a separator,
+        // but an interior slash is legal and is kept - [HardenedFunction] has always put the
+        // function name in the file name verbatim, "orders/received" included.
+        context.AddSource(
+            model.Name.Method + "." + model.Name.Path.Trim('/') + ".FunctionHandler.cs",
+            GeneratedSource.Header(outputContext.Output()));
     }
 
     private static void GenerateFunctionHandlerProvider(SourceProductionContext context,
@@ -85,6 +104,16 @@ public static class FunctionIncrementalGenerator {
         csharpFile.WriteOutput(output);
 
         context.AddSource(appModel.EntryPointType.Name + ".FunctionHandlers.cs", GeneratedSource.Header(output.Output()));
+
+        // The test-time façades, in their own file. Separate because they are a different audience:
+        // this one is the routing table, and that one is what a test types.
+        var facades = TriggerFacadeGenerator.Generate(
+            context, appModel, requestHandlers, context.CancellationToken);
+
+        if (facades != null) {
+            context.AddSource(
+                appModel.EntryPointType.Name + ".Triggers.cs", GeneratedSource.Header(facades));
+        }
     }
 
     private static void CreateFunctionHandlerProviderClass(
@@ -104,22 +133,35 @@ public static class FunctionIncrementalGenerator {
         // GetFunctionHandler method
         var method = providerClass.AddMethod("GetFunctionHandler");
         method.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
-        var functionNameParam = method.AddParameter(typeof(string), "functionName");
+        var schemeParam = method.AddParameter(typeof(string), "scheme");
+        var pathParam = method.AddParameter(typeof(string), "path");
         var serviceProviderParam = method.AddParameter(KnownTypes.DI.IServiceProvider, "serviceProvider");
 
         if (requestHandlers.Length > 0) {
             // Handlers with explicit function names go in the switch.
-            // Handlers without explicit names (Name.Path == HandlerMethod) are catch-all.
-            var namedHandlers = requestHandlers.Where(h => h.Name.Path != h.HandlerMethod).ToList();
-            var defaultHandlers = requestHandlers.Where(h => h.Name.Path == h.HandlerMethod).ToList();
+            // Handlers without explicit names are catch-all: a Lambda hosting one operation never
+            // sends a name worth matching. The route is rooted and the method name is not, so the
+            // comparison trims - it used to compare two bare names, and prepending the root to
+            // every route made every unnamed handler look named.
+            bool Named(RequestHandlerModel handler) =>
+                handler.Name.Path.Trim('/') != handler.HandlerMethod;
+
+            var namedHandlers = requestHandlers.Where(Named).ToList();
+            var defaultHandlers = requestHandlers.Where(handler => !Named(handler)).ToList();
 
             if (namedHandlers.Count > 0) {
-                var switchBlock = method.Switch(functionNameParam);
+                // One switch over the two joined, rather than a switch inside a switch. It costs a
+                // concatenation per invocation and reads as the route it is - "QUEUE /orders" is
+                // what a log line says and what the case label holds, so a missing route is found
+                // by searching for the text in the error.
+                var switchBlock = method.Switch(
+                    new CodeOutputComponent("scheme + \" \" + path") { Indented = false });
 
                 foreach (var handler in namedHandlers) {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var caseBlock = switchBlock.AddCase($"\"{handler.Name.Path}\"");
+                    var caseBlock = switchBlock.AddCase(
+                        $"\"{handler.Name.Method} {handler.Name.Path}\"");
                     caseBlock.Return(New(handler.InvokeHandlerType, serviceProviderParam));
                 }
             }
@@ -151,6 +193,15 @@ public static class FunctionIncrementalGenerator {
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+
+        // Dispatch beside the provider it dispatches through, so an application that compiled no
+        // function handlers carries neither. This is what a host installs at the end of the
+        // middleware chain, and it is how a host stays ignorant of which kind of handlers it serves.
+        diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
+            new[] {
+                KnownTypes.Requests.IHandlerDispatch,
+                KnownTypes.Requests.FunctionDispatchFilter
+            }));
 
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] {

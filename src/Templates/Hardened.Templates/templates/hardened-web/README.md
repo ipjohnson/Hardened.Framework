@@ -91,10 +91,10 @@ from a terminal browse to the page yourself.
 #endif
 | `tests/Hardened1.Tests` | Tests, against the library rather than the host. |
 
-That split is the point rather than a convention. Swapping the host — Kestrel, ASP.NET Core, and
-Lambda in the Hardened.Amz packages — changes only the host project. The others are identical
-whichever one you pick, which is why the tests target the library: a test suite that named the host
-would be tied to a deployment target for no reason.
+That split is the point rather than a convention. Swapping the host — Kestrel, ASP.NET Core, or
+AWS Lambda behind API Gateway — changes only the host project. The others are identical whichever
+one you pick, which is why the tests target the library: a test suite that named the host would be
+tied to a deployment target for no reason.
 
 ## Adding to it
 
@@ -395,7 +395,7 @@ same way through `Hardened.Kiota.Testing` and `[assembly: KiotaTesting]`.
 #endif
 
 Other generators, other languages, and Kiota's multi-language workspace are on the site's
-[Clients](https://ipjohnson.github.io/Hardened.Docs/guide/clients) page; every one of them reads the
+[Clients](https://ipjohnson.github.io/Hardened.Framework/guide/clients) page; every one of them reads the
 same file.
 
 #endif
@@ -413,6 +413,6 @@ and the module registration are all there.
 
 ## Where to go next
 
-- [Documentation](https://ipjohnson.github.io/Hardened.Docs)
+- [Documentation](https://ipjohnson.github.io/Hardened.Framework)
 - `AGENTS.md` in this directory — the invariants and gotchas, for anyone or anything editing the
   code rather than reading it

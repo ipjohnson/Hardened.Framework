@@ -1,6 +1,7 @@
 using Hardened.Web.Testing;
 using Refit;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Refit.Testing.Tests;
 

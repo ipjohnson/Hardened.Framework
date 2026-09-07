@@ -8,6 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Xunit;
+using Hardened.Requests.Runtime.Execution;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 
@@ -204,7 +206,9 @@ public class HardenedHttpApplicationTests {
             services.AddScoped<TrackedScopedService>();
 
             Application = new HardenedHttpApplication(
-                services.BuildServiceProvider(), middlewareService, metricLoggerProvider, RequestLogger);
+                services.BuildServiceProvider(),
+                new RequestExecutor(middlewareService, RequestLogger),
+                metricLoggerProvider);
         }
 
         public IRequestLogger RequestLogger { get; }

@@ -9,6 +9,7 @@ using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests;
 

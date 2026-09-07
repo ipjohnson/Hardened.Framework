@@ -553,7 +553,7 @@ public static class OpenApiDocumentGenerator {
     /// does not hold it - so the status is a fact about the operation the way the 401 beside it
     /// is. An entry with no scopes becomes <c>Requirement.Authenticated</c> and can refuse nobody
     /// who got past the 401, which is why this is keyed on the scopes rather than on there being a
-    /// requirement at all. <c>docs/described-authorization.md</c> is the table both readings come
+    /// requirement at all. <c>docs/design/described-authorization.md</c> is the table both readings come
     /// from.
     /// </para>
     /// <para>

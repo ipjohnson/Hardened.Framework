@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
+        <Description>The trigger attributes a Hardened function handler is written against: queues, topics, timers and events. Provider-neutral - which adapter serves a trigger is decided by the runtime package that is referenced.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Functions.Runtime</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;serverless;functions</PackageTags>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      No reference to any cloud, and none to the request pipeline either. This package exists to be
+      the one thing a handler names, so anything it depends on is something a handler drags with it.
+    -->
+
+    <!--
+      buildTransitive/ rather than build/. NuGet imports build/ for a direct reference only, and a
+      handler library reaches this package through a runtime package as often as it names it - so a
+      declaration in build/ would be missing exactly where the trigger is written.
+      buildTransitive/ covers the direct case too, which is why it replaces build/ rather than
+      joining it: the same file in both folders imports twice.
+
+      Package\ rather than build\ in the source tree, because .gitignore ignores build/ and the
+      file would never be committed. PackagePath takes a forward slash - a trailing backslash packs
+      to "buildTransitive//" on Linux and macOS, where NuGet never imports it, and that failure is
+      silent.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Functions.Runtime.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+</Project>

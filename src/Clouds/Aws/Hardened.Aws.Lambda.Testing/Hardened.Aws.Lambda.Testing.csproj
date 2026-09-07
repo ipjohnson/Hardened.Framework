@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <!--
+          Deliberately not IsAotCompatible. A test harness serializes whatever type a test hands it
+          and builds clients over types it learns at run time, so the reflection is the feature
+          rather than an oversight - and a testing package is referenced by test projects, which are
+          never published ahead of time. Marking it would make the flag a claim about code no
+          consumer will ever trim. See Hardened.Shared.Testing.csproj for the whole of it.
+        -->
+        <Description>Raises the fidelity of a Hardened function test on AWS: delivers through the envelope the source actually sends - SQS, SNS, EventBridge, DynamoDB Streams, Kinesis or S3 - and the real invocation loop, so the adapter and the payload peek are exercised too.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Aws.Lambda.Testing</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;testing</PackageTags>
+    </PropertyGroup>
+
+    <!--
+      Optional. A project testing its own handlers needs only Hardened.Functions.Testing, whose
+      delivery names no cloud; this is for a project that also wants the envelope its provider
+      actually sends to be what the adapter reads.
+
+      The meta package rather than the six, and this is the one place that is the right reference: a
+      test project has no deployment bundle to keep small, and it builds an envelope for every
+      source whether or not the application under test serves them all.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda\Hardened.Aws.Lambda.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
+    </ItemGroup>
+
+</Project>

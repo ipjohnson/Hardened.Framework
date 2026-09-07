@@ -2,6 +2,7 @@ using CSharpAuthor;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 

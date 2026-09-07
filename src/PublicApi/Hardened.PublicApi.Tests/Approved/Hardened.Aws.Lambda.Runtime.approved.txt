@@ -1,0 +1,149 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
+namespace Hardened.Aws.Lambda.Runtime.Adapters
+{
+    public interface IPayloadAdapter
+    {
+        Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context);
+        Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output);
+        bool Handles(System.Text.Json.JsonElement payload);
+        System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output);
+    }
+}
+namespace Hardened.Aws.Lambda.Runtime.Development
+{
+    public static class LambdaEmulator
+    {
+        public const int DefaultEmulatorPort = 5050;
+        public const int DefaultGatewayPort = 5080;
+        public const string EmulatorPortVariable = "HARDENED_LAMBDA_EMULATOR_PORT";
+        public const string GatewayPortVariable = "PORT";
+        public const string RuntimeApiVariable = "AWS_LAMBDA_RUNTIME_API";
+        public static System.Threading.Tasks.Task<Hardened.Aws.Lambda.Runtime.Development.LambdaEmulatorSession> Start(Hardened.Aws.Lambda.Runtime.Development.LambdaEmulatorPlan plan) { }
+        public static System.Threading.Tasks.Task<Hardened.Aws.Lambda.Runtime.Development.LambdaEmulatorSession> StartIfLocal(System.Type applicationType, bool apiGateway = false) { }
+    }
+    public sealed class LambdaEmulatorPlan
+    {
+        public const string RouteConfigurationVariable = "APIGATEWAY_EMULATOR_ROUTE_CONFIG";
+        public bool ApiGateway { get; }
+        public string Arguments { get; }
+        public int EmulatorPort { get; }
+        public string EmulatorUrl { get; }
+        public string FunctionName { get; }
+        public int GatewayPort { get; }
+        public string? GatewayUrl { get; }
+        public string? RouteConfiguration { get; }
+        public string RuntimeApiEndpoint { get; }
+        public static Hardened.Aws.Lambda.Runtime.Development.LambdaEmulatorPlan? From(string functionName, bool apiGateway, System.Func<string, string?> environment) { }
+    }
+    public sealed class LambdaEmulatorSession : System.IDisposable
+    {
+        public bool IsLocal { get; }
+        public Hardened.Aws.Lambda.Runtime.Development.LambdaEmulatorPlan? Plan { get; }
+        public string? RuntimeApiEndpoint { get; }
+        public bool StartedTheTool { get; }
+        public static Hardened.Aws.Lambda.Runtime.Development.LambdaEmulatorSession Passive { get; }
+        public void Dispose() { }
+    }
+}
+namespace Hardened.Aws.Lambda.Runtime.Execution
+{
+    public class LambdaExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
+    {
+        public static readonly System.TimeSpan DefaultDeadlineMargin;
+        public LambdaExecutionContext(System.IServiceProvider rootServiceProvider, System.IServiceProvider requestServices, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Requests.Abstract.Execution.IExecutionResponse response, System.Threading.CancellationToken cancellationToken, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null) { }
+        public Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
+        public System.Threading.CancellationToken CancellationToken { get; set; }
+        public string CorrelationId { get; init; }
+        public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
+        public object? HandlerInstance { get; set; }
+        public Hardened.Requests.Abstract.Execution.IKnownServices KnownServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Request { get; }
+        public Hardened.Shared.Runtime.Metrics.IMetricLogger RequestMetrics { get; }
+        public System.IServiceProvider RequestServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Response { get; }
+        public System.IServiceProvider RootServiceProvider { get; }
+        public Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request = null, Hardened.Requests.Abstract.Execution.IExecutionResponse? response = null, System.IServiceProvider? serviceProvider = null, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null) { }
+        public void ReplaceCancellationToken(System.Threading.CancellationToken token) { }
+        public static System.Threading.CancellationTokenSource ForInvocation(Amazon.Lambda.Core.ILambdaContext context, System.TimeSpan? margin = default) { }
+    }
+    public sealed class LambdaPayload : System.IDisposable
+    {
+        public LambdaPayload(System.ReadOnlyMemory<byte> raw) { }
+        public System.Text.Json.JsonElement Json { get; }
+        public System.ReadOnlyMemory<byte> Raw { get; }
+        public System.IO.Stream AsStream() { }
+        public void Dispose() { }
+        public static System.Text.Json.JsonElement? FirstRecord(System.Text.Json.JsonElement payload) { }
+    }
+    public class LambdaPayloadRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public LambdaPayloadRequest(string method, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+    public class LambdaPayloadResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    {
+        public LambdaPayloadResponse(System.IO.Stream body, Hardened.Requests.Abstract.Headers.IHeaderCollection? headers = null) { }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; set; }
+        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        public System.Exception? ExceptionValue { get; set; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public bool IsBinary { get; set; }
+        public Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
+        public bool ResponseStarted { get; }
+        public object? ResponseValue { get; set; }
+        public bool ShouldSerialize { get; set; }
+        public int? Status { get; set; }
+        public object Clone() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+}
+namespace Hardened.Aws.Lambda.Runtime.Hosting
+{
+    public static class HardenedLambdaBootstrap
+    {
+        public static System.Threading.Tasks.Task Run(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Run(System.IServiceProvider serviceProvider, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public class LambdaInvocationHandler
+    {
+        public LambdaInvocationHandler(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Execution.IRequestExecutor executor, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, System.Collections.Generic.IEnumerable<Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter> adapters) { }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter> Adapters { get; }
+        public Hardened.Requests.Abstract.Middleware.IMiddlewareService Middleware { get; }
+        public System.Threading.Tasks.Task<System.IO.Stream> Invoke(System.IO.Stream input, Amazon.Lambda.Core.ILambdaContext lambdaContext) { }
+    }
+}
+namespace Hardened.Aws.Lambda.Runtime.Modules
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule]
+    public class LambdaRuntimeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public LambdaRuntimeModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class LambdaRuntimeModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public LambdaRuntimeModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}

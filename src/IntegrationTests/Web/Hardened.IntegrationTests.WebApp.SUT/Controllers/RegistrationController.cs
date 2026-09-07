@@ -7,6 +7,7 @@ using ValidationModules;
 // same response - ExceptionToModelConverter maps one shape from both - so which is aliased is a
 // choice, and Hardened's is the one this controller means.
 using ValidationException = Hardened.Requests.Runtime.Validation.ValidationException;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 

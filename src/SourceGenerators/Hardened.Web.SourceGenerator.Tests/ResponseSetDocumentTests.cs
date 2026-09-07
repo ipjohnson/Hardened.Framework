@@ -5,6 +5,7 @@ using Hardened.Web.Runtime.Attributes;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -36,6 +37,7 @@ public class ResponseSetDocumentTests {
             $$"""
             using System.Threading.Tasks;
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -320,6 +322,7 @@ public class ResponseSetDocumentTests {
         var result = GeneratorTestHarness.Run(
             $$"""
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 

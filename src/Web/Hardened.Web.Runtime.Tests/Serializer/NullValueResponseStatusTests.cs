@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Serializer;
 

@@ -37,12 +37,12 @@ and nothing says so.
 Hardened.Smithy.BuildTask is in that state, and adding a baseline entry for it would make every
 run fail rather than fix it. Measured 2026-08-18:
 
-    dotnet build src/Hardened.Framework.sln -c Release
-    dotnet test  src/Hardened.Framework.sln --no-build -c Release \
+    dotnet build Hardened.slnx -c Release
+    dotnet test  Hardened.slnx --no-build -c Release \
         --settings coverage.runsettings --collect:"Code Coverage"
         -> 20 assemblies, Hardened.Smithy.BuildTask among them
 
-    dotnet build src/Hardened.Framework.sln -c Release -p:ContinuousIntegrationBuild=true
+    dotnet build Hardened.slnx -c Release -p:ContinuousIntegrationBuild=true
     (same test command)
         -> 19 assemblies, Hardened.Smithy.BuildTask absent, and two of the 23 cobertura files
            come out with no <package> element at all

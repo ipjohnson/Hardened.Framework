@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.Invoke.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <!--
+      The third family: a function invoked directly, carrying whatever the caller chose. It is the
+      one family that must not share a function with the others, because its payload does not
+      describe itself - a caller's own field called "Records" or "requestContext" is theirs, and
+      nothing can tell it from AWS's by inspection. This fixture is where that stops being an
+      argument and becomes a test.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Invoke\Hardened.Aws.Lambda.Invoke.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+      Imported from the source tree rather than arriving with a package reference, because in this
+      repository these are ProjectReferences and a project reference carries no build assets. A
+      consuming application gets them from buildTransitive/ inside the packages; importing the same
+      files here is what keeps the two from drifting.
+
+      Two kinds of import, which is the shape the split produces. The first declares the trigger
+      properties, from the package that owns the attributes. The rest each bind one property, one
+      per adapter package.
+
+      [HardenedFunction] belongs to Hardened.Requests.Abstract, so that is what declares
+      HardenedInvokeModule.
+    -->
+    <Import Project="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Package\Hardened.Requests.Abstract.targets"/>
+    <Import Project="..\..\..\Hardened.Aws.Lambda.Invoke\Package\Hardened.Aws.Lambda.Invoke.targets"/>
+
+</Project>

@@ -7,7 +7,10 @@ using DependencyModules.Moq;
 #if (fakeiteasy)
 using DependencyModules.FakeItEasy;
 #endif
-using Hardened.Amz.Function.Lambda.Testing;
+using Hardened.Functions.Testing;
+#if (aws)
+using Hardened.Aws.Lambda.Testing;
+#endif
 using Hardened.Shared.Testing.Attributes;
 using Hardened1;
 
@@ -15,10 +18,17 @@ using Hardened1;
 // is no separate test wiring to keep in step.
 [assembly: HardenedTestEntryPoint(typeof(Application))]
 
-// Registers the invoke filter provider and, at startup, puts the invoke filter into the chain.
-// Without it the pipeline holds no filters at all, so an invocation builds a chain of length zero,
-// returns an empty stream and never reaches the handler - with no error anywhere.
-[assembly: LambdaFunctionTesting]
+// Makes the generated test façades resolvable, so a test can take Application.Queues and send
+// through it.
+[assembly: FunctionTesting]
+
+#if (aws)
+// Raises the fidelity. Without it a message goes straight into the pipeline, which covers routing,
+// binding and the handler but names no cloud. With it the message is packed into the envelope AWS
+// actually sends and goes in through the invocation loop, so the adapter and the payload peek are
+// exercised too. A test method reads the same either way - delete this line to drop back down.
+[assembly: LambdaTesting]
+#endif
 
 // The mock library. [Mock] on a parameter asks this attribute for the double and builds nothing
 // itself, so without it a [Mock] parameter fails with "Mock library not found". The package that

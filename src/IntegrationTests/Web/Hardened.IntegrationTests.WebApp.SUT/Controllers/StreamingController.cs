@@ -5,6 +5,7 @@ using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 

@@ -4,6 +4,7 @@ using DependencyModules.Testing.Attributes.Interfaces;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing;
 

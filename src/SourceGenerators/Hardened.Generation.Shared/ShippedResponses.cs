@@ -12,7 +12,7 @@ namespace Hardened.Generation;
 /// operation and status - <c>GetPetNotFoundException</c> beside <c>GetPetLabelNotFoundException</c>,
 /// the same class under two names. The thing that rule avoided is two responses in one set
 /// resolving to one C# type, which is CS0457 at the point of use; but the per-status wrapper is
-/// what solves that, not the operation prefix. <c>Hardened.Requests.Abstract.Responses</c> already
+/// what solves that, not the operation prefix. <c>Hardened.Web.Runtime.Responses</c> already
 /// ships those wrappers, so a declared 404 with a <c>Problem</c> is
 /// <c>NotFound&lt;Problem&gt;</c> - a type the code-first path already returns and a consumer
 /// already knows.
@@ -35,7 +35,25 @@ namespace Hardened.Generation;
 internal static class ShippedResponses {
 
     /// <summary>Where every shipped response record and status marker lives.</summary>
-    public const string Namespace = "Hardened.Requests.Abstract.Responses";
+    /// <remarks>
+    /// <c>Hardened.Web.Runtime</c> since the HTTP extraction, not <c>Hardened.Requests.Abstract</c>.
+    /// The records are HTTP statuses and moved with the rest of the HTTP half; what stayed behind in
+    /// Abstract is the contract the generated dispatch casts to - <c>ICarriesResponseBody</c>,
+    /// <c>IStatusCode</c>, <c>IProvidesResponseHeaders</c>, <c>ResponseModel</c> - so that emitted
+    /// code never depends on a web package.
+    /// </remarks>
+    public const string Namespace = "Hardened.Web.Runtime.Responses";
+
+    /// <summary>
+    /// Where the markers generated code casts to live, which is not the same place.
+    /// </summary>
+    /// <remarks>
+    /// <c>ICarriesResponseBody</c>, <c>IStatusCode</c> and <c>IProvidesResponseHeaders</c> stayed in
+    /// <c>Hardened.Requests.Abstract</c> through the HTTP extraction, deliberately: emitted dispatch
+    /// casts to them, and a function handler's generated code must not acquire a dependency on a web
+    /// package to do it. The records they mark did move.
+    /// </remarks>
+    public const string ContractNamespace = "Hardened.Requests.Abstract.Responses";
 
     /// <summary>The open generic that closes over a status marker for a code with no record.</summary>
     public const string StatusTypeName = "Status";

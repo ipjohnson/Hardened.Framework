@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Hardened.IntegrationTests.WebApp.SUT.Models;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 

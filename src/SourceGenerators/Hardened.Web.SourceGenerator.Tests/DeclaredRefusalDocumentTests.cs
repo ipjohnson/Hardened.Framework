@@ -9,6 +9,7 @@ using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.OpenApi;
 using Microsoft.CodeAnalysis;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 

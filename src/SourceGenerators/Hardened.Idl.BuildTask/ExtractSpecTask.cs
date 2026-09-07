@@ -179,7 +179,7 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     /// shares one numbering - which includes reporters that are not this class. This shell uses
     /// 001-009, 016-017 and 026, the packaged targets use 003-005 and 015, the Smithy CLI task
     /// uses 010-014, and <see cref="SpecDiagnostics"/> uses 020-025. The full table is
-    /// docs/generator-diagnostics.md.
+    /// docs/design/generator-diagnostics.md.
     /// </remarks>
     protected abstract string DiagnosticPrefix { get; }
 

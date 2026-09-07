@@ -7,9 +7,9 @@ C# you can open and read.
 
 The core is provider-agnostic: a handler never learns what host it runs on, and swapping the
 runtime module is the whole migration. AWS Lambda is the function compute supported today, through
-[Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz).
+the `Hardened.Amz.*` packages on nuget.org at `0.22.0-rc1000`.
 
-Full documentation: **[ipjohnson.github.io/Hardened.Docs](https://ipjohnson.github.io/Hardened.Docs)**
+Full documentation: **[ipjohnson.github.io/Hardened.Framework](https://ipjohnson.github.io/Hardened.Framework/)**
 
 ## Start here
 
@@ -42,8 +42,8 @@ can be swapped without touching the code.
 | `hardened-function` | A serverless function and tests, on AWS Lambda today. `--trigger invoke\|sqs`, `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
 | `hardened-library` | A reusable module an application picks up with one attribute, and tests. `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
 
-See the [templates guide](https://ipjohnson.github.io/Hardened.Docs/guide/project-templates) for
-every option, and [getting started](https://ipjohnson.github.io/Hardened.Docs/guide/getting-started)
+See the [templates guide](https://ipjohnson.github.io/Hardened.Framework/guide/project-templates) for
+every option, and [getting started](https://ipjohnson.github.io/Hardened.Framework/guide/getting-started)
 for the same project assembled by hand.
 
 ## The contract is yours to choose
@@ -89,7 +89,7 @@ The application names its runtime and the libraries it composes, and that is the
 
 ```csharp
 [HardenedModule]
-[KestrelRuntime]          // or [AspNetCoreRuntime], or [LambdaWebModule] from Hardened.Amz
+[KestrelRuntime]          // or [AspNetCoreRuntime], or [LambdaWebModule] for Lambda
 [TodosLibrary]
 public partial class Application;
 ```
@@ -152,7 +152,7 @@ declared 404.
 There are no route attributes anywhere in the project. Add an operation to the contract and the
 build writes the model, the route and the validation, then stops compiling until your service
 implements the new method. See
-[generating from OpenAPI](https://ipjohnson.github.io/Hardened.Docs/guide/openapi).
+[generating from OpenAPI](https://ipjohnson.github.io/Hardened.Framework/guide/openapi).
 
 ### Smithy-first
 
@@ -193,7 +193,7 @@ either way, which is what lets one template generate both.
 
 Constraint traits like `@required` and `@range` become validation filters in front of the handler.
 Needs the Smithy CLI on `PATH`; the build names the version it expects if yours differs. See
-[generating from Smithy](https://ipjohnson.github.io/Hardened.Docs/guide/smithy).
+[generating from Smithy](https://ipjohnson.github.io/Hardened.Framework/guide/smithy).
 
 ### Whichever you choose
 
@@ -206,8 +206,8 @@ build, for every contract style and without running the application, and the `ha
 template scaffolds a Kiota C# client from it with a test that drives the client through the
 in-process pipeline. The framework's own integration suite does the same over its widest
 application. The same file feeds every other generator and language. See
-[the OpenAPI document](https://ipjohnson.github.io/Hardened.Docs/guide/openapi-document) and
-[clients](https://ipjohnson.github.io/Hardened.Docs/guide/clients).
+[the OpenAPI document](https://ipjohnson.github.io/Hardened.Framework/guide/openapi-document) and
+[clients](https://ipjohnson.github.io/Hardened.Framework/guide/clients).
 
 ## Three return models
 
@@ -284,7 +284,7 @@ in place of the default one.
 Code-first, the return type alone decides. Contract-first, the statuses come from the contract and
 `<HardenedResponseModel>Response|Throws|Union</HardenedResponseModel>` decides the generated
 interface's shape. Declared 404s as nullable returns, and operations with two success statuses, are
-in [declared responses](https://ipjohnson.github.io/Hardened.Docs/guide/responses).
+in [declared responses](https://ipjohnson.github.io/Hardened.Framework/guide/responses).
 
 `--response-model response|throws|union` on the template generates the todo API in whichever of
 the three you pick, so the difference between them is something to read rather than to take on
@@ -317,7 +317,7 @@ Attach a filter to one handler with an attribute (`[Retry]` is the shipped examp
 handler through `IGlobalFilterRegistry`. Serialization is itself a filter: the response carries the
 handler's return *value*, so a filter that changes the payload changes the value rather than the
 bytes. The ordering, the context and the shipped positions are in
-[the execution pipeline](https://ipjohnson.github.io/Hardened.Docs/guide/execution-pipeline).
+[the execution pipeline](https://ipjohnson.github.io/Hardened.Framework/guide/execution-pipeline).
 
 To see what a handler's chain was composed into, enable `Debug` for the `Hardened.Requests.Pipeline`
 log category. It writes one line per handler as the chain is built, naming each filter and its
@@ -327,18 +327,18 @@ order in the order they run, and costs nothing per request whether it is on or o
 
 The same generate-don't-reflect treatment runs through the rest of the framework:
 
-- **[Parameter binding](https://ipjohnson.github.io/Hardened.Docs/guide/parameter-binding)** —
+- **[Parameter binding](https://ipjohnson.github.io/Hardened.Framework/guide/parameter-binding)** —
   path, query, header, body and injected services bind through code emitted for each handler's
   exact signature; a binding that cannot work is a build error.
-- **[Configuration](https://ipjohnson.github.io/Hardened.Docs/guide/configuration)** — a
+- **[Configuration](https://ipjohnson.github.io/Hardened.Framework/guide/configuration)** — a
   configuration model is a partial class of private fields; the generator writes the interface,
   the implementation and the environment-variable reads.
-- **[Authorization](https://ipjohnson.github.io/Hardened.Docs/guide/authorization)** — a handler
+- **[Authorization](https://ipjohnson.github.io/Hardened.Framework/guide/authorization)** — a handler
   says what it needs; the pipeline decides whether the caller has it.
-- **[Streaming responses](https://ipjohnson.github.io/Hardened.Docs/guide/streaming)** — return
+- **[Streaming responses](https://ipjohnson.github.io/Hardened.Framework/guide/streaming)** — return
   `IAsyncEnumerable<T>` and the response streams.
-- **[Content negotiation](https://ipjohnson.github.io/Hardened.Docs/guide/content-negotiation)**
-  and **[System.Text.Json configuration](https://ipjohnson.github.io/Hardened.Docs/guide/json)**
+- **[Content negotiation](https://ipjohnson.github.io/Hardened.Framework/guide/content-negotiation)**
+  and **[System.Text.Json configuration](https://ipjohnson.github.io/Hardened.Framework/guide/json)**
   follow the same shape.
 
 Everything lands as readable source: `EmitCompilerGeneratedFiles` is on in the templates, so the
@@ -382,7 +382,7 @@ public class TodoTests {
 ```
 
 A Refit interface, generated by Refitter or written by hand, is the same test with
-`Hardened.Refit.Testing` and `[assembly: RefitTesting]`. `docs/client-testing.md` says what each
+`Hardened.Refit.Testing` and `[assembly: RefitTesting]`. `docs/design/client-testing.md` says what each
 package reads and why there is one per generator.
 
 `ITestWebApp` sends a raw request through the same pipeline, for what a typed client cannot send:
@@ -400,18 +400,18 @@ composes with a client: the mock sits in the graph the handler resolves from. `G
 under `src/IntegrationTests/Web` is the framework's own example, over the application with the
 widest route surface it has.
 
-See [testing](https://ipjohnson.github.io/Hardened.Docs/guide/testing),
-[testing web apps](https://ipjohnson.github.io/Hardened.Docs/guide/testing-web) and
-[clients](https://ipjohnson.github.io/Hardened.Docs/guide/clients).
+See [testing](https://ipjohnson.github.io/Hardened.Framework/guide/testing),
+[testing web apps](https://ipjohnson.github.io/Hardened.Framework/guide/testing-web) and
+[clients](https://ipjohnson.github.io/Hardened.Framework/guide/clients).
 
 ## Packages
 
 Everything ships to nuget.org as `Hardened.*`, and the templates reference the right set for each
 project shape. Assembling by hand, the source generators are not optional and do not flow
 transitively: the project that owns the application references them directly. The full list is in
-the [package reference](https://ipjohnson.github.io/Hardened.Docs/reference/packages).
+the [package reference](https://ipjohnson.github.io/Hardened.Framework/reference/packages).
 
 ## Related repositories
 
-- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — the AWS provider: Lambda runtimes, test harnesses, DynamoDB client, CDK constructs
-- [Hardened.Docs](https://github.com/ipjohnson/Hardened.Docs) — the documentation site
+- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — the AWS packages as last released, `0.22.0-rc1000`. Being replaced by new `Hardened.Aws` projects rather than renamed
+- [`docs/`](docs) — the documentation site, published from this repository

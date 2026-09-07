@@ -1,0 +1,59 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
+namespace Hardened.Aws.Lambda.S3
+{
+    public sealed class S3Adapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
+    {
+        public const string EventSourceValue = "aws:s3";
+        public S3Adapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(System.Text.Json.JsonElement payload) { }
+        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
+    public class S3Module : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public S3Module() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class S3ModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public S3ModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public sealed class S3Notification : System.IEquatable<Hardened.Aws.Lambda.S3.S3Notification>
+    {
+        public S3Notification(string Key, long? Size, string? ETag, string? Sequencer, string EventName, string? EventTime) { }
+        public string? ETag { get; init; }
+        public string EventName { get; init; }
+        public string? EventTime { get; init; }
+        public string Key { get; init; }
+        public string? Sequencer { get; init; }
+        public long? Size { get; init; }
+    }
+    public class S3Request : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
+    {
+        public const string BlobScheme = "BLOB";
+        public const string BucketHeader = "x-amz-s3-bucket";
+        public const string ETagHeader = "x-amz-s3-etag";
+        public const string EventNameHeader = "x-amz-s3-event-name";
+        public const string EventTimeHeader = "x-amz-s3-event-time";
+        public const string KeyHeader = "x-amz-s3-key";
+        public const string SequencerHeader = "x-amz-s3-sequencer";
+        public S3Request(string bucketName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Hardened.Aws.Lambda.S3.S3Notification> records) { }
+        public int Count { get; }
+        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        public Hardened.Requests.Abstract.Execution.BatchFailureMode FailureMode { get; }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Aws.Lambda.S3.S3Notification> Records { get; }
+        public bool ReportsItemFailures { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForRecord(Hardened.Aws.Lambda.S3.S3Notification record) { }
+        public void RecordFailure(int index, System.Exception failure) { }
+    }
+}

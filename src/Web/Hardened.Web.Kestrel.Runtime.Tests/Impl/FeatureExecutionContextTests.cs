@@ -4,6 +4,7 @@ using Hardened.Web.Kestrel.Runtime.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 

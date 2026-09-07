@@ -6,10 +6,10 @@
     the Web SDK's Razor pipeline only gets in the way.
   -->
   <!--
-    An executable on every host. On Lambda the generated Main runs the AWS bootstrap, and the
-    handler Hardened.Amz.Cdk deploys is the assembly name alone, which the managed runtime starts
-    only when the assembly has an entry point. Until 2026-09-05 this was a class library on Lambda,
-    so that handler failed on the first invocation with "Entry point not found".
+    An executable on every host. On Lambda Program.cs runs the bootstrap, and the deployed handler
+    is the assembly name alone, which the runtime starts only when the assembly has an entry point.
+    Until 2026-09-05 this was a class library on Lambda, so that handler failed on the first
+    invocation with "Entry point not found".
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -25,9 +25,13 @@
     <PackageReference Include="Hardened.Web.AspNetCore.Runtime" />
 <!--#endif -->
 <!--#if (lambda) -->
-    <PackageReference Include="Hardened.Amz.Shared.Lambda.Runtime" />
-    <PackageReference Include="Hardened.Amz.Web.Lambda.Runtime" />
-    <PackageReference Include="Hardened.Amz.Web.Lambda.SourceGenerator" PrivateAssets="all" />
+    <!--
+      The host and the one adapter web routes need. No Lambda source generator: the entry point is
+      Program.cs rather than something emitted.
+    -->
+    <PackageReference Include="Hardened.Aws.Lambda.Runtime" />
+    <PackageReference Include="Hardened.Aws.Lambda.ApiGateway" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
 <!--#endif -->
     <PackageReference Include="Hardened.Library.SourceGenerator" />
     <PackageReference Include="Hardened.Web.SourceGenerator" />

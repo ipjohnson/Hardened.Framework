@@ -33,14 +33,16 @@ never reaches the handler — with no error anywhere. A test that suddenly asser
 the symptom.
 
 **The source generator packages are required.** The runtime packages carry no analyzers, so removing
-`Hardened.Library.SourceGenerator` or `Hardened.Amz.Function.Lambda.SourceGenerator` does not fail
+`Hardened.Library.SourceGenerator` or `Hardened.Function.SourceGenerator` does not fail
 with a missing package — it fails with `'Application' does not contain a definition for
 'PopulateServiceCollection'`, or it builds clean and the function has no entry point. All versions
 are pinned in one place, `Directory.Packages.props`.
 
-**Two package lines, one version.** `Hardened.*` and `Hardened.Amz.*` release together, and
-`Directory.Packages.props` pins the second to the first through `HardenedAmzVersion`. If they ever
-diverge, that is the one line to change.
+**One package line, one version.** Every `Hardened.*` package, host adapters included, releases
+together on `HardenedVersion` in `Directory.Packages.props`. There is no second line to keep in
+step: the AWS packages are part of the framework repository rather than a separate release, which
+is what the old `Hardened.Amz.*` pin was and what let a template name a generator that no longer
+matched the interface it emitted against.
 
 #if (xunit)
 **Tests are xUnit v3.** `Hardened.Shared.Testing.xUnit` builds on `xunit.v3.extensibility.core`; a

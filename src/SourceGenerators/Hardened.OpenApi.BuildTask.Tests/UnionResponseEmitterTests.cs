@@ -58,7 +58,7 @@ public class UnionResponseEmitterTests {
 
     /// <summary>The shipped record for a status, spelled as the container names it.</summary>
     private static string Shipped(string name) =>
-        "Hardened.Requests.Abstract.Responses." + name;
+        "Hardened.Web.Runtime.Responses." + name;
 
     private static string Emit(params OperationModel[] operations) =>
         Emit(asLanguageUnion: false, operations);

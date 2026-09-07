@@ -28,7 +28,6 @@
       from matching Kiota releases, and CheckKiotaPins below fails naming both when they disagree.
       scripts/verify-templates.sh holds all four to one release.
     -->
-    <KiotaBundleVersion>2.0.0</KiotaBundleVersion>
 
     <KiotaSpec>../Hardened.IntegrationTests.WebApp.SUT/openapi/Application.json</KiotaSpec>
     <KiotaToolManifest>$(MSBuildThisFileDirectory)../../../../.config/dotnet-tools.json</KiotaToolManifest>
@@ -45,7 +44,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Kiota.Bundle" Version="$(KiotaBundleVersion)" />
+    <PackageReference Include="Microsoft.Kiota.Bundle"/>
 
     <!--
       Ordering only: the application's build writes the document this project reads, so it has to

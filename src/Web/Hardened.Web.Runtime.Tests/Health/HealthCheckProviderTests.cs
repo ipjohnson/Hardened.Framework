@@ -11,6 +11,7 @@ using Hardened.Web.Runtime.Health;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Health;
 

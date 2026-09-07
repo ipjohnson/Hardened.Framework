@@ -12,6 +12,7 @@ using Hardened.Web.Runtime.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.OpenApi;
 

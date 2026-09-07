@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Serves HTTP routes on AWS Lambda behind API Gateway: the proxy payload adapter for [Get], [Post] and the rest, in both v1 and v2 shapes.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Aws.Lambda.ApiGateway</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;apigateway;http</PackageTags>
+
+        <!--
+          One adapter family, so a function that is not triggered this way never has these
+          assemblies in its bundle. That is the whole reason this is not part of
+          Hardened.Aws.Lambda.Runtime; see the Adapter Split for the measurements.
+
+          The one web-shaped adapter. It answers 500 rather than rethrowing, because a failed
+        invocation gives the caller a 502 with no status the application chose and no correlation id.
+        -->
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Aws.Lambda.Runtime.Tests"/>
+    </ItemGroup>
+
+    <!--
+      buildTransitive/ rather than build/. NuGet imports build/ for a direct reference only, and
+      Hardened.Aws.Lambda is a meta package whose whole job is to be referenced instead of this one
+      - so in build/ the binding below would be missing exactly where it is needed, silently, and
+      the function would deploy and never be invoked. buildTransitive/ covers the direct case too.
+
+      Package\ rather than build\ in the source tree, because .gitignore ignores build/.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Aws.Lambda.ApiGateway.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Amazon.Lambda.APIGatewayEvents" />
+        <PackageReference Include="Amazon.Lambda.Core" />
+        <PackageReference Include="DependencyModules.Runtime" />
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+    </ItemGroup>
+
+</Project>

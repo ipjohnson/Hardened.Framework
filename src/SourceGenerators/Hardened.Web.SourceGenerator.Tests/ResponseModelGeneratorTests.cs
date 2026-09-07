@@ -4,6 +4,7 @@ using Hardened.SourceGenerator.Requests;
 using Hardened.Web.Runtime.Attributes;
 using Microsoft.CodeAnalysis;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 

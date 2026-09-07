@@ -17,7 +17,7 @@ namespace Hardened.Web.Testing
     public static class ClientAssertions
     {
         public static System.Threading.Tasks.Task<TExpected> Returns<TExpected>(this System.Threading.Tasks.Task call)
-            where TExpected : Hardened.Requests.Abstract.Responses.IResponseExpectation<TExpected> { }
+            where TExpected : Hardened.Web.Runtime.Responses.IResponseExpectation<TExpected> { }
         public static System.Threading.Tasks.Task ReturnsStatus<TStatus>(this System.Threading.Tasks.Task call)
             where TStatus : Hardened.Requests.Abstract.Responses.IDeclaresStatus { }
     }

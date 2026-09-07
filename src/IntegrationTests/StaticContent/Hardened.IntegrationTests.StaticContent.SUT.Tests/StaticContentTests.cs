@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using Hardened.Requests.Abstract.Headers;
 using Microsoft.Extensions.Primitives;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.StaticContent.SUT.Tests;
 

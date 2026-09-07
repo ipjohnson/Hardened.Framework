@@ -3,6 +3,7 @@ using Hardened.Web.Kestrel.Runtime.Impl;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.Extensions.DependencyInjection;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Benchmarks.Infrastructure;
 

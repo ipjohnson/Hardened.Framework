@@ -2,6 +2,13 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <!--
+          Deliberately not IsAotCompatible. A test harness serializes whatever type a test hands it
+          and builds clients over types it learns at run time, so the reflection is the feature
+          rather than an oversight - and a testing package is referenced by test projects, which are
+          never published ahead of time. Marking it would make the flag a claim about code no
+          consumer will ever trim. See Hardened.Shared.Testing.csproj for the whole of it.
+        -->
         <Description>In-memory web test harness for Hardened: ITestWebApp, TestWebRequest and TestWebResponse, with status and content assertions.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
@@ -10,8 +17,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
-        <PackageReference Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Primitives"/>
     </ItemGroup>
 
     <ItemGroup>

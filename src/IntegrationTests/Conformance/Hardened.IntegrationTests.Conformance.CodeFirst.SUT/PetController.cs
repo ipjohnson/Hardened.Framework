@@ -1,6 +1,7 @@
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.Authorization;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Conformance.CodeFirst.SUT;
 

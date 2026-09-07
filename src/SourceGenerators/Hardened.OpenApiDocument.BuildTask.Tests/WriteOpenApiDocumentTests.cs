@@ -4,6 +4,7 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using Microsoft.OpenApi.YamlReader;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.OpenApiDocument.BuildTask.Tests;
 

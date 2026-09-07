@@ -14,7 +14,7 @@ namespace Hardened.Web.StaticContent.BuildTask.Tests;
 /// that the text is C#, that it binds against the runtime package, and that loading it back
 /// produces the entries the scan found. A generator whose output does not compile is a defect that
 /// surfaces in somebody else's project, pointing at code they never wrote - which
-/// <c>docs/TESTING-PLAN.md</c> §2.1 records as a thing that has already happened here twice.
+/// <c>docs/design/TESTING-PLAN.md</c> §2.1 records as a thing that has already happened here twice.
 /// </para>
 /// </summary>
 public class GeneratedManifestCompilesTests : IDisposable {

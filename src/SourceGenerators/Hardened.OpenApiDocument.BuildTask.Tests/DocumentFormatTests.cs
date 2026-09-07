@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Hardened.Generation.Document;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.OpenApiDocument.BuildTask.Tests;
 

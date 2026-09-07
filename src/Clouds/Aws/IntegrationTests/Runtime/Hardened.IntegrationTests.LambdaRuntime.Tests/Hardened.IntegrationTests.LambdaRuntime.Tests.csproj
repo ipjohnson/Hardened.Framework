@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="DependencyModules.NSubstitute"/>
+        <PackageReference Include="NSubstitute"/>
+    </ItemGroup>
+
+    <!--
+      Its own project rather than another file in the SQS suite, because these tests set the
+      environment variables the Lambda runtime client reads and that is process-wide. A separate
+      test assembly is a separate process, which is the only isolation that actually holds.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\Sqs\Hardened.IntegrationTests.Sqs.SUT\Hardened.IntegrationTests.Sqs.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+    </ItemGroup>
+
+</Project>

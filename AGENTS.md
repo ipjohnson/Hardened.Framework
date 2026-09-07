@@ -1,11 +1,13 @@
-# Hardened.Framework
+# Hardened
 
 Invariants and traps for anyone editing this repository. `README.md` covers what the framework is
 and how an application consumes it; this file does not repeat that.
 
 ## Layout
 
-The solution is `src/Hardened.Framework.sln`. There is none at the repository root.
+`Hardened.slnx` at the repository root holds every project, and that is what CI builds.
+`filters/framework.slnf` is what an editor opens. A cloud gets a filter of its own when it has
+projects to filter.
 
 | Path | Contents |
 |---|---|
@@ -13,25 +15,35 @@ The solution is `src/Hardened.Framework.sln`. There is none at the repository ro
 | `src/Requests` | The execution pipeline and its abstractions |
 | `src/Web` | Routing, the Kestrel and ASP.NET Core hosts, static content, the web test client |
 | `src/Templates` | The `dotnet new` templates, and RazorBlade view rendering |
+| `src/Clients` | The Kiota and Refit test clients |
 | `src/SourceGenerators` | Every generator and build task, and the shared library they build on |
 | `src/IntegrationTests` | Working applications driven through the real pipeline |
 | `src/PublicApi` | The approved public surface of every shipped assembly |
 | `src/Benchmarks` | The figures in the Kestrel host's README |
+| `docs` | The published site, and the maintainer notes under `design/` |
+
+`Hardened.Docs` was a repository of its own until 2026-09-06 and is now `docs/`. `Hardened.Amz` was
+imported and then removed: the AWS line is being replaced by new `Hardened.Aws` projects rather than
+renamed, so its source earns no place here. It stays on nuget.org at `0.22.0-rc1000`, restorable and
+no longer moving, and its history is in this repository's — `git log` and `git blame` answer for it
+under `src/Clouds/Aws` at any commit before it was removed.
 
 ## Commands
 
 ```bash
-dotnet build src/Hardened.Framework.sln
-dotnet test  src/Hardened.Framework.sln
+dotnet build Hardened.slnx
+dotnet test  Hardened.slnx
+
+dotnet build filters/framework.slnf   # for daily work
 ```
 
 Before opening a pull request, build the way CI does:
 
 ```bash
-dotnet build src/Hardened.Framework.sln --configuration Release -p:ContinuousIntegrationBuild=true
+dotnet build Hardened.slnx --configuration Release -p:ContinuousIntegrationBuild=true
 ```
 
-`ContinuousIntegrationBuild` sets `TreatWarningsAsErrors` (`src/Directory.Build.props`). Local
+`ContinuousIntegrationBuild` sets `TreatWarningsAsErrors` (`Directory.Build.props`). Local
 builds deliberately do not, so a build that is green locally can still fail CI on a warning.
 
 **Check the exit code, not the tail of the output.** A restore that resolves an assembly two ways
@@ -40,7 +52,7 @@ error above it. Capture to a file and test `$?`.
 
 ## Two SDKs, and both are load-bearing
 
-`src/global.json` pins the build to a .NET 11 preview, which is the compiler that can read a C# 15
+`global.json` pins the build to a .NET 11 preview, which is the compiler that can read a C# 15
 `union`. Every project targets `net8.0` and every test assembly is framework-dependent on
 `Microsoft.NETCore.App` 8.0.0 with no `rollForward`, and the default policy does not cross a major
 version — so a machine with only the .NET 11 SDK compiles everything and then starts no test host
@@ -90,6 +102,36 @@ changes name leaves its old directory behind, and Rider compiles both. Debug and
 separate directories, so an IDE reading one while you build the other reports errors `dotnet build`
 does not. Delete `obj/` when the IDE and the CLI disagree.
 
+## One executor
+
+`IRequestExecutor` in `Hardened.Requests.Abstract`, `RequestExecutor` in
+`Hardened.Requests.Runtime`. Everything a host does around the middleware chain — the begin line,
+the try/catch, the total duration, the end line, disposing the metric logger — is there and nowhere
+else. **A new host does not write its own.**
+
+It was written five times before 2026-09-06, and the cost is on the record: the same defect fixed
+three times independently, in three files, by three commits that named none of the others. A request
+that threw lost its duration, its end line and its metrics, because the close-out ran as
+straight-line statements after the chain rather than in a `finally`.
+
+Three steps rather than one call, because `IHttpApplication<TContext>` hands Kestrel the lifecycle in
+pieces: `CreateContext` has to return before `ProcessRequestAsync` is called. `Run` is the same three
+in order, for a host that owns the whole invocation.
+
+**The host still owns the scope.** `End` does not dispose one, because the hosts disagree about when
+it ends — Kestrel holds it across three callbacks, the Lambda drivers have it in an `await using`,
+and ASP.NET Core never made one.
+
+**A throw is `HostFailurePolicy`.** `Answer500` where the server's own handler would log against the
+server and abort the connection; `Rethrow` where the runtime marking an invocation failed is the
+existing contract and a 500 would hide it from retries and the dead letter queue. A host needing a
+third answer writes its own catch and still calls `Begin` and `End`: `PipelineRequest` in
+`Hardened.Web.Testing` is the one that does, because it has no connection to tear down and the
+exception reaching the caller is how a stream that failed after its first event says so.
+
+`Hardened.Benchmarks` is deliberately not on it. It runs the chain and nothing else, which is what it
+is measuring; putting the telemetry back would change the figures in the Kestrel host's README.
+
 ## Smithy needs the CLI
 
 The integration fixture compiles `.smithy` sources with the Smithy CLI, pinned by
@@ -97,14 +139,34 @@ The integration fixture compiles `.smithy` sources with the Smithy CLI, pinned b
 build enforces the pin rather than trusting it: a mismatch is `HSMT011`, an error under
 `ContinuousIntegrationBuild` and a warning otherwise.
 
-`scripts/verify-templates.sh` **skips the smithy combinations silently** when the CLI is absent.
-Install it before trusting a green run from that script.
+`scripts/verify-templates.sh` skips the smithy combinations when the CLI is absent or on the wrong
+version, and prints why:
+
+```
+note: skipping the smithy contract - it needs the Smithy CLI at 1.73.0, found 1.56.0
+```
+
+It used to skip them silently, which is what the warning here used to say. Read the note rather than
+the exit code — the run is still green, and the smithy rows still did not run.
+
+Passing explicit combinations to that script skips the whole block, note included, because the
+smithy rows are only ever added to the default list.
 
 ## The approved public surface
 
 `src/PublicApi` checks in the public surface of every shipped assembly and compares it on every run.
 A diff there means the shipped contract changed: review it as an API change, then re-approve
 deliberately.
+
+Twenty assemblies. A source generator package is not among them: it sets
+`IncludeBuildOutput=false` and packs an analyzer into `analyzers/dotnet/cs`, so no consumer binds
+against it and there is no `lib` assembly to have a surface.
+
+A new package means a `ProjectReference` in the csproj **and** a name in `Shipped`, and
+`EveryShippedAssemblyBesideThisOneIsCovered` holds the second to the first. It reads the assemblies
+in the build output rather than `GetReferencedAssemblies`, which asserted nothing: the compiler
+records a reference only where a type is used, this test uses none, so the reference set was empty
+and the check passed however many packages were missing.
 
 ```bash
 APPROVE_PUBLIC_API=1 dotnet test src/PublicApi/Hardened.PublicApi.Tests
@@ -147,7 +209,9 @@ recommend it.
 `hardened-web` template pins the tool in `templates/hardened-web/.config/dotnet-tools.json` and the
 bundle as `KiotaBundleVersion` in its `Directory.Packages.props`; the repository pins the same pair
 for the client it generates over the Web integration application, in `.config/dotnet-tools.json` at
-the root and in `Hardened.IntegrationTests.WebApp.SUT.Client.csproj`. All four are bumped together,
+the root and as `KiotaBundleVersion` in `Directory.Build.props` — at the root, because
+`Directory.Packages.props` pins the package to that property and is imported before any project
+body. All four are bumped together,
 by a deliberate commit, to one Kiota release; `kiota info --language CSharp --json` says which
 bundle a tool expects. `scripts/verify-templates.sh` checks both pairs before it scaffolds anything
 and is the gate, as it is for everything else in the template; the two client projects check their
@@ -175,9 +239,11 @@ generated project against it, with `NUGET_PACKAGES` redirected so the global cac
 
 ## Things that will catch you out
 
-**Editing `.sln` through `dotnet sln`.** `dotnet sln remove` followed by `dotnet sln add
---solution-folder` silently drops projects and exits 0. Edit the solution file directly and check
-the diff.
+**Editing the solution through `dotnet sln`.** `dotnet sln remove` followed by `dotnet sln add
+--solution-folder` silently drops projects and exits 0, and `dotnet sln add` given many projects at
+once flattens them into one folder and then refuses on the first name collision. `Hardened.slnx` is
+short and readable; edit it directly and check the diff. A project added there has to be added to
+its filter too, and to the pack list in `release.yaml` if it ships.
 
 **An optional `CancellationToken` on a shared test helper.** Every call site that omits it trips
 `xUnit1051`, which is a warning locally and an error under `ContinuousIntegrationBuild` — so the
@@ -186,8 +252,15 @@ failure is CI-only and lands at dozens of call sites at once.
 **Check `main` is synced before branching.** An unpushed local commit gets absorbed into your pull
 request's squash merge.
 
-**`Hardened.SourceGenerator` ships source, not an assembly.** Green CI here says nothing about
-whether that source compiles in a consumer. Validate a change to it against Hardened.Amz.
+**`Hardened.SourceGenerator` ships source, not an assembly.** Its own build says nothing about
+whether that source compiles in a consumer, and there is no in-repository consumer of it today —
+Hardened.Amz was one until its source was removed. The `Hardened.Aws` generators, if the design ends
+up wanting any, compile it in from `src/SourceGenerators/Hardened.SourceGenerator` rather than
+restoring the package, which is what makes a break in it fail the same build.
+
+**Every package version is in `Directory.Packages.props`.** A `Version` on a `PackageReference` is
+`NU1008`. A project that genuinely needs a different version says so with `VersionOverride` and a
+comment giving the reason; four do. Adding a package means adding a `PackageVersion` there first.
 
 **Placement between `Abstract` and `Runtime`.** The contract stays in `Hardened.Requests.Abstract`;
 behaviour moves. A type a function handler needs cannot move to `Hardened.Web.Runtime` — the Lambda
@@ -195,11 +268,12 @@ function runtimes do not reference it.
 
 ## Where the rest is written down
 
-- `docs/testing-conventions.md` — what to assert, and what not to
-- `docs/generator-diagnostics.md` — every diagnostic the generators raise
-- `docs/described-authorization.md` — what a contract's `security` becomes
-- `docs/validation-usage.md` — constraints, custom validators, the error response
-- `docs/response-caching.md` — `[CacheResponse<T>]`, the store package, who a stored answer is for, invalidating by tag, revalidating with a 304
-- `docs/request-timeouts.md` — `[Timeout]`, the four rungs it resolves through, `x-hardened-timeout` and the Smithy `@timeout` trait, tighten-only conventions, why the token is put back
-- `docs/client-testing.md` — `Returns<T>()` in `Hardened.Web.Testing`, the route and reader seam it reads through, `[assembly: KiotaTesting]` and `[assembly: RefitTesting]`, why there is a package per generator
-- Full user documentation: <https://ipjohnson.github.io/Hardened.Docs>
+- `docs/design/testing-conventions.md` — what to assert, and what not to
+- `docs/design/generator-diagnostics.md` — every diagnostic the generators raise
+- `docs/design/described-authorization.md` — what a contract's `security` becomes
+- `docs/design/validation-usage.md` — constraints, custom validators, the error response
+- `docs/design/response-caching.md` — `[CacheResponse<T>]`, the store package, who a stored answer is for, invalidating by tag, revalidating with a 304
+- `docs/design/request-timeouts.md` — `[Timeout]`, the four rungs it resolves through, `x-hardened-timeout` and the Smithy `@timeout` trait, tighten-only conventions, why the token is put back
+- `docs/design/client-testing.md` — `Returns<T>()` in `Hardened.Web.Testing`, the route and reader seam it reads through, `[assembly: KiotaTesting]` and `[assembly: RefitTesting]`, why there is a package per generator
+- `docs/` — the published site. `npm run build` there fails on a dead internal link
+- Full user documentation: <https://ipjohnson.github.io/Hardened.Framework>

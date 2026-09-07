@@ -29,9 +29,14 @@
 <!--#if (fakeiteasy) -->
     <PackageReference Include="DependencyModules.FakeItEasy" />
 <!--#endif -->
-    <PackageReference Include="Hardened.Amz.Function.Lambda.Testing" />
-<!--#if (sqs) -->
-    <PackageReference Include="Hardened.Amz.Function.Sqs.Testing" />
+    <!--
+      The neutral half and the host half. Hardened.Functions.Testing carries the façade a test
+      sends through; Hardened.Aws.Lambda.Testing raises the fidelity so the message goes through a
+      real envelope and the real invocation loop rather than straight into the pipeline.
+    -->
+    <PackageReference Include="Hardened.Functions.Testing" />
+<!--#if (aws) -->
+    <PackageReference Include="Hardened.Aws.Lambda.Testing" />
 <!--#endif -->
 <!--#if (xunit) -->
     <PackageReference Include="xunit.v3" />

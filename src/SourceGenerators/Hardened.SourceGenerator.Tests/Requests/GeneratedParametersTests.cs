@@ -3,6 +3,7 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.SourceGenerator.Tests.Infrastructure;
 using Microsoft.CodeAnalysis;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 

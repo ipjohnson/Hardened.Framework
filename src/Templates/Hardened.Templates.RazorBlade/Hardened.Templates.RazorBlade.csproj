@@ -11,9 +11,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="DependencyModules.Runtime" Version="$(DependencyModulesVersion)" />
-        <PackageReference Include="DependencyModules.SourceGenerator" Version="$(DependencyModulesVersion)" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
+        <PackageReference Include="DependencyModules.Runtime"/>
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
 
         <!--
             Not PrivateAssets. RazorBlade's analyzer has to run in the application's own compilation
@@ -26,7 +26,7 @@
             package, and its templates are silently not compiled. Applications must reference
             RazorBlade directly as well - see the package README.
         -->
-        <PackageReference Include="RazorBlade" Version="1.0.0" />
+        <PackageReference Include="RazorBlade"/>
     </ItemGroup>
 
     <ItemGroup>

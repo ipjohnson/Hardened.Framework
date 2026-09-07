@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Hardened.Requests.Runtime.Validation;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 

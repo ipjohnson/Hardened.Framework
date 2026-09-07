@@ -1,6 +1,7 @@
 using System.Reflection;
 using Hardened.Web.Testing;
 using Refit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Refit.Testing;
 

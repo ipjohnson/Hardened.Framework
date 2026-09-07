@@ -1,0 +1,185 @@
+<Solution>
+  <Folder Name="/Benchmarks/">
+    <Project Path="src/Benchmarks/Hardened.Benchmarks.AspNetSut/Hardened.Benchmarks.AspNetSut.csproj" />
+    <Project Path="src/Benchmarks/Hardened.Benchmarks.Contracts/Hardened.Benchmarks.Contracts.csproj" />
+    <Project Path="src/Benchmarks/Hardened.Benchmarks.Sut/Hardened.Benchmarks.Sut.csproj" />
+    <Project Path="src/Benchmarks/Hardened.Benchmarks/Hardened.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/Clients/">
+    <Project Path="src/Clients/Hardened.Kiota.Testing.Tests/Hardened.Kiota.Testing.Tests.csproj" />
+    <Project Path="src/Clients/Hardened.Kiota.Testing/Hardened.Kiota.Testing.csproj" />
+    <Project Path="src/Clients/Hardened.Refit.Testing.Tests/Hardened.Refit.Testing.Tests.csproj" />
+    <Project Path="src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/Runtime/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/Runtime/Hardened.IntegrationTests.LambdaRuntime.Tests/Hardened.IntegrationTests.LambdaRuntime.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/ApiGateway/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/ApiGateway/Hardened.IntegrationTests.ApiGateway.SUT/Hardened.IntegrationTests.ApiGateway.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/ApiGateway/Hardened.IntegrationTests.ApiGateway.SUT.Tests/Hardened.IntegrationTests.ApiGateway.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/Invoke/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/Invoke/Hardened.IntegrationTests.Invoke.SUT/Hardened.IntegrationTests.Invoke.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/Invoke/Hardened.IntegrationTests.Invoke.SUT.Tests/Hardened.IntegrationTests.Invoke.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/DynamoDb/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/DynamoDb/Hardened.IntegrationTests.DynamoDb.SUT/Hardened.IntegrationTests.DynamoDb.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/DynamoDb/Hardened.IntegrationTests.DynamoDb.SUT.Tests/Hardened.IntegrationTests.DynamoDb.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/S3/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/S3/Hardened.IntegrationTests.S3.SUT/Hardened.IntegrationTests.S3.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/S3/Hardened.IntegrationTests.S3.SUT.Tests/Hardened.IntegrationTests.S3.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/Kinesis/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/Kinesis/Hardened.IntegrationTests.Kinesis.SUT/Hardened.IntegrationTests.Kinesis.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/Kinesis/Hardened.IntegrationTests.Kinesis.SUT.Tests/Hardened.IntegrationTests.Kinesis.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/Events/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/Events/Hardened.IntegrationTests.Events.SUT/Hardened.IntegrationTests.Events.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/Events/Hardened.IntegrationTests.Events.SUT.Tests/Hardened.IntegrationTests.Events.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/Sqs/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT/Hardened.IntegrationTests.Sqs.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT.Tests/Hardened.IntegrationTests.Sqs.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Functions/">
+    <Project Path="src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj" />
+    <Project Path="src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Aws/">
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Runtime/Hardened.Aws.Lambda.Runtime.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.ApiGateway/Hardened.Aws.Lambda.ApiGateway.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.DynamoDb/Hardened.Aws.Lambda.DynamoDb.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.EventBridge/Hardened.Aws.Lambda.EventBridge.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Invoke/Hardened.Aws.Lambda.Invoke.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Kinesis/Hardened.Aws.Lambda.Kinesis.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.S3/Hardened.Aws.Lambda.S3.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Sns/Hardened.Aws.Lambda.Sns.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Sqs/Hardened.Aws.Lambda.Sqs.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Testing/Hardened.Aws.Lambda.Testing.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Runtime.Tests/Hardened.Aws.Lambda.Runtime.Tests.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/Aot/">
+    <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.SUT/Hardened.IntegrationTests.Aot.SUT.csproj" />
+    <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.Lambda.SUT/Hardened.IntegrationTests.Aot.Lambda.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/Authorization/">
+    <Project Path="src/IntegrationTests/Authorization/Hardened.IntegrationTests.Authorization.SUT.Tests/Hardened.IntegrationTests.Authorization.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/Authorization/Hardened.IntegrationTests.Authorization.SUT/Hardened.IntegrationTests.Authorization.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/Benchmark/">
+    <Project Path="src/IntegrationTests/Benchmark/Hardened.IntegrationTests.Benchmark.SUT.Tests/Hardened.IntegrationTests.Benchmark.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/Benchmark/Hardened.IntegrationTests.Benchmark.SUT/Hardened.IntegrationTests.Benchmark.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/Conformance/">
+    <Project Path="src/IntegrationTests/Conformance/Hardened.IntegrationTests.Conformance.CodeFirst.SUT.Tests/Hardened.IntegrationTests.Conformance.CodeFirst.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/Conformance/Hardened.IntegrationTests.Conformance.CodeFirst.SUT/Hardened.IntegrationTests.Conformance.CodeFirst.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/Kestrel/">
+    <Project Path="src/IntegrationTests/Kestrel/Hardened.IntegrationTests.Kestrel.SUT/Hardened.IntegrationTests.Kestrel.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/OpenApi/">
+    <Project Path="src/IntegrationTests/OpenApi/Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests/Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/OpenApi/Hardened.IntegrationTests.OpenApi.ResponseModel.SUT/Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.csproj" />
+    <Project Path="src/IntegrationTests/OpenApi/Hardened.IntegrationTests.OpenApi.SUT.Tests/Hardened.IntegrationTests.OpenApi.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/OpenApi/Hardened.IntegrationTests.OpenApi.SUT/Hardened.IntegrationTests.OpenApi.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/Responses/">
+    <Project Path="src/IntegrationTests/Responses/Hardened.IntegrationTests.Responses.SUT.Tests/Hardened.IntegrationTests.Responses.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/Responses/Hardened.IntegrationTests.Responses.SUT/Hardened.IntegrationTests.Responses.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/Smithy/">
+    <Project Path="src/IntegrationTests/Smithy/Hardened.IntegrationTests.Smithy.SUT.Tests/Hardened.IntegrationTests.Smithy.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/Smithy/Hardened.IntegrationTests.Smithy.SUT/Hardened.IntegrationTests.Smithy.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/StaticContent/">
+    <Project Path="src/IntegrationTests/StaticContent/Hardened.IntegrationTests.StaticContent.Manifest.SUT.Tests/Hardened.IntegrationTests.StaticContent.Manifest.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/StaticContent/Hardened.IntegrationTests.StaticContent.Manifest.SUT/Hardened.IntegrationTests.StaticContent.Manifest.SUT.csproj" />
+    <Project Path="src/IntegrationTests/StaticContent/Hardened.IntegrationTests.StaticContent.SUT.Tests/Hardened.IntegrationTests.StaticContent.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/StaticContent/Hardened.IntegrationTests.StaticContent.SUT/Hardened.IntegrationTests.StaticContent.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/Union/">
+    <Project Path="src/IntegrationTests/Union/Hardened.IntegrationTests.Union.SUT.Tests/Hardened.IntegrationTests.Union.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/Union/Hardened.IntegrationTests.Union.SUT/Hardened.IntegrationTests.Union.SUT.csproj" />
+  </Folder>
+  <Folder Name="/IntegrationTests/Web/">
+    <Project Path="src/IntegrationTests/Web/Hardened.IntegrationTests.Web.SUT/Hardened.IntegrationTests.Web.SUT.csproj" />
+    <Project Path="src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Client/Hardened.IntegrationTests.WebApp.SUT.Client.csproj" />
+    <Project Path="src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.NUnitTests/Hardened.IntegrationTests.WebApp.SUT.NUnitTests.csproj" />
+    <Project Path="src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Tests/Hardened.IntegrationTests.WebApp.SUT.Tests.csproj" />
+    <Project Path="src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT/Hardened.IntegrationTests.WebApp.SUT.csproj" />
+  </Folder>
+  <Folder Name="/PublicApi/">
+    <Project Path="src/PublicApi/Hardened.PublicApi.Tests/Hardened.PublicApi.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Requests/">
+    <Project Path="src/Requests/Hardened.Requests.Abstract.Tests/Hardened.Requests.Abstract.Tests.csproj" />
+    <Project Path="src/Requests/Hardened.Requests.Abstract/Hardened.Requests.Abstract.csproj" />
+    <Project Path="src/Requests/Hardened.Requests.Caching.Memory.Tests/Hardened.Requests.Caching.Memory.Tests.csproj" />
+    <Project Path="src/Requests/Hardened.Requests.Caching.Memory/Hardened.Requests.Caching.Memory.csproj" />
+    <Project Path="src/Requests/Hardened.Requests.Runtime.Tests/Hardened.Requests.Runtime.Tests.csproj" />
+    <Project Path="src/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj" />
+    <Project Path="src/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj" />
+    <Project Path="src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft.Tests/Hardened.Requests.Serializers.Newtonsoft.Tests.csproj" />
+    <Project Path="src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="src/Shared/Hardened.Shared.Runtime.Tests/Hardened.Shared.Runtime.Tests.csproj" />
+    <Project Path="src/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj" />
+    <Project Path="src/Shared/Hardened.Shared.Testing.NUnit.Tests/Hardened.Shared.Testing.NUnit.Tests.csproj" />
+    <Project Path="src/Shared/Hardened.Shared.Testing.NUnit/Hardened.Shared.Testing.NUnit.csproj" />
+    <Project Path="src/Shared/Hardened.Shared.Testing.Tests/Hardened.Shared.Testing.Tests.csproj" />
+    <Project Path="src/Shared/Hardened.Shared.Testing.xUnit/Hardened.Shared.Testing.xUnit.csproj" />
+    <Project Path="src/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj" />
+  </Folder>
+  <Folder Name="/SourceGenerators/">
+    <Project Path="src/SourceGenerators/Hardened.DependencyModules.SourceGenerator/Hardened.DependencyModules.SourceGenerator.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Function.SourceGenerator/Hardened.Function.SourceGenerator.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Generation.Shared/Hardened.Generation.Shared.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Idl.BuildTask/Hardened.Idl.BuildTask.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Idl.Emit/Hardened.Idl.Emit.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Idl.SourceGenerator/Hardened.Idl.SourceGenerator.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Library.SourceGenerator/Hardened.Library.SourceGenerator.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.OpenApi.BuildTask.Tests/Hardened.OpenApi.BuildTask.Tests.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.OpenApi.BuildTask/Hardened.OpenApi.BuildTask.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.OpenApi.SourceGenerator.Tests/Hardened.OpenApi.SourceGenerator.Tests.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.OpenApi.SourceGenerator/Hardened.OpenApi.SourceGenerator.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.OpenApiDocument.BuildTask.Tests/Hardened.OpenApiDocument.BuildTask.Tests.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.OpenApiDocument.BuildTask/Hardened.OpenApiDocument.BuildTask.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Smithy.BuildTask.Tests/Hardened.Smithy.BuildTask.Tests.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Smithy.BuildTask/Hardened.Smithy.BuildTask.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Smithy.SourceGenerator/Hardened.Smithy.SourceGenerator.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.SourceGeneration.Testing.Tests/Hardened.SourceGeneration.Testing.Tests.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.SourceGeneration.Testing/Hardened.SourceGeneration.Testing.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.SourceGenerator.Tests/Hardened.SourceGenerator.Tests.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.SourceGenerator/Hardened.SourceGenerator.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Validation.SourceGenerator.Tests/Hardened.Validation.SourceGenerator.Tests.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Validation.SourceGenerator/Hardened.Validation.SourceGenerator.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Web.SourceGenerator.Tests/Hardened.Web.SourceGenerator.Tests.csproj" />
+    <Project Path="src/SourceGenerators/Hardened.Web.SourceGenerator/Hardened.Web.SourceGenerator.csproj" />
+  </Folder>
+  <Folder Name="/Templates/">
+    <Project Path="src/Templates/Hardened.Templates.RazorBlade.Tests/Hardened.Templates.RazorBlade.Tests.csproj" />
+    <Project Path="src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj" />
+    <Project Path="src/Templates/Hardened.Templates/Hardened.Templates.csproj" />
+  </Folder>
+  <Folder Name="/Web/">
+    <Project Path="src/Web/Hardened.Web.AspNetCore.Runtime.Tests/Hardened.Web.AspNetCore.Runtime.Tests.csproj" />
+    <Project Path="src/Web/Hardened.Web.AspNetCore.Runtime/Hardened.Web.AspNetCore.Runtime.csproj" />
+    <Project Path="src/Web/Hardened.Web.AspNetCore.Testing.Tests/Hardened.Web.AspNetCore.Testing.Tests.csproj" />
+    <Project Path="src/Web/Hardened.Web.AspNetCore.Testing/Hardened.Web.AspNetCore.Testing.csproj" />
+    <Project Path="src/Web/Hardened.Web.Kestrel.Runtime.Tests/Hardened.Web.Kestrel.Runtime.Tests.csproj" />
+    <Project Path="src/Web/Hardened.Web.Kestrel.Runtime/Hardened.Web.Kestrel.Runtime.csproj" />
+    <Project Path="src/Web/Hardened.Web.Kestrel.Testing.Tests/Hardened.Web.Kestrel.Testing.Tests.csproj" />
+    <Project Path="src/Web/Hardened.Web.Kestrel.Testing/Hardened.Web.Kestrel.Testing.csproj" />
+    <Project Path="src/Web/Hardened.Web.Runtime.Tests/Hardened.Web.Runtime.Tests.csproj" />
+    <Project Path="src/Web/Hardened.Web.Runtime/Hardened.Web.Runtime.csproj" />
+    <Project Path="src/Web/Hardened.Web.StaticContent.BuildTask.Tests/Hardened.Web.StaticContent.BuildTask.Tests.csproj" />
+    <Project Path="src/Web/Hardened.Web.StaticContent.BuildTask/Hardened.Web.StaticContent.BuildTask.csproj" />
+    <Project Path="src/Web/Hardened.Web.StaticContent.Tests/Hardened.Web.StaticContent.Tests.csproj" />
+    <Project Path="src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj" />
+    <Project Path="src/Web/Hardened.Web.Testing.Tests/Hardened.Web.Testing.Tests.csproj" />
+    <Project Path="src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj" />
+  </Folder>
+</Solution>

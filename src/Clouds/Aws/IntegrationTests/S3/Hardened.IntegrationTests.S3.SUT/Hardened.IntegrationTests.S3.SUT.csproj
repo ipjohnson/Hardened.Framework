@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.S3.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+
+    </PropertyGroup>
+
+    <!--
+      A blob function as an application would write one: a handler with [Blob] and nothing else.
+      No module attribute for S3, no adapter registration, no filter - the trigger is the whole
+      declaration.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.S3\Hardened.Aws.Lambda.S3.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+      Imported from the source tree rather than arriving with a package reference, because in this
+      repository these are ProjectReferences and a project reference carries no build assets. A
+      consuming application gets them from buildTransitive/ inside the packages; importing the same
+      files here is what keeps the two from drifting.
+
+      Two kinds of import, which is the shape the split produces. The first declares the trigger
+      properties, from the package that owns the attributes. The rest each bind one property, one
+      per adapter package.
+
+      One binding, so this project can serve [Blob] and nothing else. Writing [Stream] here fails
+      with HRDF001 rather than quietly working, because nothing declares what would serve it.
+    -->
+    <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
+    <Import Project="..\..\..\Hardened.Aws.Lambda.S3\Package\Hardened.Aws.Lambda.S3.targets"/>
+
+</Project>

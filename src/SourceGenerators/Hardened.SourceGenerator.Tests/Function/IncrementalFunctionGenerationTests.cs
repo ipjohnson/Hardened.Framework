@@ -141,7 +141,7 @@ public class IncrementalFunctionGenerationTests {
             result.FirstRun["TestApplication.FunctionHandlers.cs"],
             result.SecondRun["TestApplication.FunctionHandlers.cs"]);
 
-        Assert.Contains("switch (functionName)", result.SecondRun["TestApplication.FunctionHandlers.cs"]);
+        Assert.Contains("switch (scheme + \" \" + path)", result.SecondRun["TestApplication.FunctionHandlers.cs"]);
     }
 
     [Fact]
@@ -194,8 +194,8 @@ public class IncrementalFunctionGenerationTests {
                 public void Other() { }
                 """));
 
-        Assert.Equal(result.FirstRun["Process.FunctionHandler.cs"], result.SecondRun["Process.FunctionHandler.cs"]);
-        Assert.Contains("other.FunctionHandler.cs", result.SecondRun.Keys);
+        Assert.Equal(result.FirstRun["INVOKE.Process.FunctionHandler.cs"], result.SecondRun["INVOKE.Process.FunctionHandler.cs"]);
+        Assert.Contains("INVOKE.other.FunctionHandler.cs", result.SecondRun.Keys);
 
         Assert.NotEqual(
             result.FirstRun["TestApplication.FunctionHandlers.cs"],
@@ -212,8 +212,8 @@ public class IncrementalFunctionGenerationTests {
                 """),
             Application());
 
-        Assert.Contains("other.FunctionHandler.cs", result.FirstRun.Keys);
-        Assert.DoesNotContain("other.FunctionHandler.cs", result.SecondRun.Keys);
+        Assert.Contains("INVOKE.other.FunctionHandler.cs", result.FirstRun.Keys);
+        Assert.DoesNotContain("INVOKE.other.FunctionHandler.cs", result.SecondRun.Keys);
     }
 
     /// <summary>

@@ -4,6 +4,7 @@ using Hardened.Generation.Models;
 using Hardened.Idl.SourceGenerator;
 using Hardened.SourceGenerator.Requests;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -143,7 +144,7 @@ public class ResponseSetDispatchModelTests {
         Assert.False(success.CarriesBody);
 
         Assert.Equal(
-            "global::Hardened.Requests.Abstract.Responses.NotFound<global::Test.Api.Models.Problem>",
+            "global::Hardened.Web.Runtime.Responses.NotFound<global::Test.Api.Models.Problem>",
             error.TypeName);
         Assert.True(error.CarriesBody);
         Assert.Equal("global::Test.Api.Models.Problem", error.BodyTypeName);

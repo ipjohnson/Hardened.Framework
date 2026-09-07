@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.Events.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <!--
+      The event family sharing one function, which is what the family split says is allowed: a
+      queue, a topic and a bus differ in payload but agree on shape, failure policy and timeout
+      profile. Four triggers here register three adapters, so unlike the SQS fixture this one
+      actually reaches the peek - and SQS and SNS both arrive as a Records array, which is where an
+      adapter matching on the array rather than the event source value would claim both.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.EventBridge\Hardened.Aws.Lambda.EventBridge.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Sns\Hardened.Aws.Lambda.Sns.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Sqs\Hardened.Aws.Lambda.Sqs.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+      Imported from the source tree rather than arriving with a package reference, because in this
+      repository these are ProjectReferences and a project reference carries no build assets. A
+      consuming application gets them from buildTransitive/ inside the packages; importing the same
+      files here is what keeps the two from drifting.
+
+      Two kinds of import, which is the shape the split produces. The first declares the trigger
+      properties, from the package that owns the attributes. The rest each bind one property, one
+      per adapter package.
+
+      Three adapters, because this fixture is the one function serving the whole event family.
+      That is what the family is: SQS, SNS and a bus event share a shape, a failure policy and a
+      timeout profile, so they can share a function - and each is still its own package.
+    -->
+    <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
+    <Import Project="..\..\..\Hardened.Aws.Lambda.EventBridge\Package\Hardened.Aws.Lambda.EventBridge.targets"/>
+    <Import Project="..\..\..\Hardened.Aws.Lambda.Sns\Package\Hardened.Aws.Lambda.Sns.targets"/>
+    <Import Project="..\..\..\Hardened.Aws.Lambda.Sqs\Package\Hardened.Aws.Lambda.Sqs.targets"/>
+
+</Project>

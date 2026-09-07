@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.AspNetCore.Testing.Tests;
 

@@ -17,8 +17,8 @@
       otherwise.
     -->
     <ItemGroup>
-        <PackageReference Include="DependencyModules.Runtime" Version="$(DependencyModulesVersion)" />
-        <PackageReference Include="DependencyModules.SourceGenerator" Version="$(DependencyModulesVersion)" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <PackageReference Include="DependencyModules.Runtime"/>
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
 
         <!--
           The only reference to this package in the repository, and the reason response caching is a
@@ -34,7 +34,7 @@
           TryGetValue checks expiry on read, so it stays correct across a Lambda freeze of any
           length and only reclamation happens late.
         -->
-        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory"/>
     </ItemGroup>
 
     <ItemGroup>

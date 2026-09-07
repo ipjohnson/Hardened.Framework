@@ -1,5 +1,6 @@
 using Hardened.Generation.Models;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 

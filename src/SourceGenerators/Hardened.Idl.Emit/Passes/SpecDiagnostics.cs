@@ -31,7 +31,7 @@ namespace Hardened.Idl;
 /// parameter because this pass runs for every front end and a finding belongs to the document
 /// that caused it: a Smithy model's mixed enum reported as HOAT anything sends its author to the
 /// OpenAPI documentation. 020 up is this pass's block; everything below it belongs to the task
-/// shell, the packaged targets and the Smithy CLI task, per docs/generator-diagnostics.md.
+/// shell, the packaged targets and the Smithy CLI task, per docs/design/generator-diagnostics.md.
 /// </para>
 /// </remarks>
 internal static class SpecDiagnostics {

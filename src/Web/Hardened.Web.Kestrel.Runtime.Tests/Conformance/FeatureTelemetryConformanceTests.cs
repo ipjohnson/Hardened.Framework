@@ -8,6 +8,7 @@ using Hardened.Web.Kestrel.Runtime.Tests.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using Hardened.Requests.Runtime.Execution;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests.Conformance;
 
@@ -51,9 +52,9 @@ public class FeatureTelemetryConformanceTests : RequestTelemetryConformanceTests
 
             var application = new HardenedHttpApplication(
                 services.BuildServiceProvider(),
-                middlewareService,
-                new NullMetricLoggerProvider(),
-                new RequestLogger(NullLogger<RequestLogger>.Instance));
+                new RequestExecutor(
+                    middlewareService, new RequestLogger(NullLogger<RequestLogger>.Instance)),
+                new NullMetricLoggerProvider());
 
             var features = new ServerFeatures(request.Method, request.Path);
 

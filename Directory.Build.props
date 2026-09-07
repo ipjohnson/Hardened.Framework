@@ -1,0 +1,149 @@
+<Project>
+
+    <!--
+      Package metadata shared by every package in this repository.
+
+      It lives here rather than in each csproj because it was previously copy-pasted per
+      project, and had drifted: all 15 packable projects claimed to belong to the CSharpAuthor
+      repository, and every one of them shipped with the default "Package Description".
+
+      Per-package Description and PackageId stay in the individual csproj files, since those
+      genuinely differ.
+    -->
+    <PropertyGroup>
+        <Authors>Ian Johnson</Authors>
+        <PackageProjectUrl>https://github.com/ipjohnson/Hardened.Framework</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/ipjohnson/Hardened.Framework</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>Hardened;Hardened.Framework;source-generator;aot</PackageTags>
+
+        <!-- licenseUrl is deprecated (NU5125) and pointed at another project's licence.
+             Both repositories are MIT. -->
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+        <PackageIcon>hardened-icon-128.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <!--
+      PackageIcon and PackageReadmeFile both name a file inside the nupkg, so each has to be
+      packed alongside being declared - a declaration without the file is NU5046 for the icon
+      and NU5039 for the readme, both at pack time.
+
+      One icon and one readme for every package in the repository, from the repository root.
+      Every package showing the same readme is deliberate: the packages are one framework, and
+      a per-package readme is a second place for the story to drift out of date.
+
+      Note that nuget.org renders the readme through Markdig with inline HTML disabled, so raw
+      HTML in README.md is displayed as escaped text rather than rendered. That is why the title
+      carries a Markdown image and not the theme-aware <picture> element GitHub supports, and why
+      the image it names is assets/hardened-mark-32.png rather than the 128px icon: with no way to
+      set a width, the file has to be the size it should render at. It is the gunmetal tile for the
+      same reason - one image serves both themes only if it brings its own background.
+    -->
+    <ItemGroup>
+        <None Include="$(MSBuildThisFileDirectory)assets/hardened-icon-128.png"
+              Pack="true" PackagePath="/" Visible="false" />
+        <None Include="$(MSBuildThisFileDirectory)README.md"
+              Pack="true" PackagePath="/" Visible="false" />
+    </ItemGroup>
+
+    <!--
+      The ValidationModules version, in one place, because two projects consume it in two
+      different shapes - Hardened.Requests.Runtime binds against the runtime assembly, and the
+      generators compile the source-only Impl package in. Those must be the same version: the
+      generators emit calls against contracts the runtime supplies, and a version skew between
+      them is a compile error in generated code, which reads as a generator defect.
+
+      On nuget.org since 0.1.0-alpha.1. It used to come from GitHub Packages, which is why this
+      repository configured that feed at all - and why a restore could fail with NU1301 when the
+      feed answered 401, since a source that cannot be reached is fatal once something is only
+      served there. Nothing here needs an authenticated feed any more.
+
+      Still pinned rather than floating. A floating range makes NuGet enumerate versions from every
+      configured source on every restore, which is slower and reintroduces a dependency on all of
+      them being reachable. Hardened.Amz floats on this repository's packages because they are all
+      on one feed; that is not the situation here.
+
+      Bumping it is a deliberate edit, which is also what makes a ValidationModules change arrive
+      in a reviewable commit rather than on whichever day CI happened to rerun.
+    -->
+    <PropertyGroup>
+        <ValidationModulesVersion Condition="'$(ValidationModulesVersion)' == ''">1.0.0</ValidationModulesVersion>
+    </PropertyGroup>
+
+    <!--
+      The DependencyModules version, in one place, for the same reason as above: the runtimes bind
+      against DependencyModules.Runtime, the generator project compiles the source-only Impl
+      package in, and Hardened.Shared.Testing takes DependencyModules.xUnit. The generator emits
+      calls against contracts the runtime supplies, so all of them move together or generated code
+      breaks. Same no-float rationale as ValidationModulesVersion.
+    -->
+    <PropertyGroup>
+        <DependencyModulesVersion Condition="'$(DependencyModulesVersion)' == ''">1.3.1</DependencyModulesVersion>
+    </PropertyGroup>
+
+    <!--
+      The Kiota bundle, in one place because two things read it: Directory.Packages.props pins the
+      package, and Hardened.IntegrationTests.WebApp.SUT.Client checks it against the version the
+      kiota tool in .config/dotnet-tools.json expects (HTPL003). A generated client registers the
+      serializers itself, so the tool and the bundle move together or the client does not compile.
+
+      This follows Kiota's release line rather than this repository's. See AGENTS.md, "Releasing".
+    -->
+    <PropertyGroup>
+        <KiotaBundleVersion Condition="'$(KiotaBundleVersion)' == ''">2.0.0</KiotaBundleVersion>
+    </PropertyGroup>
+
+    <!--
+      The solution builds warning-free. Escalating warnings to errors is what keeps it that
+      way; without it the count drifts back up one commit at a time.
+
+      Deliberately scoped to CI rather than local builds, so an in-progress edit with an
+      unused variable does not block someone's inner loop. CI sets ContinuousIntegrationBuild.
+    -->
+    <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <!--
+      CS8785 is "a source generator threw", and Roslyn reports it as a warning. That is the wrong
+      severity everywhere, not just on CI: a generator that dies mid-run has emitted some of its
+      output and none of the rest, so the assembly that comes out is missing wiring nobody asked it
+      to leave out. Hardened's whole proposition is that the wiring is written during the build, and
+      a build that half-writes it must not be green.
+
+      This one is deliberately not scoped to ContinuousIntegrationBuild. The local build is where
+      the edit that broke the generator was just made, and it is the run that should say so.
+    -->
+    <PropertyGroup>
+        <WarningsAsErrors>$(WarningsAsErrors);CS8785</WarningsAsErrors>
+    </PropertyGroup>
+
+    <!--
+      Applies to every project in the repository.
+
+      Test projects get Microsoft.CodeCoverage, so collecting "Code Coverage" during `dotnet test`
+      produces Cobertura reports. Collection settings - what is excluded from the numbers - live
+      in coverage.runsettings beside this file.
+
+      This was coverlet.collector until the build moved to the .NET 11 SDK, which coverlet does
+      not instrument under. It failed silently rather than erroring: every test ran and passed
+      while 6.0.2 reported 0.0% for every assembly, and 10.0.1 narrowed that to a partial
+      collapse - Hardened.Requests.Abstract reading 31.3% against a 93.5% floor it holds on
+      8.0.401.
+
+      Microsoft.CodeCoverage ships with Microsoft.NET.Test.Sdk and moves with the SDK, which is
+      the property worth having here: the failure was a third-party instrumenter lagging a new
+      runtime, and that is a thing which recurs at every upgrade. Its numbers land within a point
+      of coverlet's for almost every assembly - Hardened.Shared.Runtime 96.6% against 96.6%,
+      Requests.Abstract 93.9% against 93.5% - so the baseline moved rather than the tests.
+    -->
+    <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+        <PackageReference Include="Microsoft.CodeCoverage">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+</Project>

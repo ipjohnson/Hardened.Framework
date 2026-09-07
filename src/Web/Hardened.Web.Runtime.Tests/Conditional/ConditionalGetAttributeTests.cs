@@ -123,12 +123,23 @@ public class ConditionalGetAttributeTests {
     /// The decision this feature was reworked around: a service that declares nothing carries
     /// none of it, so it pays nothing for it.
     /// </summary>
+    /// <remarks>
+    /// Not empty any more. Request decompression moved here from HardenedRequestModule with the
+    /// HTTP extraction and is always on for an HTTP host, as it was for every host before - so what
+    /// this asserts is that conditional GET still installs nothing, which is the claim, rather than
+    /// that the module installs nothing at all.
+    /// </remarks>
     [Fact]
     public void TheWebModuleInstallsNothingWithoutADeclaration() {
         var services = new ServiceCollection();
 
         new HardenedWebModule().ConfigureServices(services);
 
-        Assert.Empty(services.BuildServiceProvider().GetServices<IRequestFilterProvider>());
+        // By name, because the provider is internal to Hardened.Web.Runtime. What matters is that
+        // there is one and it is not a conditional GET one.
+        Assert.Equal(
+            ["RequestDecompressionProvider"],
+            services.BuildServiceProvider().GetServices<IRequestFilterProvider>()
+                .Select(provider => provider.GetType().Name));
     }
 }

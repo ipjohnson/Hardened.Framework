@@ -1,0 +1,31 @@
+namespace Hardened.Aws.Lambda.Testing
+{
+    public sealed class LambdaEnvelopeDelivery : Hardened.Functions.Testing.ITriggerDelivery
+    {
+        public LambdaEnvelopeDelivery(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler, string region = "us-east-1", string account = "123456789012") { }
+        public System.Threading.Tasks.Task<object?> Call(object message, string scheme, string path, System.Type? responseType) { }
+        public System.Threading.Tasks.Task Deliver(System.Collections.Generic.IReadOnlyList<object> messages, string scheme, string path) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public class LambdaTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute
+    {
+        public LambdaTestingAttribute() { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+    }
+    public sealed class LambdaWebHost : Hardened.Web.Testing.ITestHost, System.IAsyncDisposable
+    {
+        public LambdaWebHost() { }
+        public System.Uri BaseAddress { get; }
+        public bool IsTerminal { get; }
+        public System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential) { }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task StartAsync(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
+    public sealed class LambdaWebTestingAttribute : Hardened.Web.Testing.TestHostAttribute
+    {
+        public LambdaWebTestingAttribute() { }
+        public override Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+}

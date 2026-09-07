@@ -15,9 +15,9 @@
         application goes next door.
     -->
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-        <PackageReference Include="NUnit" Version="4.2.2" />
-        <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="NUnit"/>
+        <PackageReference Include="NUnit3TestAdapter"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -25,7 +25,7 @@
       <!-- The mock library behind [Mock]: [NSubstituteSupport] in Bootstrap.cs, and NSubstitute with it. -->
       <ProjectReference Include="..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj"
                         Condition="Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
-      <PackageReference Include="DependencyModules.NSubstitute" Version="$(DependencyModulesVersion)"
+      <PackageReference Include="DependencyModules.NSubstitute"
                         Condition="!Exists('..\..\..\..\..\DependencyModules\src\DependencyModules.NSubstitute\DependencyModules.NSubstitute.csproj')"/>
       <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj" />
       <ProjectReference Include="..\Hardened.IntegrationTests.WebApp.SUT\Hardened.IntegrationTests.WebApp.SUT.csproj" />

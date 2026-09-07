@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Serves [Stream] handlers on AWS Lambda from Kinesis Data Streams: an ordered batch of records off one shard, with each record's data bound as the publisher wrote it.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Aws.Lambda.Kinesis</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;kinesis;streams</PackageTags>
+
+        <!--
+          One adapter family, so a function that is not triggered this way never has these
+          assemblies in its bundle. That is the whole reason this is not part of
+          Hardened.Aws.Lambda.Runtime; see the Adapter Split for the measurements.
+
+          Batched and ordered, so it brings BatchExecutionFilter with it and answers Checkpoint
+          rather than PerItem: Lambda re-drives a shard by position, so the run stops at the first
+          failure instead of attempting records that are being redelivered anyway.
+
+          No Amazon event package, which is the one place this differs from its siblings.
+          Amazon.Lambda.KinesisEvents is 27.6 KB and depends on AWSSDK.Kinesis and AWSSDK.Core -
+          1094 KB between them, three times the whole framework after trimming - to name five
+          documented fields on an envelope whose payload is an opaque blob. The adapter reads them
+          off the document the peek already parsed.
+        -->
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Aws.Lambda.Runtime.Tests"/>
+    </ItemGroup>
+
+    <!--
+      buildTransitive/ rather than build/. NuGet imports build/ for a direct reference only, and
+      Hardened.Aws.Lambda is a meta package whose whole job is to be referenced instead of this one
+      - so in build/ the binding below would be missing exactly where it is needed, silently, and
+      the function would deploy and never be invoked. buildTransitive/ covers the direct case too.
+
+      Package\ rather than build\ in the source tree, because .gitignore ignores build/.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Aws.Lambda.Kinesis.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Amazon.Lambda.Core" />
+        <PackageReference Include="DependencyModules.Runtime" />
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+    </ItemGroup>
+
+</Project>

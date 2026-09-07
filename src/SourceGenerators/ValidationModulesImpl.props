@@ -60,7 +60,7 @@
     </PropertyGroup>
 
     <ItemGroup Condition="'$(UseLocalValidationModules)' != 'true'">
-        <PackageReference Include="ValidationModules.SourceGenerator.Impl" Version="$(ValidationModulesVersion)">
+        <PackageReference Include="ValidationModules.SourceGenerator.Impl">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>build</IncludeAssets>
         </PackageReference>

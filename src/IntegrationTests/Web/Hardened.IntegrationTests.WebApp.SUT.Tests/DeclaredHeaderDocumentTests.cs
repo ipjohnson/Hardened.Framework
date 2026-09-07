@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 

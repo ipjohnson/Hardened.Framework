@@ -8,6 +8,7 @@ using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.Primitives;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Testing.Tests;
 

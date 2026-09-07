@@ -35,7 +35,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # No source-url, and no NUGET_AUTH_TOKEN. Restore reads src/nuget.config, which is nuget.org
+      # No source-url, and no NUGET_AUTH_TOKEN. Restore reads nuget.config, which is nuget.org
       # and nothing else since ValidationModules was published there at 0.1.0-alpha.1.
       #
       # Pointing setup-dotnet at GitHub Packages writes a nuget.config whose credential is the
@@ -83,7 +83,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Releasing $VERSION"
 
-      - run: dotnet restore src/Hardened.Framework.sln
+      - run: dotnet restore Hardened.slnx
 
       # Same warnings-as-errors treatment the branch build gets. A release is the last place to
       # relax it.
@@ -129,12 +129,12 @@ jobs:
           test "$(smithy --version)" = "$SMITHY_VERSION"
           smithy --version
 
-      - run: dotnet build src/Hardened.Framework.sln --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
+      - run: dotnet build Hardened.slnx --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
       - name: Test with coverage
         run: |
           set -o pipefail
-          dotnet test src/Hardened.Framework.sln \
+          dotnet test Hardened.slnx \
             --no-build --configuration Release \
             --settings coverage.runsettings \
             --collect:"Code Coverage" \
@@ -160,6 +160,7 @@ jobs:
           reportgenerator \
             -reports:"coverage/**/*.cobertura.xml" \
             -targetdir:coverage-report \
+            -assemblyfilters:"+Hardened.*;-Hardened.DependencyModules.SourceGenerator" \
             -reporttypes:"TextSummary;MarkdownSummaryGithub;JsonSummary"
           cat coverage-report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
           python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
@@ -250,6 +251,19 @@ jobs:
             src/Web/Hardened.Web.Kestrel.Testing/Hardened.Web.Kestrel.Testing.csproj \
             src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
             src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
+            src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj \
+            src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Runtime/Hardened.Aws.Lambda.Runtime.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.ApiGateway/Hardened.Aws.Lambda.ApiGateway.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.DynamoDb/Hardened.Aws.Lambda.DynamoDb.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.EventBridge/Hardened.Aws.Lambda.EventBridge.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Invoke/Hardened.Aws.Lambda.Invoke.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Kinesis/Hardened.Aws.Lambda.Kinesis.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.S3/Hardened.Aws.Lambda.S3.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Sns/Hardened.Aws.Lambda.Sns.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Sqs/Hardened.Aws.Lambda.Sqs.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Testing/Hardened.Aws.Lambda.Testing.csproj \
             src/Clients/Hardened.Kiota.Testing/Hardened.Kiota.Testing.csproj \
             src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj \
             src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj \
@@ -293,7 +307,21 @@ jobs:
           # Hardened.Shared.Testing.NUnit, with Hardened.Shared.Testing left runner-neutral.
           # 28 after Hardened.Web.Kestrel.Testing, the [KestrelHost] test host.
           # 29 after Hardened.Web.AspNetCore.Testing, the [AspNetCoreHost] test host.
-          EXPECTED=29
+          # 43 while Hardened.Amz's fourteen were in the tree, and 29 again once they left. That
+          # line is not being renamed into Hardened.Aws, it is being replaced by new projects, so
+          # its source earns nothing here: 0.22.0-rc1000 stays on nuget.org, restorable, and the
+          # replacements join this list as they are written.
+          # 39 with the AWS line and the trigger attributes, which is ten and not eight. Eight are
+          # the Lambda packages: a core, five adapters, the Hardened.Aws.Lambda meta package over
+          # them and the testing package. The other two are Hardened.Functions.Runtime and
+          # Hardened.Functions.Testing, which have been IsPackable and absent from this list since
+          # they were written - the sixth time it has drifted, and the reason the number below is a
+          # literal somebody has to change.
+          # 40 with Hardened.Aws.Lambda.DynamoDb, the first adapter added after the split - which
+          # is the shape every later one takes: one package, one trigger, one line here.
+          # 41 with Hardened.Aws.Lambda.Kinesis, the second adapter added after the split.
+          # 42 with Hardened.Aws.Lambda.S3.
+          EXPECTED=42
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then
@@ -339,20 +367,31 @@ jobs:
             ${prerelease} \
             ./artifacts/*.nupkg
 
-      # The docs site went two releases stale silently, because nothing told it a release
-      # happened. This is not automation of the docs, just an interrupt that fires: one issue
-      # naming the version, into the repository that declares its package version once.
+      # The documented version used to be an issue opened in another repository from here, by a
+      # step that could not fail the release: the site declared its own package version, nothing
+      # checked it, and the pages sat a release behind for as long as nobody acted on the issue.
+      # They were on 0.21.0-rc1000 when 0.22.0-rc1000 shipped. The pages are in this repository
+      # now, so the release checks them.
       #
-      # Cross-repo issue creation needs a token with issues:write on Hardened.Docs, which
-      # GITHUB_TOKEN does not carry - set a DOCS_ISSUE_TOKEN fine-grained PAT for this to fire.
-      # continue-on-error, because a release must never fail over its reminder.
-      - name: Open the Docs version-bump issue
+      # Only versions a reader would copy - a PackageReference, HardenedVersion, a template
+      # install - so prose naming an older release on purpose does not trip it. docs/design is
+      # maintainer notes and is a record of when things happened, not of what to install.
+      - name: Check the documented version is this one
         if: startsWith(github.ref, 'refs/tags/v')
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.DOCS_ISSUE_TOKEN != '' && secrets.DOCS_ISSUE_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          gh issue create \
-            --repo ipjohnson/Hardened.Docs \
-            --title "Point the documented version at ${{ steps.version.outputs.version }}" \
-            --body "Hardened.Framework ${{ steps.version.outputs.version }} is on nuget.org. The site declares its package version once, as hardenedVersion in website/.vitepress/config.ts; move it and the whole site follows."
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+
+          FOUND=$(grep -rhoE '(Version="|<HardenedVersion>|Hardened\.Templates@)[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+' \
+                    docs --include='*.md' \
+                    --exclude-dir=design \
+                  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+' | sort -u)
+
+          WRONG=$(echo "$FOUND" | grep -vxF "$VERSION" || true)
+
+          if [ -n "$WRONG" ]; then
+            echo "::error::Pages under docs/ tell a reader to install a version that is not $VERSION: $(echo $WRONG)."
+            grep -rnE "($(echo $WRONG | tr ' ' '|'))" docs --include='*.md' --exclude-dir=design || true
+            exit 1
+          fi
+          echo "Every version the documentation tells a reader to install is $VERSION."

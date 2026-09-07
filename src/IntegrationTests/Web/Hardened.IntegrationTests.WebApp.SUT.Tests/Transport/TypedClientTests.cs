@@ -2,6 +2,7 @@ using System.Net;
 using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using NSubstitute;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 

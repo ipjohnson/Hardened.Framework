@@ -4,6 +4,7 @@ using System.Text.Json;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Errors;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing.Tests;
 

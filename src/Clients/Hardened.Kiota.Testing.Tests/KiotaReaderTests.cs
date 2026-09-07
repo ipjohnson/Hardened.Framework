@@ -5,6 +5,7 @@ using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Testing;
 using Microsoft.Kiota.Abstractions;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 // The route under test, named the way a test project names it, so Returns reads through it.
 [assembly: KiotaTesting]

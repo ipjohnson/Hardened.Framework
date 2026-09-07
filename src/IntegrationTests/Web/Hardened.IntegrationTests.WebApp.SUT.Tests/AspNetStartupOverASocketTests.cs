@@ -3,6 +3,7 @@ using Hardened.Requests.Testing;
 using Hardened.Web.AspNetCore.Runtime;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 

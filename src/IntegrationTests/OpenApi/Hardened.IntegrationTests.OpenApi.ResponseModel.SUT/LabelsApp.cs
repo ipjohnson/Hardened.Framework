@@ -1,5 +1,6 @@
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.Runtime.DependencyInjection;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT;
 

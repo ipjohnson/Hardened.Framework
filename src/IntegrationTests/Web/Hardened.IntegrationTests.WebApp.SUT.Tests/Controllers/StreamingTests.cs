@@ -1,6 +1,7 @@
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
 using Hardened.IntegrationTests.WebApp.SUT.Tests.Support;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 

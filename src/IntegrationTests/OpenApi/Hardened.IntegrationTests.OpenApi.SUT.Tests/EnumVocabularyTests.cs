@@ -1,5 +1,6 @@
 using Hardened.Shared.Runtime.Json;
 using Microsoft.Extensions.DependencyInjection;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 

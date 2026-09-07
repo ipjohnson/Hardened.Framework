@@ -3,6 +3,7 @@ using System.Text;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Testing.Tests.Conformance;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing.Tests.Transport;
 

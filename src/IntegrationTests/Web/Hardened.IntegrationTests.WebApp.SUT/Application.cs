@@ -1,7 +1,6 @@
 ﻿using Hardened.IntegrationTests.Web.SUT;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Requests.Abstract.Authorization;
-using Hardened.Requests.Runtime.Compression;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Attributes;

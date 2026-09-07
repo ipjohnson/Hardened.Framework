@@ -1,0 +1,17 @@
+<Project>
+    <!--
+        Declared here because this package owns the verb attributes, and the property that binds a
+        trigger has to be declared wherever the attribute that needs it can be written. See
+        Hardened.Functions.Runtime's targets for the rule.
+
+        This one is why the rule exists rather than putting all six in one place: a Kestrel or
+        ASP.NET Core project writes [Get] without ever referencing Hardened.Functions.Runtime, so a
+        declaration living there would leave HardenedHttpModule invisible - the identical failure
+        <HardenedAmbiguousRoutes> shipped with.
+
+        All five verbs name one property. A controller with a GET and a POST registers one adapter.
+    -->
+    <ItemGroup>
+        <CompilerVisibleProperty Include="HardenedHttpModule"/>
+    </ItemGroup>
+</Project>

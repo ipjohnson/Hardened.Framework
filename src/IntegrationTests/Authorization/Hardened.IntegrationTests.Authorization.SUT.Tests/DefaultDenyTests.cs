@@ -1,5 +1,6 @@
 using Hardened.IntegrationTests.Authorization.SUT;
 using Hardened.Requests.Testing;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Authorization.SUT.Tests;
 

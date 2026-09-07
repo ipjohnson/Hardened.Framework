@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 

@@ -27,11 +27,11 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # content however many times the framework has been rebuilt since - a green run over stale
 # packages, which is worse than no run at all.
 #
-# 99.0.0 rather than 0.0.0, and that is not cosmetic either. Hardened.Amz depends on published
-# Hardened packages with a floor - ">= 0.10.0-rc1000" today - and a 0.0.0 version sits below it,
-# so every Lambda project failed to restore with NU1605 rather than exercising anything. A real
-# release is always above that floor, so the verification version has to be too, or the Amz
-# templates can only ever be tested against the previous release instead of the build in hand.
+# 99.0.0 rather than 0.0.0, and that is not cosmetic either. It has to sit above every floor any
+# package declares, or a project fails to restore with NU1605 rather than exercising anything. It
+# was Hardened.Amz that made this necessary: it depended on published Hardened packages with a
+# floor of its own. Those packages pack from this run now, at this version, so that particular
+# floor is gone and the reason to stay above the others is not.
 VERSION="99.0.0-verify$(date +%s)"
 FEED="${TMPDIR:-/tmp}/hardened-template-feed"
 # Resolved with pwd -P, which is not cosmetic on macOS. $TMPDIR there is /var/folders/... and /var
@@ -234,7 +234,7 @@ rm -rf "$FEED" "$WORK"
 mkdir -p "$FEED" "$WORK"
 
 # Previous runs' packages, which are never referenced again.
-find "${NUGET_PACKAGES:-$HOME/.nuget/packages}" -maxdepth 2 -type d -name '0.0.0-verify*' \
+find "${NUGET_PACKAGES:-$HOME/.nuget/packages}" -maxdepth 2 -type d -name '99.0.0-verify*' \
     -exec rm -rf {} + 2>/dev/null || true
 
 # Pack output is noisy with pre-existing NU5100/NU5128 about build tasks that deliberately sit
@@ -256,7 +256,7 @@ pack() {
 # and the first spec-first build failed with MSB4062. It passed locally only because the tree had
 # been built by hand first.
 say "building the framework"
-if ! dotnet build "$REPO/src/Hardened.Framework.sln" -c Release \
+if ! dotnet build "$REPO/Hardened.slnx" -c Release \
         -p:HardenedSmithyPinCliVersion=false -v q --nologo >"$WORK/build.log" 2>&1; then
     grep -E ": error" "$WORK/build.log" | head -20
     echo "   full log: $WORK/build.log"
@@ -288,16 +288,25 @@ echo "   kiota $KIOTA_TOOL and Microsoft.Kiota.Bundle $KIOTA_BUNDLE agree"
 # integration application, and a release moves all four together: a template pinned to one Kiota
 # and an integration suite proving another is two claims about what a Hardened document generates.
 REPO_TOOL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["tools"]["microsoft.openapi.kiota"]["version"])' "$REPO/.config/dotnet-tools.json")
-REPO_BUNDLE=$(sed -n 's/.*<KiotaBundleVersion>\(.*\)<\/KiotaBundleVersion>.*/\1/p' "$REPO/src/IntegrationTests/Web/Hardened.IntegrationTests.WebApp.SUT.Client/Hardened.IntegrationTests.WebApp.SUT.Client.csproj")
+# Directory.Build.props, not the client csproj. The property moved to the root when the repository
+# adopted central package management: Directory.Packages.props pins Microsoft.Kiota.Bundle to it,
+# and that file is imported long before any project body, so a version it names has to be defined
+# above it. Reading the old location silently produced an empty string, which fails this check with
+# a message naming a blank version rather than a mismatch.
+REPO_BUNDLE=$(sed -n 's/.*<KiotaBundleVersion[^>]*>\(.*\)<\/KiotaBundleVersion>.*/\1/p' "$REPO/Directory.Build.props")
+if [ -z "$REPO_BUNDLE" ]; then
+    echo "   FAILED: no <KiotaBundleVersion> in Directory.Build.props. It moved there from the client csproj; this check has to move with it."
+    exit 1
+fi
 if [ "$REPO_TOOL" != "$KIOTA_TOOL" ] || [ "$REPO_BUNDLE" != "$KIOTA_BUNDLE" ]; then
-    echo "   FAILED: the template pins kiota $KIOTA_TOOL / bundle $KIOTA_BUNDLE; the repository's .config/dotnet-tools.json and Hardened.IntegrationTests.WebApp.SUT.Client.csproj pin $REPO_TOOL / $REPO_BUNDLE"
+    echo "   FAILED: the template pins kiota $KIOTA_TOOL / bundle $KIOTA_BUNDLE; the repository's .config/dotnet-tools.json and Directory.Build.props pin $REPO_TOOL / $REPO_BUNDLE"
     exit 1
 fi
 echo "   the integration client pins the same pair"
 
 # UseLocalValidationModules=false so a sibling checkout cannot leak a version that was never
 # published into the packed dependency graph.
-pack framework "$REPO/src/Hardened.Framework.sln" \
+pack framework "$REPO/Hardened.slnx" \
     -p:UseLocalValidationModules=false \
     -p:HardenedSmithyPinCliVersion=false
 
@@ -657,22 +666,28 @@ for TEMPLATE in hardened-library hardened-web; do
     fi
 done
 
-# The Amz pin floats, which is what lets these be gated against the build under test at all.
-# Hardened.Amz depends on published Hardened packages, so an exact pin here would name a version
-# that does not exist yet for the whole window between the two repositories' releases. Floating it
-# means the framework packages come from this run's feed while Hardened.Amz stays on its newest
-# published release - which is precisely the state a release leaves the world in, so verifying it
-# is verifying the thing that actually ships.
-say "AWS Lambda templates"
-# The function template has no seam to mock, so its two option rows prove the other runner and the
-# other libraries restore, build and run the handler tests beside the Amz testing packages.
-# Each row is the template and its flags, then the test framework and mock library the flags
-# named, so the generated test project can be checked against what was asked for.
+# Everything comes from this run's feed now. The rows used to combine the local framework with
+# Hardened.Amz.* from nuget.org, and that arrangement is what broke: the published generator emitted
+# a two-argument GetFunctionHandler against an interface that had grown a third. One feed means a
+# template can only ever name packages this build produced.
+say "cloud function templates"
+# Every trigger at defaults, because each one is a different adapter, a different payload shape and
+# a different generated façade - a row nobody runs is a row nobody notices is broken. The runner and
+# mock permutations sit on two of them rather than on all seven: those options are orthogonal to the
+# trigger, and proving that costs two rows rather than fourteen.
+#
+# Each row is the template and its flags, then the test framework and mock library the flags named,
+# so the generated test project can be checked against what was asked for.
 for AMZ in "hardened-function --trigger invoke|default|default" \
-           "hardened-function --trigger sqs|default|default" \
+           "hardened-function --trigger queue|default|default" \
+           "hardened-function --trigger topic|default|default" \
+           "hardened-function --trigger timer|default|default" \
+           "hardened-function --trigger change|default|default" \
+           "hardened-function --trigger stream|default|default" \
+           "hardened-function --trigger blob|default|default" \
            "hardened-web --host aws-lambda|default|default" \
            "hardened-function --trigger invoke --test-framework nunit --mocks moq|nunit|moq" \
-           "hardened-function --trigger sqs --mocks fakeiteasy|default|fakeiteasy"; do
+           "hardened-function --trigger queue --mocks fakeiteasy|default|fakeiteasy"; do
     IFS='|' read -r AMZ_COMMAND TESTS MOCKS <<<"$AMZ"
     set -- $AMZ_COMMAND
     AMZ_TEMPLATE="$1"; shift
@@ -724,10 +739,14 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
             tail -20 "$AMZ_OUT/serve.log"
             FAILED=1
         fi
-        # Worth printing: a float that silently stopped resolving would otherwise look identical
-        # to one that resolved to the right thing.
-        grep -hoE '"Hardened\.Amz\.[A-Za-z.]+/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
-            | tr -d '"' | sort -u | head -2 | sed 's/^/     resolved /'
+        # Worth printing: it is what says these resolved to this run's packages rather than to
+        # something left in the global cache.
+        #
+        # `|| true` because the script runs under `set -e` and a grep that matches nothing exits 1.
+        # It looked for Hardened.Amz.* until those left the templates, and the day they did this
+        # line began killing the run after the first row rather than printing nothing.
+        grep -hoE '"Hardened\.Aws\.Lambda[A-Za-z.]*/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
+            | tr -d '"' | sort -u | head -2 | sed 's/^/     resolved /' || true
     else
         echo "   FAILED: $AMZ_TEMPLATE $*"
         FAILED=1

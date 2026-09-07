@@ -167,7 +167,7 @@ public class MultipleSuccessResponseTests {
         Assert.Contains("public GetJobResponse(Test.Api.Models.Job value)", result);
         Assert.Contains("public GetJobResponse(Test.Api.Models.GetJobAccepted value)", result);
         Assert.Contains(
-            "public GetJobResponse(Hardened.Requests.Abstract.Responses.NotFound<Test.Api.Models.Problem> value)",
+            "public GetJobResponse(Hardened.Web.Runtime.Responses.NotFound<Test.Api.Models.Problem> value)",
             result);
     }
 

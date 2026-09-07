@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The function half of the AOT proof, beside the Kestrel one. A native binary that serves an
+      HTTP request says nothing about the function path: a different adapter, a different dispatch
+      table, a batch fan-out and an answer written back to the Lambda Runtime API rather than to a
+      socket. Every one of those resolves through metadata a trimmer could remove.
+
+      SQS rather than API Gateway, because a queue exercises what a web route does not - the peek
+      that recognises the payload, and the batch filter that forks it per record.
+
+      Native AOT is also the deployment this matters for. The managed dotnet8 runtime is
+      framework-dependent and cannot trim at all; provided.al2023 is where a Hardened function gets
+      to be a native binary, and this is the project that says it can be one.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <DependencyModules_AutoGenerateModule>false</DependencyModules_AutoGenerateModule>
+
+        <!--
+          On for the ordinary build too, not only when publishing. PublishAot alone turns the
+          analyzers on at publish time, which is the wrong moment to find out: the point is that
+          `dotnet build` fails on a trim-unsafe call, in the same run as everything else.
+        -->
+        <PublishAot>true</PublishAot>
+        <InvariantGlobalization>true</InvariantGlobalization>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <CompilerVisibleProperty Include="DependencyModules_AutoGenerateModule"/>
+    </ItemGroup>
+
+    <!--
+      The trigger property declarations and the SQS binding, imported from the source tree because
+      a project reference carries no build assets. A consuming application gets both from
+      buildTransitive/ inside the packages.
+    -->
+    <Import Project="..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
+    <Import Project="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Sqs\Package\Hardened.Aws.Lambda.Sqs.targets"/>
+
+    <ItemGroup>
+        <!-- The console logger, which the Kestrel host brought in transitively and no function host does. -->
+        <PackageReference Include="Microsoft.Extensions.Logging.Console"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Sqs\Hardened.Aws.Lambda.Sqs.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>

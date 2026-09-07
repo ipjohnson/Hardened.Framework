@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 

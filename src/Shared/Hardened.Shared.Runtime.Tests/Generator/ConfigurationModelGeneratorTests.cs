@@ -15,7 +15,7 @@ namespace Hardened.Shared.Runtime.Tests.Generator;
 /// every case here proves the emitted C# builds, not merely that it contains the expected characters.
 ///
 /// <para>
-/// The behaviours asserted are the ones documented in <c>Hardened.Docs/website/guide/configuration.md</c>:
+/// The behaviours asserted are the ones documented in <c>docs/guide/configuration.md</c>:
 /// an interface named <c>I</c> + the class name, a property per field with the leading underscore
 /// removed and the first letter capitalised, the field initialiser as the default, and
 /// <c>[HideConfigurationField]</c> keeping a field out of the generated surface.

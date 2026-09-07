@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Kestrel.SUT;
 

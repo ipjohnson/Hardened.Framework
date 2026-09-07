@@ -1,6 +1,7 @@
 using System.Reflection;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 
