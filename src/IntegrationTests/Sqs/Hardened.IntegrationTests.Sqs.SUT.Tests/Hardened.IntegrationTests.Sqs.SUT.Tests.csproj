@@ -25,10 +25,4 @@
         <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
     </ItemGroup>
 
-    <!-- Shared with the other suite driving these handlers. Linked rather than copied
-         so the two cannot drift. -->
-    <ItemGroup>
-        <Compile Include="..\Shared\*.cs" Link="Shared\%(FileName)%(Extension)"/>
-    </ItemGroup>
-
 </Project>

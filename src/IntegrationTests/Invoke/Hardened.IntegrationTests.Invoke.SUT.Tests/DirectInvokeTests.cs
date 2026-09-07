@@ -1,11 +1,13 @@
 using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.Core;
+using DependencyModules.Testing.Attributes;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.IntegrationTests.Invoke.SUT;
-using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 using Xunit;
 
 namespace Hardened.IntegrationTests.Invoke.SUT.Tests;
@@ -15,51 +17,44 @@ namespace Hardened.IntegrationTests.Invoke.SUT.Tests;
 ///
 /// <para>
 /// The family that must not share a function with the others, and this is where that stops being an
-/// argument. The payload here carries fields called <c>Records</c> and <c>requestContext</c> - the
-/// fields SQS, SNS, streams and API Gateway are recognised by - because a caller is entitled to
-/// them and nothing can tell them from AWS's by inspection.
+/// argument. The payloads carry fields called <c>records</c> and <c>requestContext</c> - the fields
+/// SQS, SNS, streams and API Gateway are recognised by - because a caller is entitled to them and
+/// nothing can tell them from AWS's by inspection.
+/// </para>
+/// <para>
+/// Sent as raw payloads rather than through a façade, because there is no source to send from: a
+/// direct invocation is the caller's own bytes, which is the whole distinction.
 /// </para>
 /// </summary>
-public class DirectInvokeTests : IDisposable {
-    private readonly ServiceProvider _provider;
+public class DirectInvokeTests {
 
-    private readonly RecordingOrderLog _log = new();
-
-    public DirectInvokeTests() {
-        _provider = new InvokeTestApp().CreateServiceProvider(
-            new EnvironmentImpl(null),
-            (_, services) => services.AddSingleton<IOrderLog>(_log),
-            builder => { });
-    }
-
-    public void Dispose() => _provider.Dispose();
-
-    private async Task<string> Invoke(string payload, string functionName = "place-order") {
-        var output = await _provider.GetRequiredService<LambdaInvocationHandler>()
+    private static async Task<string> Invoke(
+        IServiceProvider provider, string payload, string functionName = "place-order") {
+        var output = await provider.GetRequiredService<LambdaInvocationHandler>()
             .Invoke(
                 new MemoryStream(Encoding.UTF8.GetBytes(payload)),
-                new InvocationContext(functionName));
+                new Context(functionName));
 
         return new StreamReader(output).ReadToEnd();
     }
 
-    [Fact]
-    public async Task ACallersPayloadReachesTheHandler() {
-        await Invoke("""{"id":"o-1","quantity":3}""");
+    [HardenedTest]
+    public async Task ACallersPayloadReachesTheHandler(
+        IServiceProvider provider, [Mock] IOrderLog log) {
+        await Invoke(provider, """{"id":"o-1","quantity":3}""");
 
-        var request = Assert.Single(_log.Requests);
-
-        Assert.Equal("o-1", request.Id);
-        Assert.Equal(3, request.Quantity);
+        log.Received().Placed(
+            Arg.Is<OrderRequest>(request => request.Id == "o-1" && request.Quantity == 3));
     }
 
     /// <summary>
     /// The answer is the payload. Unlike every event source, a direct invocation has a caller
-    /// waiting on the other end and the handler's return value is what they receive.
+    /// waiting and the handler's return value is what they receive.
     /// </summary>
-    [Fact]
-    public async Task TheHandlersReturnValueIsTheResponse() {
-        var response = await Invoke("""{"id":"o-1","quantity":3}""");
+    [HardenedTest]
+    public async Task TheHandlersReturnValueIsTheResponse(
+        IServiceProvider provider, [Mock] IOrderLog log) {
+        var response = await Invoke(provider, """{"id":"o-1","quantity":3}""");
 
         using var document = JsonDocument.Parse(response);
 
@@ -68,45 +63,46 @@ public class DirectInvokeTests : IDisposable {
     }
 
     /// <summary>
-    /// The reason this family gets a function of its own. Every one of these payloads would be
-    /// claimed by an event adapter if one were registered here, and every one is legitimately the
-    /// caller's - so the split is what keeps them from being handled as the wrong thing.
+    /// The reason this family gets a function of its own. Every one of these would be claimed by an
+    /// event adapter if one were registered here, and every one is legitimately the caller's.
     /// </summary>
-    [Theory]
+    [HardenedTest]
     [InlineData("""{"id":"o-1","records":["a","b"]}""")]
     [InlineData("""{"id":"o-1","requestContext":"from-billing"}""")]
     [InlineData("""{"id":"o-1","records":["a"],"requestContext":"from-billing"}""")]
-    public async Task APayloadShapedLikeAnAwsEventIsStillTheCallers(string payload) {
-        await Invoke(payload);
+    public async Task APayloadShapedLikeAnAwsEventIsStillTheCallers(
+        string payload, IServiceProvider provider, [Mock] IOrderLog log) {
+        await Invoke(provider, payload);
 
-        Assert.Equal("o-1", Assert.Single(_log.Requests).Id);
+        log.Received().Placed(Arg.Is<OrderRequest>(request => request.Id == "o-1"));
     }
 
     /// <summary>
     /// An unnamed handler answers whatever the deployment called the function, so the handler is
     /// not tied to a name that belongs to the infrastructure.
     /// </summary>
-    [Theory]
+    [HardenedTest]
     [InlineData("place-order")]
     [InlineData("orders-prod-PlaceOrderFunction-A1B2C3")]
-    public async Task TheHandlerAnswersWhateverTheFunctionIsCalled(string functionName) {
-        await Invoke("""{"id":"o-1","quantity":1}""", functionName);
+    public async Task TheHandlerAnswersWhateverTheFunctionIsCalled(
+        string functionName, IServiceProvider provider, [Mock] IOrderLog log) {
+        await Invoke(provider, """{"id":"o-1","quantity":1}""", functionName);
 
-        Assert.Single(_log.Requests);
+        log.Received().Placed(Arg.Any<OrderRequest>());
     }
 
     /// <summary>
-    /// One adapter, so nothing is ever asked about a payload. That is required rather than an
-    /// optimisation here: a caller may send anything, and asking would mean parsing something that
-    /// need not be JSON.
+    /// One adapter, so nothing is ever asked about a payload. Required rather than an optimisation
+    /// here: a caller may send anything, and asking would mean parsing something that need not be
+    /// JSON.
     /// </summary>
-    [Fact]
-    public void TheInvokeAdapterIsTheOnlyOne() {
-        Assert.IsType<InvokeAdapter>(Assert.Single(_provider.GetServices<IPayloadAdapter>()));
+    [HardenedTest]
+    public void TheInvokeAdapterIsTheOnlyOne(IServiceProvider provider) {
+        Assert.IsType<InvokeAdapter>(Assert.Single(provider.GetServices<IPayloadAdapter>()));
     }
 
-    private sealed class InvocationContext : ILambdaContext {
-        public InvocationContext(string functionName) {
+    private sealed class Context : ILambdaContext {
+        public Context(string functionName) {
             FunctionName = functionName;
         }
 

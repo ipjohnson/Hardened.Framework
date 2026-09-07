@@ -14,10 +14,13 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="DependencyModules.NSubstitute"/>
+        <PackageReference Include="NSubstitute"/>
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.Invoke.SUT\Hardened.IntegrationTests.Invoke.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
     </ItemGroup>
 
 </Project>

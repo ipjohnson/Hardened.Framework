@@ -2,10 +2,10 @@ using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Runtime.Hosting;
-using Hardened.IntegrationTests.Sqs.Shared;
 using Hardened.IntegrationTests.Sqs.SUT;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
 using Xunit;
 
 namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
@@ -29,25 +29,27 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// </summary>
 public class PartialBatchFailureTests : IDisposable {
     private readonly ServiceProvider _provider;
-    private readonly RecordingOrderStore _store = new();
+    private readonly IOrderStore _store = Substitute.For<IOrderStore>();
 
     public PartialBatchFailureTests() {
         _provider = new PartialFailureApp().CreateServiceProvider(
             new EnvironmentImpl(null),
-            (_, services) => services.AddSingleton<IOrderStore>(_store),
+            (_, services) => services.AddSingleton(_store),
             builder => { });
     }
 
     public void Dispose() => _provider.Dispose();
 
-    private async Task<string[]> Invoke(params (string Id, bool Fails)[] orders) {
-        _store.Refusing(orders.Where(order => order.Fails).Select(order => order.Id).ToArray());
+    private void Refuse(string id) =>
+        _store.When(one => one.Place(Arg.Is<Order>(order => order.Id == id)))
+            .Do(_ => throw new InvalidOperationException("refused " + id));
 
-        var records = orders.Select((order, index) => $$"""
+    private async Task<string[]> Invoke(params string[] ids) {
+        var records = ids.Select((id, index) => $$"""
             {
-              "messageId":"m-{{order.Id}}",
+              "messageId":"m-{{id}}",
               "receiptHandle":"r{{index}}",
-              "body":"{\"id\":\"{{order.Id}}\",\"quantity\":1}",
+              "body":"{\"id\":\"{{id}}\",\"quantity\":1}",
               "eventSource":"aws:sqs",
               "eventSourceARN":"arn:aws:sqs:us-east-1:123456789012:orders-new",
               "awsRegion":"us-east-1"
@@ -57,7 +59,7 @@ public class PartialBatchFailureTests : IDisposable {
         var payload = "{\"Records\":[" + string.Join(",", records) + "]}";
 
         var output = await _provider.GetRequiredService<LambdaInvocationHandler>()
-            .Invoke(new MemoryStream(Encoding.UTF8.GetBytes(payload)), new InvocationContext());
+            .Invoke(new MemoryStream(Encoding.UTF8.GetBytes(payload)), new Context());
 
         using var report = JsonDocument.Parse(new StreamReader(output).ReadToEnd());
 
@@ -73,7 +75,7 @@ public class PartialBatchFailureTests : IDisposable {
     /// </summary>
     [Fact]
     public async Task ASuccessfulBatchReportsNoFailures() {
-        Assert.Empty(await Invoke(("a-1", false), ("a-2", false)));
+        Assert.Empty(await Invoke("a-1", "a-2"));
     }
 
     /// <summary>
@@ -82,7 +84,9 @@ public class PartialBatchFailureTests : IDisposable {
     /// </summary>
     [Fact]
     public async Task OnlyTheFailedMessageIsReported() {
-        Assert.Equal(["m-a-2"], await Invoke(("a-1", false), ("a-2", true), ("a-3", false)));
+        Refuse("a-2");
+
+        Assert.Equal(["m-a-2"], await Invoke("a-1", "a-2", "a-3"));
     }
 
     /// <summary>
@@ -91,17 +95,19 @@ public class PartialBatchFailureTests : IDisposable {
     /// </summary>
     [Fact]
     public async Task EveryMessageIsStillAttemptedAfterOneFails() {
-        var failures = await Invoke(("a-1", true), ("a-2", false), ("a-3", false));
+        Refuse("a-1");
 
-        Assert.Equal(["m-a-1"], failures);
-        Assert.Equal(["a-1", "a-2", "a-3"], _store.Placed.Select(order => order.Id));
+        Assert.Equal(["m-a-1"], await Invoke("a-1", "a-2", "a-3"));
+
+        _store.Received(3).Place(Arg.Any<Order>());
     }
 
     [Fact]
     public async Task SeveralFailuresAreAllReported() {
-        Assert.Equal(
-            ["m-a-1", "m-a-3"],
-            await Invoke(("a-1", true), ("a-2", false), ("a-3", true)));
+        Refuse("a-1");
+        Refuse("a-3");
+
+        Assert.Equal(["m-a-1", "m-a-3"], await Invoke("a-1", "a-2", "a-3"));
     }
 
     /// <summary>
@@ -111,10 +117,13 @@ public class PartialBatchFailureTests : IDisposable {
     /// </summary>
     [Fact]
     public async Task AWhollyFailedBatchReportsEveryMessage() {
-        Assert.Equal(["m-a-1", "m-a-2"], await Invoke(("a-1", true), ("a-2", true)));
+        Refuse("a-1");
+        Refuse("a-2");
+
+        Assert.Equal(["m-a-1", "m-a-2"], await Invoke("a-1", "a-2"));
     }
 
-    private sealed class InvocationContext : ILambdaContext {
+    private sealed class Context : ILambdaContext {
         public string AwsRequestId => "integration";
         public IClientContext ClientContext => null!;
         public string FunctionName => "orders-function";
