@@ -162,6 +162,24 @@ public class ApiGatewayAdapterTests {
         Assert.Equal("hardened", Encoding.UTF8.GetString(Convert.FromBase64String(proxy.Body)));
     }
 
+    /// <summary>
+    /// A non-binary body that is not valid UTF-8 gets the replacement character, not a throw.
+    /// </summary>
+    /// <remarks>
+    /// Worth pinning because the response used to go out through
+    /// <c>APIGatewayHttpApiV2ProxyResponse.Body</c>, a string, so the substitution was
+    /// <c>Encoding.UTF8.GetString</c>'s. Writing the bytes straight into the payload hands that
+    /// decision to the JSON writer's encoder instead, and this asserts the two agree - a handler
+    /// that writes a stray byte without setting IsBinary still answers rather than failing the
+    /// invocation.
+    /// </remarks>
+    [Fact]
+    public async Task InvalidUtf8InATextBodyIsReplacedRatherThanThrown() {
+        var proxy = await Answer(r => r.Body.Write([0x41, 0xFF, 0x42]));
+
+        Assert.Equal("A\uFFFDB", proxy.Body);
+    }
+
     [Fact]
     public async Task ATextBodyIsNotEncoded() {
         var proxy = await Answer(r => r.Body.Write("""{"ok":true}"""u8));
