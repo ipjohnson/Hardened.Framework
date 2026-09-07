@@ -3,31 +3,15 @@ using Amazon.Lambda.APIGatewayEvents;
 
 namespace Hardened.Aws.Lambda.Runtime.Serialization;
 
-/// <summary>
-/// The AWS event types this package serialises, declared rather than reflected over.
-/// </summary>
-/// <remarks>
-/// <para>
-/// D3 says each adapter brings its own <c>JsonTypeInfo</c>, and this is the mechanism. It is not a
-/// performance choice: it is what keeps ahead-of-time publishing auditable. An adapter that
-/// deserialised reflectively would work on a JIT, warn under <c>PublishTrimmed</c>, and fail on a
-/// field the trimmer removed - and the failure would land in production on whichever event shape
-/// nothing exercised before the publish.
-/// </para>
-/// <para>
-/// One context for the package rather than one per adapter, because a type declared twice is
-/// generated twice. An adapter added later declares its event type here.
-/// </para>
-/// <para>
-/// Internal, because the generator emits a <c>JsonTypeInfo</c> property for every type it reaches -
-/// twenty of them for the two proxy types alone, most of them nested AWS descriptions. Shipping
-/// those would freeze the package's own event bindings into its public contract and churn the
-/// approved surface on every event type added. An application writing its own adapter declares its
-/// own context, which is what D3 asks for.
-/// </para>
-/// </remarks>
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+/// Case-insensitive rather than a camelCase policy, matching the other event contexts and AWS's
+// own serializer. A policy only reaches properties whose names differ from the wire, and getting
+// that judgement right per package is not worth the one line this saves.
+[JsonSourceGenerationOptions(
+    PropertyNameCaseInsensitive = true,
+    GenerationMode = JsonSourceGenerationMode.Metadata)]
+// The request only. The response is written field by field with a Utf8JsonWriter, because
+// APIGatewayHttpApiV2ProxyResponse.Body is a string and binding one would copy a six-megabyte
+// body through UTF-16 on its way back out to UTF-8.
 [JsonSerializable(typeof(APIGatewayHttpApiV2ProxyRequest))]
-[JsonSerializable(typeof(APIGatewayHttpApiV2ProxyResponse))]
-internal partial class LambdaEventSerializerContext : JsonSerializerContext {
+internal partial class ApiGatewaySerializerContext : JsonSerializerContext {
 }

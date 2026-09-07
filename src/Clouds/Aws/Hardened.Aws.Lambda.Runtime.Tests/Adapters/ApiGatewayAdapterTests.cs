@@ -3,7 +3,6 @@ using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
-using Hardened.Aws.Lambda.Runtime.Serialization;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Xunit;
 
@@ -202,7 +201,7 @@ public class ApiGatewayAdapterTests {
         };
 
         return new LambdaPayload(JsonSerializer.SerializeToUtf8Bytes(
-            proxy, LambdaEventSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest));
+            proxy, TestSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest));
     }
 
     /// <summary>Runs the response half: build one, let the caller write to it, read the payload.</summary>
@@ -218,6 +217,6 @@ public class ApiGatewayAdapterTests {
         output.Position = 0;
 
         return JsonSerializer.Deserialize(
-            output, LambdaEventSerializerContext.Default.APIGatewayHttpApiV2ProxyResponse)!;
+            output, TestSerializerContext.Default.APIGatewayHttpApiV2ProxyResponse)!;
     }
 }

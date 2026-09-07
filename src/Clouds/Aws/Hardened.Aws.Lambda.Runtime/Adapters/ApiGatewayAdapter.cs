@@ -20,7 +20,7 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters;
 /// <para>
 /// It brings its own <c>JsonTypeInfo</c>, per D3. That is what keeps ahead-of-time publishing
 /// honest: an adapter cannot reach a serializer the application did not declare, and the proxy
-/// request is declared in <see cref="LambdaEventSerializerContext"/> rather than reflected over.
+/// request is declared in <see cref="ApiGatewaySerializerContext"/> rather than reflected over.
 /// Only the request needs one - the response is written field by field.
 /// </para>
 /// <para>
@@ -65,7 +65,7 @@ public sealed class ApiGatewayAdapter : IPayloadAdapter {
     /// </remarks>
     public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
         var proxy = JsonSerializer.Deserialize(
-                        payload.Raw.Span, LambdaEventSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest)
+                        payload.Raw.Span, ApiGatewaySerializerContext.Default.APIGatewayHttpApiV2ProxyRequest)
                     ?? throw new InvalidOperationException(
                         "The API Gateway adapter was given a payload that deserialized to null. " +
                         "The peek identified it as payload format 2.0 by its requestContext.http " +
