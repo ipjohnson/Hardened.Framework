@@ -741,8 +741,12 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
         fi
         # Worth printing: it is what says these resolved to this run's packages rather than to
         # something left in the global cache.
-        grep -hoE '"Hardened\.Amz\.[A-Za-z.]+/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
-            | tr -d '"' | sort -u | head -2 | sed 's/^/     resolved /'
+        #
+        # `|| true` because the script runs under `set -e` and a grep that matches nothing exits 1.
+        # It looked for Hardened.Amz.* until those left the templates, and the day they did this
+        # line began killing the run after the first row rather than printing nothing.
+        grep -hoE '"Hardened\.Aws\.Lambda[A-Za-z.]*/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
+            | tr -d '"' | sort -u | head -2 | sed 's/^/     resolved /' || true
     else
         echo "   FAILED: $AMZ_TEMPLATE $*"
         FAILED=1
