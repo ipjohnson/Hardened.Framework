@@ -23,11 +23,13 @@ namespace Hardened.IntegrationTests.Events.SUT.Tests;
 public class EventFamilyTests : IDisposable {
     private readonly ServiceProvider _provider;
 
-    public EventFamilyTests() {
-        EventHandlers.Reset();
+    private readonly RecordingTriggerLog _log = new();
 
+    public EventFamilyTests() {
         _provider = new EventsTestApp().CreateServiceProvider(
-            new EnvironmentImpl(null), null, builder => { });
+            new EnvironmentImpl(null),
+            (_, services) => services.AddSingleton<ITriggerLog>(_log),
+            builder => { });
     }
 
     public void Dispose() => _provider.Dispose();
@@ -87,7 +89,7 @@ public class EventFamilyTests : IDisposable {
     public async Task ANotificationReachesTheTopicHandler() {
         await Invoke(Published);
 
-        Assert.Equal(["topic:t-1"], EventHandlers.Ran);
+        Assert.Equal(["topic:t-1"], _log.Entries);
     }
 
     /// <summary>
@@ -98,7 +100,7 @@ public class EventFamilyTests : IDisposable {
     public async Task ANotificationBindsThePublishedMessage() {
         await Invoke(Published);
 
-        Assert.Contains("t-1", EventHandlers.Ran[0]);
+        Assert.Contains("t-1", _log.Entries[0]);
     }
 
     /// <summary>
@@ -109,7 +111,7 @@ public class EventFamilyTests : IDisposable {
     public async Task AScheduledInvocationReachesTheTimerHandler() {
         await Invoke(Scheduled);
 
-        Assert.Equal(["timer:nightly-rollup"], EventHandlers.Ran);
+        Assert.Equal(["timer:nightly-rollup"], _log.Entries);
     }
 
     /// <summary>
@@ -120,14 +122,14 @@ public class EventFamilyTests : IDisposable {
     public async Task ABusEventReachesTheEventHandlerAndBindsItsDetail() {
         await Invoke(Placed);
 
-        Assert.Equal(["event:e-1"], EventHandlers.Ran);
+        Assert.Equal(["event:e-1"], _log.Entries);
     }
 
     [Fact]
     public async Task AQueueMessageStillReachesTheQueueHandler() {
         await Invoke(Queued);
 
-        Assert.Equal(["queue:q-1"], EventHandlers.Ran);
+        Assert.Equal(["queue:q-1"], _log.Entries);
     }
 
     // ------------------------------------------------------------------ the peek
@@ -159,7 +161,7 @@ public class EventFamilyTests : IDisposable {
 
         Assert.Equal(
             ["queue:q-1", "topic:t-1", "timer:nightly-rollup", "event:e-1"],
-            EventHandlers.Ran);
+            _log.Entries);
     }
 
     /// <summary>
@@ -172,7 +174,7 @@ public class EventFamilyTests : IDisposable {
             () => Invoke("""{"Records":[{"eventSource":"aws:kinesis","kinesis":{"data":"aGk="}}]}"""));
 
         Assert.Contains("SqsAdapter", failure.Message);
-        Assert.Empty(EventHandlers.Ran);
+        Assert.Empty(_log.Entries);
     }
 
     private sealed class InvocationContext : ILambdaContext {

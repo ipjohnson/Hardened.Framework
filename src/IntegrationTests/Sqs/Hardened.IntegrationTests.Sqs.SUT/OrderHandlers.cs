@@ -9,34 +9,24 @@ public class Order {
 }
 
 /// <summary>
-/// A queue handler, written the way an application would write one.
+/// What a queue handler does with an order.
 /// </summary>
+/// <remarks>
+/// The seam a test observes through. The handler used to write to a static list, which meant every
+/// fixture over these handlers shared one mutable field: two test classes running in parallel reset
+/// each other, and a helper that reset before arranging silently discarded what the test had just
+/// set up. Both happened. An injected dependency gives each test its own.
+/// </remarks>
+public interface IOrderStore {
+    void Place(Order order);
+}
+
 public class OrderHandlers {
-    /// <summary>What each invocation handled, so a test can see the fan-out rather than infer it.</summary>
-    public static readonly List<Order> Handled = [];
-
-    /// <summary>Message ids the handler was told to fail, for the partial-failure cases.</summary>
-    public static readonly HashSet<string> FailFor = [];
-
-    public static void Reset() {
-        Handled.Clear();
-        FailFor.Clear();
-    }
-
-    /// <summary>
-    /// One message, bound to the application's own type.
-    /// </summary>
     /// <remarks>
-    /// The parameter is an <see cref="Order"/> rather than an SQS message: the batch filter forks
-    /// per record and the body of each fork is that record's own body, so binding sees what the
-    /// publisher sent rather than the envelope AWS wrapped it in.
+    /// The store arrives as a parameter rather than through a constructor, which the binder
+    /// resolves from the request's services - so the handler stays a plain method and the test
+    /// still chooses the implementation.
     /// </remarks>
     [Queue("orders-new")]
-    public void OnOrder(Order order) {
-        Handled.Add(order);
-
-        if (FailFor.Contains(order.Id)) {
-            throw new InvalidOperationException("handler refused order " + order.Id);
-        }
-    }
+    public void OnOrder(Order order, IOrderStore store) => store.Place(order);
 }

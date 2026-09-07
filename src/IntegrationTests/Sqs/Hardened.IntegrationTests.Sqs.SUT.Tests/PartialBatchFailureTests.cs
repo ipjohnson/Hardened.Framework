@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Runtime.Hosting;
+using Hardened.IntegrationTests.Sqs.Shared;
 using Hardened.IntegrationTests.Sqs.SUT;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,23 +20,21 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// the failure policy - not the code, not the payload, not the route.
 /// </para>
 /// </summary>
-[Collection(QueueHandlerState.Name)]
 public class PartialBatchFailureTests : IDisposable {
     private readonly ServiceProvider _provider;
+    private readonly RecordingOrderStore _store = new();
 
     public PartialBatchFailureTests() {
-        OrderHandlers.Reset();
-
         _provider = new PartialFailureApp().CreateServiceProvider(
-            new EnvironmentImpl(null), null, builder => { });
+            new EnvironmentImpl(null),
+            (_, services) => services.AddSingleton<IOrderStore>(_store),
+            builder => { });
     }
 
     public void Dispose() => _provider.Dispose();
 
     private async Task<string[]> Invoke(params (string Id, bool Fails)[] orders) {
-        foreach (var order in orders.Where(order => order.Fails)) {
-            OrderHandlers.FailFor.Add(order.Id);
-        }
+        _store.Refusing(orders.Where(order => order.Fails).Select(order => order.Id).ToArray());
 
         var records = orders.Select((order, index) => $$"""
             {
@@ -88,7 +87,7 @@ public class PartialBatchFailureTests : IDisposable {
         var failures = await Invoke(("a-1", true), ("a-2", false), ("a-3", false));
 
         Assert.Equal(["m-a-1"], failures);
-        Assert.Equal(["a-1", "a-2", "a-3"], OrderHandlers.Handled.Select(order => order.Id));
+        Assert.Equal(["a-1", "a-2", "a-3"], _store.Placed.Select(order => order.Id));
     }
 
     [Fact]

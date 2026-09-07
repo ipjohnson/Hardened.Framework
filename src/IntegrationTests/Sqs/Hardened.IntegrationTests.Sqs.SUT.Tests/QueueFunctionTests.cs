@@ -2,6 +2,7 @@ using System.Text;
 using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Hosting;
+using Hardened.IntegrationTests.Sqs.Shared;
 using Hardened.IntegrationTests.Sqs.SUT;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,15 +21,17 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// handler declared with nothing but <c>[Queue]</c> is reached at all.
 /// </para>
 /// </summary>
-[Collection(QueueHandlerState.Name)]
 public class QueueFunctionTests : IDisposable {
     private readonly ServiceProvider _provider;
+    private readonly RecordingOrderStore _store = new();
 
     public QueueFunctionTests() {
-        OrderHandlers.Reset();
-
+        // The store is this test's own, so nothing is shared between fixtures and nothing has to be
+        // reset. The static list this replaced had two test classes overwriting each other.
         _provider = new SqsTestApp().CreateServiceProvider(
-            new EnvironmentImpl(null), null, builder => { });
+            new EnvironmentImpl(null),
+            (_, services) => services.AddSingleton<IOrderStore>(_store),
+            builder => { });
     }
 
     public void Dispose() => _provider.Dispose();
@@ -60,7 +63,7 @@ public class QueueFunctionTests : IDisposable {
     public async Task AQueueMessageReachesTheHandler() {
         await Invoke(Batch(("a-1", 2)));
 
-        var order = Assert.Single(OrderHandlers.Handled);
+        var order = Assert.Single(_store.Placed);
 
         Assert.Equal("a-1", order.Id);
         Assert.Equal(2, order.Quantity);
@@ -74,7 +77,7 @@ public class QueueFunctionTests : IDisposable {
     public async Task EveryMessageInABatchIsHandledSeparately() {
         await Invoke(Batch(("a-1", 1), ("a-2", 2), ("a-3", 3)));
 
-        Assert.Equal(["a-1", "a-2", "a-3"], OrderHandlers.Handled.Select(order => order.Id));
+        Assert.Equal(["a-1", "a-2", "a-3"], _store.Placed.Select(order => order.Id));
     }
 
     /// <summary>
@@ -85,7 +88,7 @@ public class QueueFunctionTests : IDisposable {
     public async Task EachMessageBindsItsOwnBody() {
         await Invoke(Batch(("a-1", 10), ("a-2", 20)));
 
-        Assert.Equal([10, 20], OrderHandlers.Handled.Select(order => order.Quantity));
+        Assert.Equal([10, 20], _store.Placed.Select(order => order.Quantity));
     }
 
     /// <summary>
@@ -106,7 +109,7 @@ public class QueueFunctionTests : IDisposable {
     /// </summary>
     [Fact]
     public async Task AFailedMessageFailsTheInvocation() {
-        OrderHandlers.FailFor.Add("a-2");
+        _store.Refusing("a-2");
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => Invoke(Batch(("a-1", 1), ("a-2", 2))));

@@ -23,11 +23,13 @@ namespace Hardened.IntegrationTests.Invoke.SUT.Tests;
 public class DirectInvokeTests : IDisposable {
     private readonly ServiceProvider _provider;
 
-    public DirectInvokeTests() {
-        PlaceOrder.Reset();
+    private readonly RecordingOrderLog _log = new();
 
+    public DirectInvokeTests() {
         _provider = new InvokeTestApp().CreateServiceProvider(
-            new EnvironmentImpl(null), null, builder => { });
+            new EnvironmentImpl(null),
+            (_, services) => services.AddSingleton<IOrderLog>(_log),
+            builder => { });
     }
 
     public void Dispose() => _provider.Dispose();
@@ -45,7 +47,7 @@ public class DirectInvokeTests : IDisposable {
     public async Task ACallersPayloadReachesTheHandler() {
         await Invoke("""{"id":"o-1","quantity":3}""");
 
-        var request = Assert.Single(PlaceOrder.Handled);
+        var request = Assert.Single(_log.Requests);
 
         Assert.Equal("o-1", request.Id);
         Assert.Equal(3, request.Quantity);
@@ -77,7 +79,7 @@ public class DirectInvokeTests : IDisposable {
     public async Task APayloadShapedLikeAnAwsEventIsStillTheCallers(string payload) {
         await Invoke(payload);
 
-        Assert.Equal("o-1", Assert.Single(PlaceOrder.Handled).Id);
+        Assert.Equal("o-1", Assert.Single(_log.Requests).Id);
     }
 
     /// <summary>
@@ -90,7 +92,7 @@ public class DirectInvokeTests : IDisposable {
     public async Task TheHandlerAnswersWhateverTheFunctionIsCalled(string functionName) {
         await Invoke("""{"id":"o-1","quantity":1}""", functionName);
 
-        Assert.Single(PlaceOrder.Handled);
+        Assert.Single(_log.Requests);
     }
 
     /// <summary>

@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Hardened.Aws.Lambda.Runtime.Hosting;
+using Hardened.IntegrationTests.Sqs.Shared;
 using Hardened.IntegrationTests.Sqs.SUT;
+using Microsoft.Extensions.DependencyInjection;
 using Hardened.Shared.Runtime.Application;
 using Xunit;
 
@@ -34,16 +36,21 @@ public class LambdaRuntimeLoopTests {
     /// Runs the bootstrap for exactly one invocation and returns what the function posted back.
     /// </summary>
     /// <remarks>
+    /// The store comes back with the answer because it is this invocation's own. It used to be a
+    /// static the helper reset on the way in, which silently discarded the failure a test had just
+    /// arranged - the arrange ran before the reset did.
+    ///
     /// <c>AWS_LAMBDA_DOTNET_DEBUG_RUN_ONCE</c> is the runtime client's own switch for serving a
     /// single invocation and returning, which is what lets this be an ordinary awaited call rather
     /// than a background loop the test has to chase. The cancellation token is a deadline for the
     /// test itself: without one, a protocol mistake hangs the suite instead of failing it.
     /// </remarks>
-    private static async Task<RuntimeApiStub.Answer> Serve(string payload, string? failFor = null) {
-        OrderHandlers.Reset();
+    private static async Task<(RuntimeApiStub.Answer Answer, RecordingOrderStore Store)> Serve(
+        string payload, string? failFor = null) {
+        var store = new RecordingOrderStore();
 
         if (failFor != null) {
-            OrderHandlers.FailFor.Add(failFor);
+            store.Refusing(failFor);
         }
 
         using var runtime = new RuntimeApiStub(payload);
@@ -59,11 +66,13 @@ public class LambdaRuntimeLoopTests {
         using var giveUp = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         using var provider = new SqsTestApp().CreateServiceProvider(
-            new EnvironmentImpl(null), null, builder => { });
+            new EnvironmentImpl(null),
+            (_, services) => services.AddSingleton<IOrderStore>(store),
+            builder => { });
 
         await HardenedLambdaBootstrap.Run(provider, giveUp.Token);
 
-        return await runtime.Answered.WaitAsync(giveUp.Token);
+        return (await runtime.Answered.WaitAsync(giveUp.Token), store);
     }
 
     /// <summary>
@@ -72,11 +81,11 @@ public class LambdaRuntimeLoopTests {
     /// </summary>
     [Fact]
     public async Task AnInvocationOverTheRuntimeApiReachesTheHandler() {
-        var answer = await Serve(OneOrder);
+        var (answer, store) = await Serve(OneOrder);
 
         Assert.False(answer.Failed);
 
-        var order = Assert.Single(OrderHandlers.Handled);
+        var order = Assert.Single(store.Placed);
 
         Assert.Equal("a-1", order.Id);
         Assert.Equal(4, order.Quantity);
@@ -87,7 +96,7 @@ public class LambdaRuntimeLoopTests {
     /// </summary>
     [Fact]
     public async Task TheBatchReportIsWhatThePostContains() {
-        var answer = await Serve(OneOrder);
+        var (answer, _) = await Serve(OneOrder);
 
         using var report = JsonDocument.Parse(answer.Body);
 
@@ -101,7 +110,7 @@ public class LambdaRuntimeLoopTests {
     /// </summary>
     [Fact]
     public async Task AFailedHandlerPostsAnInvocationError() {
-        var answer = await Serve(OneOrder, failFor: "a-1");
+        var (answer, _) = await Serve(OneOrder, failFor: "a-1");
 
         Assert.True(answer.Failed);
         Assert.Contains("handler refused order a-1", answer.Body);

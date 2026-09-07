@@ -27,11 +27,17 @@ public class OrderReceipt {
     public string Status { get; set; } = "";
 }
 
+/// <summary>
+/// What the handler did with a request.
+/// </summary>
+/// <remarks>
+/// Injected rather than a static list, so each test sees only its own invocations.
+/// </remarks>
+public interface IOrderLog {
+    void Placed(OrderRequest request);
+}
+
 public class PlaceOrder {
-    public static readonly List<OrderRequest> Handled = [];
-
-    public static void Reset() => Handled.Clear();
-
     /// <summary>
     /// Unnamed, which is what makes it answer whatever the deployment called the function.
     /// </summary>
@@ -41,8 +47,8 @@ public class PlaceOrder {
     /// which is the deployment's to choose.
     /// </remarks>
     [HardenedFunction]
-    public OrderReceipt Handle(OrderRequest request) {
-        Handled.Add(request);
+    public OrderReceipt Handle(OrderRequest request, IOrderLog log) {
+        log.Placed(request);
 
         return new OrderReceipt { Id = request.Id, Status = "placed" };
     }

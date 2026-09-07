@@ -25,4 +25,10 @@
         <ProjectReference Include="..\..\Sqs\Hardened.IntegrationTests.Sqs.SUT\Hardened.IntegrationTests.Sqs.SUT.csproj"/>
     </ItemGroup>
 
+    <!-- Shared with the other suite driving these handlers. Linked rather than copied
+         so the two cannot drift. -->
+    <ItemGroup>
+        <Compile Include="..\..\Sqs\Shared\*.cs" Link="Shared\%(FileName)%(Extension)"/>
+    </ItemGroup>
+
 </Project>

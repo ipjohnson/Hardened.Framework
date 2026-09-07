@@ -1,4 +1,5 @@
 using Hardened.Functions.Testing;
+using Hardened.IntegrationTests.Sqs.Shared;
 using Hardened.IntegrationTests.Sqs.SUT;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,18 +18,19 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// handler. Nothing here names AWS, so this file is unchanged if the application moves host.
 /// </para>
 /// </summary>
-[Collection(QueueHandlerState.Name)]
 public class TriggerFacadeTests : IDisposable {
     private readonly ServiceProvider _provider;
+    private readonly RecordingOrderStore _store = new();
 
     public TriggerFacadeTests() {
-        OrderHandlers.Reset();
-
         _provider = new SqsTestApp().CreateServiceProvider(
             new EnvironmentImpl(null),
             // Registered here rather than by the application, which is what keeps the façade out of
             // a published function: nothing app-side references it, so the linker drops it.
-            (_, services) => services.AddTriggerTesting(),
+            (_, services) => {
+                services.AddTriggerTesting();
+                services.AddSingleton<IOrderStore>(_store);
+            },
             builder => { });
     }
 
@@ -41,7 +43,7 @@ public class TriggerFacadeTests : IDisposable {
     public async Task AMessageSentThroughTheFacadeReachesTheHandler() {
         await Queues.OrdersNew(new Order { Id = "a-1", Quantity = 3 });
 
-        var order = Assert.Single(OrderHandlers.Handled);
+        var order = Assert.Single(_store.Placed);
 
         Assert.Equal("a-1", order.Id);
         Assert.Equal(3, order.Quantity);
@@ -59,7 +61,7 @@ public class TriggerFacadeTests : IDisposable {
             new Order { Id = "a-2", Quantity = 2 },
             new Order { Id = "a-3", Quantity = 3 });
 
-        Assert.Equal(["a-1", "a-2", "a-3"], OrderHandlers.Handled.Select(order => order.Id));
+        Assert.Equal(["a-1", "a-2", "a-3"], _store.Placed.Select(order => order.Id));
     }
 
     /// <summary>
@@ -69,7 +71,7 @@ public class TriggerFacadeTests : IDisposable {
     /// </summary>
     [Fact]
     public async Task TheFailurePolicyStillApplies() {
-        OrderHandlers.FailFor.Add("a-2");
+        _store.Refusing("a-2");
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => Queues.OrdersNew(
