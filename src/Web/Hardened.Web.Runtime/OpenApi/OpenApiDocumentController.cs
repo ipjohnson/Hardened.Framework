@@ -3,6 +3,8 @@ using System.IO.Compression;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Microsoft.Extensions.Primitives;
+using Hardened.Web.Runtime.Headers;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.OpenApi;
 

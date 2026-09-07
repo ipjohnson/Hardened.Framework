@@ -2,6 +2,7 @@
 using Hardened.IntegrationTests.OpenApi.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT;
 

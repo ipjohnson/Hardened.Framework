@@ -9,6 +9,7 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Aws.Lambda.Testing;
 

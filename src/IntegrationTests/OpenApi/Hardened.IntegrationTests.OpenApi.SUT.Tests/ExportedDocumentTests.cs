@@ -1,4 +1,5 @@
 using Hardened.Generation.Document;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 

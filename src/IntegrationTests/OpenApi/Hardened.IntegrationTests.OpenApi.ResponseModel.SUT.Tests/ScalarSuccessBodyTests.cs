@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Primitives;
 
 using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 

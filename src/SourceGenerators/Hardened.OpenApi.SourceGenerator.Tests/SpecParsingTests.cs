@@ -2,6 +2,7 @@ using Hardened.Generation.Models;
 using Xunit;
 using Hardened.Idl;
 using Hardened.Generation;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 

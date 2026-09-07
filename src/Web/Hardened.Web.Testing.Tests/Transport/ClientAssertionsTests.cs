@@ -4,6 +4,7 @@ using Hardened.Web.Testing;
 using Hardened.Web.Testing.Tests.Transport;
 using Xunit;
 using Xunit.Sdk;
+using Hardened.Web.Runtime.Responses;
 
 [assembly: TestClientRoute(typeof(ReadingRoute))]
 

@@ -3,6 +3,7 @@ using Hardened.Web.Testing;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Kiota.Testing;
 

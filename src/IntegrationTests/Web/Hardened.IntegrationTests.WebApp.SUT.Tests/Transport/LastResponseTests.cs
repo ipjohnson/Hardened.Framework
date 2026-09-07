@@ -2,6 +2,7 @@ using System.Net;
 using System.IO.Compression;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 

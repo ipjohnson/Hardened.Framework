@@ -7,6 +7,7 @@ using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Idl;
 using Hardened.Generation;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -248,6 +249,7 @@ internal static class OpenApiGenerator {
         using System.Threading.Tasks;
         using Hardened.Requests.Abstract.Attributes;
         using Hardened.Requests.Abstract.Responses;
+        using Hardened.Web.Runtime.Responses;
         using Hardened.Shared.Runtime.Attributes;
         using TestNamespace.Models;
         using TestNamespace.Services;

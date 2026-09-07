@@ -8,6 +8,7 @@ using Hardened.Web.Testing.Tests.Transport;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 [assembly: TestClientRoute(typeof(RoutedClientRoute))]
 

@@ -1,5 +1,6 @@
 using System.Net;
 using Hardened.Requests.Testing;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 

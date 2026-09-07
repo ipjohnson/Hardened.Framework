@@ -5,6 +5,7 @@ using Hardened.Requests.Runtime.Execution;
 using Hardened.Web.Runtime.Compression;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Compression;
 

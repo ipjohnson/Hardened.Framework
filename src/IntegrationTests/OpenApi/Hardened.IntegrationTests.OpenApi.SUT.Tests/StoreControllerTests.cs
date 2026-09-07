@@ -1,6 +1,7 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.IntegrationTests.OpenApi.SUT.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 

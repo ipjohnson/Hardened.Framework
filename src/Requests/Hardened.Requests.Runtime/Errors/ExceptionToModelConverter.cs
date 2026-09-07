@@ -5,6 +5,7 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.Validation;
+using Hardened.Requests.Runtime.RateLimiting;
 
 namespace Hardened.Requests.Runtime.Errors;
 

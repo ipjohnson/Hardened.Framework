@@ -2,6 +2,7 @@ using Hardened.Shared.Testing.Impl;
 using Hardened.Web.Testing.Tests.Conformance;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing.Tests.Transport;
 

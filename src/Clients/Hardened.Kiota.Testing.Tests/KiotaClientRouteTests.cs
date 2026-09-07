@@ -1,6 +1,7 @@
 using Hardened.Web.Testing;
 using Microsoft.Kiota.Abstractions;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Kiota.Testing.Tests;
 

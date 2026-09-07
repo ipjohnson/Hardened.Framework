@@ -10,6 +10,7 @@ using Microsoft.OpenApi.Reader;
 using Microsoft.OpenApi.YamlReader;
 using Xunit;
 using buildtask::Hardened.Idl;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 

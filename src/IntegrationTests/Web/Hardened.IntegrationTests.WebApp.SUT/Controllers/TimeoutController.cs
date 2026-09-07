@@ -2,6 +2,7 @@ using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 

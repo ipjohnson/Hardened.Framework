@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 

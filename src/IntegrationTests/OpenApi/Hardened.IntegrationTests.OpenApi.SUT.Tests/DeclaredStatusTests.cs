@@ -1,3 +1,4 @@
+using Hardened.Web.Runtime.Responses;
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -79,7 +80,7 @@ public class DeclaredStatusTests {
         Assert.NotNull(problem);
         Assert.Equal(404, problem.Status);
         Assert.Equal("Not Found", problem.Title);
-        Assert.Equal(Hardened.Requests.Abstract.Responses.ProblemTypes.NotFound, problem.Type);
+        Assert.Equal(Hardened.Web.Runtime.Responses.ProblemTypes.NotFound, problem.Type);
     }
 
     /// <summary>

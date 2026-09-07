@@ -6,6 +6,7 @@ using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Invoke.SUT.Tests;
 

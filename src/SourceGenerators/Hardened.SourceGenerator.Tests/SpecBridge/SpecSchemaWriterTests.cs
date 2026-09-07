@@ -4,6 +4,7 @@ using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.SpecBridge;
 

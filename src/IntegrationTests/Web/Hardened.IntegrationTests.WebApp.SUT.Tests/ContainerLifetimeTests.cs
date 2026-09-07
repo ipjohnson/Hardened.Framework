@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using DependencyModules.Testing.Attributes.Interfaces;
 using Hardened.IntegrationTests.WebApp.SUT.Tests;
 using Hardened.Web.Kestrel.Runtime;
+using Hardened.Web.Runtime.Responses;
 
 [assembly: TrackContainers]
 [assembly: AssemblyFixture(typeof(ContainerLeakGuard))]

@@ -272,7 +272,7 @@ internal static class UnionResponseEmitter {
         // emitted at all, the wrapper went on the wire whole, putting the declared payload under a
         // Body member no client was told about.
         definition.AddBaseType(
-            TypeDefinition.Get(ResponsesNamespace, "ICarriesResponseBody"));
+            TypeDefinition.Get(ShippedResponses.ContractNamespace, "ICarriesResponseBody"));
 
         // A body to put it in. The header-only form above is what a case with no payload wants, and
         // it is what this was until the interface arrived - a record ending at its semicolon has
@@ -284,7 +284,7 @@ internal static class UnionResponseEmitter {
         // collision the same way.
         definition.AddComponent(
             new CodeOutputComponent(
-                "object? " + ResponsesNamespace + ".ICarriesResponseBody.Body => Body;") {
+                "object? " + ShippedResponses.ContractNamespace + ".ICarriesResponseBody.Body => Body;") {
                 Indented = true
             });
 
@@ -381,7 +381,7 @@ internal static class UnionResponseEmitter {
         definition.TerminateWithSemicolon = false;
 
         definition.AddBaseType(
-            TypeDefinition.Get(ResponsesNamespace, "IProvidesResponseHeaders"));
+            TypeDefinition.Get(ShippedResponses.ContractNamespace, "IProvidesResponseHeaders"));
 
         var method = definition.AddMethod("ApplyHeaders");
 

@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.ExceptionServices;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Shared.Testing;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing;
 

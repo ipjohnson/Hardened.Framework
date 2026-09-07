@@ -813,6 +813,11 @@ namespace Hardened.Requests.Runtime.RateLimiting
         Transport = 0,
         Principal = 1,
     }
+    public static class RetryAfter
+    {
+        public static string HeaderValue(System.TimeSpan delay) { }
+        public static int Seconds(System.TimeSpan delay) { }
+    }
 }
 namespace Hardened.Requests.Runtime.Serializer
 {

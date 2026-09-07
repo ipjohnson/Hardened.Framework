@@ -1,6 +1,7 @@
 using System.Globalization;
 using Hardened.Requests.Abstract.Headers;
 using Microsoft.Extensions.Primitives;
+using Hardened.Web.Runtime.Headers;
 
 namespace Hardened.Web.StaticContent;
 

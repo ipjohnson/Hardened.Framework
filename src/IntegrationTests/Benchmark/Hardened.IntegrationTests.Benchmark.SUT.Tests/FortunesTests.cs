@@ -1,4 +1,5 @@
 using Hardened.IntegrationTests.Benchmark.SUT.Tests.Support;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 

@@ -4,6 +4,7 @@ using System.Reflection;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Testing;
 using Refit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Refit.Testing;
 

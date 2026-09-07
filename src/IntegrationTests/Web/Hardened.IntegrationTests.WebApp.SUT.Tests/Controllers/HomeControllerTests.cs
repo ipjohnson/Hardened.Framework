@@ -1,3 +1,4 @@
+using Hardened.Web.Runtime.Responses;
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 public class HomeControllerTests {

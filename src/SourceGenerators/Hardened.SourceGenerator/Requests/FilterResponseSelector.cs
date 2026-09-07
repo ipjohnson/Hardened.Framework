@@ -40,7 +40,20 @@ public static class FilterResponseSelector {
 
     private const string ReadsHeader = "ReadsHeaderAttribute";
 
+    /// <summary>
+    /// Where the two declaration attributes live. They stayed in Abstract through the HTTP
+    /// extraction because <c>TimeoutAttribute</c> and <c>RateLimitAttribute</c> in
+    /// <c>Hardened.Requests.Runtime</c> declare what they answer through them, and that runtime
+    /// cannot reference a web package.
+    /// </summary>
     private const string DeclarationNamespace = "Hardened.Requests.Abstract.Responses";
+
+    /// <summary>
+    /// Where <c>[ReadsHeader]</c> lives, which is not the same place. Reading a request header is
+    /// an HTTP idea with no non-web caller, so it moved with the responses while its two siblings
+    /// did not.
+    /// </summary>
+    private const string ReadsHeaderNamespace = "Hardened.Web.Runtime.Responses";
 
     /// <summary>
     /// Every status the declarations covering <paramref name="method"/> can answer, deduplicated
@@ -357,7 +370,8 @@ public static class FilterResponseSelector {
 
     private static bool Is(INamedTypeSymbol type, string facetName) =>
         type.Name == facetName &&
-        type.ContainingNamespace?.ToDisplayString() == DeclarationNamespace;
+        type.ContainingNamespace?.ToDisplayString() ==
+        (facetName == ReadsHeader ? ReadsHeaderNamespace : DeclarationNamespace);
 
     /// <summary>
     /// The status the facet declares, or the one the declaration was written with where the facet

@@ -1,6 +1,7 @@
 using Hardened.IntegrationTests.Smithy.SUT.Models;
 using Hardened.IntegrationTests.Smithy.SUT.Services;
 using Hardened.Requests.Abstract.Attributes;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Smithy.SUT;
 

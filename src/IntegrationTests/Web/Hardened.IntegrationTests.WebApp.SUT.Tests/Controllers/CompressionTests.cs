@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 

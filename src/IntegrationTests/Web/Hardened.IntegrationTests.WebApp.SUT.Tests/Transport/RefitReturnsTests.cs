@@ -1,6 +1,7 @@
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.Validation;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 

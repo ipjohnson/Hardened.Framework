@@ -4,6 +4,7 @@ using Hardened.SourceGenerator.Requests;
 using Hardened.Web.Runtime.Attributes;
 using Microsoft.CodeAnalysis;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -25,6 +26,7 @@ public class ResponseSetDiagnosticsTests {
         GeneratorTestHarness.Run(
             $$"""
             using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 

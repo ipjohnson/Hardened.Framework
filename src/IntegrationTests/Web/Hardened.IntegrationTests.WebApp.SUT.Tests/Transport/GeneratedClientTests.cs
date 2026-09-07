@@ -3,6 +3,7 @@ using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Microsoft.Kiota.Abstractions;
 using NSubstitute;
 using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 

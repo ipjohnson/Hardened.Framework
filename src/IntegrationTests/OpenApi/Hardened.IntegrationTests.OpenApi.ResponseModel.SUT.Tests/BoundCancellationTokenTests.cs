@@ -1,5 +1,6 @@
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 

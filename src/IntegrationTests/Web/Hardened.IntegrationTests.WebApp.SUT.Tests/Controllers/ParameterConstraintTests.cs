@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Hardened.Requests.Runtime.Validation;
 using Microsoft.Extensions.Primitives;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 

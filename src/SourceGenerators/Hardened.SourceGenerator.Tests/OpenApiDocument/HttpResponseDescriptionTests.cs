@@ -1,6 +1,8 @@
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Xunit;
+using Hardened.Web.Runtime.Headers;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.OpenApiDocument;
 

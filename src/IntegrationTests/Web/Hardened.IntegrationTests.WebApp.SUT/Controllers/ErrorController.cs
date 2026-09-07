@@ -1,6 +1,7 @@
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 

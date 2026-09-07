@@ -1,5 +1,6 @@
 using System.Text;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.OpenApiDocument.BuildTask.Tests;
 

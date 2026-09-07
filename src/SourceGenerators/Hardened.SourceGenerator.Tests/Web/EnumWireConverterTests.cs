@@ -1,5 +1,6 @@
 using Hardened.SourceGenerator.Tests.Infrastructure;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.Web;
 

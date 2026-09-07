@@ -4,6 +4,7 @@ using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web;
 using System.Collections.Immutable;
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.Caching;
 

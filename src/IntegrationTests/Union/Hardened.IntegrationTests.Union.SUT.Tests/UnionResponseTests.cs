@@ -1,3 +1,4 @@
+using Hardened.Web.Runtime.Responses;
 namespace Hardened.IntegrationTests.Union.SUT.Tests;
 
 /// <summary>

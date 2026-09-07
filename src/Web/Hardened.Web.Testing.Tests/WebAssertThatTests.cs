@@ -1,4 +1,5 @@
 using Xunit;
+using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing.Tests;
 
