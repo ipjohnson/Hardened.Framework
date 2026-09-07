@@ -1,30 +1,17 @@
-using Hardened.Amz.Function.Lambda.Runtime.DependencyInjection;
-#if (sqs)
-using Hardened.Amz.Function.Sqs.Runtime;
-#endif
 using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened1;
 
 /// <summary>
-/// The application module: which runtime this runs on, and which libraries come along.
+/// The application. What it runs on is not written here.
 /// </summary>
 /// <remarks>
-/// [LambdaFunctionModule] brings the Lambda invocation path and, through the request module it
-/// carries, the filter pipeline the generated entry point runs a payload through.
-#if (sqs)
+/// <b>There is no host module attribute, and that is the point.</b> The adapter, its serializer
+/// and the filters it needs all arrive because the handler carries a trigger attribute: the
+/// generator reads the build property the host package declares and registers the module for you.
+/// Nothing in this file names a cloud, so moving to another one is a package reference.
 ///
-/// [SqsLambda] adds SQS batch handling on top: the runtime unpacks the batch, runs the handler
-/// once per record, and reports the ones that threw as batch item failures so only those are
-/// redelivered.
-#endif
-///
-/// partial is not optional - the generator writes the other half, including the entry point AWS
-/// invokes.
+/// partial is not optional - the generator writes the other half.
 /// </remarks>
 [HardenedModule]
-[LambdaFunctionModule]
-#if (sqs)
-[SqsLambda]
-#endif
 public partial class Application;

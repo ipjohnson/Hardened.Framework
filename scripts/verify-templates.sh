@@ -666,21 +666,28 @@ for TEMPLATE in hardened-library hardened-web; do
     fi
 done
 
-# The framework packages come from this run's feed and Hardened.Amz.* comes from nuget.org at
-# 0.22.0-rc1000, which is where that line stopped. Its source is not in this repository - it is
-# being replaced by new Hardened.Aws projects rather than renamed - so these rows check that the
-# build in hand still works behind the last published AWS packages. They are removed when the
-# templates move to the new line.
-say "AWS Lambda templates"
-# The function template has no seam to mock, so its two option rows prove the other runner and the
-# other libraries restore, build and run the handler tests beside the Amz testing packages.
-# Each row is the template and its flags, then the test framework and mock library the flags
-# named, so the generated test project can be checked against what was asked for.
+# Everything comes from this run's feed now. The rows used to combine the local framework with
+# Hardened.Amz.* from nuget.org, and that arrangement is what broke: the published generator emitted
+# a two-argument GetFunctionHandler against an interface that had grown a third. One feed means a
+# template can only ever name packages this build produced.
+say "cloud function templates"
+# Every trigger at defaults, because each one is a different adapter, a different payload shape and
+# a different generated façade - a row nobody runs is a row nobody notices is broken. The runner and
+# mock permutations sit on two of them rather than on all seven: those options are orthogonal to the
+# trigger, and proving that costs two rows rather than fourteen.
+#
+# Each row is the template and its flags, then the test framework and mock library the flags named,
+# so the generated test project can be checked against what was asked for.
 for AMZ in "hardened-function --trigger invoke|default|default" \
-           "hardened-function --trigger sqs|default|default" \
+           "hardened-function --trigger queue|default|default" \
+           "hardened-function --trigger topic|default|default" \
+           "hardened-function --trigger timer|default|default" \
+           "hardened-function --trigger change|default|default" \
+           "hardened-function --trigger stream|default|default" \
+           "hardened-function --trigger blob|default|default" \
            "hardened-web --host aws-lambda|default|default" \
            "hardened-function --trigger invoke --test-framework nunit --mocks moq|nunit|moq" \
-           "hardened-function --trigger sqs --mocks fakeiteasy|default|fakeiteasy"; do
+           "hardened-function --trigger queue --mocks fakeiteasy|default|fakeiteasy"; do
     IFS='|' read -r AMZ_COMMAND TESTS MOCKS <<<"$AMZ"
     set -- $AMZ_COMMAND
     AMZ_TEMPLATE="$1"; shift

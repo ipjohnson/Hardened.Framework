@@ -8,16 +8,6 @@
          HardenedVersion is. Hardened.Shared.Testing depends on DependencyModules.Testing at this
          version, and the mock package below has to be the same line. -->
     <DependencyModulesVersion>0.0.0-DEPENDENCYMODULES-VERSION</DependencyModulesVersion>
-    <!--
-      Hardened.Amz.* is the AWS line as it was last released, 0.22.0-rc1000 on nuget.org. Its source
-      is not in Hardened.Framework: it is being replaced by new Hardened.Aws projects rather than
-      renamed, so the old line stays where it was published, restorable and no longer moving.
-
-      Pinned rather than floated. It was 0.*-* while the two repositories released in sequence,
-      because for the window between them an exact pin named a version that did not exist yet. The
-      line does not move at all now, so the pin names the release it stopped at.
-    -->
-    <HardenedAmzVersion>0.22.0-rc1000</HardenedAmzVersion>
   </PropertyGroup>
 
   <ItemGroup Label="Hardened">
@@ -26,6 +16,8 @@
     <!-- The store [CacheResponse] needs. ByPayload is the strategy for a function handler, which
          is the one place a URL key cannot be the whole input. -->
     <PackageVersion Include="Hardened.Requests.Caching.Memory" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Functions.Runtime" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Functions.Testing" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Shared.Testing" Version="$(HardenedVersion)" />
 <!--#if (xunit) -->
     <PackageVersion Include="Hardened.Shared.Testing.xUnit" Version="$(HardenedVersion)" />
@@ -35,13 +27,28 @@
 <!--#endif -->
   </ItemGroup>
 
+  <!--
+    The host, on $(HardenedVersion) with everything else. The AWS line is part of this repository
+    now, so it moves with the framework rather than being pinned to a release of its own - which is
+    what the old Hardened.Amz pin was, and what made a template combining the two able to name a
+    generator that no longer matched the interface it emitted against.
+  -->
+  <ItemGroup Label="Logging">
+    <!-- The console logger the entry point installs. A deployed function writes to CloudWatch
+         through stdout, so this is what makes a log line reach it. -->
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+  </ItemGroup>
+
   <ItemGroup Label="AWS Lambda">
-    <PackageVersion Include="Hardened.Amz.Shared.Lambda.Runtime" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Function.Lambda.Runtime" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Function.Lambda.SourceGenerator" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Function.Lambda.Testing" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Function.Sqs.Runtime" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Function.Sqs.Testing" Version="$(HardenedAmzVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.Runtime" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.Invoke" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.Sqs" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.Sns" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.EventBridge" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.DynamoDb" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.Kinesis" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.S3" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.Testing" Version="$(HardenedVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Hardened source generators">

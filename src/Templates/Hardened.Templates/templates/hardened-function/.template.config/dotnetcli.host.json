@@ -4,6 +4,9 @@
     "trigger": {
       "longName": "trigger"
     },
+    "host": {
+      "longName": "host"
+    },
     "testFramework": {
       "longName": "test-framework"
     },

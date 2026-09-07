@@ -3,14 +3,14 @@
   "author": "Ian Johnson",
   "classifications": [
     "Serverless",
-    "AWS",
+    "Cloud",
     "Hardened"
   ],
   "identity": "Hardened.Function.CSharp",
   "groupIdentity": "Hardened.Function",
-  "name": "Hardened Lambda Function",
+  "name": "Hardened Function",
   "shortName": "hardened-function",
-  "description": "A Hardened AWS Lambda function: a handler, its services, and a test project that invokes it without AWS.",
+  "description": "A Hardened serverless function: a handler bound to a provider-neutral trigger, its services, and a test project that runs it without a cloud.",
   "tags": {
     "language": "C#",
     "type": "project"
@@ -22,15 +22,47 @@
       "type": "parameter",
       "datatype": "choice",
       "defaultValue": "invoke",
-      "description": "What invokes the function.",
+      "description": "What reaches the handler. The attribute is provider-neutral: which adapter serves it is decided by --host, not by the handler.",
       "choices": [
         {
           "choice": "invoke",
-          "description": "A direct invocation. The payload is the handler's parameter and its return value is the response."
+          "description": "A direct invocation. The payload is the handler's parameter and its return value is the response. On AWS, a Lambda invoked by an SDK caller, Step Functions or a test."
         },
         {
-          "choice": "sqs",
-          "description": "An SQS queue. The batch is unpacked, the handler runs per record, and failures are reported per record."
+          "choice": "queue",
+          "description": "Messages off a queue, delivered as a batch and handled one at a time. SQS on AWS, Service Bus on Azure, Pub/Sub on Google."
+        },
+        {
+          "choice": "topic",
+          "description": "Notifications published to a topic. SNS on AWS, Service Bus topics on Azure, Pub/Sub on Google."
+        },
+        {
+          "choice": "timer",
+          "description": "A schedule. EventBridge Scheduler on AWS, a timer trigger on Azure, Cloud Scheduler on Google."
+        },
+        {
+          "choice": "change",
+          "description": "Changes to a table's rows, in order and replayable. DynamoDB Streams on AWS, the Cosmos DB change feed on Azure, Firestore triggers on Google."
+        },
+        {
+          "choice": "stream",
+          "description": "Records off a sharded stream, in order and replayable. Kinesis Data Streams on AWS, Event Hubs on Azure."
+        },
+        {
+          "choice": "blob",
+          "description": "Objects changing in a store. The notification is the message and the object is not in it. S3 on AWS, Blob Storage on Azure, Cloud Storage on Google."
+        }
+      ]
+    },
+    "host": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "aws",
+      "description": "Which cloud runs the function. The handler does not change with it - the host decides one package reference and the entry point.",
+      "choices": [
+        {
+          "choice": "aws",
+          "description": "AWS Lambda. The only host with adapters today; Azure and Google are the reason this is a flag rather than the premise."
         }
       ]
     },
@@ -46,14 +78,6 @@
       "datatype": "bool",
       "defaultValue": "false",
       "description": "Skip the automatic restore after creation."
-    },
-    "invoke": {
-      "type": "computed",
-      "value": "(trigger == 'invoke')"
-    },
-    "sqs": {
-      "type": "computed",
-      "value": "(trigger == 'sqs')"
     },
     "testFramework": {
       "type": "parameter",
@@ -110,6 +134,42 @@
     "fakeiteasy": {
       "type": "computed",
       "value": "(mocks == 'fakeiteasy')"
+    },
+    "invoke": {
+      "type": "computed",
+      "value": "(trigger == 'invoke')"
+    },
+    "queue": {
+      "type": "computed",
+      "value": "(trigger == 'queue')"
+    },
+    "topic": {
+      "type": "computed",
+      "value": "(trigger == 'topic')"
+    },
+    "timer": {
+      "type": "computed",
+      "value": "(trigger == 'timer')"
+    },
+    "change": {
+      "type": "computed",
+      "value": "(trigger == 'change')"
+    },
+    "stream": {
+      "type": "computed",
+      "value": "(trigger == 'stream')"
+    },
+    "blob": {
+      "type": "computed",
+      "value": "(trigger == 'blob')"
+    },
+    "delivery": {
+      "type": "computed",
+      "value": "(trigger != 'invoke')"
+    },
+    "aws": {
+      "type": "computed",
+      "value": "(host == 'aws')"
     }
   },
   "primaryOutputs": [

@@ -1,10 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    The function. There is no separate host project: on Lambda the deployed artifact is this
-    assembly, and the generator writes the entry point the runtime calls. An executable, because
-    the handler Hardened.Amz.Cdk deploys is the assembly name alone and the managed runtime starts
-    that only when the assembly has an entry point.
+    The function. There is no separate host project: the deployed artifact is this assembly, and
+    Program.cs is the entry point the runtime starts. An executable, because a deployed handler is
+    the assembly name alone and the runtime starts that only when the assembly has one.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -13,10 +12,36 @@
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Runtime" />
     <PackageReference Include="Hardened.Requests.Runtime" />
-    <PackageReference Include="Hardened.Amz.Shared.Lambda.Runtime" />
-    <PackageReference Include="Hardened.Amz.Function.Lambda.Runtime" />
-<!--#if (sqs) -->
-    <PackageReference Include="Hardened.Amz.Function.Sqs.Runtime" />
+    <PackageReference Include="Hardened.Functions.Runtime" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+<!--#if (aws) -->
+    <!--
+      The host, and one adapter for the trigger the handler declares. The adapter is a package
+      rather than a flag so a function carries only the event models it can reach: a queue function
+      never has the API Gateway or stream models in its deployment bundle.
+    -->
+    <PackageReference Include="Hardened.Aws.Lambda.Runtime" />
+<!--#if (invoke) -->
+    <PackageReference Include="Hardened.Aws.Lambda.Invoke" />
+<!--#endif -->
+<!--#if (queue) -->
+    <PackageReference Include="Hardened.Aws.Lambda.Sqs" />
+<!--#endif -->
+<!--#if (topic) -->
+    <PackageReference Include="Hardened.Aws.Lambda.Sns" />
+<!--#endif -->
+<!--#if (timer) -->
+    <PackageReference Include="Hardened.Aws.Lambda.EventBridge" />
+<!--#endif -->
+<!--#if (change) -->
+    <PackageReference Include="Hardened.Aws.Lambda.DynamoDb" />
+<!--#endif -->
+<!--#if (stream) -->
+    <PackageReference Include="Hardened.Aws.Lambda.Kinesis" />
+<!--#endif -->
+<!--#if (blob) -->
+    <PackageReference Include="Hardened.Aws.Lambda.S3" />
+<!--#endif -->
 <!--#endif -->
   </ItemGroup>
 
@@ -27,7 +52,6 @@
       build-time only, and nothing that references this assembly should inherit them.
     -->
     <PackageReference Include="Hardened.Function.SourceGenerator" PrivateAssets="all" />
-    <PackageReference Include="Hardened.Amz.Function.Lambda.SourceGenerator" PrivateAssets="all" />
   </ItemGroup>
 
   <!--
