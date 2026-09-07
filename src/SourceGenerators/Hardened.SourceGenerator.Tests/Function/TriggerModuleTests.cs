@@ -1,4 +1,5 @@
 using Hardened.SourceGeneration.Testing;
+using Microsoft.CodeAnalysis;
 using Hardened.SourceGenerator.Tests.Infrastructure;
 using Xunit;
 
@@ -175,6 +176,55 @@ public class TriggerModuleTests {
 
         Assert.Contains(CoreModule, registration);
         Assert.Contains(RequestModule, registration);
+    }
+
+    /// <summary>
+    /// Two queues whose names produce one method name. Reported rather than silently dropped: a
+    /// test calling the surviving method would look like it covers both and cover one.
+    /// </summary>
+    [Fact]
+    public void TwoSourcesProducingOneMethodNameAreReported() {
+        var result = Generate(
+            """
+                [Queue("orders-new")]
+                public void Dashed(string body) { }
+
+                [Queue("orders.new")]
+                public void Dotted(string body) { }
+            """,
+            ("HardenedQueueModule", CoreModule));
+
+        var diagnostic = Assert.Single(result.GeneratorDiagnostics.Where(d => d.Id == "HRDF002"));
+
+        Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
+        Assert.Contains("orders-new", diagnostic.GetMessage());
+        Assert.Contains("orders.new", diagnostic.GetMessage());
+        Assert.Contains("OrdersNew", diagnostic.GetMessage());
+    }
+
+    /// <summary>
+    /// A queue and a topic of one name is not a collision - they are on different façades, so both
+    /// stay reachable and nothing is reported.
+    /// </summary>
+    [Fact]
+    public void OneNameAcrossTwoKindsIsNotACollision() {
+        var result = Generate(
+            """
+                [Queue("orders")]
+                public void FromQueue(string body) { }
+
+                [Topic("orders")]
+                public void FromTopic(string body) { }
+            """,
+            ("HardenedQueueModule", CoreModule),
+            ("HardenedTopicModule", RequestModule));
+
+        Assert.DoesNotContain(result.GeneratorDiagnostics, d => d.Id == "HRDF002");
+
+        var facades = result.SourceContaining("Triggers.cs");
+
+        Assert.Contains("public class Queues", facades);
+        Assert.Contains("public class Topics", facades);
     }
 
     /// <summary>

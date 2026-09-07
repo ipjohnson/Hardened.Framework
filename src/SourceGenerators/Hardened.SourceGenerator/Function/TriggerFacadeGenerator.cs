@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
+using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Function;
 
@@ -44,17 +45,42 @@ namespace Hardened.SourceGenerator.Function;
 /// </remarks>
 public static class TriggerFacadeGenerator {
 
-    /// <summary>The kinds that get a façade, and what a test calls to reach one.</summary>
-    private static readonly (string Scheme, string Facade)[] Kinds = {
-        ("QUEUE", "Queues"),
-        ("TOPIC", "Topics"),
-        ("TIMER", "Timers")
+    /// <summary>The kinds that get a façade, what a test calls to reach one, and what to call it.</summary>
+    private static readonly (string Scheme, string Facade, string Noun)[] Kinds = {
+        ("QUEUE", "Queues", "queue"),
+        ("TOPIC", "Topics", "topic"),
+        ("TIMER", "Timers", "timer")
     };
+
+    /// <summary>
+    /// Two sources of one kind whose names produce the same façade method.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A warning rather than an error, because the application itself is correct: both handlers
+    /// route, and only the test façade is short one method. Failing a build over a testing
+    /// convenience would be disproportionate.
+    /// </para>
+    /// <para>
+    /// But not silent either, which is what it was. A test calling the surviving method looks like
+    /// it covers both sources and covers one, and nothing in the test says which - that is a worse
+    /// outcome than a missing method, because it reads as coverage that is not there.
+    /// </para>
+    /// </remarks>
+    public static readonly DiagnosticDescriptor CollidingFacadeName = new(
+        "HRDF002",
+        "Two sources produce the same test method name",
+        "The {0}s '{1}' and '{2}' both produce the test method '{3}', so only '{2}' can be reached " +
+        "through a trigger façade. Rename one of them, or suppress HRDF002 to keep the collision.",
+        "Hardened.Function",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
 
     /// <summary>
     /// The façades for one application, or null when it declares no trigger that has one.
     /// </summary>
     public static string? Generate(
+        SourceProductionContext context,
         EntryPointSelector.Model entryPoint,
         IReadOnlyList<RequestHandlerModel> handlers,
         CancellationToken cancellationToken) {
@@ -67,7 +93,7 @@ public static class TriggerFacadeGenerator {
             var forKind = handlers.Where(handler => handler.Name.Method == kind.Scheme).ToList();
 
             if (forKind.Count > 0) {
-                bodies.Add(Facade(kind.Scheme, kind.Facade, forKind));
+                bodies.Add(Facade(context, kind.Scheme, kind.Facade, kind.Noun, forKind));
             }
         }
 
@@ -85,20 +111,28 @@ public static class TriggerFacadeGenerator {
     }
 
     private static string Facade(
-        string scheme, string name, IReadOnlyList<RequestHandlerModel> handlers) {
+        SourceProductionContext context, string scheme, string name, string noun,
+        IReadOnlyList<RequestHandlerModel> handlers) {
         var methods = new StringBuilder();
-        var used = new HashSet<string>();
+        var taken = new Dictionary<string, string>();
 
         foreach (var handler in handlers) {
-            var methodName = Identifier(handler.Name.Path.TrimStart('/'));
+            var source = handler.Name.Path.TrimStart('/');
+            var methodName = Identifier(source);
 
             // A collision inside one kind is two sources a test could not tell apart, and unlike
-            // the cross-kind case there is no second façade to separate them. Skipped rather than
-            // emitted twice, so the compilation stays clean - the pair still routes correctly at
-            // run time, they are just not both reachable from a test by name.
-            if (!used.Add(methodName)) {
+            // the cross-kind case there is no second façade to separate them. Emitting both would
+            // be a duplicate method, so the second is skipped and reported - both still route
+            // correctly at run time, and only one is reachable by name from a test.
+            if (taken.TryGetValue(methodName, out var owner)) {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        CollidingFacadeName, Location.None, noun, source, owner, methodName));
+
                 continue;
             }
+
+            taken.Add(methodName, source);
 
             methods.Append(Method(methodName, scheme, handler));
         }

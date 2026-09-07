@@ -107,7 +107,8 @@ public static class FunctionIncrementalGenerator {
 
         // The test-time façades, in their own file. Separate because they are a different audience:
         // this one is the routing table, and that one is what a test types.
-        var facades = TriggerFacadeGenerator.Generate(appModel, requestHandlers, context.CancellationToken);
+        var facades = TriggerFacadeGenerator.Generate(
+            context, appModel, requestHandlers, context.CancellationToken);
 
         if (facades != null) {
             context.AddSource(
