@@ -31,6 +31,40 @@ public static class Payloads {
         }]}
         """;
 
+    /// <summary>
+    /// A MODIFY on a table with NEW_AND_OLD_IMAGES, carrying every attribute type that has its own
+    /// wire shape - so the unmarshaller is exercised by the fixture rather than only by its own
+    /// unit tests.
+    /// </summary>
+    public const string DynamoDbJson = """
+        {"Records":[{
+          "eventID":"c81e728d9d4c2f636f067f89cc14862c",
+          "eventName":"MODIFY",
+          "eventVersion":"1.1",
+          "eventSource":"aws:dynamodb",
+          "awsRegion":"us-east-1",
+          "dynamodb":{
+            "ApproximateCreationDateTime":1767225600,
+            "Keys":{"id":{"S":"order-1"}},
+            "NewImage":{
+              "id":{"S":"order-1"},
+              "total":{"N":"42.5"},
+              "paid":{"BOOL":true},
+              "cancelled":{"NULL":true},
+              "tags":{"SS":["rush","gift"]},
+              "sizes":{"NS":["1","2"]},
+              "lines":{"L":[{"S":"a"},{"N":"7"}]},
+              "shipping":{"M":{"city":{"S":"Leeds"}}}
+            },
+            "OldImage":{"id":{"S":"order-1"},"total":{"N":"10"}},
+            "SequenceNumber":"4421584500000000017450439091",
+            "SizeBytes":112,
+            "StreamViewType":"NEW_AND_OLD_IMAGES"
+          },
+          "eventSourceARN":"arn:aws:dynamodb:us-east-1:123456789012:table/orders/stream/2026-01-01T00:00:00.000"
+        }]}
+        """;
+
     public const string SnsJson = """
         {"Records":[{
           "EventVersion":"1.0",

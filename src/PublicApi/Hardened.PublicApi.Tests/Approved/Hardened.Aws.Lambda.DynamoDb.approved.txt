@@ -1,0 +1,107 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
+namespace Hardened.Aws.Lambda.DynamoDb
+{
+    public sealed class DynamoDbAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
+    {
+        public const string EventSourceValue = "aws:dynamodb";
+        public DynamoDbAdapter(bool reportsItemFailures = false) { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(System.Text.Json.JsonElement payload) { }
+        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
+    }
+    public class DynamoDbChange : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest
+    {
+        public DynamoDbChange(string method, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.DynamodbStreamRecord record) { }
+        public System.Collections.Generic.IDictionary<string, Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.AttributeValue>? NewImage { get; }
+        public System.Collections.Generic.IDictionary<string, Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.AttributeValue>? OldImage { get; }
+        public Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.DynamodbStreamRecord Record { get; }
+    }
+    public static class DynamoDbEventJson
+    {
+        public static readonly System.Text.Json.Serialization.Metadata.JsonTypeInfo<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent> Event;
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class DynamoDbModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public DynamoDbModule() { }
+        public bool? ReportBatchItemFailures { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class DynamoDbModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public DynamoDbModuleAttribute() { }
+        public bool ReportBatchItemFailures { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public class DynamoDbRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
+    {
+        public const string ChangeScheme = "CHANGE";
+        public const string EventNameHeader = "x-amz-ddb-event-name";
+        public const string SequenceNumberHeader = "x-amz-ddb-sequence-number";
+        public const string StreamArnHeader = "x-amz-ddb-stream-arn";
+        public const string StreamViewTypeHeader = "x-amz-ddb-stream-view-type";
+        public DynamoDbRequest(string tableName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.DynamodbStreamRecord> records, bool reportsItemFailures = false) { }
+        public int Count { get; }
+        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        public System.Collections.Generic.IEnumerable<string> FailedSequenceNumbers { get; }
+        public Hardened.Requests.Abstract.Execution.BatchFailureMode FailureMode { get; }
+        public System.Collections.Generic.IReadOnlyList<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.DynamodbStreamRecord> Records { get; }
+        public bool ReportsItemFailures { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForRecord(Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.DynamodbStreamRecord record) { }
+        public void RecordFailure(int index, System.Exception failure) { }
+    }
+    [System.Text.Json.Serialization.JsonSerializable(typeof(Amazon.Lambda.DynamoDBEvents.DynamoDBEvent))]
+    [System.Text.Json.Serialization.JsonSourceGenerationOptions(PropertyNameCaseInsensitive=true)]
+    public class DynamoDbSerializerContext : System.Text.Json.Serialization.JsonSerializerContext, System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver
+    {
+        public DynamoDbSerializerContext() { }
+        public DynamoDbSerializerContext(System.Text.Json.JsonSerializerOptions options) { }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.AttributeValue> AttributeValue { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<bool> Boolean { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<System.DateTime> DateTime { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<System.Collections.Generic.Dictionary<string, Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.AttributeValue>> DictionaryStringAttributeValue { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent> DynamoDBEvent { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.DynamodbStreamRecord> DynamodbStreamRecord { get; }
+        protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<System.Collections.Generic.IList<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.DynamodbStreamRecord>> IListDynamodbStreamRecord { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.Identity> Identity { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<int> Int32 { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<long> Int64 { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<System.Collections.Generic.List<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.AttributeValue>> ListAttributeValue { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<System.Collections.Generic.List<System.IO.MemoryStream>> ListMemoryStream { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<System.Collections.Generic.List<string>> ListString { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<System.IO.MemoryStream> MemoryStream { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<bool?> NullableBoolean { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent.StreamRecord> StreamRecord { get; }
+        public System.Text.Json.Serialization.Metadata.JsonTypeInfo<string> String { get; }
+        public static Hardened.Aws.Lambda.DynamoDb.DynamoDbSerializerContext Default { get; }
+        public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Parameter)]
+    public class NewImageAttribute : System.Attribute, Hardened.Requests.Abstract.Attributes.ICustomBindingAttribute
+    {
+        public NewImageAttribute() { }
+        public System.Threading.Tasks.ValueTask<T> BindValue<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Parameter)]
+    public class OldImageAttribute : System.Attribute, Hardened.Requests.Abstract.Attributes.ICustomBindingAttribute
+    {
+        public OldImageAttribute() { }
+        public System.Threading.Tasks.ValueTask<T> BindValue<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter) { }
+    }
+    public sealed class UnixEpochDateTimeConverter : System.Text.Json.Serialization.JsonConverter<System.DateTime>
+    {
+        public UnixEpochDateTimeConverter() { }
+        public override System.DateTime Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) { }
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, System.DateTime value, System.Text.Json.JsonSerializerOptions options) { }
+    }
+}

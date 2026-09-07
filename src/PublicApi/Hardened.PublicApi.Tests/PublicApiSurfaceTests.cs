@@ -34,6 +34,7 @@ public class PublicApiSurfaceTests {
     /// <summary>Every shipped net8.0 assembly, by name.</summary>
     private static readonly string[] Shipped = [
         "Hardened.Aws.Lambda.ApiGateway",
+        "Hardened.Aws.Lambda.DynamoDb",
         "Hardened.Aws.Lambda.EventBridge",
         "Hardened.Aws.Lambda.Invoke",
         "Hardened.Aws.Lambda.Runtime",

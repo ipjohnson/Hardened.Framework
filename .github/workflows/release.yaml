@@ -256,6 +256,7 @@ jobs:
             src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Runtime/Hardened.Aws.Lambda.Runtime.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.ApiGateway/Hardened.Aws.Lambda.ApiGateway.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.DynamoDb/Hardened.Aws.Lambda.DynamoDb.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.EventBridge/Hardened.Aws.Lambda.EventBridge.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Invoke/Hardened.Aws.Lambda.Invoke.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Sns/Hardened.Aws.Lambda.Sns.csproj \
@@ -314,7 +315,9 @@ jobs:
           # Hardened.Functions.Testing, which have been IsPackable and absent from this list since
           # they were written - the sixth time it has drifted, and the reason the number below is a
           # literal somebody has to change.
-          EXPECTED=39
+          # 40 with Hardened.Aws.Lambda.DynamoDb, the first adapter added after the split - which
+          # is the shape every later one takes: one package, one trigger, one line here.
+          EXPECTED=40
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

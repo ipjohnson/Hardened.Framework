@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <Description>Every AWS Lambda adapter in one reference: API Gateway, SQS, SNS, EventBridge and direct invoke. Reference the individual packages instead to keep out of the deployment bundle what the function is not triggered by.</Description>
+        <Description>Every AWS Lambda adapter in one reference: API Gateway, SQS, SNS, EventBridge, DynamoDB Streams and direct invoke. Reference the individual packages instead to keep out of the deployment bundle what the function is not triggered by.</Description>
         <IsPackable>true</IsPackable>
         <PackageId>Hardened.Aws.Lambda</PackageId>
         <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless</PackageTags>
@@ -34,6 +34,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
         <ProjectReference Include="..\Hardened.Aws.Lambda.ApiGateway\Hardened.Aws.Lambda.ApiGateway.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.DynamoDb\Hardened.Aws.Lambda.DynamoDb.csproj"/>
         <ProjectReference Include="..\Hardened.Aws.Lambda.EventBridge\Hardened.Aws.Lambda.EventBridge.csproj"/>
         <ProjectReference Include="..\Hardened.Aws.Lambda.Invoke\Hardened.Aws.Lambda.Invoke.csproj"/>
         <ProjectReference Include="..\Hardened.Aws.Lambda.Sns\Hardened.Aws.Lambda.Sns.csproj"/>

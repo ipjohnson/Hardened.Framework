@@ -2,6 +2,7 @@ using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Xunit;
 using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.DynamoDb;
 using Hardened.Aws.Lambda.EventBridge;
 using Hardened.Aws.Lambda.Sns;
 using Hardened.Aws.Lambda.Sqs;
@@ -27,6 +28,7 @@ public class PayloadDiscriminationTests {
     private static readonly (string Name, IPayloadAdapter Adapter)[] Adapters = [
         ("sqs", new SqsAdapter()),
         ("sns", new SnsAdapter()),
+        ("dynamodb", new DynamoDbAdapter()),
         ("eventbridge", new EventBridgeAdapter()),
         ("apigateway", new ApiGatewayAdapter())
     ];
@@ -34,6 +36,7 @@ public class PayloadDiscriminationTests {
     public static TheoryData<string, string> Payloads() => new() {
         { "sqs", Infrastructure.Payloads.SqsJson },
         { "sns", Infrastructure.Payloads.SnsJson },
+        { "dynamodb", Infrastructure.Payloads.DynamoDbJson },
         { "eventbridge", Infrastructure.Payloads.EventBridgeJson },
         { "eventbridge", Infrastructure.Payloads.ScheduledJson },
         { "apigateway", Infrastructure.Payloads.ApiGatewayJson }
@@ -54,13 +57,16 @@ public class PayloadDiscriminationTests {
     /// close to it, and none may be claimed by an adapter that was not written for it - a Kinesis
     /// batch handled as SQS would report every record as successfully processed.
     /// </summary>
+    /// <remarks>
+    /// DynamoDB Streams left this list when its adapter arrived, and moved into
+    /// <see cref="Payloads"/> above where it now has to be claimed by exactly one thing. That is the
+    /// shape of adding an adapter: a row moves from here to there.
+    /// </remarks>
     [Theory]
-    [InlineData("dynamodb streams")]
     [InlineData("kinesis")]
     [InlineData("firehose")]
     public void NothingClaimsASourceWithNoAdapter(string source) {
         var json = source switch {
-            "dynamodb streams" => Infrastructure.Payloads.DynamoStreamJson,
             "kinesis" => Infrastructure.Payloads.KinesisJson,
             _ => Infrastructure.Payloads.FirehoseJson
         };

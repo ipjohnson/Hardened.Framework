@@ -52,9 +52,11 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
             "QUEUE" => Sqs(name, items),
             "TOPIC" => Sns(name, items),
             "TIMER" => Scheduled(name),
+            "CHANGE" => DynamoDb(name, items),
             _ => throw new NotSupportedException(
-                $"No test envelope is built for the {scheme} scheme yet. Queues, topics and timers " +
-                "have one; events are addressed by source and detail type and need their own shape.")
+                $"No test envelope is built for the {scheme} scheme yet. Queues, topics, timers " +
+                "and changes have one; events are addressed by source and detail type and need " +
+                "their own shape.")
         };
 
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(payload));
@@ -131,6 +133,54 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
 
         return "{\"Records\":[" + string.Join(",", records) + "]}";
     }
+
+    /// <summary>
+    /// A DynamoDB stream batch, one MODIFY per message.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The message becomes the new image in DynamoDB's own wire form, so the adapter's unmarshalling
+    /// runs for real rather than being handed the shape it would have produced. That is the whole
+    /// difference between this delivery and the pipeline one.
+    /// </para>
+    /// <para>
+    /// MODIFY with the same item as both images, because a test that wanted an insert or a delete is
+    /// asserting on the event name, and this delivery exists to exercise the envelope rather than to
+    /// model a table's history. The sequence numbers ascend, which is what a shard guarantees and
+    /// what a checkpoint report is read against.
+    /// </para>
+    /// </remarks>
+    private string DynamoDb(string table, System.Collections.IEnumerable messages) {
+        var arn = $"arn:aws:dynamodb:{_region}:{_account}:table/{table}/stream/2026-01-01T00:00:00.000";
+
+        var records = new List<string>();
+        var index = 0;
+
+        foreach (var message in messages) {
+            var image = AttributeValueWire.Item(JsonSerializer.Serialize(message, Wire));
+
+            records.Add($$"""
+                {"eventID":"{{table}}-{{index}}","eventName":"MODIFY","eventVersion":"1.1",
+                 "eventSource":"aws:dynamodb","awsRegion":"{{_region}}",
+                 "dynamodb":{"ApproximateCreationDateTime":1767225600,
+                   "Keys":{},"NewImage":{{image}},"OldImage":{{image}},
+                   "SequenceNumber":"{{Sequence(index)}}","SizeBytes":64,
+                   "StreamViewType":"NEW_AND_OLD_IMAGES"},
+                 "eventSourceARN":"{{arn}}"}
+                """);
+
+            index++;
+        }
+
+        return "{\"Records\":[" + string.Join(",", records) + "]}";
+    }
+
+    /// <summary>
+    /// Ascending, and wide enough to look like one. A real sequence number is a 28-digit decimal
+    /// string, and a test that asserted on the shape of the one it was reported would otherwise be
+    /// asserting on an integer.
+    /// </summary>
+    private static string Sequence(int index) => "44215845000000000174504390" + index.ToString("D2");
 
     private string Scheduled(string rule) => $$"""
         {"version":"0","id":"{{rule}}-fired","detail-type":"Scheduled Event","source":"aws.events",
