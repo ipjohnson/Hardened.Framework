@@ -41,7 +41,7 @@
         <ProjectReference Include="..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
         <ProjectReference Include="..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
-        <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.Lambda\Hardened.Aws.Lambda.csproj"/>
         <ProjectReference Include="..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Caching.Memory\Hardened.Requests.Caching.Memory.csproj"/>

@@ -1,0 +1,31 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
+namespace Hardened.Aws.Lambda.Invoke
+{
+    public sealed class InvokeAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
+    {
+        public const string OperationField = "operation";
+        public const string Scheme = "INVOKE";
+        public InvokeAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(System.Text.Json.JsonElement payload) { }
+        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
+    public class InvokeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public InvokeModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class InvokeModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public InvokeModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}

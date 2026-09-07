@@ -1,6 +1,10 @@
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Xunit;
+using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.EventBridge;
+using Hardened.Aws.Lambda.Sns;
+using Hardened.Aws.Lambda.Sqs;
 
 namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 

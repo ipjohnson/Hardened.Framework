@@ -1,5 +1,6 @@
 using Amazon.Lambda.APIGatewayEvents;
 using Hardened.Aws.Lambda.Runtime.Execution;
+using Hardened.Aws.Lambda.ApiGateway;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Testing.Conformance;
 

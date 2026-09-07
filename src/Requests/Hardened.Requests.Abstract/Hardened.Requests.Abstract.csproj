@@ -20,4 +20,17 @@
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
     </ItemGroup>
 
+    <!--
+      Declares HardenedInvokeModule, because this package owns [HardenedFunction]. See
+      Hardened.Functions.Runtime's targets for why the declaration follows the attribute rather than
+      the runtime, and for why the path is buildTransitive/ and Package\.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Requests.Abstract.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
 </Project>

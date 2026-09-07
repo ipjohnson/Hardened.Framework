@@ -2,31 +2,39 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <Description>Runs Hardened applications on AWS Lambda: payload adapters, the invocation loop, and the ambient services the environment expects.</Description>
+        <Description>The AWS Lambda host for Hardened applications: the invocation loop, the payload adapter seam, and the ambient services the environment expects. Reference an adapter package alongside it for the triggers a function serves.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
         <PackageId>Hardened.Aws.Lambda.Runtime</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless</PackageTags>
 
         <!--
           Turns on the trim, AOT and single-file analyzers, so anything that would not survive a
-          trimmed publish is a build warning here rather than a missing type at runtime. It matters
-          more in this package than most: the whole argument for a module per adapter is that an
-          unapplied one gets removed, and that argument is only worth making if what remains is
-          actually trimmable. Also stamps IsTrimmable on the assembly, so a linker running in
-          partial mode trims inside it rather than rooting it whole.
+          trimmed publish is a build warning here rather than a missing type at runtime.
         -->
         <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <!--
-      One package where Hardened.Amz had five. The Function-against-Web split those names encoded
-      is the thing the host seam removes: there is one host, a set of adapters, and SQS and
-      DynamoDB streams were only ever filters on top of the function path.
+      The core, and nothing that recognises a payload. What a host does that no other host does is
+      three decisions: how a payload becomes a request, how a response becomes its payload, and who
+      owns the invocation loop. The first two are IPayloadAdapter and live in a package per adapter
+      family; the third is HardenedLambdaBootstrap and lives here.
 
-      No project reference to a web package. An adapter produces an IExecutionRequest and the
-      pipeline routes it, so this depends on the contract rather than on the routing - which is
-      what lets one function serve a queue and an HTTP route from the same binary.
+      That split is a deployment-bundle decision, not a taste one. Modules already decide what is
+      reachable, but PublishTrimmed needs a self-contained deployment and the managed dotnet8 Lambda
+      runtime is framework-dependent - so on the default deploy an unapplied adapter ships anyway.
+      Packages decide what is present. Measured on a queue-only function, a bundle is 1453.6 KB
+      whole and about 131 KB of that is adapters it cannot reach.
+
+      Amazon.Lambda.Core and RuntimeSupport stay here because every function needs the loop whatever
+      it is triggered by. The event packages do not: APIGatewayEvents, SQSEvents and SNSEvents each
+      belong to one adapter now.
+
+      No reference to any web package. An adapter produces an IExecutionRequest and the pipeline
+      routes it, so this depends on the contract rather than on the routing - which is what lets one
+      function serve a queue and an HTTP route from the same binary.
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
@@ -43,24 +51,14 @@
     </ItemGroup>
 
     <!--
-      build/*.targets, which declares the trigger-to-module properties the generator reads. Without
-      it a <HardenedQueueModule> set in a consuming csproj is invisible: GlobalOptions carries only
-      what is declared CompilerVisibleProperty.
+      No build assets. This package binds no trigger, because it recognises no payload - the
+      HardenedQueueModule and friends are set by the adapter packages, one property each, and
+      declared by whichever package owns the attribute that binds them.
     -->
-    <ItemGroup>
-        <Content Include="Package\Hardened.Aws.Lambda.targets">
-            <Pack>true</Pack>
-            <PackagePath>build/</PackagePath>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-        </Content>
-    </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Amazon.Lambda.APIGatewayEvents" />
         <PackageReference Include="Amazon.Lambda.Core" />
         <PackageReference Include="Amazon.Lambda.RuntimeSupport" />
-        <PackageReference Include="Amazon.Lambda.SNSEvents" />
-        <PackageReference Include="Amazon.Lambda.SQSEvents" />
         <PackageReference Include="DependencyModules.Runtime" />
         <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

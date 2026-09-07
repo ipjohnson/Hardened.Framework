@@ -33,7 +33,12 @@ public class PublicApiSurfaceTests {
 
     /// <summary>Every shipped net8.0 assembly, by name.</summary>
     private static readonly string[] Shipped = [
+        "Hardened.Aws.Lambda.ApiGateway",
+        "Hardened.Aws.Lambda.EventBridge",
+        "Hardened.Aws.Lambda.Invoke",
         "Hardened.Aws.Lambda.Runtime",
+        "Hardened.Aws.Lambda.Sns",
+        "Hardened.Aws.Lambda.Sqs",
         "Hardened.Aws.Lambda.Testing",
         "Hardened.Functions.Runtime",
         "Hardened.Functions.Testing",
@@ -57,6 +62,22 @@ public class PublicApiSurfaceTests {
         "Hardened.Web.Runtime",
         "Hardened.Web.StaticContent",
         "Hardened.Web.Testing"
+    ];
+
+    /// <summary>
+    /// Built beside this test, and received by no consumer.
+    /// </summary>
+    /// <remarks>
+    /// This test project, and the AWS meta package. <c>Hardened.Aws.Lambda</c> is six package
+    /// references and no code, so it sets <c>IncludeBuildOutput=false</c> and its nupkg has no
+    /// <c>lib/</c> in it at all - putting an empty assembly in every deployment bundle is a poor
+    /// look for the package whose existence is a bundle-size argument. The build still produces
+    /// that assembly and a <c>ProjectReference</c> still copies it here, so the coverage check
+    /// below has to be told.
+    /// </remarks>
+    private static readonly string[] ShipsNoAssembly = [
+        "Hardened.PublicApi.Tests",
+        "Hardened.Aws.Lambda"
     ];
 
     public static TheoryData<string> ShippedAssemblies() => new(Shipped);
@@ -156,12 +177,12 @@ public class PublicApiSurfaceTests {
         var present = Directory
             .EnumerateFiles(AppContext.BaseDirectory, "Hardened.*.dll")
             .Select(Path.GetFileNameWithoutExtension)
-            .Where(name => name != null && name != "Hardened.PublicApi.Tests")
+            .Where(name => name != null && !ShipsNoAssembly.Contains(name))
             .Select(name => name!)
             .ToHashSet(StringComparer.Ordinal);
 
-        // The test project itself is the only Hardened assembly here that ships nothing. If that
-        // stops being true, this fails and says so rather than quietly widening.
+        // Everything else here ships. Widening ShipsNoAssembly is a deliberate edit with a reason
+        // written next to it, which is the point of naming them rather than filtering by shape.
         Assert.NotEmpty(present);
 
         var uncovered = present.Except(covered).OrderBy(name => name, StringComparer.Ordinal).ToList();

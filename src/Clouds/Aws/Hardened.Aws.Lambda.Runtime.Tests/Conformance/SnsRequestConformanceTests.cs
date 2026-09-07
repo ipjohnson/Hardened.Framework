@@ -3,6 +3,7 @@ using Amazon.Lambda.SNSEvents;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
+using Hardened.Aws.Lambda.Sns;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Testing.Conformance;
 

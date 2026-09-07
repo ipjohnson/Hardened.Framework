@@ -1,0 +1,23 @@
+<Project>
+    <!--
+        Which module serves this package's trigger. One property, because one trigger is served by
+        exactly one adapter package on a given provider - two packages setting the same property
+        resolve first-import-wins, silently, on an import order nobody controls.
+
+        The property is declared elsewhere, by whichever package owns the attribute that binds it:
+        a generator sees an MSBuild property only if something declared it CompilerVisibleProperty,
+        and the declaration has to be visible wherever the trigger can be written, which is not
+        here. See Hardened.Functions.Runtime's targets.
+
+        Conditional, so a csproj can replace this binding and keep the rest. A csproj is evaluated
+        before a package's targets, so a value set there survives and this only fills the gap:
+
+            <HardenedTimerModule>MyCompany.SomeOtherModule</HardenedTimerModule>
+    -->
+    <PropertyGroup>
+
+        <!-- One adapter, two triggers: a schedule and a bus event share an envelope. -->
+        <HardenedTimerModule Condition="'$(HardenedTimerModule)' == ''">Hardened.Aws.Lambda.EventBridge.EventBridgeModule</HardenedTimerModule>
+        <HardenedEventModule Condition="'$(HardenedEventModule)' == ''">Hardened.Aws.Lambda.EventBridge.EventBridgeModule</HardenedEventModule>
+    </PropertyGroup>
+</Project>

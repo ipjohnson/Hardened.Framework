@@ -1,6 +1,7 @@
 using DependencyModules.Testing.Attributes;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.IntegrationTests.Invoke.SUT;
+using Hardened.Aws.Lambda.Invoke;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;

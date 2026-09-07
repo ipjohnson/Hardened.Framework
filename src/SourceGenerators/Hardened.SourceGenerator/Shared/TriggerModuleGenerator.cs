@@ -156,19 +156,55 @@ public static class TriggerModuleGenerator {
     /// A trigger is used and nothing declares what serves it.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The handler would compile, deploy, and never be invoked. The message names the property to
     /// set, because the two ways to reach this are a missing runtime package and a provider that
     /// has no source of this kind - and the fix differs.
+    /// </para>
+    /// <para>
+    /// Built per call rather than held in a static field, which is what analyzer release tracking
+    /// looks for: a <c>public static readonly DiagnosticDescriptor</c> raises RS2008 in the
+    /// generator projects that link this file and set <c>EnforceExtendedAnalyzerRules</c>.
+    /// </para>
     /// </remarks>
-    public static readonly DiagnosticDescriptor NoModuleForTrigger = new(
-        "HRDF001",
-        "No adapter is registered for this trigger",
-        "Handlers in this project use [{0}], but no referenced runtime declares a module for it. " +
-        "Reference a runtime package that supports {0} triggers, or set <{1}> to the module that " +
-        "should serve them.",
-        "Hardened.Function",
-        DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor NoModuleForTrigger() =>
+        new(id: "HRDF001",
+            title: "No adapter is registered for this trigger",
+            messageFormat:
+            "Handlers in this project use [{0}], but no referenced runtime declares a module for " +
+            "it. Reference a runtime package that supports {0} triggers, or set <{1}> to the " +
+            "module that should serve them.",
+            category: "Hardened.Function",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+    /// <summary>
+    /// An adapter is registered for a trigger nothing in the project writes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The counterpart to <see cref="NoModuleForTrigger"/>, and the reason a meta package is safe
+    /// to publish. Referencing <c>Hardened.Aws.Lambda</c> binds every trigger at once, so a
+    /// function that handles one queue carries the API Gateway and SNS adapters and their event
+    /// assemblies into its deployment bundle. Nothing else can see that: the generator is the only
+    /// thing that knows both which bindings are set and which triggers are used.
+    /// </para>
+    /// <para>
+    /// Info rather than a warning. Referencing everything is a legitimate choice, and a project
+    /// that grows a <c>[Topic]</c> handler next week was right all along - this is a note about
+    /// bundle size, not a defect.
+    /// </para>
+    /// </remarks>
+    private static DiagnosticDescriptor UnusedAdapter() =>
+        new(id: "HRDF003",
+            title: "An adapter is registered for a trigger this project does not use",
+            messageFormat:
+            "{0} is bound to serve {1} and nothing in this project declares one, so it ships in " +
+            "the deployment bundle unreachable. Reference the adapter packages for the triggers " +
+            "this project uses rather than a meta package, or clear {2}.",
+            category: "Hardened.Function",
+            defaultSeverity: DiagnosticSeverity.Info,
+            isEnabledByDefault: true);
 
     public static void Setup(
         IncrementalGeneratorInitializationContext context,
@@ -246,6 +282,8 @@ public static class TriggerModuleGenerator {
             return;
         }
 
+        ReportUnused(context, used, modules);
+
         var register = new List<string>();
 
         for (var index = 0; index < Triggers.Count; index++) {
@@ -259,7 +297,7 @@ public static class TriggerModuleGenerator {
 
             if (module == null) {
                 context.ReportDiagnostic(
-                    Diagnostic.Create(NoModuleForTrigger, Location.None, trigger.Name, trigger.Property));
+                    Diagnostic.Create(NoModuleForTrigger(), Location.None, trigger.Name, trigger.Property));
 
                 continue;
             }
@@ -287,6 +325,79 @@ public static class TriggerModuleGenerator {
         context.AddSource(
             entryPoint.EntryPointType.Name + ".TriggerModules.cs",
             GeneratedSource.Header(Source(entryPoint, register)));
+    }
+
+    /// <summary>
+    /// Reports every bound module the project has no trigger for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Grouped by module rather than reported per trigger, because several triggers share one.</b>
+    /// The five web verbs all name <c>HardenedHttpModule</c>, and a schedule and a bus event are one
+    /// adapter - so a project writing <c>[Get]</c> and no <c>[Post]</c>, or <c>[Timer]</c> and no
+    /// <c>[Event]</c>, is carrying nothing it cannot reach. Reporting per trigger would fire on both
+    /// and be wrong on both.
+    /// </para>
+    /// <para>
+    /// Silent for a project that declares no handlers at all. That is an ordinary state for a
+    /// handler library and for a compilation under test, and it is not what this is about.
+    /// </para>
+    /// </remarks>
+    private static void ReportUnused(
+        SourceProductionContext context,
+        ImmutableArray<string?> used,
+        ImmutableArray<string?> modules) {
+        if (used.Length == 0) {
+            return;
+        }
+
+        var reported = new List<string>();
+
+        for (var index = 0; index < Triggers.Count; index++) {
+            var module = modules[index];
+
+            if (module == null || reported.Contains(module)) {
+                continue;
+            }
+
+            var served = new List<Trigger>();
+
+            for (var other = 0; other < Triggers.Count; other++) {
+                if (modules[other] == module) {
+                    served.Add(Triggers[other]);
+                }
+            }
+
+            if (served.Any(trigger => used.Contains(trigger.Name))) {
+                continue;
+            }
+
+            reported.Add(module);
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                UnusedAdapter(), Location.None,
+                module,
+                Readable(served.Select(trigger => "[" + trigger.Name + "]")),
+                Readable(served.Select(trigger => "<" + trigger.Property + ">").Distinct())));
+        }
+    }
+
+    /// <summary>
+    /// A list a sentence can contain: <c>a</c>, <c>a and b</c>, <c>a, b and c</c>.
+    /// </summary>
+    /// <remarks>
+    /// The five web verbs make this worth having. A comma-joined list ended
+    /// "clear &lt;HardenedTimerModule&gt;, &lt;HardenedEventModule&gt;", which reads as MSBuild a
+    /// user could paste and is not.
+    /// </remarks>
+    private static string Readable(IEnumerable<string> parts) {
+        var all = parts.ToList();
+
+        return all.Count switch {
+            0 => "",
+            1 => all[0],
+            _ => string.Join(", ", all.Take(all.Count - 1)) + " and " + all[all.Count - 1]
+        };
     }
 
     /// <summary>

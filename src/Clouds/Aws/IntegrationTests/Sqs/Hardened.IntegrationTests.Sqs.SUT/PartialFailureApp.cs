@@ -1,4 +1,5 @@
 using Hardened.Aws.Lambda.Runtime.Modules;
+using Hardened.Aws.Lambda.Sqs;
 using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.Sqs.SUT;

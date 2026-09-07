@@ -14,10 +14,14 @@
       Optional. A project testing its own handlers needs only Hardened.Functions.Testing, whose
       delivery names no cloud; this is for a project that also wants the envelope its provider
       actually sends to be what the adapter reads.
+
+      The meta package rather than the six, and this is the one place that is the right reference: a
+      test project has no deployment bundle to keep small, and it builds an envelope for every
+      source whether or not the application under test serves them all.
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
-        <ProjectReference Include="..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda\Hardened.Aws.Lambda.csproj"/>
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
     </ItemGroup>
 

@@ -1,5 +1,6 @@
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
+using Hardened.Aws.Lambda.Invoke;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Hardened.Requests.Testing.Conformance;

@@ -1,0 +1,49 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
+namespace Hardened.Aws.Lambda.Sqs
+{
+    public sealed class SqsAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
+    {
+        public const string EventSourceValue = "aws:sqs";
+        public SqsAdapter(bool reportsItemFailures = false) { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(System.Text.Json.JsonElement payload) { }
+        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class SqsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public SqsModule() { }
+        public bool? ReportBatchItemFailures { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class SqsModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public SqsModuleAttribute() { }
+        public bool ReportBatchItemFailures { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public class SqsRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
+    {
+        public const string MessageIdHeader = "x-amz-sqs-message-id";
+        public const string QueueArnHeader = "x-amz-sqs-queue-arn";
+        public const string ReceiptHandleHeader = "x-amz-sqs-receipt-handle";
+        public const string SqsScheme = "QUEUE";
+        public SqsRequest(string queueName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage> records, bool reportsItemFailures = false) { }
+        public int Count { get; }
+        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        public System.Collections.Generic.IEnumerable<string> FailedMessageIds { get; }
+        public System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage> Records { get; }
+        public bool ReportsItemFailures { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForRecord(Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage record) { }
+        public void RecordFailure(int index, System.Exception failure) { }
+    }
+}

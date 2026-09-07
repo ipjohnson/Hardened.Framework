@@ -17,4 +17,24 @@
       the one thing a handler names, so anything it depends on is something a handler drags with it.
     -->
 
+    <!--
+      buildTransitive/ rather than build/. NuGet imports build/ for a direct reference only, and a
+      handler library reaches this package through a runtime package as often as it names it - so a
+      declaration in build/ would be missing exactly where the trigger is written.
+      buildTransitive/ covers the direct case too, which is why it replaces build/ rather than
+      joining it: the same file in both folders imports twice.
+
+      Package\ rather than build\ in the source tree, because .gitignore ignores build/ and the
+      file would never be committed. PackagePath takes a forward slash - a trailing backslash packs
+      to "buildTransitive//" on Linux and macOS, where NuGet never imports it, and that failure is
+      silent.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Functions.Runtime.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
 </Project>

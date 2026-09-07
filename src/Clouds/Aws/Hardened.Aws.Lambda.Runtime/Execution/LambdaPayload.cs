@@ -60,6 +60,38 @@ public sealed class LambdaPayload : IDisposable {
         _document = null;
     }
 
+    /// <summary>The first element of a <c>Records</c> array, or null if there is not one.</summary>
+    /// <remarks>
+    /// <para>
+    /// Here rather than on an adapter because every record-array source needs it and they are in
+    /// different packages now - SQS, SNS, DynamoDB Streams, Kinesis and S3 all arrive as a
+    /// <c>Records</c> array.
+    /// </para>
+    /// <para>
+    /// <b>Which is exactly why this is not a recognition on its own.</b> An adapter matching on the
+    /// array claims all five and whichever is asked first wins, so a caller reads the first record's
+    /// event source and compares the <em>value</em>: <c>aws:sqs</c>, <c>aws:dynamodb</c>,
+    /// <c>aws:kinesis</c>, <c>aws:s3</c>. SNS spells the property <c>EventSource</c> and the rest
+    /// spell it <c>eventSource</c>, which is the trap this comment exists to keep in one place.
+    /// </para>
+    /// <para>
+    /// An empty array returns null rather than throwing. AWS does not invoke with an empty batch, and
+    /// a payload no adapter claims is an error the dispatcher raises by name.
+    /// </para>
+    /// </remarks>
+    public static JsonElement? FirstRecord(JsonElement payload) {
+        if (payload.ValueKind != JsonValueKind.Object ||
+            !payload.TryGetProperty("Records", out var records) ||
+            records.ValueKind != JsonValueKind.Array ||
+            records.GetArrayLength() == 0) {
+            return null;
+        }
+
+        var first = records[0];
+
+        return first.ValueKind == JsonValueKind.Object ? first : null;
+    }
+
     /// <summary>
     /// A read-only <see cref="Stream"/> over <see cref="ReadOnlyMemory{T}"/>.
     /// </summary>

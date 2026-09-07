@@ -24,5 +24,17 @@
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
     </ItemGroup>
 
+    <!--
+      Declares HardenedHttpModule, because this package owns the verb attributes. See
+      Hardened.Functions.Runtime's targets for why the declaration follows the attribute rather than
+      the runtime, and for why the path is buildTransitive/ and Package\.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Web.Runtime.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
 
 </Project>

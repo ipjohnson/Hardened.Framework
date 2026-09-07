@@ -1,0 +1,13 @@
+<Project>
+    <!--
+        Declared here because this package owns [HardenedFunction], and the property that binds a
+        trigger has to be declared wherever the attribute that needs it can be written. See
+        Hardened.Functions.Runtime's targets for the rule and why a runtime package cannot be the
+        one to declare it.
+
+        Not set here. Which module serves a direct invocation is a provider's decision.
+    -->
+    <ItemGroup>
+        <CompilerVisibleProperty Include="HardenedInvokeModule"/>
+    </ItemGroup>
+</Project>

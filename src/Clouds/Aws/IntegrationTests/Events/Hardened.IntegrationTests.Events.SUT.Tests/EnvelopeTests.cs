@@ -3,6 +3,7 @@ using Amazon.Lambda.Core;
 using DependencyModules.Testing.Attributes;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.IntegrationTests.Events.SUT;
+using Hardened.Aws.Lambda.Sqs;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;

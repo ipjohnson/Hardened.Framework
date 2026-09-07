@@ -251,6 +251,16 @@ jobs:
             src/Web/Hardened.Web.Kestrel.Testing/Hardened.Web.Kestrel.Testing.csproj \
             src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
             src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
+            src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj \
+            src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Runtime/Hardened.Aws.Lambda.Runtime.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.ApiGateway/Hardened.Aws.Lambda.ApiGateway.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.EventBridge/Hardened.Aws.Lambda.EventBridge.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Invoke/Hardened.Aws.Lambda.Invoke.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Sns/Hardened.Aws.Lambda.Sns.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Sqs/Hardened.Aws.Lambda.Sqs.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Testing/Hardened.Aws.Lambda.Testing.csproj \
             src/Clients/Hardened.Kiota.Testing/Hardened.Kiota.Testing.csproj \
             src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj \
             src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj \
@@ -298,7 +308,13 @@ jobs:
           # line is not being renamed into Hardened.Aws, it is being replaced by new projects, so
           # its source earns nothing here: 0.22.0-rc1000 stays on nuget.org, restorable, and the
           # replacements join this list as they are written.
-          EXPECTED=29
+          # 39 with the AWS line and the trigger attributes, which is ten and not eight. Eight are
+          # the Lambda packages: a core, five adapters, the Hardened.Aws.Lambda meta package over
+          # them and the testing package. The other two are Hardened.Functions.Runtime and
+          # Hardened.Functions.Testing, which have been IsPackable and absent from this list since
+          # they were written - the sixth time it has drifted, and the reason the number below is a
+          # literal somebody has to change.
+          EXPECTED=39
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

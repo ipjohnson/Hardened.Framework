@@ -19,7 +19,7 @@
         <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.ApiGateway\Hardened.Aws.Lambda.ApiGateway.csproj"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
@@ -29,10 +29,19 @@
 
     <!--
       Imported from the source tree rather than arriving with a package reference, because in this
-      repository the runtime is a ProjectReference and a project reference carries no build assets.
-      A consuming application gets these from build/Hardened.Aws.Lambda.targets inside the package;
-      importing the same file here is what keeps the two from drifting.
+      repository these are ProjectReferences and a project reference carries no build assets. A
+      consuming application gets them from buildTransitive/ inside the packages; importing the same
+      files here is what keeps the two from drifting.
+
+      Two kinds of import, which is the shape the split produces. The first declares the trigger
+      properties, from the package that owns the attributes. The rest each bind one property, one
+      per adapter package.
+
+      The verbs are declared by Hardened.Web.Runtime, which owns [Get] and the rest - a web
+      project never references Hardened.Functions.Runtime, which is why the declarations follow the
+      attribute rather than living in one place.
     -->
-    <Import Project="..\..\..\Hardened.Aws.Lambda.Runtime\Package\Hardened.Aws.Lambda.targets"/>
+    <Import Project="..\..\..\..\..\Web\Hardened.Web.Runtime\Package\Hardened.Web.Runtime.targets"/>
+    <Import Project="..\..\..\Hardened.Aws.Lambda.ApiGateway\Package\Hardened.Aws.Lambda.ApiGateway.targets"/>
 
 </Project>

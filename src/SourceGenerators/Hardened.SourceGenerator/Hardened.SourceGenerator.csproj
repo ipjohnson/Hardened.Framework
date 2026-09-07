@@ -60,9 +60,15 @@
 
     <ItemGroup>
         <None Remove="Package\HardenedSourceGenerator*" />
+        <!--
+            Forward slash. A trailing backslash packs to "build//" on Linux and macOS, and NuGet
+            never imports that path - so these were shipping unreachable. Third time: see the same
+            note in Hardened.Web.StaticContent.csproj, which records the OpenAPI package doing it
+            before.
+        -->
         <Content Include="Package\Hardened.SourceGenerator.*">
             <Pack>true</Pack>
-            <PackagePath>build\</PackagePath>
+            <PackagePath>build/</PackagePath>
             <PackageCopyToOutput>true</PackageCopyToOutput>
         </Content>
         <Content Include="**\*.cs" Exclude="**\obj\**;**\bin\**" Visible="true">

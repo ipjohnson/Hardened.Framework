@@ -1,32 +1,6 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
 namespace Hardened.Aws.Lambda.Runtime.Adapters
 {
-    public sealed class ApiGatewayAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
-    {
-        public ApiGatewayAdapter() { }
-        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
-        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
-        public bool Handles(System.Text.Json.JsonElement payload) { }
-        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
-    }
-    public sealed class EventBridgeAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
-    {
-        public const string EventDetailTypeHeader = "x-amz-event-detail-type";
-        public const string EventIdHeader = "x-amz-event-id";
-        public const string EventScheme = "EVENT";
-        public const string EventSourceHeader = "x-amz-event-source";
-        public const string EventTimeHeader = "x-amz-event-time";
-        public const string ScheduleDetailType = "Scheduled Event";
-        public const string ScheduleSource = "aws.events";
-        public const string TimerScheme = "TIMER";
-        public EventBridgeAdapter() { }
-        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
-        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
-        public bool Handles(System.Text.Json.JsonElement payload) { }
-        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
-    }
     public interface IPayloadAdapter
     {
         Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
@@ -35,80 +9,9 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters
         bool Handles(System.Text.Json.JsonElement payload);
         System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output);
     }
-    public sealed class InvokeAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
-    {
-        public const string OperationField = "operation";
-        public const string Scheme = "INVOKE";
-        public InvokeAdapter() { }
-        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
-        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
-        public bool Handles(System.Text.Json.JsonElement payload) { }
-        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
-    }
-    public sealed class SnsAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
-    {
-        public const string EventSourceValue = "aws:sns";
-        public SnsAdapter() { }
-        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
-        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
-        public bool Handles(System.Text.Json.JsonElement payload) { }
-        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
-    }
-    public sealed class SqsAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
-    {
-        public const string EventSourceValue = "aws:sqs";
-        public SqsAdapter(bool reportsItemFailures = false) { }
-        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
-        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
-        public bool Handles(System.Text.Json.JsonElement payload) { }
-        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
-    }
 }
 namespace Hardened.Aws.Lambda.Runtime.Execution
 {
-    public class ApiGatewayRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
-    {
-        public ApiGatewayRequest(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request, System.IO.Stream body) { }
-        public string? Accept { get; }
-        public System.IO.Stream Body { get; set; }
-        public string? ContentType { get; }
-        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
-        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
-        public string Method { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
-        public string Path { get; }
-        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
-        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
-        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
-    }
-    public class ApiGatewayResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
-    {
-        public ApiGatewayResponse(System.IO.Stream body) { }
-        public System.IO.Stream Body { get; set; }
-        public string? ContentType { get; set; }
-        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
-        public System.Exception? ExceptionValue { get; set; }
-        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
-        public bool IsBinary { get; set; }
-        public Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
-        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
-        public bool ResponseStarted { get; }
-        public object? ResponseValue { get; set; }
-        public bool ShouldSerialize { get; set; }
-        public int? Status { get; set; }
-        public object Clone() { }
-        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
-    }
-    public sealed class ApiGatewayTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
-    {
-        public ApiGatewayTransportInfo(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request) { }
-        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
-        public string? Get(string key) { }
-    }
     public class LambdaExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
     {
         public static readonly System.TimeSpan DefaultDeadlineMargin;
@@ -137,6 +40,7 @@ namespace Hardened.Aws.Lambda.Runtime.Execution
         public System.ReadOnlyMemory<byte> Raw { get; }
         public System.IO.Stream AsStream() { }
         public void Dispose() { }
+        public static System.Text.Json.JsonElement? FirstRecord(System.Text.Json.JsonElement payload) { }
     }
     public class LambdaPayloadRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
     {
@@ -172,37 +76,6 @@ namespace Hardened.Aws.Lambda.Runtime.Execution
         public object Clone() { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
     }
-    public class SnsRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
-    {
-        public const string MessageIdHeader = "x-amz-sns-message-id";
-        public const string SubjectHeader = "x-amz-sns-subject";
-        public const string TopicArnHeader = "x-amz-sns-topic-arn";
-        public const string TopicScheme = "TOPIC";
-        public SnsRequest(string topicName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SNSEvents.SNSEvent.SNSRecord> records) { }
-        public int Count { get; }
-        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
-        public System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SNSEvents.SNSEvent.SNSRecord> Records { get; }
-        public bool ReportsItemFailures { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForRecord(Amazon.Lambda.SNSEvents.SNSEvent.SNSRecord record) { }
-        public void RecordFailure(int index, System.Exception failure) { }
-    }
-    public class SqsRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
-    {
-        public const string MessageIdHeader = "x-amz-sqs-message-id";
-        public const string QueueArnHeader = "x-amz-sqs-queue-arn";
-        public const string ReceiptHandleHeader = "x-amz-sqs-receipt-handle";
-        public const string SqsScheme = "QUEUE";
-        public SqsRequest(string queueName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage> records, bool reportsItemFailures = false) { }
-        public int Count { get; }
-        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
-        public System.Collections.Generic.IEnumerable<string> FailedMessageIds { get; }
-        public System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage> Records { get; }
-        public bool ReportsItemFailures { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForRecord(Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage record) { }
-        public void RecordFailure(int index, System.Exception failure) { }
-    }
 }
 namespace Hardened.Aws.Lambda.Runtime.Hosting
 {
@@ -222,59 +95,7 @@ namespace Hardened.Aws.Lambda.Runtime.Hosting
 namespace Hardened.Aws.Lambda.Runtime.Modules
 {
     [DependencyModules.Runtime.Attributes.DependencyModule]
-    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class ApiGatewayModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
-    {
-        public ApiGatewayModule() { }
-        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
-    public class ApiGatewayModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
-    {
-        public ApiGatewayModuleAttribute() { }
-        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
-    }
-    [DependencyModules.Runtime.Attributes.DependencyModule]
-    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class EventBridgeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
-    {
-        public EventBridgeModule() { }
-        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
-    public class EventBridgeModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
-    {
-        public EventBridgeModuleAttribute() { }
-        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
-    }
-    [DependencyModules.Runtime.Attributes.DependencyModule]
-    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class InvokeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
-    {
-        public InvokeModule() { }
-        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
-    public class InvokeModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
-    {
-        public InvokeModuleAttribute() { }
-        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
-    }
-    [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     public class LambdaRuntimeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public LambdaRuntimeModule() { }
@@ -287,42 +108,6 @@ namespace Hardened.Aws.Lambda.Runtime.Modules
     public class LambdaRuntimeModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public LambdaRuntimeModuleAttribute() { }
-        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
-    }
-    [DependencyModules.Runtime.Attributes.DependencyModule]
-    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class SnsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
-    {
-        public SnsModule() { }
-        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
-    public class SnsModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
-    {
-        public SnsModuleAttribute() { }
-        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
-    }
-    [DependencyModules.Runtime.Attributes.DependencyModule]
-    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class SqsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
-    {
-        public SqsModule() { }
-        public bool? ReportBatchItemFailures { get; set; }
-        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
-    public class SqsModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
-    {
-        public SqsModuleAttribute() { }
-        public bool ReportBatchItemFailures { get; set; }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
 }

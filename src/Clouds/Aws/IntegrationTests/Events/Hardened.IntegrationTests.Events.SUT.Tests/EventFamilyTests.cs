@@ -1,6 +1,9 @@
 using DependencyModules.Testing.Attributes;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.IntegrationTests.Events.SUT;
+using Hardened.Aws.Lambda.EventBridge;
+using Hardened.Aws.Lambda.Sns;
+using Hardened.Aws.Lambda.Sqs;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
