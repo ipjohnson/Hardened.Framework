@@ -1,0 +1,15 @@
+namespace Hardened.Functions.Testing
+{
+    public interface IQueuesOf<out TQueues>
+    {
+        TQueues SendTo { get; }
+    }
+    public interface ITimersOf<out TTimers>
+    {
+        TTimers Fire { get; }
+    }
+    public interface ITopicsOf<out TTopics>
+    {
+        TTopics PublishTo { get; }
+    }
+}

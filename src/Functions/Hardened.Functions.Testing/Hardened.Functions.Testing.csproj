@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Test-time access to the triggers a Hardened function declares: send to a queue, publish to a topic or fire a timer by name, with the payload type the handler binds.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Functions.Testing</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;serverless;functions;testing</PackageTags>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      Names no cloud, for the same reason the trigger attributes do not: the test says "send to the
+      orders queue", and which service that is belongs to whichever runtime package the application
+      references. The implementation of ITriggerDispatch is what knows.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    </ItemGroup>
+
+</Project>

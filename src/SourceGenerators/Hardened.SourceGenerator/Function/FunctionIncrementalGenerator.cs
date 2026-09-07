@@ -104,6 +104,15 @@ public static class FunctionIncrementalGenerator {
         csharpFile.WriteOutput(output);
 
         context.AddSource(appModel.EntryPointType.Name + ".FunctionHandlers.cs", GeneratedSource.Header(output.Output()));
+
+        // The test-time façades, in their own file. Separate because they are a different audience:
+        // this one is the routing table, and that one is what a test types.
+        var facades = TriggerFacadeGenerator.Generate(appModel, requestHandlers, context.CancellationToken);
+
+        if (facades != null) {
+            context.AddSource(
+                appModel.EntryPointType.Name + ".Triggers.cs", GeneratedSource.Header(facades));
+        }
     }
 
     private static void CreateFunctionHandlerProviderClass(
