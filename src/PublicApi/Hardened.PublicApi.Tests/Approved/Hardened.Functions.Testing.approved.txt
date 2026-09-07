@@ -12,4 +12,14 @@ namespace Hardened.Functions.Testing
     {
         TTopics PublishTo { get; }
     }
+    public sealed class TriggerInvoker
+    {
+        public TriggerInvoker(System.IServiceProvider provider) { }
+        public System.Func<object, string, string, System.Threading.Tasks.Task> Invoke { get; }
+        public TFacade Facade<TFacade>() { }
+    }
+    public static class TriggerTestingServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddTriggerTesting(this Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
 }

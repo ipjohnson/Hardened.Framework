@@ -18,7 +18,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.Sqs.SUT\Hardened.IntegrationTests.Sqs.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
     </ItemGroup>
 
 </Project>

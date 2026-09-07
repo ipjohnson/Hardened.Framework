@@ -1,4 +1,3 @@
-using Hardened.Aws.Lambda.Testing;
 using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.Sqs.SUT;
 using Hardened.Shared.Runtime.Application;
@@ -14,8 +13,8 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// <para>
 /// The queue name and the payload type are both checked by the compiler - the queue exists because
 /// the method does, and the payload matches because overload resolution says so. What runs is the
-/// same path as a real delivery: a real SQS envelope through the real invocation loop, so the
-/// adapter, the batch filter and the binder are all exercised.
+/// pipeline: routing on the scheme and path, the batch fan-out, binding, every filter and the
+/// handler. Nothing here names AWS, so this file is unchanged if the application moves host.
 /// </para>
 /// </summary>
 [Collection(QueueHandlerState.Name)]
@@ -29,7 +28,7 @@ public class TriggerFacadeTests : IDisposable {
             new EnvironmentImpl(null),
             // Registered here rather than by the application, which is what keeps the façade out of
             // a published function: nothing app-side references it, so the linker drops it.
-            (_, services) => services.AddLambdaTriggerTesting(),
+            (_, services) => services.AddTriggerTesting(),
             builder => { });
     }
 
@@ -64,10 +63,9 @@ public class TriggerFacadeTests : IDisposable {
     }
 
     /// <summary>
-    /// It goes through the adapter rather than round the side of it. The handler only runs because
-    /// the envelope was recognised as SQS, routed to QUEUE /orders-new and forked per record - so
-    /// this fails if any of those break, which is the whole reason to build the envelope rather
-    /// than call the handler.
+    /// The failure policy is the pipeline's, not the façade's. A trigger rethrows, because failing
+    /// the invocation is what makes a source redeliver, and a test asserting that a bad message
+    /// fails has to see the exception rather than a recorded report.
     /// </summary>
     [Fact]
     public async Task TheFailurePolicyStillApplies() {
