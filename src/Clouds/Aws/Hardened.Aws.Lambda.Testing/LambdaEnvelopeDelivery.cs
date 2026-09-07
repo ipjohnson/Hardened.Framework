@@ -54,9 +54,10 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
             "TIMER" => Scheduled(name),
             "CHANGE" => DynamoDb(name, items),
             "STREAM" => Kinesis(name, items),
+            "BLOB" => S3(name, items),
             _ => throw new NotSupportedException(
                 $"No test envelope is built for the {scheme} scheme yet. Queues, topics, timers, " +
-                "changes and streams have one; events are addressed by source and detail type and need " +
+                "changes, streams and blobs have one; events are addressed by source and detail type and need " +
                 "their own shape.")
         };
 
@@ -208,6 +209,60 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
                  "eventID":"shardId-000000000000:{{Sequence(index)}}",
                  "eventSourceARN":"{{arn}}","awsRegion":"{{_region}}",
                  "kinesis":{{kinesis}}}
+                """);
+
+            index++;
+        }
+
+        return "{\"Records\":[" + string.Join(",", records) + "]}";
+    }
+
+    /// <summary>
+    /// An S3 batch, one ObjectCreated:Put per message.
+    /// </summary>
+    /// <remarks>
+    /// <b>The message is the notification, not the object.</b> S3 sends metadata and nothing else,
+    /// so a test writing <c>blobs.Uploads(new Upload { Key = "a.txt", Size = 12 })</c> is describing
+    /// what S3 would say about an object rather than the object itself - which is what a blob
+    /// handler binds. The key is form-encoded on the way in, because that is what S3 does and
+    /// undoing it is the adapter's job.
+    /// </remarks>
+    private string S3(string bucket, System.Collections.IEnumerable messages) {
+        var records = new List<string>();
+        var index = 0;
+
+        foreach (var message in messages) {
+            var written = JsonSerializer.Serialize(message, Wire);
+
+            using var document = JsonDocument.Parse(written);
+
+            var key = document.RootElement.TryGetProperty("key", out var k) &&
+                      k.ValueKind == JsonValueKind.String
+                ? k.GetString() ?? ""
+                : $"object-{index}";
+
+            var size = document.RootElement.TryGetProperty("size", out var z) &&
+                       z.ValueKind == JsonValueKind.Number
+                ? z.GetRawText()
+                : "0";
+
+            // Built in two pieces, because a raw interpolated string cannot carry two adjacent
+            // closing braces and an S3 record nests three objects deep.
+            var obj = $$"""
+                {"key":"{{Uri.EscapeDataString(key).Replace("%20", "+")}}","size":{{size}},
+                 "eTag":"{{index:D32}}","sequencer":"{{Sequence(index)}}"}
+                """;
+
+            var s3 = $$"""
+                {"s3SchemaVersion":"1.0","configurationId":"{{bucket}}",
+                 "bucket":{"name":"{{bucket}}","arn":"arn:aws:s3:::{{bucket}}"},
+                 "object":{{obj}}}
+                """;
+
+            records.Add($$"""
+                {"eventVersion":"2.1","eventSource":"aws:s3","awsRegion":"{{_region}}",
+                 "eventTime":"2026-01-01T00:00:00.000Z","eventName":"ObjectCreated:Put",
+                 "s3":{{s3}}}
                 """);
 
             index++;

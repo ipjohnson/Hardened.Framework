@@ -5,6 +5,7 @@ using Hardened.Aws.Lambda.ApiGateway;
 using Hardened.Aws.Lambda.DynamoDb;
 using Hardened.Aws.Lambda.EventBridge;
 using Hardened.Aws.Lambda.Kinesis;
+using Hardened.Aws.Lambda.S3;
 using Hardened.Aws.Lambda.Sns;
 using Hardened.Aws.Lambda.Sqs;
 
@@ -31,6 +32,7 @@ public class PayloadDiscriminationTests {
         ("sns", new SnsAdapter()),
         ("dynamodb", new DynamoDbAdapter()),
         ("kinesis", new KinesisAdapter()),
+        ("s3", new S3Adapter()),
         ("eventbridge", new EventBridgeAdapter()),
         ("apigateway", new ApiGatewayAdapter())
     ];
@@ -40,6 +42,7 @@ public class PayloadDiscriminationTests {
         { "sns", Infrastructure.Payloads.SnsJson },
         { "dynamodb", Infrastructure.Payloads.DynamoDbJson },
         { "kinesis", Infrastructure.Payloads.KinesisJson },
+        { "s3", Infrastructure.Payloads.S3Json },
         { "eventbridge", Infrastructure.Payloads.EventBridgeJson },
         { "eventbridge", Infrastructure.Payloads.ScheduledJson },
         { "apigateway", Infrastructure.Payloads.ApiGatewayJson }
@@ -61,7 +64,7 @@ public class PayloadDiscriminationTests {
     /// batch handled as SQS would report every record as successfully processed.
     /// </summary>
     /// <remarks>
-    /// DynamoDB Streams and then Kinesis left this list when their adapters arrived, and moved into
+    /// DynamoDB Streams, then Kinesis, then S3 left this list when their adapters arrived, and moved into
     /// <see cref="Payloads"/> above where each now has to be claimed by exactly one thing. That is
     /// the shape of adding an adapter: a row moves from here to there. Firehose is what is left,
     /// and it is not a Records array at all - it is a synchronous transform, which is why it needs

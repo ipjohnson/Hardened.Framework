@@ -22,7 +22,9 @@ public class KinesisAdapterTests {
     private static string Body(IExecutionRequest request) {
         request.Body!.Position = 0;
 
-        using var reader = new StreamReader(request.Body, Encoding.UTF8);
+        // leaveOpen, because a StreamReader closes what it wraps and a test may read a
+        // request twice.
+        using var reader = new StreamReader(request.Body, Encoding.UTF8, leaveOpen: true);
 
         return reader.ReadToEnd();
     }

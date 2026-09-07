@@ -26,6 +26,10 @@
     <Project Path="src/Clouds/Aws/IntegrationTests/DynamoDb/Hardened.IntegrationTests.DynamoDb.SUT/Hardened.IntegrationTests.DynamoDb.SUT.csproj" />
     <Project Path="src/Clouds/Aws/IntegrationTests/DynamoDb/Hardened.IntegrationTests.DynamoDb.SUT.Tests/Hardened.IntegrationTests.DynamoDb.SUT.Tests.csproj" />
   </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/S3/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/S3/Hardened.IntegrationTests.S3.SUT/Hardened.IntegrationTests.S3.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/S3/Hardened.IntegrationTests.S3.SUT.Tests/Hardened.IntegrationTests.S3.SUT.Tests.csproj" />
+  </Folder>
   <Folder Name="/Clouds/Aws/IntegrationTests/Kinesis/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Kinesis/Hardened.IntegrationTests.Kinesis.SUT/Hardened.IntegrationTests.Kinesis.SUT.csproj" />
     <Project Path="src/Clouds/Aws/IntegrationTests/Kinesis/Hardened.IntegrationTests.Kinesis.SUT.Tests/Hardened.IntegrationTests.Kinesis.SUT.Tests.csproj" />
@@ -50,6 +54,7 @@
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.EventBridge/Hardened.Aws.Lambda.EventBridge.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Invoke/Hardened.Aws.Lambda.Invoke.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Kinesis/Hardened.Aws.Lambda.Kinesis.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.S3/Hardened.Aws.Lambda.S3.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Sns/Hardened.Aws.Lambda.Sns.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Sqs/Hardened.Aws.Lambda.Sqs.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Testing/Hardened.Aws.Lambda.Testing.csproj" />

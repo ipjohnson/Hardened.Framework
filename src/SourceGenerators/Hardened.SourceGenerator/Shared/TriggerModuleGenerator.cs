@@ -139,6 +139,10 @@ public static class TriggerModuleGenerator {
         new Trigger("Change", "Hardened.Functions.Runtime.Attributes.ChangeAttribute", "HardenedChangeModule", "CHANGE"),
         new Trigger("Stream", "Hardened.Functions.Runtime.Attributes.StreamAttribute", "HardenedStreamModule", "STREAM"),
 
+        // Unordered, unlike the two above: two notifications for one key can arrive out of order,
+        // so this is a queue's failure shape rather than a shard's.
+        new Trigger("Blob", "Hardened.Functions.Runtime.Attributes.BlobAttribute", "HardenedBlobModule", "BLOB"),
+
         // Not a trigger in the same sense - nothing delivers to it, a caller invokes it - but it
         // binds a module the same way, and for the same reason: an application that had to write
         // [InvokeModule] itself would name a cloud in the one file that must not.

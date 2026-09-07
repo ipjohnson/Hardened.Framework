@@ -1,5 +1,10 @@
 namespace Hardened.Functions.Runtime.Attributes
 {
+    public class BlobAttribute : System.Attribute
+    {
+        public BlobAttribute(string name) { }
+        public string Name { get; }
+    }
     public class ChangeAttribute : System.Attribute
     {
         public ChangeAttribute(string name) { }

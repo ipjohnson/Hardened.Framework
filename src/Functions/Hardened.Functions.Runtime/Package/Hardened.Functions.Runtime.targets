@@ -26,5 +26,6 @@
         <CompilerVisibleProperty Include="HardenedEventModule"/>
         <CompilerVisibleProperty Include="HardenedChangeModule"/>
         <CompilerVisibleProperty Include="HardenedStreamModule"/>
+        <CompilerVisibleProperty Include="HardenedBlobModule"/>
     </ItemGroup>
 </Project>

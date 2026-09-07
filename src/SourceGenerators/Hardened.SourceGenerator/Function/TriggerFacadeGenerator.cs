@@ -14,9 +14,8 @@ namespace Hardened.SourceGenerator.Function;
 /// <remarks>
 /// <para>
 /// One nested class per trigger kind on the entry point - <c>Queues</c>, <c>Topics</c>,
-/// <c>Timers</c>, <c>Changes</c>, <c>Streams</c> - with a method per source taking the payload type
-/// the handler binds. A test
-/// writes <c>queues.SendTo.OrdersNew(new Order(...))</c> and the compiler checks both halves: the
+/// <c>Timers</c>, <c>Changes</c>, <c>Streams</c>, <c>Blobs</c> - with a method per source taking
+/// the payload type the handler binds. A test writes <c>queues.SendTo.OrdersNew(new Order(...))</c> and the compiler checks both halves: the
 /// queue exists because the method does, and the payload matches because overload resolution says
 /// so.
 /// </para>
@@ -59,6 +58,7 @@ public static class TriggerFacadeGenerator {
         ("TIMER", "Timers", "timer"),
         ("CHANGE", "Changes", "table"),
         ("STREAM", "Streams", "stream"),
+        ("BLOB", "Blobs", "bucket"),
         ("INVOKE", "Invocations", "operation")
     };
 

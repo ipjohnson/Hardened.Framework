@@ -143,6 +143,28 @@ public static class Payloads {
             "approximateArrivalTimestamp":1545084651.500}}]}
         """;
 
+    /// <summary>
+    /// Two notifications on one bucket: a put and a delete.
+    /// </summary>
+    /// <remarks>
+    /// The key is URL-encoded, as S3 sends it - <c>my+report.pdf</c> is an object actually named
+    /// "my report.pdf". A delete carries no size and no etag, which is why both are nullable.
+    /// </remarks>
+    public const string S3Json = """
+        {"Records":[{
+          "eventVersion":"2.1","eventSource":"aws:s3","awsRegion":"us-east-1",
+          "eventTime":"2026-01-01T00:00:00.000Z","eventName":"ObjectCreated:Put",
+          "s3":{"s3SchemaVersion":"1.0","configurationId":"uploads",
+            "bucket":{"name":"uploads","arn":"arn:aws:s3:::uploads"},
+            "object":{"key":"my+report.pdf","size":1024,"eTag":"d41d8cd98f00b204e9800998ecf8427e",
+              "sequencer":"00659A1B2C3D4E5F60"}}},{
+          "eventVersion":"2.1","eventSource":"aws:s3","awsRegion":"us-east-1",
+          "eventTime":"2026-01-01T00:00:01.000Z","eventName":"ObjectRemoved:Delete",
+          "s3":{"s3SchemaVersion":"1.0","configurationId":"uploads",
+            "bucket":{"name":"uploads","arn":"arn:aws:s3:::uploads"},
+            "object":{"key":"old.txt","sequencer":"00659A1B2C3D4E5F61"}}}]}
+        """;
+
     public const string FirehoseJson = """
         {"invocationId":"invoked123","deliveryStreamArn":"arn:aws:firehose:us-east-1:123:deliverystream/orders",
          "region":"us-east-1","records":[{"recordId":"r1","data":"aGVsbG8="}]}

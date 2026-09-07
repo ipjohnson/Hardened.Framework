@@ -39,6 +39,7 @@ public class PublicApiSurfaceTests {
         "Hardened.Aws.Lambda.Invoke",
         "Hardened.Aws.Lambda.Kinesis",
         "Hardened.Aws.Lambda.Runtime",
+        "Hardened.Aws.Lambda.S3",
         "Hardened.Aws.Lambda.Sns",
         "Hardened.Aws.Lambda.Sqs",
         "Hardened.Aws.Lambda.Testing",
