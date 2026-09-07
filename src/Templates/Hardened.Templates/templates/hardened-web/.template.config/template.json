@@ -282,10 +282,9 @@
           ]
         },
         {
-          "comment": "Main is generated on Lambda, so there is no Program.cs to keep. The socket smoke test runs the application on the host it deploys to, and a Lambda application has none to bind.",
+          "comment": "Program.cs is kept on Lambda now: the entry point is written rather than generated, so excluding it leaves the project with no Main at all. The socket smoke test still goes, because it binds a port itself and a Lambda application answers through the test tool's API Gateway emulator instead - which the template's own verification covers over a real socket.",
           "condition": "(lambda)",
           "exclude": [
-            "src/Hardened1.Host/Program.cs",
             "tests/Hardened1.Tests/Hardened1SocketTests.cs"
           ]
         },

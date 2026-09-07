@@ -9,7 +9,7 @@ using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.AspNetCore.Runtime;
 #endif
 #if (lambda)
-using Hardened.Amz.Web.Lambda.Runtime.DependencyInjection;
+using Hardened.Aws.Lambda.ApiGateway;
 #endif
 
 namespace Hardened1.Host;
@@ -29,8 +29,12 @@ namespace Hardened1.Host;
 [AspNetCoreRuntime]
 #endif
 #if (lambda)
-// Brings the API Gateway host and, through the [HardenedWebModule] it carries, the web pipeline.
-[LambdaWebModule]
+// The API Gateway payload adapter, and through the runtime module it composes, the invocation loop
+// and the web pipeline. Named here rather than inferred: a function whose handlers sit beside its
+// entry point gets its adapter from their trigger attributes, but the handlers here are in the
+// library project, and a generator only sees the compilation it runs in. The Kestrel and ASP.NET
+// hosts name theirs above for the same reason.
+[ApiGatewayModule]
 #endif
 #if (codeFirst)
 #if (OpenApiUi)

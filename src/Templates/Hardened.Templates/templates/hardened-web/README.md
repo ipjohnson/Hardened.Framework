@@ -91,10 +91,10 @@ from a terminal browse to the page yourself.
 #endif
 | `tests/Hardened1.Tests` | Tests, against the library rather than the host. |
 
-That split is the point rather than a convention. Swapping the host — Kestrel, ASP.NET Core, and
-Lambda in the Hardened.Amz packages — changes only the host project. The others are identical
-whichever one you pick, which is why the tests target the library: a test suite that named the host
-would be tied to a deployment target for no reason.
+That split is the point rather than a convention. Swapping the host — Kestrel, ASP.NET Core, or
+AWS Lambda behind API Gateway — changes only the host project. The others are identical whichever
+one you pick, which is why the tests target the library: a test suite that named the host would be
+tied to a deployment target for no reason.
 
 ## Adding to it
 

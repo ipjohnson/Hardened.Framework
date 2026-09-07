@@ -8,16 +8,6 @@
          HardenedVersion is. Hardened.Shared.Testing depends on DependencyModules.Testing at this
          version, and the mock package below has to be the same line. -->
     <DependencyModulesVersion>0.0.0-DEPENDENCYMODULES-VERSION</DependencyModulesVersion>
-    <!--
-      Hardened.Amz.* is the AWS line as it was last released, 0.22.0-rc1000 on nuget.org. Its source
-      is not in Hardened.Framework: it is being replaced by new Hardened.Aws projects rather than
-      renamed, so the old line stays where it was published, restorable and no longer moving.
-
-      Pinned rather than floated. It was 0.*-* while the two repositories released in sequence,
-      because for the window between them an exact pin named a version that did not exist yet. The
-      line does not move at all now, so the pin names the release it stopped at.
-    -->
-    <HardenedAmzVersion>0.22.0-rc1000</HardenedAmzVersion>
 <!--#if (kiotaClient) -->
     <!--
       The Kiota runtime the generated client compiles against. Pinned beside the tool that
@@ -92,12 +82,14 @@
 
   <ItemGroup Label="AWS Lambda">
     <!--
-      Hardened.Amz releases on its own line, and this pins the same version the framework is on
-      because the two are released together. If they ever diverge, this is the one line to change.
+      On $(HardenedVersion) with everything else. The AWS line is part of the framework repository
+      now, so it moves with it rather than being pinned to a release of its own - which is what the
+      old Hardened.Amz pin was, and what let this template combine a framework from one release
+      with a generator from another.
     -->
-    <PackageVersion Include="Hardened.Amz.Shared.Lambda.Runtime" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Web.Lambda.Runtime" Version="$(HardenedAmzVersion)" />
-    <PackageVersion Include="Hardened.Amz.Web.Lambda.SourceGenerator" Version="$(HardenedAmzVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.Runtime" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.ApiGateway" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup Label="Hardened source generators">

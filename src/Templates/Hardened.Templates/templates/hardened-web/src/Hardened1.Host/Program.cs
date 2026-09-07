@@ -5,6 +5,12 @@ using Hardened.Web.Kestrel.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 #endif
+#if (lambda)
+using Hardened.Aws.Lambda.Runtime.Development;
+using Hardened.Aws.Lambda.Runtime.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+#endif
 #if (aspnet)
 using Hardened.Web.AspNetCore.Runtime;
 using Microsoft.AspNetCore.Builder;
@@ -14,8 +20,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 #endif
 
+#if (!lambda)
 // Listens on 5080. Override with PORT.
 var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var configured) ? configured : 5080;
+#endif
 
 // Registered by the application, not the framework: only the application knows where its
 // environment name and arguments come from. HARDENED_ENVIRONMENT names it, or "development".
@@ -83,4 +91,26 @@ if (environment.Matches("development")) {
 #endif
 
 await app.WaitForShutdownAsync();
+#endif
+#if (lambda)
+// Started by the Lambda service, this does nothing and the bootstrap reads the address the service
+// set. Started from an IDE or `dotnet run`, there is no such address, so this brings up the AWS
+// Lambda Test Tool with its API Gateway emulator in front and sets the same variable the service
+// would have. The application then answers on PORT, 5080 by default, exactly as the Kestrel host
+// does - which is what makes the two hosts interchangeable to a browser.
+//
+// Delete it and the application still deploys; only running it locally stops working.
+using var emulator = await LambdaEmulator.StartIfLocal(typeof(Application), apiGateway: true);
+
+var services = new ServiceCollection();
+
+services.AddLogging(logging => logging.AddSimpleConsole(options => options.SingleLine = true));
+
+services.AddHardenedEnvironment(environment);
+
+new Application().PopulateServiceCollection(services);
+
+// No server and no port. API Gateway is the server, and what this starts is the loop that reads
+// the requests it forwards.
+await HardenedLambdaBootstrap.Run(services.BuildServiceProvider());
 #endif
