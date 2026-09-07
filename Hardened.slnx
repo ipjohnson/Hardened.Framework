@@ -11,6 +11,10 @@
     <Project Path="src/Clients/Hardened.Refit.Testing.Tests/Hardened.Refit.Testing.Tests.csproj" />
     <Project Path="src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj" />
   </Folder>
+  <Folder Name="/IntegrationTests/Events/">
+    <Project Path="src/IntegrationTests/Events/Hardened.IntegrationTests.Events.SUT/Hardened.IntegrationTests.Events.SUT.csproj" />
+    <Project Path="src/IntegrationTests/Events/Hardened.IntegrationTests.Events.SUT.Tests/Hardened.IntegrationTests.Events.SUT.Tests.csproj" />
+  </Folder>
   <Folder Name="/IntegrationTests/Sqs/">
     <Project Path="src/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT/Hardened.IntegrationTests.Sqs.SUT.csproj" />
     <Project Path="src/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT.Tests/Hardened.IntegrationTests.Sqs.SUT.Tests.csproj" />
