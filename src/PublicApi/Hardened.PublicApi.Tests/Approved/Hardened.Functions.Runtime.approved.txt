@@ -1,0 +1,24 @@
+namespace Hardened.Functions.Runtime.Attributes
+{
+    public class EventAttribute : System.Attribute
+    {
+        public EventAttribute(string source, string detailType) { }
+        public string DetailType { get; }
+        public string Source { get; }
+    }
+    public class QueueAttribute : System.Attribute
+    {
+        public QueueAttribute(string name) { }
+        public string Name { get; }
+    }
+    public class TimerAttribute : System.Attribute
+    {
+        public TimerAttribute(string name) { }
+        public string Name { get; }
+    }
+    public class TopicAttribute : System.Attribute
+    {
+        public TopicAttribute(string name) { }
+        public string Name { get; }
+    }
+}

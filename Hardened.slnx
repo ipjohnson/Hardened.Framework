@@ -11,6 +11,9 @@
     <Project Path="src/Clients/Hardened.Refit.Testing.Tests/Hardened.Refit.Testing.Tests.csproj" />
     <Project Path="src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj" />
   </Folder>
+  <Folder Name="/Functions/">
+    <Project Path="src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj" />
+  </Folder>
   <Folder Name="/Clouds/Aws/">
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Runtime/Hardened.Aws.Lambda.Runtime.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Runtime.Tests/Hardened.Aws.Lambda.Runtime.Tests.csproj" />

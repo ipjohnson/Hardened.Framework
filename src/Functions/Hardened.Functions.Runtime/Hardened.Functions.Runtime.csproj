@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>The trigger attributes a Hardened function handler is written against: queues, topics, timers and events. Provider-neutral - which adapter serves a trigger is decided by the runtime package that is referenced.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Functions.Runtime</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;serverless;functions</PackageTags>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      No reference to any cloud, and none to the request pipeline either. This package exists to be
+      the one thing a handler names, so anything it depends on is something a handler drags with it.
+    -->
+
+</Project>
