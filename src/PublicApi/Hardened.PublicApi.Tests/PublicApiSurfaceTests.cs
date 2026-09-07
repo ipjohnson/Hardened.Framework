@@ -37,6 +37,7 @@ public class PublicApiSurfaceTests {
         "Hardened.Aws.Lambda.DynamoDb",
         "Hardened.Aws.Lambda.EventBridge",
         "Hardened.Aws.Lambda.Invoke",
+        "Hardened.Aws.Lambda.Kinesis",
         "Hardened.Aws.Lambda.Runtime",
         "Hardened.Aws.Lambda.Sns",
         "Hardened.Aws.Lambda.Sqs",

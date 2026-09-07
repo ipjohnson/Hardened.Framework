@@ -259,6 +259,7 @@ jobs:
             src/Clouds/Aws/Hardened.Aws.Lambda.DynamoDb/Hardened.Aws.Lambda.DynamoDb.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.EventBridge/Hardened.Aws.Lambda.EventBridge.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Invoke/Hardened.Aws.Lambda.Invoke.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Kinesis/Hardened.Aws.Lambda.Kinesis.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Sns/Hardened.Aws.Lambda.Sns.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Sqs/Hardened.Aws.Lambda.Sqs.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Testing/Hardened.Aws.Lambda.Testing.csproj \
@@ -317,7 +318,8 @@ jobs:
           # literal somebody has to change.
           # 40 with Hardened.Aws.Lambda.DynamoDb, the first adapter added after the split - which
           # is the shape every later one takes: one package, one trigger, one line here.
-          EXPECTED=40
+          # 41 with Hardened.Aws.Lambda.Kinesis, the second adapter added after the split.
+          EXPECTED=41
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

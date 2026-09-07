@@ -4,6 +4,7 @@ using Xunit;
 using Hardened.Aws.Lambda.ApiGateway;
 using Hardened.Aws.Lambda.DynamoDb;
 using Hardened.Aws.Lambda.EventBridge;
+using Hardened.Aws.Lambda.Kinesis;
 using Hardened.Aws.Lambda.Sns;
 using Hardened.Aws.Lambda.Sqs;
 
@@ -29,6 +30,7 @@ public class PayloadDiscriminationTests {
         ("sqs", new SqsAdapter()),
         ("sns", new SnsAdapter()),
         ("dynamodb", new DynamoDbAdapter()),
+        ("kinesis", new KinesisAdapter()),
         ("eventbridge", new EventBridgeAdapter()),
         ("apigateway", new ApiGatewayAdapter())
     ];
@@ -37,6 +39,7 @@ public class PayloadDiscriminationTests {
         { "sqs", Infrastructure.Payloads.SqsJson },
         { "sns", Infrastructure.Payloads.SnsJson },
         { "dynamodb", Infrastructure.Payloads.DynamoDbJson },
+        { "kinesis", Infrastructure.Payloads.KinesisJson },
         { "eventbridge", Infrastructure.Payloads.EventBridgeJson },
         { "eventbridge", Infrastructure.Payloads.ScheduledJson },
         { "apigateway", Infrastructure.Payloads.ApiGatewayJson }
@@ -58,16 +61,16 @@ public class PayloadDiscriminationTests {
     /// batch handled as SQS would report every record as successfully processed.
     /// </summary>
     /// <remarks>
-    /// DynamoDB Streams left this list when its adapter arrived, and moved into
-    /// <see cref="Payloads"/> above where it now has to be claimed by exactly one thing. That is the
-    /// shape of adding an adapter: a row moves from here to there.
+    /// DynamoDB Streams and then Kinesis left this list when their adapters arrived, and moved into
+    /// <see cref="Payloads"/> above where each now has to be claimed by exactly one thing. That is
+    /// the shape of adding an adapter: a row moves from here to there. Firehose is what is left,
+    /// and it is not a Records array at all - it is a synchronous transform, which is why it needs
+    /// its own trigger rather than an adapter under [Stream].
     /// </remarks>
     [Theory]
-    [InlineData("kinesis")]
     [InlineData("firehose")]
     public void NothingClaimsASourceWithNoAdapter(string source) {
         var json = source switch {
-            "kinesis" => Infrastructure.Payloads.KinesisJson,
             _ => Infrastructure.Payloads.FirehoseJson
         };
 

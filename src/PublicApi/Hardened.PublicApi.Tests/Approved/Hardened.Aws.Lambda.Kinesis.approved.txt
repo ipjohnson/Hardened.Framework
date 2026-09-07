@@ -1,0 +1,60 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
+namespace Hardened.Aws.Lambda.Kinesis
+{
+    public sealed class KinesisAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
+    {
+        public const string EventSourceValue = "aws:kinesis";
+        public KinesisAdapter(bool reportsItemFailures = false) { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(System.Text.Json.JsonElement payload) { }
+        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
+    public class KinesisModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public KinesisModule() { }
+        public bool? ReportBatchItemFailures { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class KinesisModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public KinesisModuleAttribute() { }
+        public bool ReportBatchItemFailures { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public sealed class KinesisRecord : System.IEquatable<Hardened.Aws.Lambda.Kinesis.KinesisRecord>
+    {
+        public KinesisRecord(System.ReadOnlyMemory<byte> Data, string SequenceNumber, string PartitionKey, string EventId, string? ArrivalTime) { }
+        public string? ArrivalTime { get; init; }
+        public System.ReadOnlyMemory<byte> Data { get; init; }
+        public string EventId { get; init; }
+        public string PartitionKey { get; init; }
+        public string SequenceNumber { get; init; }
+    }
+    public class KinesisRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
+    {
+        public const string ArrivalTimeHeader = "x-amz-kinesis-arrival-time";
+        public const string EventIdHeader = "x-amz-kinesis-event-id";
+        public const string PartitionKeyHeader = "x-amz-kinesis-partition-key";
+        public const string SequenceNumberHeader = "x-amz-kinesis-sequence-number";
+        public const string StreamArnHeader = "x-amz-kinesis-stream-arn";
+        public const string StreamScheme = "STREAM";
+        public KinesisRequest(string streamName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Hardened.Aws.Lambda.Kinesis.KinesisRecord> records, bool reportsItemFailures = false) { }
+        public int Count { get; }
+        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        public System.Collections.Generic.IEnumerable<string> FailedSequenceNumbers { get; }
+        public Hardened.Requests.Abstract.Execution.BatchFailureMode FailureMode { get; }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Aws.Lambda.Kinesis.KinesisRecord> Records { get; }
+        public bool ReportsItemFailures { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForRecord(Hardened.Aws.Lambda.Kinesis.KinesisRecord record) { }
+        public void RecordFailure(int index, System.Exception failure) { }
+    }
+}

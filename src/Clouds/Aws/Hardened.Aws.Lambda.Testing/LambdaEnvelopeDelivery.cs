@@ -53,9 +53,10 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
             "TOPIC" => Sns(name, items),
             "TIMER" => Scheduled(name),
             "CHANGE" => DynamoDb(name, items),
+            "STREAM" => Kinesis(name, items),
             _ => throw new NotSupportedException(
-                $"No test envelope is built for the {scheme} scheme yet. Queues, topics, timers " +
-                "and changes have one; events are addressed by source and detail type and need " +
+                $"No test envelope is built for the {scheme} scheme yet. Queues, topics, timers, " +
+                "changes and streams have one; events are addressed by source and detail type and need " +
                 "their own shape.")
         };
 
@@ -167,6 +168,46 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
                    "SequenceNumber":"{{Sequence(index)}}","SizeBytes":64,
                    "StreamViewType":"NEW_AND_OLD_IMAGES"},
                  "eventSourceARN":"{{arn}}"}
+                """);
+
+            index++;
+        }
+
+        return "{\"Records\":[" + string.Join(",", records) + "]}";
+    }
+
+    /// <summary>
+    /// A Kinesis batch, one record per message.
+    /// </summary>
+    /// <remarks>
+    /// The message is serialized and base64-encoded, which is what a publisher does and what the
+    /// adapter undoes - Kinesis carries an opaque blob, so the round trip through base64 is the
+    /// whole of the envelope's effect on the payload. The sequence numbers ascend, which is what a
+    /// shard guarantees and what a checkpoint report is read against.
+    /// </remarks>
+    private string Kinesis(string stream, System.Collections.IEnumerable messages) {
+        var arn = $"arn:aws:kinesis:{_region}:{_account}:stream/{stream}";
+
+        var records = new List<string>();
+        var index = 0;
+
+        foreach (var message in messages) {
+            var data = Convert.ToBase64String(
+                Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, Wire)));
+
+            // The inner object built first, the way the SNS builder does it: a raw interpolated
+            // string cannot carry two adjacent closing braces, and a Kinesis record ends with them.
+            var kinesis = $$"""
+                {"kinesisSchemaVersion":"1.0","partitionKey":"{{stream}}-{{index}}",
+                 "sequenceNumber":"{{Sequence(index)}}","data":"{{data}}",
+                 "approximateArrivalTimestamp":1767225600.0}
+                """;
+
+            records.Add($$"""
+                {"eventSource":"aws:kinesis","eventVersion":"1.0",
+                 "eventID":"shardId-000000000000:{{Sequence(index)}}",
+                 "eventSourceARN":"{{arn}}","awsRegion":"{{_region}}",
+                 "kinesis":{{kinesis}}}
                 """);
 
             index++;

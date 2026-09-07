@@ -116,10 +116,31 @@ public static class Payloads {
           "dynamodb":{"Keys":{"id":{"S":"1"}}}}]}
         """;
 
+    /// <summary>
+    /// Two records off one shard, with the arrival timestamp Kinesis actually sends - a number with
+    /// a fraction, which is the shape that breaks a model typing it as a DateTime.
+    /// </summary>
+    /// <remarks>
+    /// The data is base64 of <c>{"id":"a-1","quantity":7}</c> and <c>{"id":"a-2","quantity":9}</c>.
+    /// Kinesis says nothing about what a publisher puts in a record, so what a handler binds is
+    /// exactly these bytes.
+    /// </remarks>
     public const string KinesisJson = """
-        {"Records":[{"eventSource":"aws:kinesis","eventID":"shardId-000000000000:49590",
+        {"Records":[{
+          "eventSource":"aws:kinesis","eventVersion":"1.0",
+          "eventID":"shardId-000000000000:49590",
           "eventSourceARN":"arn:aws:kinesis:us-east-1:123456789012:stream/orders",
-          "kinesis":{"partitionKey":"p1","sequenceNumber":"49590","data":"aGVsbG8="}}]}
+          "awsRegion":"us-east-1",
+          "kinesis":{"kinesisSchemaVersion":"1.0","partitionKey":"p1","sequenceNumber":"49590",
+            "data":"eyJpZCI6ImEtMSIsInF1YW50aXR5Ijo3fQ==",
+            "approximateArrivalTimestamp":1545084650.987}},{
+          "eventSource":"aws:kinesis","eventVersion":"1.0",
+          "eventID":"shardId-000000000000:49591",
+          "eventSourceARN":"arn:aws:kinesis:us-east-1:123456789012:stream/orders",
+          "awsRegion":"us-east-1",
+          "kinesis":{"kinesisSchemaVersion":"1.0","partitionKey":"p1","sequenceNumber":"49591",
+            "data":"eyJpZCI6ImEtMiIsInF1YW50aXR5Ijo5fQ==",
+            "approximateArrivalTimestamp":1545084651.500}}]}
         """;
 
     public const string FirehoseJson = """
