@@ -173,6 +173,10 @@ public sealed class PipelineDelivery : ITriggerDelivery {
         /// </summary>
         public bool ReportsItemFailures => false;
 
+        // Never consulted, because nothing here reports. A test delivery names no transport, so
+        // there is no position to rewind to and per item is the honest answer.
+        public BatchFailureMode FailureMode => BatchFailureMode.PerItem;
+
         public IReadOnlyList<int> FailedItems => Array.Empty<int>();
 
         public void RecordFailure(int index, Exception failure) =>

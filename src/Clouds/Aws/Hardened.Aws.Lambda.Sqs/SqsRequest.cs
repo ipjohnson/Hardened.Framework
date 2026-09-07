@@ -96,6 +96,18 @@ public class SqsRequest : LambdaPayloadRequest, IBatchRequest {
     /// </remarks>
     public bool ReportsItemFailures { get; }
 
+    /// <summary>
+    /// Per item, because a queue has no order to keep and the report names exactly what to
+    /// redeliver.
+    /// </summary>
+    /// <remarks>
+    /// True even of a FIFO queue. A message group is ordered and SQS stops delivering a group once
+    /// one of its messages is in flight and failing, so ordering is enforced by the queue rather
+    /// than by what this batch does after a failure - and a standard queue's messages are
+    /// independent, which is the case worth optimising for.
+    /// </remarks>
+    public BatchFailureMode FailureMode => BatchFailureMode.PerItem;
+
     public IReadOnlyList<int> FailedItems => _failed;
 
     public void RecordFailure(int index, Exception failure) => _failed.Add(index);

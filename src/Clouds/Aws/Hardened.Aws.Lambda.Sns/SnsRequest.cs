@@ -58,6 +58,13 @@ public class SnsRequest : LambdaPayloadRequest, IBatchRequest {
     /// </summary>
     public bool ReportsItemFailures => false;
 
+    /// <summary>
+    /// Per item, and never consulted. SNS reports nothing, so a failure fails the invocation
+    /// whatever this says - it is answered rather than thrown because a notification carries no
+    /// position to rewind to.
+    /// </summary>
+    public BatchFailureMode FailureMode => BatchFailureMode.PerItem;
+
     public IReadOnlyList<int> FailedItems => Array.Empty<int>();
 
     /// <summary>

@@ -20,15 +20,17 @@ namespace Hardened.Requests.Runtime.Filters;
 /// for the filters that do still throw. <c>RetryFilter</c> learned this the same way.
 /// </para>
 /// <para>
-/// <b>Every item is attempted, even after one fails</b>, when the transport can report failures
-/// individually. Stopping at the first would leave the rest unhandled and unreported, so the
-/// transport would treat them as delivered.
-/// </para>
-/// <para>
 /// <b>When the transport cannot report individual failures, the first failure is rethrown.</b> That
 /// fails the invocation, which is the only thing that makes the transport redeliver. Continuing and
 /// swallowing would lose messages; see <see cref="IBatchRequest.ReportsItemFailures"/> for why that
 /// is the default even on a transport that supports reporting.
+/// </para>
+/// <para>
+/// <b>When it can, what happens after a failure is the transport's to say</b>, because the same
+/// report means two things. Under <see cref="BatchFailureMode.PerItem"/> every item is attempted,
+/// since stopping would leave the rest unhandled and unreported and the transport reads that as
+/// delivered. Under <see cref="BatchFailureMode.Checkpoint"/> the run stops, since the report is a
+/// rewind and every later item is being redelivered anyway.
 /// </para>
 /// </remarks>
 public class BatchExecutionFilter : IExecutionFilter {
@@ -56,6 +58,13 @@ public class BatchExecutionFilter : IExecutionFilter {
             }
 
             batch.RecordFailure(index, failure);
+
+            if (batch.FailureMode == BatchFailureMode.Checkpoint) {
+                // Recorded first, then stopped. The report has to name this item: it is what the
+                // transport rewinds to, and a checkpoint batch that stopped without naming
+                // anything would be answered as wholly successful and the failure lost.
+                return;
+            }
         }
     }
 

@@ -44,6 +44,22 @@ public interface IBatchRequest {
     bool ReportsItemFailures { get; }
 
     /// <summary>
+    /// What the rest of the batch means once one item has failed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Deliberately not defaulted. A transport that got this wrong would still pass every test and
+    /// still report failures - it would just run some items twice on every retry, or leave some
+    /// unattempted - so a new implementation is made to answer rather than allowed to inherit an
+    /// answer that happens to suit a queue.
+    /// </para>
+    /// <para>
+    /// Only consulted where <see cref="ReportsItemFailures"/> is true.
+    /// </para>
+    /// </remarks>
+    BatchFailureMode FailureMode { get; }
+
+    /// <summary>
     /// Records that an item was not handled, so the adapter can name it in the transport's report.
     /// </summary>
     /// <remarks>

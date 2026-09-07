@@ -28,15 +28,21 @@ public class BatchExecutionFilterTests {
     private sealed class Delivery : TestExecutionRequest, IBatchRequest {
         private readonly List<int> _failed = [];
 
-        public Delivery(int count, bool reportsItemFailures = true)
+        public Delivery(
+            int count,
+            bool reportsItemFailures = true,
+            BatchFailureMode failureMode = BatchFailureMode.PerItem)
             : base("QUEUE", "/orders", "application/json", new SimpleQueryStringCollection((IDictionary<string, string>?)null)) {
             Count = count;
             ReportsItemFailures = reportsItemFailures;
+            FailureMode = failureMode;
         }
 
         public int Count { get; }
 
         public bool ReportsItemFailures { get; }
+
+        public BatchFailureMode FailureMode { get; }
 
         public IReadOnlyList<int> FailedItems => _failed;
 
@@ -174,6 +180,73 @@ public class BatchExecutionFilterTests {
 
         Assert.Equal(["item-0", "item-1", "item-2", "item-3"], handler.Saw);
         Assert.Equal([0], delivery.FailedItems);
+    }
+
+    /// <summary>
+    /// The same batch, the same failure, and the opposite behaviour - which is the whole reason
+    /// the mode exists rather than the filter deciding.
+    /// </summary>
+    /// <remarks>
+    /// Kinesis and DynamoDB Streams answer with the identical batchItemFailures array SQS does,
+    /// and rewind the shard to the earliest identifier in it. Items 1 to 3 are redelivered whether
+    /// or not they ran, so running them here is a duplicate write for any handler that is not
+    /// idempotent, and it applies item 3 before the replay of item 0.
+    /// </remarks>
+    [Fact]
+    public async Task ACheckpointDeliveryStopsAtTheFirstFailure() {
+        var delivery = new Delivery(4, failureMode: BatchFailureMode.Checkpoint);
+
+        var handler = await Run(delivery, new Handler(text =>
+            text == "item-0" ? new InvalidOperationException("no") : null));
+
+        Assert.Equal(["item-0"], handler.Saw);
+        Assert.Equal([0], delivery.FailedItems);
+    }
+
+    /// <summary>
+    /// The items before the failure are kept, and the failure is still named.
+    /// </summary>
+    /// <remarks>
+    /// A checkpoint batch that stopped without recording anything would be answered as wholly
+    /// successful, which advances the shard past the item that failed and loses it.
+    /// </remarks>
+    [Fact]
+    public async Task ACheckpointDeliveryRunsUpToTheFailureAndReportsIt() {
+        var delivery = new Delivery(5, failureMode: BatchFailureMode.Checkpoint);
+
+        var handler = await Run(delivery, new Handler(text =>
+            text == "item-2" ? new InvalidOperationException("no") : null));
+
+        Assert.Equal(["item-0", "item-1", "item-2"], handler.Saw);
+        Assert.Equal([2], delivery.FailedItems);
+    }
+
+    /// <summary>
+    /// A checkpoint delivery that fails nothing is not stopped early.
+    /// </summary>
+    [Fact]
+    public async Task ACheckpointDeliveryRunsEveryItemWhenNoneFail() {
+        var delivery = new Delivery(3, failureMode: BatchFailureMode.Checkpoint);
+
+        var handler = await Run(delivery, new Handler(_ => null));
+
+        Assert.Equal(["item-0", "item-1", "item-2"], handler.Saw);
+        Assert.Empty(delivery.FailedItems);
+    }
+
+    /// <summary>
+    /// The mode is not consulted where the transport cannot report, because there is nothing to
+    /// stop for: the first failure fails the invocation and the whole batch is redelivered.
+    /// </summary>
+    [Fact]
+    public async Task ACheckpointDeliveryStillRethrowsWhenItCannotReportItemFailures() {
+        var delivery = new Delivery(4, reportsItemFailures: false,
+                                    failureMode: BatchFailureMode.Checkpoint);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Run(delivery, new Handler(text =>
+            text == "item-1" ? new InvalidOperationException("no") : null)));
+
+        Assert.Empty(delivery.FailedItems);
     }
 
     /// <summary>

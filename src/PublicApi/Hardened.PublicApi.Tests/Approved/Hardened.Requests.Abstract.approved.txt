@@ -336,6 +336,11 @@ namespace Hardened.Requests.Abstract.Errors
 }
 namespace Hardened.Requests.Abstract.Execution
 {
+    public enum BatchFailureMode
+    {
+        PerItem = 0,
+        Checkpoint = 1,
+    }
     public readonly struct CancellationScope : System.IDisposable
     {
         public void Dispose() { }
@@ -360,6 +365,7 @@ namespace Hardened.Requests.Abstract.Execution
     {
         int Count { get; }
         System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        Hardened.Requests.Abstract.Execution.BatchFailureMode FailureMode { get; }
         bool ReportsItemFailures { get; }
         Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index);
         void RecordFailure(int index, System.Exception failure);

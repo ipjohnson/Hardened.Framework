@@ -40,6 +40,7 @@ namespace Hardened.Aws.Lambda.Sqs
         public int Count { get; }
         public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
         public System.Collections.Generic.IEnumerable<string> FailedMessageIds { get; }
+        public Hardened.Requests.Abstract.Execution.BatchFailureMode FailureMode { get; }
         public System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage> Records { get; }
         public bool ReportsItemFailures { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }

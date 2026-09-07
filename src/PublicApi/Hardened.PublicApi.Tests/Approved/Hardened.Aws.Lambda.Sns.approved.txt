@@ -37,6 +37,7 @@ namespace Hardened.Aws.Lambda.Sns
         public SnsRequest(string topicName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SNSEvents.SNSEvent.SNSRecord> records) { }
         public int Count { get; }
         public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        public Hardened.Requests.Abstract.Execution.BatchFailureMode FailureMode { get; }
         public System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SNSEvents.SNSEvent.SNSRecord> Records { get; }
         public bool ReportsItemFailures { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
