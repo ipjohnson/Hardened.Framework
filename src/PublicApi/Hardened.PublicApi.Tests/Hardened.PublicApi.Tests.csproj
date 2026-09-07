@@ -40,6 +40,7 @@
         <ProjectReference Include="..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj"/>
         <ProjectReference Include="..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
         <ProjectReference Include="..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
         <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
         <ProjectReference Include="..\..\Clients\Hardened.Refit.Testing\Hardened.Refit.Testing.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>

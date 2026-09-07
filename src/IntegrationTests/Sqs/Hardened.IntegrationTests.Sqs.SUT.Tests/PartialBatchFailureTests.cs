@@ -16,8 +16,15 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// <para>
 /// The pair of applications is the assertion. <c>SqsTestApp</c> and <c>PartialFailureApp</c> serve
 /// identical handlers and differ only in whether the deployment said it reports individual
-/// failures, so what changes between these tests and <see cref="QueueFunctionTests"/> is entirely
-/// the failure policy - not the code, not the payload, not the route.
+/// failures, so what changes between these tests and <see cref="QueueTests"/> is entirely the
+/// failure policy - not the code, not the payload, not the route.
+/// </para>
+/// <para>
+/// <b>Built by hand rather than through [HardenedTest], and this is the case that shows why.</b>
+/// The harness resolves one application per container, and a second entry point declared on a class
+/// is added to the assembly's rather than replacing it - so both applications' handler tables land
+/// in one container and dispatch becomes ambiguous. A test assembly comparing two deployments of
+/// one codebase is the one shape that has to build its own.
 /// </para>
 /// </summary>
 public class PartialBatchFailureTests : IDisposable {

@@ -1,0 +1,14 @@
+namespace Hardened.Aws.Lambda.Testing
+{
+    public sealed class LambdaEnvelopeDelivery : Hardened.Functions.Testing.ITriggerDelivery
+    {
+        public LambdaEnvelopeDelivery(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler, string region = "us-east-1", string account = "123456789012") { }
+        public System.Threading.Tasks.Task Deliver(System.Collections.Generic.IReadOnlyList<object> messages, string scheme, string path) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public class LambdaTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute
+    {
+        public LambdaTestingAttribute() { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+    }
+}

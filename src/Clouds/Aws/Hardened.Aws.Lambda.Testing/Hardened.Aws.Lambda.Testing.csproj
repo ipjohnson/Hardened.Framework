@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Raises the fidelity of a Hardened function test on AWS: delivers through a real SQS, SNS or EventBridge envelope and the real invocation loop, so the adapter and the peek are exercised too.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Aws.Lambda.Testing</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;testing</PackageTags>
+    </PropertyGroup>
+
+    <!--
+      Optional. A project testing its own handlers needs only Hardened.Functions.Testing, whose
+      delivery names no cloud; this is for a project that also wants the envelope its provider
+      actually sends to be what the adapter reads.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
+    </ItemGroup>
+
+</Project>

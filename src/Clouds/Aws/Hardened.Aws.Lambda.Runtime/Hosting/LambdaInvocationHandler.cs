@@ -136,12 +136,22 @@ public class LambdaInvocationHandler {
             // putting it behind means a web request meets the not-found handler of a table that
             // never saw it. This is the cross-family mixing the split exists to prevent, and this is
             // where it becomes detectable.
+            var kinds = dispatch.Select(one => one.GetType().Name).Distinct().ToArray();
+
             throw new InvalidOperationException(
-                "This function declares more than one kind of handler - " +
-                string.Join(", ", dispatch.Select(one => one.GetType().Name)) +
-                ". Web routes and function triggers are separate families and cannot share one " +
-                "Lambda: an HTTP route answers a caller waiting on a connection, and a trigger " +
-                "fails the invocation to make its source redeliver. Split them into two functions.");
+                kinds.Length == 1
+                    // Same kind twice means two applications in one container, which is what a
+                    // second entry point does: it is added to the first rather than replacing it,
+                    // and both handler tables end up registered.
+                    ? "This container holds two applications, so there are two handler tables and " +
+                      "nothing says which one a message routes through. One application per " +
+                      "container - a test comparing two of them has to build each its own."
+                    : "This function declares more than one kind of handler - " +
+                      string.Join(", ", kinds) +
+                      ". Web routes and function triggers are separate families and cannot share " +
+                      "one function: an HTTP route answers a caller waiting on a connection, and a " +
+                      "trigger fails the invocation to make its source redeliver. Split them into " +
+                      "two functions.");
         }
 
         _rootServiceProvider.GetRequiredService<IMiddlewareService>().Use(_ => dispatch[0]);

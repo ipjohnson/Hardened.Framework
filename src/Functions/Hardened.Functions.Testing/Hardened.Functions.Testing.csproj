@@ -18,6 +18,18 @@
       pipeline, and both are the framework's, so there is one implementation rather than one per
       provider and an application's tests do not change when its host does.
     -->
+    <!--
+      The same conditional pair Hardened.Shared.Testing uses: the source tree beside this one when
+      it is checked out, the package otherwise. No runner here - the attribute talks to
+      DependencyModules.Testing's interfaces and the test project supplies the rest.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj"
+                          Condition="Exists('..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj')"/>
+        <PackageReference Include="DependencyModules.Testing"
+                          Condition="!Exists('..\..\..\..\DependencyModules\src\DependencyModules.Testing\DependencyModules.Testing.csproj')"/>
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>

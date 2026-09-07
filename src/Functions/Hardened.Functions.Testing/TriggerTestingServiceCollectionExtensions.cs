@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Hardened.Functions.Testing;
 
@@ -13,6 +14,11 @@ namespace Hardened.Functions.Testing;
 public static class TriggerTestingServiceCollectionExtensions {
     public static IServiceCollection AddTriggerTesting(this IServiceCollection services) {
         services.AddSingleton<TriggerInvoker>();
+
+        // TryAdd, so a provider's testing attribute can register the envelope delivery instead and
+        // this becomes a no-op whichever order the two attributes run in. A provider replaces it by
+        // removing first, the way WebTestingAttribute replaces the not-found handler.
+        services.TryAddSingleton<ITriggerDelivery, PipelineDelivery>();
 
         // Open generics, so the testing package registers three things and never names a generated
         // type. The façade is constructed on resolve, from the type argument the test asked for.
