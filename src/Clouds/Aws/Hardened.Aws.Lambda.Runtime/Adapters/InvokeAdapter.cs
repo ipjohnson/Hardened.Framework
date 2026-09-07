@@ -76,8 +76,28 @@ public sealed class InvokeAdapter : IPayloadAdapter {
         new LambdaPayloadResponse(output);
 
     /// <summary>
-    /// Nothing. The handler's return value was serialised into the output stream by the IO filter
-    /// on the way back out, which is what the caller receives.
+    /// The body, which for this family is the whole answer.
     /// </summary>
-    public ValueTask WriteResponse(IExecutionContext context, Stream output) => default;
+    /// <remarks>
+    /// <para>
+    /// The IO filter serialises the handler's return value into the response body on the way back
+    /// out. Every other adapter then wraps that body in something - a proxy response, a batch
+    /// failure report - and this one does not: a direct invocation's caller receives exactly what
+    /// the handler returned. So the body is copied across rather than written into.
+    /// </para>
+    /// <para>
+    /// It used to do nothing at all, on the reading that the IO filter had already written "the
+    /// output stream". It had not: the body a response accumulates into and the stream the runtime
+    /// sends back are two streams, and every direct invocation answered empty.
+    /// </para>
+    /// </remarks>
+    public async ValueTask WriteResponse(IExecutionContext context, Stream output) {
+        var body = context.Response.Body;
+
+        if (body.CanSeek) {
+            body.Position = 0;
+        }
+
+        await body.CopyToAsync(output);
+    }
 }

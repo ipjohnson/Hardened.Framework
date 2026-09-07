@@ -50,7 +50,10 @@ public static class TriggerModuleGenerator {
     /// One trigger: the attribute a handler writes, and the property naming what serves it.
     /// </summary>
     public sealed class Trigger {
-        public Trigger(string name, string attribute, string property, string scheme) {
+        public Trigger(
+            string name, string attribute, string property, string scheme,
+            bool namesItsOwnRoute = true) {
+            NamesItsOwnRoute = namesItsOwnRoute;
             Name = name;
             Attribute = attribute;
             Property = property;
@@ -72,6 +75,17 @@ public static class TriggerModuleGenerator {
 
         /// <summary>The attribute as a type, for the selector that finds handlers carrying it.</summary>
         public ITypeDefinition Type { get; }
+
+        /// <summary>
+        /// Whether the attribute's arguments are the route.
+        /// </summary>
+        /// <remarks>
+        /// True for a source-named trigger - <c>[Queue("orders-new")]</c> is <c>QUEUE /orders-new</c>.
+        /// False for <c>[HardenedFunction]</c>, whose argument is optional and whose route falls
+        /// back to the method's own name, so it keeps its own derivation and appears here only to
+        /// be bound to a module.
+        /// </remarks>
+        public bool NamesItsOwnRoute { get; }
 
         public string Attribute { get; }
 
@@ -106,7 +120,13 @@ public static class TriggerModuleGenerator {
         new Trigger("Queue", "Hardened.Functions.Runtime.Attributes.QueueAttribute", "HardenedQueueModule", "QUEUE"),
         new Trigger("Topic", "Hardened.Functions.Runtime.Attributes.TopicAttribute", "HardenedTopicModule", "TOPIC"),
         new Trigger("Timer", "Hardened.Functions.Runtime.Attributes.TimerAttribute", "HardenedTimerModule", "TIMER"),
-        new Trigger("Event", "Hardened.Functions.Runtime.Attributes.EventAttribute", "HardenedEventModule", "EVENT")
+        new Trigger("Event", "Hardened.Functions.Runtime.Attributes.EventAttribute", "HardenedEventModule", "EVENT"),
+
+        // Not a trigger in the same sense - nothing delivers to it, a caller invokes it - but it
+        // binds a module the same way, and for the same reason: an application that had to write
+        // [InvokeModule] itself would name a cloud in the one file that must not.
+        new Trigger("HardenedFunction", "Hardened.Requests.Abstract.Attributes.HardenedFunctionAttribute",
+            "HardenedInvokeModule", "INVOKE", namesItsOwnRoute: false)
     };
 
     /// <summary>
@@ -193,6 +213,15 @@ public static class TriggerModuleGenerator {
         var entryPoint = models.Left.Entry;
         var used = models.Left.Used;
         var modules = models.Right;
+
+        // No property set at all means no runtime package is referenced, which is an ordinary
+        // state for a handler library and for a compilation under test. The diagnostic is for the
+        // other case: a runtime is present and does not serve one of the triggers used. Reporting
+        // "nothing binds [HardenedFunction]" at every project that has not referenced a cloud yet
+        // would be noise rather than a finding.
+        if (modules.All(module => module == null)) {
+            return;
+        }
 
         var register = new List<string>();
 

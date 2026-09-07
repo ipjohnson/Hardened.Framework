@@ -33,13 +33,16 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
     /// publishers and neither the source nor the detail type identifies one on its own.
     /// </para>
     /// <para>
-    /// <c>[HardenedFunction]</c> keeps <c>POST</c> and the method's own name, which is what it has
-    /// always used - a direct invocation has no source to name it after.
+    /// <c>[HardenedFunction]</c> routes under <c>INVOKE</c> and its own name. It used to register a
+    /// bare name under <c>POST</c>, which meant nothing could dispatch to it: every adapter builds
+    /// a rooted path, so the invoke adapter offered <c>/PlaceOrder</c> against a table holding
+    /// <c>PlaceOrder</c>. One route shape across every source is what makes that impossible rather
+    /// than fixed.
     /// </para>
     /// </remarks>
     protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation) {
-        foreach (var trigger in TriggerModuleGenerator.Triggers) {
+        foreach (var trigger in TriggerModuleGenerator.Triggers.Where(t => t.NamesItsOwnRoute)) {
             // Every spelling, because the selector that admitted this method accepts every
             // spelling. Looking for the bare name alone let a fully qualified [Queue] through the
             // selector and then find nothing here, so the method fell to the [HardenedFunction]
@@ -72,7 +75,7 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
             functionName = Value(context, argument);
         }
 
-        return new RequestHandlerNameModel(functionName, "POST");
+        return new RequestHandlerNameModel("/" + functionName.TrimStart('/'), "INVOKE");
     }
 
     /// <summary>

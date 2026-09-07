@@ -115,7 +115,7 @@ public class FunctionHandlerProviderTests {
             """);
 
         Assert.Contains("switch (functionName)", provider);
-        Assert.Contains("case \"order-received\":", provider);
+        Assert.Contains("case \"/order-received\":", provider);
     }
 
     /// <summary>
@@ -148,7 +148,7 @@ public class FunctionHandlerProviderTests {
             public void Fallback() { }
             """);
 
-        var switchIndex = provider.IndexOf("case \"order-received\":", StringComparison.Ordinal);
+        var switchIndex = provider.IndexOf("case \"/order-received\":", StringComparison.Ordinal);
         var fallbackIndex = provider.IndexOf("return new global::TestApp.Generated.TestFunctions_Fallback",
             StringComparison.Ordinal);
 
@@ -181,7 +181,7 @@ public class FunctionHandlerProviderTests {
             }
             """).AssertNoErrors();
 
-        Assert.Contains("case \"order-received\":", result.SourceContaining("FunctionHandlers.cs"));
+        Assert.Contains("case \"/order-received\":", result.SourceContaining("FunctionHandlers.cs"));
         Assert.Contains("order-received.FunctionHandler.cs", result.GeneratedSources.Keys);
     }
 
@@ -211,7 +211,7 @@ public class FunctionHandlerProviderTests {
 
         Assert.Empty(result.GeneratorExceptions);
         Assert.Contains("NotDeclaredAnywhere.Name.FunctionHandler.cs", result.GeneratedSources.Keys);
-        Assert.Contains("case \"NotDeclaredAnywhere.Name\":", result.SourceContaining("FunctionHandlers.cs"));
+        Assert.Contains("case \"/NotDeclaredAnywhere.Name\":", result.SourceContaining("FunctionHandlers.cs"));
     }
 
     /// <summary>
@@ -229,7 +229,7 @@ public class FunctionHandlerProviderTests {
             """)).AssertNoErrors();
 
         Assert.Contains("orders/received.FunctionHandler.cs", result.GeneratedSources.Keys);
-        Assert.Contains("case \"orders/received\":", result.SourceContaining("FunctionHandlers.cs"));
+        Assert.Contains("case \"/orders/received\":", result.SourceContaining("FunctionHandlers.cs"));
     }
 
     /// <summary>
@@ -248,9 +248,9 @@ public class FunctionHandlerProviderTests {
 
         var provider = result.SourceContaining("FunctionHandlers.cs");
 
-        Assert.Contains("case \"first\":", provider);
-        Assert.Contains("case \"second\":", provider);
-        Assert.Contains("case \"third\":", provider);
+        Assert.Contains("case \"/first\":", provider);
+        Assert.Contains("case \"/second\":", provider);
+        Assert.Contains("case \"/third\":", provider);
 
         Assert.Equal(4, result.GeneratedSources.Count);
     }

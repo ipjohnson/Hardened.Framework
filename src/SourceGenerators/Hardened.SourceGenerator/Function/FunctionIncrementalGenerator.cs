@@ -18,9 +18,8 @@ public static class FunctionIncrementalGenerator {
         // [HardenedFunction] plus every trigger attribute. A trigger is a handler declaration as
         // much as [HardenedFunction] is - it names a route and a scheme - so it goes through the
         // same model, invoker and registration as the rest rather than a parallel pipeline.
-        var selectors = new[] { KnownTypes.Requests.HardenedFunctionAttribute }
-            .Concat(TriggerModuleGenerator.Triggers.Select(trigger => trigger.Type))
-            .Select(attribute => new SyntaxSelector<MethodDeclarationSyntax>(attribute))
+        var selectors = TriggerModuleGenerator.Triggers
+            .Select(trigger => new SyntaxSelector<MethodDeclarationSyntax>(trigger.Type))
             .ToArray();
 
         bool MethodSelector(SyntaxNode node, CancellationToken token) =>
@@ -124,9 +123,15 @@ public static class FunctionIncrementalGenerator {
 
         if (requestHandlers.Length > 0) {
             // Handlers with explicit function names go in the switch.
-            // Handlers without explicit names (Name.Path == HandlerMethod) are catch-all.
-            var namedHandlers = requestHandlers.Where(h => h.Name.Path != h.HandlerMethod).ToList();
-            var defaultHandlers = requestHandlers.Where(h => h.Name.Path == h.HandlerMethod).ToList();
+            // Handlers without explicit names are catch-all: a Lambda hosting one operation never
+            // sends a name worth matching. The route is rooted and the method name is not, so the
+            // comparison trims - it used to compare two bare names, and prepending the root to
+            // every route made every unnamed handler look named.
+            bool Named(RequestHandlerModel handler) =>
+                handler.Name.Path.Trim('/') != handler.HandlerMethod;
+
+            var namedHandlers = requestHandlers.Where(Named).ToList();
+            var defaultHandlers = requestHandlers.Where(handler => !Named(handler)).ToList();
 
             if (namedHandlers.Count > 0) {
                 var switchBlock = method.Switch(functionNameParam);

@@ -178,6 +178,21 @@ public class TriggerModuleTests {
     }
 
     /// <summary>
+    /// No runtime package, so nothing is registered and nothing is reported. A handler library
+    /// with no cloud referenced is an ordinary thing to compile.
+    /// </summary>
+    [Fact]
+    public void AProjectWithNoRuntimeIsSilent() {
+        var result = Generate("""
+                [Queue("orders-new")]
+                public void OnOrder(string body) { }
+            """);
+
+        Assert.DoesNotContain("TestApplication.TriggerModules.cs", result.GeneratedSources.Keys);
+        Assert.Empty(result.GeneratorDiagnostics);
+    }
+
+    /// <summary>
     /// A project with no trigger gets no file at all, rather than one registering nothing.
     /// </summary>
     [Fact]
@@ -191,15 +206,21 @@ public class TriggerModuleTests {
     }
 
     /// <summary>
-    /// The failure this diagnostic exists for. Without it the handler compiles, deploys, and is
-    /// never invoked - which is the hardest kind of thing to find, because everything looks right.
+    /// The failure this diagnostic exists for: a runtime is referenced and does not serve one of
+    /// the triggers used. Without it the handler compiles, deploys, and is never invoked - the
+    /// hardest kind of thing to find, because everything looks right.
     /// </summary>
     [Fact]
     public void ATriggerNothingBindsIsReported() {
-        var result = Generate("""
+        var result = Generate(
+            """
+                [Queue("orders-new")]
+                public void OnOrder(string body) { }
+
                 [Timer("nightly")]
                 public void Nightly() { }
-            """);
+            """,
+            ("HardenedQueueModule", CoreModule));
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics);
 
