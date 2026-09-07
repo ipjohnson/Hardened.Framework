@@ -27,7 +27,7 @@ public class FunctionEntryPointTests {
                 public void Process() { }
             """)).AssertNoErrors();
 
-        Assert.Contains("Process.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.Contains("INVOKE.Process.FunctionHandler.cs", result.GeneratedSources.Keys);
     }
 
     /// <summary>
@@ -104,7 +104,7 @@ public class FunctionEntryPointTests {
                 """
         }).AssertNoErrors();
 
-        Assert.Contains("Process.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.Contains("INVOKE.Process.FunctionHandler.cs", result.GeneratedSources.Keys);
         Assert.Contains("TestApplication.FunctionHandlers.cs", result.GeneratedSources.Keys);
     }
 

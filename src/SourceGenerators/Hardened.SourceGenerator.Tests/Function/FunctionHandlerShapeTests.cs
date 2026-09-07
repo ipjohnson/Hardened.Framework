@@ -239,8 +239,8 @@ public class FunctionHandlerShapeTests {
                 public void Process(DataModel model) { }
             """, FunctionGeneratorHarness.SupportTypes)).AssertNoErrors();
 
-        Assert.Contains("no-args.FunctionHandler.cs", result.GeneratedSources.Keys);
-        Assert.Contains("with-args.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.Contains("INVOKE.no-args.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.Contains("INVOKE.with-args.FunctionHandler.cs", result.GeneratedSources.Keys);
 
         // The parameterless one keeps the bare name; the other is suffixed with the parameter hash.
         var provider = result.SourceContaining("FunctionHandlers.cs");

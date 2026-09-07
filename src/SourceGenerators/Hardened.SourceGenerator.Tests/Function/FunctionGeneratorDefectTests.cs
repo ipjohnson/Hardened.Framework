@@ -68,7 +68,7 @@ public class FunctionGeneratorDefectTests {
 
         var exception = Assert.Single(result.GeneratorExceptions);
 
-        Assert.Contains("Process.FunctionHandler.cs", exception.Message);
+        Assert.Contains("INVOKE.Process.FunctionHandler.cs", exception.Message);
         Assert.Contains("must be unique within a generator", exception.Message);
     }
 
@@ -185,7 +185,7 @@ public class FunctionGeneratorDefectTests {
 
         // The invoker is skipped — the binding generator has no case for Unresolved and throws,
         // which SourceGeneratorWrapper turns into an Error-severity diagnostic.
-        Assert.DoesNotContain("Process.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.DoesNotContain("INVOKE.Process.FunctionHandler.cs", result.GeneratedSources.Keys);
 
         Assert.Contains(result.GeneratorDiagnostics,
             diagnostic => diagnostic.Id == "HardenedException" &&
@@ -225,8 +225,8 @@ public class FunctionGeneratorDefectTests {
             """)).AssertNoErrors();
 
         // Both invokers are generated and both compile.
-        Assert.Contains("First.FunctionHandler.cs", result.GeneratedSources.Keys);
-        Assert.Contains("Second.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.Contains("INVOKE.First.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.Contains("INVOKE.Second.FunctionHandler.cs", result.GeneratedSources.Keys);
 
         var provider = result.SourceContaining("FunctionHandlers.cs");
 
@@ -255,7 +255,7 @@ public class FunctionGeneratorDefectTests {
             """)).AssertNoErrors().SourceContaining("FunctionHandlers.cs");
 
         // Observed 2026-08-12: a catch-all return, not a switch on "Process".
-        Assert.DoesNotContain("switch (functionName)", provider);
+        Assert.DoesNotContain("switch (scheme + \" \" + path)", provider);
         Assert.Contains("return new global::TestApp.Generated.TestFunctions_Process(serviceProvider);", provider);
     }
 

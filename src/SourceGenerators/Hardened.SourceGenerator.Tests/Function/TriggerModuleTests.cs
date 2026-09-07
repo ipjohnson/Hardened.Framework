@@ -193,6 +193,36 @@ public class TriggerModuleTests {
     }
 
     /// <summary>
+    /// A queue and a topic of the same name are two sources, not one.
+    /// </summary>
+    /// <remarks>
+    /// This used to abort the generator. Both handlers routed to "/orders", so both wanted the file
+    /// name "orders.FunctionHandler.cs", and a duplicate hint name throws - which killed every
+    /// handler in the project behind one message that mentioned neither queues nor topics. The
+    /// scheme is part of the route now, so they differ in the switch and in the file name.
+    /// </remarks>
+    [Fact]
+    public void AQueueAndATopicMayShareAName() {
+        var result = GenerateAndCompile(
+            """
+                [Queue("orders")]
+                public void FromQueue(string body) { }
+
+                [Topic("orders")]
+                public void FromTopic(string body) { }
+            """,
+            ("HardenedQueueModule", CoreModule),
+            ("HardenedTopicModule", RequestModule));
+
+        var provider = result.SourceContaining("FunctionHandlers.cs");
+
+        Assert.Contains("case \"QUEUE /orders\":", provider);
+        Assert.Contains("case \"TOPIC /orders\":", provider);
+        Assert.Contains("QUEUE.orders.FunctionHandler.cs", result.GeneratedSources.Keys);
+        Assert.Contains("TOPIC.orders.FunctionHandler.cs", result.GeneratedSources.Keys);
+    }
+
+    /// <summary>
     /// A project with no trigger gets no file at all, rather than one registering nothing.
     /// </summary>
     [Fact]

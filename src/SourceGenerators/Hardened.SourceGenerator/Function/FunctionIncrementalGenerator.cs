@@ -63,12 +63,16 @@ public static class FunctionIncrementalGenerator {
 
         csharpFile.WriteOutput(outputContext);
 
-        // Trimmed, not rewritten. A trigger routes under a rooted path - "/orders-new" - and a
-        // hint name may not begin with a separator, so the generator threw and emitted nothing for
-        // every trigger handler. An interior slash is legal and is kept: [HardenedFunction] has
-        // always put the function name in the file name verbatim, "orders/received" included.
+        // The scheme is part of the name because it is part of the route. Without it a queue and a
+        // topic of the same name produced one file name twice, the generator threw on a duplicate
+        // hint name, and every handler in the project vanished behind a message that mentioned
+        // neither queues nor topics.
+        //
+        // Trimmed rather than rewritten beyond that: a hint name may not begin with a separator,
+        // but an interior slash is legal and is kept - [HardenedFunction] has always put the
+        // function name in the file name verbatim, "orders/received" included.
         context.AddSource(
-            model.Name.Path.Trim('/') + ".FunctionHandler.cs",
+            model.Name.Method + "." + model.Name.Path.Trim('/') + ".FunctionHandler.cs",
             GeneratedSource.Header(outputContext.Output()));
     }
 
@@ -119,7 +123,8 @@ public static class FunctionIncrementalGenerator {
         // GetFunctionHandler method
         var method = providerClass.AddMethod("GetFunctionHandler");
         method.SetReturnType(KnownTypes.Requests.IExecutionRequestHandler.MakeNullable());
-        var functionNameParam = method.AddParameter(typeof(string), "functionName");
+        var schemeParam = method.AddParameter(typeof(string), "scheme");
+        var pathParam = method.AddParameter(typeof(string), "path");
         var serviceProviderParam = method.AddParameter(KnownTypes.DI.IServiceProvider, "serviceProvider");
 
         if (requestHandlers.Length > 0) {
@@ -135,12 +140,18 @@ public static class FunctionIncrementalGenerator {
             var defaultHandlers = requestHandlers.Where(handler => !Named(handler)).ToList();
 
             if (namedHandlers.Count > 0) {
-                var switchBlock = method.Switch(functionNameParam);
+                // One switch over the two joined, rather than a switch inside a switch. It costs a
+                // concatenation per invocation and reads as the route it is - "QUEUE /orders" is
+                // what a log line says and what the case label holds, so a missing route is found
+                // by searching for the text in the error.
+                var switchBlock = method.Switch(
+                    new CodeOutputComponent("scheme + \" \" + path") { Indented = false });
 
                 foreach (var handler in namedHandlers) {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    var caseBlock = switchBlock.AddCase($"\"{handler.Name.Path}\"");
+                    var caseBlock = switchBlock.AddCase(
+                        $"\"{handler.Name.Method} {handler.Name.Path}\"");
                     caseBlock.Return(New(handler.InvokeHandlerType, serviceProviderParam));
                 }
             }

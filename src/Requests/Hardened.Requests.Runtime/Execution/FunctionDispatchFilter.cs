@@ -20,10 +20,9 @@ namespace Hardened.Requests.Runtime.Execution;
 /// it dispatches through, so an application that compiled no function handlers does not carry one.
 /// </para>
 /// <para>
-/// Dispatch is on the path alone. A function route is <c>QUEUE /orders-new</c> or
-/// <c>TIMER /nightly</c>, and the source's name is unique within a function - two triggers of
-/// different schemes naming the same source would be two handlers for one queue, which is not a
-/// thing to route between.
+/// Dispatch is on the scheme and the path together, the way a web route is on the verb and the
+/// path. A queue called <c>orders</c> and a topic called <c>orders</c> are two sources rather than
+/// one, and keying on the path alone made them collide.
 /// </para>
 /// </remarks>
 public class FunctionDispatchFilter : IHandlerDispatch {
@@ -32,7 +31,8 @@ public class FunctionDispatchFilter : IHandlerDispatch {
 
         var provider = context.RequestServices.GetRequiredService<IFunctionHandlerProvider>();
 
-        var handler = provider.GetFunctionHandler(context.Request.Path, context.RequestServices);
+        var handler = provider.GetFunctionHandler(
+            context.Request.Method, context.Request.Path, context.RequestServices);
 
         if (handler == null) {
             // Raised rather than answered with a status: this family rethrows, and a payload

@@ -469,7 +469,7 @@ namespace Hardened.Requests.Abstract.Execution
     }
     public interface IFunctionHandlerProvider
     {
-        Hardened.Requests.Abstract.Execution.IExecutionRequestHandler? GetFunctionHandler(string functionName, System.IServiceProvider serviceProvider);
+        Hardened.Requests.Abstract.Execution.IExecutionRequestHandler? GetFunctionHandler(string scheme, string path, System.IServiceProvider serviceProvider);
     }
     public interface IHandlerDispatch : Hardened.Requests.Abstract.Execution.IExecutionFilter { }
     public interface IKnownServices
