@@ -108,6 +108,7 @@
         <PackageVersion Include="Amazon.Lambda.Logging.AspNetCore" Version="3.1.0" />
         <PackageVersion Include="Amazon.Lambda.RuntimeSupport" Version="2.2.0" />
         <PackageVersion Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.3" />
+        <PackageVersion Include="Amazon.Lambda.SNSEvents" Version="2.1.0" />
         <PackageVersion Include="Amazon.Lambda.SQSEvents" Version="2.2.0" />
         <PackageVersion Include="AWSSDK.DynamoDBv2" Version="3.7.513.4" />
         <PackageVersion Include="Cdklabs.CdkMonitoringConstructs" Version="8.1.1" />

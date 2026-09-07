@@ -7,6 +7,16 @@
         <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
         <PackageId>Hardened.Aws.Lambda.Runtime</PackageId>
+
+        <!--
+          Turns on the trim, AOT and single-file analyzers, so anything that would not survive a
+          trimmed publish is a build warning here rather than a missing type at runtime. It matters
+          more in this package than most: the whole argument for a module per adapter is that an
+          unapplied one gets removed, and that argument is only worth making if what remains is
+          actually trimmable. Also stamps IsTrimmable on the assembly, so a linker running in
+          partial mode trims inside it rather than rooting it whole.
+        -->
+        <IsAotCompatible>true</IsAotCompatible>
     </PropertyGroup>
 
     <!--
@@ -19,6 +29,7 @@
       what lets one function serve a queue and an HTTP route from the same binary.
     -->
     <ItemGroup>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"
@@ -31,9 +42,24 @@
         <InternalsVisibleTo Include="Hardened.Aws.Lambda.Runtime.Tests"/>
     </ItemGroup>
 
+    <!--
+      build/*.targets, which declares the trigger-to-module properties the generator reads. Without
+      it a <HardenedQueueModule> set in a consuming csproj is invisible: GlobalOptions carries only
+      what is declared CompilerVisibleProperty.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Aws.Lambda.targets">
+            <Pack>true</Pack>
+            <PackagePath>build/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="Amazon.Lambda.APIGatewayEvents" />
         <PackageReference Include="Amazon.Lambda.Core" />
+        <PackageReference Include="Amazon.Lambda.SNSEvents" />
+        <PackageReference Include="Amazon.Lambda.SQSEvents" />
         <PackageReference Include="DependencyModules.Runtime" />
         <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
