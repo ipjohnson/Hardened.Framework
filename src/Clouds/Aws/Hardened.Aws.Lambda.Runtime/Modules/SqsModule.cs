@@ -54,4 +54,20 @@ public partial class SqsModule : IServiceCollectionConfiguration {
 
         services.AddBatchExecutionFilter();
     }
+
+    /// <summary>
+    /// By type alone, so applying the module twice loads one SQS adapter.
+    /// </summary>
+    /// <remarks>
+    /// Declared rather than left to the generated default, which compares the same way but warns
+    /// (DM0018) because a settable property then makes the first instance reached win. That is the
+    /// intended behaviour and the warning is fair, so it is said here instead: two SQS adapters in
+    /// one function would both claim every queue payload and the second would never run, so keying
+    /// equality on <see cref="ReportBatchItemFailures"/> to load both would be worse than picking
+    /// one. Two declarations disagreeing about the flag is a contradiction about a single
+    /// deployment - the mapping either reports item failures or it does not.
+    /// </remarks>
+    public override bool Equals(object? obj) => obj is SqsModule;
+
+    public override int GetHashCode() => typeof(SqsModule).GetHashCode();
 }

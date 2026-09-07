@@ -4,6 +4,7 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters
     public sealed class ApiGatewayAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
     {
         public ApiGatewayAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
         public bool Handles(System.Text.Json.JsonElement payload) { }
@@ -20,6 +21,7 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters
         public const string ScheduleSource = "aws.events";
         public const string TimerScheme = "TIMER";
         public EventBridgeAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
         public bool Handles(System.Text.Json.JsonElement payload) { }
@@ -27,6 +29,7 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters
     }
     public interface IPayloadAdapter
     {
+        Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
         Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context);
         Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output);
         bool Handles(System.Text.Json.JsonElement payload);
@@ -37,6 +40,7 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters
         public const string OperationField = "operation";
         public const string Scheme = "INVOKE";
         public InvokeAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
         public bool Handles(System.Text.Json.JsonElement payload) { }
@@ -46,6 +50,7 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters
     {
         public const string EventSourceValue = "aws:sns";
         public SnsAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
         public bool Handles(System.Text.Json.JsonElement payload) { }
@@ -55,6 +60,7 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters
     {
         public const string EventSourceValue = "aws:sqs";
         public SqsAdapter(bool reportsItemFailures = false) { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
         public bool Handles(System.Text.Json.JsonElement payload) { }
@@ -102,6 +108,27 @@ namespace Hardened.Aws.Lambda.Runtime.Execution
         public ApiGatewayTransportInfo(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request) { }
         public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
         public string? Get(string key) { }
+    }
+    public class LambdaExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
+    {
+        public static readonly System.TimeSpan DefaultDeadlineMargin;
+        public LambdaExecutionContext(System.IServiceProvider rootServiceProvider, System.IServiceProvider requestServices, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Requests.Abstract.Execution.IExecutionResponse response, System.Threading.CancellationToken cancellationToken, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null) { }
+        public Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
+        public System.Threading.CancellationToken CancellationToken { get; set; }
+        public string CorrelationId { get; init; }
+        public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
+        public object? HandlerInstance { get; set; }
+        public Hardened.Requests.Abstract.Execution.IKnownServices KnownServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Request { get; }
+        public Hardened.Shared.Runtime.Metrics.IMetricLogger RequestMetrics { get; }
+        public System.IServiceProvider RequestServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Response { get; }
+        public System.IServiceProvider RootServiceProvider { get; }
+        public Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request = null, Hardened.Requests.Abstract.Execution.IExecutionResponse? response = null, System.IServiceProvider? serviceProvider = null, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null) { }
+        public void ReplaceCancellationToken(System.Threading.CancellationToken token) { }
+        public static System.Threading.CancellationTokenSource ForInvocation(Amazon.Lambda.Core.ILambdaContext context, System.TimeSpan? margin = default) { }
     }
     public sealed class LambdaPayload : System.IDisposable
     {
@@ -175,6 +202,20 @@ namespace Hardened.Aws.Lambda.Runtime.Execution
         public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest ForRecord(Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage record) { }
         public void RecordFailure(int index, System.Exception failure) { }
+    }
+}
+namespace Hardened.Aws.Lambda.Runtime.Hosting
+{
+    public static class HardenedLambdaBootstrap
+    {
+        public static System.Threading.Tasks.Task Run(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler) { }
+        public static System.Threading.Tasks.Task Run(System.IServiceProvider serviceProvider) { }
+    }
+    public class LambdaInvocationHandler
+    {
+        public LambdaInvocationHandler(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Execution.IRequestExecutor executor, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, System.Collections.Generic.IEnumerable<Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter> adapters) { }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter> Adapters { get; }
+        public System.Threading.Tasks.Task<System.IO.Stream> Invoke(System.IO.Stream input, Amazon.Lambda.Core.ILambdaContext lambdaContext) { }
     }
 }
 namespace Hardened.Aws.Lambda.Runtime.Modules

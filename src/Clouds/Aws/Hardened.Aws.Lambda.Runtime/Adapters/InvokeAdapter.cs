@@ -66,6 +66,12 @@ public sealed class InvokeAdapter : IPayloadAdapter {
             Scheme, "/" + context.FunctionName, payload.AsStream(), headers);
     }
 
+    /// <summary>
+    /// Rethrown. A direct invocation's caller reads a failure as a FunctionError with the exception
+    /// on it, which is the AWS-native answer and more than a synthesised payload could carry.
+    /// </summary>
+    public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
+
     public IExecutionResponse CreateResponse(Stream output) =>
         new LambdaPayloadResponse(output);
 

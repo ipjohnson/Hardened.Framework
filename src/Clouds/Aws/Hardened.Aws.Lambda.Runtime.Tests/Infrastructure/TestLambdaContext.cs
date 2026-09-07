@@ -12,10 +12,16 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 public sealed class TestLambdaContext : ILambdaContext {
     public static readonly TestLambdaContext Instance = new();
 
-    public TestLambdaContext(IDictionary<string, string>? custom = null, string functionName = "conformance") {
+    public TestLambdaContext(
+        IDictionary<string, string>? custom = null,
+        string functionName = "conformance",
+        TimeSpan? remainingTime = null) {
         ClientContext = new TestClientContext(custom ?? new Dictionary<string, string>());
         FunctionName = functionName;
+        _remainingTime = remainingTime;
     }
+
+    private readonly TimeSpan? _remainingTime;
 
     public string FunctionName { get; }
 
@@ -29,7 +35,15 @@ public sealed class TestLambdaContext : ILambdaContext {
     public string LogGroupName => throw new NotSupportedException();
     public string LogStreamName => throw new NotSupportedException();
     public int MemoryLimitInMB => throw new NotSupportedException();
-    public TimeSpan RemainingTime => throw new NotSupportedException();
+    /// <summary>
+    /// What Lambda says is left of this invocation, when a test set it.
+    /// </summary>
+    /// <remarks>
+    /// Still throws by default. The host turns this into a cancellation deadline, so a test that
+    /// does not set it deliberately should not silently get a fabricated one.
+    /// </remarks>
+    public TimeSpan RemainingTime =>
+        _remainingTime ?? throw new NotSupportedException();
 
     private sealed class TestClientContext : IClientContext {
         public TestClientContext(IDictionary<string, string> custom) {

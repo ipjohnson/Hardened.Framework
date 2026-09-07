@@ -83,6 +83,12 @@ public sealed class SnsAdapter : IPayloadAdapter {
         return colon > -1 ? topicArn.Substring(colon + 1) : topicArn;
     }
 
+    /// <summary>
+    /// Rethrown. Failing the invocation is what makes SNS redeliver and, eventually, route the
+    /// notification to the subscription's dead letter queue.
+    /// </summary>
+    public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
+
     public IExecutionResponse CreateResponse(Stream output) => new LambdaPayloadResponse(output);
 
     /// <summary>

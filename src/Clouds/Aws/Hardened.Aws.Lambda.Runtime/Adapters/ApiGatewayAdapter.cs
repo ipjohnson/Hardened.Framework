@@ -74,6 +74,12 @@ public sealed class ApiGatewayAdapter : IPayloadAdapter {
         return new ApiGatewayRequest(proxy, RequestBody(proxy));
     }
 
+    /// <summary>
+    /// Answered rather than rethrown. A failed invocation gives the caller a 502 with nothing in it,
+    /// where answering gives them the status and body the application chose.
+    /// </summary>
+    public HostFailurePolicy FailurePolicy => HostFailurePolicy.Answer500;
+
     public IExecutionResponse CreateResponse(Stream output) => new ApiGatewayResponse(output);
 
     /// <remarks>

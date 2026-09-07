@@ -113,6 +113,12 @@ public sealed class SqsAdapter : IPayloadAdapter {
         return colon > -1 ? eventSourceArn.Substring(colon + 1) : eventSourceArn;
     }
 
+    /// <summary>
+    /// Rethrown. Failing the invocation is what returns a message to the queue - answering would
+    /// tell SQS the batch was handled and delete every message in it.
+    /// </summary>
+    public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
+
     public IExecutionResponse CreateResponse(Stream output) => new LambdaPayloadResponse(output);
 
     /// <summary>

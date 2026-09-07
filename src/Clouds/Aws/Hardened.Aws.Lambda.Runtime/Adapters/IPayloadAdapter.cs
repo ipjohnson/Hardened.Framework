@@ -89,6 +89,24 @@ public interface IPayloadAdapter {
     IExecutionResponse CreateResponse(Stream output);
 
     /// <summary>
+    /// What the host does when the chain fails.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The other half of the shape decision. A web-shaped adapter answers 500, because the caller is
+    /// on the other end of an HTTP connection and a failed invocation gives them a 502 with nothing
+    /// in it - no status the application chose, no body, no correlation id.
+    /// </para>
+    /// <para>
+    /// A payload-shaped adapter rethrows, because failing the invocation <em>is</em> the answer. It
+    /// is what returns a message to its queue, what makes SNS redeliver, what a scheduled rule
+    /// records as a failed run, and what an SDK caller reads as a FunctionError. An event adapter
+    /// that answered instead would tell AWS every message was handled.
+    /// </para>
+    /// </remarks>
+    HostFailurePolicy FailurePolicy { get; }
+
+    /// <summary>
     /// Writes what the runtime expects, once the chain has finished.
     /// </summary>
     /// <remarks>

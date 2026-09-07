@@ -136,6 +136,12 @@ public sealed class EventBridgeAdapter : IPayloadAdapter {
         return new MemoryStream(buffer.WrittenSpan.ToArray(), writable: false);
     }
 
+    /// <summary>
+    /// Rethrown, so a failed run is recorded as failed against the rule rather than as a success
+    /// that produced nothing.
+    /// </summary>
+    public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
+
     public IExecutionResponse CreateResponse(Stream output) => new LambdaPayloadResponse(output);
 
     /// <summary>
