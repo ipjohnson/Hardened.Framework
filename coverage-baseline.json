@@ -1,106 +1,166 @@
 {
+  "Hardened.Aws.Lambda.ApiGateway": {
+    "line": 83.6,
+    "branch": 67.1
+  },
+  "Hardened.Aws.Lambda.DynamoDb": {
+    "line": 83.8,
+    "branch": 78.1
+  },
+  "Hardened.Aws.Lambda.EventBridge": {
+    "line": 93.6,
+    "branch": 100.0
+  },
+  "Hardened.Aws.Lambda.Invoke": {
+    "line": 91.6,
+    "branch": 100.0
+  },
+  "Hardened.Aws.Lambda.Kinesis": {
+    "line": 96.4,
+    "branch": 100.0
+  },
+  "Hardened.Aws.Lambda.Runtime": {
+    "line": 62.2,
+    "branch": 43.3
+  },
+  "Hardened.Aws.Lambda.S3": {
+    "line": 97.9,
+    "branch": 100.0
+  },
+  "Hardened.Aws.Lambda.Sns": {
+    "line": 94.3,
+    "branch": 94.4
+  },
+  "Hardened.Aws.Lambda.Sqs": {
+    "line": 98.1,
+    "branch": 93.7
+  },
+  "Hardened.Aws.Lambda.Testing": {
+    "line": 77.6,
+    "branch": 66.0
+  },
+  "Hardened.Functions.Runtime": {
+    "line": 0.0,
+    "branch": 100.0
+  },
+  "Hardened.Functions.Testing": {
+    "line": 30.0,
+    "branch": 54.5
+  },
   "Hardened.Idl.SourceGenerator": {
-    "branch": 48.9,
-    "line": 59.9
+    "line": 61.8,
+    "branch": 51.2
   },
   "Hardened.Kiota.Testing": {
-    "branch": 96.8,
-    "line": 98.1
+    "line": 100.0,
+    "branch": 100.0
   },
   "Hardened.Library.SourceGenerator": {
-    "branch": 13.8,
-    "line": 34.2
+    "line": 46.8,
+    "branch": 22.1
   },
   "Hardened.OpenApi.BuildTask": {
-    "branch": 36.3,
-    "line": 45.0
+    "line": 48.5,
+    "branch": 39.3
+  },
+  "Hardened.OpenApiDocument.BuildTask": {
+    "line": 82.4,
+    "branch": 71.3
   },
   "Hardened.Refit.Testing": {
-    "branch": 92.8,
-    "line": 91.1
+    "line": 100.0,
+    "branch": 100.0
   },
   "Hardened.Requests.Abstract": {
-    "branch": 100.0,
-    "line": 95.4
+    "line": 92.9,
+    "branch": 100.0
   },
   "Hardened.Requests.Caching.Memory": {
-    "branch": 100.0,
-    "line": 100.0
+    "line": 100.0,
+    "branch": 100.0
   },
   "Hardened.Requests.Runtime": {
-    "branch": 93.7,
-    "line": 97.2
+    "line": 97.7,
+    "branch": 94.9
   },
   "Hardened.Requests.Serializers.Newtonsoft": {
-    "branch": 100.0,
-    "line": 100.0
+    "line": 100.0,
+    "branch": 100.0
   },
   "Hardened.Requests.Testing": {
-    "branch": 100.0,
-    "line": 99.6
+    "line": 99.6,
+    "branch": 100.0
   },
   "Hardened.Shared.Runtime": {
-    "branch": 99.3,
-    "line": 97.3
+    "line": 97.4,
+    "branch": 99.3
   },
   "Hardened.Shared.Testing": {
-    "branch": 83.8,
-    "line": 96.3
+    "line": 96.2,
+    "branch": 84.2
   },
   "Hardened.Shared.Testing.NUnit": {
-    "branch": 66.6,
-    "line": 91.8
+    "line": 100.0,
+    "branch": 83.3
   },
   "Hardened.Shared.Testing.xUnit": {
-    "branch": 100.0,
-    "line": 100.0
+    "line": 100.0,
+    "branch": 100.0
   },
   "Hardened.Smithy.BuildTask": {
-    "branch": 45.8,
-    "line": 69.4
+    "line": 72.0,
+    "branch": 50.7
   },
   "Hardened.SourceGeneration.Testing": {
-    "branch": 86.6,
-    "line": 84.6
+    "line": 95.0,
+    "branch": 93.9
   },
   "Hardened.SourceGenerator": {
-    "branch": 50.3,
-    "line": 68.3
+    "line": 70.4,
+    "branch": 54.6
   },
   "Hardened.Templates.RazorBlade": {
-    "branch": 100.0,
-    "line": 100.0
+    "line": 100.0,
+    "branch": 100.0
   },
   "Hardened.Validation.SourceGenerator": {
-    "branch": 15.4,
-    "line": 25.4
+    "line": 30.7,
+    "branch": 24.2
   },
   "Hardened.Web.AspNetCore.Runtime": {
-    "branch": 88.1,
-    "line": 97.1
+    "line": 98.8,
+    "branch": 88.8
+  },
+  "Hardened.Web.AspNetCore.Testing": {
+    "line": 97.9,
+    "branch": 100.0
   },
   "Hardened.Web.Kestrel.Runtime": {
-    "branch": 82.8,
-    "line": 98.5
+    "line": 98.8,
+    "branch": 85.9
+  },
+  "Hardened.Web.Kestrel.Testing": {
+    "line": 100.0,
+    "branch": 100.0
   },
   "Hardened.Web.Runtime": {
-    "branch": 99.3,
-    "line": 98.5
+    "line": 98.6,
+    "branch": 99.5
   },
   "Hardened.Web.SourceGenerator": {
-    "branch": 48.5,
-    "line": 65.3
+    "line": 65.4,
+    "branch": 51.4
   },
   "Hardened.Web.StaticContent": {
-    "branch": 96.9,
-    "line": 96.6
+    "line": 96.7,
+    "branch": 97.1
   },
   "Hardened.Web.StaticContent.BuildTask": {
-    "branch": 97.2,
-    "line": 96.3
+    "line": 96.3,
+    "branch": 97.2
   },
   "Hardened.Web.Testing": {
-    "branch": 100.0,
-    "line": 98.9
+    "line": 100.0,
+    "branch": 100.0
   }
 }
