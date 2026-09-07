@@ -28,20 +28,27 @@ public static class HardenedLambdaBootstrap {
     /// <param name="serviceProvider">
     /// The application's root provider, which is what a generated <c>Application</c> exposes.
     /// </param>
-    public static Task Run(IServiceProvider serviceProvider) =>
-        Run(serviceProvider.GetRequiredService<LambdaInvocationHandler>());
+    public static Task Run(
+        IServiceProvider serviceProvider, CancellationToken cancellationToken = default) =>
+        Run(serviceProvider.GetRequiredService<LambdaInvocationHandler>(), cancellationToken);
 
     /// <summary>
     /// Serves invocations against a handler built by hand, for a host that assembles its own.
     /// </summary>
-    public static async Task Run(LambdaInvocationHandler handler) {
+    /// <param name="cancellationToken">
+    /// Stops the loop. A deployed function is never cancelled - the sandbox is frozen between
+    /// invocations and eventually torn down - so this exists for a host that runs the loop as part
+    /// of something larger, and for a test that has to get its process back.
+    /// </param>
+    public static async Task Run(
+        LambdaInvocationHandler handler, CancellationToken cancellationToken = default) {
         // Constructed rather than built through LambdaBootstrapBuilder, whose Create overloads
         // resolve a lambda to Action<Stream, ILambdaContext, MemoryStream> before they reach
         // LambdaBootstrapHandler. Nothing in the builder is wanted here anyway: there is no
         // serializer to install, because an adapter binds its own payload.
         using var bootstrap = new LambdaBootstrap(Handler(handler));
 
-        await bootstrap.RunAsync();
+        await bootstrap.RunAsync(cancellationToken);
     }
 
     /// <summary>

@@ -11,6 +11,9 @@
     <Project Path="src/Clients/Hardened.Refit.Testing.Tests/Hardened.Refit.Testing.Tests.csproj" />
     <Project Path="src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj" />
   </Folder>
+  <Folder Name="/IntegrationTests/Runtime/">
+    <Project Path="src/IntegrationTests/Runtime/Hardened.IntegrationTests.LambdaRuntime.Tests/Hardened.IntegrationTests.LambdaRuntime.Tests.csproj" />
+  </Folder>
   <Folder Name="/IntegrationTests/ApiGateway/">
     <Project Path="src/IntegrationTests/ApiGateway/Hardened.IntegrationTests.ApiGateway.SUT/Hardened.IntegrationTests.ApiGateway.SUT.csproj" />
     <Project Path="src/IntegrationTests/ApiGateway/Hardened.IntegrationTests.ApiGateway.SUT.Tests/Hardened.IntegrationTests.ApiGateway.SUT.Tests.csproj" />

@@ -208,8 +208,8 @@ namespace Hardened.Aws.Lambda.Runtime.Hosting
 {
     public static class HardenedLambdaBootstrap
     {
-        public static System.Threading.Tasks.Task Run(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler) { }
-        public static System.Threading.Tasks.Task Run(System.IServiceProvider serviceProvider) { }
+        public static System.Threading.Tasks.Task Run(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler, System.Threading.CancellationToken cancellationToken = default) { }
+        public static System.Threading.Tasks.Task Run(System.IServiceProvider serviceProvider, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public class LambdaInvocationHandler
     {
