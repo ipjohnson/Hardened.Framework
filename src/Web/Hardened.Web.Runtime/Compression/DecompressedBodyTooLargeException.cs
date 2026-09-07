@@ -1,7 +1,7 @@
 using System.Globalization;
 using Hardened.Requests.Abstract.Errors;
 
-namespace Hardened.Requests.Runtime.Compression;
+namespace Hardened.Web.Runtime.Compression;
 
 /// <summary>
 /// A compressed request body decoded past

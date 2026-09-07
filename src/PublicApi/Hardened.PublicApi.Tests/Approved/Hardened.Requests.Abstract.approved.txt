@@ -283,20 +283,6 @@ namespace Hardened.Requests.Abstract.Caching
         System.Threading.Tasks.ValueTask Set(string key, Hardened.Requests.Abstract.Caching.CachedResponse response, System.TimeSpan duration, System.Threading.CancellationToken cancellationToken);
     }
 }
-namespace Hardened.Requests.Abstract.Compression
-{
-    public enum CompressionType
-    {
-        Default = 0,
-        GZip = 1,
-        Br = 2,
-    }
-    public interface ICompressionPredicate
-    {
-        bool ShouldCompress(object value, Hardened.Requests.Abstract.Execution.IExecutionContext context);
-        Hardened.Requests.Abstract.Compression.ICompressionPredicate Create(object[] args);
-    }
-}
 namespace Hardened.Requests.Abstract.Diagnostics
 {
     public static class CorrelationIdentifier
@@ -638,17 +624,6 @@ namespace Hardened.Requests.Abstract.Headers
         Strict = 0,
         Lax = 1,
         None = 2,
-    }
-}
-namespace Hardened.Requests.Abstract.Links
-{
-    public interface ILinkContext
-    {
-        string BasePath { get; }
-        string? Host { get; }
-        string? Scheme { get; }
-        string Absolute(string path);
-        string Resolve(string path);
     }
 }
 namespace Hardened.Requests.Abstract.Logging

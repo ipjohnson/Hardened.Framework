@@ -28,6 +28,18 @@
         <ProjectReference Include="..\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
     </ItemGroup>
 
+    <!--
+      The pipeline harness, linked rather than referenced. Its other callers stayed in
+      Hardened.Requests.Runtime.Tests when compression moved here, so the file cannot move; and a
+      test project referencing another test project would put a second copy of every fixture in
+      this one's output. Linking is what the generator projects already do with
+      Hardened.SourceGenerator/Shared.
+    -->
+    <ItemGroup>
+        <Compile Include="..\..\Requests\Hardened.Requests.Runtime.Tests\Support\*.cs"
+                 Link="Support\%(Filename)%(Extension)"/>
+    </ItemGroup>
+
     <ItemGroup>
         <Content Include="wwwroot\**\*">
             <CopyToPublishDirectory>Always</CopyToPublishDirectory>

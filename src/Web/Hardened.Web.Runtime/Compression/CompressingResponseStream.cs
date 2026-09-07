@@ -1,8 +1,6 @@
 using System.IO.Compression;
-using Hardened.Requests.Abstract.Compression;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
-using Hardened.Requests.Runtime.Compression;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Runtime.Responses;
 

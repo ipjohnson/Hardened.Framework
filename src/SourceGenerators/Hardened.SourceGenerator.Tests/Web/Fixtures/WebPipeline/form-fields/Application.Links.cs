@@ -27,10 +27,10 @@ namespace TestApp
         /// </summary>
         public sealed class Links
         {
-            private readonly global::Hardened.Requests.Abstract.Links.ILinkContext _context;
+            private readonly global::Hardened.Web.Runtime.Links.ILinkContext _context;
             private global::TestApp.Application.Links.SignUpLinks? _SignUp;
 
-            public Links(global::Hardened.Requests.Abstract.Links.ILinkContext context)
+            public Links(global::Hardened.Web.Runtime.Links.ILinkContext context)
             {
                 _context = context;
             }
@@ -39,9 +39,9 @@ namespace TestApp
 
             public sealed class SignUpLinks
             {
-                private readonly global::Hardened.Requests.Abstract.Links.ILinkContext _context;
+                private readonly global::Hardened.Web.Runtime.Links.ILinkContext _context;
 
-                public SignUpLinks(global::Hardened.Requests.Abstract.Links.ILinkContext context)
+                public SignUpLinks(global::Hardened.Web.Runtime.Links.ILinkContext context)
                 {
                     _context = context;
                 }

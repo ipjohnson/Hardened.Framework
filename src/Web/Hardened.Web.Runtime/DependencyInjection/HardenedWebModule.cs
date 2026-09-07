@@ -4,7 +4,10 @@ using Hardened.Requests.Runtime.DependencyInjection;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Web.Runtime.Configuration;
+using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Web.Runtime.Compression;
 using Hardened.Web.Runtime.Cors;
+using Hardened.Web.Runtime.Links;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Health;
@@ -27,10 +30,17 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
         services.AddSingleton<IHandlerDispatch>(
             serviceProvider => serviceProvider.GetRequiredService<IWebExecutionHandlerService>());
 
+        // Compression and links joined routing here when they left HardenedRequestModule. Both are
+        // HTTP: a Content-Encoding to negotiate and a Link header to write, neither of which a
+        // Lambda invocation has anywhere to put. Response caching did not join them - a direct
+        // invoke has a caller reading the answer, so caching one is meaningful and its filter stays
+        // where every host can reach it.
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
                 new IConfigurationValueProvider[] {
-                    new NewConfigurationValueProvider<IWebRoutingConfiguration, WebRoutingConfiguration>(null)
+                    new NewConfigurationValueProvider<IWebRoutingConfiguration, WebRoutingConfiguration>(null),
+                    new NewConfigurationValueProvider<ILinkConfiguration, LinkConfiguration>(null),
+                    new NewConfigurationValueProvider<ICompressionConfiguration, CompressionConfiguration>(null)
                 }, Array.Empty<IConfigurationValueAmender>())
         );
 
@@ -38,6 +48,19 @@ public partial class HardenedWebModule : IServiceCollectionConfiguration {
             serviceProvider => Microsoft.Extensions.Options.Options.Create(
                 serviceProvider.GetRequiredService<IConfigurationManager>()
                     .GetConfiguration<IWebRoutingConfiguration>()));
+
+        services.AddSingleton(
+            serviceProvider => Microsoft.Extensions.Options.Options.Create(
+                serviceProvider.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<ILinkConfiguration>()));
+
+        services.AddSingleton(
+            serviceProvider => Microsoft.Extensions.Options.Options.Create(
+                serviceProvider.GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<ICompressionConfiguration>()));
+
+        services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IRequestFilterProvider, RequestDecompressionProvider>());
 
         services.AddSingleton<CorsConfiguration>(sp => {
             var config = new CorsConfiguration();

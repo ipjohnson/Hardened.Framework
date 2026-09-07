@@ -4,7 +4,6 @@ using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Caching;
-using Hardened.Requests.Runtime.Compression;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;

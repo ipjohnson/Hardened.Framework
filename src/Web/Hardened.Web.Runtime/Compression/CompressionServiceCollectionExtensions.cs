@@ -1,7 +1,7 @@
 using Hardened.Shared.Runtime.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Hardened.Requests.Runtime.Compression;
+namespace Hardened.Web.Runtime.Compression;
 
 public static class CompressionServiceCollectionExtensions {
 

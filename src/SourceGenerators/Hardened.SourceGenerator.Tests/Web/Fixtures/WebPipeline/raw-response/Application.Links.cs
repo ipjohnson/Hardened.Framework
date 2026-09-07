@@ -27,10 +27,10 @@ namespace TestApp
         /// </summary>
         public sealed class Links
         {
-            private readonly global::Hardened.Requests.Abstract.Links.ILinkContext _context;
+            private readonly global::Hardened.Web.Runtime.Links.ILinkContext _context;
             private global::TestApp.Application.Links.BlobLinks? _Blob;
 
-            public Links(global::Hardened.Requests.Abstract.Links.ILinkContext context)
+            public Links(global::Hardened.Web.Runtime.Links.ILinkContext context)
             {
                 _context = context;
             }
@@ -39,9 +39,9 @@ namespace TestApp
 
             public sealed class BlobLinks
             {
-                private readonly global::Hardened.Requests.Abstract.Links.ILinkContext _context;
+                private readonly global::Hardened.Web.Runtime.Links.ILinkContext _context;
 
-                public BlobLinks(global::Hardened.Requests.Abstract.Links.ILinkContext context)
+                public BlobLinks(global::Hardened.Web.Runtime.Links.ILinkContext context)
                 {
                     _context = context;
                 }

@@ -1,7 +1,7 @@
-using Hardened.Requests.Runtime.Compression;
 using Xunit;
+using Hardened.Web.Runtime.Compression;
 
-namespace Hardened.Requests.Runtime.Tests.Compression;
+namespace Hardened.Web.Runtime.Tests.Compression;
 
 /// <summary>
 /// The default media-type rule, and the pattern language it is written in.

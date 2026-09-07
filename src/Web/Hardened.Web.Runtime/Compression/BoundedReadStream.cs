@@ -1,4 +1,4 @@
-namespace Hardened.Requests.Runtime.Compression;
+namespace Hardened.Web.Runtime.Compression;
 
 /// <summary>
 /// A read-only view over a decoder that refuses to hand out more than a fixed number of bytes.

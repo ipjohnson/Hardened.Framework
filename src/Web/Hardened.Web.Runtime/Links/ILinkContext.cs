@@ -1,4 +1,4 @@
-namespace Hardened.Requests.Abstract.Links;
+namespace Hardened.Web.Runtime.Links;
 
 /// <summary>
 /// Where the application is actually reachable, as opposed to where it thinks it is.

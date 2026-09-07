@@ -3,7 +3,6 @@ using System.Net;
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
-using Hardened.Requests.Runtime.Compression;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Web.Runtime.Compression;
 using Microsoft.Extensions.DependencyInjection;

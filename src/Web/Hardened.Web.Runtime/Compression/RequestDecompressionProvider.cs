@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 
-namespace Hardened.Requests.Runtime.Compression;
+namespace Hardened.Web.Runtime.Compression;
 
 /// <summary>
 /// Installs <see cref="RequestDecompressionFilter"/> on every handler.

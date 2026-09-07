@@ -1,5 +1,4 @@
 using Hardened.Requests.Abstract.Attributes;
-using Hardened.Requests.Abstract.Compression;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Compression;

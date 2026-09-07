@@ -1,6 +1,6 @@
 using System.IO.Compression;
 
-namespace Hardened.Requests.Runtime.Compression;
+namespace Hardened.Web.Runtime.Compression;
 
 /// <summary>
 /// How responses are compressed and how far a compressed request is allowed to grow.

@@ -1,8 +1,7 @@
 using DependencyModules.Runtime.Attributes;
-using Hardened.Requests.Abstract.Links;
 using Microsoft.Extensions.Options;
 
-namespace Hardened.Requests.Runtime.Links;
+namespace Hardened.Web.Runtime.Links;
 
 /// <summary>
 /// What a host tells the link builders about where it is served from.

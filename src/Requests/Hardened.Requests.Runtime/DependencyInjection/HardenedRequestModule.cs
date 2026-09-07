@@ -5,9 +5,7 @@ using DependencyModules.Runtime.Interfaces;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.Authorization;
-using Hardened.Requests.Runtime.Compression;
 using Hardened.Requests.Runtime.Configuration;
-using Hardened.Requests.Runtime.Links;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Shared.Runtime.DependencyInjection;
@@ -32,9 +30,7 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
             new SimpleConfigurationPackage(new IConfigurationValueProvider[] {
                 new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(null),
                 new NewConfigurationValueProvider<IJsonSerializerConfiguration, JsonSerializerConfiguration>(null),
-                new NewConfigurationValueProvider<ILinkConfiguration, LinkConfiguration>(null),
                 new NewConfigurationValueProvider<IAuthorizationConfiguration, AuthorizationConfiguration>(null),
-                new NewConfigurationValueProvider<ICompressionConfiguration, CompressionConfiguration>(null),
                 new NewConfigurationValueProvider<IStreamingConfiguration, StreamingConfiguration>(null)
             }));
         services.AddSingleton(
@@ -47,15 +43,7 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
 
         services.AddSingleton(
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                .GetConfiguration<ILinkConfiguration>()));
-
-        services.AddSingleton(
-            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
                 .GetConfiguration<IAuthorizationConfiguration>()));
-
-        services.AddSingleton(
-            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
-                .GetConfiguration<ICompressionConfiguration>()));
 
         services.AddSingleton(
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
@@ -85,12 +73,10 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<IStartupService, AuthorizationStartupService>());
 
-        // Always on, as request decompression was when the JSON deserializers did it. A request
-        // carrying no Content-Encoding costs one header lookup. TryAddEnumerable so a second load
-        // of this module does not install a second copy; the registry takes every registered
-        // provider through its constructor.
-        services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IRequestFilterProvider, RequestDecompressionProvider>());
+        // Request decompression is not registered here any more. Content-Encoding is an HTTP
+        // request header and a Lambda invocation carries none, so installing the filter for every
+        // host put a provider in a queue function that no payload could ever trigger.
+        // HardenedWebModule installs it, which is every HTTP host and nothing else.
 
         // Same footing: one resolve at startup, and no middleware at all unless something
         // registered an IPrincipalSource. Constructed over this collection rather than resolved

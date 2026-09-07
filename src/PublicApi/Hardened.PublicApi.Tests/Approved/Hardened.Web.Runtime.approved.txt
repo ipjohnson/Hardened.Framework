@@ -157,17 +157,62 @@ namespace Hardened.Web.Runtime.Compression
     public class CompressAttribute : System.Attribute, Hardened.Requests.Abstract.RequestFilter.IRequestFilterProvider
     {
         public CompressAttribute() { }
-        public Hardened.Requests.Abstract.Compression.CompressionType Favor { get; set; }
+        public Hardened.Web.Runtime.Compression.CompressionType Favor { get; set; }
         public virtual System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
         public static bool Declares(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
         protected static Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo Filter(Hardened.Web.Runtime.Compression.ResponseCompressionFilter filter) { }
     }
     public sealed class CompressAttribute<TPredicate> : Hardened.Web.Runtime.Compression.CompressAttribute
-        where TPredicate : Hardened.Requests.Abstract.Compression.ICompressionPredicate
+        where TPredicate : Hardened.Web.Runtime.Compression.ICompressionPredicate
     {
         public CompressAttribute(params object[] args) { }
         public object[] Args { get; }
         public override System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo) { }
+    }
+    public class CompressionConfiguration : Hardened.Web.Runtime.Compression.ICompressionConfiguration
+    {
+        public const long DefaultMaxDecompressedRequestBytes = 30000000;
+        public CompressionConfiguration() { }
+        public System.Collections.Generic.List<string> Encodings { get; set; }
+        public System.Collections.Generic.List<string> ExcludedMediaTypes { get; set; }
+        public System.IO.Compression.CompressionLevel Level { get; set; }
+        public long MaxDecompressedRequestBytes { get; set; }
+        public System.Collections.Generic.List<string> MediaTypes { get; set; }
+        public bool Compresses(string? contentType) { }
+    }
+    public static class CompressionServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureCompression(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Hardened.Web.Runtime.Compression.CompressionConfiguration> configure) { }
+    }
+    public enum CompressionType
+    {
+        Default = 0,
+        GZip = 1,
+        Br = 2,
+    }
+    public class DecompressedBodyTooLargeException : Hardened.Requests.Abstract.Errors.StatusCodeException
+    {
+        public DecompressedBodyTooLargeException(long limit) { }
+        public long Limit { get; }
+    }
+    public interface ICompressionConfiguration
+    {
+        System.Collections.Generic.IReadOnlyList<string> Encodings { get; }
+        System.Collections.Generic.IReadOnlyList<string> ExcludedMediaTypes { get; }
+        System.IO.Compression.CompressionLevel Level { get; }
+        long MaxDecompressedRequestBytes { get; }
+        System.Collections.Generic.IReadOnlyList<string> MediaTypes { get; }
+        bool Compresses(string? contentType);
+    }
+    public interface ICompressionPredicate
+    {
+        bool ShouldCompress(object value, Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        Hardened.Web.Runtime.Compression.ICompressionPredicate Create(object[] args);
+    }
+    public sealed class RequestDecompressionFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public RequestDecompressionFilter(Hardened.Web.Runtime.Compression.ICompressionConfiguration? configuration = null) { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
@@ -187,9 +232,9 @@ namespace Hardened.Web.Runtime.Compression
     }
     public sealed class ResponseCompressionFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
-        public ResponseCompressionFilter(Hardened.Requests.Abstract.Compression.ICompressionPredicate? predicate = null, Hardened.Requests.Abstract.Compression.CompressionType favor = 0, Hardened.Requests.Runtime.Compression.ICompressionConfiguration? configuration = null) { }
+        public ResponseCompressionFilter(Hardened.Web.Runtime.Compression.ICompressionPredicate? predicate = null, Hardened.Web.Runtime.Compression.CompressionType favor = 0, Hardened.Web.Runtime.Compression.ICompressionConfiguration? configuration = null) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
-        public static string? Negotiate(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> requestHeaders, Hardened.Requests.Runtime.Compression.ICompressionConfiguration configuration, Hardened.Requests.Abstract.Compression.CompressionType favor) { }
+        public static string? Negotiate(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> requestHeaders, Hardened.Web.Runtime.Compression.ICompressionConfiguration configuration, Hardened.Web.Runtime.Compression.CompressionType favor) { }
     }
 }
 namespace Hardened.Web.Runtime.Conditional
@@ -411,6 +456,40 @@ namespace Hardened.Web.Runtime.Health
     {
         string Name { get; }
         System.Threading.Tasks.Task<Hardened.Web.Runtime.Health.HealthCheckResult> Check(System.Threading.CancellationToken cancellationToken);
+    }
+}
+namespace Hardened.Web.Runtime.Links
+{
+    public interface ILinkConfiguration
+    {
+        string BasePath { get; }
+        string? Host { get; }
+        string? Scheme { get; }
+    }
+    public interface ILinkContext
+    {
+        string BasePath { get; }
+        string? Host { get; }
+        string? Scheme { get; }
+        string Absolute(string path);
+        string Resolve(string path);
+    }
+    public class LinkConfiguration : Hardened.Web.Runtime.Links.ILinkConfiguration
+    {
+        public LinkConfiguration() { }
+        public string BasePath { get; set; }
+        public string? Host { get; set; }
+        public string? Scheme { get; set; }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
+    public class LinkContext : Hardened.Web.Runtime.Links.ILinkContext
+    {
+        public LinkContext(Microsoft.Extensions.Options.IOptions<Hardened.Web.Runtime.Links.ILinkConfiguration> configuration) { }
+        public string BasePath { get; }
+        public string? Host { get; }
+        public string? Scheme { get; }
+        public string Absolute(string path) { }
+        public string Resolve(string path) { }
     }
 }
 namespace Hardened.Web.Runtime.OpenApi

@@ -1,4 +1,4 @@
-namespace Hardened.Requests.Abstract.Compression;
+namespace Hardened.Web.Runtime.Compression;
 
 /// <summary>
 /// The content coding an operation prefers when the client accepts more than one.

@@ -27,10 +27,10 @@ namespace TestApp
         /// </summary>
         public sealed class Links
         {
-            private readonly global::Hardened.Requests.Abstract.Links.ILinkContext _context;
+            private readonly global::Hardened.Web.Runtime.Links.ILinkContext _context;
             private global::TestApp.Application.Links.ClockLinks? _Clock;
 
-            public Links(global::Hardened.Requests.Abstract.Links.ILinkContext context)
+            public Links(global::Hardened.Web.Runtime.Links.ILinkContext context)
             {
                 _context = context;
             }
@@ -39,9 +39,9 @@ namespace TestApp
 
             public sealed class ClockLinks
             {
-                private readonly global::Hardened.Requests.Abstract.Links.ILinkContext _context;
+                private readonly global::Hardened.Web.Runtime.Links.ILinkContext _context;
 
-                public ClockLinks(global::Hardened.Requests.Abstract.Links.ILinkContext context)
+                public ClockLinks(global::Hardened.Web.Runtime.Links.ILinkContext context)
                 {
                     _context = context;
                 }

@@ -1,6 +1,6 @@
 using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Requests.Abstract.Compression;
+namespace Hardened.Web.Runtime.Compression;
 
 /// <summary>
 /// Whether one operation's response is worth compressing, decided from the value the handler

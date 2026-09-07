@@ -34,7 +34,6 @@ public class CompressAttributeGenerationTests {
                 ["Test.cs"] = $$"""
                     using System;
                     using System.Collections.Generic;
-                    using Hardened.Requests.Abstract.Compression;
                     using Hardened.Requests.Abstract.Execution;
                     using Hardened.Shared.Runtime.Attributes;
                     using Hardened.Web.Runtime.Attributes;
@@ -81,7 +80,7 @@ public class CompressAttributeGenerationTests {
         var source = result.SourceContaining("PetsController_List");
 
         Assert.Contains("global::Hardened.Web.Runtime.Compression.CompressAttribute<global::TestApp.ListLargerThan>(50)", source);
-        Assert.Contains("Favor = global::Hardened.Requests.Abstract.Compression.CompressionType.Br", source);
+        Assert.Contains("Favor = global::Hardened.Web.Runtime.Compression.CompressionType.Br", source);
     }
 
     [Fact]
@@ -91,7 +90,7 @@ public class CompressAttributeGenerationTests {
         var source = result.SourceContaining("PetsController_List");
 
         Assert.Contains("global::Hardened.Web.Runtime.Compression.CompressAttribute()", source);
-        Assert.Contains("Favor = global::Hardened.Requests.Abstract.Compression.CompressionType.GZip", source);
+        Assert.Contains("Favor = global::Hardened.Web.Runtime.Compression.CompressionType.GZip", source);
     }
 
     [Fact]

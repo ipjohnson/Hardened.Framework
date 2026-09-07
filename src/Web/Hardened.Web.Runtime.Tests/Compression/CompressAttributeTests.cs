@@ -1,4 +1,3 @@
-using Hardened.Requests.Abstract.Compression;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Runtime.Execution;

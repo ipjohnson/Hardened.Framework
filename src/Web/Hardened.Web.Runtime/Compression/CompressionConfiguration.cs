@@ -1,7 +1,7 @@
 using System.IO.Compression;
 using Hardened.Requests.Abstract.Headers;
 
-namespace Hardened.Requests.Runtime.Compression;
+namespace Hardened.Web.Runtime.Compression;
 
 /// <inheritdoc cref="ICompressionConfiguration"/>
 public class CompressionConfiguration : ICompressionConfiguration {

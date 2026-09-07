@@ -1,8 +1,8 @@
-using Hardened.Requests.Runtime.Links;
 using Microsoft.Extensions.Options;
 using Xunit;
+using Hardened.Web.Runtime.Links;
 
-namespace Hardened.Requests.Runtime.Tests.Links;
+namespace Hardened.Web.Runtime.Tests.Links;
 
 /// <summary>
 /// The default <see cref="Hardened.Requests.Abstract.Links.ILinkContext"/>, which turns a route

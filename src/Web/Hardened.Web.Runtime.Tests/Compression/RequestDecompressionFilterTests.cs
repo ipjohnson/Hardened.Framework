@@ -4,13 +4,13 @@ using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Caching;
-using Hardened.Requests.Runtime.Compression;
 using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.Tests.Support;
 using Microsoft.Extensions.Primitives;
 using Xunit;
+using Hardened.Web.Runtime.Compression;
 
-namespace Hardened.Requests.Runtime.Tests.Compression;
+namespace Hardened.Web.Runtime.Tests.Compression;
 
 /// <summary>
 /// Compressed request bodies. A client that sets <c>Content-Encoding</c> is telling the server the

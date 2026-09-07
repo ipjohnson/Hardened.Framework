@@ -1,4 +1,4 @@
-﻿using Hardened.Requests.Abstract.Links;
+﻿using Hardened.Web.Runtime.Links;
 using Hardened.IntegrationTests.WebApp.SUT;
 using Microsoft.Extensions.DependencyInjection;
 
