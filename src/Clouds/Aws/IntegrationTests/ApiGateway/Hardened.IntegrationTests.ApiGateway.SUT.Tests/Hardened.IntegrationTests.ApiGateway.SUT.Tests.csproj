@@ -14,15 +14,13 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="xunit.v3"/>
-        <PackageReference Include="DependencyModules.NSubstitute"/>
-        <PackageReference Include="NSubstitute"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Hardened.IntegrationTests.Events.SUT\Hardened.IntegrationTests.Events.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+        <ProjectReference Include="..\Hardened.IntegrationTests.ApiGateway.SUT\Hardened.IntegrationTests.ApiGateway.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
     </ItemGroup>
 
 </Project>

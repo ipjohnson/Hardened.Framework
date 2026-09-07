@@ -18,14 +18,11 @@
         <PackageReference Include="NSubstitute"/>
     </ItemGroup>
 
-    <!--
-      Its own project rather than another file in the SQS suite, because these tests set the
-      environment variables the Lambda runtime client reads and that is process-wide. A separate
-      test assembly is a separate process, which is the only isolation that actually holds.
-    -->
     <ItemGroup>
-        <ProjectReference Include="..\..\Sqs\Hardened.IntegrationTests.Sqs.SUT\Hardened.IntegrationTests.Sqs.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+        <ProjectReference Include="..\Hardened.IntegrationTests.Invoke.SUT\Hardened.IntegrationTests.Invoke.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
     </ItemGroup>
 
 </Project>

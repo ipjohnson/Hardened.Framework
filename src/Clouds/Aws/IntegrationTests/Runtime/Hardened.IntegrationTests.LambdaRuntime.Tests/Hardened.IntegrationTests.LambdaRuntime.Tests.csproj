@@ -14,13 +14,18 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="DependencyModules.NSubstitute"/>
+        <PackageReference Include="NSubstitute"/>
     </ItemGroup>
 
+    <!--
+      Its own project rather than another file in the SQS suite, because these tests set the
+      environment variables the Lambda runtime client reads and that is process-wide. A separate
+      test assembly is a separate process, which is the only isolation that actually holds.
+    -->
     <ItemGroup>
-        <ProjectReference Include="..\Hardened.IntegrationTests.ApiGateway.SUT\Hardened.IntegrationTests.ApiGateway.SUT.csproj"/>
-        <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
-        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+        <ProjectReference Include="..\..\Sqs\Hardened.IntegrationTests.Sqs.SUT\Hardened.IntegrationTests.Sqs.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
     </ItemGroup>
 
 </Project>
