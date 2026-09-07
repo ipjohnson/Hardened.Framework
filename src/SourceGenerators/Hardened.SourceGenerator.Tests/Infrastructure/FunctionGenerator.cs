@@ -26,6 +26,8 @@ public class FunctionGenerator : IIncrementalGenerator {
         ).WithComparer(new EntryPointSelector.Comparer());
 
         global::Hardened.SourceGenerator.Function.FunctionIncrementalGenerator.Setup(context, applicationModel);
+
+        global::Hardened.SourceGenerator.Function.TriggerModuleGenerator.Setup(context, applicationModel);
     }
 }
 

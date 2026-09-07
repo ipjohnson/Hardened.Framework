@@ -13,5 +13,9 @@ public class FunctionLibrarySourceGenerator : IIncrementalGenerator {
         ).WithComparer(new EntryPointSelector.Comparer());
 
         FunctionIncrementalGenerator.Setup(context, applicationModel);
+
+        // Which payload adapter each trigger in the project needs, read from the runtime package's
+        // own build properties rather than known here.
+        TriggerModuleGenerator.Setup(context, applicationModel);
     }
 }

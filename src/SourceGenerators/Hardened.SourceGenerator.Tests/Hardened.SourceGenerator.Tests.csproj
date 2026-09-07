@@ -41,6 +41,7 @@
         <ProjectReference Include="..\Hardened.SourceGeneration.Testing\Hardened.SourceGeneration.Testing.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
     </ItemGroup>
