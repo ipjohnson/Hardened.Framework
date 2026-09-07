@@ -5,33 +5,24 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>Hardened.IntegrationTests.Sqs.SUT</RootNamespace>
+        <RootNamespace>Hardened.IntegrationTests.ApiGateway.SUT</RootNamespace>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-
-        <!--
-          Two entry points over one set of handlers, which HRDR004 exists to question. Deliberate
-          here and only here: the two applications are the same code deployed against two event
-          source mappings, one with ReportBatchItemFailures and one without, and that setting is a
-          property of the deployment rather than of the handlers. Sharing the handlers is what makes
-          the pair a comparison rather than two unrelated fixtures.
-        -->
-        <NoWarn>$(NoWarn);HRDR004</NoWarn>
     </PropertyGroup>
 
     <!--
-      A queue function as an application would write one: a handler with [Queue] and nothing else.
-      No module attribute for SQS, no adapter registration, no filter - the trigger is the whole
-      declaration, and the generator plus the runtime package's build properties supply the rest.
-      That is the claim this fixture exists to hold.
+      An HTTP function: web verbs on a controller and nothing that names AWS. The same handlers
+      compile against Kestrel and inside ASP.NET Core, and the only thing that makes them run behind
+      API Gateway is which runtime package this project references - which is the portability claim
+      the whole adapter map exists for, and this is the fixture that holds it.
     -->
     <ItemGroup>
-        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
     </ItemGroup>

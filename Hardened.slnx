@@ -11,6 +11,10 @@
     <Project Path="src/Clients/Hardened.Refit.Testing.Tests/Hardened.Refit.Testing.Tests.csproj" />
     <Project Path="src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj" />
   </Folder>
+  <Folder Name="/IntegrationTests/ApiGateway/">
+    <Project Path="src/IntegrationTests/ApiGateway/Hardened.IntegrationTests.ApiGateway.SUT/Hardened.IntegrationTests.ApiGateway.SUT.csproj" />
+    <Project Path="src/IntegrationTests/ApiGateway/Hardened.IntegrationTests.ApiGateway.SUT.Tests/Hardened.IntegrationTests.ApiGateway.SUT.Tests.csproj" />
+  </Folder>
   <Folder Name="/IntegrationTests/Invoke/">
     <Project Path="src/IntegrationTests/Invoke/Hardened.IntegrationTests.Invoke.SUT/Hardened.IntegrationTests.Invoke.SUT.csproj" />
     <Project Path="src/IntegrationTests/Invoke/Hardened.IntegrationTests.Invoke.SUT.Tests/Hardened.IntegrationTests.Invoke.SUT.Tests.csproj" />

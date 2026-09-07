@@ -229,6 +229,14 @@ public static class KnownTypes {
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
                 "IFunctionHandlerProvider");
 
+        public static readonly ITypeDefinition IHandlerDispatch =
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
+                "IHandlerDispatch");
+
+        public static readonly ITypeDefinition FunctionDispatchFilter =
+            TypeDefinition.Get(TypeDefinitionEnum.ClassDefinition, "Hardened.Requests.Runtime.Execution",
+                "FunctionDispatchFilter");
+
         public static readonly ITypeDefinition IExecutionRequestHandlerInfo =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
                 "IExecutionRequestHandlerInfo");

@@ -26,8 +26,28 @@ public class FunctionGenerator : IIncrementalGenerator {
         ).WithComparer(new EntryPointSelector.Comparer());
 
         global::Hardened.SourceGenerator.Function.FunctionIncrementalGenerator.Setup(context, applicationModel);
+    }
+}
 
-        global::Hardened.SourceGenerator.Function.TriggerModuleGenerator.Setup(context, applicationModel);
+/// <summary>
+/// Drives the trigger-to-module binding, which the library generator owns in a real build.
+/// </summary>
+/// <remarks>
+/// Its own driver rather than a call inside <see cref="FunctionGenerator"/>, because that is how
+/// the build is arranged: <c>Hardened.Library.SourceGenerator</c> is referenced by every Hardened
+/// project and owns this, so a project routing with the web generator binds its adapters the same
+/// way one routing with the function generator does. Running it as a second generator here is what
+/// keeps the test arrangement honest about that.
+/// </remarks>
+public class TriggerGenerator : IIncrementalGenerator {
+
+    public void Initialize(IncrementalGeneratorInitializationContext context) {
+        var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
+            EntryPointSelector.UsingAttribute(),
+            EntryPointSelector.TransformModel(false)
+        ).WithComparer(new EntryPointSelector.Comparer());
+
+        global::Hardened.SourceGenerator.Shared.TriggerModuleGenerator.Setup(context, applicationModel);
     }
 }
 

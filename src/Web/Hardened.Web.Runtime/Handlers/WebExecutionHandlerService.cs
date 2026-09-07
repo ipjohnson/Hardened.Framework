@@ -10,7 +10,7 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Handlers;
 
-public interface IWebExecutionHandlerService : IExecutionFilter { }
+public interface IWebExecutionHandlerService : IHandlerDispatch { }
 
 [SingletonService(Using = RegistrationType.Try)]
 public partial class WebExecutionHandlerService : IWebExecutionHandlerService {

@@ -19,6 +19,7 @@ public static class FunctionIncrementalGenerator {
         // much as [HardenedFunction] is - it names a route and a scheme - so it goes through the
         // same model, invoker and registration as the rest rather than a parallel pipeline.
         var selectors = TriggerModuleGenerator.Triggers
+            .Where(trigger => trigger.IsFunctionHandler)
             .Select(trigger => new SyntaxSelector<MethodDeclarationSyntax>(trigger.Type))
             .ToArray();
 
@@ -171,6 +172,15 @@ public static class FunctionIncrementalGenerator {
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
         var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+
+        // Dispatch beside the provider it dispatches through, so an application that compiled no
+        // function handlers carries neither. This is what a host installs at the end of the
+        // middleware chain, and it is how a host stays ignorant of which kind of handlers it serves.
+        diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
+            new[] {
+                KnownTypes.Requests.IHandlerDispatch,
+                KnownTypes.Requests.FunctionDispatchFilter
+            }));
 
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] {

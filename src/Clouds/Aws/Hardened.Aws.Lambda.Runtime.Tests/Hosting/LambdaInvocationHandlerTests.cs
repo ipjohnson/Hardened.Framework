@@ -50,10 +50,14 @@ public class LambdaInvocationHandlerTests {
 
         services.AddSingleton<IKnownServices>(new StubKnownServices());
 
-        // The handler appends its dispatch filter here on first invocation, the way a web host
-        // appends routing at start. The real one is used rather than a substitute because appending
-        // twice is the failure the once-only guard exists for, and a substitute would not show it.
+        // The handler appends the application's dispatch here on first invocation, the way a web
+        // host appends routing at start. The real MiddlewareService is used rather than a
+        // substitute because appending twice is the failure the once-only guard exists for.
         services.AddSingleton<IMiddlewareService, MiddlewareService>();
+
+        // What a routing generator would have registered. Which kind it is does not matter to the
+        // host - that is the point of IHandlerDispatch - so a stand-in is honest here.
+        services.AddSingleton<IHandlerDispatch, StubDispatch>();
 
         var provider = services.BuildServiceProvider();
 
@@ -231,6 +235,11 @@ public class LambdaInvocationHandlerTests {
         Assert.Equal(1, DispatchFilters(handler));
     }
 
+    /// <summary>Stands in for whichever dispatch a routing generator registered.</summary>
+    private sealed class StubDispatch : IHandlerDispatch {
+        public Task Execute(IExecutionChain chain) => Task.CompletedTask;
+    }
+
     /// <summary>
     /// How many dispatch filters the middleware service would put in a chain.
     /// </summary>
@@ -249,7 +258,57 @@ public class LambdaInvocationHandlerTests {
         var filters =
             (List<Func<IExecutionContext, IExecutionFilter>>)field!.GetValue(middleware)!;
 
-        return filters.Count(factory => factory(null!) is FunctionDispatchFilter);
+        return filters.Count(factory => factory(null!) is StubDispatch);
+    }
+
+    /// <summary>
+    /// An application whose handlers compiled to two kinds of dispatch. Ordering them cannot help -
+    /// web dispatch answers 404 for anything its table misses - so the host refuses and names both.
+    /// </summary>
+    [Fact]
+    public async Task TwoKindsOfDispatchAreRefused() {
+        var services = new ServiceCollection();
+
+        services.AddSingleton<IKnownServices>(new StubKnownServices());
+        services.AddSingleton<IMiddlewareService, MiddlewareService>();
+        services.AddSingleton<IHandlerDispatch, StubDispatch>();
+        services.AddSingleton<IHandlerDispatch, OtherStubDispatch>();
+
+        var handler = new LambdaInvocationHandler(
+            services.BuildServiceProvider(), new RecordingExecutor(),
+            new NullMetricLoggerProvider(), [new SqsAdapter()]);
+
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => handler.Invoke(Input(Payloads.SqsJson), Context()));
+
+        Assert.Contains("StubDispatch", failure.Message);
+        Assert.Contains("OtherStubDispatch", failure.Message);
+    }
+
+    /// <summary>
+    /// No handlers at all. Said at the first invocation rather than answered with an empty
+    /// response, which is what an application with no routing generator referenced would otherwise
+    /// do forever.
+    /// </summary>
+    [Fact]
+    public async Task NoDispatchAtAllIsRefused() {
+        var services = new ServiceCollection();
+
+        services.AddSingleton<IKnownServices>(new StubKnownServices());
+        services.AddSingleton<IMiddlewareService, MiddlewareService>();
+
+        var handler = new LambdaInvocationHandler(
+            services.BuildServiceProvider(), new RecordingExecutor(),
+            new NullMetricLoggerProvider(), [new SqsAdapter()]);
+
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => handler.Invoke(Input(Payloads.SqsJson), Context()));
+
+        Assert.Contains("declares no handlers", failure.Message);
+    }
+
+    private sealed class OtherStubDispatch : IHandlerDispatch {
+        public Task Execute(IExecutionChain chain) => Task.CompletedTask;
     }
 
     /// <summary>Counts how often the peek was run, without changing what the adapter answers.</summary>

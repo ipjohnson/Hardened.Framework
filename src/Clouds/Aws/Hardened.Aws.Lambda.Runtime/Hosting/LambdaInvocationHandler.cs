@@ -108,6 +108,12 @@ public class LambdaInvocationHandler {
     /// The bootstrap resolves this handler once and the sandbox is single-threaded per invocation,
     /// so a plain flag is enough.
     /// </para>
+    /// <para>
+    /// <b>Which dispatch depends on what the application declared.</b> Web verbs compile to a
+    /// routing table behind <c>IWebExecutionHandlerService</c>; triggers and <c>[HardenedFunction]</c>
+    /// compile to a name switch behind <c>IFunctionHandlerProvider</c>. A function serves one or
+    /// the other, and which is a property of the handlers rather than of the host.
+    /// </para>
     /// </remarks>
     private void Install() {
         if (_installed) {
@@ -116,8 +122,29 @@ public class LambdaInvocationHandler {
 
         _installed = true;
 
-        _rootServiceProvider.GetRequiredService<IMiddlewareService>()
-            .Use(_ => new FunctionDispatchFilter());
+        var dispatch = _rootServiceProvider.GetServices<IHandlerDispatch>().ToArray();
+
+        if (dispatch.Length == 0) {
+            throw new InvalidOperationException(
+                "This function declares no handlers. A verb attribute or a trigger attribute on a " +
+                "method is what compiles one.");
+        }
+
+        if (dispatch.Length > 1) {
+            // Refused rather than ordered. Web dispatch answers 404 for anything its table does not
+            // match, so putting it in front of function dispatch swallows every queue message, and
+            // putting it behind means a web request meets the not-found handler of a table that
+            // never saw it. This is the cross-family mixing the split exists to prevent, and this is
+            // where it becomes detectable.
+            throw new InvalidOperationException(
+                "This function declares more than one kind of handler - " +
+                string.Join(", ", dispatch.Select(one => one.GetType().Name)) +
+                ". Web routes and function triggers are separate families and cannot share one " +
+                "Lambda: an HTTP route answers a caller waiting on a connection, and a trigger " +
+                "fails the invocation to make its source redeliver. Split them into two functions.");
+        }
+
+        _rootServiceProvider.GetRequiredService<IMiddlewareService>().Use(_ => dispatch[0]);
     }
 
     /// <summary>

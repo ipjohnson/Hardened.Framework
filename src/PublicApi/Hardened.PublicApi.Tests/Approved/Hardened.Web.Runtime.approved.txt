@@ -302,7 +302,7 @@ namespace Hardened.Web.Runtime.Handlers
     {
         System.Threading.Tasks.Task Handle(Hardened.Requests.Abstract.Execution.IExecutionContext context, string allow);
     }
-    public interface IWebExecutionHandlerService : Hardened.Requests.Abstract.Execution.IExecutionFilter { }
+    public interface IWebExecutionHandlerService : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Requests.Abstract.Execution.IHandlerDispatch { }
     public interface IWebExecutionRequestHandlerProvider
     {
         Hardened.Web.Runtime.Handlers.RequestHandlerInfo? GetExecutionRequestHandler(Hardened.Requests.Abstract.Execution.IExecutionContext context);
@@ -322,7 +322,7 @@ namespace Hardened.Web.Runtime.Handlers
         public static Hardened.Web.Runtime.Handlers.RequestHandlerInfo MethodNotAllowed(string allow) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
-    public class WebExecutionHandlerService : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService
+    public class WebExecutionHandlerService : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Requests.Abstract.Execution.IHandlerDispatch, Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService
     {
         public WebExecutionHandlerService(System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IWebExecutionRequestHandlerProvider> handlers, System.Collections.Generic.IEnumerable<Hardened.Web.Runtime.Handlers.IFallbackRequestHandlerProvider> fallbacks, Hardened.Requests.Abstract.Errors.IResourceNotFoundHandler resourceNotFoundHandler, Hardened.Web.Runtime.Handlers.IMethodNotAllowedHandler methodNotAllowedHandler, Hardened.Requests.Abstract.Logging.IRequestLogger requestLogger, Microsoft.Extensions.Options.IOptions<Hardened.Web.Runtime.Configuration.IWebRoutingConfiguration> routing) { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }

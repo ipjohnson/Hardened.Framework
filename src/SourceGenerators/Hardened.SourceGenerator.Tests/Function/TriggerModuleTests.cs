@@ -50,7 +50,7 @@ public class TriggerModuleTests {
 
         return GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = source },
-            [new FunctionGenerator()],
+            [new FunctionGenerator(), new TriggerGenerator()],
             FunctionGeneratorHarness.Anchors,
             buildProperties: properties.ToDictionary(pair => pair.Item1, pair => pair.Item2));
     }

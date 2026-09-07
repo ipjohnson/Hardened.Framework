@@ -471,6 +471,7 @@ namespace Hardened.Requests.Abstract.Execution
     {
         Hardened.Requests.Abstract.Execution.IExecutionRequestHandler? GetFunctionHandler(string functionName, System.IServiceProvider serviceProvider);
     }
+    public interface IHandlerDispatch : Hardened.Requests.Abstract.Execution.IExecutionFilter { }
     public interface IKnownServices
     {
         Hardened.Requests.Abstract.Serializer.IContextSerializationService ContextSerializationService { get; }

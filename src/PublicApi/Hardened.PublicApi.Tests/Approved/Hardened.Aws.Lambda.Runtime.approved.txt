@@ -206,11 +206,6 @@ namespace Hardened.Aws.Lambda.Runtime.Execution
 }
 namespace Hardened.Aws.Lambda.Runtime.Hosting
 {
-    public class FunctionDispatchFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
-    {
-        public FunctionDispatchFilter() { }
-        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
-    }
     public static class HardenedLambdaBootstrap
     {
         public static System.Threading.Tasks.Task Run(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler) { }

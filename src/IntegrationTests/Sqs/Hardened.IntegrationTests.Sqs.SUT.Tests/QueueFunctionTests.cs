@@ -20,6 +20,7 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// handler declared with nothing but <c>[Queue]</c> is reached at all.
 /// </para>
 /// </summary>
+[Collection(QueueHandlerState.Name)]
 public class QueueFunctionTests : IDisposable {
     private readonly ServiceProvider _provider;
 

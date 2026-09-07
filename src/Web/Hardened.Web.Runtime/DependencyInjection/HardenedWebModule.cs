@@ -5,6 +5,7 @@ using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Web.Runtime.Configuration;
 using Hardened.Web.Runtime.Cors;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Web.Runtime.Handlers;
 using Hardened.Web.Runtime.Health;
 using Hardened.Web.Runtime.OpenApi;
@@ -17,6 +18,15 @@ namespace Hardened.Web.Runtime.DependencyInjection;
 [HardenedRequestModule]
 public partial class HardenedWebModule : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
+        // Web routing published as the application's dispatch, so a host can install it without
+        // referencing this package. WebExecutionHandlerService registers against
+        // IWebExecutionHandlerService and dependency injection resolves exact types, so an
+        // IHandlerDispatch lookup would otherwise find nothing however many interfaces it derives
+        // from. Resolved through the existing registration rather than added a second time, so
+        // there is still one instance of it.
+        services.AddSingleton<IHandlerDispatch>(
+            serviceProvider => serviceProvider.GetRequiredService<IWebExecutionHandlerService>());
+
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
                 new IConfigurationValueProvider[] {

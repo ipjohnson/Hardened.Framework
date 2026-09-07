@@ -382,6 +382,11 @@ namespace Hardened.Requests.Runtime.Execution
         public bool TryGetParameter(string parameterName, out object? parameterValue) { }
         public bool TrySetParameter(string parameterName, object parameterValue) { }
     }
+    public class FunctionDispatchFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Requests.Abstract.Execution.IHandlerDispatch
+    {
+        public FunctionDispatchFilter() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
     public static class HeaderDictionaryExtensions
     {
         public static Microsoft.Extensions.Primitives.StringValues Get(this System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, string key) { }

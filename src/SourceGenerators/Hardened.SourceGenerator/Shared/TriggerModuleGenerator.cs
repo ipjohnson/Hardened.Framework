@@ -4,12 +4,11 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading;
 using CSharpAuthor;
-using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
-namespace Hardened.SourceGenerator.Function;
+namespace Hardened.SourceGenerator.Shared;
 
 /// <summary>
 /// Registers the payload adapter each trigger in the project needs.
@@ -52,8 +51,9 @@ public static class TriggerModuleGenerator {
     public sealed class Trigger {
         public Trigger(
             string name, string attribute, string property, string scheme,
-            bool namesItsOwnRoute = true) {
+            bool namesItsOwnRoute = true, bool isFunctionHandler = true) {
             NamesItsOwnRoute = namesItsOwnRoute;
+            IsFunctionHandler = isFunctionHandler;
             Name = name;
             Attribute = attribute;
             Property = property;
@@ -86,6 +86,16 @@ public static class TriggerModuleGenerator {
         /// be bound to a module.
         /// </remarks>
         public bool NamesItsOwnRoute { get; }
+
+        /// <summary>
+        /// Whether the function generator compiles handlers carrying this attribute.
+        /// </summary>
+        /// <remarks>
+        /// False for the web verbs, which the web generator owns. They appear here only to bind a
+        /// module: <c>[Get]</c> has to reach an API Gateway adapter on Lambda and a Kestrel host
+        /// elsewhere without the handler naming either.
+        /// </remarks>
+        public bool IsFunctionHandler { get; }
 
         public string Attribute { get; }
 
@@ -126,7 +136,20 @@ public static class TriggerModuleGenerator {
         // binds a module the same way, and for the same reason: an application that had to write
         // [InvokeModule] itself would name a cloud in the one file that must not.
         new Trigger("HardenedFunction", "Hardened.Requests.Abstract.Attributes.HardenedFunctionAttribute",
-            "HardenedInvokeModule", "INVOKE", namesItsOwnRoute: false)
+            "HardenedInvokeModule", "INVOKE", namesItsOwnRoute: false),
+
+        // The web verbs, which the web generator routes and this only binds. All five name one
+        // module, so a controller with a GET and a POST registers one adapter.
+        new Trigger("Get", "Hardened.Web.Runtime.Attributes.GetAttribute",
+            "HardenedHttpModule", "GET", namesItsOwnRoute: false, isFunctionHandler: false),
+        new Trigger("Post", "Hardened.Web.Runtime.Attributes.PostAttribute",
+            "HardenedHttpModule", "POST", namesItsOwnRoute: false, isFunctionHandler: false),
+        new Trigger("Put", "Hardened.Web.Runtime.Attributes.PutAttribute",
+            "HardenedHttpModule", "PUT", namesItsOwnRoute: false, isFunctionHandler: false),
+        new Trigger("Patch", "Hardened.Web.Runtime.Attributes.PatchAttribute",
+            "HardenedHttpModule", "PATCH", namesItsOwnRoute: false, isFunctionHandler: false),
+        new Trigger("Delete", "Hardened.Web.Runtime.Attributes.DeleteAttribute",
+            "HardenedHttpModule", "DELETE", namesItsOwnRoute: false, isFunctionHandler: false)
     };
 
     /// <summary>
@@ -241,6 +264,15 @@ public static class TriggerModuleGenerator {
                 continue;
             }
 
+            // An application that applied the module itself keeps its own. Modules deduplicate by
+            // equality and several carry settings, so adding a second default-constructed one is
+            // not harmless: SqsModule compares by type, so the inferred instance ties with the
+            // declared one and whichever is reached first wins - which silently dropped
+            // ReportBatchItemFailures the moment a deployment turned it on.
+            if (Declares(entryPoint, module)) {
+                continue;
+            }
+
             // The same module can serve two triggers - a schedule and a bus event are one adapter -
             // and adding it twice would register the adapter twice.
             if (!register.Contains(module)) {
@@ -255,6 +287,22 @@ public static class TriggerModuleGenerator {
         context.AddSource(
             entryPoint.EntryPointType.Name + ".TriggerModules.cs",
             GeneratedSource.Header(Source(entryPoint, register)));
+    }
+
+    /// <summary>
+    /// Whether the entry point already applies this module as an attribute.
+    /// </summary>
+    /// <remarks>
+    /// Compared on the attribute's own name, which DependencyModules generates as the module's name
+    /// with <c>Attribute</c> appended. The module arrives here as a string from MSBuild and the
+    /// attribute as a resolved type, so there is no symbol to compare - and a name is enough,
+    /// because two modules with one name in one compilation would not compile either.
+    /// </remarks>
+    private static bool Declares(EntryPointSelector.Model entryPoint, string module) {
+        var attribute = module.Substring(module.LastIndexOf('.') + 1) + "Attribute";
+
+        return entryPoint.AttributeModels.Any(
+            model => model.TypeDefinition.Name == attribute);
     }
 
     /// <summary>
