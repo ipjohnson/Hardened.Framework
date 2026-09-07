@@ -2,6 +2,13 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <!--
+          Deliberately not IsAotCompatible. A test harness serializes whatever type a test hands it
+          and builds clients over types it learns at run time, so the reflection is the feature
+          rather than an oversight - and a testing package is referenced by test projects, which are
+          never published ahead of time. Marking it would make the flag a claim about code no
+          consumer will ever trim. See Hardened.Shared.Testing.csproj for the whole of it.
+        -->
         <Description>Raises the fidelity of a Hardened function test on AWS: delivers through a real SQS, SNS or EventBridge envelope and the real invocation loop, so the adapter and the peek are exercised too.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

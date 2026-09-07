@@ -2,6 +2,13 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <!--
+          Deliberately not IsAotCompatible. A test harness serializes whatever type a test hands it
+          and builds clients over types it learns at run time, so the reflection is the feature
+          rather than an oversight - and a testing package is referenced by test projects, which are
+          never published ahead of time. Marking it would make the flag a claim about code no
+          consumer will ever trim. See Hardened.Shared.Testing.csproj for the whole of it.
+        -->
         <Description>[KestrelHost] for a Hardened test: runs the test's application on Kestrel, over the test's own container, on a loopback port the kernel picks, with ITestWebApp and every client the harness hands out sending to that socket.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

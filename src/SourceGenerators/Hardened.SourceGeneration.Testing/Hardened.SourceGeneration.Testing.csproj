@@ -2,6 +2,13 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <!--
+          Deliberately not IsAotCompatible. A test harness serializes whatever type a test hands it
+          and builds clients over types it learns at run time, so the reflection is the feature
+          rather than an oversight - and a testing package is referenced by test projects, which are
+          never published ahead of time. Marking it would make the flag a claim about code no
+          consumer will ever trim. See Hardened.Shared.Testing.csproj for the whole of it.
+        -->
         <Description>Testing utilities for Hardened source generation: runs a generator over an in-memory compilation and asserts that what it emits compiles.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

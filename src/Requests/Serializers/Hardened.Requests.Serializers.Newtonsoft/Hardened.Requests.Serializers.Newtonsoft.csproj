@@ -2,6 +2,14 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+
+        <!--
+          The one shipped runtime package with no IsAotCompatible, and it will never have one.
+          Newtonsoft.Json resolves contracts by reflection end to end, so no annotation over this
+          assembly's own code would make the claim true. Said here rather than left as an absence,
+          because every other runtime package carries the flag and the gap should read as a
+          decision.
+        -->
         <Description>Newtonsoft.Json request and response serializer for the Hardened execution pipeline.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

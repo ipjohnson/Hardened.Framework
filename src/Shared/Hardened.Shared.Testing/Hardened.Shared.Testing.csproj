@@ -2,6 +2,20 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <!--
+          Deliberately not IsAotCompatible, and the same goes for every other Hardened.*.Testing
+          package.
+
+          Every shipped runtime package carries the flag and passes the analyzers clean. These
+          cannot, and the reason is what they are for: a harness takes an object a test wrote and
+          serializes it, which is JsonSerializer.Serialize<TValue> over a type nobody knew at
+          compile time; a client builder closes a generic over a Type it was handed. Source
+          generation cannot answer either, because the input is not known until the test runs.
+
+          Nor would passing be worth much. IsAotCompatible turns on analyzers over an assembly's own
+          code so that a consumer publishing native gets a truthful signal, and a testing package is
+          never in that graph. Marking these would trade a true statement for 156 suppressions.
+        -->
         <Description>Test support for Hardened applications: the entry point attribute that builds a test's container from the real module graph, ITestContext, and the running-test seam a runner package fills. Reference Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit beside it for [HardenedTest], and DependencyModules.NSubstitute, DependencyModules.Moq or DependencyModules.FakeItEasy for [Mock].</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>

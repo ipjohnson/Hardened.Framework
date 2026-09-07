@@ -133,12 +133,17 @@ jobs:
 
           echo "using $CLANG ($("$CLANG" --version | head -1))"
 
-          dotnet publish src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.SUT/Hardened.IntegrationTests.Aot.SUT.csproj \
-            --configuration Release \
-            --runtime linux-x64 \
-            -p:CppCompilerAndLinker="$CLANG" \
-            -p:ContinuousIntegrationBuild=true \
-            -warnaserror
+          # Both halves. A native binary that serves an HTTP request says nothing about the
+          # function path: a different adapter, a batch fan-out, and an answer written back to the
+          # Lambda Runtime API rather than to a socket.
+          for app in Hardened.IntegrationTests.Aot.SUT Hardened.IntegrationTests.Aot.Lambda.SUT; do
+            dotnet publish "src/IntegrationTests/Aot/$app/$app.csproj" \
+              --configuration Release \
+              --runtime linux-x64 \
+              -p:CppCompilerAndLinker="$CLANG" \
+              -p:ContinuousIntegrationBuild=true \
+              -warnaserror
+          done
 
       # And that the binary serves a request, which a clean compile does not tell you: a trimmer
       # removes what nothing references, so the failure this catches is a route, a binder or a
@@ -185,6 +190,44 @@ jobs:
           case "$body" in
             *'"message":"hardened"'*'"length":8'*) echo "Native AOT binary served a bound, serialized response." ;;
             *) echo "::error::Unexpected response from the native binary: $body"; exit 1 ;;
+          esac
+
+      # The same question for a function. The binary stubs the Lambda Runtime API in-process, serves
+      # one invocation and exits, so what this reads is the handler's own view of a payload that
+      # went through the adapter's peek, the batch fan-out and a source-generated binder - every one
+      # of which resolves through metadata ILC could have removed.
+      - name: Serve an invocation from the native Lambda binary
+        run: |
+          set -o pipefail
+
+          binary=$(find src/IntegrationTests/Aot -type f -path '*/publish/*' \
+            -name 'Hardened.IntegrationTests.Aot.Lambda.SUT' -perm -u+x | head -1)
+
+          if [ -z "$binary" ]; then
+            echo "::error::No native Lambda binary was produced."
+            find src/IntegrationTests/Aot -name 'Hardened.IntegrationTests.Aot.Lambda.SUT*' -type f || true
+            exit 1
+          fi
+
+          if [ -f "$(dirname "$binary")/Hardened.IntegrationTests.Aot.Lambda.SUT.runtimeconfig.json" ]; then
+            echo "::error::Found the framework-dependent apphost rather than the native binary."
+            exit 1
+          fi
+
+          echo "native binary: $binary ($(du -h "$binary" | cut -f1))"
+
+          # It exits on its own: AWS_LAMBDA_DOTNET_DEBUG_RUN_ONCE is set inside the program.
+          output=$(timeout 60 "$binary" 2>&1) || {
+            echo "::error::The native Lambda binary did not complete."
+            echo "$output"
+            exit 1
+          }
+
+          echo "$output"
+
+          case "$output" in
+            *"HANDLED a-1 x7"*) echo "Native AOT binary served a bound queue message." ;;
+            *) echo "::error::The native Lambda binary did not handle the invocation."; exit 1 ;;
           esac
 
       # The document the code-first generator emits, checked by a linter rather than only by a

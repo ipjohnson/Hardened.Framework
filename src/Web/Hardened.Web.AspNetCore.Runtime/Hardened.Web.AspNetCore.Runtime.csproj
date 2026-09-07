@@ -2,6 +2,13 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
+        <!--
+          Marked, and the marking is narrower than it looks. IsAotCompatible analyzes this
+          assembly's own code and says nothing about Microsoft.AspNetCore.App underneath it, which
+          is not publishable ahead of time. So this says the adapter would survive a trim, not that
+          an application built on it can be published native - for that, the Kestrel host is the
+          one to reach for.
+        -->
         <IsAotCompatible>true</IsAotCompatible>
         <Description>ASP.NET Core hosting bridge for Hardened. Maps HttpContext onto the Hardened execution pipeline through UseHardened().</Description>
         <ImplicitUsings>enable</ImplicitUsings>
