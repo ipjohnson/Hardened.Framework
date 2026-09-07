@@ -501,6 +501,8 @@ namespace Hardened.Requests.Abstract.Execution
         public const string ServerPort = "server.port";
         public const string UrlScheme = "url.scheme";
     }
+    public delegate System.Threading.Tasks.Task<object?> TriggerCall(object message, string scheme, string path, System.Type? responseType);
+    public delegate System.Threading.Tasks.Task TriggerSend(object messages, string scheme, string path);
 }
 namespace Hardened.Requests.Abstract.Forms
 {

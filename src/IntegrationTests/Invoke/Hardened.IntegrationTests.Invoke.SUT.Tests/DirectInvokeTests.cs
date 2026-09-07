@@ -1,6 +1,5 @@
 using DependencyModules.Testing.Attributes;
 using Hardened.Aws.Lambda.Runtime.Adapters;
-using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.Invoke.SUT;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,8 +22,8 @@ public class DirectInvokeTests {
 
     [HardenedTest]
     public async Task ACallersPayloadReachesTheHandler(
-        IInvokeOf<InvokeTestApp.Invocations> invoke, [Mock] IOrderLog log) {
-        await invoke.Call.Handle(new OrderRequest { Id = "o-1", Quantity = 3 });
+        InvokeTestApp.Invocations invocations, [Mock] IOrderLog log) {
+        await invocations.Handle(new OrderRequest { Id = "o-1", Quantity = 3 });
 
         log.Received().Placed(
             Arg.Is<OrderRequest>(request => request.Id == "o-1" && request.Quantity == 3));
@@ -36,8 +35,8 @@ public class DirectInvokeTests {
     /// </summary>
     [HardenedTest]
     public async Task TheHandlersReturnValueIsTheResponse(
-        IInvokeOf<InvokeTestApp.Invocations> invoke, [Mock] IOrderLog log) {
-        var receipt = await invoke.Call.Handle(new OrderRequest { Id = "o-1", Quantity = 3 });
+        InvokeTestApp.Invocations invocations, [Mock] IOrderLog log) {
+        var receipt = await invocations.Handle(new OrderRequest { Id = "o-1", Quantity = 3 });
 
         Assert.Equal("o-1", receipt.Id);
         Assert.Equal("placed", receipt.Status);
@@ -51,7 +50,7 @@ public class DirectInvokeTests {
     [InlineData("records")]
     [InlineData("requestContext")]
     public async Task APayloadShapedLikeAnAwsEventIsStillTheCallers(
-        string field, IInvokeOf<InvokeTestApp.Invocations> invoke, [Mock] IOrderLog log) {
+        string field, InvokeTestApp.Invocations invocations, [Mock] IOrderLog log) {
         var request = new OrderRequest { Id = "o-1" };
 
         if (field == "records") {
@@ -61,7 +60,7 @@ public class DirectInvokeTests {
             request.RequestContext = "from-billing";
         }
 
-        var receipt = await invoke.Call.Handle(request);
+        var receipt = await invocations.Handle(request);
 
         Assert.Equal("o-1", receipt.Id);
 

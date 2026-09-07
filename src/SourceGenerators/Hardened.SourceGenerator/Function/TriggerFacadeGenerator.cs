@@ -31,11 +31,12 @@ namespace Hardened.SourceGenerator.Function;
 /// a DI registration is exactly what a trimmer cannot remove.
 /// </para>
 /// <para>
-/// <b>The façade references nothing but the BCL and the application's own payload types.</b> The
-/// delegate it calls is a <c>Func</c>, not a framework interface, so a production assembly carrying
-/// these takes no package dependency for them - which is what lets the trimming claim stand without
-/// a caveat. An interface here would have meant every project with a queue handler referencing a
-/// testing package.
+/// <b>The constructor names a delegate rather than taking a <c>Func</c> of the same shape.</b> A
+/// harness finds a façade by looking for that constructor, and a structural match would also match
+/// anything else with the same shape - so the delegate's identity is what stops somebody else's
+/// type being handed a delegate it never asked for. It lives in Hardened.Requests.Abstract, which
+/// every application already references, so a façade compiled into one adds no dependency; a
+/// testing package here would have put test scaffolding in every published build's graph.
 /// </para>
 /// <para>
 /// Written as text rather than through CSharpAuthor. The shape is fixed and small, and the two
@@ -152,9 +153,9 @@ public static class TriggerFacadeGenerator {
             // application references no testing package.
             return $@"        public class {name}
         {{
-            private readonly global::System.Func<object, string, string, global::System.Type?, global::System.Threading.Tasks.Task<object?>> _call;
+            private readonly global::Hardened.Requests.Abstract.Execution.TriggerCall _call;
 
-            public {name}(global::System.Func<object, string, string, global::System.Type?, global::System.Threading.Tasks.Task<object?>> call)
+            public {name}(global::Hardened.Requests.Abstract.Execution.TriggerCall call)
             {{
                 _call = call;
             }}
@@ -164,11 +165,11 @@ public static class TriggerFacadeGenerator {
 
         return $@"        public class {name}
         {{
-            private readonly global::System.Func<object, string, string, global::System.Threading.Tasks.Task> _invoke;
+            private readonly global::Hardened.Requests.Abstract.Execution.TriggerSend _send;
 
-            public {name}(global::System.Func<object, string, string, global::System.Threading.Tasks.Task> invoke)
+            public {name}(global::Hardened.Requests.Abstract.Execution.TriggerSend send)
             {{
-                _invoke = invoke;
+                _send = send;
             }}
 {methods}        }}
 ";
@@ -235,7 +236,7 @@ public static class TriggerFacadeGenerator {
             // which is the whole reason timers get a façade shape of their own.
             return $@"
             public global::System.Threading.Tasks.Task {methodName}() =>
-                _invoke(global::System.Array.Empty<object>(), {route});
+                _send(global::System.Array.Empty<object>(), {route});
 ";
         }
 
@@ -246,7 +247,7 @@ public static class TriggerFacadeGenerator {
         // would give a test two ways to say one thing.
         return $@"
             public global::System.Threading.Tasks.Task {methodName}(params {type}[] messages) =>
-                _invoke(messages, {route});
+                _send(messages, {route});
 ";
     }
 

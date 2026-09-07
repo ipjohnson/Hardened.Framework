@@ -1,4 +1,3 @@
-using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.Sqs.SUT;
 using Hardened.Shared.Testing.Attributes;
 using DependencyModules.Testing.Attributes;
@@ -26,8 +25,8 @@ public class QueueTests {
     /// </summary>
     [HardenedTest]
     public async Task AQueueMessageReachesTheHandler(
-        IQueuesOf<SqsTestApp.Queues> queues, [Mock] IOrderStore store) {
-        await queues.SendTo.OrdersNew(new Order { Id = "a-1", Quantity = 2 });
+        SqsTestApp.Queues queues, [Mock] IOrderStore store) {
+        await queues.OrdersNew(new Order { Id = "a-1", Quantity = 2 });
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "a-1" && order.Quantity == 2));
     }
@@ -38,8 +37,8 @@ public class QueueTests {
     /// </summary>
     [HardenedTest]
     public async Task EveryMessageInABatchIsHandledSeparately(
-        IQueuesOf<SqsTestApp.Queues> queues, [Mock] IOrderStore store) {
-        await queues.SendTo.OrdersNew(
+        SqsTestApp.Queues queues, [Mock] IOrderStore store) {
+        await queues.OrdersNew(
             new Order { Id = "a-1" }, new Order { Id = "a-2" }, new Order { Id = "a-3" });
 
         store.Received(3).Place(Arg.Any<Order>());
@@ -52,8 +51,8 @@ public class QueueTests {
     /// </summary>
     [HardenedTest]
     public async Task EachMessageBindsItsOwnBody(
-        IQueuesOf<SqsTestApp.Queues> queues, [Mock] IOrderStore store) {
-        await queues.SendTo.OrdersNew(
+        SqsTestApp.Queues queues, [Mock] IOrderStore store) {
+        await queues.OrdersNew(
             new Order { Id = "a-1", Quantity = 10 }, new Order { Id = "a-2", Quantity = 20 });
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "a-1" && order.Quantity == 10));
@@ -67,11 +66,11 @@ public class QueueTests {
     /// </summary>
     [HardenedTest]
     public async Task AFailedMessageFailsTheInvocation(
-        IQueuesOf<SqsTestApp.Queues> queues, [Mock] IOrderStore store) {
+        SqsTestApp.Queues queues, [Mock] IOrderStore store) {
         store.When(one => one.Place(Arg.Is<Order>(order => order.Id == "a-2")))
             .Do(_ => throw new InvalidOperationException("refused"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => queues.SendTo.OrdersNew(new Order { Id = "a-1" }, new Order { Id = "a-2" }));
+            () => queues.OrdersNew(new Order { Id = "a-1" }, new Order { Id = "a-2" }));
     }
 }

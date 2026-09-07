@@ -1,6 +1,5 @@
 using DependencyModules.Testing.Attributes;
 using Hardened.Aws.Lambda.Runtime.Adapters;
-using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.Events.SUT;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,8 +23,8 @@ public class EventFamilyTests {
 
     [HardenedTest]
     public async Task ANotificationReachesTheTopicHandler(
-        ITopicsOf<EventsTestApp.Topics> topics, [Mock] ITriggerLog log) {
-        await topics.PublishTo.OrderEvents(new Order { Id = "t-1" });
+        EventsTestApp.Topics topics, [Mock] ITriggerLog log) {
+        await topics.OrderEvents(new Order { Id = "t-1" });
 
         log.Received().Record("topic:t-1");
     }
@@ -36,16 +35,16 @@ public class EventFamilyTests {
     /// </summary>
     [HardenedTest]
     public async Task AScheduledInvocationReachesTheTimerHandler(
-        ITimersOf<EventsTestApp.Timers> timers, [Mock] ITriggerLog log) {
-        await timers.Fire.NightlyRollup();
+        EventsTestApp.Timers timers, [Mock] ITriggerLog log) {
+        await timers.NightlyRollup();
 
         log.Received().Record("timer:nightly-rollup");
     }
 
     [HardenedTest]
     public async Task AQueueMessageReachesTheQueueHandler(
-        IQueuesOf<EventsTestApp.Queues> queues, [Mock] ITriggerLog log) {
-        await queues.SendTo.OrdersNew(new Order { Id = "q-1" });
+        EventsTestApp.Queues queues, [Mock] ITriggerLog log) {
+        await queues.OrdersNew(new Order { Id = "q-1" });
 
         log.Received().Record("queue:q-1");
     }
@@ -56,13 +55,13 @@ public class EventFamilyTests {
     /// </summary>
     [HardenedTest]
     public async Task EverySourceReachesItsOwnHandlerInOneFunction(
-        IQueuesOf<EventsTestApp.Queues> queues,
-        ITopicsOf<EventsTestApp.Topics> topics,
-        ITimersOf<EventsTestApp.Timers> timers,
+        EventsTestApp.Queues queues,
+        EventsTestApp.Topics topics,
+        EventsTestApp.Timers timers,
         [Mock] ITriggerLog log) {
-        await queues.SendTo.OrdersNew(new Order { Id = "q-1" });
-        await topics.PublishTo.OrderEvents(new Order { Id = "t-1" });
-        await timers.Fire.NightlyRollup();
+        await queues.OrdersNew(new Order { Id = "q-1" });
+        await topics.OrderEvents(new Order { Id = "t-1" });
+        await timers.NightlyRollup();
 
         Received.InOrder(() => {
             log.Record("queue:q-1");
