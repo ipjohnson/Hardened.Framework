@@ -1,6 +1,7 @@
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Aws.Lambda.Runtime.Adapters;
+using Hardened.Requests.Runtime.Filters;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Aws.Lambda.Runtime.Modules;
@@ -17,5 +18,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules;
 public partial class SnsModule : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         services.AddSingleton<IPayloadAdapter, SnsAdapter>();
+
+        services.AddBatchExecutionFilter();
     }
 }

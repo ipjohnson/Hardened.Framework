@@ -16,9 +16,12 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 /// returning something plausible.
 /// </remarks>
 public sealed class ResponseOnlyContext : IExecutionContext {
-    public ResponseOnlyContext(IExecutionResponse response) {
+    public ResponseOnlyContext(IExecutionResponse response, IExecutionRequest? request = null) {
         Response = response;
+        _request = request;
     }
+
+    private readonly IExecutionRequest? _request;
 
     public IExecutionResponse Response { get; }
 
@@ -31,7 +34,14 @@ public sealed class ResponseOnlyContext : IExecutionContext {
     public IServiceProvider RootServiceProvider => throw new NotSupportedException();
     public IKnownServices KnownServices => throw new NotSupportedException();
     public IServiceProvider RequestServices => throw new NotSupportedException();
-    public IExecutionRequest Request => throw new NotSupportedException();
+    /// <summary>
+    /// The request when a test supplied one. Adapters that write a per-item failure report read it,
+    /// because the report names items of the delivery rather than anything on the response.
+    /// </summary>
+    public IExecutionRequest Request =>
+        _request ?? throw new NotSupportedException(
+            "This context was built with a response only. Pass a request to ResponseOnlyContext " +
+            "when the adapter under test reads one.");
     public IMetricLogger RequestMetrics => throw new NotSupportedException();
     public MachineTimestamp StartTime => throw new NotSupportedException();
     public CancellationToken CancellationToken => throw new NotSupportedException();

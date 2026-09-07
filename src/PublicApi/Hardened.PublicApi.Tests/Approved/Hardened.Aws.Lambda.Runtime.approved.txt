@@ -54,7 +54,7 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters
     public sealed class SqsAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
     {
         public const string EventSourceValue = "aws:sqs";
-        public SqsAdapter() { }
+        public SqsAdapter(bool reportsItemFailures = false) { }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
         public bool Handles(System.Text.Json.JsonElement payload) { }
@@ -145,25 +145,36 @@ namespace Hardened.Aws.Lambda.Runtime.Execution
         public object Clone() { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
     }
-    public class SnsRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest
+    public class SnsRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
     {
         public const string MessageIdHeader = "x-amz-sns-message-id";
         public const string SubjectHeader = "x-amz-sns-subject";
         public const string TopicArnHeader = "x-amz-sns-topic-arn";
         public const string TopicScheme = "TOPIC";
         public SnsRequest(string topicName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SNSEvents.SNSEvent.SNSRecord> records) { }
+        public int Count { get; }
+        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
         public System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SNSEvents.SNSEvent.SNSRecord> Records { get; }
+        public bool ReportsItemFailures { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest ForRecord(Amazon.Lambda.SNSEvents.SNSEvent.SNSRecord record) { }
+        public void RecordFailure(int index, System.Exception failure) { }
     }
-    public class SqsRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest
+    public class SqsRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
     {
         public const string MessageIdHeader = "x-amz-sqs-message-id";
         public const string QueueArnHeader = "x-amz-sqs-queue-arn";
         public const string ReceiptHandleHeader = "x-amz-sqs-receipt-handle";
         public const string SqsScheme = "QUEUE";
-        public SqsRequest(string queueName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage> records) { }
+        public SqsRequest(string queueName, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage> records, bool reportsItemFailures = false) { }
+        public int Count { get; }
+        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        public System.Collections.Generic.IEnumerable<string> FailedMessageIds { get; }
         public System.Collections.Generic.IReadOnlyList<Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage> Records { get; }
+        public bool ReportsItemFailures { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest ForRecord(Amazon.Lambda.SQSEvents.SQSEvent.SQSMessage record) { }
+        public void RecordFailure(int index, System.Exception failure) { }
     }
 }
 namespace Hardened.Aws.Lambda.Runtime.Modules
@@ -237,6 +248,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules
     public class SqsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
         public SqsModule() { }
+        public bool? ReportBatchItemFailures { get; set; }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
@@ -246,6 +258,7 @@ namespace Hardened.Aws.Lambda.Runtime.Modules
     public class SqsModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public SqsModuleAttribute() { }
+        public bool ReportBatchItemFailures { get; set; }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
 }

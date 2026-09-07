@@ -1,6 +1,8 @@
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Aws.Lambda.Runtime.Adapters;
+using Hardened.Requests.Abstract.RequestFilter;
+using Hardened.Requests.Runtime.Filters;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Aws.Lambda.Runtime.Modules;
@@ -26,7 +28,30 @@ namespace Hardened.Aws.Lambda.Runtime.Modules;
 /// </remarks>
 [DependencyModule]
 public partial class SqsModule : IServiceCollectionConfiguration {
+    /// <summary>
+    /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>, letting a
+    /// failed message be returned on its own instead of failing the whole invocation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Nullable, and every module property here has to be: DependencyModules generates the module
+    /// attribute with each property defaulting to <c>default(T)</c> and copies it across guarded by
+    /// a null check <em>only for a nullable one</em>. A non-nullable <c>bool</c> would be assigned
+    /// false by <c>[SqsModule]</c> written with no arguments, which is the same value but would
+    /// silently overwrite anything set another way later.
+    /// </para>
+    /// <para>
+    /// It has to match the deployment. Reporting failures to a mapping that did not ask for them
+    /// means the report is discarded and every failed message is marked handled, so this is off
+    /// until something says otherwise.
+    /// </para>
+    /// </remarks>
+    public bool? ReportBatchItemFailures { get; set; }
+
     public void ConfigureServices(IServiceCollection services) {
-        services.AddSingleton<IPayloadAdapter, SqsAdapter>();
+        services.AddSingleton<IPayloadAdapter>(
+            new SqsAdapter(ReportBatchItemFailures ?? false));
+
+        services.AddBatchExecutionFilter();
     }
 }

@@ -107,11 +107,14 @@ public class EventSourceAdapterTests {
     /// </summary>
     [Fact]
     public async Task SqsReportsAnEmptyFailureList() {
-        var output = new MemoryStream();
+        using var payload = Payloads.Payload(Payloads.SqsJson);
+
         var adapter = new SqsAdapter();
+        var batch = adapter.CreateRequest(payload, TestLambdaContext.Instance);
+        var output = new MemoryStream();
 
         await adapter.WriteResponse(
-            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream())), output);
+            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), batch), output);
 
         Assert.Equal("""{"batchItemFailures":[]}""", Encoding.UTF8.GetString(output.ToArray()));
     }
@@ -121,6 +124,60 @@ public class EventSourceAdapterTests {
     /// inside the adapter. The value is kept where there is one, so the not-found report names what
     /// actually arrived.
     /// </summary>
+    /// <summary>
+    /// The ids the filter recorded reach the report, keyed the way SQS expects.
+    /// </summary>
+    [Fact]
+    public async Task AFailedMessageIsNamedInTheReport() {
+        using var payload = Payloads.Sqs(
+            new SQSEvent.SQSMessage { MessageId = "m0", Body = "{}", EventSourceArn = "arn:aws:sqs:r:a:q" },
+            new SQSEvent.SQSMessage { MessageId = "m1", Body = "{}", EventSourceArn = "arn:aws:sqs:r:a:q" });
+
+        var adapter = new SqsAdapter(reportsItemFailures: true);
+        var batch = (SqsRequest)adapter.CreateRequest(payload, TestLambdaContext.Instance);
+
+        batch.RecordFailure(1, new InvalidOperationException("no"));
+
+        var output = new MemoryStream();
+
+        await adapter.WriteResponse(
+            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), batch), output);
+
+        Assert.Equal(
+            """{"batchItemFailures":[{"itemIdentifier":"m1"}]}""",
+            Encoding.UTF8.GetString(output.ToArray()));
+    }
+
+    /// <summary>
+    /// Off unless the deployment turned it on at the other end. A report sent to a mapping without
+    /// ReportBatchItemFailures is discarded and every failed message is marked handled, so the
+    /// default has to be the one that fails the invocation instead.
+    /// </summary>
+    [Fact]
+    public void PartialBatchFailuresAreOffUnlessAskedFor() {
+        using var payload = Payloads.Payload(Payloads.SqsJson);
+
+        Assert.False(((SqsRequest)new SqsAdapter()
+            .CreateRequest(payload, TestLambdaContext.Instance)).ReportsItemFailures);
+
+        Assert.True(((SqsRequest)new SqsAdapter(reportsItemFailures: true)
+            .CreateRequest(payload, TestLambdaContext.Instance)).ReportsItemFailures);
+    }
+
+    /// <summary>
+    /// SNS has no per-notification report, so a failure there must fail the invocation. Recording
+    /// one is a programming error rather than a silent no-op.
+    /// </summary>
+    [Fact]
+    public void SnsRefusesToRecordAnItemFailure() {
+        using var payload = Payloads.Payload(Payloads.SnsJson);
+
+        var delivery = (SnsRequest)new SnsAdapter().CreateRequest(payload, TestLambdaContext.Instance);
+
+        Assert.False(delivery.ReportsItemFailures);
+        Assert.Throws<NotSupportedException>(() => delivery.RecordFailure(0, new Exception()));
+    }
+
     [Fact]
     public void AMalformedArnBecomesARouteNobodyDeclared() {
         Assert.Equal("notanarn", SqsAdapter.QueueName("notanarn"));

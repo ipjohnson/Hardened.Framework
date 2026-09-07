@@ -23,14 +23,18 @@ namespace Hardened.Aws.Lambda.Runtime.Execution;
 /// and one message has no batch.
 /// </para>
 /// </remarks>
-public class SqsRequest : LambdaPayloadRequest {
+public class SqsRequest : LambdaPayloadRequest, IBatchRequest {
+    private readonly List<int> _failed = [];
+
     public SqsRequest(
         string queueName,
         Stream body,
         IDictionary<string, StringValues> headers,
-        IReadOnlyList<SQSEvent.SQSMessage> records)
+        IReadOnlyList<SQSEvent.SQSMessage> records,
+        bool reportsItemFailures = false)
         : base(SqsScheme, "/" + queueName, body, headers) {
         Records = records;
+        ReportsItemFailures = reportsItemFailures;
     }
 
     /// <summary>
@@ -74,6 +78,32 @@ public class SqsRequest : LambdaPayloadRequest {
     /// collide with the message id.
     /// </para>
     /// </remarks>
+    public int Count => Records.Count;
+
+    public IExecutionRequest ForItem(int index) => ForRecord(Records[index]);
+
+    /// <summary>
+    /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>.
+    /// </summary>
+    /// <remarks>
+    /// Off unless the deployment says otherwise, and the default is not timidity. A
+    /// <c>batchItemFailures</c> report sent to a mapping that did not ask for one is discarded and
+    /// the whole batch is marked successful, so guessing wrong loses every failed message silently.
+    /// Guessing wrong the other way redelivers messages that already succeeded, which a handler is
+    /// required to tolerate anyway - SQS gives at-least-once delivery whatever this is set to.
+    /// </remarks>
+    public bool ReportsItemFailures { get; }
+
+    public IReadOnlyList<int> FailedItems => _failed;
+
+    public void RecordFailure(int index, Exception failure) => _failed.Add(index);
+
+    /// <summary>
+    /// The message ids the report has to name, which is what SQS keys a partial failure on.
+    /// </summary>
+    public IEnumerable<string> FailedMessageIds =>
+        _failed.Select(index => Records[index].MessageId).Where(id => !string.IsNullOrEmpty(id));
+
     public IExecutionRequest ForRecord(SQSEvent.SQSMessage record) {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 

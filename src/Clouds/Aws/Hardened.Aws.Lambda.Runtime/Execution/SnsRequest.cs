@@ -22,7 +22,7 @@ namespace Hardened.Aws.Lambda.Runtime.Execution;
 /// family and not an adapter.
 /// </para>
 /// </remarks>
-public class SnsRequest : LambdaPayloadRequest {
+public class SnsRequest : LambdaPayloadRequest, IBatchRequest {
     public SnsRequest(
         string topicName,
         Stream body,
@@ -45,6 +45,29 @@ public class SnsRequest : LambdaPayloadRequest {
     public const string TopicArnHeader = "x-amz-sns-topic-arn";
 
     public IReadOnlyList<SNSEvent.SNSRecord> Records { get; }
+
+    public int Count => Records.Count;
+
+    public IExecutionRequest ForItem(int index) => ForRecord(Records[index]);
+
+    /// <summary>
+    /// Never. SNS has no per-notification failure report, so a failed handler must fail the
+    /// invocation - that is what makes SNS retry the delivery and eventually route it to the
+    /// subscription's dead letter queue.
+    /// </summary>
+    public bool ReportsItemFailures => false;
+
+    public IReadOnlyList<int> FailedItems => Array.Empty<int>();
+
+    /// <summary>
+    /// Unreachable. The filter rethrows rather than recording when
+    /// <see cref="ReportsItemFailures"/> is false, and throwing here says so rather than letting a
+    /// future change record failures into a list nothing reads.
+    /// </summary>
+    public void RecordFailure(int index, Exception failure) =>
+        throw new NotSupportedException(
+            "SNS has no per-notification failure report. A failed notification fails the " +
+            "invocation, which is what makes SNS redeliver it.");
 
     /// <summary>
     /// The request for one notification.

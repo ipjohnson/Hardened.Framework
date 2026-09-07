@@ -356,6 +356,14 @@ namespace Hardened.Requests.Abstract.Execution
         Answer500 = 0,
         Rethrow = 1,
     }
+    public interface IBatchRequest
+    {
+        int Count { get; }
+        System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        bool ReportsItemFailures { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index);
+        void RecordFailure(int index, System.Exception failure);
+    }
     public interface IExecutionChain
     {
         Hardened.Requests.Abstract.Execution.IExecutionContext Context { get; }

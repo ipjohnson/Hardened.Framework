@@ -25,6 +25,17 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters;
 /// </para>
 /// </remarks>
 public sealed class SqsAdapter : IPayloadAdapter {
+    private readonly bool _reportsItemFailures;
+
+    /// <param name="reportsItemFailures">
+    /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>. Off by
+    /// default: a report sent to a mapping that did not ask for one is discarded and the whole
+    /// batch marked successful, so guessing wrong here loses messages.
+    /// </param>
+    public SqsAdapter(bool reportsItemFailures = false) {
+        _reportsItemFailures = reportsItemFailures;
+    }
+
     private const string Records = "Records";
     private const string EventSource = "eventSource";
 
@@ -79,7 +90,8 @@ public sealed class SqsAdapter : IPayloadAdapter {
             new MemoryStream(payload.Raw.ToArray(), writable: false),
             new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>(
                 StringComparer.OrdinalIgnoreCase),
-            records);
+            records,
+            _reportsItemFailures);
     }
 
     /// <summary>
@@ -108,10 +120,10 @@ public sealed class SqsAdapter : IPayloadAdapter {
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Always written, and empty until the batch filter has failures to name. An empty list means
-    /// every message succeeded, which is the correct report for an invocation that got this far -
-    /// a throw is rethrown by this family, so a failed handler fails the invocation and never
-    /// reaches here.
+    /// Always written, and empty when every message succeeded. The ids come from what
+    /// <c>BatchExecutionFilter</c> recorded, which only happens where the deployment turned on
+    /// <c>ReportBatchItemFailures</c> - otherwise the first failure fails the invocation and this is
+    /// never reached.
     /// </para>
     /// <para>
     /// Harmless when the event source mapping has no <c>ReportBatchItemFailures</c>: the response
@@ -123,6 +135,15 @@ public sealed class SqsAdapter : IPayloadAdapter {
 
         writer.WriteStartObject();
         writer.WriteStartArray("batchItemFailures");
+
+        if (context.Request is SqsRequest batch) {
+            foreach (var messageId in batch.FailedMessageIds) {
+                writer.WriteStartObject();
+                writer.WriteString("itemIdentifier", messageId);
+                writer.WriteEndObject();
+            }
+        }
+
         writer.WriteEndArray();
         writer.WriteEndObject();
 
