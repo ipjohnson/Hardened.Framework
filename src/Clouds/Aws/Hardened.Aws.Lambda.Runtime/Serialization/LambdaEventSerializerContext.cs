@@ -18,9 +18,16 @@ namespace Hardened.Aws.Lambda.Runtime.Serialization;
 /// One context for the package rather than one per adapter, because a type declared twice is
 /// generated twice. An adapter added later declares its event type here.
 /// </para>
+/// <para>
+/// Internal, because the generator emits a <c>JsonTypeInfo</c> property for every type it reaches -
+/// twenty of them for the two proxy types alone, most of them nested AWS descriptions. Shipping
+/// those would freeze the package's own event bindings into its public contract and churn the
+/// approved surface on every event type added. An application writing its own adapter declares its
+/// own context, which is what D3 asks for.
+/// </para>
 /// </remarks>
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(APIGatewayHttpApiV2ProxyRequest))]
 [JsonSerializable(typeof(APIGatewayHttpApiV2ProxyResponse))]
-public partial class LambdaEventSerializerContext : JsonSerializerContext {
+internal partial class LambdaEventSerializerContext : JsonSerializerContext {
 }

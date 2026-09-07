@@ -1,0 +1,114 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
+namespace Hardened.Aws.Lambda.Runtime.Adapters
+{
+    public sealed class ApiGatewayAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
+    {
+        public ApiGatewayAdapter() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(System.Text.Json.JsonElement payload) { }
+        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
+    }
+    public interface IPayloadAdapter
+    {
+        Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context);
+        Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output);
+        bool Handles(System.Text.Json.JsonElement payload);
+        System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output);
+    }
+    public sealed class InvokeAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
+    {
+        public const string OperationField = "operation";
+        public const string Scheme = "INVOKE";
+        public InvokeAdapter() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(System.Text.Json.JsonElement payload) { }
+        public System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output) { }
+    }
+}
+namespace Hardened.Aws.Lambda.Runtime.Execution
+{
+    public class ApiGatewayRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public ApiGatewayRequest(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request, System.IO.Stream body) { }
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+    public class ApiGatewayResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    {
+        public ApiGatewayResponse(System.IO.Stream body) { }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; set; }
+        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        public System.Exception? ExceptionValue { get; set; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public bool IsBinary { get; set; }
+        public Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
+        public bool ResponseStarted { get; }
+        public object? ResponseValue { get; set; }
+        public bool ShouldSerialize { get; set; }
+        public int? Status { get; set; }
+        public object Clone() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+    public sealed class ApiGatewayTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    {
+        public ApiGatewayTransportInfo(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request) { }
+        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        public string? Get(string key) { }
+    }
+    public sealed class LambdaPayload : System.IDisposable
+    {
+        public LambdaPayload(System.ReadOnlyMemory<byte> raw) { }
+        public System.Text.Json.JsonElement Json { get; }
+        public System.ReadOnlyMemory<byte> Raw { get; }
+        public System.IO.Stream AsStream() { }
+        public void Dispose() { }
+    }
+    public class LambdaPayloadRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public LambdaPayloadRequest(string method, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+    public class LambdaPayloadResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    {
+        public LambdaPayloadResponse(System.IO.Stream body, Hardened.Requests.Abstract.Headers.IHeaderCollection? headers = null) { }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; set; }
+        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        public System.Exception? ExceptionValue { get; set; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public bool IsBinary { get; set; }
+        public Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
+        public bool ResponseStarted { get; }
+        public object? ResponseValue { get; set; }
+        public bool ShouldSerialize { get; set; }
+        public int? Status { get; set; }
+        public object Clone() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+}
