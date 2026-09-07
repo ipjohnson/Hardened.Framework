@@ -1,5 +1,5 @@
 using Hardened.Requests.Abstract.Attributes;
-using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Responses;
 using Hardened1.Models;
 using Hardened1.Services;
 

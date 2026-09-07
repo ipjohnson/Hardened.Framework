@@ -8,7 +8,7 @@ global using Xunit;
 global using NUnit.Framework;
 #endif
 #if (hasClient)
-global using Hardened.Requests.Abstract.Responses;
+global using Hardened.Web.Runtime.Responses;
 global using Hardened1.Client;
 // Aliased, because the generated models are named after the schemas and the schemas are named
 // after this application's own types: a bare NewTodo in a test is the application's record, and
