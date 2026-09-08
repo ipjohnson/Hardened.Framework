@@ -23,10 +23,18 @@ projects to filter.
 | `docs` | The published site, and the maintainer notes under `design/` |
 
 `Hardened.Docs` was a repository of its own until 2026-09-06 and is now `docs/`. `Hardened.Amz` was
-imported and then removed: the AWS line is being replaced by new `Hardened.Aws` projects rather than
-renamed, so its source earns no place here. It stays on nuget.org at `0.22.0-rc1000`, restorable and
-no longer moving, and its history is in this repository's — `git log` and `git blame` answer for it
-under `src/Clouds/Aws` at any commit before it was removed.
+imported and then removed: the AWS *line* is being replaced by new `Hardened.Aws` projects rather
+than renamed, so the hosts, their generators and their testing packages earn no place here. It stays
+on nuget.org at `0.22.0-rc1000`, restorable and no longer moving, and its history is in this
+repository's — `git log` and `git blame` answer for it under `src/Clouds/Aws` at any commit before
+it was removed.
+
+`Hardened.Aws.DynamoDbClient` and `Hardened.Aws.DynamoDbClient.Testing` are the exception, restored
+from that history rather than rewritten. They are the one part of the Amz line that was not a host:
+a client provider and a Testcontainers attribute, binding `Hardened.Shared.Runtime` and
+`Hardened.Shared.Testing` and nothing on the host seam. Nothing about them was made wrong by the
+rebuild, so replacing them would have been retyping. A further Amz package earns the same treatment
+only on the same test — that it touches no host.
 
 ## Commands
 

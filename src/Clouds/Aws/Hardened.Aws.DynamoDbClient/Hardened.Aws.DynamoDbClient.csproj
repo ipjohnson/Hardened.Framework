@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>A DynamoDB client provider for Hardened applications: named clients that bring their own credentials, built on first use and cached for the process.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsAotCompatible>true</IsAotCompatible>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Aws.DynamoDbClient</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AWSSDK.DynamoDBv2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+          DefaultClientSettings is internal: the AWS SDK exposes a built client's endpoint but not
+          its credentials, and which credentials the ServiceUrl branch chooses is the behaviour
+          worth asserting. Separating the decision keeps that testable without reflection.
+        -->
+        <InternalsVisibleTo Include="Hardened.Aws.DynamoDbClient.Tests" />
+    </ItemGroup>
+
+</Project>

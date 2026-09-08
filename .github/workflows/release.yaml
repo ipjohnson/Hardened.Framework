@@ -264,6 +264,8 @@ jobs:
             src/Clouds/Aws/Hardened.Aws.Lambda.Sns/Hardened.Aws.Lambda.Sns.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Sqs/Hardened.Aws.Lambda.Sqs.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Testing/Hardened.Aws.Lambda.Testing.csproj \
+            src/Clouds/Aws/Hardened.Aws.DynamoDbClient/Hardened.Aws.DynamoDbClient.csproj \
+            src/Clouds/Aws/Hardened.Aws.DynamoDbClient.Testing/Hardened.Aws.DynamoDbClient.Testing.csproj \
             src/Clients/Hardened.Kiota.Testing/Hardened.Kiota.Testing.csproj \
             src/Clients/Hardened.Refit.Testing/Hardened.Refit.Testing.csproj \
             src/Templates/Hardened.Templates.RazorBlade/Hardened.Templates.RazorBlade.csproj \
@@ -321,7 +323,8 @@ jobs:
           # is the shape every later one takes: one package, one trigger, one line here.
           # 41 with Hardened.Aws.Lambda.Kinesis, the second adapter added after the split.
           # 42 with Hardened.Aws.Lambda.S3.
-          EXPECTED=42
+          # 44 with the DynamoDB client and its testing package, restored from the Amz line.
+          EXPECTED=44
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

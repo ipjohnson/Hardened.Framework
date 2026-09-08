@@ -4,7 +4,7 @@
 life of the process.
 
 ```csharp
-using Hardened.Amz.DynamoDbClient;
+using Hardened.Aws.DynamoDbClient;
 using Hardened.Shared.Runtime.Attributes;
 
 [HardenedModule]
@@ -24,7 +24,7 @@ public class OrderRepository(IDynamoDbClientProvider clients) {
 Deployed, nothing needs to be set: the SDK resolves credentials from the role and the region from
 the environment. Locally, `DYNAMODB_SERVICE_URL=http://localhost:8000` points the default client
 at DynamoDB Local. Source:
-[`src/Clients/DynamoDb`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Clients/DynamoDb)
+[`src/Clouds/Aws/Hardened.Aws.DynamoDbClient`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Hardened.Aws.DynamoDbClient)
 in [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
 
 ## A provider rather than a client
