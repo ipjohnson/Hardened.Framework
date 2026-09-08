@@ -136,9 +136,11 @@ that reads the old document off that request and, for a handler's own type, dese
 projection of it through the pipeline's `IContextSerializationService` on a cloned context, which
 is AOT-clean. On a delete the body is the old document, because there is no new one.
 
-Native AOT is unproven for this package. The trim analyzers pass on the package's own code, but
-`Google.Protobuf` under ILC has not been shown whole here, so the AOT SUT references the Pub/Sub
-adapter and not this one until it has.
+Native AOT is proven for this package the only way it can be. The trim analyzers pass on the
+package's own code, which says nothing about `Google.Protobuf` under ILC, so the AOT SUT
+references this adapter beside the Pub/Sub one and the CI probe posts a protobuf document event
+to the native binary. It published with zero IL warnings and decoded the event, old value
+included.
 
 ## Storage
 
