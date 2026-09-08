@@ -101,7 +101,7 @@ A web application adds `[assembly: WebTesting]` from `Hardened.Web.Testing`; see
 | `ITestContext` | Named steps, a retry engine, a logger and the test's cancellation token. [Steps and retries](/guide/testing-steps) |
 | `ITestWebApp` | Sends requests through the pipeline. [Sending requests](/guide/testing-web) |
 | A client type | A Kiota client, a Refit interface or any class taking one `HttpClient`, built over the pipeline. [Typed clients](/guide/testing-clients) |
-| `LambdaTestApp`, `TestSqsApp`, `TestDynamoDbStream` | The Lambda harnesses. [Testing AWS handlers](/aws/testing) |
+| A trigger façade | `Application.Queues`, `.Topics`, `.Timers`, `.Changes`, `.Streams`, `.Blobs`, `.Invocations`, generated from the handlers. [Triggers](/guide/triggers#testing) and [Testing AWS handlers](/aws/testing) |
 
 A parameter nothing can supply fails the test.
 

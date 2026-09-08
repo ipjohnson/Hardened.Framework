@@ -10,11 +10,14 @@ version, so a change and the page describing it land in the same commit.
 | [`src/Shared`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Shared) | Module entry points, configuration, environment, metrics, the test framework |
 | [`src/Requests`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Requests) | The execution pipeline and its abstractions |
 | [`src/Web`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Web) | Routing, the Kestrel and ASP.NET Core hosts, static content, the web test client |
+| [`src/Functions`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Functions) | The [trigger](/guide/triggers) attributes and the test façades, naming no cloud |
+| [`src/Clouds`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds) | The [AWS Lambda](/aws/) host and one adapter per source |
 | [`src/Templates`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Templates) | The `dotnet new` templates, and RazorBlade view rendering |
 | [`src/Clients`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clients) | Kiota and Refit test clients |
 | [`src/SourceGenerators`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/SourceGenerators) | Every generator and build task, and the shared library they build on |
 | [`src/IntegrationTests`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/IntegrationTests) | Working applications driven through the real pipeline. The worked examples in the codebase |
 | [`src/PublicApi`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/PublicApi) | The approved public surface of every shipped assembly |
+| [`src/Benchmarks`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Benchmarks) | The pipeline measured against ASP.NET Core, on the same machine |
 | [`docs`](https://github.com/ipjohnson/Hardened.Framework/tree/main/docs) | This site, and the maintainer notes under `design/` |
 
 The framework is documented in the [Guide](/guide/getting-started), the AWS packages under
@@ -26,9 +29,9 @@ The framework is documented in the [Guide](/guide/getting-started), the AWS pack
 in the same commit.
 
 `Hardened.Amz` held the AWS packages. Its history is here and almost none of its source is: the
-line is being replaced by new `Hardened.Aws` projects rather than renamed. It stays on nuget.org at
-`0.22.0-rc1000`, restorable and no longer moving, and the [AWS pages](/aws/) describe it as
-released.
+line was replaced by the `Hardened.Aws.Lambda` packages in `src/Clouds/Aws` rather than renamed, so
+there was nothing to carry forward. It stays on nuget.org at `0.22.0-rc1000`, restorable and no
+longer moving. The [AWS pages](/aws/) describe the packages that replaced it.
 
 The [DynamoDB client](/aws/dynamodb) and its testing package came across, as
 `Hardened.Aws.DynamoDbClient` and `Hardened.Aws.DynamoDbClient.Testing`. They were the only part of

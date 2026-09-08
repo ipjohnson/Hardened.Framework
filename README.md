@@ -5,9 +5,10 @@ dependency injection, routing, parameter binding, configuration and request filt
 source generators during the build, not resolved by reflection at startup. What runs is ordinary
 C# you can open and read.
 
-The core is provider-agnostic: a handler never learns what host it runs on, and swapping the
-runtime module is the whole migration. AWS Lambda is the function compute supported today, through
-the `Hardened.Amz.*` packages on nuget.org at `0.22.0-rc1000`.
+The core is provider-agnostic: a handler names the queue, topic, schedule or route it serves and
+never the cloud, and which adapter delivers to it is a package reference. AWS Lambda is the function
+compute supported today, through the `Hardened.Aws.Lambda.*` packages on the same version line as
+everything else.
 
 Full documentation: **[ipjohnson.github.io/Hardened.Framework](https://ipjohnson.github.io/Hardened.Framework/)**
 
@@ -39,7 +40,7 @@ can be swapped without touching the code.
 | Template | What you get |
 |---|---|
 | `hardened-web` | The todo API above: an implementation library, a host, and tests. `--host kestrel\|aspnet\|aws-lambda`, `--contract code\|openapi\|smithy`, `--response-model response\|throws\|union`, `--client kiota\|refit\|none`, `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
-| `hardened-function` | A serverless function and tests, on AWS Lambda today. `--trigger invoke\|sqs`, `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
+| `hardened-function` | A serverless function and tests, on AWS Lambda today. `--trigger invoke\|queue\|topic\|timer\|change\|stream\|blob`, `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
 | `hardened-library` | A reusable module an application picks up with one attribute, and tests. `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
 
 See the [templates guide](https://ipjohnson.github.io/Hardened.Framework/guide/project-templates) for
@@ -413,5 +414,5 @@ the [package reference](https://ipjohnson.github.io/Hardened.Framework/reference
 
 ## Related repositories
 
-- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — the AWS packages as last released, `0.22.0-rc1000`. Being replaced by new `Hardened.Aws` projects rather than renamed
+- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — the retired AWS line, last released at `0.22.0-rc1000`. Replaced by the `Hardened.Aws.Lambda.*` packages in [`src/Clouds/Aws`](src/Clouds/Aws), not renamed
 - [`docs/`](docs) — the documentation site, published from this repository

@@ -89,8 +89,8 @@ covers ordering, generic decorators and generated interceptors.
 ## Overriding a registration
 
 The last registration wins. That is how a test's [`[Mock]`](/guide/testing-mocks) replaces a
-service, and how [`[LocalDynamoDb]`](/aws/testing#dynamodb-local) puts a container-backed
-`IDynamoDbClientProvider` over the application's own.
+service, and how the [DynamoDB client](/aws/dynamodb)'s test attribute puts a container-backed
+provider over the application's own.
 
 A self-hosting entry point takes the same override in its constructor:
 
