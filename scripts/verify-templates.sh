@@ -875,13 +875,17 @@ if [ -d "$A" ] && [ -d "$B" ]; then
     # the host, so it has no reason to differ.
     # The socket smoke test names the host it runs on, by design - [KestrelRuntime] or
     # [AspNetCoreRuntime], the attribute the application names its host with - and Bootstrap.cs
-    # names the testing package that answers for it, so those attributes, their usings, and the
-    # one package line in the test csproj are the whole of what may differ in the test project.
-    # The rest of that project, and everything else, may not: a test project that referenced the
-    # host project would still fail here.
+    # names the testing package that answers for it, so those attributes, their usings, the one
+    # package line in the test csproj, and the comments beside them that say what the host is,
+    # are the whole of what may differ in the test project. The rest of that project, and
+    # everything else, may not: a test project that referenced the host project would still
+    # fail here.
+    strip_the_host() {
+        perl -0pe 's/<!--.*?-->//gs' "$1" | grep -v '^[[:space:]]*//' | grep -v "$2" | grep -v '^[[:space:]]*$'
+    }
     same_but_the_host() {
         local host='Hardened\.Web\.Kestrel\.\|Hardened\.Web\.AspNetCore\.\|Hardened\.Azure\.Functions\.Testing\|^\[KestrelRuntime\]\|^\[AspNetCoreRuntime\]\|^\[assembly: KestrelTesting\]\|^\[assembly: AspNetCoreTesting\]\|^\[assembly: AzureFunctionsWebTesting\]'
-        diff <(grep -v "$host" "$1") <(grep -v "$host" "$2") >/dev/null 2>&1
+        diff <(strip_the_host "$1" "$host") <(strip_the_host "$2" "$host") >/dev/null 2>&1
     }
     # The socket test may be absent on a host that has no socket of its own, and then there is
     # nothing to compare; present on both, it may differ only in the host it names.
