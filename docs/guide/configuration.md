@@ -133,7 +133,7 @@ config.ProvideValue<IRateTableConfiguration, RateTableConfiguration>(
 
 The generator collects every `[ConfigurationModel]` in an assembly into the module's generated
 `ConfigurationProvider`. Import the module and its models come with it, which is why
-`[DynamoDbModule]` is enough to make `IDynamoDbOptions` resolvable.
+`[DynamoDbClientModule]` is enough to make `IDynamoDbOptions` resolvable.
 
 ## Next
 

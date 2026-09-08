@@ -22,7 +22,7 @@ public partial class Application;
 ```
 
 `[BillingLibrary]` is generated from the library's module class. `[KestrelRuntime]`,
-`[HardenedWebModule]` and `[DynamoDbModule]` are the same thing: each is the companion attribute
+`[HardenedWebModule]` and `[DynamoDbClientModule]` are the same thing: each is the companion attribute
 of a module of that name.
 
 ## Declaring a module
@@ -49,7 +49,7 @@ Attribute one module with another and its registrations come along:
 ```csharp
 [HardenedModule]
 [HardenedWebModule]      // routing, static content, CORS
-[DynamoDbModule]         // IDynamoDbClientProvider
+[DynamoDbClientModule]   // IDynamoDbClientProvider
 public partial class Application { }
 ```
 

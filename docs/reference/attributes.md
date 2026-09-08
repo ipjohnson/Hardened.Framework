@@ -15,7 +15,7 @@ Every attribute in the framework, by the package it comes from.
 | `[ConfigurationProvider]` | Class | Marks a configuration provider |
 
 Every `[HardenedModule]` class also produces `<Name>Attribute`, which is how one module imports
-another. `[AspNetCoreRuntime]`, `[HardenedWebModule]`, `[DynamoDbModule]` and the rest are all
+another. `[AspNetCoreRuntime]`, `[HardenedWebModule]`, `[DynamoDbClientModule]` and the rest are all
 generated this way. See [Modules](/guide/modules#declaring-a-module).
 
 ## Service registration
@@ -259,20 +259,17 @@ on a handler binds it. The exceptions are noted below.
 | `[SqsModule(ReportBatchItemFailures?)]` | `Hardened.Aws.Lambda.Sqs` | SQS, for `[Queue]`. Written out to turn on failure reporting, which has to match the event source mapping |
 | `[SnsModule]` | `Hardened.Aws.Lambda.Sns` | SNS, for `[Topic]` |
 | `[EventBridgeModule]` | `Hardened.Aws.Lambda.EventBridge` | EventBridge, for `[Timer]` and `[Event]` |
-| `[DynamoDbModule(ReportBatchItemFailures?)]` | `Hardened.Aws.Lambda.DynamoDb` | DynamoDB Streams, for `[Change]` |
+| `[DynamoDbStreamsModule(ReportBatchItemFailures?)]` | `Hardened.Aws.Lambda.DynamoDb` | DynamoDB Streams, for `[Change]` |
 | `[KinesisModule(ReportBatchItemFailures?)]` | `Hardened.Aws.Lambda.Kinesis` | Kinesis, for `[Stream]` |
 | `[S3Module]` | `Hardened.Aws.Lambda.S3` | S3, for `[Blob]` |
 | `[NewImage]` / `[OldImage]` | `Hardened.Aws.Lambda.DynamoDb` | Binds a change record's images as they arrived, type tags and all |
 | `[LambdaTesting]` | `Hardened.Aws.Lambda.Testing` | Assembly. Delivers through the real AWS envelope and the invocation loop rather than straight into the pipeline |
 | `[LambdaWebTesting]` | `Hardened.Aws.Lambda.Testing` | Assembly. API Gateway as a test host: a proxy event in, a proxy response out |
-| `[DynamoDbModule]` | `Hardened.Aws.DynamoDbClient` | Registers `IDynamoDbClientProvider`. A client, not an adapter — usable on any host |
+| `[DynamoDbClientModule]` | `Hardened.Aws.DynamoDbClient` | Registers `IDynamoDbClientProvider`. A client, not an adapter — usable on any host |
 | `[LocalDynamoDb(Image?)]` | `Hardened.Aws.DynamoDbClient.Testing` | Points the client provider at DynamoDB Local in a container |
 
-::: warning Two attributes named `[DynamoDbModule]`
-`Hardened.Aws.Lambda.DynamoDb` registers the Streams adapter that serves `[Change]`.
-`Hardened.Aws.DynamoDbClient` registers the client provider. They are unrelated, and a project
-referencing both has to qualify the one it means.
-:::
+Both were `[DynamoDbModule]` until 0.31.0, in two packages, so an application that read a table and
+handled its stream could not name either without qualifying it.
 
 A Lambda response is always buffered. There is no streaming mode and no environment variable that
 selects one; see [API Gateway](/aws/lambda-web#responses-are-buffered).

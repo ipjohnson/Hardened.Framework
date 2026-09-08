@@ -137,7 +137,7 @@ reach.
 | `Hardened.Aws.Lambda.Sqs` | `[Queue]` | `[SqsModule]` |
 | `Hardened.Aws.Lambda.Sns` | `[Topic]` | `[SnsModule]` |
 | `Hardened.Aws.Lambda.EventBridge` | `[Timer]` and `[Event]` | `[EventBridgeModule]` |
-| `Hardened.Aws.Lambda.DynamoDb` | `[Change]`, with `[NewImage]` and `[OldImage]` | `[DynamoDbModule]` |
+| `Hardened.Aws.Lambda.DynamoDb` | `[Change]`, with `[NewImage]` and `[OldImage]` | `[DynamoDbStreamsModule]` |
 | `Hardened.Aws.Lambda.Kinesis` | `[Stream]` | `[KinesisModule]` |
 | `Hardened.Aws.Lambda.S3` | `[Blob]` | `[S3Module]` |
 
@@ -153,11 +153,12 @@ these on Lambda, on Kestrel or in a console the same way.
 
 | Package | Contents |
 |---|---|
-| `Hardened.Aws.DynamoDbClient` | `IDynamoDbClientProvider`, `DynamoDbOptions`, `[DynamoDbModule]`. See [DynamoDB client](/aws/dynamodb) |
+| `Hardened.Aws.DynamoDbClient` | `IDynamoDbClientProvider`, `DynamoDbOptions`, `[DynamoDbClientModule]`. See [DynamoDB client](/aws/dynamodb) |
 | `Hardened.Aws.DynamoDbClient.Testing` | `[LocalDynamoDb]` and `LocalDynamoDb`: DynamoDB Local in a Testcontainers container |
 
 Note that `Hardened.Aws.Lambda.DynamoDb` is a different thing — the Streams adapter that serves
-`[Change]`, not a client.
+`[Change]`, not a client. The module names say which is which: `[DynamoDbClientModule]` here,
+`[DynamoDbStreamsModule]` there.
 
 ### Testing
 
