@@ -240,13 +240,13 @@ From [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
 | `[LambdaWebApplication(Version)]` | `Hardened.Amz.Web.Lambda.Runtime` | States the payload format. `ProxyIntegrationType.HttpApiV2` is the default and the only implemented value; `.ApiGateway` is `HRDAWS001` |
 | `[SqsLambda]` | `Hardened.Amz.Function.Sqs.Runtime` | SQS batch runtime. Applied alongside `[LambdaFunctionModule]` |
 | `[DynamoStreamLambda]` | `Hardened.Amz.Function.DDB.Runtime` | DynamoDB Streams runtime. Applied alongside `[LambdaFunctionModule]` |
-| `[DynamoDbModule]` | `Hardened.Amz.DynamoDbClient` | Registers `IDynamoDbClientProvider` |
+| `[DynamoDbModule]` | `Hardened.Aws.DynamoDbClient` | Registers `IDynamoDbClientProvider` |
 | `[HardenedCdk]` | `Hardened.Amz.Cdk` | CDK deployment application |
 | `[NewImage]` / `[OldImage]` | `Hardened.Amz.Function.DDB.Runtime.Attributes` | Binds a stream record's images |
 | `[FromContext(name?)]` | `Hardened.Amz.Function.Lambda.Runtime` | Binds a named value from the invocation's headers |
 | `[ThrowException]` | `Hardened.Amz.Function.Lambda.Runtime` | Rethrows, so the invocation fails instead of returning the error |
 | `[LambdaFunctionTesting]` | `Hardened.Amz.Function.Lambda.Testing` | Installs the Lambda test harnesses |
-| `[LocalDynamoDb(Image?)]` | `Hardened.Amz.DynamoDbClient.Testing` | Points the client provider at DynamoDB Local in a container |
+| `[LocalDynamoDb(Image?)]` | `Hardened.Aws.DynamoDbClient.Testing` | Points the client provider at DynamoDB Local in a container |
 
 Whether a Lambda response streams is `HARDENED_LAMBDA_RESPONSE_MODE`, a deployment setting rather
 than an attribute; see [Response mode](/aws/lambda-web#response-mode).

@@ -25,10 +25,14 @@ The framework is documented in the [Guide](/guide/getting-started), the AWS pack
 `Hardened.Docs` held this site and is now `docs/`, so a page and the change that made it wrong land
 in the same commit.
 
-`Hardened.Amz` held the AWS packages. Its history is here and its source is not: the line is being
-replaced by new `Hardened.Aws` projects rather than renamed, so there was nothing to carry forward.
-It stays on nuget.org at `0.22.0-rc1000`, restorable and no longer moving, and the
-[AWS pages](/aws/) describe it as released.
+`Hardened.Amz` held the AWS packages. Its history is here and almost none of its source is: the
+line is being replaced by new `Hardened.Aws` projects rather than renamed. It stays on nuget.org at
+`0.22.0-rc1000`, restorable and no longer moving, and the [AWS pages](/aws/) describe it as
+released.
+
+The [DynamoDB client](/aws/dynamodb) and its testing package came across, as
+`Hardened.Aws.DynamoDbClient` and `Hardened.Aws.DynamoDbClient.Testing`. They were the only part of
+that line that was not a host, so the rebuild left them correct as they stood.
 
 ## What is deliberately outside
 

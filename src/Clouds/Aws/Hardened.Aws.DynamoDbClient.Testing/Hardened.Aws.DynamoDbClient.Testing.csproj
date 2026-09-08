@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Runs Hardened tests against a real DynamoDB in a container, rather than a fake.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Aws.DynamoDbClient.Testing</PackageId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Testcontainers.DynamoDb" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Aws.DynamoDbClient\Hardened.Aws.DynamoDbClient.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,53 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.DynamoDbClient.Tests")]
+namespace Hardened.Aws.DynamoDbClient
+{
+    [DependencyModules.Runtime.Attributes.SingletonService(As=typeof(Hardened.Aws.DynamoDbClient.IDynamoDbClientProvider))]
+    public sealed class DynamoDbClientProvider : Hardened.Aws.DynamoDbClient.IDynamoDbClientProvider, System.IDisposable
+    {
+        public DynamoDbClientProvider(Microsoft.Extensions.Options.IOptions<Hardened.Aws.DynamoDbClient.IDynamoDbOptions> options, System.IServiceProvider serviceProvider) { }
+        public void Dispose() { }
+        public Amazon.DynamoDBv2.IAmazonDynamoDB GetClient(string clientName = "") { }
+    }
+    [Hardened.Shared.Runtime.Attributes.HardenedModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class DynamoDbModule : DependencyModules.Runtime.Interfaces.IDependencyModule
+    {
+        public DynamoDbModule() { }
+        public Microsoft.Extensions.DependencyInjection.ServiceProvider CreateServiceProvider(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? overrideDependencies, System.Action<Microsoft.Extensions.Logging.ILoggingBuilder>? loggingBuilderAction, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? initDependencies = null) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public class ConfigurationProvider : Hardened.Shared.Runtime.Configuration.IConfigurationPackage
+        {
+            public ConfigurationProvider() { }
+            public System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueAmender> ConfigurationValueAmenders(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment) { }
+            public System.Collections.Generic.IEnumerable<Hardened.Shared.Runtime.Configuration.IConfigurationValueProvider> ConfigurationValueProviders(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment) { }
+        }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class DynamoDbModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public DynamoDbModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    [Hardened.Shared.Runtime.Attributes.ConfigurationModel]
+    public class DynamoDbOptions : Hardened.Aws.DynamoDbClient.IDynamoDbOptions
+    {
+        public DynamoDbOptions() { }
+        public System.Collections.Generic.Dictionary<string, System.Func<System.IServiceProvider, Amazon.DynamoDBv2.IAmazonDynamoDB>> Clients { get; set; }
+        public System.Func<System.IServiceProvider, Amazon.DynamoDBv2.IAmazonDynamoDB>? DefaultClient { get; set; }
+        public string Region { get; set; }
+        public string ServiceUrl { get; set; }
+    }
+    public interface IDynamoDbClientProvider
+    {
+        Amazon.DynamoDBv2.IAmazonDynamoDB GetClient(string clientName = "");
+    }
+    public interface IDynamoDbOptions
+    {
+        System.Collections.Generic.Dictionary<string, System.Func<System.IServiceProvider, Amazon.DynamoDBv2.IAmazonDynamoDB>> Clients { get; }
+        System.Func<System.IServiceProvider, Amazon.DynamoDBv2.IAmazonDynamoDB>? DefaultClient { get; }
+        string Region { get; }
+        string ServiceUrl { get; }
+    }
+}

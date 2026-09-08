@@ -107,7 +107,14 @@ and answers 404 to everything.
 
 ## AWS
 
-The AWS line as it was last released, `0.22.0-rc1000` on nuget.org, from
+The DynamoDB client is on the version line above, in this repository.
+
+| Package | Contents |
+|---|---|
+| `Hardened.Aws.DynamoDbClient` | `IDynamoDbClientProvider`, `DynamoDbOptions`, `[DynamoDbModule]` |
+| `Hardened.Aws.DynamoDbClient.Testing` | `[LocalDynamoDb]` and `LocalDynamoDb`: DynamoDB Local in a container |
+
+Everything below is the AWS line as it was last released, `0.22.0-rc1000` on nuget.org, from
 [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz). It is not on the version line above and
 does not move: it is being replaced by new `Hardened.Aws` packages rather than renamed.
 
@@ -137,8 +144,6 @@ package choice; see [Response mode](/aws/lambda-web#response-mode).
 
 | Package | Contents |
 |---|---|
-| `Hardened.Amz.DynamoDbClient` | `IDynamoDbClientProvider`, `DynamoDbOptions`, `[DynamoDbModule]` |
-| `Hardened.Amz.DynamoDbClient.Testing` | `[LocalDynamoDb]` and `LocalDynamoDb`: DynamoDB Local in a container |
 | `Hardened.Amz.Cdk` | CDK constructs, stage and region types, the deploy command |
 
 ### Source generators

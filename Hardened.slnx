@@ -59,6 +59,9 @@
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Sqs/Hardened.Aws.Lambda.Sqs.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Testing/Hardened.Aws.Lambda.Testing.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Runtime.Tests/Hardened.Aws.Lambda.Runtime.Tests.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.DynamoDbClient/Hardened.Aws.DynamoDbClient.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.DynamoDbClient.Testing/Hardened.Aws.DynamoDbClient.Testing.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.DynamoDbClient.Tests/Hardened.Aws.DynamoDbClient.Tests.csproj" />
   </Folder>
   <Folder Name="/IntegrationTests/Aot/">
     <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.SUT/Hardened.IntegrationTests.Aot.SUT.csproj" />
