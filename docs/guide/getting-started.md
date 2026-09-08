@@ -151,7 +151,7 @@ The runtime attribute is the only thing that changes:
 |---|---|---|
 | `[KestrelRuntime]` | `Hardened.Web.Kestrel.Runtime` | Kestrel, without the ASP.NET Core request pipeline |
 | `[AspNetCoreRuntime]` | `Hardened.Web.AspNetCore.Runtime` | Inside ASP.NET Core's pipeline, behind `app.UseHardened()` |
-| `[LambdaWebModule]` | `Hardened.Amz.Web.Lambda.Runtime` | Behind API Gateway. See [AWS](/aws/) |
+| `[ApiGatewayModule]` | `Hardened.Aws.Lambda.ApiGateway` | Behind API Gateway on Lambda. See [AWS](/aws/) |
 
 Handlers, filters, binding and the generated routing table do not change with the host. The
 templates put the implementation in one project and the host in another, and point the tests at

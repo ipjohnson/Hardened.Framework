@@ -42,9 +42,9 @@ features:
 
   - title: The same application on Lambda
     details: >-
-      Swap the runtime module and the handlers you already wrote run behind API Gateway, on a
-      DynamoDB stream, or over an SQS batch. Partial batch responses and structured CloudWatch
-      logging are wired in.
+      A handler names the queue, topic, schedule or stream it serves, and never the cloud. Which
+      adapter delivers to it is a package reference, so the handlers you already wrote run behind
+      API Gateway or off an SQS batch unchanged.
     link: /aws/
     linkText: AWS runtimes
 

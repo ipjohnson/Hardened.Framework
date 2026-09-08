@@ -12,6 +12,12 @@ using Hardened.Shared.Runtime.Attributes;
 public partial class Application { }
 ```
 
+::: warning Two attributes share this name
+`Hardened.Aws.Lambda.DynamoDb` also declares a `[DynamoDbModule]` — the Streams adapter that serves
+[`[Change]`](/guide/triggers), which is a different thing from a client. A project that both reads
+a table and handles its stream references both packages and has to qualify the one it means.
+:::
+
 ```csharp
 [SingletonService]
 public class OrderRepository(IDynamoDbClientProvider clients) {
@@ -35,10 +41,22 @@ public interface IDynamoDbClientProvider {
 }
 ```
 
-Reaching a second account, assuming a different role or talking to another region each need
-their own credentials and configuration, which is what the name selects between. A client is
-built the first time it is asked for and cached for the life of the process. The provider returns
-the SDK's own interface, so a test can substitute a client without going through the provider.
+Reaching a second account, assuming a different role or talking to another region each need their
+own credentials and configuration, and a container that resolves a single `IAmazonDynamoDB` has
+nowhere to put them. The name is what selects between them.
+
+A client is built the first time it is asked for and cached for the life of the process, which is
+not only an optimisation: `AmazonDynamoDBClient` is thread-safe and owns a connection pool, so
+constructing one per request is a well-known way to exhaust sockets.
+
+Construction is deferred with it. A factory runs when its client is first asked for, not when the
+service collection is built, so a named client nothing reaches is never constructed.
+
+The provider returns the SDK's own interface, so a test can substitute a client without going
+through the provider at all.
+
+The provider is disposable and disposes every client it built. An application that resolves it from
+the root container gets that at shutdown.
 
 ## Configuring the default client
 
@@ -88,10 +106,10 @@ called from.
 ## Testing against a real DynamoDB
 
 `[LocalDynamoDb]` points the provider at DynamoDB Local in a Testcontainers container. See
-[DynamoDB Local](/aws/testing#dynamodb-local).
+[Testing AWS handlers](/aws/testing).
 
 ## Next
 
 - [DynamoDB Streams](/aws/ddb-streams): handling the table's stream
 - [Configuration](/guide/configuration): the model the options come from
-- [Testing AWS handlers](/aws/testing#dynamodb-local): the container-backed client in a test
+- [Testing AWS handlers](/aws/testing): the trigger façades and the two fidelity levels

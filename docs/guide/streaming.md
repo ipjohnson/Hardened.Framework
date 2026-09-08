@@ -207,15 +207,13 @@ client generated from it reads a list rather than a stream.
 |---|---|
 | Kestrel | yes |
 | ASP.NET Core | yes |
-| Lambda, `HARDENED_LAMBDA_RESPONSE_MODE=stream` | yes |
-| Lambda, `HARDENED_LAMBDA_RESPONSE_MODE=buffered` | no |
+| Lambda behind API Gateway | no |
 
-On Lambda, whether a response streams is a deployment setting rather than a property of the
-handler. `stream` needs a function URL in `RESPONSE_STREAM` invoke mode, with or without
-CloudFront in front. A buffered deployment accumulates the whole body before returning it, so a
-streamed response arrives all at once at the end. An application with `[ServerSentEvents]`
-handlers deployed in buffered mode logs a warning at startup naming them. See
-[Response mode](/aws/lambda-web#response-mode).
+The Lambda adapter buffers. The body has to be a `MemoryStream` it can read back, so a handler
+returning `IAsyncEnumerable<T>` has its sequence accumulated before the response is sent and the
+whole thing arrives at once at the end. An HTTP API buffers every response anyway, so this matches
+what a deployment behind one can do. See
+[Responses are buffered](/aws/lambda-web#responses-are-buffered).
 
 ## Compression
 
@@ -229,4 +227,4 @@ per item, so a reader still gets each line as it is produced.
 
 - [Sending requests](/guide/testing-web#the-response): reading a streamed body in a test
 - [Compression](/guide/compression): what is and is not compressed
-- [API Gateway](/aws/lambda-web#response-mode): streaming from Lambda
+- [API Gateway](/aws/lambda-web#responses-are-buffered): why Lambda does not stream

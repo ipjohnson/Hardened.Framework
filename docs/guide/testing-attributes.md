@@ -100,11 +100,11 @@ first time the model is resolved. See [Amending configuration](/guide/configurat
 
 ## Deriving from a shipped attribute
 
-`[LocalDynamoDb]` is a startup attribute meant to be derived from. Override `DdbSetup` to create
-the tables the test needs; see [DynamoDB Local](/aws/testing#dynamodb-local).
+The [DynamoDB client](/aws/dynamodb) ships a startup attribute meant to be derived from, which
+stands a local container up and creates the tables a test needs.
 
 ## Next
 
 - [Substituting services](/guide/testing-mocks): `[Mock]` for the one-line case
 - [Environments in tests](/guide/testing#environments-in-tests): the shipped environment attributes
-- [Testing AWS handlers](/aws/testing): the Lambda and DynamoDB Local attributes
+- [Testing AWS handlers](/aws/testing): the trigger façades and the two fidelity levels
