@@ -45,6 +45,7 @@ public class PublicApiSurfaceTests {
         "Hardened.Aws.Lambda.Sns",
         "Hardened.Aws.Lambda.Sqs",
         "Hardened.Aws.Lambda.Testing",
+        "Hardened.CloudEvents",
         "Hardened.Functions.Runtime",
         "Hardened.Functions.Testing",
         "Hardened.Kiota.Testing",

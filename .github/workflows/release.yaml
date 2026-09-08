@@ -267,6 +267,7 @@ jobs:
             src/Web/Hardened.Web.Kestrel.Testing/Hardened.Web.Kestrel.Testing.csproj \
             src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
             src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
+            src/Functions/Hardened.CloudEvents/Hardened.CloudEvents.csproj \
             src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj \
             src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
@@ -340,7 +341,9 @@ jobs:
           # 41 with Hardened.Aws.Lambda.Kinesis, the second adapter added after the split.
           # 42 with Hardened.Aws.Lambda.S3.
           # 44 with the DynamoDB client and its testing package, restored from the Amz line.
-          EXPECTED=44
+          # 45 with Hardened.CloudEvents, the dependency-free CloudEvents reader the GCP line and the
+          # Azure [Event] adapter share.
+          EXPECTED=45
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

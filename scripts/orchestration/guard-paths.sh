@@ -28,7 +28,7 @@ fi
 
 case "$agent" in
   azure) allowed='src/Clouds/Azure/ docs/azure/ filters/azure.slnf Directory.Packages.props Hardened.slnx' ;;
-  gcp)   allowed='src/Clouds/Gcp/ docs/gcp/ filters/gcp.slnf src/Functions/Hardened.CloudEvents/ Directory.Packages.props Hardened.slnx' ;;
+  gcp)   allowed='src/Clouds/Gcp/ docs/gcp/ filters/gcp.slnf src/Functions/Hardened.CloudEvents/ src/Functions/Hardened.CloudEvents.Tests/ Directory.Packages.props Hardened.slnx' ;;
   *)     exit 0 ;;
 esac
 
