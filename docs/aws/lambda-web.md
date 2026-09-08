@@ -147,8 +147,23 @@ caller holding a connection, so a function serving one stays buffered under a `s
 rather than failing. That keeps the setting safe to apply account-wide.
 
 `[ServerSentEvents]` handlers need `stream`. Under `buffered` their events are delivered together
-when the invocation ends, or never when the function times out first. See
-[Streaming responses](/guide/streaming).
+when the invocation ends, or never when the function times out first. An application that has them
+and was deployed buffered logs a warning at startup naming the routes:
+
+```
+HARDENED_LAMBDA_RESPONSE_MODE is buffered and 1 handler(s) answer text/event-stream:
+GET /orders/live. Their events are delivered when the invocation ends, or never if it times
+out first. Deploy behind a function URL in RESPONSE_STREAM invoke mode with
+HARDENED_LAMBDA_RESPONSE_MODE=stream, or remove [ServerSentEvents].
+```
+
+A warning rather than a refusal to start: the other routes are served correctly, and the build
+cannot catch this on its own. The compilation that knows a handler carries `[ServerSentEvents]` does
+not know how the function will be deployed, and the deployment that sets the mode has no view of the
+handlers. Newline-delimited streams are not named, because they arrive late in buffered mode but
+intact.
+
+See [Streaming responses](/guide/streaming).
 
 ## Testing
 

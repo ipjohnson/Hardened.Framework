@@ -3,6 +3,7 @@ using DependencyModules.Runtime.Interfaces;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Requests.Runtime.DependencyInjection;
+using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Runtime.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -54,5 +55,10 @@ public partial class LambdaRuntimeModule : IServiceCollectionConfiguration {
         services.TryAddSingleton(
             s => Options.Create(s.GetRequiredService<IConfigurationManager>()
                 .GetConfiguration<ILambdaResponseModeConfiguration>()));
+
+        // Says at startup when the mode and the application's [ServerSentEvents] handlers disagree.
+        // Enumerable rather than Try, because a startup service is one of many and replacing the
+        // set is not what registering another one means.
+        services.AddSingleton<IStartupService, ServerSentEventsResponseModeStartupService>();
     }
 }

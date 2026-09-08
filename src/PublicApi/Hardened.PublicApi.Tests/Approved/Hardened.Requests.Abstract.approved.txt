@@ -976,6 +976,10 @@ namespace Hardened.Requests.Abstract.Serializer
         Hardened.Requests.Abstract.Serializer.IRequestDeserializer FindRequestDeserializer(Hardened.Requests.Abstract.Execution.IExecutionContext context);
         Hardened.Requests.Abstract.Serializer.IResponseSerializer FindResponseSerializer(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
+    public interface IServerSentEventManifest
+    {
+        System.Collections.Generic.IReadOnlyList<string> Handlers { get; }
+    }
     public interface ISseEvent
     {
         object? Data { get; }

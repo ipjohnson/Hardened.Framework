@@ -96,6 +96,9 @@
         <Compile Include="../Hardened.SourceGenerator/Web/EnumWireConverterEmitter.cs">
             <Link>Web/%(FileName)%(Extension)</Link>
         </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/ServerSentEventManifestEmitter.cs">
+            <Link>Web/%(FileName)%(Extension)</Link>
+        </Compile>
         <Compile Include="../Hardened.SourceGenerator/Validation/ParameterValidatorRegistration.cs">
             <Link>Validation/%(FileName)%(Extension)</Link>
         </Compile>
