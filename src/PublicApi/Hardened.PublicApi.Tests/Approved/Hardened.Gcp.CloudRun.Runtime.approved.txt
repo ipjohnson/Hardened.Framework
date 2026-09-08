@@ -32,10 +32,22 @@ namespace Hardened.Gcp.CloudRun.Runtime.Dispatch
 }
 namespace Hardened.Gcp.CloudRun.Runtime.Envelopes
 {
+    public interface IFallbackTriggerEnvelope : Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope { }
     public interface ITriggerEnvelope
     {
         bool Recognises(Hardened.Requests.Abstract.Execution.IExecutionRequest request);
         Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest? Unwrap(Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Gcp.CloudRun.Runtime.Envelopes.TriggerPayload payload);
+    }
+    public static class PubSubPushBody
+    {
+        public const string DeliveryAttemptHeader = "x-goog-pubsub-delivery-attempt";
+        public const string MessageIdHeader = "x-goog-pubsub-message-id";
+        public const string OrderingKeyHeader = "x-goog-pubsub-ordering-key";
+        public const string PublishTimeHeader = "x-goog-pubsub-publish-time";
+        public const string SubscriptionHeader = "x-goog-pubsub-subscription-name";
+        public static System.IO.Stream Read(System.Text.Json.JsonElement message, string subscription, System.Text.Json.JsonElement root, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static string SubscriptionName(string subscription) { }
+        public static bool TryRead(System.Text.Json.JsonElement root, out System.Text.Json.JsonElement message, out string subscription) { }
     }
     public sealed class TriggerFrontDoor : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
@@ -44,6 +56,13 @@ namespace Hardened.Gcp.CloudRun.Runtime.Envelopes
         public System.Collections.Generic.IReadOnlyList<Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope> Envelopes { get; }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
+    public static class TriggerHeaders
+    {
+        public static System.Collections.Generic.Dictionary<string, Microsoft.Extensions.Primitives.StringValues> Copy(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static string? Get(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, string name) { }
+        public static string Prefix(string prefix) { }
+        public static string? Under(string path, string prefix) { }
+    }
     public sealed class TriggerPayload : System.IDisposable
     {
         public TriggerPayload(System.ReadOnlyMemory<byte> raw) { }
@@ -51,6 +70,7 @@ namespace Hardened.Gcp.CloudRun.Runtime.Envelopes
         public System.ReadOnlyMemory<byte> Raw { get; }
         public System.IO.Stream AsStream() { }
         public void Dispose() { }
+        public static System.IO.Stream AsStream(System.ReadOnlyMemory<byte> bytes) { }
     }
 }
 namespace Hardened.Gcp.CloudRun.Runtime.Execution
@@ -68,9 +88,10 @@ namespace Hardened.Gcp.CloudRun.Runtime.Execution
         public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
         public string? Get(string key) { }
     }
-    public sealed class CloudRunTriggerRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    public class CloudRunTriggerRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
     {
         public CloudRunTriggerRequest(string scheme, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, Hardened.Requests.Abstract.Execution.IExecutionRequest delivery) { }
+        protected CloudRunTriggerRequest(string scheme, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, Hardened.Requests.Abstract.Execution.IExecutionRequest delivery, Hardened.Requests.Abstract.Execution.ITransportInfo transport) { }
         public string? Accept { get; }
         public System.IO.Stream Body { get; set; }
         public string? ContentType { get; }
@@ -83,7 +104,9 @@ namespace Hardened.Gcp.CloudRun.Runtime.Execution
         public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
         public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
         public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
-        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+        public virtual Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+        protected TRequest CopyInto<TRequest>(TRequest clone)
+            where TRequest : Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest { }
     }
 }
 namespace Hardened.Gcp.CloudRun.Runtime.Hosting

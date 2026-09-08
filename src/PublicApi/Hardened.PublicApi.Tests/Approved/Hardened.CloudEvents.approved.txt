@@ -21,6 +21,17 @@ namespace Hardened.CloudEvents
         public CloudEventFormatException(string message) { }
         public CloudEventFormatException(string message, System.Exception inner) { }
     }
+    public static class CloudEventHeaders
+    {
+        public const string DataSchema = "ce-dataschema";
+        public const string Id = "ce-id";
+        public const string Source = "ce-source";
+        public const string SpecVersion = "ce-specversion";
+        public const string Subject = "ce-subject";
+        public const string Time = "ce-time";
+        public const string Type = "ce-type";
+        public static void Write(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, Hardened.CloudEvents.CloudEvent cloudEvent) { }
+    }
     public static class CloudEventReader
     {
         public const string HeaderPrefix = "ce-";

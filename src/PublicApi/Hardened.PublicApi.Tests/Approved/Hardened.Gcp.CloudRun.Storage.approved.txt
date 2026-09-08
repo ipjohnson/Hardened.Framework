@@ -1,0 +1,49 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Gcp.CloudRun.Runtime.Tests")]
+namespace Hardened.Gcp.CloudRun.Storage
+{
+    public sealed class StorageEnvelope : Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope
+    {
+        public const string BlobScheme = "BLOB";
+        public const string BucketHeader = "bucketId";
+        public const string EventTimeHeader = "eventTime";
+        public const string EventTypeHeader = "eventType";
+        public const string GenerationHeader = "objectGeneration";
+        public const string ObjectHeader = "objectId";
+        public const string ObjectTypePrefix = "google.cloud.storage.object.v1.";
+        public StorageEnvelope() { }
+        public bool Recognises(Hardened.Requests.Abstract.Execution.IExecutionRequest request) { }
+        public Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest? Unwrap(Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Gcp.CloudRun.Runtime.Envelopes.TriggerPayload payload) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Gcp.CloudRun.Runtime.CloudRunRuntime]
+    public class StorageModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public StorageModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class StorageModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public StorageModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public sealed class StorageNotification : System.IEquatable<Hardened.Gcp.CloudRun.Storage.StorageNotification>
+    {
+        public StorageNotification(string Bucket, string Name, long? Size, string? ContentType, string? Generation, string? ETag, string EventType, string? EventTime, string? TimeCreated, string? Updated) { }
+        public string Bucket { get; init; }
+        public string? ContentType { get; init; }
+        public string? ETag { get; init; }
+        public string? EventTime { get; init; }
+        public string EventType { get; init; }
+        public string? Generation { get; init; }
+        public string Name { get; init; }
+        public long? Size { get; init; }
+        public string? TimeCreated { get; init; }
+        public string? Updated { get; init; }
+        public System.IO.Stream Body() { }
+        public static Hardened.Gcp.CloudRun.Storage.StorageNotification From(System.Text.Json.JsonElement metadata, string eventType, string? eventTime, string? bucket = null, string? name = null) { }
+    }
+}

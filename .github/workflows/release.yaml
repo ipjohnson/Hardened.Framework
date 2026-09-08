@@ -279,6 +279,12 @@ jobs:
             src/Clouds/Gcp/Hardened.Gcp.CloudRun.PubSub/Hardened.Gcp.CloudRun.PubSub.csproj \
             src/Clouds/Gcp/Hardened.Gcp.CloudRun.Runtime/Hardened.Gcp.CloudRun.Runtime.csproj \
             src/Clouds/Gcp/Hardened.Gcp.CloudRun.Testing/Hardened.Gcp.CloudRun.Testing.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun/Hardened.Gcp.CloudRun.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Eventarc/Hardened.Gcp.CloudRun.Eventarc.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Firestore/Hardened.Gcp.CloudRun.Firestore.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Invoke/Hardened.Gcp.CloudRun.Invoke.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Scheduler/Hardened.Gcp.CloudRun.Scheduler.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Storage/Hardened.Gcp.CloudRun.Storage.csproj \
             src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj \
             src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
@@ -356,7 +362,9 @@ jobs:
           # Azure [Event] adapter share.
           # 52 with the first packages of the Azure and GCP lines: the Azure runtime, Service Bus adapter,
           # generator and testing package, and the Cloud Run runtime, Pub/Sub adapter and testing package.
-          EXPECTED=52
+          # 58 with the rest of the GCP line: the Scheduler, Invoke, Storage, Firestore and Eventarc
+          # adapters and the Hardened.Gcp.CloudRun meta package.
+          EXPECTED=58
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

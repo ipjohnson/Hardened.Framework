@@ -1,0 +1,50 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Gcp.CloudRun.Runtime.Tests")]
+namespace Hardened.Gcp.CloudRun.Firestore
+{
+    public sealed class FirestoreChange : Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest
+    {
+        public FirestoreChange(string scheme, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, Hardened.Requests.Abstract.Execution.IExecutionRequest delivery, Google.Events.Protobuf.Cloud.Firestore.V1.DocumentEventData documentEvent) { }
+        public Google.Events.Protobuf.Cloud.Firestore.V1.DocumentEventData Event { get; }
+        public Google.Events.Protobuf.Cloud.Firestore.V1.Document? OldValue { get; }
+        public Google.Events.Protobuf.Cloud.Firestore.V1.Document? Value { get; }
+        public override Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+    public sealed class FirestoreEnvelope : Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope
+    {
+        public const string ChangeScheme = "CHANGE";
+        public const string DocumentHeader = "x-goog-firestore-document";
+        public const string DocumentNameHeader = "x-goog-firestore-document-name";
+        public const string DocumentTypePrefix = "google.cloud.firestore.document.v1.";
+        public FirestoreEnvelope() { }
+        public bool Recognises(Hardened.Requests.Abstract.Execution.IExecutionRequest request) { }
+        public Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest? Unwrap(Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Gcp.CloudRun.Runtime.Envelopes.TriggerPayload payload) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Gcp.CloudRun.Runtime.CloudRunRuntime]
+    public class FirestoreModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public FirestoreModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class FirestoreModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public FirestoreModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public static class FirestoreValueJson
+    {
+        public static System.IO.Stream Body(Google.Events.Protobuf.Cloud.Firestore.V1.Document? document) { }
+        public static void WriteFields(System.Text.Json.Utf8JsonWriter writer, Google.Protobuf.Collections.MapField<string, Google.Events.Protobuf.Cloud.Firestore.V1.Value>? fields) { }
+        public static void WriteValue(System.Text.Json.Utf8JsonWriter writer, Google.Events.Protobuf.Cloud.Firestore.V1.Value? value) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Parameter)]
+    public sealed class OldValueAttribute : System.Attribute, Hardened.Requests.Abstract.Attributes.ICustomBindingAttribute
+    {
+        public OldValueAttribute() { }
+        public System.Threading.Tasks.ValueTask<T> BindValue<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Execution.IExecutionRequestParameter parameter) { }
+    }
+}
