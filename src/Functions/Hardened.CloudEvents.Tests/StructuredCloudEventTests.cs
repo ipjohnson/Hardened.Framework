@@ -1,17 +1,12 @@
 using System.Text;
-using Hardened.CloudEvents;
 using Xunit;
 
-namespace Hardened.Gcp.CloudRun.Runtime.Tests.CloudEvents;
+namespace Hardened.CloudEvents.Tests;
 
 /// <summary>
 /// The structured JSON form, as Eventarc's structured mode and Event Grid's CloudEvents schema
 /// send it.
 /// </summary>
-/// <remarks>
-/// Housed here until the path guard admits <c>src/Functions/Hardened.CloudEvents.Tests</c>, which
-/// SCR-201 asks for; the package under test is <c>Hardened.CloudEvents</c>.
-/// </remarks>
 public class StructuredCloudEventTests {
     private const string Full = """
         {

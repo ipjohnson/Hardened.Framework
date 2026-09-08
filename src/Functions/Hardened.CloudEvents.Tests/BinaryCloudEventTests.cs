@@ -1,9 +1,8 @@
 using System.Text;
-using Hardened.CloudEvents;
 using Microsoft.Extensions.Primitives;
 using Xunit;
 
-namespace Hardened.Gcp.CloudRun.Runtime.Tests.CloudEvents;
+namespace Hardened.CloudEvents.Tests;
 
 /// <summary>
 /// The binary HTTP form, as Eventarc delivers it: the payload as the body, the attributes as
@@ -102,26 +101,5 @@ public class BinaryCloudEventTests {
 
         Assert.Throws<CloudEventFormatException>(
             () => CloudEventReader.Read("application/json", new Dictionary<string, StringValues>(), Body));
-    }
-}
-
-public class CloudEventRoutesTests {
-
-    [Fact]
-    public void AnEventRoutesOnSourceAndType() {
-        var cloudEvent = new CloudEvent("1.0", "1", "com.acme.orders", "OrderPlaced");
-
-        Assert.Equal("/com.acme.orders/OrderPlaced", CloudEventRoutes.Event(cloudEvent));
-        Assert.Equal("EVENT", CloudEventRoutes.EventScheme);
-    }
-
-    [Theory]
-    [InlineData("//pubsub.googleapis.com/projects/p/topics/orders", "orders")]
-    [InlineData("projects/p/topics/orders/", "orders")]
-    [InlineData("orders", "orders")]
-    [InlineData("", "")]
-    [InlineData(null, "")]
-    public void TheLastSegmentIsTheResourcesOwnName(string? value, string expected) {
-        Assert.Equal(expected, CloudEventRoutes.LastSegment(value));
     }
 }
