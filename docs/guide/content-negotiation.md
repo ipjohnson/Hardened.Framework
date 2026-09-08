@@ -73,6 +73,60 @@ The values are spaced so a serializer can be slotted between two of them without
 `Order` decides who is asked first. `IsDefaultSerializer` decides who answers when nobody claims
 the response at all.
 
+## Declaring what an operation produces
+
+`[SupportedContentTypes]` states the media types one operation can produce, in preference order:
+
+```csharp
+[Get("/reports/shelf")]
+[SupportedContentTypes("text/plain", "text/csv")]
+public string Shelf() => ...;
+```
+
+This is the hand-written half of what a description states with the `content:` keys of its success
+response. Both reach the same model, so an application written in code and one generated from a
+document negotiate the same way.
+
+Order is the server's preference, and it decides what `Accept: */*` — or a request with no `Accept`
+at all — is answered with. A client that names types explicitly gets its own preference order
+honoured instead.
+
+It is not `[RawResponse]`, which is a different thing. That assigns the content type before the
+handler runs and takes the response out of negotiation entirely: "this *is* a PDF". This says what
+the operation is able to produce and lets the client choose among them.
+
+## Asking for something outside that set
+
+`[ContentNegotiation]` decides what the service answers a client that asked for a media type no
+operation produces:
+
+```csharp
+[HardenedModule]
+[KestrelRuntime]
+[ContentNegotiation(ContentNegotiationMode.Lenient)]
+public partial class Application;
+```
+
+| Mode | Answers |
+|---|---|
+| `Strict` | `406 Not Acceptable`. The default |
+| `Lenient` | Serializes with the default serializer anyway |
+
+`Strict` is the answer HTTP defines: a client that names media types and shares none with the
+operation has asked for something that does not exist. Nothing about it is the API author's to
+describe, unlike a 404, so it is not derived from the document and does not need declaring.
+
+`Lenient` is for an application that would rather answer something than nothing — or one migrating,
+whose clients send `Accept: application/json` at operations that never produced JSON and were
+answered with the declared string wrapped in quotes.
+
+It goes on the entry point, and it is one answer for the whole service. Deliberately not per
+operation: a policy that has to be repeated is one that ends up applied unevenly, and a single
+operation quietly negotiating while every other refuses is worse than either answer applied
+consistently — the omission would be invisible.
+
+A description says the same thing with `x-hardened-content-negotiation` at its root.
+
 ## Strings, bytes and streams
 
 A handler returning `string`, `byte[]` or `Stream` is written straight to the body rather than

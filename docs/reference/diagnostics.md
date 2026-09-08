@@ -23,6 +23,7 @@ carries the long-form entry for each, with the message text and the fix.
 | `HRDR` | Routing |
 | `HRDV` | Validation |
 | `HRDW` | Web handlers |
+| `HRDF` | Triggers and their adapters |
 | `HRDRM` | Response models |
 | `HRDT` | `[Throws<T>]` |
 | `HRDSC` | Authentication schemes |
@@ -47,6 +48,7 @@ front end only leaves a gap in the other.
 | `HOAG020` | error | An operation declares a markup content type and names no view to render it |
 | `HOAG030` | warning | A described service has no `[Handler]`. Its routes exist and fail at request time. `NoWarn` it in a project that ships contracts without implementations |
 | `HOAG031` | warning | A `[Handler]` class names no described service in its base list. Usually a spelling mismatch. A base class beside the interface is fine |
+| `HOAG032` | warning | A described handler carries a declaration read from a handler's own syntax, such as `[RawResponse]`. A described operation's signature is generated, so it compiles, reads as a commitment, and changes nothing. The contract says the same thing with the response's media type |
 
 ## Routing
 
@@ -177,18 +179,19 @@ at one status are two types either way. A model that used to be rejected now bui
 | `HTPL002` | error | The Kiota tool could not be restored, so the [client](/guide/clients) cannot be generated |
 | `HTPL003` | error | The Kiota tool and `Microsoft.Kiota.Bundle` disagree. Both versions move together |
 
-## AWS
+## Triggers
 
 | Id | | Meaning |
 |---|---|---|
-| `HRDAWS001` | error | `[LambdaWebApplication(Version = ProxyIntegrationType.ApiGateway)]` selects REST API payload format 1.0, which is not implemented |
+| `HRDF001` | error | Handlers use a [trigger](/guide/triggers) and no referenced runtime declares a module for it. Names the build property to set. The two ways to reach this are a missing runtime package and a provider that has no source of that kind |
+| `HRDF002` | warning | Two sources produce the same [test façade](/guide/triggers#testing) method name, so only one can be reached. Rename one, or suppress to keep the collision |
+| `HRDF003` | info | An adapter is bound to serve a trigger nothing in the project declares, so it ships in the deployment bundle unreachable. Usually the [`Hardened.Aws.Lambda` meta package](/reference/packages#the-host) where individual adapters would do |
 
 ## Renumbered in 0.18
 
 Codes moved so every number has one meaning per prefix, and so findings from a Smithy model stopped
 being reported as `HOAT`. If a `NoWarn` names an old code, update it:
 
-`HOAT003`→`HOAT020`, `HOAT005`→`HOAT021`, `HOAT010`→`HOAT022`, `HOAT011`→`HOAT023`,
-`HOAT013`→`HOAT024`, `HSPEC010`→`025` under the front end's prefix, `010`→`016` and `011`→`017`
+`HOAT003`→`HOAT020`, `HOAT005`→`HOAT021`, `HOAT010`→`HOAT022`, `HOAT013`→`HOAT024`, `HSPEC010`→`025` under the front end's prefix, `010`→`016` and `011`→`017`
 under both prefixes, the silent-success `HSMT012`→`HSMT014`, and the multiple-`PublishUrl`
 `HSMT012`→`HSMT015`.

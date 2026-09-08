@@ -38,6 +38,7 @@
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj"/>
+        <ProjectReference Include="..\..\Functions\Hardened.CloudEvents\Hardened.CloudEvents.csproj"/>
         <ProjectReference Include="..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
         <ProjectReference Include="..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.DynamoDbClient\Hardened.Aws.DynamoDbClient.csproj"/>

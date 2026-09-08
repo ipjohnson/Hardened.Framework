@@ -318,7 +318,7 @@ from the scheme:
 | no `security` at all | the document-level default, or nothing |
 
 Only `oauth2` and `openIdConnect` carry scopes. Scopes on an `http` scheme are not read, and
-`HOAT006` names them. Which issuer, token shape or key a caller proves themselves against stays
+nothing reports that they were dropped. Which issuer, token shape or key a caller proves themselves against stays
 application configuration: the scheme is declared in the document, and the runtime checks that a
 caller was established. To require grants the contract does not name, put
 [`[AuthorizeGrants]`](/guide/authorization) on the implementation. A contract can narrow what is

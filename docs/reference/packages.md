@@ -1,7 +1,7 @@
 # Packages
 
-Every published package. All of them are on **nuget.org**, with no private feed and no token. The
-framework packages ship together on one version; the AWS ones are a separate line that has stopped. [Project templates](/guide/project-templates) reference
+Every published package. All of them are on **nuget.org**, with no private feed and no token, and
+all of them ship together on one version. [Project templates](/guide/project-templates) reference
 the right ones for you; this page is for assembling a project by hand.
 
 Source generator packages are referenced as analysers:
@@ -82,10 +82,10 @@ RazorBlade.
 | `Hardened.Commands` | `[Command]`, `[Option]`, `ICommandHandler<T>`, the parser and help printer |
 | `Hardened.Console.SourceGenerator` | Console entry points and command definitions |
 
-::: warning Not on the current release line
-Both are last published at `0.4.0-rc1000` and are not part of the current release. They will not
-have the fixes the packages above carry, and mixing release lines within one application is not a
-supported combination.
+::: warning Retired
+Both are last published at `0.4.0-rc1000`, their source is no longer in the repository, and
+nothing will be released on that line again. They will not have the fixes the packages above
+carry, and mixing release lines within one application is not a supported combination.
 :::
 
 ### Source generators
@@ -105,53 +105,76 @@ and answers 404 to everything.
 | `Hardened.Idl.SourceGenerator` | Back end for both front ends: models, service interfaces, handlers, routes and validation |
 | `Hardened.SourceGenerator` | The shared generator library the others build on. Not referenced directly |
 
+## Functions
+
+Provider-neutral. The trigger attributes name a source and no cloud, so these packages are the same
+whichever runtime serves them; see [Triggers](/guide/triggers).
+
+| Package | Contents |
+|---|---|
+| `Hardened.Functions.Runtime` | `[Queue]`, `[Topic]`, `[Timer]`, `[Event]`, `[Change]`, `[Stream]`, `[Blob]`, and `BatchFailureMode` |
+| `Hardened.Functions.Testing` | `[assembly: FunctionTesting]`: the generated trigger façades a test sends through |
+
 ## AWS
 
-The DynamoDB client is on the version line above, in this repository.
+On the framework's version line, and released with it. One host package, and one adapter per source
+— an adapter is a package rather than a flag so a function carries only the event models it can
+reach.
+
+### The host
 
 | Package | Contents |
 |---|---|
-| `Hardened.Aws.DynamoDbClient` | `IDynamoDbClientProvider`, `DynamoDbOptions`, `[DynamoDbModule]` |
-| `Hardened.Aws.DynamoDbClient.Testing` | `[LocalDynamoDb]` and `LocalDynamoDb`: DynamoDB Local in a container |
+| `Hardened.Aws.Lambda.Runtime` | `HardenedLambdaBootstrap`, the invocation loop, the deadline, structured CloudWatch logging and embedded metrics, and `LambdaEmulator` for running locally |
+| `Hardened.Aws.Lambda` | The host and every adapter in one reference. Convenience rather than the recommended reference: it puts every `Amazon.Lambda` event assembly in the bundle whatever the function is triggered by, which is the state the package split exists to end. `HRDF003` reports each adapter the project does not use |
 
-Everything below is the AWS line as it was last released, `0.22.0-rc1000` on nuget.org, from
-[Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz). It is not on the version line above and
-does not move: it is being replaced by new `Hardened.Aws` packages rather than renamed.
+### Adapters
 
-### Lambda runtimes
+| Package | Serves | Module |
+|---|---|---|
+| `Hardened.Aws.Lambda.ApiGateway` | `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]` | `[ApiGatewayModule]` |
+| `Hardened.Aws.Lambda.Invoke` | `[HardenedFunction]` | `[InvokeModule]` |
+| `Hardened.Aws.Lambda.Sqs` | `[Queue]` | `[SqsModule]` |
+| `Hardened.Aws.Lambda.Sns` | `[Topic]` | `[SnsModule]` |
+| `Hardened.Aws.Lambda.EventBridge` | `[Timer]` and `[Event]` | `[EventBridgeModule]` |
+| `Hardened.Aws.Lambda.DynamoDb` | `[Change]`, with `[NewImage]` and `[OldImage]` | `[DynamoDbModule]` |
+| `Hardened.Aws.Lambda.Kinesis` | `[Stream]` | `[KinesisModule]` |
+| `Hardened.Aws.Lambda.S3` | `[Blob]` | `[S3Module]` |
 
-| Package | Contents |
-|---|---|
-| `Hardened.Amz.Shared.Lambda.Runtime` | Bootstrap, structured logging, embedded CloudWatch metrics, stage and region types |
-| `Hardened.Amz.Function.Lambda.Runtime` | `[LambdaFunctionModule]`, function invocation and the batch execution filter base |
-| `Hardened.Amz.Web.Lambda.Runtime` | `[LambdaWebModule]`, API Gateway proxy events onto the pipeline |
-| `Hardened.Amz.Function.DDB.Runtime` | DynamoDB Streams, with `[NewImage]` and `[OldImage]` |
-| `Hardened.Amz.Function.Sqs.Runtime` | SQS batches, with partial batch responses |
+An application does not normally write a module out. The trigger on a handler binds it, through a
+build property the adapter package declares. `[ApiGatewayModule]` is the exception, because a web
+host's routes are in a library the generator cannot see; and any adapter is written out to set
+`ReportBatchItemFailures`, which is a fact about the deployment rather than the code.
 
-Whether a response streams is `HARDENED_LAMBDA_RESPONSE_MODE`, a deployment setting rather than a
-package choice; see [Response mode](/aws/lambda-web#response-mode).
+### Clients
 
-### Lambda testing
-
-| Package | Contents |
-|---|---|
-| `Hardened.Amz.Shared.Lambda.Testing` | `TestLambdaContext` and shared harness pieces |
-| `Hardened.Amz.Function.Lambda.Testing` | `[LambdaFunctionTesting]`, `LambdaTestApp` |
-| `Hardened.Amz.Function.DDB.Testing` | `TestDynamoDbStream` |
-| `Hardened.Amz.Function.Sqs.Testing` | `TestSqsApp` |
-
-### Clients and infrastructure
+Not a host and not an adapter, so it stands apart from the Lambda packages: an application uses
+these on Lambda, on Kestrel or in a console the same way.
 
 | Package | Contents |
 |---|---|
-| `Hardened.Amz.Cdk` | CDK constructs, stage and region types, the deploy command |
+| `Hardened.Aws.DynamoDbClient` | `IDynamoDbClientProvider`, `DynamoDbOptions`, `[DynamoDbModule]`. See [DynamoDB client](/aws/dynamodb) |
+| `Hardened.Aws.DynamoDbClient.Testing` | `[LocalDynamoDb]` and `LocalDynamoDb`: DynamoDB Local in a Testcontainers container |
 
-### Source generators
+Note that `Hardened.Aws.Lambda.DynamoDb` is a different thing — the Streams adapter that serves
+`[Change]`, not a client.
 
-| Package | Emits |
+### Testing
+
+| Package | Contents |
 |---|---|
-| `Hardened.Amz.Function.Lambda.SourceGenerator` | Lambda bootstrap and handler wiring |
-| `Hardened.Amz.Web.Lambda.SourceGenerator` | API Gateway entry points and routing |
+| `Hardened.Aws.Lambda.Testing` | `[assembly: LambdaTesting]`, which delivers through the real AWS envelope rather than straight into the pipeline, and `[LambdaWebTesting]`, API Gateway as a test host |
+
+::: info The Hardened.Amz line
+The AWS packages were `Hardened.Amz.*` until `0.22.0-rc1000`, in a repository of their own. That
+line has stopped, is not moving, and is not being renamed — the packages above replace it, with
+different module attributes and a different test harness. They stay on nuget.org, restorable, and
+mixing the two lines within one application is not a supported combination.
+
+The DynamoDB client and its test container are the exception: they were the only part of that line
+that was not a host, so they came across as `Hardened.Aws.DynamoDbClient` and
+`Hardened.Aws.DynamoDbClient.Testing` rather than being rebuilt.
+:::
 
 ## Versioning
 
@@ -159,8 +182,8 @@ Everything releases on one version line, from a `v*` tag:
 
 | | Released | Continuous feed |
 |---|---|---|
-| Every framework package | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
-| `Hardened.Amz.*` | `0.22.0-rc1000`, its last | none |
+| Every package on this page | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
+| `Hardened.Amz.*`, retired | `0.22.0-rc1000`, its last | none |
 
 The current line is **`0.30.0-rc1000`**. Releases go to nuget.org; the continuous feed is
 [GitHub Packages](https://nuget.pkg.github.com/ipjohnson/index.json). Under one line, `preview`
@@ -173,5 +196,5 @@ Avoid a floating pin. A float that stops matching anything new does not fail. It
 whatever it last found, with a green build throughout.
 
 The Lambda templates used to float their `Hardened.Amz` pin, because two repositories released in
-sequence and for a window an exact pin named a version that did not exist yet. That line has
-stopped, so they pin the release it stopped at.
+sequence and for a window an exact pin named a version that did not exist yet. There is one
+repository and one line now, so every template pins `$(HardenedVersion)` like everything else.
