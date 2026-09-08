@@ -65,8 +65,8 @@ internal static class DefaultErrorBodyEmitter {
                 Indented = false
             };
             field.Comment = DocComment.Format(
-                $"The body a null return writes for {pair.StatusCode}. Holds the status and its " +
-                "reason phrase; nothing about the request that produced it.");
+                $"The body a null return or a refusal writes for {pair.StatusCode}. Holds the " +
+                "status and its reason phrase; nothing about the request that produced it.");
         }
     }
 
@@ -75,9 +75,9 @@ internal static class DefaultErrorBodyEmitter {
 
         holder.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         holder.Comment = DocComment.Format(
-            "Bodies a handler's null return writes, one per declared status. Allocated once for " +
-            "the life of the process, and serialized through the generated resolver like any " +
-            "other response.");
+            "Bodies a handler's null return and the pipeline's own refusals write, one per " +
+            "declared status. Allocated once for the life of the process, and serialized through " +
+            "the generated resolver like any other response.");
 
         return holder;
     }

@@ -205,6 +205,8 @@ public class ModelComparisonTests {
             ReturnType = Type("String"),
             DefaultStatusCode = 201,
             NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem",
+            DeclaredErrorBodiesExpression =
+                "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }",
             ProducedContentTypes = "text/plain,text/csv",
             UnionCases = "global::App.Todo|201|01;global::App.NotFound|404|01",
             ThrowsDiagnostic = "OutOfStock",
@@ -216,7 +218,9 @@ public class ModelComparisonTests {
         // whether to rerun. A field left out of it is a change the generator does not notice.
         Assert.Equal(
             "True:System.Fortunes:text/csv:sse:System.String:201:" +
-            "Models.DefaultErrorBodies.NotFoundProblem:text/plain,text/csv:" +
+            "Models.DefaultErrorBodies.NotFoundProblem:" +
+            "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }:" +
+            "text/plain,text/csv:" +
             "global::App.Todo|201|01;global::App.NotFound|404|01::OutOfStock:422:sse",
             model.ToString());
     }
@@ -294,6 +298,26 @@ public class ModelComparisonTests {
             baseline.ToString(),
             (baseline with { NullResponseBodyExpression = "Models.DefaultErrorBodies.NotFoundProblem" })
             .ToString());
+    }
+
+    /// <summary>
+    /// And two differing only in the bodies their declared statuses answer with.
+    /// </summary>
+    /// <remarks>
+    /// The failure this prevents: an operation edited to declare a body for its 401 keeping its
+    /// cached handler, so the refusal keeps answering the generic model the document does not
+    /// describe - which is exactly the defect the declared bodies exist to close.
+    /// </remarks>
+    [Fact]
+    public void TwoResponsesDifferingOnlyInDeclaredErrorBodiesAreDifferent() {
+        var baseline = new ResponseInformationModel { IsAsync = true, ReturnType = Type("String") };
+
+        Assert.NotEqual(
+            baseline.ToString(),
+            (baseline with {
+                DeclaredErrorBodiesExpression =
+                    "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }"
+            }).ToString());
     }
 
     /// <summary>

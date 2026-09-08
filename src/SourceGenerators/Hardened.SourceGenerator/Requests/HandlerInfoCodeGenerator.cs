@@ -94,6 +94,15 @@ public static class HandlerInfoCodeGenerator {
                 $", nullResponseBody: {handlerModel.ResponseInformation.NullResponseBodyExpression}";
         }
 
+        // The bodies the contract declares per status, for the refusals the pipeline raises itself.
+        // A framework exception carries no body, so without this a document promising a Problem for
+        // its 401 answered a shape the document never described.
+        if (!string.IsNullOrEmpty(handlerModel.ResponseInformation.DeclaredErrorBodiesExpression)) {
+            declaredArgs +=
+                ", declaredErrorBodies: " +
+                handlerModel.ResponseInformation.DeclaredErrorBodiesExpression;
+        }
+
         // The media types this operation produces, as the array negotiation reads. Emitted only when
         // the operation declared some - an empty array and no array mean different things, and the
         // second is what leaves an unannotated handler negotiating exactly as it did.

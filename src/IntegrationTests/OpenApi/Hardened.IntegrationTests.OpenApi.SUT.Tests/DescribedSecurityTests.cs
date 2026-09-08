@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Hardened.Requests.Testing;
 using Hardened.Web.Runtime.Responses;
 
@@ -46,6 +47,61 @@ public class DescribedSecurityTests {
         var response = await testWebApp.Get("/secured/either");
 
         Assert.Equal(401, response.StatusCode);
+    }
+
+    /// <summary>
+    /// The refusal answers the body the operation declared for that status.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>securedEither</c> declares its 401 as a <c>Problem</c>. The refusal comes from
+    /// <c>AuthorizationFilter</c> rather than from the handler, so the exception carries no body it
+    /// could have written - and the converter answered its generic <c>ErrorModel</c>:
+    /// <c>{"type":"AuthorizationException",…}</c>, an undescribed shape at a described status. A
+    /// client generated from the same document has a typed branch for <c>Problem</c> and none for
+    /// that, so it fails to read its own service's refusal.
+    /// </para>
+    /// <para>
+    /// The instance is the one the build generated from the schema, holding the status and its
+    /// reason phrase and nothing about the request - the same instances a null return writes.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task ADeclaredRefusalAnswersTheDeclaredBody(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/secured/either");
+
+        Assert.Equal(401, response.StatusCode);
+
+        response.Body.Position = 0;
+
+        using var document = await JsonDocument.ParseAsync(response.Body);
+
+        Assert.Equal(401, document.RootElement.GetProperty("status").GetInt32());
+        Assert.Equal("Unauthorized", document.RootElement.GetProperty("title").GetString());
+
+        // The generic body's members, which the document never described for this status.
+        Assert.False(document.RootElement.TryGetProperty("message", out _));
+    }
+
+    /// <summary>
+    /// And an operation that declares no body for its 401 keeps the generic one.
+    /// </summary>
+    /// <remarks>
+    /// The control on the rule above. <c>securedScoped</c> declares no 401 of its own, so the
+    /// document publishes the framework's <c>ErrorModel</c> for it and the refusal has to keep
+    /// sending that.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ARefusalWithNoDeclaredBodyKeepsTheGenericOne(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/secured/scoped");
+
+        Assert.Equal(401, response.StatusCode);
+
+        response.Body.Position = 0;
+
+        using var document = await JsonDocument.ParseAsync(response.Body);
+
+        Assert.Equal("AuthorizationException", document.RootElement.GetProperty("type").GetString());
     }
 
     /// <summary>

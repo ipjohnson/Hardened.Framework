@@ -1,3 +1,4 @@
+using System.Globalization;
 using CSharpAuthor;
 using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
@@ -430,7 +431,9 @@ internal static class SpecHandlerModelBuilder {
                 ProducedContentTypes = operation.ProducedContentTypes.Count > 0
                     ? string.Join(",", operation.ProducedContentTypes)
                     : null,
-                ValidationErrorStatus = DeclaredValidationStatus(operation)
+                ValidationErrorStatus = DeclaredValidationStatus(operation),
+                DeclaredErrorBodiesExpression =
+                    DeclaredErrorBodies(operation, schemas, modelsNamespace, specFileName)
             };
         }
 
@@ -450,7 +453,14 @@ internal static class SpecHandlerModelBuilder {
                     ? string.Join(",", operation.ProducedContentTypes)
                     : null,
                 ValidationErrorStatus = DeclaredValidationStatus(operation),
-                UnionCases = unionCases
+                UnionCases = unionCases,
+
+                // On this path too, and on the stream above. A declared error is a returned case
+                // here rather than a throw, but the refusals the pipeline raises are neither - an
+                // unauthenticated caller is refused before the handler runs whatever shape its
+                // success takes, so what that refusal writes cannot depend on the response model.
+                DeclaredErrorBodiesExpression =
+                    DeclaredErrorBodies(operation, schemas, modelsNamespace, specFileName)
             };
         }
 
@@ -514,6 +524,9 @@ internal static class SpecHandlerModelBuilder {
             NullResponseBodyExpression =
                 NullResponseBody(operation, schemas, modelsNamespace, specFileName),
 
+            DeclaredErrorBodiesExpression =
+                DeclaredErrorBodies(operation, schemas, modelsNamespace, specFileName),
+
             // The set the response is negotiated against. Empty means the description said nothing,
             // which leaves negotiation exactly as it was rather than declaring an empty set.
             ProducedContentTypes = operation.ProducedContentTypes.Count > 0
@@ -563,9 +576,49 @@ internal static class SpecHandlerModelBuilder {
             return null;
         }
 
-        return $"global::{modelsNamespace}.{DefaultErrorBody.HolderTypeName(specFileName)}." +
-               DefaultErrorBody.FieldName(schemaName, DefaultErrorBody.NullResponseStatus);
+        return Field(modelsNamespace, specFileName, schemaName, DefaultErrorBody.NullResponseStatus);
     }
+
+    /// <summary>
+    /// The bodies this operation's declared statuses answer with, as the dictionary literal the
+    /// handler info takes - or null where the description declares none that can be filled.
+    /// </summary>
+    /// <remarks>
+    /// The same generated fields <see cref="NullResponseBody"/> names, and the same shared decision
+    /// behind them: a status whose schema has a required member nothing can fill gets no instance,
+    /// so it is left out here and the refusal answers the generic model exactly as it did.
+    /// </remarks>
+    private static string? DeclaredErrorBodies(
+        OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace,
+        string specFileName) {
+        var entries = new List<string>();
+
+        foreach (var declared in DefaultErrorBody.DeclaredBodies(operation)) {
+            if (DefaultErrorBody.Arguments(schemas, declared.SchemaName, declared.StatusCode) == null) {
+                continue;
+            }
+
+            entries.Add(
+                "{ " + declared.StatusCode.ToString(CultureInfo.InvariantCulture) + ", " +
+                Field(modelsNamespace, specFileName, declared.SchemaName, declared.StatusCode) +
+                " }");
+        }
+
+        if (entries.Count == 0) {
+            return null;
+        }
+
+        entries.Sort(System.StringComparer.Ordinal);
+
+        return "new global::System.Collections.Generic.Dictionary<int, object> { " +
+               string.Join(", ", entries) + " }";
+    }
+
+    /// <summary>The generated field holding one (schema, status) body, qualified.</summary>
+    private static string Field(
+        string modelsNamespace, string specFileName, string schemaName, int statusCode) =>
+        $"global::{modelsNamespace}.{DefaultErrorBody.HolderTypeName(specFileName)}." +
+        DefaultErrorBody.FieldName(schemaName, statusCode);
 
 
 

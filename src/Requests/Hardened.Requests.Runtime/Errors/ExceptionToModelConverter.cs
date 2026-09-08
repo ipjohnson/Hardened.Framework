@@ -52,6 +52,17 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
 
             var declaredValue = exp is StatusCodeException { Value: { } value } ? value : null;
 
+            // The body the operation declared for that status, where the exception carried none.
+            //
+            // A refusal the pipeline raises rather than the handler has no body it could carry:
+            // AuthorizationException is a StatusCodeException built with value: null, so a
+            // contract-first application whose document declares a Problem for its 401 answered
+            // {"type":"AuthorizationException",...} instead - an undescribed shape at a described
+            // status, and a generated client has a typed branch for the declared body and none for
+            // that one. The same place the declared validation status is read from, and for the
+            // same reason: only the handler knows what its own contract promised.
+            declaredValue ??= Declared(context, statusCodeException.StatusCode);
+
             return (
                 statusCodeException.StatusCode,
                 declaredValue ?? new ErrorModel {
@@ -144,6 +155,21 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         // and path at Error, which is where it belongs.
         return (500, ServerError);
     }
+
+    /// <summary>
+    /// The body the handler's contract declares for <paramref name="statusCode"/>, or null.
+    /// </summary>
+    /// <remarks>
+    /// One instance per (schema, status) for the life of the process, holding the status and its
+    /// reason phrase and nothing about the request - which is what makes sharing it safe, and what
+    /// keeps a refusal from revealing why it refused. A handler with more to say throws the
+    /// generated exception type, which carries a body it wrote.
+    /// </remarks>
+    private static object? Declared(IExecutionContext context, int statusCode) =>
+        context.HandlerInfo is { } handlerInfo &&
+        handlerInfo.DeclaredErrorBodies.TryGetValue(statusCode, out var body)
+            ? body
+            : null;
 
     /// <summary>
     /// The whole of what a caller learns from an unhandled exception.

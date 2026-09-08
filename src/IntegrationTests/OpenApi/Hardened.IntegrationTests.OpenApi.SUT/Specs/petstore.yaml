@@ -166,6 +166,19 @@ paths:
             application/json:
               schema:
                 type: string
+        # The one operation here that declares the body of its own refusal, where securedScoped
+        # above lets the framework synthesize one. Nothing in this application throws it: the
+        # authorization filter refuses before the handler runs, with an AuthorizationException that
+        # carries no body of its own - so this declaration is the only thing that can say what shape
+        # a 401 answers with, and the pipeline has to read it back. Declaring it replaces the
+        # synthesized 401 whole, which is why this one carries no WWW-Authenticate: the challenge is
+        # still sent, and securedScoped is where the document declares it.
+        '401':
+          description: Authentication required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
   /orders:
     post:
       tags:

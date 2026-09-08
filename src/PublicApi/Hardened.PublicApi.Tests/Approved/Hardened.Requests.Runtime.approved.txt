@@ -305,8 +305,9 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public class ExecutionRequestHandlerInfo : Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo
     {
-        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null, string? bodyParameterName = null, int? validationErrorStatus = default, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout = null, bool streamsResponse = false) { }
+        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null, string? bodyParameterName = null, int? validationErrorStatus = default, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout = null, bool streamsResponse = false, System.Collections.Generic.IReadOnlyDictionary<int, object>? declaredErrorBodies = null) { }
         public string? BodyParameterName { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
         public System.Type HandlerType { get; }
         public string InvokeMethod { get; }
         public System.Collections.Generic.IReadOnlyList<object> Metadata { get; }

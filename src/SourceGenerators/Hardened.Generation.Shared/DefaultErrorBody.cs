@@ -97,6 +97,49 @@ internal static class DefaultErrorBody {
     public const int NullResponseStatus = 404;
 
     /// <summary>
+    /// The schema this operation declares a body of for each status it names, in status order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A superset of <see cref="SchemaFor"/>, and for a different consumer. That one answers what a
+    /// null return writes; this one answers what a refusal writes when the exception carries no body
+    /// of its own - which is every refusal the pipeline raises rather than the handler, because a
+    /// framework exception has no way to know the shape a document declared.
+    /// </para>
+    /// <para>
+    /// The failure it closes: a description's <c>security</c> block compiles to
+    /// <c>Requirement.Authenticated()</c>, the filter refuses with an
+    /// <c>AuthorizationException</c> constructed with no value, and the converter fell through to
+    /// its generic <c>ErrorModel</c>. So a contract-first application answered an undescribed shape
+    /// at a described status, and a client generated from the same document had a typed branch for
+    /// the declared body and none for that one.
+    /// </para>
+    /// <para>
+    /// Every declared error rather than the refusals alone, because which statuses the pipeline
+    /// raises is not this assembly's to know: rate limiting answers 429, the negotiator 406, the
+    /// deadline 504. One collection, filled from the description, and the converter takes the entry
+    /// for whatever status was reached.
+    /// </para>
+    /// <para>
+    /// One schema per status, the first the description names. <c>components/responses</c> lets an
+    /// author bind two differently-bodied responses to one status on one operation, and a status
+    /// answers with one body.
+    /// </para>
+    /// </remarks>
+    public static IEnumerable<(string SchemaName, int StatusCode)> DeclaredBodies(
+        OperationModel operation) {
+        var seen = new HashSet<int>();
+
+        foreach (var error in operation.ErrorResponses) {
+            if (error.Ref == null || !seen.Add(error.StatusCode)) {
+                continue;
+            }
+
+            yield return (TypeMapper.GetRefName(error.Ref), error.StatusCode);
+        }
+    }
+
+    /// <summary>
     /// Every constructor argument for the instance, in declaration order, or null when a required
     /// member cannot be filled without inventing a value.
     /// </summary>

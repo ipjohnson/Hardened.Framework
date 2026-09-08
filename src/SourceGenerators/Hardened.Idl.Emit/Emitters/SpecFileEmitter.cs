@@ -139,11 +139,11 @@ internal static class SpecFileEmitter {
                 Coverage.Apply(definition, excludeFromCoverage);
             }
 
-            // The body a null return writes, one instance per (schema, status) an operation could
-            // answer with. Beside the exceptions for the same reason: it is a payload, not part of
-            // the contract the implementation implements.
+            // The body a null return writes and the body a refusal writes, one instance per
+            // (schema, status) the document declares. Beside the exceptions for the same reason: it
+            // is a payload, not part of the contract the implementation implements.
             DefaultErrorBodyEmitter.Emit(
-                models, model.Schemas, NullResponseBodies(model), modelsNamespace, model.FileName);
+                models, model.Schemas, GeneratedErrorBodies(model), modelsNamespace, model.FileName);
 
             // The cases a bare shipped record converts into, one method per record and body the
             // file's response sets need. Beside the null-return bodies, which fill the same members
@@ -288,22 +288,14 @@ internal static class SpecFileEmitter {
         return new List<ProblemConversion.Plan>(plans.Values);
     }
 
-    private static IReadOnlyCollection<(string SchemaName, int StatusCode)> NullResponseBodies(
+    private static IReadOnlyCollection<(string SchemaName, int StatusCode)> GeneratedErrorBodies(
         ServiceSpecModel model) {
         var wanted = new HashSet<(string, int)>();
 
         foreach (var service in model.Services) {
             foreach (var operation in service.Operations) {
-                if (operation.HttpMethod != "GET" && operation.HttpMethod != "PUT") {
-                    continue;
-                }
-
-                foreach (var error in operation.ErrorResponses) {
-                    if (error.StatusCode != 404 || error.Ref == null) {
-                        continue;
-                    }
-
-                    wanted.Add((TypeMapper.GetRefName(error.Ref), error.StatusCode));
+                foreach (var declared in DefaultErrorBody.DeclaredBodies(operation)) {
+                    wanted.Add(declared);
                 }
             }
         }

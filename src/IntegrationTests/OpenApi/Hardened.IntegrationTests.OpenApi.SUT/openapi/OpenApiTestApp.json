@@ -734,18 +734,10 @@
           },
           "401": {
             "description": "Authentication required.",
-            "headers": {
-              "WWW-Authenticate": {
-                "description": "The challenge naming the scheme to authenticate with.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            },
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorModel"
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }

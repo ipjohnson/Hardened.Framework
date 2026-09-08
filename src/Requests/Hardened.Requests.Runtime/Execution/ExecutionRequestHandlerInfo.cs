@@ -19,7 +19,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         string? bodyParameterName = null,
         int? validationErrorStatus = null,
         TimeoutPolicy? timeout = null,
-        bool streamsResponse = false) {
+        bool streamsResponse = false,
+        IReadOnlyDictionary<int, object>? declaredErrorBodies = null) {
         Path = path;
         Method = method;
         HandlerType = handlerType;
@@ -34,7 +35,11 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         ValidationErrorStatus = validationErrorStatus;
         Timeout = timeout ?? IExecutionRequestHandlerInfo.TimeoutFrom(Metadata);
         StreamsResponse = streamsResponse;
+        DeclaredErrorBodies = declaredErrorBodies ?? EmptyDeclaredErrorBodies;
     }
+
+    private static readonly IReadOnlyDictionary<int, object> EmptyDeclaredErrorBodies =
+        new Dictionary<int, object>();
 
     /// <summary>
     /// A copy of <paramref name="source"/> with the named members replaced.
@@ -77,7 +82,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
             source.BodyParameterName,
             source.ValidationErrorStatus,
             timeout ?? source.Timeout,
-            source.StreamsResponse) { }
+            source.StreamsResponse,
+            source.DeclaredErrorBodies) { }
 
     public string Path { get; }
 
@@ -115,6 +121,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
 
     /// <inheritdoc />
     public bool StreamsResponse { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
 
     /// <inheritdoc />
     /// <remarks>
