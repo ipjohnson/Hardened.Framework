@@ -188,7 +188,7 @@ routes as well as services, add `[HardenedWebModule]` to the module class and re
 Every template writes a `Directory.Packages.props` with one version for every Hardened package:
 
 ```xml
-<HardenedVersion>0.22.0-rc1000</HardenedVersion>
+<HardenedVersion>0.30.0-rc1000</HardenedVersion>
 ```
 
 It is the version the template package shipped with, and `--hardened-version` overrides it.
@@ -198,7 +198,7 @@ Templates do not update themselves. A newer release is a newer template package:
 
 ```bash
 dotnet new install Hardened.Templates                     # latest
-dotnet new install Hardened.Templates@0.22.0-rc1000       # a specific one
+dotnet new install Hardened.Templates@0.30.0-rc1000       # a specific one
 ```
 
 Existing projects keep the version in their own `Directory.Packages.props` until you change it.

@@ -376,22 +376,39 @@ jobs:
       # Only versions a reader would copy - a PackageReference, HardenedVersion, a template
       # install - so prose naming an older release on purpose does not trip it. docs/design is
       # maintainer notes and is a record of when things happened, not of what to install.
+      #
+      # Hardened.Amz is the one exemption. That line stopped at 0.22.0-rc1000 and is being
+      # replaced by Hardened.Aws rather than renamed, so the AWS pages pin a release that does not
+      # move. Prose is how the other frozen references say so, and a PackageReference has no way
+      # to phrase itself as historical, so it is named here instead.
+      #
+      # Finding nothing is a failure rather than a pass. The check is one regex away from matching
+      # none of the pages, and a silent green is the state it was written to end.
       - name: Check the documented version is this one
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           set -euo pipefail
           VERSION="${{ steps.version.outputs.version }}"
+          COPYABLE='(Version="|<HardenedVersion>|Hardened\.Templates@)[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+'
 
-          FOUND=$(grep -rhoE '(Version="|<HardenedVersion>|Hardened\.Templates@)[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+' \
+          CITED=$(grep -rnE "$COPYABLE" \
                     docs --include='*.md' \
                     --exclude-dir=design \
-                  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+' | sort -u)
+                  | grep -v 'Hardened\.Amz\.' || true)
+
+          FOUND=$(echo "$CITED" | grep -oE "$COPYABLE" \
+                  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+' | sort -u || true)
+
+          if [ -z "$FOUND" ]; then
+            echo "::error::No page under docs/ tells a reader which version to install, so this check proved nothing."
+            exit 1
+          fi
 
           WRONG=$(echo "$FOUND" | grep -vxF "$VERSION" || true)
 
           if [ -n "$WRONG" ]; then
             echo "::error::Pages under docs/ tell a reader to install a version that is not $VERSION: $(echo $WRONG)."
-            grep -rnE "($(echo $WRONG | tr ' ' '|'))" docs --include='*.md' --exclude-dir=design || true
+            echo "$CITED" | grep -E "($(echo $WRONG | tr ' ' '|'))" || true
             exit 1
           fi
           echo "Every version the documentation tells a reader to install is $VERSION."

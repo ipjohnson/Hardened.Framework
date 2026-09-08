@@ -23,7 +23,7 @@ nothing. The two compose.
 A store is a package and an attribute on the module:
 
 ```xml
-<PackageReference Include="Hardened.Requests.Caching.Memory" Version="0.22.0-rc1000" />
+<PackageReference Include="Hardened.Requests.Caching.Memory" Version="0.30.0-rc1000" />
 ```
 
 ```csharp
