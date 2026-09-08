@@ -9,9 +9,10 @@
       hand-offs resolves through metadata a trimmer could remove, and the decorator that composes
       the dispatch is a static field initializer a generator emitted.
 
-      Pub/Sub rather than Firestore, and no Firestore reference at all: Google.Events.Protobuf is
-      the one dependency in the line the trimmer has not been shown to keep whole, so the package
-      that carries it stays out of this binary until it has.
+      Firestore as well as Pub/Sub, on purpose. Google.Events.Protobuf is the one Google dependency
+      in the line, and the analyzers can only say that this repository's code is trim-safe; whether
+      Google.Protobuf survives ILC is answered by decoding a document event in the native binary,
+      which the CI probe does.
     -->
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -35,14 +36,15 @@
     </ItemGroup>
 
     <!--
-      The trigger property declarations and the two bindings this service uses, imported from the
+      The trigger property declarations and the three bindings this service uses, imported from the
       source tree because a project reference carries no build assets. A consuming application
-      gets all four from buildTransitive/ inside the packages: [Queue] binds through the Pub/Sub
-      adapter's and [Get] through the host's.
+      gets all of them from buildTransitive/ inside the packages: [Queue] binds through the Pub/Sub
+      adapter's, [Change] through the Firestore adapter's and [Get] through the host's.
     -->
     <Import Project="..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
     <Import Project="..\..\..\Web\Hardened.Web.Runtime\Package\Hardened.Web.Runtime.targets"/>
     <Import Project="..\..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.PubSub\Package\Hardened.Gcp.CloudRun.PubSub.targets"/>
+    <Import Project="..\..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Firestore\Package\Hardened.Gcp.CloudRun.Firestore.targets"/>
     <Import Project="..\..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Runtime\Package\Hardened.Gcp.CloudRun.Runtime.targets"/>
 
     <ItemGroup>
@@ -58,6 +60,7 @@
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.PubSub\Hardened.Gcp.CloudRun.PubSub.csproj"/>
+        <ProjectReference Include="..\..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Firestore\Hardened.Gcp.CloudRun.Firestore.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
