@@ -23,6 +23,12 @@
     <ItemGroup>
         <ProjectReference Include="..\Hardened.IntegrationTests.Rie.SUT\Hardened.IntegrationTests.Rie.SUT.csproj"
                           ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\Hardened.IntegrationTests.RieEvents.SUT\Hardened.IntegrationTests.RieEvents.SUT.csproj"
+                          ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\Hardened.IntegrationTests.RieApiGateway.SUT\Hardened.IntegrationTests.RieApiGateway.SUT.csproj"
+                          ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\Hardened.IntegrationTests.RieInvoke.SUT\Hardened.IntegrationTests.RieInvoke.SUT.csproj"
+                          ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing.Containers\Hardened.Functions.Testing.Containers.csproj"/>
     </ItemGroup>
 

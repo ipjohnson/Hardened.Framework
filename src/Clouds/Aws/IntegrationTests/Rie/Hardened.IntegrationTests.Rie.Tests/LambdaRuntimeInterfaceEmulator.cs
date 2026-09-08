@@ -30,10 +30,17 @@ public sealed class LambdaRuntimeInterfaceEmulator : IAsyncDisposable {
 
     private readonly IContainer _container;
 
-    public LambdaRuntimeInterfaceEmulator(string outputDirectory, string handler) {
+    /// <param name="outputDirectory">The function's build output, mounted at <c>/var/task</c>.</param>
+    /// <param name="handler">The handler string a deployment would register: the assembly name.</param>
+    /// <param name="functionName">
+    /// What <c>AWS_LAMBDA_FUNCTION_NAME</c> says, which the invoke adapter routes on. The emulator's
+    /// own default is <c>test_function</c>, which no handler in this repository is named.
+    /// </param>
+    public LambdaRuntimeInterfaceEmulator(string outputDirectory, string handler, string functionName = "orders-function") {
         _container = new ContainerBuilder(Image)
             .WithBindMount(outputDirectory, "/var/task", AccessMode.ReadOnly)
             .WithCommand(handler)
+            .WithEnvironment("AWS_LAMBDA_FUNCTION_NAME", functionName)
             .WithPortBinding(Port, assignRandomHostPort: true)
             // From the host rather than inside the container: the Lambda image is minimal and an
             // in-container probe depends on tools it may not carry.
