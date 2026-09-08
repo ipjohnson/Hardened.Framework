@@ -8,14 +8,15 @@ using Hardened.Aws.DynamoDbClient;
 using Hardened.Shared.Runtime.Attributes;
 
 [HardenedModule]
-[DynamoDbModule]
+[DynamoDbClientModule]
 public partial class Application { }
 ```
 
-::: warning Two attributes share this name
-`Hardened.Aws.Lambda.DynamoDb` also declares a `[DynamoDbModule]` — the Streams adapter that serves
-[`[Change]`](/guide/triggers), which is a different thing from a client. A project that both reads
-a table and handles its stream references both packages and has to qualify the one it means.
+::: tip DynamoDB is two things here
+This module supplies clients that read and write a table.
+[`[DynamoDbStreamsModule]`](/aws/ddb-streams) serves that table's change feed. An application doing
+both names both, and they no longer collide — until 0.31.0 each was called `[DynamoDbModule]` and
+one of them had to be qualified.
 :::
 
 ```csharp

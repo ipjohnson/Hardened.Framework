@@ -1,18 +1,11 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.DynamoDbClient.Tests")]
 namespace Hardened.Aws.DynamoDbClient
 {
-    [DependencyModules.Runtime.Attributes.SingletonService(As=typeof(Hardened.Aws.DynamoDbClient.IDynamoDbClientProvider))]
-    public sealed class DynamoDbClientProvider : Hardened.Aws.DynamoDbClient.IDynamoDbClientProvider, System.IDisposable
-    {
-        public DynamoDbClientProvider(Microsoft.Extensions.Options.IOptions<Hardened.Aws.DynamoDbClient.IDynamoDbOptions> options, System.IServiceProvider serviceProvider) { }
-        public void Dispose() { }
-        public Amazon.DynamoDBv2.IAmazonDynamoDB GetClient(string clientName = "") { }
-    }
     [Hardened.Shared.Runtime.Attributes.HardenedModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class DynamoDbModule : DependencyModules.Runtime.Interfaces.IDependencyModule
+    public class DynamoDbClientModule : DependencyModules.Runtime.Interfaces.IDependencyModule
     {
-        public DynamoDbModule() { }
+        public DynamoDbClientModule() { }
         public Microsoft.Extensions.DependencyInjection.ServiceProvider CreateServiceProvider(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? overrideDependencies, System.Action<Microsoft.Extensions.Logging.ILoggingBuilder>? loggingBuilderAction, System.Action<Hardened.Shared.Runtime.Application.IHardenedEnvironment, Microsoft.Extensions.DependencyInjection.IServiceCollection>? initDependencies = null) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
@@ -25,10 +18,17 @@ namespace Hardened.Aws.DynamoDbClient
         }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
-    public class DynamoDbModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    public class DynamoDbClientModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
-        public DynamoDbModuleAttribute() { }
+        public DynamoDbClientModuleAttribute() { }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService(As=typeof(Hardened.Aws.DynamoDbClient.IDynamoDbClientProvider))]
+    public sealed class DynamoDbClientProvider : Hardened.Aws.DynamoDbClient.IDynamoDbClientProvider, System.IDisposable
+    {
+        public DynamoDbClientProvider(Microsoft.Extensions.Options.IOptions<Hardened.Aws.DynamoDbClient.IDynamoDbOptions> options, System.IServiceProvider serviceProvider) { }
+        public void Dispose() { }
+        public Amazon.DynamoDBv2.IAmazonDynamoDB GetClient(string clientName = "") { }
     }
     [Hardened.Shared.Runtime.Attributes.ConfigurationModel]
     public class DynamoDbOptions : Hardened.Aws.DynamoDbClient.IDynamoDbOptions

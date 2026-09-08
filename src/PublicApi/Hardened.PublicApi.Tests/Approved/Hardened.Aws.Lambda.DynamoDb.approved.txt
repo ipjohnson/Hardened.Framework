@@ -22,25 +22,6 @@ namespace Hardened.Aws.Lambda.DynamoDb
     {
         public static readonly System.Text.Json.Serialization.Metadata.JsonTypeInfo<Amazon.Lambda.DynamoDBEvents.DynamoDBEvent> Event;
     }
-    [DependencyModules.Runtime.Attributes.DependencyModule]
-    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
-    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class DynamoDbModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
-    {
-        public DynamoDbModule() { }
-        public bool? ReportBatchItemFailures { get; set; }
-        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
-    public class DynamoDbModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
-    {
-        public DynamoDbModuleAttribute() { }
-        public bool ReportBatchItemFailures { get; set; }
-        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
-    }
     public class DynamoDbRequest : Hardened.Aws.Lambda.Runtime.Execution.LambdaPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
     {
         public const string ChangeScheme = "CHANGE";
@@ -85,6 +66,25 @@ namespace Hardened.Aws.Lambda.DynamoDb
         public System.Text.Json.Serialization.Metadata.JsonTypeInfo<string> String { get; }
         public static Hardened.Aws.Lambda.DynamoDb.DynamoDbSerializerContext Default { get; }
         public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class DynamoDbStreamsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public DynamoDbStreamsModule() { }
+        public bool? ReportBatchItemFailures { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class DynamoDbStreamsModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public DynamoDbStreamsModuleAttribute() { }
+        public bool ReportBatchItemFailures { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     [System.AttributeUsage(System.AttributeTargets.Parameter)]
     public class NewImageAttribute : System.Attribute, Hardened.Requests.Abstract.Attributes.ICustomBindingAttribute
