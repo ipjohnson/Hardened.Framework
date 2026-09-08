@@ -38,6 +38,10 @@
     <Project Path="src/Clouds/Aws/IntegrationTests/Events/Hardened.IntegrationTests.Events.SUT/Hardened.IntegrationTests.Events.SUT.csproj" />
     <Project Path="src/Clouds/Aws/IntegrationTests/Events/Hardened.IntegrationTests.Events.SUT.Tests/Hardened.IntegrationTests.Events.SUT.Tests.csproj" />
   </Folder>
+  <Folder Name="/Clouds/Aws/IntegrationTests/Rie/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.SUT/Hardened.IntegrationTests.Rie.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.Tests/Hardened.IntegrationTests.Rie.Tests.csproj" />
+  </Folder>
   <Folder Name="/Clouds/Aws/IntegrationTests/Sqs/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT/Hardened.IntegrationTests.Sqs.SUT.csproj" />
     <Project Path="src/Clouds/Aws/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT.Tests/Hardened.IntegrationTests.Sqs.SUT.Tests.csproj" />
@@ -45,6 +49,7 @@
   <Folder Name="/Functions/">
     <Project Path="src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj" />
     <Project Path="src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj" />
+    <Project Path="src/Functions/Hardened.Functions.Testing.Containers/Hardened.Functions.Testing.Containers.csproj" />
   </Folder>
   <Folder Name="/Clouds/Aws/">
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj" />

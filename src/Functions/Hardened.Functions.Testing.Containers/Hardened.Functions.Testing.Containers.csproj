@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>The container rung of the function test ladder: an application's build output mounted into the host image a cloud runs it in, driven by that cloud's emulator, and observed through the container's own output.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!--
+          Not packable yet. Every consumer today is a test project in this repository, and shipping
+          it means a Shipped entry, a pack list entry and an approved surface. It becomes a package
+          when a consumer outside the repository wants to run its own function in a host image.
+        -->
+        <IsPackable>false</IsPackable>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      Names no cloud and no Hardened runtime. What it knows is Docker: a network, a directory to
+      mount, a container's logs. Which image, which mount path and which envelope are the cloud's
+      test project's to say, so an image change never reaches this project.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Testcontainers" />
+    </ItemGroup>
+
+</Project>
