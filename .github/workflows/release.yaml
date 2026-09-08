@@ -243,6 +243,31 @@ jobs:
           fi
           echo "The pack list covers every packable project."
 
+          # The blind spot in the check above: it reads the XML rather than asking MSBuild, so it
+          # sees a project that says IsPackable and not one that is packable because the SDK's
+          # default says so. A library project that simply omits the property is packable, absent
+          # from the list, and invisible to every check here - the one remaining way this list can
+          # drift silently, after six times that it has.
+          #
+          # Closed by requiring the answer to be written down. A test project inherits
+          # IsPackable=false from Microsoft.NET.Test.Sdk and is exempt; everything else under src
+          # says true or false in its own file, and then the grep above is exhaustive.
+          UNDECLARED=""
+          while IFS= read -r project; do
+            grep -q "IsPackable" "$project" && continue
+            grep -q "Microsoft.NET.Test.Sdk" "$project" && continue
+            UNDECLARED="$UNDECLARED $(basename "$project" .csproj)"
+          done < <(find src -name '*.csproj' \
+                     -not -path '*/obj/*' \
+                     -not -path '*/Hardened.Templates/templates/*' \
+                     | sort)
+
+          if [ -n "$UNDECLARED" ]; then
+            echo "::error::These projects declare no <IsPackable>, so the check above cannot see whether they ship:$UNDECLARED"
+            exit 1
+          fi
+          echo "Every project under src declares whether it packs."
+
       - name: Pack
         run: |
           for project in \
