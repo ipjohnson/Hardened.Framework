@@ -24,6 +24,8 @@ public string Mixed(
 | Path token | The parameter name matches a `{token}` in the route |
 | Query string | `[FromQueryString]`, or `[FromQueryString("q")]` to name it |
 | Header | `[FromHeader("X-Tenant")]` |
+| Cookie | `[FromCookie]`, or `[FromCookie("session")]` to name it |
+| Form field | `[FromForm]`, or `[FromForm("username")]` to name it |
 | Request body | `[FromBody]`, or inferred for a complex type with no other source |
 | Container | `[FromServices]`, or inferred for a registered service type |
 | Custom | An attribute implementing `ICustomBindingAttribute` |
@@ -35,6 +37,26 @@ path, a type the container knows binds from the container, and what is left is t
 [Post("/body/{label}")]
 public string BodyWithPath(string label, MathAddModel model) => $"{label}:{model.Values.Count}";
 ```
+
+### Form fields
+
+`[FromForm]` reads a field of an `application/x-www-form-urlencoded` body:
+
+```csharp
+[Post("/sign-in")]
+public IResult SignIn([FromForm] string username, [FromForm] string password) => ...;
+```
+
+It is explicit rather than inferred. A parameter the route does not declare binds from the body,
+and switching that to a form field whenever the content type happened to be a form would make a
+handler's binding depend on what the caller sent rather than on what the handler declared.
+
+A handler cannot bind form fields and a body model at once — there is one body and the two readings
+are different. The generator reports that combination rather than leaving one of them to come back
+empty.
+
+Fields only. `multipart/form-data`, which is what a form with a file input posts, is a different
+wire format and is not read by this.
 
 ## Types
 

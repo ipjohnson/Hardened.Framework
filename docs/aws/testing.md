@@ -1,107 +1,118 @@
 # Testing AWS handlers
 
-Every AWS runtime has a test harness that invokes the real pipeline in-process. There is no
-`sam local` and no deployment in the loop. Running the application locally is a different thing,
-with the AWS Lambda Test Tool underneath; see [Running it locally](/aws/lambda-web#running-it-locally).
+Every AWS handler is tested in-process, through the real pipeline. There is no `sam local`, no
+deployment and no AWS account in the loop. Running the application locally is a different thing,
+with the AWS Lambda Test Tool underneath; see
+[Running it locally](/aws/lambda-web#running-it-locally).
 
 ```csharp
 [HardenedTest]
-public async Task ProcessesAnOrder(LambdaTestApp app) {
-    var response = await app.Invoke<OrderResponse>(
-        "process-order", new OrderRequest { Sku = "SKU-1" });
+public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog log) {
+    await queues.Orders(new Order { Id = "A-1", Quantity = 2 });
 
-    Assert.NotNull(response.OrderId);
+    Assert.Equal("A-1", Assert.Single(log.Orders).Id);
 }
 ```
 
-The shape is the same as [any Hardened test](/guide/testing): an assembly attribute installs the
-harness, another names the application, and the test method takes what it needs.
+The shape is the same as [any Hardened test](/guide/testing): assembly attributes install the
+harness and name the application, and the test method takes what it needs.
 
-## Setup
+## Fidelity is a project setting, not a test one
+
+Two attributes, and the second is optional:
 
 ```csharp
 // Bootstrap.cs
-using Hardened.Amz.Function.Lambda.Testing;
+using Hardened.Aws.Lambda.Testing;
+using Hardened.Functions.Testing;
 using Hardened.Shared.Testing.Attributes;
 
-[assembly: LambdaFunctionTesting]
+[assembly: FunctionTesting]
+[assembly: LambdaTesting]
 [assembly: HardenedTestEntryPoint(typeof(Application))]
 ```
 
-`[LambdaFunctionTesting]` registers the test app and swaps in a filter provider that runs the
-function pipeline without the Lambda bootstrap. The function, SQS and stream harnesses all sit on
-it.
+`[FunctionTesting]` makes the generated [trigger façades](/guide/triggers#testing) resolvable. The
+delivery it registers builds a request and runs the pipeline, which covers routing, binding, the
+filters and the handler — and names no cloud.
 
-## Functions
+`[LambdaTesting]` replaces that one thing. The payload is packed into the envelope AWS actually
+sends and goes in through the invocation loop, so the adapter, the payload peek, the body encoding
+that source uses and its metadata are exercised too.
 
-`LambdaTestApp.Invoke` serializes the payload, invokes by function name, and deserializes the
-response. The context is configurable, which is how a test drives timeout-sensitive behaviour:
+**No test method changes when you add or remove it.** That is the point: the same tests run at
+either level, and against another provider. Delete the line to drop back down.
 
-```csharp
-var response = await app.Invoke<OrderResponse>(
-    "process-order",
-    new OrderRequest { Sku = "SKU-1" },
-    context => context.RemainingTime = TimeSpan.FromSeconds(2));
-```
+Neither attribute cares which order it is applied in. The neutral delivery registers with `TryAdd`
+and the Lambda one replaces it, so both orders end with the envelope delivery.
 
-`InvokeRaw` takes the payload as a string, bypassing .NET serialization on the way in:
+## The façades
 
-```csharp
-[HardenedTest]
-public async Task AcceptsTheWireFormat(LambdaTestApp app) {
-    var response = await app.InvokeRaw<OrderResponse>(
-        "process-order", """{"sku":"SKU-1","quantity":2}""");
+One nested class per trigger kind on the entry point, with a method per source:
 
-    Assert.NotNull(response.OrderId);
-}
-```
+| Trigger | Façade | A method named for the |
+|---|---|---|
+| `[Queue]` | `Application.Queues` | queue |
+| `[Topic]` | `Application.Topics` | topic |
+| `[Timer]` | `Application.Timers` | schedule |
+| `[Change]` | `Application.Changes` | table |
+| `[Stream]` | `Application.Streams` | stream |
+| `[Blob]` | `Application.Blobs` | bucket |
+| `[HardenedFunction]` | `Application.Invocations` | operation |
 
-`Invoke` serializes your object with the same serializer that reads it back, so the two agree by
-construction and a gap in an AOT serializer context stays hidden. `InvokeRaw` starts from the
-bytes the caller will send. Both have `Stream`-returning overloads for a response you would
-rather inspect than deserialize.
+The method exists because the handler does, and its parameter is the type the handler binds. A
+renamed source or a changed payload is a compile error in the test rather than a test that quietly
+passes against nothing.
 
-## SQS batches
-
-```csharp
-[HardenedTest]
-public async Task ProcessesTheBatch(TestSqsApp sqs) {
-    var response = await sqs.SendMessage(
-        new OrderMessage { OrderId = "A" },
-        new OrderMessage { OrderId = "B" });
-
-    Assert.Empty(response.BatchItemFailures);
-}
-```
-
-Messages are identified by position, so the first is `"0"` and the second `"1"`, and a failure
-can be traced back to the message that caused it. See [SQS](/aws/sqs#testing).
-
-## Stream records
+`[Queue("orders-new")]` becomes `queues.OrdersNew(...)`. Passing several payloads sends a batch:
 
 ```csharp
 [HardenedTest]
-public async Task ProjectsAnInsert(TestDynamoDbStream stream) {
-    var response = await stream.ProcessUpdates(
-        new DynamoDBEvent.DynamodbStreamRecord {
-            EventName = "INSERT",
-            Dynamodb = new StreamRecord {
-                NewImage = new Dictionary<string, AttributeValue> {
-                    ["pk"] = new() { S = "ORDER#1" }
-                }
-            }
-        });
+public async Task EveryMessageInABatchIsHandled(Application.Queues queues, OrderLog log) {
+    await queues.OrdersNew(new Order { Id = "A-1" }, new Order { Id = "A-2" });
 
-    Assert.Empty(response.BatchItemFailures);
+    Assert.Equal(2, log.Orders.Count);
 }
 ```
+
+An invocation returns, so its façade method returns the handler's declared type:
+
+```csharp
+[HardenedTest]
+public async Task ProcessesAnOrder(Application.Invocations invocations) {
+    var accepted = await invocations.Process(new Order { Id = "A-1" });
+
+    Assert.Equal("A-1", accepted.Id);
+}
+```
+
+::: warning Two sources that produce the same method name
+`HRDF002` warns when two sources collide on one façade method, because only one of them can be
+reached. Rename one, or suppress the diagnostic to keep the collision.
+:::
+
+## Substituting a dependency
+
+`[Mock]` works as it does anywhere else, so a handler's collaborator is a test parameter:
+
+```csharp
+[HardenedTest]
+public async Task AnOrderIsPlaced(Application.Queues queues, [Mock] IOrderStore store) {
+    await queues.OrdersNew(new Order { Id = "a-1" });
+
+    store.Received().Place(Arg.Is<Order>(order => order.Id == "a-1"));
+}
+```
+
+The mock library is one package and one assembly attribute; see
+[Substituting services](/guide/testing-mocks).
 
 ## DynamoDB Local
 
 `[LocalDynamoDb]` points the application's `IDynamoDbClientProvider` at a real DynamoDB in a
-container, so a test hits an engine that rejects a malformed key, enforces a key schema and fails
-a conditional write exactly as the service does. Derive from it and override `DdbSetup` to create
-the tables:
+container, so a test hits an engine that rejects a malformed key, enforces a key schema and fails a
+conditional write exactly as the service does. Derive from it and override `DdbSetup` to create the
+tables:
 
 ```csharp
 using Hardened.Aws.DynamoDbClient;
@@ -163,8 +174,38 @@ Testcontainers needs a Docker daemon. On a machine without one, these tests fail
 startup rather than skipping.
 :::
 
+## Web handlers behind API Gateway
+
+A Lambda web application's routes are ordinary routes, so
+[`ITestWebApp`](/guide/testing-web) drives them with no Lambda involvement:
+
+```csharp
+[assembly: WebTesting]
+[assembly: HardenedTestEntryPoint(typeof(Application))]
+```
+
+`[LambdaWebTesting]` swaps the host underneath without touching a test:
+
+```csharp
+[assembly: LambdaWebTesting]
+[assembly: HardenedTestEntryPoint(typeof(Application))]
+```
+
+A test still writes `app.Get("/orders/o-1")` exactly as it would against Kestrel, and what runs is a
+real payload format 2.0 event through the invocation handler and back out as a proxy response — so
+the adapter, the request it builds, dispatch and the response writer are all exercised, and none of
+it is visible in the test.
+
+That is what makes the portability claim checkable rather than asserted: the same test file runs on
+the pipeline, on Kestrel and here, and only an assembly attribute differs.
+
+One behaviour does differ, because the transport does. `[LambdaWebTesting]` is terminal: API Gateway
+has nothing behind it to hand an unmatched path to, so a path with no route is a 404 from the host
+rather than a fall-through.
+
 ## Next
 
-- [Writing a test](/guide/testing): what every Hardened test boots
-- [Writing a test attribute](/guide/testing-attributes): the seams `[LocalDynamoDb]` is built on
-- [Steps and retries](/guide/testing-steps): polling an eventually consistent store
+- [Triggers](/guide/triggers): the façades, and what each source delivers
+- [Writing a test](/guide/testing): the harness this builds on
+- [Test hosts](/guide/testing-hosts): the seam `[LambdaWebTesting]` plugs into
+- [DynamoDB client](/aws/dynamodb): what `[LocalDynamoDb]` stands a container up for

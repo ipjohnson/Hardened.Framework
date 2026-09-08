@@ -1,158 +1,165 @@
 # Lambda functions
 
-A Lambda function is a method marked `[HardenedFunction]`. The generator writes the entry point,
-the payload deserialization, the parameter binding and the response serialization.
+A Lambda application is an ordinary Hardened application plus a `Program.cs` that starts the
+invocation loop. The deployed artifact is the assembly, and the handler is its name alone.
 
 ```csharp
-using Hardened.Amz.Function.Lambda.Runtime.DependencyInjection;
-using Hardened.Requests.Abstract.Attributes;
 using Hardened.Shared.Runtime.Attributes;
 
-[HardenedModule]
-[LambdaFunctionModule]
-public partial class Application { }
+namespace OrderIntake;
 
-public class OrderHandler {
-    [HardenedFunction("process-order")]
-    public OrderResponse ProcessOrder(OrderRequest request) {
-        return new OrderResponse { OrderId = Guid.NewGuid().ToString() };
+[HardenedModule]
+public partial class Application;
+```
+
+```csharp
+using Hardened.Requests.Abstract.Attributes;
+
+public class OrderHandler(OrderLog log) {
+
+    [HardenedFunction]
+    public OrderAccepted Process(Order order) {
+        log.Record(order);
+
+        return new OrderAccepted(order.Id, log.Orders.Count);
     }
 }
 ```
 
-```csharp
-[HardenedTest]
-public async Task ProcessesAnOrder(LambdaTestApp app) {
-    var response = await app.Invoke<OrderResponse>(
-        "process-order", new OrderRequest { Sku = "SKU-1" });
+`[HardenedFunction]` is a direct invocation: the caller waits on the return value and gets it back
+serialised. It is the one trigger shape that answers. For a queue, a topic, a schedule or a stream,
+see [Triggers](/guide/triggers).
 
-    Assert.NotNull(response.OrderId);
-}
-```
-
-The test invokes the function through the real pipeline, with no AWS account and nothing to
-deploy. `dotnet new hardened-function` writes this shape. Source:
-[`src/Lambda/Function`](https://github.com/ipjohnson/Hardened.Amz/tree/main/src/Lambda/Function)
-in [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
+`dotnet new hardened-function -n OrderIntake` writes this with tests.
 
 ## Packages
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="Hardened.Amz.Function.Lambda.Runtime" Version="0.22.0-rc1000" />
-    <PackageReference Include="Hardened.Amz.Function.Lambda.SourceGenerator" Version="0.22.0-rc1000"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <PackageReference Include="Hardened.Shared.Runtime" Version="0.30.0-rc1000" />
+    <PackageReference Include="Hardened.Requests.Runtime" Version="0.30.0-rc1000" />
+    <PackageReference Include="Hardened.Functions.Runtime" Version="0.30.0-rc1000" />
+
+    <!-- The host, and one adapter for the trigger the handler declares. -->
+    <PackageReference Include="Hardened.Aws.Lambda.Runtime" Version="0.30.0-rc1000" />
+    <PackageReference Include="Hardened.Aws.Lambda.Invoke" Version="0.30.0-rc1000" />
+
+    <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.30.0-rc1000" />
+    <PackageReference Include="Hardened.Function.SourceGenerator" Version="0.30.0-rc1000"
+                      PrivateAssets="all" />
 </ItemGroup>
 ```
 
-Source generators are referenced as analyzers. `ReferenceOutputAssembly="false"` keeps the
-generator itself out of the published output.
+The adapter is a package rather than a flag, so a function carries only the event models it can
+reach. Swap `.Invoke` for `.Sqs` and the same project serves a queue instead.
 
-## The function
+There is no `[LambdaFunctionModule]` to apply. The generator reads the `HardenedInvokeModule`
+property `Hardened.Aws.Lambda.Invoke` declares and registers the adapter, which is what keeps the
+cloud's name out of the application class.
 
-`[LambdaFunctionModule]` brings the invocation path and, through the `[HardenedRequestModule]` it
-carries, the request pipeline. It is not optional: an application without it compiles and then
-fails at construction, naming the missing attribute.
+## The entry point
 
-The string names the function. Several functions can live in one assembly and one deployment
-artefact, each selected by name, so a service ships as a set of Lambdas without a project per
-Lambda. Omit the name and the method name is used.
-
-The payload is deserialized into `request`. Parameters bind as they do
-[everywhere else](/guide/parameter-binding): a registered service type comes from the container,
-and what is left is the payload.
-
-## The Lambda context
-
-The runtime puts the invocation's `ILambdaContext` on a registered accessor, so anything in the
-call stack can reach it without threading it through every signature:
+`Program.cs` is written, not generated. It is short, and every line of it is doing something:
 
 ```csharp
-public interface ILambdaContextAccessor {
-    ILambdaContext? Context { get; set; }
-}
+using Hardened.Aws.Lambda.Runtime.Development;
+using Hardened.Aws.Lambda.Runtime.Hosting;
+using Hardened.Shared.Runtime.Application;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using OrderIntake;
+
+using var emulator = await LambdaEmulator.StartIfLocal(typeof(Application));
+
+var services = new ServiceCollection();
+
+services.AddLogging(builder => builder.AddSimpleConsole().SetMinimumLevel(LogLevel.Information));
+services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl(arguments: args));
+
+new Application().PopulateServiceCollection(services);
+
+await HardenedLambdaBootstrap.Run(services.BuildServiceProvider());
 ```
 
-```csharp
-public class OrderHandler(ILambdaContextAccessor context) {
+The project is an `Exe`. A deployed handler is the assembly name alone, and the runtime starts that
+only when the assembly has an entry point.
 
-    [HardenedFunction("process-order")]
-    public async Task<OrderResponse> ProcessOrder(OrderRequest request, IOrderService orders) {
-        if (context.Context!.RemainingTime < TimeSpan.FromSeconds(5)) {
-            return OrderResponse.Deferred();
-        }
+`LambdaEmulator.StartIfLocal` does nothing when the Lambda service started the process, because
+`AWS_LAMBDA_RUNTIME_API` is already set. Started from an IDE or `dotnet run` there is no such
+address, so it brings up the AWS Lambda Test Tool and sets the same variable the service would
+have. Delete it and the function still deploys; only running it locally stops working.
 
-        return await orders.Process(request);
-    }
-}
-```
+`HardenedLambdaBootstrap.Run` builds the container before the loop starts. A missing registration is
+then a cold start that fails immediately naming what was missing, rather than the first invocation
+of the day failing while every later one on a warm sandbox succeeds.
 
-`[FromContext("name")]` binds a named value out of the invocation's header collection, the same
-source `[FromHeader]` reads on the web side.
+::: warning One entry point
+The project has a `Main`, so do not write a second one. Nothing generates it, and nothing will
+warn you that the one you wrote replaced the bootstrap — the function will deploy and fail on its
+first invocation.
+:::
 
-## Errors
+## Naming a function
 
-By default an exception is caught, serialized and returned as the function's response, and the
-invocation is recorded as a success. That suits a synchronous caller that wants a structured
-error.
-
-When the invocation should fail, so that the caller's retry policy, a dead letter queue or an
-alarm sees it, apply `[ThrowException]`:
+The attribute's string names the operation:
 
 ```csharp
 [HardenedFunction("process-order")]
-[ThrowException]
-public OrderResponse ProcessOrder(OrderRequest request) => _orders.Process(request);
+public OrderResponse ProcessOrder(OrderRequest request) { ... }
 ```
 
-The filter runs after the handler and rethrows whatever landed in `Response.ExceptionValue`, so
-the Lambda invocation errors.
+Several operations can live in one assembly and one deployment artefact, each selected by name, so
+a service ships as a set of operations without a project per operation. Omit the name and the
+method name is used.
 
-::: warning This choice is invisible until something breaks
-An asynchronous Lambda that swallows its exceptions retries nothing and alarms on nothing. The
-invocation succeeded; it just returned an error object nobody reads.
-:::
+## Binding
 
-## Logging and metrics
-
-The runtime replaces the logger provider with one that writes structured lines, so `ILogger<T>`
-output is queryable in CloudWatch Logs Insights:
+The payload is deserialized into the parameter that is not a registered service. Everything else
+binds as it does [everywhere else](/guide/parameter-binding):
 
 ```csharp
-public class OrderHandler(ILogger<OrderHandler> logger) {
-
-    [HardenedFunction("process-order")]
-    public OrderResponse ProcessOrder(OrderRequest request) {
-        logger.LogInformation("Processing {OrderId}", request.OrderId);
-
-        return _orders.Process(request);
-    }
-}
+[HardenedFunction("process-order")]
+public async Task<OrderResponse> ProcessOrder(OrderRequest request, IOrderService orders) =>
+    await orders.Process(request);
 ```
 
-Named placeholders become fields in the log line rather than being flattened into the message.
+Returning a value rather than a `Task` of one is fine, and both are invoked the same way. The
+generated test façade reads the declared return type without unwrapping a `Task`, so a synchronous
+return is what lets a test assert on the answer directly.
 
-`IMetricLogger` records to the CloudWatch Embedded Metric Format, emitted through the log stream,
-with no API call and no added latency:
+## The invocation deadline
 
-```csharp
-context.RequestMetrics.Record(OrderMetrics.ProcessingDuration, elapsed);
-context.RequestMetrics.Tag("region", "us-west-2");
+Lambda gives an invocation a time limit, and the runtime turns it into the request's cancellation
+token. It trips 500ms before the deadline rather than at it — cancelling exactly at the deadline
+would tell a handler it was out of time at the moment Lambda killed it, with nothing left to do
+about it. The margin is long enough to write a log line, report a batch failure or close a
+connection.
+
+An invocation that arrives with no time left is cancelled before the handler runs.
+
+## Running it locally
+
+```bash
+dotnet run --project src/OrderIntake
 ```
 
-## Testing
-
-```csharp
-[assembly: LambdaFunctionTesting]
-[assembly: HardenedTestEntryPoint(typeof(Application))]
+```
+Started the AWS Lambda Test Tool on http://localhost:5050
 ```
 
-`LambdaTestApp` invokes by name, as the test at the top shows. See
-[Testing AWS handlers](/aws/testing) for the raw-JSON variant, the context callback, and the
-batch harnesses.
+The tool's page on 5050 is where a payload is posted. A function that is not an HTTP API has no API
+Gateway emulator and nothing on 5080 — that is [API Gateway](/aws/lambda-web#running-it-locally),
+and it is the only shape that answers over HTTP locally.
+
+The tool is a dotnet tool, pinned in the project's `.config/dotnet-tools.json` and restored during
+the build. A failed restore is a warning rather than a broken build, because the deployed artifact
+does not need it.
+
+Most of the time there is nothing to run. The tests invoke the function through the real pipeline
+with no AWS account and nothing to deploy; see [Testing AWS handlers](/aws/testing).
 
 ## Next
 
-- [SQS](/aws/sqs): the same function shape over a batch
-- [DynamoDB Streams](/aws/ddb-streams): the same over stream records
-- [Testing AWS handlers](/aws/testing): `LambdaTestApp` in full
+- [Triggers](/guide/triggers): the other seven sources a handler can name
+- [Testing AWS handlers](/aws/testing): the façades, and the two fidelity levels
+- [API Gateway](/aws/lambda-web): the same application behind HTTP

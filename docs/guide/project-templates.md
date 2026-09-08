@@ -66,10 +66,11 @@ authorization, or its hosting diagnostics. Instrumentation that subscribes to th
 `DiagnosticSource` names sees nothing under Kestrel. The [Kestrel host's README][kestrel] lists
 the trade-offs.
 
-`aws-lambda` puts the application behind API Gateway. The host project has no `Program.cs`,
-because the generator writes the entry point Lambda invokes. Running the host starts the AWS
-Lambda Test Tool beside it and answers on 5080 through the tool's API Gateway emulator, so
-`dotnet run --project src/Todos.Host` and F5 work the way they do on the other hosts; see
+`aws-lambda` puts the application behind API Gateway. The host project has a `Program.cs` like
+every other host, and the call to `LambdaEmulator.StartIfLocal` in it is what starts the AWS Lambda
+Test Tool beside the process when it is not the Lambda service running it. The application answers
+on 5080 through the tool's API Gateway emulator, so `dotnet run --project src/Todos.Host` and F5
+work the way they do on the other hosts; see
 [Running it locally](/aws/lambda-web#running-it-locally).
 
 [kestrel]: https://github.com/ipjohnson/Hardened.Framework/blob/main/src/Web/Hardened.Web.Kestrel.Runtime/README.md
@@ -131,15 +132,17 @@ dotnet new hardened-function -n OrderIntake [options]
 
 | Option | Values | Default |
 |---|---|---|
-| `--trigger` | `invoke`, `sqs` | `invoke` |
+| `--trigger` | `invoke`, `queue`, `topic`, `timer`, `change`, `stream`, `blob` | `invoke` |
+| `-ho, --host` | `aws` | `aws` |
 | `--test-framework` | `xunit`, `nunit` | `xunit` |
 | `--mocks` | `nsubstitute`, `moq`, `fakeiteasy` | `nsubstitute` |
 | `--hardened-version` | a published version | the version the template shipped with |
 | `--skip-restore` | `true`, `false` | `false` |
 
 ```
-src/OrderIntake/            the function: its handler, models and services
-tests/OrderIntake.Tests/    tests that invoke it the way Lambda does
+src/OrderIntake/               the function: its handler, models and services
+src/OrderIntake/Program.cs     the entry point, and the local emulator
+tests/OrderIntake.Tests/       tests that invoke it the way Lambda does
 ```
 
 The handler is a plain class:
@@ -152,15 +155,33 @@ public class OrderHandler(OrderLog log) {
 }
 ```
 
-There is no host project and no `Program.cs`. The generator writes the entry point, so a `Main`
-of your own gives the assembly a second entry point and the build fails.
+There is no separate host project. The deployed artifact is this assembly, and `Program.cs` is the
+entry point the runtime starts — written rather than generated, so do not add a `Main` of your own.
 
-With `--trigger sqs` the runtime unpacks the batch and calls the handler once per record.
-Returning marks the record handled. Throwing reports it as a batch item failure, so only the
-records that failed are redelivered.
+`--trigger` picks which source the scaffolded handler serves, and with it the one adapter package
+the project references. Each is a [trigger attribute](/guide/triggers) naming the queue, topic,
+schedule, table, stream or bucket, and nothing in the project names a cloud:
 
-There is nothing to `dotnet run`. The tests invoke the function through the real pipeline, with no
-AWS account and nothing to deploy. See [Lambda functions](/aws/lambda-function).
+| `--trigger` | Handler carries | AWS adapter |
+|---|---|---|
+| `invoke` | `[HardenedFunction]` | `Hardened.Aws.Lambda.Invoke` |
+| `queue` | `[Queue("orders")]` | `Hardened.Aws.Lambda.Sqs` |
+| `topic` | `[Topic("orders")]` | `Hardened.Aws.Lambda.Sns` |
+| `timer` | `[Timer("nightly")]` | `Hardened.Aws.Lambda.EventBridge` |
+| `change` | `[Change("orders")]` | `Hardened.Aws.Lambda.DynamoDb` |
+| `stream` | `[Stream("orders")]` | `Hardened.Aws.Lambda.Kinesis` |
+| `blob` | `[Blob("uploads")]` | `Hardened.Aws.Lambda.S3` |
+
+On a batched trigger the runtime unpacks the batch and calls the handler once per item. Returning
+handles the item; throwing fails the invocation, which is what returns the batch to the source.
+Reporting individual failures instead is a deployment setting the application has to opt into, and
+it has to match the event source mapping — see
+[Batches](/guide/triggers#batches-and-what-a-failure-means).
+
+Running the project starts the AWS Lambda Test Tool on 5050, which is where a payload is posted;
+there is no HTTP API and nothing on 5080. Most of the time there is nothing to run, because the
+tests invoke the function through the real pipeline with no AWS account and nothing to deploy. See
+[Lambda functions](/aws/lambda-function).
 
 ## hardened-library
 
@@ -203,9 +224,9 @@ dotnet new install Hardened.Templates@0.30.0-rc1000       # a specific one
 
 Existing projects keep the version in their own `Directory.Packages.props` until you change it.
 
-The Lambda templates float `Hardened.Amz` at `0.*-*` rather than pinning it to `HardenedVersion`.
-The two repositories release in sequence, so for a short window an exact pin would name a version
-that does not exist yet.
+The Lambda templates used to float a `Hardened.Amz` pin, because the AWS packages released from a
+second repository and for a window an exact pin named a version that did not exist yet. There is
+one repository and one line now, so every template pins `HardenedVersion` like everything else.
 
 ## Each project explains itself
 

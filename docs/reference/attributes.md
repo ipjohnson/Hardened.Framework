@@ -229,24 +229,50 @@ DependencyModules module has its registrations applied too. A view is named on a
 | `[KiotaTesting]` | Assembly | Makes every Kiota client a test parameter built over the pipeline. See [Typed clients](/guide/testing-clients) |
 | `[RefitTesting]` | Assembly | The same for a Refit interface |
 
+## Triggers
+
+`Hardened.Functions.Runtime.Attributes`. Provider-neutral: the handler names a source and the
+adapter package decides what serves it. See [Triggers](/guide/triggers).
+
+| Attribute | Target | Purpose |
+|---|---|---|
+| `[Queue(name)]` | Method | Messages from a queue, one call per message. Routes as `QUEUE /name` |
+| `[Topic(name)]` | Method | Messages published to a topic, one call per notification |
+| `[Timer(name)]` | Method | A schedule firing. Usually takes no payload parameter |
+| `[Event(source, detailType)]` | Method | An event from a message bus, bound from the event's detail |
+| `[Change(table)]` | Method | A row before and after an edit. Ordered and replayable |
+| `[Stream(name)]` | Method | Records from a sharded stream, bound from the publisher's bytes. Ordered and replayable |
+| `[Blob(bucket)]` | Method | An object in a store changing. Binds the notification's metadata, not the object |
+
+`[HardenedFunction]` is in the Requests table above and binds an adapter the same way: it is a
+direct invocation, the one shape that answers.
+
 ## AWS
 
-From [Hardened.Framework](https://github.com/ipjohnson/Hardened.Framework).
+`Hardened.Aws.Lambda.*`. An application does not normally write an adapter module out — the trigger
+on a handler binds it. The exceptions are noted below.
 
 | Attribute | Namespace | Purpose |
 |---|---|---|
-| `[LambdaFunctionModule]` | `Hardened.Amz.Function.Lambda.Runtime.DependencyInjection` | Lambda invocation runtime and the request pipeline. Required by every function application |
-| `[LambdaWebModule]` | `Hardened.Amz.Web.Lambda.Runtime.DependencyInjection` | API Gateway runtime and the web pipeline. Required by every Lambda web application |
-| `[LambdaWebApplication(Version)]` | `Hardened.Amz.Web.Lambda.Runtime` | States the payload format. `ProxyIntegrationType.HttpApiV2` is the default and the only implemented value; `.ApiGateway` is `HRDAWS001` |
-| `[SqsLambda]` | `Hardened.Amz.Function.Sqs.Runtime` | SQS batch runtime. Applied alongside `[LambdaFunctionModule]` |
-| `[DynamoStreamLambda]` | `Hardened.Amz.Function.DDB.Runtime` | DynamoDB Streams runtime. Applied alongside `[LambdaFunctionModule]` |
-| `[DynamoDbModule]` | `Hardened.Aws.DynamoDbClient` | Registers `IDynamoDbClientProvider` |
-| `[HardenedCdk]` | `Hardened.Amz.Cdk` | CDK deployment application |
-| `[NewImage]` / `[OldImage]` | `Hardened.Amz.Function.DDB.Runtime.Attributes` | Binds a stream record's images |
-| `[FromContext(name?)]` | `Hardened.Amz.Function.Lambda.Runtime` | Binds a named value from the invocation's headers |
-| `[ThrowException]` | `Hardened.Amz.Function.Lambda.Runtime` | Rethrows, so the invocation fails instead of returning the error |
-| `[LambdaFunctionTesting]` | `Hardened.Amz.Function.Lambda.Testing` | Installs the Lambda test harnesses |
+| `[ApiGatewayModule]` | `Hardened.Aws.Lambda.ApiGateway` | API Gateway payload format 2.0 onto the web pipeline. Written out by a web host, whose routes live in a library the generator cannot see |
+| `[InvokeModule]` | `Hardened.Aws.Lambda.Invoke` | Direct invocation, for `[HardenedFunction]` |
+| `[SqsModule(ReportBatchItemFailures?)]` | `Hardened.Aws.Lambda.Sqs` | SQS, for `[Queue]`. Written out to turn on failure reporting, which has to match the event source mapping |
+| `[SnsModule]` | `Hardened.Aws.Lambda.Sns` | SNS, for `[Topic]` |
+| `[EventBridgeModule]` | `Hardened.Aws.Lambda.EventBridge` | EventBridge, for `[Timer]` and `[Event]` |
+| `[DynamoDbModule(ReportBatchItemFailures?)]` | `Hardened.Aws.Lambda.DynamoDb` | DynamoDB Streams, for `[Change]` |
+| `[KinesisModule(ReportBatchItemFailures?)]` | `Hardened.Aws.Lambda.Kinesis` | Kinesis, for `[Stream]` |
+| `[S3Module]` | `Hardened.Aws.Lambda.S3` | S3, for `[Blob]` |
+| `[NewImage]` / `[OldImage]` | `Hardened.Aws.Lambda.DynamoDb` | Binds a change record's images as they arrived, type tags and all |
+| `[LambdaTesting]` | `Hardened.Aws.Lambda.Testing` | Assembly. Delivers through the real AWS envelope and the invocation loop rather than straight into the pipeline |
+| `[LambdaWebTesting]` | `Hardened.Aws.Lambda.Testing` | Assembly. API Gateway as a test host: a proxy event in, a proxy response out |
+| `[DynamoDbModule]` | `Hardened.Aws.DynamoDbClient` | Registers `IDynamoDbClientProvider`. A client, not an adapter — usable on any host |
 | `[LocalDynamoDb(Image?)]` | `Hardened.Aws.DynamoDbClient.Testing` | Points the client provider at DynamoDB Local in a container |
 
-Whether a Lambda response streams is `HARDENED_LAMBDA_RESPONSE_MODE`, a deployment setting rather
-than an attribute; see [Response mode](/aws/lambda-web#response-mode).
+::: warning Two attributes named `[DynamoDbModule]`
+`Hardened.Aws.Lambda.DynamoDb` registers the Streams adapter that serves `[Change]`.
+`Hardened.Aws.DynamoDbClient` registers the client provider. They are unrelated, and a project
+referencing both has to qualify the one it means.
+:::
+
+A Lambda response is always buffered. There is no streaming mode and no environment variable that
+selects one; see [API Gateway](/aws/lambda-web#responses-are-buffered).

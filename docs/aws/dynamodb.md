@@ -88,10 +88,10 @@ called from.
 ## Testing against a real DynamoDB
 
 `[LocalDynamoDb]` points the provider at DynamoDB Local in a Testcontainers container. See
-[DynamoDB Local](/aws/testing#dynamodb-local).
+[Testing AWS handlers](/aws/testing).
 
 ## Next
 
 - [DynamoDB Streams](/aws/ddb-streams): handling the table's stream
 - [Configuration](/guide/configuration): the model the options come from
-- [Testing AWS handlers](/aws/testing#dynamodb-local): the container-backed client in a test
+- [Testing AWS handlers](/aws/testing): the trigger façades and the two fidelity levels
