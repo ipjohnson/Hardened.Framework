@@ -16,6 +16,16 @@
 set -u
 agent="${1:-}"
 
+# With no argument, the agent is whichever worktree the hook runs in. That is what lets one hook in
+# the session settings serve both agents and stay a no-op for the integration checkout.
+if [ -z "$agent" ]; then
+  case "$(git rev-parse --show-toplevel 2>/dev/null)" in
+    */.claude/worktrees/azure*) agent=azure ;;
+    */.claude/worktrees/gcp*)   agent=gcp ;;
+    *) exit 0 ;;
+  esac
+fi
+
 case "$agent" in
   azure) allowed='src/Clouds/Azure/ docs/azure/ filters/azure.slnf Directory.Packages.props Hardened.slnx' ;;
   gcp)   allowed='src/Clouds/Gcp/ docs/gcp/ filters/gcp.slnf src/Functions/Hardened.CloudEvents/ Directory.Packages.props Hardened.slnx' ;;
