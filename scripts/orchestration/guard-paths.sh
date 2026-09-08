@@ -6,6 +6,10 @@
 # where the change would reach main only through a merge nobody reviewed as a shared change. The
 # plan (docs/design/CLOUD-LINES-PLAN.html, section 4) says a shared member changes by request.
 #
+# Two shared files are allowed through: Directory.Packages.props and Hardened.slnx. Each agent
+# edits only its own labelled group and its own solution folders in them, and the regions merge
+# cleanly; the guard cannot see regions, so that part is a rule rather than a check.
+#
 # Usage: guard-paths.sh <agent>   with the hook's JSON on stdin. Exit 2 blocks the call and the
 # message on stderr reaches the agent; anything the script cannot parse is allowed through, so a
 # schema change never turns into a silent lockout of the agent's own directory.
@@ -13,8 +17,8 @@ set -u
 agent="${1:-}"
 
 case "$agent" in
-  azure) allowed='src/Clouds/Azure/ docs/azure/ filters/azure.slnf' ;;
-  gcp)   allowed='src/Clouds/Gcp/ docs/gcp/ filters/gcp.slnf src/Functions/Hardened.CloudEvents/' ;;
+  azure) allowed='src/Clouds/Azure/ docs/azure/ filters/azure.slnf Directory.Packages.props Hardened.slnx' ;;
+  gcp)   allowed='src/Clouds/Gcp/ docs/gcp/ filters/gcp.slnf src/Functions/Hardened.CloudEvents/ Directory.Packages.props Hardened.slnx' ;;
   *)     exit 0 ;;
 esac
 
