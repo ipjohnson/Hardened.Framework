@@ -1,0 +1,17 @@
+<Project>
+    <!--
+        Which module serves this package's trigger. One property, because one trigger is served by
+        exactly one adapter package on a given provider - see Hardened.Aws.Lambda.Sqs's targets for
+        the whole argument, which holds here unchanged.
+
+        The property is declared by Hardened.Functions.Runtime's targets, which own the attribute
+        that binds it. Hardened.Azure.Functions.SourceGenerator reads the same property to decide
+        which shims to write, so setting it is what puts a [ServiceBusTrigger] function into the
+        worker as well as what registers the adapter.
+
+        Conditional, so a csproj can replace this binding and keep the rest.
+    -->
+    <PropertyGroup>
+        <HardenedQueueModule Condition="'$(HardenedQueueModule)' == ''">Hardened.Azure.Functions.ServiceBus.ServiceBusModule</HardenedQueueModule>
+    </PropertyGroup>
+</Project>

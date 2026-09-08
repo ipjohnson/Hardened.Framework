@@ -116,6 +116,32 @@
     </ItemGroup>
 
     <!--
+      The isolated worker is on 2.2.0 rather than the 2.5x line, because 2.50.0 moved
+      Microsoft.Azure.Functions.Worker.Core onto Microsoft.Extensions.Hosting 10.0.0 and this
+      repository is on the 8.0 line: every project referencing both the worker and a pinned
+      Microsoft.Extensions package would restore with a downgrade error (NU1605). 2.2.0 is the last
+      worker on Hosting 8.0.1. The Sdk is build-only and the application references it, not the
+      runtime package; see Hardened.Azure.Functions.Runtime.csproj for why.
+
+      The Service Bus extension brings Microsoft.Extensions.Azure 1.13.0, which requires
+      Microsoft.Extensions.Logging.Abstractions 8.0.3 - one patch above the pin in the group above.
+      NuGet resolves that transitively without complaint, and it stays that way only while no Azure
+      project references Logging.Abstractions directly, which would be a downgrade against the pin.
+
+      Azure.Messaging.ServiceBus is what a test publishes with; the extension depends on 7.20.1 and
+      resolves upward to this. The Testcontainers modules move with the base package in the Testing
+      group, which has to be the same version or the module fails to load its base types.
+    -->
+    <ItemGroup Label="Azure">
+        <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
+        <PackageVersion Include="Testcontainers.Azurite" Version="4.14.0" />
+        <PackageVersion Include="Testcontainers.ServiceBus" Version="4.14.0" />
+    </ItemGroup>
+
+    <!--
       xunit.v3, never xunit 2.x. Hardened.Shared.Testing depends on DependencyModules.xUnit, which
       brings v3, and referencing it alongside 2.x makes every Fact and Assert ambiguous.
 

@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The container rung of the ladder: the queue fixture's build output inside the Functions host
+      image, indexed by the host from the generated metadata provider and driven by the Service Bus
+      emulator through a message a test publishes. Every test here carries the Simulator trait the
+      CI split reads, needs Docker and four images, and fails rather than skips without them.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="Azure.Messaging.ServiceBus"/>
+        <PackageReference Include="Testcontainers.Azurite"/>
+        <PackageReference Include="Testcontainers.ServiceBus"/>
+    </ItemGroup>
+
+    <!--
+      The application is referenced so it is built before these tests and in the same
+      configuration, and nothing else: its output is mounted into a container, not loaded here.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.IntegrationTests.AzureQueue.SUT\Hardened.IntegrationTests.AzureQueue.SUT.csproj"
+                          ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing.Containers\Hardened.Functions.Testing.Containers.csproj"/>
+    </ItemGroup>
+
+    <!-- The emulator's namespace and queue, mounted as its configuration file. -->
+    <ItemGroup>
+        <None Include="ServiceBusEmulator.json" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
+
+</Project>

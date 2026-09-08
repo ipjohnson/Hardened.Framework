@@ -1,0 +1,102 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <Import Project="../../../SourceGenerators/CSharpAuthor.props"/>
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <Description>Source generator for Hardened applications hosted in the Azure Functions isolated worker: writes a [Function] shim per trigger handler, and the metadata provider and executor the worker indexes and invokes them through.</Description>
+        <LangVersion>10</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>True</IsPackable>
+        <PackageId>Hardened.Azure.Functions.SourceGenerator</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;source-generator</PackageTags>
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+
+        <!--
+          Off, against the Azure Directory.Build.props, which turns it on for every package here. A
+          generator packs an analyzer and no lib, so there is no assembly for an XML file to
+          document. It is also what keeps the linked sources compiling the way they do under
+          src/SourceGenerators: with documentation on, the compiler binds every cref, and
+          CSharpAuthor's own comment naming CultureInfo.CurrentCulture becomes a banned-symbol
+          reference (RS1035) under EnforceExtendedAnalyzerRules, before a single line of this
+          generator is reached.
+        -->
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Primitives"/>
+        <PackageReference Include="System.Memory"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <DevelopmentDependency>true</DevelopmentDependency>
+    </PropertyGroup>
+
+    <!--
+      Hardened.SourceGenerator compiled in from source, the way Hardened.Function.SourceGenerator
+      does it: this generator reads the same handler model the function generator reads, through
+      FunctionModelGenerator and TriggerModuleGenerator.Triggers, and a generator can take no
+      assembly dependency. The link list is the function generator's, because the model it needs
+      is the one that generator builds.
+    -->
+    <ItemGroup>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Configuration/**/*">
+            <Link>Configuration\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/DependencyInjection/**/*">
+            <Link>DependencyInjection\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Models/**/*">
+            <Link>Models\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Module/**/*">
+            <Link>Module\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/OpenApiDocument/**/*">
+            <Link>OpenApiDocument\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Requests/**/*">
+            <Link>Requests\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Shared/**/*">
+            <Link>Shared\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Function/**/*">
+            <Link>Function\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../../../SourceGenerators/Hardened.SourceGenerator/Validation/**/*">
+            <Link>Validation\%(RecursiveDir)/%(FileName)%(Extension)</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+    </ItemGroup>
+
+    <Import Project="../../../SourceGenerators/ValidationModulesImpl.props"/>
+
+    <PropertyGroup>
+        <HardenedGenerationScope>Model</HardenedGenerationScope>
+    </PropertyGroup>
+
+    <Import Project="../../../SourceGenerators/Hardened.Generation.Shared/Hardened.Generation.Shared.props"/>
+
+</Project>

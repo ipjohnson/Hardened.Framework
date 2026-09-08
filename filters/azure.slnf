@@ -1,0 +1,33 @@
+{
+  "solution": {
+    "path": "..\\Hardened.slnx",
+    "projects": [
+      "src\\Clouds\\Azure\\Hardened.Azure.Functions.Runtime.Tests\\Hardened.Azure.Functions.Runtime.Tests.csproj",
+      "src\\Clouds\\Azure\\Hardened.Azure.Functions.Runtime\\Hardened.Azure.Functions.Runtime.csproj",
+      "src\\Clouds\\Azure\\Hardened.Azure.Functions.ServiceBus\\Hardened.Azure.Functions.ServiceBus.csproj",
+      "src\\Clouds\\Azure\\Hardened.Azure.Functions.SourceGenerator.Tests\\Hardened.Azure.Functions.SourceGenerator.Tests.csproj",
+      "src\\Clouds\\Azure\\Hardened.Azure.Functions.SourceGenerator\\Hardened.Azure.Functions.SourceGenerator.csproj",
+      "src\\Clouds\\Azure\\Hardened.Azure.Functions.Testing\\Hardened.Azure.Functions.Testing.csproj",
+      "src\\Clouds\\Azure\\IntegrationTests\\Queue\\Hardened.IntegrationTests.AzureQueue.Host.Tests\\Hardened.IntegrationTests.AzureQueue.Host.Tests.csproj",
+      "src\\Clouds\\Azure\\IntegrationTests\\Queue\\Hardened.IntegrationTests.AzureQueue.SUT.Tests\\Hardened.IntegrationTests.AzureQueue.SUT.Tests.csproj",
+      "src\\Clouds\\Azure\\IntegrationTests\\Queue\\Hardened.IntegrationTests.AzureQueue.SUT\\Hardened.IntegrationTests.AzureQueue.SUT.csproj",
+      "src\\Clouds\\Azure\\IntegrationTests\\Queue\\Hardened.IntegrationTests.AzureQueue.Worker.Tests\\Hardened.IntegrationTests.AzureQueue.Worker.Tests.csproj",
+      "src\\Functions\\Hardened.Functions.Runtime\\Hardened.Functions.Runtime.csproj",
+      "src\\Functions\\Hardened.Functions.Testing.Containers\\Hardened.Functions.Testing.Containers.csproj",
+      "src\\Functions\\Hardened.Functions.Testing\\Hardened.Functions.Testing.csproj",
+      "src\\Requests\\Hardened.Requests.Abstract\\Hardened.Requests.Abstract.csproj",
+      "src\\Requests\\Hardened.Requests.Runtime\\Hardened.Requests.Runtime.csproj",
+      "src\\Requests\\Hardened.Requests.Testing\\Hardened.Requests.Testing.csproj",
+      "src\\Shared\\Hardened.Shared.Runtime\\Hardened.Shared.Runtime.csproj",
+      "src\\Shared\\Hardened.Shared.Testing.xUnit\\Hardened.Shared.Testing.xUnit.csproj",
+      "src\\Shared\\Hardened.Shared.Testing\\Hardened.Shared.Testing.csproj",
+      "src\\SourceGenerators\\Hardened.DependencyModules.SourceGenerator\\Hardened.DependencyModules.SourceGenerator.csproj",
+      "src\\SourceGenerators\\Hardened.Function.SourceGenerator\\Hardened.Function.SourceGenerator.csproj",
+      "src\\SourceGenerators\\Hardened.Generation.Shared\\Hardened.Generation.Shared.csproj",
+      "src\\SourceGenerators\\Hardened.Library.SourceGenerator\\Hardened.Library.SourceGenerator.csproj",
+      "src\\SourceGenerators\\Hardened.SourceGeneration.Testing\\Hardened.SourceGeneration.Testing.csproj",
+      "src\\SourceGenerators\\Hardened.SourceGenerator\\Hardened.SourceGenerator.csproj",
+      "src\\SourceGenerators\\Hardened.Validation.SourceGenerator\\Hardened.Validation.SourceGenerator.csproj"
+    ]
+  }
+}

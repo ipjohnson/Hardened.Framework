@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      A queue function as an application would write one: a handler with [Queue] and nothing else,
+      hosted the way a deployed isolated worker is. No module attribute for Service Bus, no adapter
+      registration, no [Function] - the trigger is the whole declaration, and the generators plus the
+      runtime package's build properties supply the rest. That is the claim this fixture exists to
+      hold, and the container tier holds it inside the Functions host image.
+
+      An executable, because the worker is the process the host starts, with UseAppHost off because
+      the container tier mounts the build output: an apphost built on macOS is a native binary a
+      Linux container cannot start, and the host runs the assembly through dotnet anyway.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <UseAppHost>false</UseAppHost>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.AzureQueue.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <!--
+      The Worker SDK is the application's reference, not the runtime package's: it is what marks
+      this project as a Functions project, scans the compiled shims into functions.metadata, builds
+      the host's extensions and writes worker.config.json. See Hardened.Azure.Functions.Runtime's
+      csproj for why the runtime does not carry it.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.ServiceBus\Hardened.Azure.Functions.ServiceBus.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.SourceGenerator\Hardened.Azure.Functions.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+      Imported from the source tree rather than arriving with a package reference, because in this
+      repository these are ProjectReferences and a project reference carries no build assets. A
+      consuming application gets them from buildTransitive/ inside the packages; importing the same
+      files here is what keeps the two from drifting.
+
+      Three imports. The first declares the trigger properties, from the package that owns the
+      attributes. The second binds HardenedQueueModule to the Service Bus adapter, which is also
+      what tells the Azure generator to write a function for [Queue]. The third keeps the Worker
+      SDK's empty generated provider and executor out of the worker.
+    -->
+    <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
+    <Import Project="..\..\..\Hardened.Azure.Functions.ServiceBus\Package\Hardened.Azure.Functions.ServiceBus.targets"/>
+    <Import Project="..\..\..\Hardened.Azure.Functions.Runtime\Package\Hardened.Azure.Functions.Runtime.targets"/>
+
+</Project>

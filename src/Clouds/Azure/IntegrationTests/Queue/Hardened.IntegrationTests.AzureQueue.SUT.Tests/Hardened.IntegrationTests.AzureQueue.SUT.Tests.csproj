@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The pipeline rung of the ladder. [FunctionTesting] alone: a message is a request built and
+      run through the pipeline, and nothing here names Azure - QueueTests.cs is the SQS fixture's
+      test file with the queue's name changed. The rung above links the same file and adds
+      [AzureFunctionsTesting]; the rung above that runs the application inside the Functions host.
+
+      Beside the pipeline tests are the two that read what the Azure generator wrote into the
+      application: that the worker resolves its provider and executor, and that the provider and
+      the Worker SDK's build task describe the same functions.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="DependencyModules.NSubstitute"/>
+        <PackageReference Include="NSubstitute"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.IntegrationTests.AzureQueue.SUT\Hardened.IntegrationTests.AzureQueue.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+    </ItemGroup>
+
+</Project>

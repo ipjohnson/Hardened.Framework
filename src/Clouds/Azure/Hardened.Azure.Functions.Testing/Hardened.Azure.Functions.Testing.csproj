@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <!--
+          Deliberately not IsAotCompatible, for the reason Hardened.Aws.Lambda.Testing gives: a test
+          harness serializes whatever type a test hands it, and a testing package is referenced by
+          test projects, which are never published ahead of time.
+        -->
+        <Description>Raises the fidelity of a Hardened function test on Azure: delivers the trigger data the isolated worker would bind - Service Bus messages, for now - through the real invocation handler, so the adapter and the batch fan-out are exercised too.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Azure.Functions.Testing</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;testing</PackageTags>
+    </PropertyGroup>
+
+    <!--
+      Optional. A project testing its own handlers needs only Hardened.Functions.Testing, whose
+      delivery names no cloud; this is for a project that also wants what the worker binds to be
+      what the adapter reads.
+
+      The Service Bus adapter directly, until the meta package exists: the delivery builds the
+      trigger data for every family it knows, and a test project has no deployment to keep small.
+      When Hardened.Azure.Functions arrives in Phase 2 this reference moves to it.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions.ServiceBus\Hardened.Azure.Functions.ServiceBus.csproj"/>
+    </ItemGroup>
+
+</Project>

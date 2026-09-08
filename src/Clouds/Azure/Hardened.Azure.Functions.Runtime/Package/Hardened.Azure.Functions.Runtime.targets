@@ -1,0 +1,40 @@
+<Project>
+    <!--
+        Keeps the Worker SDK's own generated registrations out of the worker.
+
+        The Sdk's generators emit an IFunctionMetadataProvider and an IFunctionExecutor from the
+        [Function] methods they can see, and with FunctionsAutoRegisterGeneratedMetadataProvider and
+        FunctionsAutoRegisterGeneratedFunctionsExecutor on they also emit the startup classes that
+        register both. They see nothing: Hardened's shims are another generator's output, and
+        generators never see each other's, so what they would register is a provider that lists no
+        function and an executor that can run none. Hardened.Azure.Functions.SourceGenerator emits
+        its own pair from the shims it wrote, and UseHardened registers that pair.
+
+        A target rather than a plain PropertyGroup. The Sdk's targets assign both properties
+        unconditionally from FunctionsEnableWorkerIndexing, so a value set before they are imported
+        is overwritten - and a file imported from the source tree, the way the integration fixtures
+        do, is imported before any package's. A target that runs before the compiler-visible
+        properties are written to the analyzer config wins whatever the import order was.
+
+        Worker indexing itself stays on: it is what makes the host ask the worker for its functions,
+        which is how the generated provider is consulted at all. The Sdk's build task still runs over
+        the compiled shims and writes functions.metadata beside worker.config.json, so the two
+        descriptions of the application can be compared - the Azure integration fixture asserts
+        that they agree.
+
+        The Sdk is the application's reference, not this package's (see the csproj). An executable
+        that references this runtime and not the Sdk would compile and never index a function, so
+        the check is here, where the reference is known to be missing.
+    -->
+    <Target Name="HardenedAzureFunctionsWorkerRegistration"
+            BeforeTargets="GenerateMSBuildEditorConfigFileShouldRun;GenerateMSBuildEditorConfigFileCore;CoreCompile">
+        <PropertyGroup>
+            <FunctionsAutoRegisterGeneratedMetadataProvider>false</FunctionsAutoRegisterGeneratedMetadataProvider>
+            <FunctionsAutoRegisterGeneratedFunctionsExecutor>false</FunctionsAutoRegisterGeneratedFunctionsExecutor>
+        </PropertyGroup>
+
+        <Error Condition="'$(OutputType)' == 'Exe' And '$(FunctionsExecutionModel)' != 'isolated'"
+               Code="HRDAZ010"
+               Text="$(MSBuildProjectName) references Hardened.Azure.Functions.Runtime and not Microsoft.Azure.Functions.Worker.Sdk. The Sdk is what writes worker.config.json and functions.metadata and builds the host extensions, so without it the Functions host never starts this worker. Add a PackageReference to Microsoft.Azure.Functions.Worker.Sdk." />
+    </Target>
+</Project>
