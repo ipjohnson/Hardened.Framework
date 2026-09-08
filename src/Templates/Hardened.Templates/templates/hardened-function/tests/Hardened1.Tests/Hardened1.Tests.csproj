@@ -34,7 +34,8 @@
       sends through; Hardened.Aws.Lambda.Testing raises the fidelity so the message goes through a
       real envelope and the real invocation loop rather than straight into the pipeline;
       Hardened.Gcp.CloudRun.Testing does the same through the real push, posted to the test's web
-      host.
+      host; Hardened.Azure.Functions.Testing does it through the trigger data the isolated worker
+      would bind, handed to the real invocation handler.
     -->
     <PackageReference Include="Hardened.Functions.Testing" />
 <!--#if (aws) -->
@@ -43,6 +44,9 @@
 <!--#if (gcp) -->
     <PackageReference Include="Hardened.Gcp.CloudRun.Testing" />
     <PackageReference Include="Hardened.Web.Testing" />
+<!--#endif -->
+<!--#if (azure) -->
+    <PackageReference Include="Hardened.Azure.Functions.Testing" />
 <!--#endif -->
 <!--#if (xunit) -->
     <PackageReference Include="xunit.v3" />

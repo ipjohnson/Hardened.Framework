@@ -8,4 +8,10 @@
     <PropertyGroup>
         <HardenedEventModule Condition="'$(HardenedEventModule)' == ''">Hardened.Azure.Functions.EventGrid.EventGridModule</HardenedEventModule>
     </PropertyGroup>
+
+    <!-- Kept whole under Native AOT, for the reason Hardened.Azure.Functions.Runtime's targets give:
+         the worker constructs the extension's converters by reflection. -->
+    <ItemGroup Condition="'$(PublishAot)' == 'true' Or '$(PublishTrimmed)' == 'true'">
+        <TrimmerRootAssembly Include="Microsoft.Azure.Functions.Worker.Extensions.EventGrid" />
+    </ItemGroup>
 </Project>

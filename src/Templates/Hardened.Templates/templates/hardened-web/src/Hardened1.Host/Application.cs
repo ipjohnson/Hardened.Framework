@@ -14,6 +14,9 @@ using Hardened.Aws.Lambda.ApiGateway;
 #if (cloudRun)
 using Hardened.Gcp.CloudRun.Runtime;
 #endif
+#if (azureFunctions)
+using Hardened.Azure.Functions.Http;
+#endif
 
 namespace Hardened1.Host;
 
@@ -45,6 +48,15 @@ namespace Hardened1.Host;
 // door ahead of routing that serves the trigger attributes beside these routes when an adapter
 // package is referenced.
 [CloudRunRuntime]
+#endif
+#if (azureFunctions)
+// The HTTP trigger adapter, and through the runtime module it composes, the worker registration
+// and the web pipeline. Named here rather than inferred, the way a Lambda host names its API
+// Gateway module: a function app whose routes sit beside its entry point gets its HTTP function
+// from the verbs, but the routes here are in the library project, and a generator only sees the
+// compilation it runs in. Writing it is also what makes the generator write the one HTTP
+// function the Functions host indexes.
+[HttpModule]
 #endif
 #if (codeFirst)
 #if (OpenApiUi)

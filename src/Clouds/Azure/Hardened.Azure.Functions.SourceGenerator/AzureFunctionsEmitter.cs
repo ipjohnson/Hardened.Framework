@@ -28,6 +28,9 @@ internal static class AzureFunctionsEmitter {
     private static readonly ITypeDefinition FunctionAttribute =
         TypeDefinition.Get(Worker, "FunctionAttribute");
 
+    private static readonly ITypeDefinition FixedDelayRetryAttribute =
+        TypeDefinition.Get(Worker, "FixedDelayRetryAttribute");
+
     private static readonly ITypeDefinition FunctionContext =
         TypeDefinition.Get(Worker, "FunctionContext");
 
@@ -120,6 +123,12 @@ internal static class AzureFunctionsEmitter {
             method.Modifiers = ComponentModifier.Public | ComponentModifier.Static;
             method.AddAttribute(FunctionAttribute, QuoteString(function.Name));
 
+            // The policy the Worker SDK's build task reads into functions.metadata, beside the
+            // one the provider below declares; the fixtures assert the two agree.
+            if (binding.Retry(function.Settings) is { } retry) {
+                method.AddAttribute(FixedDelayRetryAttribute, retry.CountText, retry.DelayText);
+            }
+
             foreach (var parameter in binding.Parameters) {
                 var declared = method.AddParameter(parameter.Type, parameter.Name);
 
@@ -191,13 +200,24 @@ internal static class AzureFunctionsEmitter {
                 ", ",
                 function.Binding.RawBindings(function.Source, function.Settings).Select(QuoteString));
 
+            // The host reads the policy from what the worker answers, so it is declared here as
+            // well as on the shim: the worker's own options type, which the host turns into the
+            // metadata's retry block.
+            var retry = function.Binding.Retry(function.Settings) is { } policy
+                ? ", Retry = new global::" + Worker + ".Core.FunctionMetadata.DefaultRetryOptions { " +
+                  "MaxRetryCount = " + policy.Count + ", " +
+                  "DelayInterval = global::System.TimeSpan.Parse(" + QuoteString(policy.Delay) +
+                  ", global::System.Globalization.CultureInfo.InvariantCulture) }"
+                : "";
+
             method.AddIndentedStatement(new CodeOutputComponent(
                 "functions.Add(new global::" + Worker + ".Core.FunctionMetadata.DefaultFunctionMetadata { " +
                 "Language = \"dotnet-isolated\", " +
                 "Name = " + QuoteString(function.Name) + ", " +
                 "EntryPoint = " + QuoteString(shims.Namespace + "." + shims.Name + "." + function.Name) + ", " +
                 "ScriptFile = " + QuoteString(assemblyName + ".dll") + ", " +
-                "RawBindings = new global::System.Collections.Generic.List<string> { " + bindings + " } })") {
+                "RawBindings = new global::System.Collections.Generic.List<string> { " + bindings + " }" +
+                retry + " })") {
                 Indented = false
             });
         }

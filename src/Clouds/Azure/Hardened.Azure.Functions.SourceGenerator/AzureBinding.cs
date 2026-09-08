@@ -20,6 +20,27 @@ internal sealed class ShimParameter {
     public bool IsTrigger { get; }
 }
 
+/// <summary>
+/// A fixed-delay retry policy as the module wrote it: the count and the delay, each as the C#
+/// text the shim's attribute re-emits and as the value the provider's metadata carries.
+/// </summary>
+internal sealed class RetryPolicy {
+    public RetryPolicy(string countText, string count, string delayText, string delay) {
+        CountText = countText;
+        Count = count;
+        DelayText = delayText;
+        Delay = delay;
+    }
+
+    public string CountText { get; }
+
+    public string Count { get; }
+
+    public string DelayText { get; }
+
+    public string Delay { get; }
+}
+
 /// <summary>The binding attribute's arguments, as C# text.</summary>
 internal sealed class AttributeArguments {
     public AttributeArguments(IReadOnlyList<string> positional, IReadOnlyList<KeyValuePair<string, string>> named) {
@@ -98,6 +119,29 @@ internal abstract class AzureBinding {
     /// <summary>The module settings this family reads, required or not, for HRDAZ004.</summary>
     public virtual IReadOnlyList<string> ReadSettings => RequiredSettings;
 
+    /// <summary>
+    /// The settings a function of this family cannot be written without and the module did not
+    /// supply, for HRDAZ003: the required ones, and for the families with a retry policy, the
+    /// half of the pair the application left out.
+    /// </summary>
+    public virtual IReadOnlyList<string> MissingSettings(ModuleSettings settings) {
+        var missing = new List<string>();
+
+        foreach (var required in RequiredSettings) {
+            if (settings.Get(required) == null) {
+                missing.Add(required);
+            }
+        }
+
+        return missing;
+    }
+
+    /// <summary>
+    /// The retry policy the shim carries and the metadata declares, or null where the family has
+    /// none or the module wrote none.
+    /// </summary>
+    public virtual RetryPolicy? Retry(ModuleSettings settings) => null;
+
     public abstract AttributeArguments Arguments(string source, ModuleSettings settings);
 
     /// <summary>The bindings as the host is told them, in the build task's shape.</summary>
@@ -160,6 +204,39 @@ internal abstract class AzureBinding {
 
         json.String("cardinality", "Many");
         json.Raw("properties", "{\"supportsDeferredBinding\":\"True\"}");
+    }
+
+    /// <summary>
+    /// The retry policy the stream and change feed modules carry, as <c>RetryCount</c> and
+    /// <c>RetryDelay</c>, which the host applies as a fixed delay between attempts.
+    /// </summary>
+    /// <remarks>
+    /// Both or neither. The host reads the count and the delay as one policy, and the two families
+    /// that carry it are the ones whose source does not deliver a failed batch again by itself, so
+    /// half a policy is a function whose failures nothing retries, written by an application that
+    /// asked for retries. <see cref="RetryMissing"/> names the missing half for HRDAZ003.
+    /// </remarks>
+    private static RetryPolicy? FixedDelayRetry(ModuleSettings settings) {
+        var count = settings.Get("RetryCount");
+        var delay = settings.Get("RetryDelay");
+
+        if (count?.Number == null || delay?.Literal == null) {
+            return null;
+        }
+
+        return new RetryPolicy(count.Text, count.Number, delay.Text, delay.Literal);
+    }
+
+    private static void RetryMissing(List<string> missing, ModuleSettings settings) {
+        var count = settings.Get("RetryCount") != null;
+        var delay = settings.Get("RetryDelay") != null;
+
+        if (count && !delay) {
+            missing.Add("RetryDelay");
+        }
+        else if (delay && !count) {
+            missing.Add("RetryCount");
+        }
     }
 
     private static readonly IReadOnlyList<ShimParameter> ServiceBusParameters = new[] {
@@ -297,7 +374,17 @@ internal abstract class AzureBinding {
         public override string FunctionPrefix => "Stream";
         public override bool PerSource => true;
         public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "EventHubTriggerAttribute");
-        public override IReadOnlyList<string> ReadSettings { get; } = new[] { "Connection", "ConsumerGroup" };
+        public override IReadOnlyList<string> ReadSettings { get; } = new[] { "Connection", "ConsumerGroup", "RetryCount", "RetryDelay" };
+
+        public override IReadOnlyList<string> MissingSettings(ModuleSettings settings) {
+            var missing = (List<string>)base.MissingSettings(settings);
+
+            RetryMissing(missing, settings);
+
+            return missing;
+        }
+
+        public override RetryPolicy? Retry(ModuleSettings settings) => FixedDelayRetry(settings);
 
         public override IReadOnlyList<ShimParameter> Parameters { get; } = new[] {
             new ShimParameter(
@@ -348,7 +435,17 @@ internal abstract class AzureBinding {
         public override bool PerSource => true;
         public override ITypeDefinition Attribute { get; } = TypeDefinition.Get(Worker, "CosmosDBTriggerAttribute");
         public override IReadOnlyList<string> RequiredSettings { get; } = new[] { "Database" };
-        public override IReadOnlyList<string> ReadSettings { get; } = new[] { "Database", "Connection", "LeaseContainer" };
+        public override IReadOnlyList<string> ReadSettings { get; } = new[] { "Database", "Connection", "LeaseContainer", "RetryCount", "RetryDelay" };
+
+        public override IReadOnlyList<string> MissingSettings(ModuleSettings settings) {
+            var missing = (List<string>)base.MissingSettings(settings);
+
+            RetryMissing(missing, settings);
+
+            return missing;
+        }
+
+        public override RetryPolicy? Retry(ModuleSettings settings) => FixedDelayRetry(settings);
 
         public override IReadOnlyList<ShimParameter> Parameters { get; } = new[] {
             new ShimParameter(TypeDefinition.Get(typeof(string)), "documents", isTrigger: true)

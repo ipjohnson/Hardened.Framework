@@ -24,6 +24,7 @@ carries the long-form entry for each, with the message text and the fix.
 | `HRDV` | Validation |
 | `HRDW` | Web handlers |
 | `HRDF` | Triggers and their adapters |
+| `HRDAZ` | The Azure Functions generator and the runtime package's build check |
 | `HRDRM` | Response models |
 | `HRDT` | `[Throws<T>]` |
 | `HRDSC` | Authentication schemes |
@@ -188,6 +189,16 @@ at one status are two types either way. A model that used to be rejected now bui
 | `HRDF001` | error | Handlers use a [trigger](/guide/triggers) and no referenced runtime declares a module for it. Names the build property to set. The two ways to reach this are a missing runtime package and a provider that has no source of that kind |
 | `HRDF002` | warning | Two sources produce the same [test façade](/guide/triggers#testing) method name, so only one can be reached. Rename one, or suppress to keep the collision |
 | `HRDF003` | info | An adapter is bound to serve a trigger nothing in the project declares, so it ships in the deployment bundle unreachable. Usually the [`Hardened.Aws.Lambda` meta package](/reference/packages#the-host) where individual adapters would do |
+
+## Azure Functions
+
+| Id | | Meaning |
+|---|---|---|
+| `HRDAZ001` | error | Handlers use a trigger, an adapter is bound for it, and the [Azure Functions generator](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/design/azure/application-types.md) has no binding for that trigger, so no function is generated and the host would never invoke the handlers |
+| `HRDAZ002` | error | Two handlers produce the same function name, which the host would refuse as a duplicate. `[Queue("orders-new")]` and `[Queue("orders_new")]` are both `Queue_orders_new`; rename one source |
+| `HRDAZ003` | error | A binding needs a setting the module did not supply: `Subscription` on `[ServiceBusModule]` for a `[Topic]`, `Database` on `[CosmosDbModule]` for a `[Change]`, or the other half of a retry policy when only `RetryCount` or `RetryDelay` is written. Write it on the application beside `[HardenedModule]` |
+| `HRDAZ004` | error | A module setting is not a literal. The host reads the value from the metadata the build writes, so a constant from another class cannot reach it; write the string, the integer, or `true` or `false` |
+| `HRDAZ010` | error | The executable references `Hardened.Azure.Functions.Runtime` and not `Microsoft.Azure.Functions.Worker.Sdk`, so nothing writes `worker.config.json` and the host would start no worker. Raised by the runtime package's targets at build |
 
 ## Renumbered in 0.18
 

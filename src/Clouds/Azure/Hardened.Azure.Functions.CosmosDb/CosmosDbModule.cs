@@ -40,6 +40,24 @@ public partial class CosmosDbModule : IServiceCollectionConfiguration {
     /// <summary>The lease container's name, or null for the extension's default.</summary>
     public string? LeaseContainer { get; set; }
 
+    /// <summary>
+    /// How many times the host invokes a function again after a failed invocation, or null for
+    /// no retry. Written with <see cref="RetryDelay"/>, or not at all.
+    /// </summary>
+    /// <remarks>
+    /// The extension checkpoints the lease after each call, failed or not, so a retry policy is
+    /// the one way a thrown batch is delivered again; see <see cref="CosmosDbAdapter"/>. The
+    /// generator writes the two properties as the worker's <c>[FixedDelayRetry]</c> on every
+    /// change function and into the metadata the host indexes.
+    /// </remarks>
+    public int? RetryCount { get; set; }
+
+    /// <summary>
+    /// The wait between one attempt and the next, as <c>hh:mm:ss</c>, or null for no retry.
+    /// Written with <see cref="RetryCount"/>, or not at all.
+    /// </summary>
+    public string? RetryDelay { get; set; }
+
     public void ConfigureServices(IServiceCollection services) {
         services.AddSingleton<ITriggerAdapter>(new CosmosDbAdapter());
 

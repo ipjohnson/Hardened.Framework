@@ -33,8 +33,100 @@
             <FunctionsAutoRegisterGeneratedFunctionsExecutor>false</FunctionsAutoRegisterGeneratedFunctionsExecutor>
         </PropertyGroup>
 
-        <Error Condition="'$(OutputType)' == 'Exe' And '$(FunctionsExecutionModel)' != 'isolated'"
+        <!-- Not a test project: xUnit v3 makes one an Exe, and it reaches this file through
+             Hardened.Azure.Functions.Testing. Microsoft.NET.Test.Sdk is what marks it. -->
+        <Error Condition="'$(OutputType)' == 'Exe' And '$(FunctionsExecutionModel)' != 'isolated' And '$(IsTestProject)' != 'true'"
                Code="HRDAZ010"
                Text="$(MSBuildProjectName) references Hardened.Azure.Functions.Runtime and not Microsoft.Azure.Functions.Worker.Sdk. The Sdk is what writes worker.config.json and functions.metadata and builds the host extensions, so without it the Functions host never starts this worker. Add a PackageReference to Microsoft.Azure.Functions.Worker.Sdk." />
     </Target>
+
+    <!--
+        worker.config.json names the native binary when the worker is published with Native AOT.
+
+        The Sdk writes the apphost's name as the executable when the publish is self-contained and
+        the apphost is among the None items, and says that covers PublishAot. On the .NET SDK this
+        repository builds with, a Native AOT publish creates no apphost - ILC's binary takes its
+        place - so the condition never matches and the file names `dotnet` and a .dll the publish
+        does not produce; the host then starts nothing. Written again here after the Sdk's target,
+        naming the binary ILC produces and no worker path: the host refuses a worker path that
+        names a file the publish does not contain, and a native worker is its own executable.
+        {WorkerRoot} is the host's placeholder for the worker's directory, the same one the Sdk
+        writes.
+
+        A publish only. The ordinary build of a project marked PublishAot still produces the
+        managed assembly, and `func start` runs that through `dotnet`, which the Sdk's file names.
+
+        The file is right, and the worker it names does not start. Worker.Core's WorkerInformation
+        reads FileVersionInfo.GetVersionInfo(typeof(WorkerInformation).Assembly.Location) in a
+        static initializer, Assembly.Location is empty under Native AOT, and the worker dies in
+        WorkerHostedService.StartAsync before it opens the channel to the host. That is inside the
+        worker package, reachable by no setting here, and it is what the maintainers mean by
+        "Native AOT is not supported" (Azure/azure-functions-dotnet-worker#1056). A trimmed,
+        self-contained publish has its assemblies on disk and runs; the repository's AOT proof
+        publishes both, gates on the native one and runs the trimmed one under the host. This
+        target stays so the native output is well-formed for the day the worker starts.
+    -->
+    <Target Name="HardenedAzureFunctionsNativeWorkerConfig"
+            AfterTargets="_FunctionsGenerateWorkerConfig"
+            Condition="'$(PublishAot)' == 'true' And '$(_IsPublishing)' == 'true'">
+        <PropertyGroup>
+            <_HardenedNativeWorkerConfig>{
+  "description": {
+    "language": "dotnet-isolated",
+    "extensions": [ ".dll" ],
+    "defaultExecutablePath": "{WorkerRoot}$(AssemblyName)",
+    "workerIndexing": "$(FunctionsEnableWorkerIndexing)",
+    "canUsePlaceholder": true
+  }
+}</_HardenedNativeWorkerConfig>
+        </PropertyGroup>
+
+        <WriteLinesToFile
+            File="$(_FunctionsWorkerConfigPath)"
+            Lines="$(_HardenedNativeWorkerConfig)"
+            Overwrite="true" />
+    </Target>
+
+    <!--
+        Reflection-based System.Text.Json stays available to the worker under trimming and
+        Native AOT.
+
+        The worker answers the host's request for metadata by parsing every binding a provider
+        returns with JsonSerializer.Deserialize<JsonElement>(string) and no resolver
+        (FunctionMetadataRpcExtensions.GetBindingInfoList). A trimmed or Native AOT publish turns
+        reflection-based serialization off, so that call throws before the first function is
+        indexed - the worker's own generated provider goes through the same call, which is
+        Azure/azure-functions-dotnet-worker#2715, and #1056 is where the worker's AOT support is
+        tracked. Until it lands, this keeps the default resolver reachable for the one call, at
+        the cost of nothing Hardened does: an application's own models go through the
+        source-generated contexts [AotSerializerModule] installs, whether or not this is set.
+
+        Only where the application has not said otherwise, and only for a trimmed or native
+        publish.
+    -->
+    <PropertyGroup Condition="('$(PublishAot)' == 'true' Or '$(PublishTrimmed)' == 'true') And '$(JsonSerializerIsReflectionEnabledByDefault)' == ''">
+        <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    </PropertyGroup>
+
+    <!--
+        The worker's own assemblies, and the application's, are kept whole under trimming and
+        Native AOT.
+
+        The worker finds what it needs by reflection rather than by reference: the extension
+        startup class the Worker SDK generates into the application is activated by name from an
+        assembly attribute, and every input converter - the worker's own and each extension's - is
+        constructed through ActivatorUtilities from a Type. The trimmer keeps a type those paths
+        name and removes its constructors, so the worker died on its first step with "No
+        parameterless constructor defined for type 'WorkerExtensionStartupCodeExecutor'", and
+        would have died on the first converter after that. Rooting the assemblies keeps their
+        members, which is what the worker's reflection expects to find. Each adapter package
+        roots its own extension the same way. Hardened's assemblies are not rooted: they pass the
+        analyzers and need nothing kept by hand, which is the claim the AOT proof holds.
+    -->
+    <ItemGroup Condition="'$(PublishAot)' == 'true' Or '$(PublishTrimmed)' == 'true'">
+        <TrimmerRootAssembly Include="Microsoft.Azure.Functions.Worker.Core" />
+        <TrimmerRootAssembly Include="Microsoft.Azure.Functions.Worker.Grpc" />
+        <TrimmerRootAssembly Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions" />
+        <TrimmerRootAssembly Include="$(AssemblyName)" />
+    </ItemGroup>
 </Project>

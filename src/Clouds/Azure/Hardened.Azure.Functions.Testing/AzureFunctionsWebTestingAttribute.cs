@@ -1,5 +1,7 @@
 using System.Net;
+using DependencyModules.Runtime.Interfaces;
 using DependencyModules.Testing.Attributes.Interfaces;
+using Hardened.Azure.Functions.Http;
 using Hardened.Azure.Functions.Runtime.Execution;
 using Hardened.Azure.Functions.Runtime.Hosting;
 using Hardened.Requests.Testing;
@@ -27,11 +29,20 @@ namespace Hardened.Azure.Functions.Testing;
 /// runs on the pipeline, on Kestrel, behind API Gateway and here, and only an assembly attribute
 /// differs.
 /// </para>
+/// <para>
+/// The HTTP adapter's module is loaded beside the application's, deduplicated when the
+/// application already carries it, so a test suite whose entry point is the library with the
+/// routes - the shape the templates write - runs through the adapter without naming a host
+/// project. The invocation handler comes with it, through the runtime module the adapter
+/// composes.
+/// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = false)]
-public sealed class AzureFunctionsWebTestingAttribute : TestHostAttribute {
+public sealed class AzureFunctionsWebTestingAttribute : TestHostAttribute, IDependencyModuleProvider {
     public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services) =>
         new FunctionsWebHost();
+
+    public IDependencyModule GetModule() => new HttpModule();
 }
 
 /// <summary>
@@ -179,8 +190,15 @@ public sealed class FunctionsWebHost : ITestHost {
                 Content = new StreamContent(response.Body)
             };
 
+            // Content-Type and Content-Length belong to the content, and the message's own
+            // collection refuses them; a client reads the content type to decide whether there
+            // is a body to deserialize at all.
             foreach (var header in response.Headers) {
-                message.Headers.TryAddWithoutValidation(header.Key, header.Value.ToString());
+                var values = header.Value.ToArray();
+
+                if (!message.Headers.TryAddWithoutValidation(header.Key, values)) {
+                    message.Content.Headers.TryAddWithoutValidation(header.Key, values);
+                }
             }
 
             return message;

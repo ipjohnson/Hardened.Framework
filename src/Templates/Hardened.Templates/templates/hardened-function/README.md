@@ -11,14 +11,28 @@ compile-time, source-generated .NET framework. The dispatch, the payload deseria
 dependency injection are all written during the build, and the trigger reaches the handler as
 the HTTP request Google sends.
 #endif
+#if (azure)
+An Azure Functions app on [Hardened](https://github.com/ipjohnson/Hardened.Framework) — a
+compile-time, source-generated .NET framework. The function the host indexes, the payload
+deserialisation and the dependency injection are all written during the build, and the trigger
+reaches the handler through the isolated worker the Functions host starts.
+#endif
 
 ## Run it
 
+#if (azure)
+```bash
+dotnet build
+dotnet test
+func start --script-root src/Hardened1/bin/Debug/net8.0
+```
+#else
 ```bash
 dotnet build
 dotnet test
 dotnet run --project src/Hardened1
 ```
+#endif
 
 #if (aws)
 The tests are how this function is exercised most of the time: they invoke it through the real
@@ -104,6 +118,102 @@ gcloud eventarc triggers create uploads --location=us-central1 --destination-run
 
 There is no infrastructure package; the two commands above are the deployment.
 #endif
+#if (azure)
+The tests are how this function is exercised most of the time: they invoke it through the real
+pipeline, with no Azure subscription and nothing to deploy.
+
+`func start` runs the function app the way Azure runs it: the Functions host, from
+[Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local),
+starts this project's build output as its worker and reads `src/Hardened1/local.settings.json`
+for the settings a deployment would put in the environment. The host needs a storage account for
+its own bookkeeping, which is [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite)
+under `UseDevelopmentStorage=true`:
+
+```bash
+docker run -d -p 10000:10000 -p 10001:10001 -p 10002:10002 mcr.microsoft.com/azure-storage/azurite
+```
+#if (queue || topic)
+
+The trigger needs a Service Bus namespace to read from. `local.settings.json` points
+`AzureWebJobsServiceBus` at the
+[Service Bus emulator](https://learn.microsoft.com/azure/service-bus-messaging/test-locally-with-service-bus-emulator)
+on localhost; replace it with a namespace's connection string to read from Azure. The host indexes
+the function either way and reports the listener until one is reachable.
+#endif
+#if (stream)
+
+The trigger needs an Event Hubs namespace to read from. `local.settings.json` points
+`AzureWebJobsEventHubs` at the
+[Event Hubs emulator](https://learn.microsoft.com/azure/event-hubs/test-locally-with-event-hub-emulator)
+on localhost; replace it with a namespace's connection string to read from Azure.
+#endif
+#if (change)
+
+The trigger needs a Cosmos DB account with the `Hardened1` database. `local.settings.json` points
+`CosmosDB` at the [emulator](https://learn.microsoft.com/azure/cosmos-db/emulator) on localhost;
+replace it with an account's connection string to read from Azure. The lease container is created
+on first start.
+#endif
+#if (timer)
+
+The schedule is the app setting `Hardened:Timers:nightly`, an NCRONTAB expression, and
+`local.settings.json` sets it to two in the morning. A deployment sets the same name in the
+function app's settings, so the same handler runs on a different schedule in every environment.
+#endif
+#if (blob)
+
+The trigger reads the storage account `AzureWebJobsStorage` names, so Azurite is also the
+container a blob is uploaded to locally. The function is fed by Event Grid in Azure; against
+Azurite the host falls back to scanning the container, which can take a minute to notice a blob.
+#endif
+
+## Deploy it
+
+```bash
+az group create --name hardened1 --location eastus
+az storage account create --name hardened1storage --resource-group hardened1 --sku Standard_LRS
+az functionapp create --name hardened1 --resource-group hardened1 --storage-account hardened1storage \
+    --consumption-plan-location eastus --runtime dotnet-isolated --functions-version 4
+func azure functionapp publish hardened1
+```
+
+`func azure functionapp publish` builds this project, zips the output and deploys it; the host in
+Azure indexes the same function the local one did. Then give the function app the settings
+`local.settings.json` held, with the source's own connection:
+
+```bash
+#if (queue || topic)
+az functionapp config appsettings set --name hardened1 --resource-group hardened1 \
+    --settings "AzureWebJobsServiceBus=$(az servicebus namespace authorization-rule keys list \
+        --namespace-name NAMESPACE --resource-group hardened1 --name RootManageSharedAccessKey \
+        --query primaryConnectionString --output tsv)"
+#endif
+#if (stream)
+az functionapp config appsettings set --name hardened1 --resource-group hardened1 \
+    --settings "AzureWebJobsEventHubs=$(az eventhubs namespace authorization-rule keys list \
+        --namespace-name NAMESPACE --resource-group hardened1 --name RootManageSharedAccessKey \
+        --query primaryConnectionString --output tsv)"
+#endif
+#if (change)
+az functionapp config appsettings set --name hardened1 --resource-group hardened1 \
+    --settings "CosmosDB=$(az cosmosdb keys list --name ACCOUNT --resource-group hardened1 \
+        --type connection-strings --query 'connectionStrings[0].connectionString' --output tsv)"
+#endif
+#if (timer)
+az functionapp config appsettings set --name hardened1 --resource-group hardened1 \
+    --settings "Hardened:Timers:nightly=0 0 2 * * *"
+#endif
+#if (blob)
+# The blob trigger reads AzureWebJobsStorage, which `az functionapp create` already set. Wire
+# Event Grid to it so a blob is noticed as it lands rather than when the container is next scanned:
+az eventgrid system-topic create --name hardened1-uploads --resource-group hardened1 \
+    --source "$(az storage account show --name hardened1storage --resource-group hardened1 --query id --output tsv)" \
+    --topic-type Microsoft.Storage.StorageAccounts --location eastus
+#endif
+```
+
+There is no infrastructure package; the commands above are the deployment.
+#endif
 
 ## The two projects
 
@@ -116,6 +226,9 @@ There is no infrastructure package; the two commands above are the deployment.
 #if (gcp)
 | `tests/Hardened1.Tests` | Tests, which deliver to the function the way Cloud Run does. |
 #endif
+#if (azure)
+| `tests/Hardened1.Tests` | Tests, which deliver to the function the way the isolated worker does. |
+#endif
 
 #if (aws)
 There is no separate host project. On Lambda the deployed artifact is this assembly, and
@@ -126,6 +239,11 @@ between a library and a host has nothing to separate here.
 There is no separate host project. On Cloud Run the deployed artifact is the container the
 `Dockerfile` builds from this assembly, and `Program.cs` is the entry point it starts — so the
 split that a web application makes between a library and a host has nothing to separate here.
+#endif
+#if (azure)
+There is no separate host project. On Azure the deployed artifact is this assembly, which the
+Functions host starts as its worker, and `Program.cs` is that worker's entry point — so the split
+that a web application makes between a library and a host has nothing to separate here.
 #endif
 
 ## The handler
@@ -214,6 +332,40 @@ handler carries a trigger attribute, through the build property the adapter pack
 So moving to another cloud is this attribute and a package reference. The handler names a source
 rather than a service — `[Queue("orders")]` is a queue on whichever provider the project
 references, and the same handler compiles against all of them.
+#endif
+#if (azure)
+```csharp
+[HardenedModule]
+#if (topic)
+[ServiceBusModule(Subscription = "Hardened1")]
+#endif
+#if (change)
+[CosmosDbModule(Database = "Hardened1")]
+#endif
+public partial class Application;
+```
+
+There is no host module attribute here, and that is the point. The adapter and the filters it
+needs arrive because the handler carries a trigger attribute: the generator reads the build
+property the adapter package declares, registers what serves it, and writes the function the
+Functions host indexes — one `[Function]` per source, in
+`obj/Debug/net8.0/generated/Hardened.Azure.Functions.SourceGenerator/`.
+#if (topic)
+
+The one line that names Service Bus is a deployment fact the trigger has no slot for: a topic is
+read through a subscription, and this is the subscription this function app reads through. The
+generator writes it into the function's binding, and the build fails with `HRDAZ003` without it.
+#endif
+#if (change)
+
+The one line that names Cosmos DB is a deployment fact the trigger has no slot for: a container
+lives in a database, and this is the one the container is in. The generator writes it into the
+function's binding, and the build fails with `HRDAZ003` without it.
+#endif
+
+So moving to another cloud is a package reference. The handler names a source rather than a
+service — `[Queue("orders")]` is a queue on whichever provider the project references, and the
+same handler compiles against all of them.
 #endif
 
 ## Testing
@@ -318,6 +470,11 @@ is packed the way AWS sends it and goes in through the invocation loop.
 #if (gcp)
 call. With `[assembly: CloudRunTesting]` in `Bootstrap.cs` it is also the real request: the payload
 is packed the way Google sends it and posted to the test's host, front door and all.
+#endif
+#if (azure)
+call. With `[assembly: AzureFunctionsTesting]` in `Bootstrap.cs` it is also the real trigger data:
+the payload is packed the way the isolated worker binds it and handed to the real invocation
+handler, adapter and all.
 #endif
 #if (moq)
 Take a `Mock<T>` parameter and that service is substituted for the whole container: the mock is Moq's,

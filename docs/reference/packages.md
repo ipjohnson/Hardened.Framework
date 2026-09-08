@@ -214,6 +214,44 @@ is a fact about the deployment. There is no `[Stream]` adapter, and `HRDF001` na
 |---|---|
 | `Hardened.Gcp.CloudRun.Testing` | `[assembly: CloudRunTesting]`, which delivers through the push, CloudEvent or Scheduler request Cloud Run actually receives rather than straight into the pipeline |
 
+## Azure Functions
+
+On the framework's version line, and released with it. One runtime package, one generator, and
+one adapter per source. The application is an isolated worker the Functions host starts, and
+every function the host indexes is generated from the handlers; see [Azure Functions](/azure/).
+
+### The host
+
+| Package | Contents |
+|---|---|
+| `Hardened.Azure.Functions.Runtime` | `UseHardened<T>()`, `FunctionsInvocationHandler`, the request shapes and the targets that keep the Worker SDK's own generated provider out. Every Azure application references it, beside `Microsoft.Azure.Functions.Worker.Sdk` |
+| `Hardened.Azure.Functions.SourceGenerator` | Writes one `[Function]` per source, the `IFunctionMetadataProvider` the host indexes and the `IFunctionExecutor` it invokes. An analyzer reference |
+| `Hardened.Azure.Functions` | The runtime and every adapter in one reference. Convenience rather than the recommended reference: `HRDF003` names the adapters the function app does not use |
+
+### Adapters
+
+| Package | Serves | Module |
+|---|---|---|
+| `Hardened.Azure.Functions.ServiceBus` | `[Queue]` from a queue, `[Topic]` from a subscription | `[ServiceBusModule]`, with `Subscription`, `Connection` and `ReportsItemFailures` |
+| `Hardened.Azure.Functions.Timer` | `[Timer]`, on the schedule in `Hardened:Timers:{name}` | `[TimerModule]` |
+| `Hardened.Azure.Functions.EventHubs` | `[Stream]` | `[EventHubsModule]`, with `Connection`, `ConsumerGroup`, and `RetryCount` with `RetryDelay` for the host's fixed-delay retry |
+| `Hardened.Azure.Functions.CosmosDb` | `[Change]`, the current document only | `[CosmosDbModule]`, with `Database`, `Connection`, `LeaseContainer`, and `RetryCount` with `RetryDelay` |
+| `Hardened.Azure.Functions.Blobs` | `[Blob]`, fed by Event Grid | `[BlobsModule]`, with `Connection` |
+| `Hardened.Azure.Functions.EventGrid` | `[Event]`, in the CloudEvents schema | `[EventGridModule]` |
+| `Hardened.Azure.Functions.Http` | The web verbs, behind one anonymous HTTP trigger | `[HttpModule]`, written out by a host project whose routes live in a library |
+
+An application does not write an adapter module out unless it carries a deployment fact: the
+subscription a topic is read through and the database a container lives in are required, and
+`HRDAZ003` names one that is missing. The application names no host attribute at all. There is
+no `[HardenedFunction]` adapter, because Azure Functions has no direct invocation of a function;
+`HRDF001` names the gap, and the web verbs are the way in.
+
+### Testing
+
+| Package | Contents |
+|---|---|
+| `Hardened.Azure.Functions.Testing` | `[assembly: AzureFunctionsTesting]` and `[assembly: AzureFunctionsWebTesting]`, which build the trigger data the worker would bind and hand it to the real invocation handler; `RecordingMessageActions` for settlement tests, and `MetadataAgreement` for the build's metadata against the generated provider |
+
 ## Versioning
 
 Everything releases on one version line, from a `v*` tag:

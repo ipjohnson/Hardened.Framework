@@ -17,6 +17,10 @@ using Hardened.Web.Kestrel.Runtime;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 #endif
+#if (azureFunctions)
+using Hardened.Azure.Functions.Runtime.Hosting;
+using Microsoft.Extensions.Hosting;
+#endif
 #if (aspnet)
 using Hardened.Web.AspNetCore.Runtime;
 using Microsoft.AspNetCore.Builder;
@@ -26,7 +30,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 #endif
 
-#if (!lambda)
+#if (!lambda && !azureFunctions)
 // Listens on 5080. Override with PORT.
 var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var configured) ? configured : 5080;
 #endif
@@ -151,4 +155,17 @@ if (environment.Matches("development")) {
 // gives what is in flight those ten seconds; the plain RunAsync returns on ProcessExit and the
 // process exits before the server has drained.
 await CloudRunHost.RunAsync(app);
+#endif
+#if (azureFunctions)
+// No server and no port. The Functions host is the server: it starts this process as its worker,
+// receives every request on the one HTTP function the generator wrote, and hands it over the
+// worker channel as the worker's own request data. Started by `func start` and by Azure alike.
+//
+// ConfigureFunctionsWorkerDefaults and not ConfigureFunctionsWebApplication: nothing here starts
+// an ASP.NET Core server, and the routes are Hardened's table behind the one function.
+var host = new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseHardened<Application>(environment))
+    .Build();
+
+host.Run();
 #endif

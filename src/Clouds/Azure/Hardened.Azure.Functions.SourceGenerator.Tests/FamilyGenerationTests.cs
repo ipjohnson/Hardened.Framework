@@ -76,6 +76,88 @@ public class FamilyGenerationTests {
         Assert.Contains("\"cardinality\":\"Many\"", binding);
     }
 
+    /// <summary>
+    /// A retry policy on the module is written twice: as the worker's attribute on the shim,
+    /// which the Worker SDK's build task reads, and as the options on the metadata the provider
+    /// answers the host with. The host advances the checkpoint on a failed invocation, so this is
+    /// the one way a thrown batch comes back.
+    /// </summary>
+    [Fact]
+    public async Task AStreamHandlersRetryPolicyIsOnTheFunctionAndInTheMetadata() {
+        var result = Generate(
+            """
+                [Stream("clickstream")]
+                public void OnClick(Order order) { }
+            """,
+            [("HardenedStreamModule", EventHubsModule)],
+            application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(RetryCount = 3, RetryDelay = \"00:00:10\")]")
+            .AssertNoErrors();
+
+        Assert.Contains("FixedDelayRetry(3, \"00:00:10\")", FunctionsSource(result));
+
+        var stream = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
+
+        Assert.NotNull(stream.Retry);
+        Assert.Equal(3, stream.Retry!.MaxRetryCount);
+        Assert.Equal(TimeSpan.FromSeconds(10), stream.Retry.DelayInterval);
+        Assert.Null(stream.Retry.MinimumInterval);
+    }
+
+    /// <summary>The same policy on a change feed function, whose lease the extension checkpoints the same way.</summary>
+    [Fact]
+    public async Task AChangeHandlersRetryPolicyIsOnTheFunctionAndInTheMetadata() {
+        var result = Generate(
+            """
+                [Change("orders")]
+                public void OnChange(Order order) { }
+            """,
+            [("HardenedChangeModule", CosmosDbModule)],
+            application: "[global::Hardened.Azure.Functions.CosmosDb.CosmosDbModule(Database = \"shop\", RetryCount = 2, RetryDelay = \"00:00:05\")]")
+            .AssertNoErrors();
+
+        Assert.Contains("FixedDelayRetry(2, \"00:00:05\")", FunctionsSource(result));
+
+        var change = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
+
+        Assert.Equal(2, change.Retry!.MaxRetryCount);
+        Assert.Equal(TimeSpan.FromSeconds(5), change.Retry.DelayInterval);
+    }
+
+    /// <summary>A module with no policy declares none, so the host applies its default of no retry.</summary>
+    [Fact]
+    public async Task AStreamHandlerWithoutARetryPolicyDeclaresNone() {
+        var result = Generate(
+            """
+                [Stream("clickstream")]
+                public void OnClick(Order order) { }
+            """,
+            ("HardenedStreamModule", EventHubsModule)).AssertNoErrors();
+
+        Assert.DoesNotContain("FixedDelayRetry", FunctionsSource(result));
+        Assert.Null(Assert.Single(await Provider(result).GetFunctionMetadataAsync("")).Retry);
+    }
+
+    /// <summary>
+    /// Half a policy is a function whose failures nothing retries, written by an application that
+    /// asked for retries, so the missing half is reported the way a missing database is.
+    /// </summary>
+    [Fact]
+    public void ARetryCountWithoutADelayIsReported() {
+        var result = Generate(
+            """
+                [Stream("clickstream")]
+                public void OnClick(Order order) { }
+            """,
+            [("HardenedStreamModule", EventHubsModule)],
+            application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(RetryCount = 3)]");
+
+        var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDAZ003");
+
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("RetryDelay", diagnostic.GetMessage());
+        Assert.Contains("[EventHubsModule(RetryDelay = \"...\")]", diagnostic.GetMessage());
+    }
+
     /// <summary>The connection the application names replaces the default.</summary>
     [Fact]
     public async Task AStreamHandlersConnectionComesFromTheModule() {
@@ -195,6 +277,25 @@ public class FamilyGenerationTests {
         var binding = Assert.Single(function.RawBindings!);
 
         Assert.Contains("\"type\":\"eventGridTrigger\"", binding);
+    }
+
+    /// <summary>
+    /// A host project whose routes live in a library names the module on the application, the
+    /// way a Lambda host names its API Gateway module, and that is enough for the one HTTP
+    /// function to be written: a generator sees only the compilation it runs in.
+    /// </summary>
+    [Fact]
+    public async Task AnApplicationNamingTheHttpModuleServesRoutesFromAnotherProject() {
+        var result = Generate(
+            "",
+            [("HardenedHttpModule", HttpModule)],
+            application: "[global::Hardened.Azure.Functions.Http.HttpModule]")
+            .AssertNoErrors();
+
+        var function = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
+
+        Assert.Equal("Http", function.Name);
+        Assert.Contains("\"route\":\"{*path}\"", function.RawBindings![0]);
     }
 
     /// <summary>

@@ -16,6 +16,7 @@
       "src\\Clouds\\Azure\\Hardened.Azure.Functions.Testing\\Hardened.Azure.Functions.Testing.csproj",
       "src\\Clouds\\Azure\\Hardened.Azure.Functions.Timer\\Hardened.Azure.Functions.Timer.csproj",
       "src\\Functions\\Hardened.CloudEvents\\Hardened.CloudEvents.csproj",
+      "src\\IntegrationTests\\Aot\\Hardened.IntegrationTests.Aot.AzureFunctions.SUT\\Hardened.IntegrationTests.Aot.AzureFunctions.SUT.csproj",
       "src\\Clouds\\Azure\\IntegrationTests\\Blob\\Hardened.IntegrationTests.AzureBlob.SUT.Tests\\Hardened.IntegrationTests.AzureBlob.SUT.Tests.csproj",
       "src\\Clouds\\Azure\\IntegrationTests\\Blob\\Hardened.IntegrationTests.AzureBlob.SUT\\Hardened.IntegrationTests.AzureBlob.SUT.csproj",
       "src\\Clouds\\Azure\\IntegrationTests\\Blob\\Hardened.IntegrationTests.AzureBlob.Worker.Tests\\Hardened.IntegrationTests.AzureBlob.Worker.Tests.csproj",

@@ -43,6 +43,11 @@
     <!-- The host Hardened1SocketTests runs the application on: a package, not the host project. -->
     <PackageReference Include="Hardened.Web.AspNetCore.Testing" />
 <!--#endif -->
+<!--#if (azureFunctions) -->
+    <!-- The host every test runs on: the worker's own request and response types through the
+         real invocation handler, with no Functions host process. A package, not the host project. -->
+    <PackageReference Include="Hardened.Azure.Functions.Testing" />
+<!--#endif -->
 <!--#if (kiotaClient) -->
     <!-- Builds the generated client for a test parameter; see Bootstrap.cs and TodoTests.cs. -->
     <PackageReference Include="Hardened.Kiota.Testing" />

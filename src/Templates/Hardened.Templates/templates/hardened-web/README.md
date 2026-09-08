@@ -6,6 +6,13 @@ injection are written during the build rather than resolved by reflection at run
 
 ## Run it
 
+#if (azureFunctions)
+```bash
+dotnet build
+dotnet test
+cd src/Hardened1.Host && func start
+```
+#else
 ```bash
 dotnet build
 dotnet test
@@ -13,6 +20,7 @@ dotnet run --project src/Hardened1.Host
 ```
 
 It listens on **5080** and prints its address. Set `PORT` to change it.
+#endif
 #if (lambda)
 
 On Lambda there is no web server in the project. Running the host starts the
@@ -36,9 +44,35 @@ gcloud run deploy hardened1 --source . --region us-central1 --allow-unauthentica
 
 There is no infrastructure package; that command is the deployment.
 #endif
+#if (azureFunctions)
+
+On Azure Functions there is no web server in the project. The Functions host is the server, and
+`func start` from [Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local)
+runs it locally, building `src/Hardened1.Host` and starting it as the host's worker.
+
+The host listens on **7071** and serves the routes through the one anonymous HTTP function the
+build wrote for them; `host.json` clears the host's `api` route prefix so the paths below are the
+paths a deployment answers. `local.settings.json` holds the settings a deployment would put in the
+environment. To deploy, create the function app and publish this host into it:
 
 ```bash
+az group create --name hardened1 --location eastus
+az storage account create --name hardened1storage --resource-group hardened1 --sku Standard_LRS
+az functionapp create --name hardened1 --resource-group hardened1 --storage-account hardened1storage \
+    --consumption-plan-location eastus --runtime dotnet-isolated --functions-version 4
+cd src/Hardened1.Host && func azure functionapp publish hardened1
+```
+
+There is no infrastructure package; those commands are the deployment.
+#endif
+
+#if (azureFunctions)
+```bash
+curl localhost:7071/todos
+#else
+```bash
 curl localhost:5080/todos
+#endif
 [{"id":1,"title":"Read the generated code","done":true},{"id":2,"title":"Add an endpoint","done":false}]
 ```
 
@@ -104,7 +138,7 @@ from a terminal browse to the page yourself.
 | `tests/Hardened1.Tests` | Tests, against the library rather than the host. |
 
 That split is the point rather than a convention. Swapping the host — Kestrel, ASP.NET Core,
-AWS Lambda behind API Gateway, or Cloud Run — changes only the host project. The others are identical whichever
+AWS Lambda behind API Gateway, Cloud Run, or Azure Functions — changes only the host project. The others are identical whichever
 one you pick, which is why the tests target the library: a test suite that named the host would be
 tied to a deployment target for no reason.
 

@@ -60,4 +60,17 @@
            Text="--host aws-lambda cannot be combined with --response-model union: union requires net11.0 and the Lambda managed runtime is net8.0. Regenerate with --response-model response." />
   </Target>
 <!--#endif -->
+<!--#if (azureFunctionsUnionConflict) -->
+
+  <!--
+    The same refusal for Azure Functions, for the same reason: the union response model needs
+    net11.0, and the isolated worker the Functions host starts runs on the .NET versions the host
+    supports, which a preview is not. The build would be green and the host would fail to start
+    the worker.
+  -->
+  <Target Name="HardenedTemplateRejectsAzureFunctionsUnion" BeforeTargets="Build">
+    <Error Code="HTPL007"
+           Text="--host azure-functions cannot be combined with --response-model union: union requires net11.0 and the Functions host runs the worker on a released .NET. Regenerate with --response-model response." />
+  </Target>
+<!--#endif -->
 </Project>

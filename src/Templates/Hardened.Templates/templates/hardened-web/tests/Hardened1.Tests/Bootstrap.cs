@@ -16,6 +16,9 @@ using Hardened.Web.Kestrel.Testing;
 #if (aspnet)
 using Hardened.Web.AspNetCore.Testing;
 #endif
+#if (azureFunctions)
+using Hardened.Azure.Functions.Testing;
+#endif
 #if (kiotaClient)
 using Hardened.Kiota.Testing;
 #endif
@@ -50,6 +53,14 @@ using Hardened.Refit.Testing;
 #endif
 #if (aspnet)
 [assembly: AspNetCoreTesting]
+#endif
+#if (azureFunctions)
+
+// The host. Every test's request is built as the worker's own request data and goes through the
+// real invocation handler, the HTTP adapter and the routing table, and the answer comes back as
+// the worker's response data - so the adapter is exercised without a Functions host process.
+// Delete this line and the same tests run on the pipeline alone.
+[assembly: AzureFunctionsWebTesting]
 #endif
 #if (hasClient)
 

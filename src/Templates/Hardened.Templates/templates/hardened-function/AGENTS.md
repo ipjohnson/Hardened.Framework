@@ -34,6 +34,31 @@ error, and deleting this one leaves a container with nothing to start. `CloudRun
 with the plain Kestrel calls and a request in flight when Cloud Run retires the instance is cut
 off.
 #endif
+#if (azure)
+and starts the isolated worker. Nothing generates a `Main`, so a second entry point is a compile
+error, and deleting this one leaves a worker the host cannot start. `UseHardened<Application>()`
+inside `ConfigureFunctionsWorkerDefaults` is what registers the generated metadata provider and
+executor with the worker; `ConfigureFunctionsWebApplication` is not a substitute, because it
+starts an ASP.NET Core server this project does not carry.
+
+**The Functions host is a separate process, and `Microsoft.Azure.Functions.Worker.Sdk` is what
+talks to it.** The Sdk's build task scans the `[Function]` methods the Azure generator wrote into
+`functions.metadata`, builds the host's extensions and writes `worker.config.json`; remove the
+package and the build fails with `HRDAZ010` naming it. The host is not started by this project:
+`func start` starts it locally, and Azure starts it in a deployment.
+
+**The generated functions are in
+`src/Hardened1/obj/Debug/net8.0/generated/Hardened.Azure.Functions.SourceGenerator/`.** One
+`[Function]` per source, named `Queue_orders` for `[Queue("orders")]`, with the extension's own
+trigger attribute on it. The host indexes them from the generated `IFunctionMetadataProvider`
+rather than by reflection, so what the host lists is what that file declares.
+#if (topic || change)
+
+**The module line on `Application.cs` is required.** It carries the one deployment fact the
+neutral trigger has no slot for, and the generator writes it into the function's binding; the
+build fails with `HRDAZ003` naming the property when it is missing.
+#endif
+#endif
 
 ## Things that will not be obvious
 
@@ -49,6 +74,11 @@ AWS sends and goes in through the invocation loop. No test method reads differen
 Google sends and posted to the test's web host. **It needs `[assembly: WebTesting]` beside it**,
 because that is what registers the host the request is posted to; the delivery says so if it is
 missing rather than running nothing. No test method reads differently either way.
+#endif
+#if (azure)
+`[assembly: AzureFunctionsTesting]` beside it raises the fidelity: the payload is packed into the
+trigger data the isolated worker would bind and handed to the real invocation handler. No test
+method reads differently either way. Nothing in a test starts the Functions host.
 #endif
 
 **The source generator packages are required.** The runtime packages carry no analyzers, so removing

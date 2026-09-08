@@ -167,7 +167,7 @@ public static class AzureFunctionsGenerator {
             title: "A module setting has to be a literal",
             messageFormat:
             "{0} on [{1}] is written as {2}, and the function metadata the host indexes needs its " +
-            "value at build. Write it as a string literal, or true or false.",
+            "value at build. Write it as a string literal, an integer literal, or true or false.",
             category: "Hardened.Azure",
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
@@ -274,8 +274,14 @@ public static class AzureFunctionsGenerator {
                 continue;
             }
 
+            var settings = ModuleSettings.For(entryPoint, module);
+
+            // The HTTP family is declared by a web verb in this compilation, or by the module
+            // written on the application: a host project whose routes live in a library names
+            // [HttpModule] the way a Lambda host names [ApiGatewayModule], because a generator
+            // sees only the compilation it runs in.
             var declared = family.Scheme == "HTTP"
-                ? usesWeb
+                ? usesWeb || settings.Written
                 : handlers.Any(handler => handler.Scheme == family.Scheme);
 
             if (!declared) {
@@ -290,8 +296,6 @@ public static class AzureFunctionsGenerator {
 
                 continue;
             }
-
-            var settings = ModuleSettings.For(entryPoint, module);
 
             if (!SettingsAreUsable(context, family, module, binding, settings)) {
                 continue;
@@ -357,19 +361,17 @@ public static class AzureFunctionsGenerator {
         var attribute = module.Substring(module.LastIndexOf('.') + 1);
         var usable = true;
 
-        foreach (var required in binding.RequiredSettings) {
-            if (settings.Get(required) == null) {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    MissingSetting(), Location.None, family.Name, required, attribute));
+        foreach (var required in binding.MissingSettings(settings)) {
+            context.ReportDiagnostic(Diagnostic.Create(
+                MissingSetting(), Location.None, family.Name, required, attribute));
 
-                usable = false;
-            }
+            usable = false;
         }
 
         foreach (var read in binding.ReadSettings) {
             var setting = settings.Get(read);
 
-            if (setting != null && setting.Literal == null && setting.Flag == null) {
+            if (setting != null && !setting.IsLiteral) {
                 context.ReportDiagnostic(Diagnostic.Create(
                     SettingNotALiteral(), Location.None, read, attribute, setting.Text));
 

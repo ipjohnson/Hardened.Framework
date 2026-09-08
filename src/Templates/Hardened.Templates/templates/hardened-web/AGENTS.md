@@ -246,6 +246,26 @@ build succeeds and every test fails at once with `FileNotFoundException` on the 
 services are registered at all (`[IfEnvironment]`). They are looked up separately, and dropping the
 second silently gives you `Production` while everything else says `development`. See the comment in
 `Program.cs`.
+#if (azureFunctions)
+
+**`[HttpModule]` on `src/Hardened1.Host/Application.cs` is load-bearing twice over.** It registers
+the HTTP trigger adapter, and it is what tells the Azure generator to write the one HTTP function
+the Functions host indexes: the routes live in the library, and a generator sees only the
+compilation it runs in, so the host has to say it serves routes. Remove it and the build is green
+with a function app that has no functions.
+
+**The Functions host is a separate process, and `Microsoft.Azure.Functions.Worker.Sdk` is what
+talks to it.** The Sdk's build task scans the generated function into `functions.metadata`, builds
+the host's extensions and writes `worker.config.json`; remove the package and the build fails with
+`HRDAZ010` naming it. `func start` starts the host locally, and Azure starts it in a deployment;
+nothing in this repository starts it. `host.json` clears the host's `api` route prefix so the
+routes answer at the paths the library declares.
+
+**Every test runs through the worker's own request and response types**, under
+`[assembly: AzureFunctionsWebTesting]` in `tests/Hardened1.Tests/Bootstrap.cs`, with no host
+process. Delete that line and the same tests run on the pipeline alone; there is no socket test,
+because the socket is the host's.
+#endif
 
 #if (xunit)
 **Tests are xUnit v3.** `Hardened.Shared.Testing.xUnit` builds on `xunit.v3.extensibility.core`; a

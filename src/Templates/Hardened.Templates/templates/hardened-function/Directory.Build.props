@@ -28,4 +28,21 @@
            Text="--host gcp cannot be combined with --trigger stream: Google Cloud has no stream source for [Stream]. Regenerate with --trigger queue." />
   </Target>
 <!--#endif -->
+<!--#if (azureInvokeConflict) -->
+
+  <!--
+    This combination cannot work, and it fails here rather than at deploy time.
+
+    Azure Functions has no direct invocation of a function. A caller reaches a function app over
+    HTTP, and an HTTP route is a web application: `dotnet new hardened-web --host azure-functions`
+    writes one. No Azure package binds HardenedInvokeModule, and the build would otherwise reach
+    HRDF001 with the same answer in the framework's words.
+
+    dotnet new cannot refuse a combination of parameters, so the refusal is a build error instead.
+  -->
+  <Target Name="HardenedTemplateRejectsAzureInvoke" BeforeTargets="Build">
+    <Error Code="HTPL006"
+           Text="--host azure cannot be combined with --trigger invoke: Azure Functions has no direct invoke for [HardenedFunction]. Regenerate with --trigger queue, or write the route as a web application with `dotnet new hardened-web --host azure-functions`." />
+  </Target>
+<!--#endif -->
 </Project>
