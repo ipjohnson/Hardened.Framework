@@ -58,17 +58,18 @@ public class FunctionsInvocationHandler {
     /// shim is a static method the worker locates by name and the host constructs nothing for it.
     /// <c>UseHardened</c> is what registered the handler there.
     /// </remarks>
-    public static Task Invoke(
+    public static Task<object?> Invoke(
         FunctionContext context, string scheme, string path, object data,
         FunctionsDispatch dispatch = FunctionsDispatch.Trigger) =>
         context.InstanceServices.GetRequiredService<FunctionsInvocationHandler>()
             .Invoke(new FunctionsTrigger(scheme, path, data, dispatch), context);
 
     /// <summary>
-    /// Runs one invocation. A throw reaches the worker, which reports the invocation failed to the
-    /// host - and for a queue that is what makes the messages redeliver.
+    /// Runs one invocation and returns what the function answers the host with, which is null for
+    /// every family but HTTP. A throw reaches the worker, which reports the invocation failed to
+    /// the host - and for a queue that is what makes the messages redeliver.
     /// </summary>
-    public async Task Invoke(FunctionsTrigger trigger, FunctionContext functionContext) {
+    public async Task<object?> Invoke(FunctionsTrigger trigger, FunctionContext functionContext) {
         var adapter = Select(trigger);
 
         Install();
@@ -90,7 +91,7 @@ public class FunctionsInvocationHandler {
 
         await _executor.Run(context, adapter.FailurePolicy);
 
-        await adapter.WriteResponse(context, functionContext);
+        return await adapter.WriteResponse(context, functionContext);
     }
 
     private bool _installed;

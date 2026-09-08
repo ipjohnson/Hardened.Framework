@@ -45,15 +45,17 @@ public class AzureFunctionsGeneratorTests {
 
     /// <summary>
     /// The shim hands the invocation handler the route the handler was compiled under, which is
-    /// what the pipeline dispatches on. A shim carrying another route would invoke and route to
-    /// nothing.
+    /// what the pipeline dispatches on, with the batch and its settlement actions bundled and the
+    /// trigger dispatch named. A shim carrying another route would invoke and route to nothing.
     /// </summary>
     [Fact]
     public void TheShimCarriesTheHandlersRoute() {
         var result = Generate(QueueHandler, ("HardenedQueueModule", ServiceBusModule)).AssertNoErrors();
 
         Assert.Contains(
-            "FunctionsInvocationHandler.Invoke(context, \"QUEUE\", \"/orders\", messages)",
+            "FunctionsInvocationHandler.Invoke(context, \"QUEUE\", \"/orders\", " +
+            "new global::Hardened.Azure.Functions.ServiceBus.ServiceBusDelivery(messages, messageActions), " +
+            "global::Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch.Trigger)",
             FunctionsSource(result));
     }
 
@@ -128,22 +130,90 @@ public class AzureFunctionsGeneratorTests {
     }
 
     /// <summary>
-    /// A bound trigger this generator has no Azure binding for yet. The handler would compile,
-    /// deploy and never be invoked, so it is an error naming the trigger.
+    /// A binding that needs a setting the module did not supply. A Service Bus topic is read
+    /// through a subscription, which no neutral trigger names, so a topic handler without
+    /// <c>[ServiceBusModule(Subscription = ...)]</c> on the application cannot be described to the
+    /// host and is an error naming the setting and where to write it.
     /// </summary>
     [Fact]
-    public void ABoundTriggerWithNoAzureBindingIsReported() {
+    public void ATopicHandlerWithoutASubscriptionIsReported() {
         var result = Generate(
             """
                 [Topic("order-events")]
                 public void OnEvent(Order order) { }
             """,
-            ("HardenedTopicModule", "Contoso.Bus.TopicModule"));
+            ("HardenedTopicModule", ServiceBusModule));
 
-        var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDAZ001");
+        var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDAZ003");
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("[Topic]", diagnostic.GetMessage());
+        Assert.Contains("Subscription", diagnostic.GetMessage());
+        Assert.Contains("[ServiceBusModule(Subscription = \"...\")]", diagnostic.GetMessage());
+        Assert.DoesNotContain("Topic_", FunctionsSource(result));
+    }
+
+    /// <summary>
+    /// The subscription supplied on the module reaches both halves: the shim's attribute and the
+    /// binding the host indexes.
+    /// </summary>
+    [Fact]
+    public async Task ATopicHandlerWithASubscriptionCompilesToASubscriptionFunction() {
+        var result = Generate(
+            """
+                [Topic("order-events")]
+                public void OnEvent(Order order) { }
+            """,
+            [("HardenedTopicModule", ServiceBusModule)],
+            application: "[global::Hardened.Azure.Functions.ServiceBus.ServiceBusModule(Subscription = \"orders-service\")]")
+            .AssertNoErrors();
+
+        Assert.Contains(
+            "ServiceBusTrigger(\"order-events\", \"orders-service\", IsBatched = true)",
+            FunctionsSource(result));
+
+        var topic = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
+
+        Assert.Equal("Topic_order_events", topic.Name);
+        Assert.Contains("\"subscriptionName\":\"orders-service\"", Assert.Single(topic.RawBindings!));
+    }
+
+    /// <summary>
+    /// A setting written as something the generator cannot evaluate. The shim could carry it; the
+    /// metadata the host reads could not.
+    /// </summary>
+    [Fact]
+    public void ASettingThatIsNotALiteralIsReported() {
+        var result = Generate(
+            QueueHandler,
+            [("HardenedQueueModule", ServiceBusModule)],
+            application: "[global::Hardened.Azure.Functions.ServiceBus.ServiceBusModule(Connection = Names.Connection)]",
+            extraTypes: "public static class Names { public const string Connection = \"Bus\"; }");
+
+        var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDAZ004");
+
+        Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
+        Assert.Contains("Connection", diagnostic.GetMessage());
+    }
+
+    /// <summary>
+    /// Settling per message changes the function the host is told about, not the handler: the
+    /// host's auto-completion is turned off on the binding so the adapter can complete what the
+    /// handler accepted.
+    /// </summary>
+    [Fact]
+    public async Task ReportingItemFailuresTurnsOffTheHostsAutoCompletion() {
+        var result = Generate(
+            QueueHandler,
+            [("HardenedQueueModule", ServiceBusModule)],
+            application: "[global::Hardened.Azure.Functions.ServiceBus.ServiceBusModule(ReportsItemFailures = true)]")
+            .AssertNoErrors();
+
+        Assert.Contains("IsBatched = true, AutoCompleteMessages = false", FunctionsSource(result));
+
+        var queue = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
+
+        Assert.Contains("\"autoCompleteMessages\":false", Assert.Single(queue.RawBindings!));
     }
 
     /// <summary>

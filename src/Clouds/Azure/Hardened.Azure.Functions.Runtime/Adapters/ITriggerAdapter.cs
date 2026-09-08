@@ -56,12 +56,21 @@ public interface ITriggerAdapter {
     HostFailurePolicy FailurePolicy { get; }
 
     /// <summary>
-    /// Writes what the host expects, once the chain has finished.
+    /// Writes what the host expects, once the chain has finished, and returns what the function
+    /// answers the host with.
     /// </summary>
     /// <remarks>
-    /// The HTTP adapter writes the response data here. A batched source settles or reports what
-    /// its request recorded, which is why this takes the execution context rather than only the
-    /// response, and the worker's context, which is where the settlement actions live.
+    /// <para>
+    /// The HTTP adapter builds the <c>HttpResponseData</c> here and returns it, because that is the
+    /// one family whose function has a return value the host reads. A batched source settles or
+    /// reports what its request recorded and returns null, which is why this takes the execution
+    /// context rather than only the response, and the worker's context, which is where the
+    /// settlement actions live.
+    /// </para>
+    /// <para>
+    /// <c>object</c> rather than a type parameter, because the invocation handler holds every
+    /// adapter behind one interface and the generated shim, which knows the family, is what casts.
+    /// </para>
     /// </remarks>
-    ValueTask WriteResponse(IExecutionContext context, FunctionContext functionContext);
+    ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext);
 }

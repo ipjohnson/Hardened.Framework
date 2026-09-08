@@ -52,6 +52,10 @@ internal static class AzureFunctionsEmitter {
     private static readonly ITypeDefinition HardenedFunctionsApplication =
         TypeDefinition.Get("Hardened.Azure.Functions.Runtime.Hosting", "IHardenedFunctionsApplication");
 
+    private const string InvocationHandler = "global::Hardened.Azure.Functions.Runtime.Hosting.FunctionsInvocationHandler";
+
+    private const string DispatchEnum = "global::Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch";
+
     public sealed class Emitted {
         public Emitted(string functions, string worker) {
             Functions = functions;
@@ -94,8 +98,8 @@ internal static class AzureFunctionsEmitter {
     }
 
     /// <summary>
-    /// The functions themselves: one static method per handler, carrying the worker's binding
-    /// attribute and handing the invocation handler the route it was generated for.
+    /// The functions themselves: one static method per handler or family, carrying the worker's
+    /// binding attribute and handing the invocation handler the route it was generated for.
     /// </summary>
     /// <remarks>
     /// Static, and public in a public class, because two readers locate it by name: the Worker
@@ -109,28 +113,46 @@ internal static class AzureFunctionsEmitter {
 
         foreach (var function in functions) {
             var binding = function.Binding;
+            var arguments = binding.Arguments(function.Source, function.Settings);
 
             var method = shims.AddMethod(function.Name);
 
             method.Modifiers = ComponentModifier.Public | ComponentModifier.Static;
-            method.SetReturnType(Task);
             method.AddAttribute(FunctionAttribute, QuoteString(function.Name));
 
-            var data = method.AddParameter(binding.ParameterType, binding.ParameterName);
-            var attribute = data.AddAttribute(binding.Attribute, QuoteString(function.Source));
+            foreach (var parameter in binding.Parameters) {
+                var declared = method.AddParameter(parameter.Type, parameter.Name);
 
-            foreach (var named in binding.NamedArguments) {
-                attribute.AddNamedArgument(named.Key, new CodeOutputComponent(named.Value) { Indented = false });
+                if (!parameter.IsTrigger) {
+                    continue;
+                }
+
+                var attribute = declared.AddAttribute(binding.Attribute, arguments.Positional.Cast<object>().ToArray());
+
+                foreach (var named in arguments.Named) {
+                    attribute.AddNamedArgument(named.Key, new CodeOutputComponent(named.Value) { Indented = false });
+                }
             }
 
             method.AddParameter(FunctionContext, "context");
 
-            method.Return(new CodeOutputComponent(
-                "global::Hardened.Azure.Functions.Runtime.Hosting.FunctionsInvocationHandler.Invoke(" +
-                "context, " + QuoteString(function.Handler.Scheme) + ", " +
-                QuoteString(function.Handler.Path) + ", " + binding.ParameterName + ")") {
-                Indented = false
-            });
+            var invoke = InvocationHandler + ".Invoke(context, " + QuoteString(function.Scheme) + ", " +
+                         QuoteString(function.Path) + ", " + binding.DataExpression + ", " +
+                         DispatchEnum + "." + binding.Dispatch + ")";
+
+            if (binding.ReturnType == null) {
+                method.SetReturnType(Task);
+                method.Return(new CodeOutputComponent(invoke) { Indented = false });
+            }
+            else {
+                // The one family whose function answers the host. The invocation handler returns
+                // what the adapter built as an object, and the shim, which knows the family, casts.
+                method.Modifiers |= ComponentModifier.Async;
+                method.SetReturnType(new GenericTypeDefinition(
+                    TypeDefinitionEnum.ClassDefinition, "System.Threading.Tasks", "Task", new[] { binding.ReturnType }));
+                method.Return(new CodeOutputComponent(
+                    "(" + Name(binding.ReturnType) + ")(await " + invoke + ")!") { Indented = false });
+            }
         }
     }
 
@@ -165,14 +187,17 @@ internal static class AzureFunctionsEmitter {
         });
 
         foreach (var function in functions) {
+            var bindings = string.Join(
+                ", ",
+                function.Binding.RawBindings(function.Source, function.Settings).Select(QuoteString));
+
             method.AddIndentedStatement(new CodeOutputComponent(
                 "functions.Add(new global::" + Worker + ".Core.FunctionMetadata.DefaultFunctionMetadata { " +
                 "Language = \"dotnet-isolated\", " +
                 "Name = " + QuoteString(function.Name) + ", " +
                 "EntryPoint = " + QuoteString(shims.Namespace + "." + shims.Name + "." + function.Name) + ", " +
                 "ScriptFile = " + QuoteString(assemblyName + ".dll") + ", " +
-                "RawBindings = new global::System.Collections.Generic.List<string> { " +
-                QuoteString(function.Binding.RawBinding(function.Source)) + " } })") {
+                "RawBindings = new global::System.Collections.Generic.List<string> { " + bindings + " } })") {
                 Indented = false
             });
         }
@@ -182,8 +207,9 @@ internal static class AzureFunctionsEmitter {
     }
 
     /// <summary>
-    /// What the worker runs: a switch on the function's name to the shim, with the trigger
-    /// parameter bound through the worker's own conversion so the extension's converter runs.
+    /// What the worker runs: a switch on the function's name to the shim, with every parameter
+    /// bound through the worker's own input binding feature, which is the path the Worker SDK's
+    /// executor takes and what runs the extensions' converters.
     /// </summary>
     /// <remarks>
     /// The name rather than the entry point, which the Worker SDK's executor switches on: both are
@@ -214,27 +240,30 @@ internal static class AzureFunctionsEmitter {
                 var binding = function.Binding;
                 var caseBlock = switchBlock.AddCase(QuoteString(function.Name));
 
-                var type = "global::" + binding.ParameterType.Namespace + "." + binding.ParameterType.Name +
-                           (binding.ParameterType.IsArray ? "[]" : "");
-
-                // Named after the function, because every section of a switch shares one scope
-                // and two queue functions would otherwise both declare `messages`.
-                var local = function.Name + "_" + binding.ParameterName;
+                // Named after the function, because every section of a switch shares one scope.
+                var inputs = function.Name + "_inputs";
 
                 caseBlock.AddIndentedStatement(new CodeOutputComponent(
-                    "var " + local + " = (await global::" + Worker +
-                    ".FunctionContextBindingFeatureExtensions.BindInputAsync<" + type + ">(" +
-                    "context, context.FunctionDefinition.InputBindings[" +
-                    QuoteString(binding.ParameterName) + "])).Value ?? " +
-                    "throw new global::System.InvalidOperationException(" +
-                    QuoteString("The worker bound nothing for '" + binding.ParameterName + "' on " +
-                                function.Name + ".") + ")") {
+                    "var " + inputs + " = (await context.Features.Get<global::" + Worker +
+                    ".Context.Features.IFunctionInputBindingFeature>()!.BindFunctionInputAsync(context)).Values") {
                     Indented = false
                 });
 
+                var arguments = new List<string>();
+
+                for (var index = 0; index < binding.Parameters.Count; index++) {
+                    arguments.Add("(" + Name(binding.Parameters[index].Type) + ")" + inputs + "[" + index + "]!");
+                }
+
+                arguments.Add("(" + Name(FunctionContext) + ")" + inputs + "[" + binding.Parameters.Count + "]!");
+
+                var call = "global::" + shims.Namespace + "." + shims.Name + "." + function.Name + "(" +
+                           string.Join(", ", arguments) + ")";
+
                 caseBlock.AddIndentedStatement(new CodeOutputComponent(
-                    "await global::" + shims.Namespace + "." + shims.Name + "." + function.Name + "(" +
-                    local + ", context)") {
+                    binding.ReturnType == null
+                        ? "await " + call
+                        : "global::" + Worker + ".FunctionContextBindingFeatureExtensions.GetInvocationResult(context).Value = await " + call) {
                     Indented = false
                 });
 
@@ -270,6 +299,10 @@ internal static class AzureFunctionsEmitter {
         method.AddIndentedStatement(
             services.InvokeGeneric("AddSingleton", new[] { FunctionExecutor, executor }));
     }
+
+    /// <summary>A type as generated text: fully qualified, with its array rank.</summary>
+    private static string Name(ITypeDefinition type) =>
+        "global::" + type.Namespace + "." + type.Name + (type.IsArray ? "[]" : "");
 
     private static string Output(CSharpFileDefinition file) {
         var output = new OutputContext(new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global });

@@ -12,6 +12,8 @@
         Conditional, so a csproj can replace this binding and keep the rest.
     -->
     <PropertyGroup>
+        <!-- One adapter, two triggers: a queue and a subscription deliver the same message. -->
         <HardenedQueueModule Condition="'$(HardenedQueueModule)' == ''">Hardened.Azure.Functions.ServiceBus.ServiceBusModule</HardenedQueueModule>
+        <HardenedTopicModule Condition="'$(HardenedTopicModule)' == ''">Hardened.Azure.Functions.ServiceBus.ServiceBusModule</HardenedTopicModule>
     </PropertyGroup>
 </Project>

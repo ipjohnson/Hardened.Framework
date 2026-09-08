@@ -68,7 +68,18 @@ public static class AzureGeneratorHarness {
     /// An application entry point beside a handler class holding <paramref name="handlers"/>, run
     /// through the three generators with the build properties a referenced runtime would set.
     /// </summary>
-    public static GeneratorResult Generate(string handlers, params (string Property, string Module)[] properties) {
+    public static GeneratorResult Generate(string handlers, params (string Property, string Module)[] properties) =>
+        Generate(handlers, properties, application: "", extraTypes: "");
+
+    /// <summary>
+    /// The same, with attributes written on the application beside <c>[HardenedModule]</c> - a
+    /// module attribute carrying deployment settings - and any further types the source needs.
+    /// </summary>
+    public static GeneratorResult Generate(
+        string handlers,
+        (string Property, string Module)[] properties,
+        string application = "",
+        string extraTypes = "") {
         var source = $$"""
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Functions.Runtime.Attributes;
@@ -79,7 +90,10 @@ public static class AzureGeneratorHarness {
                 public string Id { get; set; } = "";
             }
 
+            {{extraTypes}}
+
             [HardenedModule]
+            {{application}}
             public partial class TestApplication { }
 
             public class Handlers {

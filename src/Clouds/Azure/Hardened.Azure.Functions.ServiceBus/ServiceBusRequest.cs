@@ -17,9 +17,10 @@ namespace Hardened.Azure.Functions.ServiceBus;
 /// reaches them; it forks this request per message through <see cref="ForItem"/>.
 /// </para>
 /// <para>
-/// <see cref="ReportsItemFailures"/> is false: the host settles the whole batch on the invocation's
-/// outcome, so a failed message has to fail the invocation to be redelivered. Settling per message
-/// through the extension's <c>ServiceBusMessageActions</c> is Phase 2, behind this flag.
+/// <see cref="ReportsItemFailures"/> follows the module. Off, the host settles the whole batch on
+/// the invocation's outcome, so a failed message has to fail the invocation to be redelivered. On,
+/// the filter records the failed messages and the adapter settles each one through
+/// <see cref="Actions"/> once the chain has finished.
 /// </para>
 /// </remarks>
 public class ServiceBusRequest : FunctionsPayloadRequest, IBatchRequest {
@@ -31,14 +32,24 @@ public class ServiceBusRequest : FunctionsPayloadRequest, IBatchRequest {
         Stream body,
         IDictionary<string, StringValues> headers,
         IReadOnlyList<ServiceBusReceivedMessage> messages,
-        bool reportsItemFailures = false)
+        bool reportsItemFailures = false,
+        Microsoft.Azure.Functions.Worker.ServiceBusMessageActions? actions = null)
         : base(scheme, path, body, headers) {
         Messages = messages;
-        ReportsItemFailures = reportsItemFailures;
+        ReportsItemFailures = reportsItemFailures && actions != null;
+        Actions = actions;
     }
 
     /// <summary>The messages, in the order the queue delivered them.</summary>
     public IReadOnlyList<ServiceBusReceivedMessage> Messages { get; }
+
+    /// <summary>
+    /// What settles this batch's messages, when the worker bound them. Null under the envelope
+    /// tier's delivery, which has no host to settle with - and then
+    /// <see cref="ReportsItemFailures"/> is false whatever the module said, because recording a
+    /// failure nothing could act on would lose the message.
+    /// </summary>
+    public Microsoft.Azure.Functions.Worker.ServiceBusMessageActions? Actions { get; }
 
     /// <summary>The message id, as a header, so a handler can log or deduplicate on it.</summary>
     public const string MessageIdHeader = "x-azure-servicebus-message-id";
