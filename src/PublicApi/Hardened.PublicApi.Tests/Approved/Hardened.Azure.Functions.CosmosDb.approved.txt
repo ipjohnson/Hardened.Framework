@@ -28,6 +28,8 @@ namespace Hardened.Azure.Functions.CosmosDb
         public string? Connection { get; set; }
         public string? Database { get; set; }
         public string? LeaseContainer { get; set; }
+        public int? RetryCount { get; set; }
+        public string? RetryDelay { get; set; }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
@@ -40,6 +42,8 @@ namespace Hardened.Azure.Functions.CosmosDb
         public string Connection { get; set; }
         public string Database { get; set; }
         public string LeaseContainer { get; set; }
+        public int RetryCount { get; set; }
+        public string RetryDelay { get; set; }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     public class CosmosDbRequest : Hardened.Azure.Functions.Runtime.Execution.FunctionsPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest

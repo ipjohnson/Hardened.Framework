@@ -17,6 +17,8 @@ namespace Hardened.Azure.Functions.EventHubs
         public EventHubsModule() { }
         public string? Connection { get; set; }
         public string? ConsumerGroup { get; set; }
+        public int? RetryCount { get; set; }
+        public string? RetryDelay { get; set; }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
@@ -28,6 +30,8 @@ namespace Hardened.Azure.Functions.EventHubs
         public EventHubsModuleAttribute() { }
         public string Connection { get; set; }
         public string ConsumerGroup { get; set; }
+        public int RetryCount { get; set; }
+        public string RetryDelay { get; set; }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
     public class EventHubsRequest : Hardened.Azure.Functions.Runtime.Execution.FunctionsPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
