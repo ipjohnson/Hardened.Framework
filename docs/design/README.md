@@ -23,5 +23,7 @@ still cited. The numbers and the commands in one are what was true then. `TESTIN
 `Hardened.Amz.sln`, and that is correct for 2026-08-11.
 
 - `TESTING-PLAN.md`, `TEMPLATE-PLAN.md`, `DOCS-PLAN.md`, `ENVIRONMENT-SPLIT.md`
+- `CLOUD-LINES-PLAN.html` — 2026-09-07, the Azure and GCP lines: the decisions, the two-agent
+  protocol, the simulator matrix and the phases. Written against main at `f33b0102`.
 - `bearer-principal-source.md`, `client-by-default-handoff.md`
 - `openapi-remediation-plan.html`

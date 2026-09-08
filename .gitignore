@@ -200,3 +200,7 @@ docs/.vitepress/cache/
 
 # Hang dumps and sequence files from --blame runs.
 TestResults/
+
+# Claude Code: per-agent worktrees and local settings for the cloud-line orchestration.
+.claude/worktrees/
+.claude/settings.local.json
