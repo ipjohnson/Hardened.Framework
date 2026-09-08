@@ -204,6 +204,10 @@ internal static class SchemaEmitter {
             direction.Target = "property";
         }
 
+        if (EmitOmitWhenNull(parameter, property) is { } omit) {
+            omit.Target = "property";
+        }
+
         // Required, except where the type already guarantees it - see
         // TypeMapper.IsNonNullableValueType.
         var emitRequired = property.ConstrainedAsRequired &&
@@ -291,6 +295,7 @@ internal static class SchemaEmitter {
 
         EmitJsonPropertyName(member, property);
         EmitDirection(member, property);
+        EmitOmitWhenNull(member, property);
     }
 
     /// <summary>
@@ -444,6 +449,31 @@ internal static class SchemaEmitter {
         parameter.AddAttribute(
             TypeDefinition.Get("System.Text.Json.Serialization", "JsonPropertyNameAttribute"),
             new CodeOutputComponent($"\"{property.Name}\"") { Indented = false });
+
+    /// <summary>
+    /// Absent rather than null, for a member the description declares optional and not nullable.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// See <see cref="PropertyModel.OmittedWhenNull"/> for what the two words mean together and
+    /// what reading a null cost. A server that publishes a document must not answer a body that
+    /// document forbids.
+    /// </para>
+    /// <para>
+    /// Emitted here <em>and</em> as <c>IgnoreCondition</c> in <c>JsonTypeInfoEmitter</c>, the way
+    /// <c>[JsonRequired]</c> is: the reflection-based serializer reads this attribute, and the
+    /// source-generated resolver builds <c>JsonPropertyInfo</c> by hand and never sees it.
+    /// </para>
+    /// </remarks>
+    private static AttributeDefinition? EmitOmitWhenNull(
+        BaseOutputComponent target, PropertyModel property) =>
+        property.OmittedWhenNull
+            ? target.AddAttribute(
+                TypeDefinition.Get("System.Text.Json.Serialization", "JsonIgnoreAttribute"),
+                new CodeOutputComponent(
+                    "Condition = global::System.Text.Json.Serialization." +
+                    "JsonIgnoreCondition.WhenWritingNull") { Indented = false })
+            : null;
 
     private static EnumDefinition EmitEnum(
         IConstructContainer container, SchemaModel schema, string modelsNamespace) {

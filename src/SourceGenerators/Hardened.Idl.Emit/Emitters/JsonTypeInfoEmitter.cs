@@ -335,6 +335,15 @@ internal static class JsonTypeInfoEmitter {
             ? $"                    Setter = static (object obj, {genericType} value) => {{ }},"
             : "                    Setter = null,");
 
+        // Absent rather than null for a member the description declares optional and not nullable.
+        // The same decision SchemaEmitter writes as [JsonIgnore(Condition = WhenWritingNull)], and
+        // it has to be made twice: this resolver builds JsonPropertyInfo by hand and never reads
+        // the attribute, so the two serializers answered differently for the same contract.
+        if (prop.OmittedWhenNull) {
+            sb.AppendLine(
+                "                    IgnoreCondition = JsonIgnoreCondition.WhenWritingNull,");
+        }
+
         sb.AppendLine($"                }}){close}");
     }
 

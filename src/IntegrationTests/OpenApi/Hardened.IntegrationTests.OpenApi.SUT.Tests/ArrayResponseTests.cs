@@ -46,4 +46,34 @@ public class ArrayResponseTests {
 
         Assert.NotEmpty(response.Deserialize<List<Pet>>()!);
     }
+
+    /// <summary>
+    /// An optional member the handler left empty is absent from the body rather than null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>tag</c> is optional and not nullable, which says "may be absent, and is a string if
+    /// present" - so <c>"tag":null</c> is a body this document forbids. Buddy has no tag and Luna
+    /// has one, so both halves are in the same response.
+    /// </para>
+    /// <para>
+    /// The cost of the null was on the client: a generated <c>string tag</c> - which is what
+    /// Refitter writes, and what a Swift <c>Codable</c> struct produces - fails to read it. Kiota
+    /// makes every property nullable and read it happily, which is why this went unnoticed until a
+    /// consumer changed generators.
+    /// </para>
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnOptionalMemberWithNoValueIsAbsentRatherThanNull(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get("/pets");
+
+        response.Assert.Ok();
+        response.Body.Position = 0;
+
+        using var reader = new StreamReader(response.Body, leaveOpen: true);
+        var body = await reader.ReadToEndAsync();
+
+        Assert.DoesNotContain("null", body);
+        Assert.Contains("\"tag\":\"dog\"", body);
+    }
 }
