@@ -215,7 +215,8 @@ client generated from it reads a list rather than a stream.
 On Lambda, whether a response streams is a deployment setting rather than a property of the handler.
 `stream` needs a function URL in `RESPONSE_STREAM` invoke mode, with or without CloudFront in front.
 A buffered deployment accumulates the whole body before returning it, so a streamed response arrives
-all at once at the end. See [Response mode](/aws/lambda-web#response-mode).
+all at once at the end. An application with `[ServerSentEvents]` handlers deployed in buffered mode
+logs a warning at startup naming them. See [Response mode](/aws/lambda-web#response-mode).
 
 The Azure Functions worker hands the whole body to the host when the invocation returns, so a
 streamed response there arrives at the end whatever the handler does.

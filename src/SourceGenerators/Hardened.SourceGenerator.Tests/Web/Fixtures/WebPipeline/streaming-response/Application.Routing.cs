@@ -3,10 +3,12 @@
 #pragma warning disable CS1591 // generated members carry no doc comments
 using DependencyModules.Runtime.Helpers;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using TestApp.Generated;
 
@@ -23,6 +25,10 @@ namespace TestApp
             serviceCollection.AddSingleton<
                 IWebExecutionRequestHandlerProvider,
                 Application.RoutingTable
+            >();
+            serviceCollection.AddSingleton<
+                IServerSentEventManifest,
+                Application.ServerSentEvents
             >();
             serviceCollection.AddTransient<FeedController>();
             serviceCollection.AddTransient<Application.Links>();
@@ -88,6 +94,16 @@ namespace TestApp
                 }
                 return handlerInfo;
             }
+        }
+
+        /// <summary>
+        /// The handlers this application answers as text/event-stream. Read by a host whose framing depends on its deployment; see IServerSentEventManifest.
+        /// </summary>
+        private sealed class ServerSentEvents : IServerSentEventManifest
+        {
+            private static readonly string[] _handlers = new string[] { "GET /feed" };
+
+            public IReadOnlyList<string> Handlers => _handlers;
         }
     }
 }

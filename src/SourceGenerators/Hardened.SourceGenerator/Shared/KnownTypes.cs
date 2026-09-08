@@ -275,6 +275,11 @@ public static class KnownTypes {
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Serializer,
                 "IContextSerializationService");
 
+        /// <summary>The list of event-stream handlers a routing table emits for a host to read.</summary>
+        public static readonly ITypeDefinition IServerSentEventManifest =
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Serializer,
+                "IServerSentEventManifest");
+
         public static readonly ITypeDefinition IExecutionRequestParameter =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
                 "IExecutionRequestParameter");

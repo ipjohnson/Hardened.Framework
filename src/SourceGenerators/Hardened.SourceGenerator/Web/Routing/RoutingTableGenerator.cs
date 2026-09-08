@@ -250,13 +250,18 @@ public static class RoutingTableGenerator {
         var routingType = TypeDefinition.Get(appModel.EntryPointType.Namespace,
             appModel.EntryPointType.Name + "." + options.ClassName);
 
-        // Before the DI method, which registers what this emits.
+        // Before the DI method, which registers what these emit.
         var enums = EnumWireConverterEmitter.Collect(endPointModels);
 
         EnumWireConverterEmitter.Emit(appClass, enums);
 
+        var eventStreams = ServerSentEventManifestEmitter.Collect(endPointModels);
+
+        ServerSentEventManifestEmitter.Emit(appClass, eventStreams);
+
         GenerateDependencyInjection(
-            appClass, routingType, appModel, endPointModels, enums, cancellationToken, options);
+            appClass, routingType, appModel, endPointModels, enums, eventStreams, cancellationToken,
+            options);
     }
 
     private static void CreateConstructor(ClassDefinition appClass) {
@@ -273,6 +278,7 @@ public static class RoutingTableGenerator {
         ITypeDefinition routingTableType,
         EntryPointSelector.Model applicationModel, IReadOnlyList<RequestHandlerModel> webEndPointModels,
         IReadOnlyList<EnumVocabulary> enums,
+        IReadOnlyList<string> eventStreams,
         CancellationToken cancellationToken,
         RoutingTableOptions options) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -292,6 +298,18 @@ public static class RoutingTableGenerator {
 
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
+
+        // Only where a handler is framed as events, so an application with none generates exactly
+        // what it generated before this existed.
+        if (eventStreams.Count > 0) {
+            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
+                new[] {
+                    KnownTypes.Requests.IServerSentEventManifest,
+                    TypeDefinition.Get(applicationModel.EntryPointType.Namespace,
+                        applicationModel.EntryPointType.Name + "." +
+                        ServerSentEventManifestEmitter.ContainerName)
+                }));
+        }
 
         // The service-wide negotiation policy, from [ContentNegotiation] on the entry point. There
         // is no description to consult here; the spec-first table reads both. Same helper either

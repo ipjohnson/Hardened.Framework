@@ -28,6 +28,25 @@ public class HttpFunctionTests {
         Assert.Equal(7, order.Quantity);
     }
 
+    /// <summary>
+    /// A literal segment beside a wildcard at the same depth, which nothing else in the repository
+    /// routes.
+    /// </summary>
+    /// <remarks>
+    /// <c>/orders/live</c> has to beat <c>/orders/{id}</c> rather than arriving as an order whose id
+    /// is the word "live". It is the shape anyone reaches for when adding an event stream to an
+    /// existing resource, and until this route existed no test said which way the generated table
+    /// resolved it.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ALiteralSegmentBeatsTheWildcardBesideIt(ITestWebApp app) {
+        var response = await app.Get("/orders/live");
+
+        Assert.Equal(200, response.StatusCode);
+        Assert.Contains("text/event-stream", response.Headers["Content-Type"].ToString());
+        Assert.Contains("live-1", await response.ReadTextAsync());
+    }
+
     [HardenedTest]
     public async Task APostBindsItsBody(ITestWebApp app) {
         var response = await app.Post(new Order { Id = "o-2", Quantity = 3 }, "/orders");
