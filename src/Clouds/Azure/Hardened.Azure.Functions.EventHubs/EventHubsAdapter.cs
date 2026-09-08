@@ -13,8 +13,19 @@ namespace Hardened.Azure.Functions.EventHubs;
 /// <remarks>
 /// <para>
 /// Payload-shaped: the handler sees an event and a route. A throw is rethrown rather than
-/// answered, because there is no caller on the other end - failing the invocation is what stops
-/// the host checkpointing past the batch, so the partition replays from where it was.
+/// answered, because there is no caller on the other end: a failed invocation is what the host
+/// logs and counts, and what a retry policy on the function app retries.
+/// </para>
+/// <para>
+/// <b>A failure does not replay the batch, and this is where the host differs from Kinesis.</b>
+/// The Functions host advances the partition's checkpoint when the invocation completes, with or
+/// without an exception, so a thrown batch is not delivered again unless the function app
+/// declares a retry policy - and then it is delivered again only until that policy is spent.
+/// Kinesis on Lambda retries a failed batch until it succeeds or expires. A <c>[Stream]</c>
+/// handler that has to see every event therefore needs a retry policy on Azure and a dead-letter
+/// path of its own; the documentation for the Event Hubs trigger says the same
+/// (functions-reliable-event-processing). This is a documented divergence, not something the
+/// adapter can close.
 /// </para>
 /// <para>
 /// <b>The shim binds <c>EventData[]</c></b>, for the reason the Service Bus adapter gives for its
@@ -49,12 +60,12 @@ public sealed class EventHubsAdapter : ITriggerAdapter {
     public IExecutionResponse CreateResponse(Stream output) => new FunctionsPayloadResponse(output);
 
     /// <summary>
-    /// Rethrown. Failing the invocation is what keeps the host's checkpoint where it was, so the
-    /// batch is delivered again - answering would advance it past an event nothing handled.
+    /// Rethrown. A failed invocation is what the host reports and what a retry policy retries;
+    /// answering would record a batch nothing handled as a success.
     /// </summary>
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
 
-    /// <summary>Nothing. The host checkpoints on the invocation's outcome and reads no response.</summary>
+    /// <summary>Nothing. The host checkpoints when the invocation completes and reads no response.</summary>
     public ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext) =>
         new((object?)null);
 }

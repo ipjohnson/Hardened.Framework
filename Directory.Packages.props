@@ -136,6 +136,13 @@
       group, which has to be the same version or the module fails to load its base types.
     -->
     <ItemGroup Label="Azure">
+        <!--
+          The version Microsoft.Azure.Functions.Worker.Extensions.EventHubs 6.5.0 resolves, pinned
+          for the one direct reference (the stream fixture's host tests publish with it): a higher
+          pin would not move the adapter, which takes the SDK transitively, and 5.12 marks the
+          Offset the adapter reads obsolete.
+        -->
+        <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.5" />
         <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
         <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
         <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.CosmosDB" Version="4.16.1" />

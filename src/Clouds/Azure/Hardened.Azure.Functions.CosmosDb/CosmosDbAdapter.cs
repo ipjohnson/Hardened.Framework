@@ -13,8 +13,19 @@ namespace Hardened.Azure.Functions.CosmosDb;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Payload-shaped: the handler sees a document and a route. A throw is rethrown, because failing
-/// the invocation is what stops the extension advancing the lease past a change nothing handled.
+/// Payload-shaped: the handler sees a document and a route. A throw is rethrown rather than
+/// answered, because there is no caller on the other end: a failed invocation is what the host
+/// logs and counts, and what a retry policy on the function app retries.
+/// </para>
+/// <para>
+/// <b>A failure does not replay the batch, and this is where the host differs from DynamoDB
+/// Streams.</b> The extension checkpoints the lease after each function call, failed or not -
+/// the Functions documentation lists a retry policy as the change feed trigger's only retry, and
+/// the lease checkpoint interval's default as after every call - so a thrown batch is not
+/// delivered again unless the function app declares a retry policy, and then only until that
+/// policy is spent. A <c>[Change]</c> handler that has to see every change therefore needs a
+/// retry policy on Azure and a dead-letter path of its own. A documented divergence, the same one
+/// the Event Hubs adapter records.
 /// </para>
 /// <para>
 /// <b>The shim binds the feed as a string, and this is why.</b> The host sends the batch as one
@@ -117,12 +128,12 @@ public sealed class CosmosDbAdapter : ITriggerAdapter {
     public IExecutionResponse CreateResponse(Stream output) => new FunctionsPayloadResponse(output);
 
     /// <summary>
-    /// Rethrown. Failing the invocation is what keeps the lease where it was, so the batch is
-    /// delivered again - answering would advance it past a change nothing handled.
+    /// Rethrown. A failed invocation is what the host reports and what a retry policy retries;
+    /// answering would record a batch nothing handled as a success.
     /// </summary>
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
 
-    /// <summary>Nothing. The extension advances the lease on the invocation's outcome and reads no response.</summary>
+    /// <summary>Nothing. The extension checkpoints the lease after the call and reads no response.</summary>
     public ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext) =>
         new((object?)null);
 }

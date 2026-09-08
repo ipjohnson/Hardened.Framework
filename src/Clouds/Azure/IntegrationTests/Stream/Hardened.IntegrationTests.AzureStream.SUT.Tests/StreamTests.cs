@@ -57,8 +57,9 @@ public class StreamTests {
     }
 
     /// <summary>
-    /// Failing the invocation is what keeps the checkpoint where it was, so the partition replays.
-    /// Nothing reports individual events, so a failed event has to take the whole batch with it.
+    /// Failing the invocation is what the host reports and what a retry policy on the function
+    /// app retries. Nothing reports individual events, so a failed event has to take the whole
+    /// batch with it.
     /// </summary>
     [HardenedTest]
     public async Task AFailedRecordFailsTheInvocation(

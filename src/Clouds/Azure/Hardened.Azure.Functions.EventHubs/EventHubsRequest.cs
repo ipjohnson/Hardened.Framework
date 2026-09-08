@@ -18,9 +18,11 @@ namespace Hardened.Azure.Functions.EventHubs;
 /// </para>
 /// <para>
 /// <b>Nothing is reported back.</b> The host checkpoints the whole batch when the invocation
-/// succeeds and leaves the checkpoint where it was when it fails; there is no report naming a
-/// position, which is the difference from Kinesis. So <see cref="ReportsItemFailures"/> is false
-/// with no way to turn it on, and a failed event fails the invocation.
+/// completes, failed or not, and reads no report naming a position - which is the difference
+/// from Kinesis, where the report is what a partial replay is made of. So
+/// <see cref="ReportsItemFailures"/> is false with no way to turn it on, and a failed event fails
+/// the invocation, which is what a retry policy on the function app acts on. See
+/// <see cref="EventHubsAdapter"/> for what a failure does and does not do to the checkpoint.
 /// </para>
 /// </remarks>
 public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest {
@@ -83,8 +85,8 @@ public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest {
     public void RecordFailure(int index, Exception failure) =>
         throw new NotSupportedException(
             "The host reads no report from an Event Hubs function, so an individual event cannot " +
-            "be reported as failed. The invocation fails instead, which leaves the checkpoint where " +
-            "it was.");
+            "be reported as failed. The invocation fails instead, which is what a retry policy on " +
+            "the function app retries.");
 
     /// <summary>
     /// The request for one event, as a handler will see it.

@@ -15,10 +15,11 @@ namespace Hardened.Azure.Functions.CosmosDb;
 /// position, so the run stops at the first failure rather than attempting the rest.
 /// </para>
 /// <para>
-/// <b>Nothing is reported back.</b> The extension advances the lease when the invocation succeeds
-/// and leaves it when the invocation fails; there is no report naming a position. So
-/// <see cref="ReportsItemFailures"/> is false with no way to turn it on, and a failed change fails
-/// the invocation.
+/// <b>Nothing is reported back.</b> The extension checkpoints the lease after each call, failed or
+/// not, and reads no report naming a position. So <see cref="ReportsItemFailures"/> is false
+/// with no way to turn it on, and a failed change fails the invocation, which is what a retry
+/// policy on the function app acts on. See <see cref="CosmosDbAdapter"/> for what a failure does
+/// and does not do to the lease.
 /// </para>
 /// </remarks>
 public class CosmosDbRequest : FunctionsPayloadRequest, IBatchRequest {
@@ -66,8 +67,8 @@ public class CosmosDbRequest : FunctionsPayloadRequest, IBatchRequest {
     public void RecordFailure(int index, Exception failure) =>
         throw new NotSupportedException(
             "The extension reads no report from a change feed function, so an individual change " +
-            "cannot be reported as failed. The invocation fails instead, which leaves the lease " +
-            "where it was.");
+            "cannot be reported as failed. The invocation fails instead, which is what a retry " +
+            "policy on the function app retries.");
 
     /// <summary>
     /// The request for one change, as a handler will see it.

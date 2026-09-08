@@ -75,8 +75,9 @@ public class ChangeTests {
     }
 
     /// <summary>
-    /// Failing the invocation is what keeps the lease where it was, so the feed replays. Nothing
-    /// reports individual changes, so a failed change has to take the whole batch with it.
+    /// Failing the invocation is what the host reports and what a retry policy on the function
+    /// app retries. Nothing reports individual changes, so a failed change has to take the whole
+    /// batch with it.
     /// </summary>
     [HardenedTest]
     public async Task AFailedChangeFailsTheInvocation(

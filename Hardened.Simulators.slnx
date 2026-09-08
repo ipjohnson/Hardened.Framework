@@ -9,7 +9,9 @@
     that need Docker live here, one folder per cloud.
   -->
   <Folder Name="/Azure/">
+    <Project Path="src/Clouds/Azure/IntegrationTests/Events/Hardened.IntegrationTests.AzureEvents.Host.Tests/Hardened.IntegrationTests.AzureEvents.Host.Tests.csproj" />
     <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.Host.Tests/Hardened.IntegrationTests.AzureQueue.Host.Tests.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Stream/Hardened.IntegrationTests.AzureStream.Host.Tests/Hardened.IntegrationTests.AzureStream.Host.Tests.csproj" />
   </Folder>
   <Folder Name="/Aws/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.Tests/Hardened.IntegrationTests.Rie.Tests.csproj" />
