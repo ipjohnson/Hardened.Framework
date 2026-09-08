@@ -234,8 +234,8 @@ every function the host indexes is generated from the handlers; see [Azure Funct
 |---|---|---|
 | `Hardened.Azure.Functions.ServiceBus` | `[Queue]` from a queue, `[Topic]` from a subscription | `[ServiceBusModule]`, with `Subscription`, `Connection` and `ReportsItemFailures` |
 | `Hardened.Azure.Functions.Timer` | `[Timer]`, on the schedule in `Hardened:Timers:{name}` | `[TimerModule]` |
-| `Hardened.Azure.Functions.EventHubs` | `[Stream]` | `[EventHubsModule]`, with `Connection` and `ConsumerGroup` |
-| `Hardened.Azure.Functions.CosmosDb` | `[Change]`, the current document only | `[CosmosDbModule]`, with `Database`, `Connection` and `LeaseContainer` |
+| `Hardened.Azure.Functions.EventHubs` | `[Stream]` | `[EventHubsModule]`, with `Connection`, `ConsumerGroup`, and `RetryCount` with `RetryDelay` for the host's fixed-delay retry |
+| `Hardened.Azure.Functions.CosmosDb` | `[Change]`, the current document only | `[CosmosDbModule]`, with `Database`, `Connection`, `LeaseContainer`, and `RetryCount` with `RetryDelay` |
 | `Hardened.Azure.Functions.Blobs` | `[Blob]`, fed by Event Grid | `[BlobsModule]`, with `Connection` |
 | `Hardened.Azure.Functions.EventGrid` | `[Event]`, in the CloudEvents schema | `[EventGridModule]` |
 | `Hardened.Azure.Functions.Http` | The web verbs, behind one anonymous HTTP trigger | `[HttpModule]`, written out by a host project whose routes live in a library |

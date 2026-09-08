@@ -14,10 +14,11 @@ namespace Hardened.Azure.Functions.SourceGenerator;
 /// shim can use and no value the provider can, which is HRDAZ004.
 /// </remarks>
 internal sealed class Setting {
-    public Setting(string text, string? literal, bool? flag) {
+    public Setting(string text, string? literal, bool? flag, string? number) {
         Text = text;
         Literal = literal;
         Flag = flag;
+        Number = number;
     }
 
     /// <summary>The C# expression as the application wrote it, qualified.</summary>
@@ -28,6 +29,12 @@ internal sealed class Setting {
 
     /// <summary>The value, when the expression is <c>true</c> or <c>false</c>.</summary>
     public bool? Flag { get; }
+
+    /// <summary>The digits, when the expression is an integer literal.</summary>
+    public string? Number { get; }
+
+    /// <summary>Whether the generator can carry the value into the metadata.</summary>
+    public bool IsLiteral => Literal != null || Flag != null || Number != null;
 }
 
 /// <summary>
@@ -50,11 +57,19 @@ internal sealed class Setting {
 internal sealed class ModuleSettings {
     private readonly IReadOnlyDictionary<string, Setting> _settings;
 
-    private ModuleSettings(IReadOnlyDictionary<string, Setting> settings) {
+    private ModuleSettings(IReadOnlyDictionary<string, Setting> settings, bool written) {
         _settings = settings;
+        Written = written;
     }
 
-    public static readonly ModuleSettings None = new(new Dictionary<string, Setting>(StringComparer.Ordinal));
+    public static readonly ModuleSettings None = new(new Dictionary<string, Setting>(StringComparer.Ordinal), written: false);
+
+    /// <summary>
+    /// Whether the application wrote the module attribute at all, settings or no settings. An
+    /// application that names <c>[HttpModule]</c> beside <c>[HardenedModule]</c> is saying its
+    /// web routes live in another project, the way a Lambda host names its API Gateway module.
+    /// </summary>
+    public bool Written { get; }
 
     public Setting? Get(string name) => _settings.TryGetValue(name, out var setting) ? setting : null;
 
@@ -64,7 +79,7 @@ internal sealed class ModuleSettings {
 
         foreach (var model in entryPoint.AttributeModels) {
             if (model.TypeDefinition.Name == attribute) {
-                return new ModuleSettings(Parse(model.PropertyAssignment));
+                return new ModuleSettings(Parse(model.PropertyAssignment), written: true);
             }
         }
 
@@ -92,7 +107,7 @@ internal sealed class ModuleSettings {
                 continue;
             }
 
-            settings[name] = new Setting(text, Literal(text), Flag(text));
+            settings[name] = new Setting(text, Literal(text), Flag(text), Number(text));
         }
 
         return settings;
@@ -202,4 +217,19 @@ internal sealed class ModuleSettings {
 
     private static bool? Flag(string text) =>
         text == "true" ? true : text == "false" ? false : null;
+
+    /// <summary>The digits of a non-negative integer literal, or null for any other expression.</summary>
+    private static string? Number(string text) {
+        if (text.Length == 0) {
+            return null;
+        }
+
+        foreach (var character in text) {
+            if (character < '0' || character > '9') {
+                return null;
+            }
+        }
+
+        return text;
+    }
 }

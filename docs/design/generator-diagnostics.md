@@ -454,15 +454,17 @@ trigger has no slot for either, so the binding reads it off the adapter module w
 application: `Subscription` on `[ServiceBusModule]`, `Database` on `[CosmosDbModule]`. The
 message names the trigger, the property and the attribute to write beside `[HardenedModule]`. The
 optional settings, such as `Connection`, never raise this; a binding without them takes the
-extension's default.
+extension's default. The retry policy on `[EventHubsModule]` and `[CosmosDbModule]` is the one
+optional pair that does: `RetryCount` without `RetryDelay`, or the reverse, is half a policy the
+host cannot apply, and the missing half is named.
 
 ### HRDAZ004 — a module setting has to be a literal
 
 The generated function carries the setting twice: as text in the shim's attribute, which the
 Worker SDK's build task reads, and as a value in the provider's JSON, which the host indexes.
 The second needs the value at build, so `Subscription = Names.Subscription` cannot be written
-into it. The message names the property and the expression. Write a string literal, or `true` or
-`false` for `ReportsItemFailures`.
+into it. The message names the property and the expression. Write a string literal, an integer
+literal for `RetryCount`, or `true` or `false` for `ReportsItemFailures`.
 
 ### HRDAZ010 — the executable does not reference the Worker SDK
 

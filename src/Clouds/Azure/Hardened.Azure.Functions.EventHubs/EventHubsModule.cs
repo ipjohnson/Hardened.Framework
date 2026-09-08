@@ -31,6 +31,24 @@ public partial class EventHubsModule : IServiceCollectionConfiguration {
     /// <summary>The consumer group the functions read through, or null for <c>$Default</c>.</summary>
     public string? ConsumerGroup { get; set; }
 
+    /// <summary>
+    /// How many times the host invokes a function again after a failed invocation, or null for
+    /// no retry. Written with <see cref="RetryDelay"/>, or not at all.
+    /// </summary>
+    /// <remarks>
+    /// The host advances the partition's checkpoint when an invocation completes, failed or not,
+    /// so a retry policy is the one way a thrown batch is delivered again; see
+    /// <see cref="EventHubsAdapter"/>. The generator writes the two properties as the worker's
+    /// <c>[FixedDelayRetry]</c> on every stream function and into the metadata the host indexes.
+    /// </remarks>
+    public int? RetryCount { get; set; }
+
+    /// <summary>
+    /// The wait between one attempt and the next, as <c>hh:mm:ss</c>, or null for no retry.
+    /// Written with <see cref="RetryCount"/>, or not at all.
+    /// </summary>
+    public string? RetryDelay { get; set; }
+
     public void ConfigureServices(IServiceCollection services) {
         services.AddSingleton<ITriggerAdapter>(new EventHubsAdapter());
 

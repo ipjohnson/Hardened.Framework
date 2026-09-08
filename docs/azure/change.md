@@ -85,6 +85,22 @@ That is `Checkpoint` in the framework's
 [vocabulary](/guide/triggers#batches-and-what-a-failure-means) with nothing to report to, the
 same as [Streams](/azure/stream).
 
+## Retrying a failed batch
+
+The retry policy is written on the module, beside the database:
+
+```csharp
+[HardenedModule]
+[CosmosDbModule(Database = "shop", RetryCount = 5, RetryDelay = "00:00:10")]
+public partial class Application;
+```
+
+The generator writes it as the worker's `[FixedDelayRetry(5, "00:00:10")]` on every change
+function and into the metadata the host indexes, so the host invokes a thrown batch again up to
+five times, ten seconds apart, before the extension checkpoints the lease past it. The two
+properties go together; one without the other is `HRDAZ003`. A batch still failing when the
+policy is spent is not delivered again.
+
 ## Deploying
 
 ```bash

@@ -196,8 +196,8 @@ at one status are two types either way. A model that used to be rejected now bui
 |---|---|---|
 | `HRDAZ001` | error | Handlers use a trigger, an adapter is bound for it, and the [Azure Functions generator](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/design/azure/application-types.md) has no binding for that trigger, so no function is generated and the host would never invoke the handlers |
 | `HRDAZ002` | error | Two handlers produce the same function name, which the host would refuse as a duplicate. `[Queue("orders-new")]` and `[Queue("orders_new")]` are both `Queue_orders_new`; rename one source |
-| `HRDAZ003` | error | A binding needs a setting the module did not supply: `Subscription` on `[ServiceBusModule]` for a `[Topic]`, `Database` on `[CosmosDbModule]` for a `[Change]`. Write it on the application beside `[HardenedModule]` |
-| `HRDAZ004` | error | A module setting is not a literal. The host reads the value from the metadata the build writes, so a constant from another class cannot reach it; write the string, or `true` or `false` |
+| `HRDAZ003` | error | A binding needs a setting the module did not supply: `Subscription` on `[ServiceBusModule]` for a `[Topic]`, `Database` on `[CosmosDbModule]` for a `[Change]`, or the other half of a retry policy when only `RetryCount` or `RetryDelay` is written. Write it on the application beside `[HardenedModule]` |
+| `HRDAZ004` | error | A module setting is not a literal. The host reads the value from the metadata the build writes, so a constant from another class cannot reach it; write the string, the integer, or `true` or `false` |
 | `HRDAZ010` | error | The executable references `Hardened.Azure.Functions.Runtime` and not `Microsoft.Azure.Functions.Worker.Sdk`, so nothing writes `worker.config.json` and the host would start no worker. Raised by the runtime package's targets at build |
 
 ## Renumbered in 0.18

@@ -128,6 +128,7 @@ the code cannot know:
 | `ServiceBusModule` | `Connection` | `connection` | No; the extension's default is `AzureWebJobsServiceBus` |
 | `ServiceBusModule` | `ReportsItemFailures` | `autoCompleteMessages: false`, and the adapter settles each message | No; off by default |
 | `EventHubsModule` | `Connection`, `ConsumerGroup` | `connection`, `consumerGroup` | No; the connection defaults to `AzureWebJobsEventHubs`, because the extension has no default and a trigger without one fails the host at startup |
+| `EventHubsModule`, `CosmosDbModule` | `RetryCount`, `RetryDelay` | `[FixedDelayRetry]` on the function and `Retry` on the provider's metadata, which the worker sends the host as the `retry` block | No, but both or neither: `HRDAZ003` names the missing half |
 | `CosmosDbModule` | `Database` | `databaseName` on every change function | Yes: `HRDAZ003` |
 | `CosmosDbModule` | `Connection`, `LeaseContainer` | `connection`, `leaseContainerName` | No |
 | `BlobsModule` | `Connection` | `connection` | No; the extension's default is `AzureWebJobsStorage` |
@@ -175,7 +176,10 @@ counterparts in a way the adapters document rather than hide:
   without an exception (functions-reliable-event-processing; the error-handling page lists a
   retry policy as both triggers' only retry). Kinesis and DynamoDB Streams on Lambda retry until
   the batch succeeds or expires. A handler that has to see every event on Azure declares a retry
-  policy on the function app, and needs a dead-letter path of its own when it is spent.
+  policy on its module, `RetryCount` and `RetryDelay`, which the generator writes as
+  `[FixedDelayRetry]` on the function and as `DefaultRetryOptions` on the provider's metadata;
+  the worker maps the second into the `retry` block the host reads. It needs a dead-letter path
+  of its own when the policy is spent.
 - **The change feed carries the current document only.** There is no old image and no raw form,
   so `[OldImage]` on DynamoDB and `[OldValue]` on Firestore have no counterpart; the document is
   bound with the `_lsn`, `_ts` and `_etag` Cosmos stamped on it, and those are headers too.

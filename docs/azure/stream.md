@@ -76,6 +76,24 @@ That is `Checkpoint` in the framework's
 host reads no batch report from an Event Hubs function, so `ReportsItemFailures` is false and
 cannot be turned on.
 
+## Retrying a failed batch
+
+The retry policy is written on the module, and it applies to every stream function in the
+application:
+
+```csharp
+[HardenedModule]
+[EventHubsModule(RetryCount = 5, RetryDelay = "00:00:10")]
+public partial class Application;
+```
+
+The generator writes it as the worker's `[FixedDelayRetry(5, "00:00:10")]` on the function and
+into the metadata the host indexes, so the host invokes a thrown batch again up to five times,
+ten seconds apart, before it advances the checkpoint past it. The two properties go together;
+one without the other is `HRDAZ003`, naming the missing one. A batch that is still failing when
+the policy is spent is not delivered again, so a handler that has to see every event needs a
+dead-letter path of its own beside the policy.
+
 ## Deploying
 
 ```bash
