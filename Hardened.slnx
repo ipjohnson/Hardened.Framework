@@ -50,6 +50,11 @@
     <Project Path="src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj" />
     <Project Path="src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj" />
     <Project Path="src/Functions/Hardened.Functions.Testing.Containers/Hardened.Functions.Testing.Containers.csproj" />
+    <Project Path="src/Functions/Hardened.CloudEvents/Hardened.CloudEvents.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Gcp/">
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Runtime/Hardened.Gcp.CloudRun.Runtime.csproj" />
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.PubSub/Hardened.Gcp.CloudRun.PubSub.csproj" />
   </Folder>
   <Folder Name="/Clouds/Aws/">
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj" />
