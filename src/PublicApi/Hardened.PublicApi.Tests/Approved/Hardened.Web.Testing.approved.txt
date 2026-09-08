@@ -45,9 +45,12 @@ namespace Hardened.Web.Testing
     public interface ITestHost : System.IAsyncDisposable
     {
         System.Uri BaseAddress { get; }
+        Hardened.Web.Testing.TestContainerPolicy ContainerPolicy { get; }
         bool IsTerminal { get; }
         System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential);
+        System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential, bool reuseContainer);
         System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken);
+        System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken, bool reuseContainer);
         System.Threading.Tasks.Task StartAsync(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken);
     }
     public interface ITestWebApp : Hardened.Shared.Testing.ITestContext
@@ -83,10 +86,13 @@ namespace Hardened.Web.Testing
     {
         public PipelineHost(System.IServiceProvider provider) { }
         public System.Uri BaseAddress { get; }
+        public Hardened.Web.Testing.TestContainerPolicy ContainerPolicy { get; }
         public bool IsTerminal { get; }
         public System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential) { }
+        public System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential, bool reuseContainer) { }
         public System.Threading.Tasks.ValueTask DisposeAsync() { }
         public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken, bool reuseContainer) { }
         public System.Threading.Tasks.Task StartAsync(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
@@ -98,6 +104,7 @@ namespace Hardened.Web.Testing
     public sealed class PipelineHttpMessageHandler : System.Net.Http.HttpMessageHandler
     {
         public PipelineHttpMessageHandler(System.IServiceProvider rootServiceProvider) { }
+        public PipelineHttpMessageHandler(System.Func<System.Threading.Tasks.ValueTask<System.IServiceProvider>> container, Hardened.Web.Testing.TestCredential? credential) { }
         public PipelineHttpMessageHandler(System.IServiceProvider rootServiceProvider, Hardened.Web.Testing.TestCredential? credential) { }
         protected override System.Threading.Tasks.Task<System.Net.Http.HttpResponseMessage> SendAsync(System.Net.Http.HttpRequestMessage request, System.Threading.CancellationToken cancellationToken) { }
     }
@@ -131,6 +138,11 @@ namespace Hardened.Web.Testing
     {
         public TestClientRouteAttribute(System.Type routeType) { }
         public System.Type RouteType { get; }
+    }
+    public enum TestContainerPolicy
+    {
+        Reused = 0,
+        PerInvocation = 1,
     }
     public sealed class TestCredential : System.IEquatable<Hardened.Web.Testing.TestCredential>
     {

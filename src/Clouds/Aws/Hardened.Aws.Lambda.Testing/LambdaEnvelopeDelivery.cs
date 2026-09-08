@@ -1,8 +1,10 @@
 using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.Core;
+using DependencyModules.Testing.Attributes.Interfaces;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Functions.Testing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Aws.Lambda.Testing;
 
@@ -25,7 +27,7 @@ namespace Hardened.Aws.Lambda.Testing;
 /// </para>
 /// </remarks>
 public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
-    private readonly LambdaInvocationHandler _handler;
+    private readonly Func<ValueTask<LambdaInvocationHandler>> _handler;
     private readonly string _region;
     private readonly string _account;
 
@@ -33,7 +35,39 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
         LambdaInvocationHandler handler,
         string region = "us-east-1",
         string account = "123456789012") {
-        _handler = handler;
+        _handler = () => new ValueTask<LambdaInvocationHandler>(handler);
+        _region = region;
+        _account = account;
+    }
+
+    /// <summary>
+    /// The delivery the harness builds: a handler off a container of its own for every invocation.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A container per invocation, because an execution environment is not promised between them.
+    /// Two queue handlers deployed as two functions are two processes, so a send that passed only
+    /// because the previous one warmed a singleton is a test that cannot fail for the reason
+    /// production will.
+    /// </para>
+    /// <para>
+    /// The handler comes with the container rather than being held here, and that is the fidelity
+    /// worth having: <c>LambdaInvocationHandler</c> installs dispatch on its first invocation and
+    /// keeps a flag saying it has, so a fresh handler on a fresh container is a cold environment
+    /// doing exactly what a cold environment does.
+    /// </para>
+    /// <para>
+    /// A batch is one invocation and therefore one container. Three messages in one send arrive as
+    /// one event carrying three records, and the fan-out to a handler call per message happens
+    /// inside it.
+    /// </para>
+    /// </remarks>
+    public LambdaEnvelopeDelivery(
+        ITestContainerSource source,
+        string region = "us-east-1",
+        string account = "123456789012") {
+        _handler = async () =>
+            (await source.CreateAsync()).GetRequiredService<LambdaInvocationHandler>();
         _region = region;
         _account = account;
     }
@@ -63,7 +97,7 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
 
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(payload));
 
-        await _handler.Invoke(input, new TestContext(name));
+        await (await _handler()).Invoke(input, new TestContext(name));
     }
 
     /// <summary>
@@ -80,7 +114,7 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
 
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(payload));
 
-        var output = await _handler.Invoke(input, new TestContext(path.TrimStart('/')));
+        var output = await (await _handler()).Invoke(input, new TestContext(path.TrimStart('/')));
 
         if (responseType == null) {
             return null;

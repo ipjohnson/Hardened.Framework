@@ -1,3 +1,4 @@
+using DependencyModules.Testing.Attributes;
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Headers;
@@ -123,7 +124,7 @@ public class TimeoutTests {
     /// fires; five attempts at fifty milliseconds each cannot fit in a hundred and fifty.
     /// </summary>
     [HardenedTest]
-    public async Task OneBudgetCoversEveryRetryAttempt(ITestWebApp testWebApp) {
+    public async Task OneBudgetCoversEveryRetryAttempt([Shared] ITestWebApp testWebApp) {
         await testWebApp.Get("/timeout/retried");
 
         var attempts = (await testWebApp.Get("/timeout/calls/retried")).Deserialize<int>();

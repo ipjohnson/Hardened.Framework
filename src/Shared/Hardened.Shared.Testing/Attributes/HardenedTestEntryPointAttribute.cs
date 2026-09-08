@@ -14,12 +14,42 @@ namespace Hardened.Shared.Testing.Attributes;
 [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method)]
 public class HardenedTestEntryPointAttribute
     : Attribute, IDependencyModuleProvider, IModuleEnvironmentProvider,
-      ITestServiceSetupAttribute, ITestStartupAttribute {
+      ITestServiceSetupAttribute, ITestStartupAttribute, ISharedTestRegistration {
     public HardenedTestEntryPointAttribute(Type entryPoint) {
         EntryPoint = entryPoint;
     }
 
     public Type EntryPoint { get; }
+
+    /// <summary>
+    /// What this attribute registered that belongs to the test rather than to a container.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A test that builds a container per invocation rebuilds everything in it, and these four are
+    /// the ones for which that has no reading. A test has one cancellation, so a second
+    /// <see cref="TestCancellationToken"/> is a token nothing the test holds can trip. The
+    /// environment is already one object on purpose - <c>SeededEnvironment</c> exists so the
+    /// instance a module condition reads and the one a service resolves are the same - and building
+    /// it again per container would undo that. <c>AppConfig</c> is assembled from the test's own
+    /// attributes and is identical every time, so sharing it is the cheaper way to be correct.
+    /// <see cref="ITestContext"/> holds the token and the logger, and is the test.
+    /// </para>
+    /// <para>
+    /// <b>What is deliberately not here.</b> <c>ILoggerProvider</c> is per container and harmless,
+    /// because every container writes to the same runner sink through <see cref="CurrentTest"/>.
+    /// <c>IApplicationRoot</c> has to be per container: <c>ServiceProviderApplicationRoot</c> wraps
+    /// whichever provider built it, so a shared one would hand every container the first
+    /// container's services and quietly undo the isolation around it.
+    /// </para>
+    /// </remarks>
+    IReadOnlyList<Type> ISharedTestRegistration.SharedServices => [
+        typeof(TestCancellationToken),
+        typeof(IHardenedEnvironment),
+        typeof(IModuleEnvironment),
+        typeof(IConfigurationPackage),
+        typeof(ITestContext)
+    ];
 
     public IDependencyModule GetModule() {
         return (IDependencyModule)Activator.CreateInstance(EntryPoint)!;

@@ -23,6 +23,28 @@ namespace Hardened.Web.Testing;
 public interface ITestHost : IAsyncDisposable {
 
     /// <summary>
+    /// Whether a request here runs against a container of its own.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The deployment model the host stands for, rather than a preference. An execution environment
+    /// is not promised between invocations, so the Lambda hosts and the in-process pipeline answer
+    /// <see cref="TestContainerPolicy.PerInvocation"/>, and a handler that leaned on what a previous
+    /// request left behind fails here rather than in production.
+    /// </para>
+    /// <para>
+    /// A socket host answers <see cref="TestContainerPolicy.Reused"/>, and that is forced rather
+    /// than chosen: the test holds an <see cref="HttpClient"/> bound to the loopback port the kernel
+    /// picked, so restarting the server per request would leave every client the harness handed out
+    /// addressing a closed socket. It is a limit on what those hosts can check rather than a claim
+    /// that sharing is safe on them. A service behind a load balancer is many instances, and state
+    /// crossing requests is as unsafe there as it is on Lambda; run the same handlers under
+    /// <see cref="PipelineHostAttribute"/> for that check.
+    /// </para>
+    /// </remarks>
+    TestContainerPolicy ContainerPolicy => TestContainerPolicy.Reused;
+
+    /// <summary>
     /// Whether an unmatched path is a 404 here, or is handed to something behind the host. The
     /// pipeline and Kestrel are terminal; the ASP.NET Core host is not, because falling through
     /// to the rest of the ASP.NET pipeline is the behaviour it exists to show.
@@ -47,8 +69,42 @@ public interface ITestHost : IAsyncDisposable {
     /// </summary>
     HttpMessageHandler CreateHandler(TestCredential? credential);
 
+    /// <summary>
+    /// The same, for a caller whose requests are meant to reach one container.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// What <c>[Shared]</c> on a client parameter reaches. Pinning the parameter alone would hand
+    /// the test one client object and change nothing about where its requests go, because the host
+    /// decides that - so the mark has to arrive here, at the point the client is built.
+    /// </para>
+    /// <para>
+    /// A host that reuses anyway ignores it, which is why this defaults to the plain overload
+    /// rather than being something every host has to answer.
+    /// </para>
+    /// </remarks>
+    HttpMessageHandler CreateHandler(TestCredential? credential, bool reuseContainer) =>
+        CreateHandler(credential);
+
     /// <summary>One request, as <see cref="ITestWebApp"/> sends it.</summary>
     Task<TestWebResponse> SendAsync(TestHostRequest request, CancellationToken cancellationToken);
+
+    /// <summary>The same, for a caller whose requests are meant to reach one container.</summary>
+    Task<TestWebResponse> SendAsync(
+        TestHostRequest request, CancellationToken cancellationToken, bool reuseContainer) =>
+        SendAsync(request, cancellationToken);
+}
+
+/// <summary>
+/// Whether a host runs each request against its own container.
+/// </summary>
+public enum TestContainerPolicy {
+
+    /// <summary>One container for every request the host serves.</summary>
+    Reused,
+
+    /// <summary>A container per request, built from the test's own composition.</summary>
+    PerInvocation
 }
 
 /// <summary>

@@ -1,3 +1,4 @@
+using DependencyModules.Testing.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 
@@ -20,6 +21,12 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// filter silently never ran — for every route in every library that owns a URL space, which is
 /// the arrangement <c>[BasePath]</c> on a module exists to support.
 /// </para>
+/// <para>
+/// <c>[Shared]</c> on the registry because these tests configure it and then assert on a request:
+/// every request runs against a container of its own, so a filter registered into the container the
+/// test happens to hold would reach none of them. Pinning it makes the registry the test writes to
+/// and the one every container reads one object, which is what the test means.
+/// </para>
 /// </remarks>
 public class HandlerInfoPathTests {
 
@@ -33,7 +40,7 @@ public class HandlerInfoPathTests {
     /// </remarks>
     [HardenedTest]
     public async Task EveryHandlerReportsThePathItIsServedAt(
-        ITestWebApp testWebApp, IGlobalFilterRegistry registry) {
+        ITestWebApp testWebApp, [Shared] IGlobalFilterRegistry registry) {
         var seen = PathsSeenByAPerHandlerFilter(registry);
 
         await testWebApp.Get("/web-library/string-methods/concat/a/b");
@@ -47,7 +54,7 @@ public class HandlerInfoPathTests {
     /// </summary>
     [HardenedTest]
     public async Task APathPrefixFilterMatchesRoutesUnderAModuleBasePath(
-        ITestWebApp testWebApp, IGlobalFilterRegistry registry) {
+        ITestWebApp testWebApp, [Shared] IGlobalFilterRegistry registry) {
         registry.RegisterFilter(handlerInfo =>
             handlerInfo.Path.StartsWith("/web-library", StringComparison.Ordinal)
                 ? new RequestFilterInfo(_ => new StampFilter(), FilterOrder.HandlerCreation)
@@ -66,7 +73,7 @@ public class HandlerInfoPathTests {
     /// </summary>
     [HardenedTest]
     public async Task AHandlerOutsideAnyModuleBasePathIsUnaffected(
-        ITestWebApp testWebApp, IGlobalFilterRegistry registry) {
+        ITestWebApp testWebApp, [Shared] IGlobalFilterRegistry registry) {
         var seen = PathsSeenByAPerHandlerFilter(registry);
 
         await testWebApp.Get("/binding/path/42");

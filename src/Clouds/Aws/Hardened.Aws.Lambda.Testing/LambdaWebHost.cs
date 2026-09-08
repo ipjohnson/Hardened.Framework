@@ -40,12 +40,25 @@ public sealed class LambdaWebTestingAttribute : TestHostAttribute {
 /// </summary>
 public sealed class LambdaWebHost : ITestHost {
     private IServiceProvider? _provider;
+    private ITestContainerSource? _source;
+    private bool _started;
 
     /// <summary>
     /// Terminal. API Gateway has nothing behind it to hand an unmatched path to, so a path with no
     /// route is a 404 here exactly as it is in a deployed function.
     /// </summary>
     public bool IsTerminal => true;
+
+    /// <summary>
+    /// A container per request, because an execution environment is not promised between
+    /// invocations.
+    /// </summary>
+    /// <remarks>
+    /// The case the whole boundary exists for. Two requests to a deployed function may be served by
+    /// two environments or by one, and nothing says which, so a handler that leaned on what the
+    /// previous request left in a singleton fails here rather than intermittently in production.
+    /// </remarks>
+    public TestContainerPolicy ContainerPolicy => TestContainerPolicy.PerInvocation;
 
     /// <summary>
     /// What a relative path resolves against. Nothing sends to it - the request never reaches a
@@ -59,17 +72,53 @@ public sealed class LambdaWebHost : ITestHost {
     /// the path worth exercising.
     /// </remarks>
     public Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken) {
+        if (_started) {
+            return Task.CompletedTask;
+        }
+
+        _started = true;
         _provider = provider;
+        _source = provider.GetService<ITestContainerSource>();
 
         return ApplicationLogic.Start(provider, null);
     }
 
+    /// <summary>
+    /// The container one invocation runs against.
+    /// </summary>
+    /// <remarks>
+    /// Its <c>LambdaInvocationHandler</c> comes with it, which is the point: the handler installs
+    /// dispatch on its first invocation and holds a flag saying it has, so a fresh handler on a
+    /// fresh container is a cold environment doing what a cold environment does.
+    /// </remarks>
+    private async ValueTask<IServiceProvider> ContainerForRequestAsync(bool reuse = false) {
+        if (_source is not { } source) {
+            return Provider;
+        }
+
+        return reuse ? _reused ??= await source.CreateAsync() : await source.CreateAsync();
+    }
+
+    /// <summary>
+    /// The one environment a caller marked <c>[Shared]</c> reaches, which is what a warm sandbox is.
+    /// </summary>
+    private IServiceProvider? _reused;
+
     public HttpMessageHandler CreateHandler(TestCredential? credential) =>
         new HostHandler(this, credential);
 
+    public HttpMessageHandler CreateHandler(TestCredential? credential, bool reuseContainer) =>
+        new HostHandler(this, credential, reuseContainer);
+
+    public Task<TestWebResponse> SendAsync(
+        TestHostRequest request, CancellationToken cancellationToken) =>
+        SendAsync(request, cancellationToken, reuseContainer: false);
+
     public async Task<TestWebResponse> SendAsync(
-        TestHostRequest request, CancellationToken cancellationToken) {
-        var handler = Provider.GetRequiredService<LambdaInvocationHandler>();
+        TestHostRequest request, CancellationToken cancellationToken, bool reuseContainer) {
+        var provider = await ContainerForRequestAsync(reuseContainer);
+
+        var handler = provider.GetRequiredService<LambdaInvocationHandler>();
 
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(Event(request)));
 
@@ -171,10 +220,13 @@ public sealed class LambdaWebHost : ITestHost {
     private sealed class HostHandler : HttpMessageHandler {
         private readonly LambdaWebHost _host;
         private readonly TestCredential? _credential;
+        private readonly bool _reuseContainer;
 
-        public HostHandler(LambdaWebHost host, TestCredential? credential) {
+        public HostHandler(
+            LambdaWebHost host, TestCredential? credential, bool reuseContainer = false) {
             _host = host;
             _credential = credential;
+            _reuseContainer = reuseContainer;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(
@@ -196,7 +248,8 @@ public sealed class LambdaWebHost : ITestHost {
                     headers,
                     body,
                     _credential),
-                cancellationToken);
+                cancellationToken,
+                _reuseContainer);
 
             var message = new HttpResponseMessage((HttpStatusCode)response.StatusCode) {
                 Content = new StreamContent(response.Body)

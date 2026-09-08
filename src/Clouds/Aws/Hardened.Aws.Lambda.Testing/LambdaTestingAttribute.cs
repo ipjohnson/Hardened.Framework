@@ -38,6 +38,10 @@ public class LambdaTestingAttribute : Attribute, ITestServiceSetupAttribute {
         serviceCollection.AddTriggerTesting();
 
         serviceCollection.RemoveAll<ITriggerDelivery>();
-        serviceCollection.AddSingleton<ITriggerDelivery, LambdaEnvelopeDelivery>();
+
+        // Over the container source rather than over a handler resolved once, so every invocation
+        // gets the environment a deployed function is not promised to keep.
+        serviceCollection.AddSingleton<ITriggerDelivery>(provider =>
+            new LambdaEnvelopeDelivery(provider.GetRequiredService<ITestContainerSource>()));
     }
 }

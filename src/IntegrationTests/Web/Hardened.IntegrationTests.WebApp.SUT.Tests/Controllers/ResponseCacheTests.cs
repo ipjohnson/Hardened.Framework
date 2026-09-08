@@ -1,3 +1,4 @@
+using DependencyModules.Testing.Attributes;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.Caching;
 using Hardened.Requests.Testing;
@@ -31,7 +32,7 @@ public class ResponseCacheTests {
     /// The value the strategy was named on is in the key, so a different one is a different entry.
     /// </summary>
     [HardenedTest]
-    public async Task ADifferentQueryValueIsADifferentEntry(ITestWebApp testWebApp) {
+    public async Task ADifferentQueryValueIsADifferentEntry([Shared] ITestWebApp testWebApp) {
         await testWebApp.Get("/response-cache/catalog?culture=en-GB");
 
         var other = await testWebApp.Get("/response-cache/catalog?culture=fr-FR");
@@ -44,7 +45,7 @@ public class ResponseCacheTests {
     /// asked for.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerThatDeclaresNothingIsNotCached(ITestWebApp testWebApp) {
+    public async Task AHandlerThatDeclaresNothingIsNotCached([Shared] ITestWebApp testWebApp) {
         await testWebApp.Get("/response-cache/uncached");
 
         var second = await testWebApp.Get("/response-cache/uncached");
@@ -56,7 +57,7 @@ public class ResponseCacheTests {
     /// Two strategies compose into one key. Changing either half misses; changing neither hits.
     /// </summary>
     [HardenedTest]
-    public async Task ComposedStrategiesBothCount(ITestWebApp testWebApp) {
+    public async Task ComposedStrategiesBothCount([Shared] ITestWebApp testWebApp) {
         var first = await testWebApp.Get(
             "/response-cache/composed?culture=en-GB", Language("en-GB"));
 
@@ -90,7 +91,7 @@ public class ResponseCacheTests {
     /// silent.
     /// </summary>
     [HardenedTest]
-    public async Task AResourceScopedHandlerIsNotCached(ITestWebApp testWebApp) {
+    public async Task AResourceScopedHandlerIsNotCached([Shared] ITestWebApp testWebApp) {
         await testWebApp.Get("/response-cache/owned/7");
 
         var second = await testWebApp.Get("/response-cache/owned/7");
@@ -157,7 +158,7 @@ public class ResponseCacheTests {
     /// says so, and it keys the entry on the caller.
     /// </remarks>
     [HardenedTest]
-    public async Task AnOwnerScopedHandlerAnswersEachCallerTheirOwn(ITestWebApp testWebApp) {
+    public async Task AnOwnerScopedHandlerAnswersEachCallerTheirOwn([Shared] ITestWebApp testWebApp) {
         var first = await testWebApp.Get(
             "/response-cache/owned-by-subject", Caller("pets:read", "subscriber-one"));
 
@@ -211,7 +212,7 @@ public class ResponseCacheTests {
     /// application could not reach its own entries at all, so an hour-long entry meant an hour.
     /// </summary>
     [HardenedTest]
-    public async Task APublishReachesACachedRead(ITestWebApp testWebApp) {
+    public async Task APublishReachesACachedRead([Shared] ITestWebApp testWebApp) {
         var first = await testWebApp.Get("/response-cache/tagged");
         var cached = await testWebApp.Get("/response-cache/tagged");
 

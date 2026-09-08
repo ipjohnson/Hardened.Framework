@@ -1,5 +1,6 @@
 using DependencyModules.Testing.Attributes.Interfaces;
 using DependencyModules.Testing.Impl;
+using DependencyModules.Testing.Attributes;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Attributes;
@@ -39,6 +40,8 @@ public sealed class PipelineHostAttribute : TestHostAttribute {
 public sealed class PipelineHost : ITestHost {
     private readonly bool _appendHandler;
     private IServiceProvider? _provider;
+    private ITestContainerSource? _source;
+    private bool _started;
 
     /// <summary>A host over a container that is already built and composed, for a harness built by hand.</summary>
     public PipelineHost(IServiceProvider provider) {
@@ -52,6 +55,17 @@ public sealed class PipelineHost : ITestHost {
 
     public bool IsTerminal => true;
 
+    /// <summary>
+    /// A container per request, because nothing here holds a socket that a rebuild would close.
+    /// </summary>
+    /// <remarks>
+    /// The strict reading, and the default one: this host names no cloud, so it does not get to
+    /// assume the most forgiving deployment. It is also the host the overwhelming majority of tests
+    /// run under, which is what puts the check where it costs least - the two hosts that cannot
+    /// rebuild are the ones a suite has few of.
+    /// </remarks>
+    public TestContainerPolicy ContainerPolicy => TestContainerPolicy.PerInvocation;
+
     public Uri BaseAddress => TestClientBuilder.BaseAddress;
 
     /// <summary>
@@ -61,26 +75,108 @@ public sealed class PipelineHost : ITestHost {
     /// <c>KestrelServerRunner</c> does for Kestrel.
     /// </summary>
     public async Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken) {
+        if (_started) {
+            return;
+        }
+
+        _started = true;
         _provider = provider;
+
+        // Absent where the harness was built by hand rather than run by the runner, which is the
+        // constructor taking a provider outright. Then there is one container and this is a host
+        // over it, exactly as it was.
+        _source = provider.GetService<ITestContainerSource>();
 
         await ApplicationLogic.Start(provider, null);
 
-        if (_appendHandler) {
-            var handler = provider.GetRequiredService<IWebExecutionHandlerService>();
-
-            provider.GetRequiredService<IMiddlewareService>().Use(_ => handler);
-        }
+        Compose(provider);
     }
 
-    public HttpMessageHandler CreateHandler(TestCredential? credential) =>
-        new PipelineHttpMessageHandler(Provider, credential);
+    /// <summary>
+    /// The container one request runs against.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Built here rather than reused, so nothing an application singleton accumulated reaches the
+    /// next request. What survives is what the test declared: a <c>[Mock]</c>, anything marked
+    /// <see cref="SharedAttribute"/>, and the handful of harness services the entry point pins.
+    /// </para>
+    /// <para>
+    /// The startup services run against it on the way out, because <c>ApplicationLogic.Start</c>
+    /// keys its guard on the provider rather than on the process. A container that skipped them
+    /// would answer every route anonymously with no filter provider installed, which is a container
+    /// that looks composed and is not.
+    /// </para>
+    /// </remarks>
+    private async ValueTask<IServiceProvider> ContainerForRequestAsync(bool reuse = false) {
+        if (_source is not { } source) {
+            return Provider;
+        }
 
-    public async Task<TestWebResponse> SendAsync(TestHostRequest request, CancellationToken cancellationToken) {
+        if (reuse) {
+            return _reused ??= await Build(source);
+        }
+
+        return await Build(source);
+    }
+
+    /// <summary>
+    /// The one container a caller marked <c>[Shared]</c> reaches, built on its first request.
+    /// </summary>
+    /// <remarks>
+    /// Held here rather than per client, so two clients that both asked to reuse are two callers on
+    /// one warm environment - which is the thing they asked to model.
+    /// </remarks>
+    private IServiceProvider? _reused;
+
+    private async ValueTask<IServiceProvider> Build(ITestContainerSource source) {
+        var provider = await source.CreateAsync();
+
+        Compose(provider);
+
+        return provider;
+    }
+
+    /// <summary>
+    /// Puts routing and the handler filter at the end of one container's chain.
+    /// </summary>
+    /// <remarks>
+    /// Per container rather than once, because <c>MiddlewareService</c> is a singleton holding a
+    /// plain list and a fresh container has a fresh empty one. This is what <c>UseHardened</c> does
+    /// for the ASP.NET pipeline and <c>KestrelServerRunner</c> does for Kestrel.
+    /// </remarks>
+    private void Compose(IServiceProvider provider) {
+        if (!_appendHandler) {
+            return;
+        }
+
+        var handler = provider.GetRequiredService<IWebExecutionHandlerService>();
+
+        provider.GetRequiredService<IMiddlewareService>().Use(_ => handler);
+    }
+
+    /// <remarks>
+    /// The handler outlives one request - a typed client holds it for the test - so it is handed the
+    /// way to build a container rather than one container.
+    /// </remarks>
+    public HttpMessageHandler CreateHandler(TestCredential? credential) =>
+        CreateHandler(credential, reuseContainer: false);
+
+    public HttpMessageHandler CreateHandler(TestCredential? credential, bool reuseContainer) =>
+        new PipelineHttpMessageHandler(() => ContainerForRequestAsync(reuseContainer), credential);
+
+    public Task<TestWebResponse> SendAsync(
+        TestHostRequest request, CancellationToken cancellationToken) =>
+        SendAsync(request, cancellationToken, reuseContainer: false);
+
+    public async Task<TestWebResponse> SendAsync(
+        TestHostRequest request, CancellationToken cancellationToken, bool reuseContainer) {
         var executionRequest = PipelineRequest.CreateRequest(
             request.Method, request.PathAndQuery, request.Headers, request.Body, request.Credential);
         var body = new MemoryStream();
 
-        var response = await PipelineRequest.Run(Provider, executionRequest, body, cancellationToken);
+        var response = await PipelineRequest.Run(
+            await ContainerForRequestAsync(reuseContainer), executionRequest, body, cancellationToken);
 
         return new TestWebResponse(response);
     }
