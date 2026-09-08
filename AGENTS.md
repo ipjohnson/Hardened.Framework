@@ -263,6 +263,16 @@ its filter too, and to the pack list in `release.yaml` if it ships.
 `xUnit1051`, which is a warning locally and an error under `ContinuousIntegrationBuild` — so the
 failure is CI-only and lands at dozens of call sites at once.
 
+**Two `IHandlerDispatch` registrations in one container.** `[HardenedWebModule]` registers the
+routing table as one and the function generator registers `FunctionDispatchFilter` as another, and
+the hosts that pick exactly one refuse the pair - which is right on Lambda, where the two are
+separate functions, and wrong on Cloud Run, where one service serves both. A module cannot
+`RemoveAll` its way out: DependencyModules applies dependencies before dependents and the root
+application last, so a module's `ConfigureServices` runs before the generator's registration lands.
+`DependencyRegistry<T>.AddDecorator` runs after every module's services and is the hook;
+`CloudRunDispatch` in `src/Clouds/Gcp` composes the two through it and registers the result as
+`IWebExecutionHandlerService` as well, because `KestrelServerRunner` resolves that directly.
+
 **Check `main` is synced before branching.** An unpushed local commit gets absorbed into your pull
 request's squash merge.
 
