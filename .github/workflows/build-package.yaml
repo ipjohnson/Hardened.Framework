@@ -146,6 +146,75 @@ jobs:
               -warnaserror
           done
 
+          # The Azure Functions worker, outside the loop because -warnaserror cannot apply to it
+          # whole: Microsoft.Azure.Functions.Worker.Core and .Grpc 2.2.0, the worker extensions
+          # and Google.Protobuf under the gRPC channel carry trim and AOT warnings of their own -
+          # the reflection-based metadata provider, method locator and invoker that Hardened's
+          # generated pair replace among them. So the gate here is the same one, applied per
+          # assembly: every warning is printed with the assembly it came from, and one from a
+          # Hardened assembly fails the step. A warning from the worker's own assemblies is
+          # theirs, and is recorded in the plan's risk table.
+          #
+          # Published twice. With PublishAot, which is the gate: ILC compiles the whole graph and
+          # the output is checked to be the native binary the runtime package's targets name in
+          # worker.config.json. Then trimmed and self-contained, which is what the host probe
+          # below runs: the worker package cannot start as a native binary, because
+          # Worker.Core's WorkerInformation reads its own assembly's Location in a static
+          # initializer and Native AOT has none (Azure/azure-functions-dotnet-worker#1056), so the
+          # closest publish the real host can run is the trimmed one, with the same analysis and
+          # the same rooting.
+          app=Hardened.IntegrationTests.Aot.AzureFunctions.SUT
+          dotnet publish "src/IntegrationTests/Aot/$app/$app.csproj" \
+            --configuration Release \
+            --runtime linux-x64 \
+            -p:CppCompilerAndLinker="$CLANG" \
+            -p:ContinuousIntegrationBuild=true \
+            -p:TrimmerSingleWarn=false \
+            2>&1 | tee azure-aot-publish.log
+
+          if grep -E 'warning IL[0-9]+' azure-aot-publish.log | grep -v -E 'Microsoft\.Azure\.Functions\.Worker|DotNetWorker|Google\.Protobuf' | grep -q .; then
+            echo "::error::The native Azure Functions worker produced trim or AOT warnings outside the worker's own assemblies:"
+            grep -E 'warning IL[0-9]+' azure-aot-publish.log | grep -v -E 'Microsoft\.Azure\.Functions\.Worker|DotNetWorker|Google\.Protobuf'
+            exit 1
+          fi
+
+          publish=$(find "src/IntegrationTests/Aot/$app" -type d -path '*/publish' | head -1)
+
+          if [ -z "$publish" ] || [ ! -x "$publish/$app" ]; then
+            echo "::error::No native Azure Functions worker was produced."
+            exit 1
+          fi
+
+          if ls "$publish"/*.dll >/dev/null 2>&1; then
+            echo "::error::The native publish output carries managed assemblies."
+            exit 1
+          fi
+
+          echo "native worker: $publish/$app ($(du -h "$publish/$app" | cut -f1))"
+          cat "$publish/worker.config.json"
+
+          case "$(cat "$publish/worker.config.json")" in
+            *'"defaultExecutablePath": "{WorkerRoot}'"$app"'"'*) ;;
+            *) echo "::error::worker.config.json does not name the native binary as the worker."; exit 1 ;;
+          esac
+
+          rm -rf "$publish"
+
+          dotnet publish "src/IntegrationTests/Aot/$app/$app.csproj" \
+            --configuration Release \
+            --runtime linux-x64 \
+            -p:HardenedTrimmedWorker=true \
+            -p:ILLinkTreatWarningsAsErrors=false \
+            -p:ContinuousIntegrationBuild=true \
+            -p:TrimmerSingleWarn=false \
+            2>&1 | tee azure-trimmed-publish.log
+
+          if grep -E 'warning IL[0-9]+' azure-trimmed-publish.log | grep -v -E 'Microsoft\.Azure\.Functions\.Worker|DotNetWorker|Google\.Protobuf' | grep -q .; then
+            echo "::error::The trimmed Azure Functions worker produced trim warnings outside the worker's own assemblies:"
+            grep -E 'warning IL[0-9]+' azure-trimmed-publish.log | grep -v -E 'Microsoft\.Azure\.Functions\.Worker|DotNetWorker|Google\.Protobuf'
+            exit 1
+          fi
+
       # And that the binary serves a request, which a clean compile does not tell you: a trimmer
       # removes what nothing references, so the failure this catches is a route, a binder or a
       # serializer that resolved through metadata ILC could not see.
@@ -324,6 +393,118 @@ jobs:
           case "$output" in
             *"CHANGED a-1 x7 from x3"*) echo "Native AOT binary served a bound Pub/Sub push, a decoded Firestore event and a web route." ;;
             *) echo "::error::The native Cloud Run binary did not decode the document event."; exit 1 ;;
+          esac
+
+      # The same question for an Azure Functions worker, which the Functions host starts rather
+      # than the other way round: the host runs in its own container, reads worker.config.json
+      # from the publish output, starts the trimmed worker, asks it over gRPC for the functions it
+      # serves, and indexes what the generated metadata provider answered - a static list, which
+      # is the whole reason a trimmed worker can be indexed at all. Then a request for the web
+      # route goes through the host to the generated executor, the shim and the invocation
+      # handler's per-invocation choice of dispatch, every one of which is a static initializer
+      # or a generic registration the trimmer could have removed. The publish step above says why
+      # the worker is the trimmed one rather than the native binary.
+      #
+      # The queue function needs a Service Bus namespace to start its listener and the host needs
+      # a storage account for its own bookkeeping, so the Service Bus emulator, the SQL Server it
+      # keeps its state in and Azurite run beside the host on one network, the same arrangement
+      # the repository's container tier uses. The host image is the one a deployment runs.
+      - name: Index and serve a route from the trimmed Azure Functions worker
+        run: |
+          set -o pipefail
+
+          app=Hardened.IntegrationTests.Aot.AzureFunctions.SUT
+          publish=$(find "src/IntegrationTests/Aot/$app" -type d -path '*/publish' | head -1)
+
+          if [ -z "$publish" ] || [ ! -x "$publish/$app" ] || [ ! -f "$publish/$app.dll" ]; then
+            echo "::error::No trimmed Azure Functions worker was produced."
+            find src/IntegrationTests/Aot -name "$app*" -type f || true
+            exit 1
+          fi
+
+          echo "trimmed worker: $publish ($(du -sh "$publish" | cut -f1), $(ls "$publish"/*.dll | wc -l) assemblies)"
+          echo "worker.config.json:"
+          cat "$publish/worker.config.json"
+
+          case "$(cat "$publish/worker.config.json")" in
+            *'"defaultExecutablePath": "{WorkerRoot}'"$app"'"'*) ;;
+            *) echo "::error::worker.config.json does not name the worker's executable."; exit 1 ;;
+          esac
+
+          config=src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.AzureFunctions.SUT/ServiceBusEmulator.json
+
+          docker network create hardened-aot
+          trap 'docker rm -f hardened-host hardened-servicebus hardened-mssql hardened-azurite >/dev/null 2>&1 || true; docker network rm hardened-aot >/dev/null 2>&1 || true' EXIT
+
+          docker run -d --name hardened-azurite --network hardened-aot \
+            mcr.microsoft.com/azure-storage/azurite:3.35.0 >/dev/null
+
+          docker run -d --name hardened-mssql --network hardened-aot \
+            -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='Hardened!Aot1' \
+            mcr.microsoft.com/mssql/server:2022-CU14-ubuntu-22.04 >/dev/null
+
+          docker run -d --name hardened-servicebus --network hardened-aot \
+            -e ACCEPT_EULA=Y -e SQL_SERVER=hardened-mssql -e MSSQL_SA_PASSWORD='Hardened!Aot1' \
+            -v "$PWD/$config:/ServiceBus_Emulator/ConfigFiles/Config.json" \
+            mcr.microsoft.com/azure-messaging/servicebus-emulator:2.0.1 >/dev/null
+
+          for _ in $(seq 1 120); do
+            if docker logs hardened-servicebus 2>&1 | grep -q "Emulator Service is Successfully Up"; then break; fi
+            sleep 2
+          done
+
+          if ! docker logs hardened-servicebus 2>&1 | grep -q "Emulator Service is Successfully Up"; then
+            echo "::error::The Service Bus emulator did not come up."
+            docker logs hardened-servicebus 2>&1 | tail -40
+            exit 1
+          fi
+
+          # The well-known development account Azurite serves, reached by the container's name,
+          # and the emulator's fixed key; both are the same strings the container tier uses.
+          storage='DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://hardened-azurite:10000/devstoreaccount1;QueueEndpoint=http://hardened-azurite:10001/devstoreaccount1;TableEndpoint=http://hardened-azurite:10002/devstoreaccount1;'
+          servicebus='Endpoint=sb://hardened-servicebus:5672;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;'
+
+          docker run -d --name hardened-host --network hardened-aot -p 5197:80 \
+            -v "$PWD/$publish:/home/site/wwwroot:ro" \
+            -e AzureWebJobsScriptRoot=/home/site/wwwroot \
+            -e FUNCTIONS_WORKER_RUNTIME=dotnet-isolated \
+            -e AzureFunctionsJobHost__Logging__Console__IsEnabled=true \
+            -e AzureWebJobsStorage="$storage" \
+            -e AzureWebJobsServiceBus="$servicebus" \
+            mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0 >/dev/null
+
+          for _ in $(seq 1 120); do
+            if docker logs hardened-host 2>&1 | grep -q "Job host started"; then break; fi
+            sleep 2
+          done
+
+          docker logs hardened-host >host.log 2>&1
+          cat host.log
+
+          if ! grep -q "Job host started" host.log; then
+            echo "::error::The Functions host did not start with the trimmed worker."
+            exit 1
+          fi
+
+          # What the host indexed: exactly the two functions the generated provider declares, on
+          # the lines under "Found the following functions:".
+          indexed=$(grep -oE 'Host\.Functions\.[A-Za-z0-9_]+$' host.log | sed 's/Host\.Functions\.//' | sort -u | tr '\n' ' ')
+          echo "indexed: $indexed"
+
+          case "$indexed" in
+            "Http Queue_orders_new ") ;;
+            *) echo "::error::The host indexed '$indexed' rather than the HTTP and queue functions the provider declares."; exit 1 ;;
+          esac
+
+          # The web route, through the host, the catch-all HTTP function and the trimmed worker's
+          # generated executor, with the host's route prefix taken off by the adapter. The handler
+          # returns a string, which the pipeline serializes, so the answer is "ok" in quotes.
+          health=$(curl -fsS http://localhost:5197/api/health || true)
+          echo "health:  $health"
+
+          case "$health" in
+            '"ok"'|ok) echo "Trimmed worker was indexed by the Functions host and served a web route through it." ;;
+            *) echo "::error::The trimmed Azure Functions worker did not answer the web route."; docker logs hardened-host 2>&1 | tail -60; exit 1 ;;
           esac
 
       # The document the code-first generator emits, checked by a linter rather than only by a

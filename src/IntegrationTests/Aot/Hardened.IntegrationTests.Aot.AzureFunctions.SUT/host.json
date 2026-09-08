@@ -1,0 +1,14 @@
+{
+  "version": "2.0",
+  "logging": {
+    "logLevel": {
+      "default": "Information"
+    }
+  },
+  "extensions": {
+    "serviceBus": {
+      "maxMessageBatchSize": 10,
+      "maxConcurrentCalls": 1
+    }
+  }
+}

@@ -1,0 +1,100 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The Azure Functions quarter of the AOT proof, beside the Kestrel, Lambda and Cloud Run ones.
+      An isolated worker: the Functions host starts it, asks it over gRPC for the functions it
+      serves, and the answer is the metadata provider the Azure generator wrote - a static list,
+      no reflection, which is the whole reason a trimmed worker can be indexed at all. Every
+      invocation then goes through the generated executor, the shim's binding attributes and the
+      invocation handler, each of which is a static initializer or a generic registration the
+      trimmer has to keep.
+
+      Two functions, one per dispatch. The HTTP catch-all serves a web route through the web
+      table, and the queue function serves a trigger through the function table; the invocation
+      handler selects between them per invocation, which is the decorator this project exists to
+      prove survives trimming.
+
+      Published twice by the workflow. With PublishAot, which is the gate: ILC compiles the whole
+      graph and the publish fails on a trim or AOT warning from any assembly but the worker's own.
+      The native binary is not what the host runs, because the worker package cannot start as
+      one; see the HardenedTrimmedWorker group below, which is the publish the host probe mounts.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.Aot.AzureFunctions.SUT</RootNamespace>
+        <DependencyModules_AutoGenerateModule>false</DependencyModules_AutoGenerateModule>
+
+        <!--
+          On for the ordinary build too, not only when publishing, for the reason the Lambda
+          project gives: the analyzers fail `dotnet build` on a trim-unsafe call, in the same run
+          as everything else.
+        -->
+        <PublishAot>true</PublishAot>
+        <InvariantGlobalization>true</InvariantGlobalization>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <!--
+      The publish the Functions host runs. The worker package cannot start as a native binary
+      (Hardened.Azure.Functions.Runtime's targets say why), so the host probe runs the same
+      project trimmed and self-contained instead: the same trim analysis and the same rooting,
+      with the assemblies still on disk. A project property rather than -p:PublishTrimmed on the
+      command line, because a global property reaches the netstandard analyzer projects too, and
+      they refuse it.
+    -->
+    <PropertyGroup Condition="'$(HardenedTrimmedWorker)' == 'true'">
+        <PublishAot>false</PublishAot>
+        <PublishTrimmed>true</PublishTrimmed>
+        <SelfContained>true</SelfContained>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <CompilerVisibleProperty Include="DependencyModules_AutoGenerateModule"/>
+    </ItemGroup>
+
+    <!--
+      The Worker SDK is the application's reference, as in every Azure fixture: it scans the
+      compiled shims into functions.metadata, builds the host's extensions and writes
+      worker.config.json - which, for a self-contained publish, names the native binary as the
+      worker the host starts.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk"/>
+    </ItemGroup>
+
+    <!--
+      The trigger property declarations and the bindings this worker uses, imported from the source
+      tree because a project reference carries no build assets: [Queue] binds through the Service
+      Bus adapter's, the web verbs through the HTTP adapter's, and the runtime's keeps the Worker
+      SDK's own generated provider and executor out.
+    -->
+    <Import Project="..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
+    <Import Project="..\..\..\Web\Hardened.Web.Runtime\Package\Hardened.Web.Runtime.targets"/>
+    <Import Project="..\..\..\Clouds\Azure\Hardened.Azure.Functions.ServiceBus\Package\Hardened.Azure.Functions.ServiceBus.targets"/>
+    <Import Project="..\..\..\Clouds\Azure\Hardened.Azure.Functions.Http\Package\Hardened.Azure.Functions.Http.targets"/>
+    <Import Project="..\..\..\Clouds\Azure\Hardened.Azure.Functions.Runtime\Package\Hardened.Azure.Functions.Runtime.targets"/>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Clouds\Azure\Hardened.Azure.Functions.Runtime\Hardened.Azure.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Clouds\Azure\Hardened.Azure.Functions.Http\Hardened.Azure.Functions.Http.csproj"/>
+        <ProjectReference Include="..\..\..\Clouds\Azure\Hardened.Azure.Functions.ServiceBus\Hardened.Azure.Functions.ServiceBus.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\Clouds\Azure\Hardened.Azure.Functions.SourceGenerator\Hardened.Azure.Functions.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+</Project>
