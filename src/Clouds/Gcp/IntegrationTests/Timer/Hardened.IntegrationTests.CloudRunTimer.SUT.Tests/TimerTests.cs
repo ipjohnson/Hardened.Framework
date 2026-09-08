@@ -1,5 +1,5 @@
 using DependencyModules.Testing.Attributes;
-using Hardened.Gcp.CloudRun.Testing;
+using Hardened.Functions.Testing;
 using Hardened.IntegrationTests.CloudRunTimer.SUT;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Kestrel.Runtime;

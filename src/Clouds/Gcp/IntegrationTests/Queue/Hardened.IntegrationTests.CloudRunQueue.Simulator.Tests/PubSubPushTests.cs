@@ -40,7 +40,7 @@ public sealed class PubSubPushTests : IClassFixture<PubSubPushTests.Stack> {
     /// </summary>
     [Fact]
     public async Task AMessagePublishedToTheEmulatorReachesTheHandlerInTheContainer() {
-        await _stack.Emulator.PublishAsync(_stack.Topic, """{"id":"e-1","quantity":4}""", Token);
+        await _stack.Emulator.PublishAsync(_stack.Topic, """{"id":"e-1","quantity":4}""", cancellationToken: Token);
 
         var observed = await _stack.Service.Observed.WaitFor(one => one.Has("id", "e-1"), cancellationToken: Token);
 
@@ -55,7 +55,7 @@ public sealed class PubSubPushTests : IClassFixture<PubSubPushTests.Stack> {
     /// </summary>
     [Fact]
     public async Task AFailedHandlerIsRedelivered() {
-        await _stack.Emulator.PublishAsync(_stack.Topic, """{"id":"e-refused","quantity":-1}""", Token);
+        await _stack.Emulator.PublishAsync(_stack.Topic, """{"id":"e-refused","quantity":-1}""", cancellationToken: Token);
 
         var attempts = await _stack.Service.Observed.WaitForMatching(
             one => one.Has("id", "e-refused"), count: 2, cancellationToken: Token);
