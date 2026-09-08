@@ -1,10 +1,11 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
 namespace Hardened.Aws.Lambda.ApiGateway
 {
-    public sealed class ApiGatewayAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
+    public sealed class ApiGatewayAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter, Hardened.Aws.Lambda.Runtime.Adapters.IStreamingPayloadAdapter
     {
         public ApiGatewayAdapter() { }
         public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Amazon.Lambda.Core.ResponseStreaming.HttpResponseStreamPrelude CreatePrelude(Hardened.Requests.Abstract.Execution.IExecutionResponse response) { }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
         public bool Handles(System.Text.Json.JsonElement payload) { }

@@ -64,6 +64,13 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
         <PackageReference Include="Microsoft.Extensions.Primitives" />
+        <!--
+          The response body in stream mode. Serializers write synchronously and a Lambda
+          response stream blocks on its async path, so ResponseStream lands those writes in a
+          pipe and pumps it. Not in the shared framework for a plain class library, only for
+          an ASP.NET Core app.
+        -->
+        <PackageReference Include="System.IO.Pipelines" />
     </ItemGroup>
 
 </Project>

@@ -2,10 +2,12 @@ using System.Runtime.ExceptionServices;
 using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
+using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Hardened.Aws.Lambda.Runtime.Hosting;
 
@@ -27,20 +29,38 @@ namespace Hardened.Aws.Lambda.Runtime.Hosting;
 /// </para>
 /// </remarks>
 public class LambdaInvocationHandler {
+    /// <summary>
+    /// What a streamed response with an empty body sends instead of nothing.
+    /// </summary>
+    /// <remarks>
+    /// A zero-byte streamed body is not delivered promptly: CloudFront and a function URL both wait
+    /// on data that never comes, and a reader waiting on the first byte hangs until the invocation
+    /// times out. One newline ends it.
+    /// </remarks>
+    private static readonly byte[] EmptyStreamedBody = "\n"u8.ToArray();
+
     private readonly IServiceProvider _rootServiceProvider;
     private readonly IRequestExecutor _executor;
     private readonly IMetricLoggerProvider _metricLoggerProvider;
     private readonly IPayloadAdapter[] _adapters;
+    private readonly IResponseStreamFactory _streams;
+    private readonly LambdaResponseMode _mode;
 
     public LambdaInvocationHandler(
         IServiceProvider rootServiceProvider,
         IRequestExecutor executor,
         IMetricLoggerProvider metricLoggerProvider,
-        IEnumerable<IPayloadAdapter> adapters) {
+        IEnumerable<IPayloadAdapter> adapters,
+        IResponseStreamFactory streams,
+        IOptions<ILambdaResponseModeConfiguration> mode) {
         _rootServiceProvider = rootServiceProvider;
         _executor = executor;
         _metricLoggerProvider = metricLoggerProvider;
         _adapters = adapters.ToArray();
+        _streams = streams;
+        // Read once, when the handler is built. The mode is a property of the deployment, so
+        // re-reading it per invocation would ask the same question of the same environment.
+        _mode = mode.Value.Mode;
     }
 
     /// <summary>
@@ -70,17 +90,28 @@ public class LambdaInvocationHandler {
         using var deadline = LambdaExecutionContext.ForInvocation(lambdaContext);
         using var scope = _rootServiceProvider.CreateScope();
 
+        // The mode is the deployment's, and whether it can be honoured is the adapter's. A function
+        // whose source has no caller holding a connection stays buffered under a stream-mode
+        // variable rather than failing, because the variable describes a front door it does not have.
+        return _mode == LambdaResponseMode.Stream && adapter is IStreamingPayloadAdapter streaming
+            ? await Streamed(streaming, payload, lambdaContext, scope, deadline.Token)
+            : await Buffered(adapter, payload, lambdaContext, scope, deadline.Token);
+    }
+
+    /// <summary>
+    /// One payload back when the handler returns, which is what every source but a streaming front
+    /// door expects.
+    /// </summary>
+    private async Task<Stream> Buffered(
+        IPayloadAdapter adapter,
+        LambdaPayload payload,
+        ILambdaContext lambdaContext,
+        IServiceScope scope,
+        CancellationToken deadline) {
         var body = new MemoryStream();
         var output = new MemoryStream();
 
-        var context = new LambdaExecutionContext(
-            _rootServiceProvider,
-            scope.ServiceProvider,
-            scope.ServiceProvider.GetRequiredService<IKnownServices>(),
-            adapter.CreateRequest(payload, lambdaContext),
-            adapter.CreateResponse(body),
-            deadline.Token,
-            _metricLoggerProvider.CreateLogger("lambda-invocation"));
+        var context = Context(adapter, payload, lambdaContext, scope, deadline, adapter.CreateResponse(body));
 
         await _executor.Run(context, adapter.FailurePolicy);
 
@@ -101,6 +132,82 @@ public class LambdaInvocationHandler {
 
         return output;
     }
+
+    /// <summary>
+    /// A body that leaves as it is written, opening the Lambda response stream at its first byte.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// One mechanism, three timings, and the pipeline never asks which it is running. A streaming
+    /// handler opens the stream at its first item and writes a chunk per item after it; a buffered
+    /// operation opens it when the serializer writes the body, one write and a close; a refusal
+    /// opens it with the refusal's own status when the error serializer writes.
+    /// </para>
+    /// <para>
+    /// Nothing catches here. A throw before the first byte never opens a stream, so it reaches the
+    /// bootstrap and is reported as a failed invocation with a complete error response. A throw
+    /// after the first byte cannot be taken back, and the bootstrap writes it as trailers - which is
+    /// what a truncated stream should be.
+    /// </para>
+    /// </remarks>
+    private async Task<Stream> Streamed(
+        IStreamingPayloadAdapter adapter,
+        LambdaPayload payload,
+        ILambdaContext lambdaContext,
+        IServiceScope scope,
+        CancellationToken deadline) {
+        IExecutionResponse? response = null;
+
+        // Built when the stream opens rather than when the response is created, so the prelude
+        // carries whatever the pipeline had decided by the first byte.
+        var body = new ResponseStream(() => _streams.CreateHttpStream(adapter.CreatePrelude(response!)));
+
+        response = adapter.CreateResponse(body);
+
+        var context = Context(adapter, payload, lambdaContext, scope, deadline, response);
+
+        try {
+            await _executor.Run(context, adapter.FailurePolicy);
+
+            if (body.Length == 0) {
+                await body.WriteAsync(EmptyStreamedBody);
+            }
+
+            await body.CompleteAsync();
+        }
+        catch {
+            // What was written before the failure still goes, so the client's view of the stream is
+            // the handler's up to the point it broke. A failure completing is second to the one
+            // already in flight.
+            try {
+                await body.CompleteAsync();
+            }
+            catch {
+                // The exception in flight is the one to surface.
+            }
+
+            throw;
+        }
+
+        // Ignored by the bootstrap once a stream has been created, and every response here creates
+        // one: the empty case wrote a newline above.
+        return Stream.Null;
+    }
+
+    private LambdaExecutionContext Context(
+        IPayloadAdapter adapter,
+        LambdaPayload payload,
+        ILambdaContext lambdaContext,
+        IServiceScope scope,
+        CancellationToken deadline,
+        IExecutionResponse response) =>
+        new(_rootServiceProvider,
+            scope.ServiceProvider,
+            scope.ServiceProvider.GetRequiredService<IKnownServices>(),
+            adapter.CreateRequest(payload, lambdaContext),
+            response,
+            deadline,
+            _metricLoggerProvider.CreateLogger("lambda-invocation"));
 
     private bool _installed;
 

@@ -9,6 +9,10 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters
         bool Handles(System.Text.Json.JsonElement payload);
         System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.IO.Stream output);
     }
+    public interface IStreamingPayloadAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter
+    {
+        Amazon.Lambda.Core.ResponseStreaming.HttpResponseStreamPrelude CreatePrelude(Hardened.Requests.Abstract.Execution.IExecutionResponse response);
+    }
 }
 namespace Hardened.Aws.Lambda.Runtime.Development
 {
@@ -122,7 +126,7 @@ namespace Hardened.Aws.Lambda.Runtime.Hosting
     }
     public class LambdaInvocationHandler
     {
-        public LambdaInvocationHandler(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Execution.IRequestExecutor executor, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, System.Collections.Generic.IEnumerable<Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter> adapters) { }
+        public LambdaInvocationHandler(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Execution.IRequestExecutor executor, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, System.Collections.Generic.IEnumerable<Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter> adapters, Hardened.Aws.Lambda.Runtime.Streaming.IResponseStreamFactory streams, Microsoft.Extensions.Options.IOptions<Hardened.Aws.Lambda.Runtime.Streaming.ILambdaResponseModeConfiguration> mode) { }
         public System.Collections.Generic.IReadOnlyList<Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter> Adapters { get; }
         public Hardened.Requests.Abstract.Middleware.IMiddlewareService Middleware { get; }
         public System.Threading.Tasks.Task<System.IO.Stream> Invoke(System.IO.Stream input, Amazon.Lambda.Core.ILambdaContext lambdaContext) { }
@@ -145,5 +149,64 @@ namespace Hardened.Aws.Lambda.Runtime.Modules
     {
         public LambdaRuntimeModuleAttribute() { }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Aws.Lambda.Runtime.Streaming
+{
+    public interface ILambdaResponseModeConfiguration
+    {
+        Hardened.Aws.Lambda.Runtime.Streaming.LambdaResponseMode Mode { get; }
+    }
+    public interface IResponseStreamFactory
+    {
+        System.IO.Stream CreateHttpStream(Amazon.Lambda.Core.ResponseStreaming.HttpResponseStreamPrelude prelude);
+        System.IO.Stream CreateStream();
+    }
+    public enum LambdaResponseMode
+    {
+        Buffered = 0,
+        Stream = 1,
+    }
+    public class LambdaResponseModeConfiguration : Hardened.Aws.Lambda.Runtime.Streaming.ILambdaResponseModeConfiguration
+    {
+        public const string BufferedValue = "buffered";
+        public const string EnvironmentVariable = "HARDENED_LAMBDA_RESPONSE_MODE";
+        public const string StreamValue = "stream";
+        public LambdaResponseModeConfiguration() { }
+        public Hardened.Aws.Lambda.Runtime.Streaming.LambdaResponseMode Mode { get; set; }
+        public static void FromEnvironment(Hardened.Shared.Runtime.Application.IHardenedEnvironment environment, Hardened.Aws.Lambda.Runtime.Streaming.LambdaResponseModeConfiguration configuration) { }
+        public static Hardened.Aws.Lambda.Runtime.Streaming.LambdaResponseMode Parse(string? value) { }
+        public static string ValueOf(Hardened.Aws.Lambda.Runtime.Streaming.LambdaResponseMode mode) { }
+    }
+    public static class LambdaResponseModeServiceCollectionExtensions
+    {
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection ConfigureLambdaResponseMode(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Hardened.Aws.Lambda.Runtime.Streaming.LambdaResponseModeConfiguration> configure) { }
+    }
+    public sealed class ResponseStream : System.IO.Stream
+    {
+        public ResponseStream(System.Func<System.IO.Stream> open) { }
+        public override bool CanRead { get; }
+        public override bool CanSeek { get; }
+        public override bool CanWrite { get; }
+        public bool HasResponseStarted { get; }
+        public override long Length { get; }
+        public override long Position { get; set; }
+        public System.Threading.Tasks.Task CompleteAsync() { }
+        public override void Flush() { }
+        public override System.Threading.Tasks.Task FlushAsync(System.Threading.CancellationToken cancellationToken) { }
+        public override int Read(byte[] buffer, int offset, int count) { }
+        public override long Seek(long offset, System.IO.SeekOrigin origin) { }
+        public override void SetLength(long value) { }
+        public override void Write(System.ReadOnlySpan<byte> buffer) { }
+        public override void Write(byte[] buffer, int offset, int count) { }
+        public override System.Threading.Tasks.ValueTask WriteAsync(System.ReadOnlyMemory<byte> buffer, System.Threading.CancellationToken cancellationToken = default) { }
+        public override System.Threading.Tasks.Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken) { }
+        public override void WriteByte(byte value) { }
+    }
+    public sealed class RuntimeResponseStreamFactory : Hardened.Aws.Lambda.Runtime.Streaming.IResponseStreamFactory
+    {
+        public RuntimeResponseStreamFactory() { }
+        public System.IO.Stream CreateHttpStream(Amazon.Lambda.Core.ResponseStreaming.HttpResponseStreamPrelude prelude) { }
+        public System.IO.Stream CreateStream() { }
     }
 }

@@ -272,4 +272,4 @@ Both were `[DynamoDbModule]` until 0.31.0, in two packages, so an application th
 handled its stream could not name either without qualifying it.
 
 A Lambda response is always buffered. There is no streaming mode and no environment variable that
-selects one; see [API Gateway](/aws/lambda-web#responses-are-buffered).
+selects one; see [Response mode](/aws/lambda-web#response-mode).

@@ -3,6 +3,7 @@ using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Aws.Lambda.Runtime.Hosting;
+using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Hardened.Aws.Lambda.ApiGateway;
 using Hardened.Aws.Lambda.EventBridge;
@@ -14,6 +15,7 @@ using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Runtime.Middleware;
 using Hardened.Shared.Runtime.Metrics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace Hardened.Aws.Lambda.Runtime.Tests.Hosting;
@@ -67,8 +69,19 @@ public class LambdaInvocationHandlerTests {
         var provider = services.BuildServiceProvider();
 
         return (new LambdaInvocationHandler(
-            provider, executor, new NullMetricLoggerProvider(), adapters), executor);
+                provider, executor, new NullMetricLoggerProvider(), adapters,
+                new CapturingResponseStreamFactory(), Mode()),
+            executor);
     }
+
+    /// <summary>
+    /// The response mode as the configuration would have read it. Buffered unless a test says
+    /// otherwise, which is the default a function with no variable set runs under.
+    /// </summary>
+    private static IOptions<ILambdaResponseModeConfiguration> Mode(
+        LambdaResponseMode mode = LambdaResponseMode.Buffered) =>
+        Options.Create<ILambdaResponseModeConfiguration>(
+            new LambdaResponseModeConfiguration { Mode = mode });
 
     private static ILambdaContext Context() =>
         new TestLambdaContext(remainingTime: TimeSpan.FromSeconds(30));
@@ -281,7 +294,8 @@ public class LambdaInvocationHandlerTests {
 
         var handler = new LambdaInvocationHandler(
             services.BuildServiceProvider(), new RecordingExecutor(),
-            new NullMetricLoggerProvider(), [new SqsAdapter()]);
+            new NullMetricLoggerProvider(), [new SqsAdapter()],
+            new CapturingResponseStreamFactory(), Mode());
 
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(
             () => handler.Invoke(Input(Payloads.SqsJson), Context()));
@@ -304,7 +318,8 @@ public class LambdaInvocationHandlerTests {
 
         var handler = new LambdaInvocationHandler(
             services.BuildServiceProvider(), new RecordingExecutor(),
-            new NullMetricLoggerProvider(), [new SqsAdapter()]);
+            new NullMetricLoggerProvider(), [new SqsAdapter()],
+            new CapturingResponseStreamFactory(), Mode());
 
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(
             () => handler.Invoke(Input(Payloads.SqsJson), Context()));

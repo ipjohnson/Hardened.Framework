@@ -1,9 +1,12 @@
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Aws.Lambda.Runtime.Hosting;
+using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Requests.Runtime.DependencyInjection;
+using Hardened.Shared.Runtime.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Hardened.Aws.Lambda.Runtime.Modules;
 
@@ -34,5 +37,22 @@ namespace Hardened.Aws.Lambda.Runtime.Modules;
 public partial class LambdaRuntimeModule : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         services.TryAddSingleton<LambdaInvocationHandler>();
+
+        // The AWS bootstrap's stream, behind a seam. LambdaResponseStreamFactory is static and its
+        // setter is internal to the AWS packages, so a test can reach a streamed response only by
+        // replacing this.
+        services.TryAddSingleton<IResponseStreamFactory, RuntimeResponseStreamFactory>();
+
+        // Read from the environment at startup, and amendable from the application the way every
+        // other Hardened configuration is.
+        services.AddSingleton<IConfigurationPackage>(
+            new SimpleConfigurationPackage(new IConfigurationValueProvider[] {
+                new NewConfigurationValueProvider<ILambdaResponseModeConfiguration, LambdaResponseModeConfiguration>(
+                    LambdaResponseModeConfiguration.FromEnvironment)
+            }));
+
+        services.TryAddSingleton(
+            s => Options.Create(s.GetRequiredService<IConfigurationManager>()
+                .GetConfiguration<ILambdaResponseModeConfiguration>()));
     }
 }
