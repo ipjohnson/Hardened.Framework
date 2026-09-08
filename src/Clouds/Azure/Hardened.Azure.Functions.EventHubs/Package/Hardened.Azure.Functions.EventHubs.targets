@@ -1,0 +1,11 @@
+<Project>
+    <!--
+        Which module serves this package's trigger. One property, because one trigger is served by
+        exactly one adapter package on a given provider; see Hardened.Aws.Lambda.Sqs's targets for
+        the whole argument. The property is declared by Hardened.Functions.Runtime's targets, and
+        Hardened.Azure.Functions.SourceGenerator reads it to write the Event Hubs function.
+    -->
+    <PropertyGroup>
+        <HardenedStreamModule Condition="'$(HardenedStreamModule)' == ''">Hardened.Azure.Functions.EventHubs.EventHubsModule</HardenedStreamModule>
+    </PropertyGroup>
+</Project>

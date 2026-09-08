@@ -100,12 +100,24 @@
     <Project Path="src/Clouds/Gcp/IntegrationTests/Web/Hardened.IntegrationTests.CloudRunWeb.SUT.Tests/Hardened.IntegrationTests.CloudRunWeb.SUT.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Azure/">
+    <Project Path="src/Clouds/Azure/Hardened.Azure.Functions/Hardened.Azure.Functions.csproj" />
+    <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.Blobs/Hardened.Azure.Functions.Blobs.csproj" />
+    <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.CosmosDb/Hardened.Azure.Functions.CosmosDb.csproj" />
+    <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.EventGrid/Hardened.Azure.Functions.EventGrid.csproj" />
+    <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.EventHubs/Hardened.Azure.Functions.EventHubs.csproj" />
+    <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.Http/Hardened.Azure.Functions.Http.csproj" />
     <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.Runtime/Hardened.Azure.Functions.Runtime.csproj" />
     <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.Runtime.Tests/Hardened.Azure.Functions.Runtime.Tests.csproj" />
     <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.ServiceBus/Hardened.Azure.Functions.ServiceBus.csproj" />
     <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.SourceGenerator/Hardened.Azure.Functions.SourceGenerator.csproj" />
     <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.SourceGenerator.Tests/Hardened.Azure.Functions.SourceGenerator.Tests.csproj" />
     <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.Testing/Hardened.Azure.Functions.Testing.csproj" />
+    <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.Timer/Hardened.Azure.Functions.Timer.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Azure/IntegrationTests/Http/">
+    <Project Path="src/Clouds/Azure/IntegrationTests/Http/Hardened.IntegrationTests.AzureHttp.SUT/Hardened.IntegrationTests.AzureHttp.SUT.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Http/Hardened.IntegrationTests.AzureHttp.SUT.Tests/Hardened.IntegrationTests.AzureHttp.SUT.Tests.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Http/Hardened.IntegrationTests.AzureHttp.Worker.Tests/Hardened.IntegrationTests.AzureHttp.Worker.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Azure/IntegrationTests/Queue/">
     <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.SUT/Hardened.IntegrationTests.AzureQueue.SUT.csproj" />

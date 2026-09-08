@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Serves [Blob] handlers on Azure Functions from a blob trigger fed by Event Grid, delivering what Storage says about the blob rather than the blob.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Azure.Functions.Blobs</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;blob;storage</PackageTags>
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Azure.Functions.Runtime\Hardened.Azure.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Azure.Functions.Runtime.Tests"/>
+    </ItemGroup>
+
+    <!-- buildTransitive/ rather than build/, for the reason Hardened.Aws.Lambda.Sqs gives. -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Azure.Functions.Blobs.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <!--
+      The worker extension carries the attribute, the converter that binds a BlobClient without
+      downloading anything, and the assembly attribute the Sdk's build task reads to put the WebJobs
+      Storage extension into the host. Azure.Storage.Blobs arrives through it.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" />
+        <PackageReference Include="DependencyModules.Runtime" />
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+    </ItemGroup>
+
+</Project>

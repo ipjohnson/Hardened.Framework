@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The worker rung of the ladder: the same HttpFunctionTests.cs as the pipeline rung, linked
+      rather than copied, with [AzureFunctionsWebTesting] raising the host to the worker's request
+      data through the real invocation handler and back out as its response data. A test that
+      passes here and not in the rung below is a defect in the adapter; one that passes below and
+      not here is a defect in what the worker hands over.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="..\Hardened.IntegrationTests.AzureHttp.SUT.Tests\HttpFunctionTests.cs" Link="HttpFunctionTests.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.IntegrationTests.AzureHttp.SUT\Hardened.IntegrationTests.AzureHttp.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+    </ItemGroup>
+
+</Project>

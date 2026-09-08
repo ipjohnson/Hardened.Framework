@@ -1,0 +1,11 @@
+<Project>
+    <!--
+        Which module serves the web verbs on this provider. The property is declared by
+        Hardened.Web.Runtime's targets, which own the verbs; all five name it, so a controller with
+        a GET and a POST registers one adapter. Hardened.Azure.Functions.SourceGenerator reads it to
+        write the one HTTP function.
+    -->
+    <PropertyGroup>
+        <HardenedHttpModule Condition="'$(HardenedHttpModule)' == ''">Hardened.Azure.Functions.Http.HttpModule</HardenedHttpModule>
+    </PropertyGroup>
+</Project>

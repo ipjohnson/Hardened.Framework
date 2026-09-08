@@ -7,7 +7,7 @@
           harness serializes whatever type a test hands it, and a testing package is referenced by
           test projects, which are never published ahead of time.
         -->
-        <Description>Raises the fidelity of a Hardened function test on Azure: delivers the trigger data the isolated worker would bind - Service Bus messages, for now - through the real invocation handler, so the adapter and the batch fan-out are exercised too.</Description>
+        <Description>Raises the fidelity of a Hardened function test on Azure: delivers the trigger data the isolated worker would bind - Service Bus messages, Event Hubs events, change feed documents, blobs, timers, CloudEvents and HTTP requests - through the real invocation handler, so the adapter and the batch fan-out are exercised too.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
@@ -20,13 +20,15 @@
       delivery names no cloud; this is for a project that also wants what the worker binds to be
       what the adapter reads.
 
-      The Service Bus adapter directly, until the meta package exists: the delivery builds the
-      trigger data for every family it knows, and a test project has no deployment to keep small.
-      When Hardened.Azure.Functions arrives in Phase 2 this reference moves to it.
+      The meta package rather than the seven, and this is the one place that is the right
+      reference: a test project has no deployment to keep small, and the delivery builds the
+      trigger data for every family whether or not the application under test serves them all.
+      Hardened.Web.Testing is for the HTTP host, which is the same seam [WebTesting] runs through.
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
-        <ProjectReference Include="..\Hardened.Azure.Functions.ServiceBus\Hardened.Azure.Functions.ServiceBus.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions\Hardened.Azure.Functions.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
     </ItemGroup>
 
 </Project>
