@@ -190,8 +190,15 @@ public sealed class FunctionsWebHost : ITestHost {
                 Content = new StreamContent(response.Body)
             };
 
+            // Content-Type and Content-Length belong to the content, and the message's own
+            // collection refuses them; a client reads the content type to decide whether there
+            // is a body to deserialize at all.
             foreach (var header in response.Headers) {
-                message.Headers.TryAddWithoutValidation(header.Key, header.Value.ToString());
+                var values = header.Value.ToArray();
+
+                if (!message.Headers.TryAddWithoutValidation(header.Key, values)) {
+                    message.Content.Headers.TryAddWithoutValidation(header.Key, values);
+                }
             }
 
             return message;

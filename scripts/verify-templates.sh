@@ -445,9 +445,14 @@ for COMBO in "${COMBOS[@]}"; do
         if [ "$HOST" = azure-functions ]; then
             # The Functions host, from Core Tools, starting the built worker: there is no server
             # in the project to `dotnet run`. The host's route prefix is cleared by the
-            # template's host.json, so the routes below answer at the same paths.
+            # template's host.json, so the routes below answer at the same paths. The script
+            # root is the build output, where the Worker SDK wrote functions.metadata and the
+            # host's extensions; without it Core Tools looks beside the project and finds no
+            # functions.
+            local root
+            root=$(dirname "$(find "$OUT/src/Sample.Host/bin/Debug" -maxdepth 2 -name functions.metadata | head -1)")
             ( cd "$OUT/src/Sample.Host" && HARDENED_ENVIRONMENT="$env_name" \
-                func start --no-build --port "$port" >"$log" 2>&1 & )
+                func start --no-build --port "$port" --script-root "$root" >"$log" 2>&1 & )
         else
             ( cd "$OUT/src/Sample.Host" && PORT="$port" HARDENED_ENVIRONMENT="$env_name" \
                 dotnet run --no-build >"$log" 2>&1 & )
@@ -717,7 +722,10 @@ probe_azure_function() {
     fi
 
     local port=$((6100 + RANDOM % 200))
-    ( cd "$out/src/Sample" && func start --no-build --port "$port" >"$out/serve.log" 2>&1 & )
+    # The script root is the build output, for the reason serve() gives.
+    local root
+    root=$(dirname "$(find "$out/src/Sample/bin/Debug" -maxdepth 2 -name functions.metadata | head -1)")
+    ( cd "$out/src/Sample" && func start --no-build --port "$port" --script-root "$root" >"$out/serve.log" 2>&1 & )
 
     local indexed=""
     for _ in $(seq 1 120); do
