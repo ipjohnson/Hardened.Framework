@@ -269,24 +269,40 @@ jobs:
             --ruleset .spectral.yaml \
             --fail-severity=error
 
+      # Everything except the container tier, which runs in the step after this one. A container test
+      # exercises code in another process, so it contributes nothing to these numbers and would only
+      # hold the coverage run open while emulators start.
       - name: Test with coverage
         run: |
           set -o pipefail
           dotnet test Hardened.slnx \
             --no-build --configuration Release \
+            --filter "Category!=Simulator" \
             --settings coverage.runsettings \
             --collect:"Code Coverage" \
             --results-directory ./coverage \
             | tee test-output.log
+
+      # The simulator tier: a fixture's build output inside the image its cloud runs it in, driven
+      # by that cloud's emulator through Testcontainers. Docker is on the runner; a test that cannot
+      # reach it fails rather than skips, as every Docker test here does. The same skip checks below
+      # read this log too.
+      - name: Simulators
+        run: |
+          set -o pipefail
+          dotnet test Hardened.slnx \
+            --no-build --configuration Release \
+            --filter "Category=Simulator" \
+            | tee simulator-output.log
 
       # xUnit drops test cases that share a unique ID, reporting it only as an
       # informational line. A green run can therefore hide tests that never executed.
       # Treat any such message as a build failure.
       - name: Fail if any test was silently skipped
         run: |
-          if grep -q "duplicate ID" test-output.log; then
+          if grep -q "duplicate ID" test-output.log simulator-output.log; then
             echo "::error::Test cases were silently skipped due to duplicate test-case IDs. Give the colliding test methods distinct names."
-            grep "duplicate ID" test-output.log
+            grep "duplicate ID" test-output.log simulator-output.log
             exit 1
           fi
           echo "No silently skipped tests."
@@ -304,9 +320,9 @@ jobs:
       # a permanent Skip is a comment that costs a test run.
       - name: Fail if any test skipped
         run: |
-          if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log; then
+          if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log simulator-output.log; then
             echo "::error::Tests skipped in CI. A skipped test is one the suite is not running - land the repro with its fix, or remove it."
-            grep -E "Skipped:[[:space:]]*[1-9]" test-output.log
+            grep -E "Skipped:[[:space:]]*[1-9]" test-output.log simulator-output.log
             exit 1
           fi
           echo "Every test ran."
