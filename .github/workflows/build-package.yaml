@@ -134,10 +134,10 @@ jobs:
 
           echo "using $CLANG ($("$CLANG" --version | head -1))"
 
-          # Both halves. A native binary that serves an HTTP request says nothing about the
+          # All three. A native binary that serves an HTTP request says nothing about the
           # function path: a different adapter, a batch fan-out, and an answer written back to the
           # Lambda Runtime API rather than to a socket.
-          for app in Hardened.IntegrationTests.Aot.SUT Hardened.IntegrationTests.Aot.Lambda.SUT; do
+          for app in Hardened.IntegrationTests.Aot.SUT Hardened.IntegrationTests.Aot.Lambda.SUT Hardened.IntegrationTests.Aot.CloudRun.SUT; do
             dotnet publish "src/IntegrationTests/Aot/$app/$app.csproj" \
               --configuration Release \
               --runtime linux-x64 \
@@ -229,6 +229,101 @@ jobs:
           case "$output" in
             *"HANDLED a-1 x7"*) echo "Native AOT binary served a bound queue message." ;;
             *) echo "::error::The native Lambda binary did not handle the invocation."; exit 1 ;;
+          esac
+
+      # The same question for a Cloud Run service, which is both of the above on one socket: the
+      # front door ahead of routing recognises a Pub/Sub push or a CloudEvent and hands it to the
+      # function path, and a plain GET goes to the web path through the same composite dispatch.
+      # Both dispatches, the decorator that composes them and the adapters' registrations are
+      # static initializers a generator emitted, which is exactly what ILC could have removed. The
+      # Firestore event is protobuf, decoded by the one Google dependency in the line, which the
+      # analyzers cannot vouch for; a decoded document with its old value is the proof. The binary
+      # runs until SIGTERM the way a Cloud Run instance does, so the probe sends one and reads what
+      # the handlers printed.
+      - name: Serve a push, a document event and a route from the native Cloud Run binary
+        run: |
+          set -o pipefail
+
+          binary=$(find src/IntegrationTests/Aot -type f -path '*/publish/*' \
+            -name 'Hardened.IntegrationTests.Aot.CloudRun.SUT' -perm -u+x | head -1)
+
+          if [ -z "$binary" ]; then
+            echo "::error::No native Cloud Run binary was produced."
+            find src/IntegrationTests/Aot -name 'Hardened.IntegrationTests.Aot.CloudRun.SUT*' -type f || true
+            exit 1
+          fi
+
+          if [ -f "$(dirname "$binary")/Hardened.IntegrationTests.Aot.CloudRun.SUT.runtimeconfig.json" ]; then
+            echo "::error::Found the framework-dependent apphost rather than the native binary."
+            exit 1
+          fi
+
+          echo "native binary: $binary ($(du -h "$binary" | cut -f1))"
+
+          # PORT is the container contract, and 5198 keeps clear of the Kestrel probe's 5199.
+          PORT=5198 "$binary" >cloudrun.log 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+
+          for _ in $(seq 1 40); do
+            if curl -fsS "http://localhost:5198/health" >/dev/null 2>&1; then break; fi
+            sleep 0.25
+          done
+
+          echo "health:  $(curl -fsS http://localhost:5198/health)"
+
+          # {"id":"a-1","quantity":7}, base64, inside the push body a subscription named orders-new
+          # sends. The front door unwraps it, the route comes off the subscription, the body is
+          # bound through the source-generated context, and a 200 is the acknowledgement.
+          push=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://localhost:5198/" \
+            -H 'Content-Type: application/json' \
+            -d '{"message":{"data":"eyJpZCI6ImEtMSIsInF1YW50aXR5Ijo3fQ==","messageId":"1","publishTime":"2026-09-08T00:00:00Z"},"subscription":"projects/p/subscriptions/orders-new"}')
+          echo "push:    $push"
+
+          # A Firestore DocumentEventData for orders/a-1, quantity 3 before and 7 after, as the
+          # protobuf bytes Eventarc sends in binary mode. The route comes off ce-subject, the new
+          # document is projected to JSON for the body, and [OldValue] binds the old one.
+          echo 'ClMKM3Byb2plY3RzL3AvZGF0YWJhc2VzLyhkZWZhdWx0KS9kb2N1bWVudHMvb3JkZXJzL2EtMRIMCgJpZBIGigEDYS0xEg4KCHF1YW50aXR5EgIQBxJTCjNwcm9qZWN0cy9wL2RhdGFiYXNlcy8oZGVmYXVsdCkvZG9jdW1lbnRzL29yZGVycy9hLTESDAoCaWQSBooBA2EtMRIOCghxdWFudGl0eRICEAM=' \
+            | base64 --decode >firestore-event.bin
+
+          change=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://localhost:5198/" \
+            -H 'Content-Type: application/protobuf' \
+            -H 'ce-specversion: 1.0' \
+            -H 'ce-id: 2' \
+            -H 'ce-type: google.cloud.firestore.document.v1.updated' \
+            -H 'ce-source: //firestore.googleapis.com/projects/p/databases/(default)' \
+            -H 'ce-subject: documents/orders/a-1' \
+            -H 'ce-time: 2026-09-08T00:00:00Z' \
+            --data-binary @firestore-event.bin)
+          echo "change:  $change"
+
+          # SIGTERM, which is how Cloud Run retires an instance; the drain exits 0.
+          kill -TERM "$pid"
+          wait "$pid"
+          echo "exit:    $?"
+
+          cat cloudrun.log
+
+          case "$push" in
+            2*) ;;
+            *) echo "::error::The native Cloud Run binary answered the push with $push."; exit 1 ;;
+          esac
+
+          case "$change" in
+            2*) ;;
+            *) echo "::error::The native Cloud Run binary answered the document event with $change."; exit 1 ;;
+          esac
+
+          output=$(cat cloudrun.log)
+
+          case "$output" in
+            *"HANDLED a-1 x7"*) ;;
+            *) echo "::error::The native Cloud Run binary did not handle the push."; exit 1 ;;
+          esac
+
+          case "$output" in
+            *"CHANGED a-1 x7 from x3"*) echo "Native AOT binary served a bound Pub/Sub push, a decoded Firestore event and a web route." ;;
+            *) echo "::error::The native Cloud Run binary did not decode the document event."; exit 1 ;;
           esac
 
       # The document the code-first generator emits, checked by a linter rather than only by a

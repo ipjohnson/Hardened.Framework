@@ -166,6 +166,7 @@
   <Folder Name="/IntegrationTests/Aot/">
     <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.SUT/Hardened.IntegrationTests.Aot.SUT.csproj" />
     <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.Lambda.SUT/Hardened.IntegrationTests.Aot.Lambda.SUT.csproj" />
+    <Project Path="src/IntegrationTests/Aot/Hardened.IntegrationTests.Aot.CloudRun.SUT/Hardened.IntegrationTests.Aot.CloudRun.SUT.csproj" />
   </Folder>
   <Folder Name="/IntegrationTests/Authorization/">
     <Project Path="src/IntegrationTests/Authorization/Hardened.IntegrationTests.Authorization.SUT.Tests/Hardened.IntegrationTests.Authorization.SUT.Tests.csproj" />

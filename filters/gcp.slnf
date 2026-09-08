@@ -29,7 +29,8 @@
       "src\\Clouds\\Gcp\\IntegrationTests\\Web\\Hardened.IntegrationTests.CloudRunWeb.SUT.Tests\\Hardened.IntegrationTests.CloudRunWeb.SUT.Tests.csproj",
       "src\\Clouds\\Gcp\\IntegrationTests\\Web\\Hardened.IntegrationTests.CloudRunWeb.SUT\\Hardened.IntegrationTests.CloudRunWeb.SUT.csproj",
       "src\\Functions\\Hardened.CloudEvents.Tests\\Hardened.CloudEvents.Tests.csproj",
-      "src\\Functions\\Hardened.CloudEvents\\Hardened.CloudEvents.csproj"
+      "src\\Functions\\Hardened.CloudEvents\\Hardened.CloudEvents.csproj",
+      "src\\IntegrationTests\\Aot\\Hardened.IntegrationTests.Aot.CloudRun.SUT\\Hardened.IntegrationTests.Aot.CloudRun.SUT.csproj"
     ]
   }
 }
