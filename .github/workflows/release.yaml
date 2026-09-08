@@ -84,6 +84,7 @@ jobs:
           echo "Releasing $VERSION"
 
       - run: dotnet restore Hardened.slnx
+      - run: dotnet restore Hardened.Simulators.slnx
 
       # Same warnings-as-errors treatment the branch build gets. A release is the last place to
       # relax it.
@@ -131,6 +132,9 @@ jobs:
 
       - run: dotnet build Hardened.slnx --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
+      # Everything except the simulator tier, which is its own solution and runs in the step after
+      # this one. A container test exercises code in another process, so it contributes nothing to
+      # these numbers and would only hold the coverage run open while emulators start.
       - name: Test with coverage
         run: |
           set -o pipefail
@@ -141,16 +145,32 @@ jobs:
             --results-directory ./coverage \
             | tee test-output.log
 
+      # The simulator tier: a fixture's build output inside the image its cloud runs it in, driven
+      # by that cloud's emulator through Testcontainers. Its own solution, because a trait filter on
+      # `dotnet test` filters nothing on this SDK; see the note in Hardened.Simulators.slnx. Built
+      # here rather than with the main solution so the two builds cannot disagree about a fixture:
+      # the applications it mounts were built by the main build, in the same configuration, and
+      # only the test projects themselves are new. Docker is on the runner; a test that cannot reach
+      # it fails rather than skips, as every Docker test here does. The same skip checks below read
+      # this log too.
+      - name: Simulators
+        run: |
+          set -o pipefail
+          dotnet build Hardened.Simulators.slnx --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
+          dotnet test Hardened.Simulators.slnx \
+            --no-build --configuration Release \
+            | tee simulator-output.log
+
       - name: Fail if any test was silently skipped
         run: |
-          if grep -q "duplicate ID" test-output.log; then
+          if grep -q "duplicate ID" test-output.log simulator-output.log; then
             echo "::error::Test cases were silently skipped due to duplicate test-case IDs."
-            grep "duplicate ID" test-output.log
+            grep "duplicate ID" test-output.log simulator-output.log
             exit 1
           fi
-          if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log; then
+          if grep -Eq "Skipped:[[:space:]]*[1-9]" test-output.log simulator-output.log; then
             echo "::error::Tests skipped in CI. A skipped test is one the suite is not running."
-            grep -E "Skipped:[[:space:]]*[1-9]" test-output.log
+            grep -E "Skipped:[[:space:]]*[1-9]" test-output.log simulator-output.log
             exit 1
           fi
 
@@ -251,6 +271,27 @@ jobs:
             src/Web/Hardened.Web.Kestrel.Testing/Hardened.Web.Kestrel.Testing.csproj \
             src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
             src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
+            src/Functions/Hardened.CloudEvents/Hardened.CloudEvents.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Runtime/Hardened.Azure.Functions.Runtime.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.ServiceBus/Hardened.Azure.Functions.ServiceBus.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.SourceGenerator/Hardened.Azure.Functions.SourceGenerator.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Testing/Hardened.Azure.Functions.Testing.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions/Hardened.Azure.Functions.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Blobs/Hardened.Azure.Functions.Blobs.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.CosmosDb/Hardened.Azure.Functions.CosmosDb.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.EventGrid/Hardened.Azure.Functions.EventGrid.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.EventHubs/Hardened.Azure.Functions.EventHubs.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Http/Hardened.Azure.Functions.Http.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Timer/Hardened.Azure.Functions.Timer.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.PubSub/Hardened.Gcp.CloudRun.PubSub.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Runtime/Hardened.Gcp.CloudRun.Runtime.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Testing/Hardened.Gcp.CloudRun.Testing.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun/Hardened.Gcp.CloudRun.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Eventarc/Hardened.Gcp.CloudRun.Eventarc.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Firestore/Hardened.Gcp.CloudRun.Firestore.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Invoke/Hardened.Gcp.CloudRun.Invoke.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Scheduler/Hardened.Gcp.CloudRun.Scheduler.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Storage/Hardened.Gcp.CloudRun.Storage.csproj \
             src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj \
             src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
@@ -324,7 +365,15 @@ jobs:
           # 41 with Hardened.Aws.Lambda.Kinesis, the second adapter added after the split.
           # 42 with Hardened.Aws.Lambda.S3.
           # 44 with the DynamoDB client and its testing package, restored from the Amz line.
-          EXPECTED=44
+          # 45 with Hardened.CloudEvents, the dependency-free CloudEvents reader the GCP line and the
+          # Azure [Event] adapter share.
+          # 52 with the first packages of the Azure and GCP lines: the Azure runtime, Service Bus adapter,
+          # generator and testing package, and the Cloud Run runtime, Pub/Sub adapter and testing package.
+          # 58 with the rest of the GCP line: the Scheduler, Invoke, Storage, Firestore and Eventarc
+          # adapters and the Hardened.Gcp.CloudRun meta package.
+          # 65 with the rest of the Azure line: the HTTP, Timer, Event Hubs, Cosmos DB, Blobs and Event Grid
+          # adapters and the Hardened.Azure.Functions meta package.
+          EXPECTED=65
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

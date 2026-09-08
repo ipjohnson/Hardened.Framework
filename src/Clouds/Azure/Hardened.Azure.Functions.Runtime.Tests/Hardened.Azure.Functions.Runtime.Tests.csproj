@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+        <OutputType>Exe</OutputType>
+    </PropertyGroup>
+
+    <!--
+      The meta package, because these tests cover every adapter; the testing package for the
+      function context and request data a test can build outside the worker.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Azure.Functions\Hardened.Azure.Functions.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+
+</Project>

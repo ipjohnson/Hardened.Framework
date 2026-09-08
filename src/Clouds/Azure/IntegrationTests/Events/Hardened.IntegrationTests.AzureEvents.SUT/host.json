@@ -1,0 +1,15 @@
+{
+  "version": "2.0",
+  "logging": {
+    "logLevel": {
+      "default": "Information"
+    }
+  },
+  "extensions": {
+    "serviceBus": {
+      "autoCompleteMessages": true,
+      "maxMessageBatchSize": 10,
+      "maxConcurrentCalls": 1
+    }
+  }
+}

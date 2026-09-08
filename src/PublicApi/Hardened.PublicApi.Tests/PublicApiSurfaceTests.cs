@@ -45,8 +45,26 @@ public class PublicApiSurfaceTests {
         "Hardened.Aws.Lambda.Sns",
         "Hardened.Aws.Lambda.Sqs",
         "Hardened.Aws.Lambda.Testing",
+        "Hardened.Azure.Functions.Blobs",
+        "Hardened.Azure.Functions.CosmosDb",
+        "Hardened.Azure.Functions.EventGrid",
+        "Hardened.Azure.Functions.EventHubs",
+        "Hardened.Azure.Functions.Http",
+        "Hardened.Azure.Functions.Runtime",
+        "Hardened.Azure.Functions.ServiceBus",
+        "Hardened.Azure.Functions.Testing",
+        "Hardened.Azure.Functions.Timer",
+        "Hardened.CloudEvents",
         "Hardened.Functions.Runtime",
         "Hardened.Functions.Testing",
+        "Hardened.Gcp.CloudRun.Eventarc",
+        "Hardened.Gcp.CloudRun.Firestore",
+        "Hardened.Gcp.CloudRun.Invoke",
+        "Hardened.Gcp.CloudRun.PubSub",
+        "Hardened.Gcp.CloudRun.Runtime",
+        "Hardened.Gcp.CloudRun.Scheduler",
+        "Hardened.Gcp.CloudRun.Storage",
+        "Hardened.Gcp.CloudRun.Testing",
         "Hardened.Kiota.Testing",
         "Hardened.Refit.Testing",
         "Hardened.Requests.Abstract",
@@ -82,7 +100,9 @@ public class PublicApiSurfaceTests {
     /// </remarks>
     private static readonly string[] ShipsNoAssembly = [
         "Hardened.PublicApi.Tests",
-        "Hardened.Aws.Lambda"
+        "Hardened.Aws.Lambda",
+        "Hardened.Azure.Functions",
+        "Hardened.Gcp.CloudRun"
     ];
 
     public static TheoryData<string> ShippedAssemblies() => new(Shipped);

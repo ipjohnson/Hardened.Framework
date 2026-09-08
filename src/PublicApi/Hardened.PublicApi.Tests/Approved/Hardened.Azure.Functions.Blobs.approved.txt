@@ -1,0 +1,45 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Azure.Functions.Runtime.Tests")]
+namespace Hardened.Azure.Functions.Blobs
+{
+    public sealed class BlobsAdapter : Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter
+    {
+        public const string BlobCreated = "BlobCreated";
+        public const string BlobScheme = "BLOB";
+        public const string ContainerHeader = "x-azure-blob-container";
+        public const string NameHeader = "x-azure-blob-name";
+        public const string SizeHeader = "x-azure-blob-size";
+        public const string UriHeader = "x-azure-blob-uri";
+        public BlobsAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger) { }
+        public System.Threading.Tasks.ValueTask<object?> WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Azure.Functions.Worker.FunctionContext functionContext) { }
+        public sealed class BlobProperties : System.IEquatable<Hardened.Azure.Functions.Blobs.BlobsAdapter.BlobProperties>
+        {
+            public static readonly Hardened.Azure.Functions.Blobs.BlobsAdapter.BlobProperties Unknown;
+            public BlobProperties(long? Size, string? ContentType, string? ETag) { }
+            public string? ContentType { get; init; }
+            public string? ETag { get; init; }
+            public long? Size { get; init; }
+        }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Azure.Functions.Runtime.Modules.FunctionsRuntimeModule]
+    public class BlobsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public BlobsModule() { }
+        public string? Connection { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class BlobsModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public BlobsModuleAttribute() { }
+        public string Connection { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}

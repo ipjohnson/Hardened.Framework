@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The worker rung of the ladder: the same ChangeTests.cs as the pipeline rung, linked rather
+      than copied, with [AzureFunctionsTesting] raising the delivery to the feed array the isolated
+      worker would bind. See the queue fixture's worker project for the arrangement.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="DependencyModules.NSubstitute"/>
+        <PackageReference Include="NSubstitute"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="..\Hardened.IntegrationTests.AzureChange.SUT.Tests\ChangeTests.cs" Link="ChangeTests.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.IntegrationTests.AzureChange.SUT\Hardened.IntegrationTests.AzureChange.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+    </ItemGroup>
+
+</Project>

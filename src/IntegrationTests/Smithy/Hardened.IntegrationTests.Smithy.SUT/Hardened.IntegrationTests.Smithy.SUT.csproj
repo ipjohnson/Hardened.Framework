@@ -95,6 +95,14 @@
     -->
     <PropertyGroup>
         <HardenedOpenApiOutput>openapi/SmithyTestApp.json</HardenedOpenApiOutput>
+        <!--
+            bank is an awsJson1_0 service: every operation is POST / and the request names the
+            operation in X-Amz-Target, which is the dispatch BankDispatchTests exists to prove. OpenAPI
+            has one key per method and path, so the export repeats post at / and HSMT031 says so. The
+            model is here for the dispatch and not for a client generator, so the file is exported as
+            it is and the export tests compare it to /openapi.json as before.
+        -->
+        <NoWarn>$(NoWarn);HSMT031</NoWarn>
         <_HardenedOpenApiDocumentTaskTfm Condition="'$(MSBuildRuntimeType)' == 'Core'">net8.0</_HardenedOpenApiDocumentTaskTfm>
         <_HardenedOpenApiDocumentTaskTfm Condition="'$(MSBuildRuntimeType)' != 'Core'">net472</_HardenedOpenApiDocumentTaskTfm>
         <HardenedOpenApiDocumentTaskAssembly>$(MSBuildThisFileDirectory)..\..\..\SourceGenerators\Hardened.OpenApiDocument.BuildTask\bin\$(Configuration)\$(_HardenedOpenApiDocumentTaskTfm)\Hardened.OpenApiDocument.BuildTask.dll</HardenedOpenApiDocumentTaskAssembly>

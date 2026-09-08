@@ -1,0 +1,34 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Gcp.CloudRun.Runtime.Tests")]
+namespace Hardened.Gcp.CloudRun.Scheduler
+{
+    public sealed class SchedulerEnvelope : Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope
+    {
+        public const string DefaultPrefix = "/_triggers/timer/";
+        public const string JobNameHeader = "X-CloudScheduler-JobName";
+        public const string MarkerHeader = "X-CloudScheduler";
+        public const string ScheduleTimeHeader = "X-CloudScheduler-ScheduleTime";
+        public const string TimerScheme = "TIMER";
+        public SchedulerEnvelope(string prefix) { }
+        public string Prefix { get; }
+        public bool Recognises(Hardened.Requests.Abstract.Execution.IExecutionRequest request) { }
+        public Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest? Unwrap(Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Gcp.CloudRun.Runtime.Envelopes.TriggerPayload payload) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Gcp.CloudRun.Runtime.CloudRunRuntime]
+    public class SchedulerModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public SchedulerModule() { }
+        public string? Prefix { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class SchedulerModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public SchedulerModuleAttribute() { }
+        public string Prefix { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}

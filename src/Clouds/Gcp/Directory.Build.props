@@ -1,0 +1,30 @@
+<Project>
+
+    <!--
+      Everything the rest of the repository sets, plus the two things that are true only here.
+      Without this import a project under src/Clouds would see this file and none of the one at the
+      root: MSBuild imports the nearest Directory.Build.props and stops.
+    -->
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+    <PropertyGroup>
+        <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless</PackageTags>
+    </PropertyGroup>
+
+    <!--
+      Ship the XML documentation file. The prose already exists and none of it reached a consumer
+      before, because IntelliSense reads the .xml beside the .dll and there was no .xml.
+
+      CS1591 is suppressed rather than fixed: turning documentation generation on is what makes it
+      appear, and it fires per public member, so leaving it on means either a permanently red build
+      or a placeholder summary written to silence a compiler. Undocumented members are no worse off;
+      the documented ones are now visible.
+
+      The framework's packages do not do this yet. When they do, this moves to the root.
+    -->
+    <PropertyGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+</Project>

@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>The Google Cloud Run host for Hardened applications: Kestrel on PORT with a SIGTERM drain, and a trigger front door that turns the envelope a Pub/Sub push, an Eventarc CloudEvent or a Cloud Scheduler request arrives in into the trigger route a handler declared. Reference an adapter package alongside it for the triggers a service serves.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Gcp.CloudRun.Runtime</PackageId>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+
+        <!--
+          Turns on the trim, AOT and single-file analyzers, so anything that would not survive a
+          trimmed publish is a build warning here rather than a missing type at runtime.
+        -->
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <!--
+      The host, and nothing that recognises an envelope. Cloud Run is a container listening on
+      PORT, which Kestrel already is, so this package adds only what Cloud Run adds: the front door
+      ahead of routing, the one dispatch a service that serves triggers and web routes over one
+      socket needs, the PORT and SIGTERM contract, and the K_SERVICE family on transport info.
+      Which envelopes the front door recognises is an adapter package's business - see
+      Hardened.Gcp.CloudRun.PubSub - so a service that serves no queue carries no Pub/Sub code.
+
+      Microsoft.AspNetCore.App is what KestrelServerOptions lives in, for the listen helper; the
+      Kestrel runtime package already brings the shared framework to every consumer.
+    -->
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Kestrel.Runtime\Hardened.Web.Kestrel.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Gcp.CloudRun.Runtime.Tests"/>
+    </ItemGroup>
+
+    <!--
+      One build asset, binding the web verbs to this host. The trigger properties -
+      HardenedQueueModule and friends - are set by the adapter packages, one property each, and
+      declared by Hardened.Functions.Runtime, which owns the attributes.
+
+      buildTransitive/ rather than build/, and Package\ rather than build\ in the source tree, for
+      the reasons Hardened.Gcp.CloudRun.PubSub's csproj gives.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Gcp.CloudRun.Runtime.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DependencyModules.Runtime" />
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+    </ItemGroup>
+
+</Project>

@@ -1,3 +1,4 @@
+using System.Runtime.ExceptionServices;
 using Amazon.Lambda.Core;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
@@ -82,6 +83,17 @@ public class LambdaInvocationHandler {
             _metricLoggerProvider.CreateLogger("lambda-invocation"));
 
         await _executor.Run(context, adapter.FailurePolicy);
+
+        // A failure is a value, not a throw. The invoke filters catch what a handler raised and
+        // record it on the response, so the executor's rethrow never sees it. The batch filter reads
+        // that value back for a batched source and rethrows when the transport cannot report per
+        // item; nothing read it for an unbatched one, and a scheduled rule or a bus event whose
+        // handler threw was reported to Lambda as handled - no retry, no dead letter, no failed
+        // invocation. Found on 2026-09-08 from the Azure line, whose worker met the same shape.
+        if (adapter.FailurePolicy == HostFailurePolicy.Rethrow &&
+            context.Response.ExceptionValue is { } failure) {
+            ExceptionDispatchInfo.Capture(failure).Throw();
+        }
 
         await adapter.WriteResponse(context, output);
 

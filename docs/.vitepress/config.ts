@@ -9,8 +9,8 @@ const base = '/Hardened.Framework/';
 
 const repo = 'https://github.com/ipjohnson/Hardened.Framework';
 
-// One sidebar for the guide and the AWS pages, so AWS is the section after Testing rather than a
-// separate tree.
+// One sidebar for the guide and the cloud pages, so AWS, Google Cloud and Azure are the sections after
+// Testing rather than separate trees.
 const guide = [
   {
     text: 'Start here',
@@ -100,12 +100,42 @@ const guide = [
       { text: 'Testing AWS handlers', link: '/aws/testing' },
     ],
   },
+  {
+    text: 'Google Cloud',
+    items: [
+      { text: 'Overview', link: '/gcp/' },
+      { text: 'Web services', link: '/gcp/web' },
+      { text: 'Queues', link: '/gcp/queue' },
+      { text: 'Topics', link: '/gcp/topic' },
+      { text: 'Timers', link: '/gcp/timer' },
+      { text: 'Invocations', link: '/gcp/invoke' },
+      { text: 'Blobs', link: '/gcp/blob' },
+      { text: 'Changes', link: '/gcp/change' },
+      { text: 'Events', link: '/gcp/event' },
+      { text: 'Testing Cloud Run handlers', link: '/gcp/testing' },
+    ],
+  },
+  {
+    text: 'Azure',
+    items: [
+      { text: 'Overview', link: '/azure/' },
+      { text: 'Web applications', link: '/azure/web' },
+      { text: 'Queues', link: '/azure/queue' },
+      { text: 'Topics', link: '/azure/topic' },
+      { text: 'Timers', link: '/azure/timer' },
+      { text: 'Streams', link: '/azure/stream' },
+      { text: 'Changes', link: '/azure/change' },
+      { text: 'Blobs', link: '/azure/blob' },
+      { text: 'Events', link: '/azure/event' },
+      { text: 'Testing Azure handlers', link: '/azure/testing' },
+    ],
+  },
 ];
 
 export default defineConfig({
   title: 'Hardened',
   description:
-    'A compile-time .NET framework for web APIs and AWS Lambda. Routing, dependency injection, ' +
+    'A compile-time .NET framework for web APIs, AWS Lambda, Google Cloud Run and Azure Functions. Routing, dependency injection, ' +
     'configuration and parameter binding are generated during the build — nothing reflects, ' +
     'nothing scans at startup.',
   base,
@@ -136,7 +166,7 @@ export default defineConfig({
       'meta',
       {
         property: 'og:description',
-        content: 'A compile-time .NET framework for web APIs and AWS Lambda.',
+        content: 'A compile-time .NET framework for web APIs, AWS Lambda, Google Cloud Run and Azure Functions.',
       },
     ],
   ],
@@ -150,12 +180,16 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
       { text: 'AWS', link: '/aws/', activeMatch: '/aws/' },
+      { text: 'Google Cloud', link: '/gcp/', activeMatch: '/gcp/' },
+      { text: 'Azure', link: '/azure/', activeMatch: '/azure/' },
       { text: 'Reference', link: '/reference/attributes', activeMatch: '/reference/' },
     ],
 
     sidebar: {
       '/guide/': guide,
       '/aws/': guide,
+      '/gcp/': guide,
+      '/azure/': guide,
       '/reference/': [
         {
           text: 'Reference',

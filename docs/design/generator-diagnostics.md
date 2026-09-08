@@ -417,11 +417,62 @@ error, with no `NoWarn`: there is no reading of zero that means anything else.
 | `HOAG010` | A handler was skipped because a parameter type did not resolve. Other handlers are unaffected. |
 | `HOAG020` | An operation declares a markup content type but names no view to render it. |
 | `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. The ones with an entry have a section above. |
+| `HRDAZ001`–`HRDAZ004`, `HRDAZ010` | The Azure Functions generator and the runtime package's build check; see below. |
 | `HRDOA001` | `<HardenedOpenApiVersion>` is not 3.0.0, 3.1.0 or 3.2.0. |
 | `HRDOA002` | Warning. A streamed response under a document version with no `itemSchema`; the operation is described as an array of the item under `schema`, so a client generated from the document reads a list rather than a stream. |
 | `HRDOA003` | Warning. `[Enable<OpenApiDocumentPublishing>]` sits on a module declaring no routes, so the document is empty. |
 | `HRDOA004` | Two handlers declare the same `[Operation]` id. An operationId names one operation, so give each handler its own. |
 | `HRDOA018`, `019`, `028`–`030` | The document export, reported under the code-first prefix. The numbers mean the same under `HOAT` and `HSMT`; see below. |
+
+## Azure Functions (HRDAZ)
+
+The Azure Functions generator writes one `[Function]` per source, the metadata provider the host
+indexes and the executor it invokes, from the handlers' triggers and the adapter build properties;
+see [Application types](/design/azure/application-types). Four things can go wrong between a
+trigger and a function, and each has a code. All four are errors, because each means the host
+would index something other than what the handlers declare.
+
+### HRDAZ001 — no Azure binding exists for this trigger
+
+Handlers use a trigger, the adapter build property for it is bound, and the generator's binding
+table has no row for that trigger. Nothing is generated for those handlers, and the host would
+never invoke them. The message names the trigger and the property. This is the generator's own
+gap rather than a missing package, which is `HRDF001` from the library generator; it exists so a
+new trigger added to `Hardened.Functions.Runtime` fails the Azure build until the table has a row.
+
+### HRDAZ002 — two handlers produce the same function name
+
+A function's name is the family's prefix and the source with every character the host does not
+allow replaced by an underscore, so `[Queue("orders-new")]` and `[Queue("orders_new")]` are both
+`Queue_orders_new`, and the host refuses an app with two functions of one name. The message names
+both handlers and the function. Rename one source.
+
+### HRDAZ003 — a binding needs a setting the module did not supply
+
+A topic is read through a subscription and a container lives in a database, and the neutral
+trigger has no slot for either, so the binding reads it off the adapter module written on the
+application: `Subscription` on `[ServiceBusModule]`, `Database` on `[CosmosDbModule]`. The
+message names the trigger, the property and the attribute to write beside `[HardenedModule]`. The
+optional settings, such as `Connection`, never raise this; a binding without them takes the
+extension's default. The retry policy on `[EventHubsModule]` and `[CosmosDbModule]` is the one
+optional pair that does: `RetryCount` without `RetryDelay`, or the reverse, is half a policy the
+host cannot apply, and the missing half is named.
+
+### HRDAZ004 — a module setting has to be a literal
+
+The generated function carries the setting twice: as text in the shim's attribute, which the
+Worker SDK's build task reads, and as a value in the provider's JSON, which the host indexes.
+The second needs the value at build, so `Subscription = Names.Subscription` cannot be written
+into it. The message names the property and the expression. Write a string literal, an integer
+literal for `RetryCount`, or `true` or `false` for `ReportsItemFailures`.
+
+### HRDAZ010 — the executable does not reference the Worker SDK
+
+Raised by `Hardened.Azure.Functions.Runtime`'s targets rather than by the generator. An
+executable that references the runtime package and not `Microsoft.Azure.Functions.Worker.Sdk`
+builds, but nothing writes `worker.config.json`, `functions.metadata` or the host's extensions,
+so the host starts no worker and indexes nothing. The runtime package does not reference the Sdk
+itself, because the Sdk is a build-time package the application has to own.
 
 ## Description build tasks (HOAT, HSMT)
 

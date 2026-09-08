@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The settling half of the queue fixture's pair. One rung only: the tests hand the invocation
+      handler the batch and a recording settlement channel directly, because what they assert is
+      which messages the adapter completed and which it abandoned, by id, and that is visible
+      nowhere else.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="NSubstitute"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.IntegrationTests.AzureQueue.Settlement.SUT\Hardened.IntegrationTests.AzureQueue.Settlement.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+    </ItemGroup>
+
+</Project>

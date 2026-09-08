@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+    </ItemGroup>
+
+    <!--
+      The application is referenced so it is built before these tests and in the same
+      configuration, and nothing else: its output is mounted into a container, not loaded here.
+      The service container, the emulator and the Google client come from the shared containers
+      project, the only place in the Google line that references a Google SDK.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.IntegrationTests.CloudRunQueue.SUT\Hardened.IntegrationTests.CloudRunQueue.SUT.csproj"
+                          ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\Hardened.Gcp.CloudRun.Testing.Containers\Hardened.Gcp.CloudRun.Testing.Containers.csproj"/>
+    </ItemGroup>
+
+</Project>

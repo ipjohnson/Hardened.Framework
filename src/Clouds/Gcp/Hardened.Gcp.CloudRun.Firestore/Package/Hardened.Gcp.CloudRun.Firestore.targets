@@ -1,0 +1,10 @@
+<Project>
+    <!--
+        Which module serves this package's trigger. The property is declared by
+        Hardened.Functions.Runtime, which owns [Change]; see its targets for the rule. Conditional,
+        so a csproj can replace this binding and keep the rest.
+    -->
+    <PropertyGroup>
+        <HardenedChangeModule Condition="'$(HardenedChangeModule)' == ''">Hardened.Gcp.CloudRun.Firestore.FirestoreModule</HardenedChangeModule>
+    </PropertyGroup>
+</Project>

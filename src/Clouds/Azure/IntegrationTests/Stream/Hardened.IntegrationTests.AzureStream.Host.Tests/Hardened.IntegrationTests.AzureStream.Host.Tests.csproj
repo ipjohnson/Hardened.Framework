@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The container rung of the stream fixture: its build output inside the Functions host image,
+      indexed by the host from the generated metadata provider and driven by the Event Hubs
+      emulator through an event a test publishes. Every test here carries the Simulator trait the
+      CI split reads, needs Docker and three images, and fails rather than skips without them.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="Azure.Messaging.EventHubs"/>
+        <PackageReference Include="Testcontainers.Azurite"/>
+        <PackageReference Include="Testcontainers.EventHubs"/>
+    </ItemGroup>
+
+    <!-- The application is referenced so it is built first, for the reason the queue fixture gives. -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.IntegrationTests.AzureStream.SUT\Hardened.IntegrationTests.AzureStream.SUT.csproj"
+                          ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing.Containers\Hardened.Functions.Testing.Containers.csproj"/>
+    </ItemGroup>
+
+</Project>

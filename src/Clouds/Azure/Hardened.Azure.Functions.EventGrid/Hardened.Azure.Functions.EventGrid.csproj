@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Serves [Event] handlers on Azure Functions from Event Grid, delivered in the CloudEvents schema and routed by source and type.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Azure.Functions.EventGrid</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless;eventgrid;cloudevents</PackageTags>
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <!--
+      Hardened.CloudEvents is the parser: one package reads the CloudEvents forms for every line,
+      so Event Grid and Eventarc cannot drift. Nothing here reads the Event Grid SDK the worker
+      extension brings; the extension is referenced for its attribute and for the assembly
+      attribute the Sdk's build task reads to put the WebJobs Event Grid extension into the host.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Azure.Functions.Runtime\Hardened.Azure.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Functions\Hardened.CloudEvents\Hardened.CloudEvents.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Azure.Functions.Runtime.Tests"/>
+    </ItemGroup>
+
+    <!-- buildTransitive/ rather than build/, for the reason Hardened.Aws.Lambda.Sqs gives. -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Azure.Functions.EventGrid.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.EventGrid" />
+        <PackageReference Include="DependencyModules.Runtime" />
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+    </ItemGroup>
+
+</Project>

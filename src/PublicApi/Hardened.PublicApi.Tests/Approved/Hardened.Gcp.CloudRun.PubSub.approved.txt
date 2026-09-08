@@ -1,0 +1,46 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Gcp.CloudRun.Runtime.Tests")]
+namespace Hardened.Gcp.CloudRun.PubSub
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Gcp.CloudRun.Runtime.CloudRunRuntime]
+    public class PubSubModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public PubSubModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class PubSubModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public PubSubModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public sealed class PubSubPushEnvelope : Hardened.Gcp.CloudRun.Runtime.Envelopes.IFallbackTriggerEnvelope, Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope
+    {
+        public const string DeliveryAttemptHeader = "x-goog-pubsub-delivery-attempt";
+        public const string MessageIdHeader = "x-goog-pubsub-message-id";
+        public const string OrderingKeyHeader = "x-goog-pubsub-ordering-key";
+        public const string PublishTimeHeader = "x-goog-pubsub-publish-time";
+        public const string QueueScheme = "QUEUE";
+        public const string SubscriptionHeader = "x-goog-pubsub-subscription-name";
+        public PubSubPushEnvelope() { }
+        public bool Recognises(Hardened.Requests.Abstract.Execution.IExecutionRequest request) { }
+        public Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest? Unwrap(Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Gcp.CloudRun.Runtime.Envelopes.TriggerPayload payload) { }
+    }
+    public sealed class PubSubTopicEnvelope : Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope
+    {
+        public const string MessagePublishedType = "google.cloud.pubsub.topic.v1.messagePublished";
+        public const string TopicScheme = "TOPIC";
+        public PubSubTopicEnvelope() { }
+        public bool Recognises(Hardened.Requests.Abstract.Execution.IExecutionRequest request) { }
+        public Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest? Unwrap(Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Gcp.CloudRun.Runtime.Envelopes.TriggerPayload payload) { }
+    }
+    public sealed class PubSubUnwrappedPushEnvelope : Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope
+    {
+        public PubSubUnwrappedPushEnvelope() { }
+        public bool Recognises(Hardened.Requests.Abstract.Execution.IExecutionRequest request) { }
+        public Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest? Unwrap(Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Gcp.CloudRun.Runtime.Envelopes.TriggerPayload payload) { }
+    }
+}

@@ -1,0 +1,52 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.CloudEvents.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Gcp.CloudRun.Runtime.Tests")]
+namespace Hardened.CloudEvents
+{
+    public sealed class CloudEvent : System.IEquatable<Hardened.CloudEvents.CloudEvent>
+    {
+        public CloudEvent(string SpecVersion, string Id, string Source, string Type) { }
+        public System.ReadOnlyMemory<byte> Data { get; init; }
+        public string? DataContentType { get; init; }
+        public string? DataSchema { get; init; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, string> Extensions { get; init; }
+        public string Id { get; init; }
+        public string Source { get; init; }
+        public string SpecVersion { get; init; }
+        public string? Subject { get; init; }
+        public string? Time { get; init; }
+        public string Type { get; init; }
+    }
+    public sealed class CloudEventFormatException : System.Exception
+    {
+        public CloudEventFormatException(string message) { }
+        public CloudEventFormatException(string message, System.Exception inner) { }
+    }
+    public static class CloudEventHeaders
+    {
+        public const string DataSchema = "ce-dataschema";
+        public const string Id = "ce-id";
+        public const string Source = "ce-source";
+        public const string SpecVersion = "ce-specversion";
+        public const string Subject = "ce-subject";
+        public const string Time = "ce-time";
+        public const string Type = "ce-type";
+        public static void Write(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, Hardened.CloudEvents.CloudEvent cloudEvent) { }
+    }
+    public static class CloudEventReader
+    {
+        public const string HeaderPrefix = "ce-";
+        public const string StructuredContentType = "application/cloudevents+json";
+        public static bool IsBinary(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public static bool IsStructured(string? contentType) { }
+        public static Hardened.CloudEvents.CloudEvent Read(string? contentType, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.ReadOnlyMemory<byte> body) { }
+        public static Hardened.CloudEvents.CloudEvent ReadBinary(System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.ReadOnlyMemory<byte> body) { }
+        public static Hardened.CloudEvents.CloudEvent ReadStructured(System.ReadOnlySpan<byte> json) { }
+    }
+    public static class CloudEventRoutes
+    {
+        public const string EventScheme = "EVENT";
+        public static string Event(Hardened.CloudEvents.CloudEvent cloudEvent) { }
+        public static string Event(string source, string type) { }
+        public static string LastSegment(string? value) { }
+    }
+}

@@ -1,0 +1,31 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Azure.Functions.Runtime.Tests")]
+namespace Hardened.Azure.Functions.Timer
+{
+    public sealed class TimerAdapter : Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter
+    {
+        public const string PastDueHeader = "x-azure-timer-past-due";
+        public const string TimerScheme = "TIMER";
+        public TimerAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger) { }
+        public System.Threading.Tasks.ValueTask<object?> WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Azure.Functions.Worker.FunctionContext functionContext) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Azure.Functions.Runtime.Modules.FunctionsRuntimeModule]
+    public class TimerModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public TimerModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class TimerModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public TimerModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}

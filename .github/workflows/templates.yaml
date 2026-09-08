@@ -76,6 +76,27 @@ jobs:
           test "$(smithy --version)" = "$SMITHY_VERSION"
           smithy --version
 
+      # The Azure rows run their generated application under the Functions host, which is Azure
+      # Functions Core Tools rather than `dotnet run`. The script skips that probe with a printed
+      # note when `func` is absent rather than failing, the way it skips the smithy rows; installing
+      # the tools here is what keeps the matrix whole. The npm package downloads the host for the
+      # runner's platform on install.
+      - name: Install Azure Functions Core Tools
+        run: |
+          set -euo pipefail
+          npm install -g azure-functions-core-tools@4 --unsafe-perm true
+          func --version
+
+      # The generated local.settings.json points the host's own storage at the development
+      # account, which is Azurite. The HTTP row indexes without it, but the timer row's schedule
+      # monitor and the queue row's host bookkeeping want it, and a host that cannot reach its
+      # storage logs errors the probe would have to read past.
+      - name: Start Azurite for the Azure rows
+        run: |
+          set -euo pipefail
+          docker run -d --name azurite -p 10000:10000 -p 10001:10001 -p 10002:10002 \
+            mcr.microsoft.com/azure-storage/azurite:3.35.0
+
       # Everything the run needs is in the script, so the workflow is one line and the same
       # command works on a laptop. A CI-only invocation is one nobody can reproduce when it fails.
       - name: Generate, build, test and serve from the packed template

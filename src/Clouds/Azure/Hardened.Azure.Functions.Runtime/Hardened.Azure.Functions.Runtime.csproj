@@ -1,0 +1,84 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>The Azure Functions isolated worker host for Hardened applications: the invocation handler, the trigger adapter seam, and the worker registration of the generated function shims. Reference an adapter package alongside it for the triggers a function serves, and Hardened.Azure.Functions.SourceGenerator to write the shims.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Azure.Functions.Runtime</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless</PackageTags>
+
+        <!--
+          Turns on the trim, AOT and single-file analyzers, so anything that would not survive a
+          trimmed publish is a build warning here rather than a missing type at runtime.
+        -->
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <!--
+      The core, and nothing that binds a trigger. The same split as Hardened.Aws.Lambda.Runtime: a
+      host makes three decisions - how trigger data becomes a request, how a response becomes what
+      the host expects, and who owns the invocation - and the first two are ITriggerAdapter in a
+      package per family while the third is FunctionsInvocationHandler here.
+
+      Microsoft.Azure.Functions.Worker is the worker itself: Core, with FunctionContext and the
+      IFunctionMetadataProvider and IFunctionExecutor seams the generated code implements, and Grpc,
+      the channel to the host. Every function needs both whatever it is triggered by.
+
+      Microsoft.Azure.Functions.Worker.Sdk is deliberately not referenced here, although every
+      application needs it. The Sdk's props mark any project that references it as a Functions
+      project: its build task scans the compiled assembly for [Function] methods, its inner build
+      restores the WebJobs extensions, and its generators emit a metadata provider and an executor.
+      All of that belongs to the application, not to a library, so the application references the
+      Sdk directly - the same reference the Functions templates make - and this package's targets
+      fail the build by name when an executable consumer has left it out.
+
+      No reference to any web package. An adapter produces an IExecutionRequest and the pipeline
+      routes it, so this depends on the contract rather than on the routing.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Azure.Functions.Runtime.Tests"/>
+    </ItemGroup>
+
+    <!--
+      buildTransitive/ rather than build/, for the reason Hardened.Aws.Lambda.Sqs gives: a meta
+      package is referenced instead of this one, and build/ would not reach it. What the file does
+      is keep the Worker SDK's own generated registrations out of the worker; see the file.
+
+      Package\ rather than build\ in the source tree, because .gitignore ignores build/.
+    -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Azure.Functions.Runtime.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <!--
+      No direct reference to Microsoft.Extensions.Logging.Abstractions, which the AWS runtime has.
+      The Service Bus extension a sibling package brings requires it one patch above the pin in
+      Directory.Packages.props, and a direct reference at the pin is a downgrade error; it arrives
+      transitively through the worker either way.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Azure.Functions.Worker" />
+        <PackageReference Include="DependencyModules.Runtime" />
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+    </ItemGroup>
+
+</Project>

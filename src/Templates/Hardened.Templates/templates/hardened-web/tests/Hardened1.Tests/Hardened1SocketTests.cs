@@ -1,4 +1,4 @@
-#if (kestrel)
+#if (kestrel || cloudRun)
 using Hardened.Web.Kestrel.Runtime;
 #endif
 #if (aspnet)
@@ -19,7 +19,7 @@ namespace Hardened1.Tests;
 /// here: a client parameter sends to the socket, a [Mock] behind a route is the same substitute,
 /// and ITestWebApp sends to the socket too, for a request the client cannot make.
 /// </remarks>
-#if (kestrel)
+#if (kestrel || cloudRun)
 [KestrelRuntime]
 #endif
 #if (aspnet)

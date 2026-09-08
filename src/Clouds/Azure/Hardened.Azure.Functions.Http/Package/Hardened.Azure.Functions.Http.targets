@@ -1,0 +1,17 @@
+<Project>
+    <!--
+        Which module serves the web verbs on this provider. The property is declared by
+        Hardened.Web.Runtime's targets, which own the verbs; all five name it, so a controller with
+        a GET and a POST registers one adapter. Hardened.Azure.Functions.SourceGenerator reads it to
+        write the one HTTP function.
+    -->
+    <PropertyGroup>
+        <HardenedHttpModule Condition="'$(HardenedHttpModule)' == ''">Hardened.Azure.Functions.Http.HttpModule</HardenedHttpModule>
+    </PropertyGroup>
+
+    <!-- Kept whole under Native AOT, for the reason Hardened.Azure.Functions.Runtime's targets give:
+         the worker constructs the extension's converters by reflection. -->
+    <ItemGroup Condition="'$(PublishAot)' == 'true' Or '$(PublishTrimmed)' == 'true'">
+        <TrimmerRootAssembly Include="Microsoft.Azure.Functions.Worker.Extensions.Http" />
+    </ItemGroup>
+</Project>

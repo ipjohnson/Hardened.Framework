@@ -38,6 +38,24 @@
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\Clients\Hardened.Kiota.Testing\Hardened.Kiota.Testing.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Blobs\Hardened.Azure.Functions.Blobs.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.CosmosDb\Hardened.Azure.Functions.CosmosDb.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.EventGrid\Hardened.Azure.Functions.EventGrid.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.EventHubs\Hardened.Azure.Functions.EventHubs.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Http\Hardened.Azure.Functions.Http.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Runtime\Hardened.Azure.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.ServiceBus\Hardened.Azure.Functions.ServiceBus.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Azure\Hardened.Azure.Functions.Timer\Hardened.Azure.Functions.Timer.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Eventarc\Hardened.Gcp.CloudRun.Eventarc.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Firestore\Hardened.Gcp.CloudRun.Firestore.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Invoke\Hardened.Gcp.CloudRun.Invoke.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.PubSub\Hardened.Gcp.CloudRun.PubSub.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Scheduler\Hardened.Gcp.CloudRun.Scheduler.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Storage\Hardened.Gcp.CloudRun.Storage.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
+        <ProjectReference Include="..\..\Clouds\Gcp\Hardened.Gcp.CloudRun.Testing\Hardened.Gcp.CloudRun.Testing.csproj"/>
+        <ProjectReference Include="..\..\Functions\Hardened.CloudEvents\Hardened.CloudEvents.csproj"/>
         <ProjectReference Include="..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
         <ProjectReference Include="..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\Clouds\Aws\Hardened.Aws.DynamoDbClient\Hardened.Aws.DynamoDbClient.csproj"/>

@@ -1,0 +1,28 @@
+<Solution>
+  <!--
+    The simulator tier: test projects that mount a fixture's build output into the image its cloud
+    runs it in and drive it through that cloud's emulator. A solution of their own rather than a
+    trait inside Hardened.slnx, because `dotnet test - -filter` filters nothing on the pinned SDK
+    with xunit.v3 3.2.2 and xunit.runner.visualstudio 3.1.5: a trait filter ran every test, so the
+    coverage run would have started every emulator and the simulator step would have rerun the
+    suite. The fixtures and the applications they mount stay in Hardened.slnx; only the projects
+    that need Docker live here, one folder per cloud.
+  -->
+  <Folder Name="/Azure/">
+    <Project Path="src/Clouds/Azure/IntegrationTests/Events/Hardened.IntegrationTests.AzureEvents.Host.Tests/Hardened.IntegrationTests.AzureEvents.Host.Tests.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.Host.Tests/Hardened.IntegrationTests.AzureQueue.Host.Tests.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Stream/Hardened.IntegrationTests.AzureStream.Host.Tests/Hardened.IntegrationTests.AzureStream.Host.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Aws/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.Tests/Hardened.IntegrationTests.Rie.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Gcp/">
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Testing.Containers/Hardened.Gcp.CloudRun.Testing.Containers.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Blob/Hardened.IntegrationTests.CloudRunBlob.Simulator.Tests/Hardened.IntegrationTests.CloudRunBlob.Simulator.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Event/Hardened.IntegrationTests.CloudRunEvent.Simulator.Tests/Hardened.IntegrationTests.CloudRunEvent.Simulator.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Invoke/Hardened.IntegrationTests.CloudRunInvoke.Simulator.Tests/Hardened.IntegrationTests.CloudRunInvoke.Simulator.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Queue/Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests/Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Timer/Hardened.IntegrationTests.CloudRunTimer.Simulator.Tests/Hardened.IntegrationTests.CloudRunTimer.Simulator.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Web/Hardened.IntegrationTests.CloudRunWeb.Simulator.Tests/Hardened.IntegrationTests.CloudRunWeb.Simulator.Tests.csproj" />
+  </Folder>
+</Solution>

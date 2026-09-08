@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The SQS fixture's application as a deployable function: the same SqsTestApp and OrderHandlers
+      the pipeline and envelope tests drive, hosted by the Lambda bootstrap the way a deployed
+      function is. The container tier runs this inside public.ecr.aws/lambda/dotnet:8, whose
+      Runtime Interface Emulator speaks the Runtime API the managed dotnet8 runtime speaks.
+
+      An executable, because a deployed handler that names the assembly alone is started only when
+      the assembly has an entry point. UseAppHost is off because the mount is the build output:
+      an apphost built on macOS is a native binary a Linux container cannot start, and the runtime
+      runs the assembly rather than the apphost anyway.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <UseAppHost>false</UseAppHost>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\Sqs\Hardened.IntegrationTests.Sqs.SUT\Hardened.IntegrationTests.Sqs.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console"/>
+    </ItemGroup>
+
+</Project>

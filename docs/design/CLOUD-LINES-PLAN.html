@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hardened Cloud Lines Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F2F4F7; --paper: #FFFFFF; --ink: #1A2330; --ink-2: #4B5A6B; --ink-3: #75828F;
+    --line: #D7DEE6; --line-2: #E9EEF3; --code-bg: #EEF2F6;
+    --accent: #2D5A85; --accent-ink: #FFFFFF; --straw: #9E7A1E; --straw-bg: #FBF3DC;
+    --azure: #2A67C4; --azure-bg: #E4EDFB; --gcp: #1E7F5C; --gcp-bg: #DFF3EA;
+    --aws: #B86A12; --aws-bg: #FBEBD6; --shared: #55677D; --shared-bg: #E7ECF2;
+    --ok: #2E7D4F; --warn: #9E7A1E; --no: #A8402F;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E1319; --paper: #151B23; --ink: #E4EAF1; --ink-2: #AAB6C3; --ink-3: #7C8896;
+      --line: #2B3541; --line-2: #1F2833; --code-bg: #1B2330;
+      --accent: #82B4E6; --accent-ink: #0E1319; --straw: #DDBE62; --straw-bg: #2A2410;
+      --azure: #7FAEF0; --azure-bg: #17253B; --gcp: #6CCB9F; --gcp-bg: #12291F;
+      --aws: #E8A054; --aws-bg: #2E2213; --shared: #A2B1C2; --shared-bg: #1E2631;
+      --ok: #6FC391; --warn: #DDBE62; --no: #E28A7A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E1319; --paper: #151B23; --ink: #E4EAF1; --ink-2: #AAB6C3; --ink-3: #7C8896;
+    --line: #2B3541; --line-2: #1F2833; --code-bg: #1B2330;
+    --accent: #82B4E6; --accent-ink: #0E1319; --straw: #DDBE62; --straw-bg: #2A2410;
+    --azure: #7FAEF0; --azure-bg: #17253B; --gcp: #6CCB9F; --gcp-bg: #12291F;
+    --aws: #E8A054; --aws-bg: #2E2213; --shared: #A2B1C2; --shared-bg: #1E2631;
+    --ok: #6FC391; --warn: #DDBE62; --no: #E28A7A;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif; font-size: 17px; line-height: 1.55;
+  }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, pre, .mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace; }
+  code { font-size: 0.86em; background: var(--code-bg); padding: 1px 5px; border-radius: 3px; }
+  pre { background: var(--code-bg); border: 1px solid var(--line-2); padding: 14px 16px; overflow-x: auto; font-size: 14px; line-height: 1.5; border-radius: 4px; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  h1, h2, h3, h4 { font-family: "Bitter", Georgia, serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: 40px; font-weight: 700; line-height: 1.1; letter-spacing: -0.01em; }
+  h2 { font-size: 27px; font-weight: 700; margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--line); }
+  h3 { font-size: 20px; font-weight: 600; margin-top: 36px; }
+  h4 { font-size: 17px; font-weight: 600; margin-top: 24px; }
+  p { margin: 12px 0; max-width: 72ch; }
+  ul, ol { max-width: 72ch; padding-left: 24px; }
+  li { margin: 6px 0; }
+  li p { margin: 4px 0; }
+  .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--straw); font-weight: 500; }
+  .lede { font-size: 20px; line-height: 1.5; color: var(--ink-2); max-width: 62ch; }
+  .meta { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; font-size: 15px; color: var(--ink-2); margin-top: 22px; }
+  .meta dt { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); padding-top: 3px; }
+  .meta dd { margin: 0; }
+
+  .shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: 56px; max-width: 1200px; margin: 0 auto; padding: 44px 32px 96px; }
+  nav.toc { position: sticky; top: 24px; align-self: start; font-size: 14px; }
+  nav.toc .eyebrow { margin-bottom: 10px; }
+  nav.toc ol { list-style: none; padding: 0; margin: 0; border-left: 1px solid var(--line); }
+  nav.toc li { margin: 0; }
+  nav.toc a { display: block; padding: 5px 0 5px 14px; color: var(--ink-2); text-decoration: none; border-left: 2px solid transparent; margin-left: -1px; }
+  nav.toc a:hover { color: var(--ink); border-left-color: var(--accent); }
+  main { min-width: 0; }
+  header.title { padding-bottom: 8px; }
+
+  .chip { display: inline-block; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; padding: 3px 8px; border-radius: 3px; white-space: nowrap; vertical-align: middle; }
+  .chip.azure { background: var(--azure-bg); color: var(--azure); }
+  .chip.gcp { background: var(--gcp-bg); color: var(--gcp); }
+  .chip.aws { background: var(--aws-bg); color: var(--aws); }
+  .chip.shared { background: var(--shared-bg); color: var(--shared); }
+  .chip.orch { background: var(--straw-bg); color: var(--straw); }
+
+  .table-wrap { overflow-x: auto; margin: 16px 0 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th { text-align: left; font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--paper); white-space: nowrap; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .fid { font-family: "IBM Plex Mono", monospace; font-weight: 500; white-space: nowrap; }
+  .fid.ok { color: var(--ok); } .fid.warn { color: var(--warn); } .fid.no { color: var(--no); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin: 18px 0; }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 16px 18px; }
+  .card h4 { margin-top: 0; }
+  .card p { font-size: 15.5px; }
+
+  .decision { background: var(--paper); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 4px; padding: 16px 20px 14px; margin: 18px 0; }
+  .decision .id { font-family: "IBM Plex Mono", monospace; font-size: 12px; letter-spacing: 0.06em; color: var(--accent); font-weight: 500; }
+  .decision h3 { margin-top: 4px; font-size: 19px; }
+  .decision p { font-size: 15.5px; max-width: 78ch; }
+  .decision .rec { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; }
+  .decision .rec strong { font-family: "Bitter", serif; font-weight: 600; }
+
+  .callout { background: var(--straw-bg); border-left: 3px solid var(--straw); padding: 12px 16px; border-radius: 0 4px 4px 0; margin: 16px 0; font-size: 15.5px; max-width: 78ch; }
+  .msg { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 12px 16px; font-family: "IBM Plex Mono", monospace; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; overflow-x: auto; }
+  pre.mermaid { background: var(--paper); border: 1px solid var(--line); padding: 12px; border-radius: 4px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 18px; font-size: 14px; color: var(--ink-2); margin: 10px 0 0; }
+  .small { font-size: 14px; color: var(--ink-2); }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0; }
+
+  @media (max-width: 920px) {
+    .shell { grid-template-columns: 1fr; gap: 24px; padding: 28px 18px 72px; }
+    nav.toc { position: static; }
+    nav.toc ol { border-left: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    nav.toc a { padding: 4px 0; border-left: 0; }
+    h1 { font-size: 32px; }
+    h2 { font-size: 24px; margin-top: 48px; }
+  }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+<script type="module">
+  // Mermaid renders the three diagrams. Loaded from a CDN because this is a maintainer note,
+  // not a page of the published site; offline, the diagram source stays readable as text.
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  mermaid.initialize({ startOnLoad: true, theme: dark ? "dark" : "neutral" });
+</script>
+</head>
+<body>
+<div class="shell">
+<nav class="toc" aria-label="Sections">
+  <div class="eyebrow">Contents</div>
+  <ol>
+    <li><a href="#summary">Summary</a></li>
+    <li><a href="#seam">What the rewrite gives us</a></li>
+    <li><a href="#decisions">Decisions to confirm</a></li>
+    <li><a href="#orchestration">Two agents, one repository</a></li>
+    <li><a href="#azure">The Azure line</a></li>
+    <li><a href="#gcp">The GCP line</a></li>
+    <li><a href="#simulators">Simulators</a></li>
+    <li><a href="#shared">Shared changes expected</a></li>
+    <li><a href="#phases">Phases and gates</a></li>
+    <li><a href="#risks">Risks</a></li>
+    <li><a href="#scope">Out of scope</a></li>
+    <li><a href="#sources">Sources and calibration</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="title">
+  <div class="eyebrow">Hardened.Framework · design plan · for review</div>
+  <h1 style="margin-top:10px">Hardened Cloud Lines Plan</h1>
+  <p class="lede">Azure Functions and Google Cloud Run brought onto the host seam that the 2026-09-07 rewrite built for AWS, implemented by two agents working in parallel on one repository, with a container-based simulator tier in the test suite.</p>
+  <dl class="meta">
+    <dt>Written</dt><dd>2026-09-07, against <code>ipjohnson/Hardened.Framework</code> main at <code>f33b0102</code> (PR #305). CI is green on that commit: build-package, templates, docs.</dd>
+    <dt>Supersedes</dt><dd>The 2026-08-16 note on branch <code>docs/multicloud-transport-design</code>, which predates the host seam, the neutral triggers and the one-repository consolidation. Section 2 lists what it got right and what changed.</dd>
+    <dt>Decisions</dt><dd>Eight, in section 3. Each has a recommendation; the plan below is written as if every recommendation stands. Confirmed on 2026-09-07 evening, and Phase 0 and both Phase 1 spikes are done.</dd>
+    <dt>Updated</dt><dd>2026-09-08, after the Phase 1 gates: what the spikes found is folded into sections 5, 6, 7, 8, 9 and 10, marked "found in Phase 1".</dd>
+    <dt>Legend</dt><dd><span class="chip azure">azure agent</span> <span class="chip gcp">gcp agent</span> <span class="chip orch">orchestrator</span> <span class="chip shared">shared · by request</span> <span class="chip aws">aws · reference</span></dd>
+  </dl>
+</header>
+
+<h2 id="summary">1. Summary</h2>
+<p>The AWS line was rebuilt today around one idea: a host makes three decisions (payload to request, response to payload, who owns the invocation loop) and everything between is the shared pipeline. Handlers name a neutral trigger, <code>[Queue("orders")]</code>, and a build property on the runtime package decides which adapter serves it. The second and third clouds are therefore mostly adapters, one host each, and the test fidelity ladder that already exists for AWS.</p>
+<p>Two things are not just adapters. Azure needs a source generator, because the isolated worker discovers functions from metadata, and the Functions SDK's own generator cannot see code that Hardened's generator emits. GCP needs no new transport at all: Cloud Run is a container listening on <code>PORT</code>, which Kestrel already is, so the GCP line is a front door that turns Pub/Sub push, Eventarc CloudEvents and Cloud Scheduler requests into trigger routes.</p>
+<p>The work runs as two agents in one repository. Each owns a cloud directory under <code>src/Clouds</code> and works in its own git worktree on its own branch; shared members change only through a message to the orchestrator and the peer, applied on <code>main</code>, after which both rebase. The user-facing claim to hold at the end: a handler written for AWS moves to Azure or GCP by changing a package reference, and the same test file passes at every fidelity level, including in a container against the cloud's own emulator.</p>
+
+<div class="cards">
+  <div class="card"><h4>Azure line</h4><p>Isolated worker. Core runtime plus one adapter package per trigger family, a generator that writes the function shims and the worker metadata, envelope-level testing, a Functions-host container tier over Azurite, the Service Bus emulator and the Event Hubs emulator.</p></div>
+  <div class="card"><h4>GCP line</h4><p>Cloud Run on Kestrel. A trigger front door for Pub/Sub push, Eventarc CloudEvents and Scheduler, <code>PORT</code> and SIGTERM handling, a shared CloudEvents package, and a container tier over the Pub/Sub emulator and fake-gcs-server.</p></div>
+  <div class="card"><h4>Simulator tier</h4><p>A fourth rung on the fidelity ladder: the published function in the cloud's own host container, driven by the cloud's own emulator through Testcontainers, observed through the container's output. Required in CI, honest where no emulator exists.</p></div>
+</div>
+
+<h2 id="seam">2. What the rewrite gives us</h2>
+<p>Everything below exists on <code>main</code> today and is what the two lines are built against. File paths are relative to the repository root.</p>
+
+<div class="table-wrap"><table>
+<tr><th>Seam</th><th>Where</th><th>What the new lines do with it</th></tr>
+<tr><td><code>IPayloadAdapter</code></td><td><code>src/Clouds/Aws/Hardened.Aws.Lambda.Runtime/Adapters/IPayloadAdapter.cs</code></td><td>The shape to copy, not a type to share: recognise, bind, write back, and a <code>HostFailurePolicy</code>. Azure gets an equivalent seam over the worker's trigger data; GCP gets one over an HTTP request.</td></tr>
+<tr><td><code>IRequestExecutor</code>, <code>HostFailurePolicy</code></td><td><code>src/Requests/Hardened.Requests.Abstract/Execution/IRequestExecutor.cs</code></td><td>Neither host writes its own loop around the chain. Both call <code>Run</code>, or <code>Begin</code> / <code>RunChain</code> / <code>End</code> where the host hands the lifecycle over in pieces.</td></tr>
+<tr><td><code>IBatchRequest</code>, <code>BatchFailureMode</code>, <code>BatchExecutionFilter</code></td><td><code>src/Requests/Hardened.Requests.Abstract/Execution/</code>, <code>src/Requests/Hardened.Requests.Runtime/Filters/</code></td><td>The batch lift the August note asked for landed in a different shape: the request says how many items it carries and what a failure means for the rest. Service Bus and Event Hubs enrol here; Pub/Sub push never batches.</td></tr>
+<tr><td>Neutral triggers</td><td><code>src/Functions/Hardened.Functions.Runtime/Attributes/</code></td><td><code>[Queue]</code>, <code>[Topic]</code>, <code>[Timer]</code>, <code>[Event]</code>, <code>[Change]</code>, <code>[Stream]</code>, <code>[Blob]</code>, plus <code>[HardenedFunction]</code> and the web verbs. Unchanged by this plan.</td></tr>
+<tr><td>Trigger binding properties</td><td><code>src/Functions/Hardened.Functions.Runtime/Package/*.targets</code>, read by <code>src/SourceGenerators/Hardened.SourceGenerator/Shared/TriggerModuleGenerator.cs</code></td><td>Each adapter package ships a <code>buildTransitive</code> targets file setting one property, <code>HardenedQueueModule</code> and friends. An unbound trigger is <code>HRDF001</code>. That is the whole provider switch.</td></tr>
+<tr><td>Handler model and façades</td><td><code>src/SourceGenerators/Hardened.SourceGenerator/Function/</code></td><td><code>FunctionModelGenerator</code> registers <code>QUEUE /orders</code>; <code>TriggerFacadeGenerator</code> emits <code>App.Queues.Orders(...)</code> for tests. The Azure generator reads the same model.</td></tr>
+<tr><td>Test fidelity ladder</td><td><code>src/Functions/Hardened.Functions.Testing/ITriggerDelivery.cs</code>, <code>src/Clouds/Aws/Hardened.Aws.Lambda.Testing/</code></td><td><code>[FunctionTesting]</code> delivers through the pipeline; a provider's attribute swaps in an envelope delivery. Section 7 adds the container rung.</td></tr>
+<tr><td>Conformance suites</td><td><code>src/Requests/Hardened.Requests.Testing/Conformance/</code></td><td>Every request type enrols: payload-shaped in <code>PayloadExecutionRequestConformanceTests</code>, web-shaped in <code>ExecutionRequestConformanceTests</code>.</td></tr>
+<tr><td>Gates</td><td><code>AGENTS.md</code>, <code>src/PublicApi</code>, <code>coverage-baseline.json</code>, <code>.github/workflows/release.yaml</code>, <code>scripts/verify-templates.sh</code></td><td>Warnings are errors in CI, <code>CS8785</code> everywhere, every shipped assembly in <code>Shipped</code> and the pack list, no skipped test in CI, Docker tests fail rather than skip.</td></tr>
+</table></div>
+
+<pre class="mermaid">
+flowchart LR
+  subgraph AWS["AWS line today"]
+    A1["Runtime API"] --> A2["HardenedLambdaBootstrap"] --> A3["LambdaInvocationHandler"] --> A4["IPayloadAdapter"] --> A5["IRequestExecutor + pipeline"] --> A6["handler"]
+  end
+  subgraph AZ["Azure line"]
+    B1["Functions host (gRPC)"] --> B2["worker + generated shim"] --> B3["FunctionsInvocationHandler"] --> B4["ITriggerAdapter"] --> B5["IRequestExecutor + pipeline"] --> B6["handler"]
+  end
+  subgraph GC["GCP line"]
+    C1["Cloud Run (HTTP)"] --> C2["Kestrel: HardenedHttpApplication"] --> C3["trigger front door filter"] --> C4["IRequestExecutor + pipeline"] --> C5["handler"]
+  end
+</pre>
+
+<h3>What changed since the August design note</h3>
+<div class="table-wrap"><table>
+<tr><th>August note said</th><th>Now</th></tr>
+<tr><td>Lift <code>BaseBatchExecutionFilter</code> out of Amz and add an <code>IBatchFailureReporter</code> seam before the second cloud.</td><td>Done differently and already on main: <code>IBatchRequest.ReportsItemFailures</code>, <code>RecordFailure</code> and <code>BatchFailureMode</code>, with the adapter writing the report. Nothing to lift.</td></tr>
+<tr><td>Handlers carry provider bindings; an Azure entry point generator mirrors <code>WebLambdaApplicationBootstrapGenerator</code>.</td><td>Handlers carry neutral triggers and the AWS line has no generator at all. Azure still needs one, for metadata rather than for a bootstrap, and it mirrors <code>TriggerModuleGenerator</code> and the handler model instead.</td></tr>
+<tr><td>Testing harness per cloud, written from scratch.</td><td><code>ITriggerDelivery</code> and the generated façades exist. A cloud adds one delivery class and one attribute.</td></tr>
+<tr><td>Open question: a sibling repository per cloud.</td><td>Answered by the consolidation: one repository, one version, <code>src/Clouds/&lt;Cloud&gt;</code>. See D1.</td></tr>
+<tr><td>Open question: <code>PORT</code> in the Kestrel runtime or in a GCP layer.</td><td>General, because Container Apps wants the same. A shared change, section 8.</td></tr>
+<tr><td>Constraints 1 to 3: transport only, no ASP.NET on the integration path, no IaC.</td><td>All three still hold. Azure uses <code>ConfigureFunctionsWorkerDefaults</code> and <code>HttpRequestData</code>; GCP uses <code>Hardened.Web.Kestrel.Runtime</code>, not the Functions Framework.</td></tr>
+<tr><td>Cosmos handlers get one binding, no <code>[OldImage]</code>.</td><td>Still true for Cosmos. Firestore carries both values, so the GCP change adapter gets an old-value binding and Cosmos does not; the divergence is documented rather than hidden.</td></tr>
+</table></div>
+
+<h2 id="decisions">3. Decisions to confirm</h2>
+<p>Each card states a recommendation and what the plan looks like if the answer is no. Everything after this section assumes the recommendations.</p>
+
+<div class="decision"><div class="id">D1 · Repository</div><h3>HardenedCloud is a clone of Hardened.Framework, and the lines land under src/Clouds</h3>
+<p>The empty <code>~/HardenedCloud</code> directory has no git history and no matching GitHub repository. Today's consolidation made the framework, the cloud packages and the site one repository on one version, and <code>AGENTS.md</code> already reserves a solution filter per cloud. The Azure generator also has to compile <code>Hardened.SourceGenerator</code> from source to reach <code>TriggerModuleGenerator.Triggers</code>, which only works inside this repository.</p>
+<div class="rec"><strong>Recommendation:</strong> clone <code>ipjohnson/Hardened.Framework</code> into <code>~/HardenedCloud</code> and build there on branches <code>cloud/azure</code> and <code>cloud/gcp</code>, merged to <code>main</code> by pull request. <strong>If no:</strong> a separate repository consuming published packages reintroduces the sibling-checkout and version-skew hazards the consolidation removed, and the generator would have to restore <code>Hardened.SourceGenerator</code> as a package. Roughly a week of extra plumbing and a permanent drift risk.</div></div>
+
+<div class="decision"><div class="id">D2 · Azure model</div><h3>Isolated worker, and Hardened writes the function metadata itself</h3>
+<p>The in-process model retires on 2026-11-10, so the isolated worker is the only candidate. Its host discovers functions from metadata: the Worker SDK's build task writes <code>functions.metadata</code> and <code>extensions.json</code> by scanning the compiled assembly for <code>[Function]</code>, and its Roslyn generator emits an <code>IFunctionMetadataProvider</code> for worker indexing. That generator cannot see Hardened's generated code, because generators never see each other's output. So Hardened's generator emits three things from the neutral triggers: a <code>[Function]</code> shim per handler carrying the real binding attribute, its own <code>IFunctionMetadataProvider</code>, and its own <code>IFunctionExecutor</code>. The SDK's post-build scan still runs over the compiled shims, so <code>extensions.json</code> is produced; the SDK's empty generated provider and executor are kept out with <code>FunctionsAutoRegisterGeneratedMetadataProvider=false</code> and <code>FunctionsAutoRegisterGeneratedFunctionsExecutor=false</code>, set by the runtime package's targets.</p>
+<div class="rec"><strong>Recommendation:</strong> as described, proven by spike S1 in Phase 1 before any adapter is written. <strong>If no:</strong> the only alternative is asking applications to write <code>[Function]</code> methods by hand, which puts the cloud back in the handler file.</div></div>
+
+<div class="decision"><div class="id">D3 · GCP target</div><h3>Cloud Run services on Kestrel, events as CloudEvents over HTTP; Cloud Functions stays out</h3>
+<p>Cloud Run is a container on <code>PORT</code> with a SIGTERM and ten seconds to drain. Kestrel already serves that. Eventarc delivers every event as a CloudEvents 1.0 binary-mode POST, Pub/Sub push delivers a documented JSON body, and Cloud Scheduler is an HTTP target. The Functions Framework for .NET is an ASP.NET Core application, so targeting Cloud Run functions would break the no-ASP.NET constraint for nothing; those functions run on Cloud Run underneath anyway.</p>
+<div class="rec"><strong>Recommendation:</strong> Cloud Run only, with a trigger front door in the Kestrel host. <strong>If no:</strong> a Functions Framework adapter is a separate, ASP.NET-shaped line and is not in this plan.</div></div>
+
+<div class="decision"><div class="id">D4 · Trigger gaps</div><h3>Stream on GCP and direct invoke on Azure stay unbound in this pass</h3>
+<p>GCP has no sharded, checkpointed stream a <code>[Stream]</code> handler can be moved to; Pub/Sub ordering keys are not that. Azure has no direct invoke; the nearest thing is an HTTP trigger with a function key. Leaving both unbound means <code>HRDF001</code> names the gap at build time rather than a package pretending.</p>
+<div class="rec"><strong>Recommendation:</strong> unbound, with the diagnostic text naming the provider. GCP serves <code>[HardenedFunction]</code> as <code>POST /_triggers/invoke/{operation}</code> because Cloud Run services are invoked over HTTP anyway. <strong>If no:</strong> add an Azure HTTP-backed invoke adapter in Phase 4, about a day.</div></div>
+
+<div class="decision"><div class="id">D5 · Queue and Topic on Pub/Sub</div><h3>A queue is a push subscription, a topic is an Eventarc delivery</h3>
+<p>Both neutral triggers map to Pub/Sub, and the delivered request has to say which. A plain push body carries the <code>subscription</code> name and not the topic; an Eventarc delivery carries the topic in <code>ce-source</code>. So <code>[Queue("orders")]</code> routes on the subscription named <code>orders</code> (competing consumers, one service), and <code>[Topic("order-events")]</code> routes on the topic named in the CloudEvent source (fan-out through Eventarc).</p>
+<div class="rec"><strong>Recommendation:</strong> as above, documented on both attributes' GCP pages. <strong>If no:</strong> a naming convention on subscriptions could stand in for topics, at the cost of a rule the deployment has to know.</div></div>
+
+<div class="decision"><div class="id">D6 · How the agents work</div><h3>Two worktrees on one clone, shared members changed only through a request</h3>
+<p>Both agents building one working tree at once would race on <code>obj/</code> and <code>bin/</code> and see each other's half-finished edits. A git worktree per agent keeps one repository and one history while giving each a consistent tree; Claude Code's worktree isolation also physically stops an agent editing outside its own tree. Shared members are changed on <code>main</code> by the orchestrator from a structured request the agent sends, and both agents rebase. Section 4 has the protocol.</p>
+<div class="rec"><strong>Recommendation:</strong> worktrees plus the request protocol, with agent teams enabled so the two can message each other directly rather than through the orchestrator. <strong>If no:</strong> the same protocol works with the orchestrator relaying every message; only latency changes.</div></div>
+
+<div class="decision"><div class="id">D7 · Simulator tier in CI</div><h3>Container tests are required in CI, and the matrix says where fidelity stops</h3>
+<p>Docker is on the GitHub runner, Testcontainers has modules for every emulator this plan uses, and the repository's own rule is that Docker tests fail rather than skip. Where a cloud has no emulator, the top rung is the container running the cloud's host with a hand-built request, and the matrix in section 7 says so per trigger rather than claiming a tier that does not exist.</p>
+<div class="rec"><strong>Recommendation:</strong> a separate <code>simulators</code> CI job, trait-filtered, running after the build in parallel with the AOT probes. <strong>If no:</strong> the container projects still exist and run locally; CI time stays where it is.</div></div>
+
+<div class="decision"><div class="id">D8 · Shared CloudEvents package</div><h3>Hardened.CloudEvents is a dependency-free framework package, written by the GCP agent</h3>
+<p>Eventarc, Pub/Sub through Eventarc, Cloud Storage and Firestore all arrive as CloudEvents; Azure Event Grid delivers CloudEvents JSON to the worker. One small package parses the structured JSON form and the binary HTTP-header form, with a source-generated serializer context so it stays AOT-clean, and maps <code>source</code>, <code>type</code> and <code>subject</code> to a route. No dependency on the CloudNative SDK.</p>
+<div class="rec"><strong>Recommendation:</strong> lives at <code>src/Functions/Hardened.CloudEvents</code>, created through the first shared-change request so the Azure agent can consume it for <code>[Event]</code>. <strong>If no:</strong> each line parses its own envelope and Event Grid and Eventarc drift.</div></div>
+
+<h2 id="orchestration">4. Two agents, one repository</h2>
+
+<h3>Topology</h3>
+<pre class="mermaid">
+flowchart TB
+  U["Ian · reviews plan, merges PRs"] --- O
+  O["Orchestrator (this session)<br/>root checkout on main<br/>owns shared members, the container harness, integration"]
+  O -->|"spawn, assign phases, apply SCRs"| A["Azure agent<br/>worktree .claude/worktrees/azure<br/>branch cloud/azure<br/>owns src/Clouds/Azure, docs/azure"]
+  O -->|"spawn, assign phases, apply SCRs"| G["GCP agent<br/>worktree .claude/worktrees/gcp<br/>branch cloud/gcp<br/>owns src/Clouds/Gcp, docs/gcp, Hardened.CloudEvents"]
+  A <-->|"SCR, ACK/NAK, API notices"| G
+  A -->|"phase gate reports"| O
+  G -->|"phase gate reports"| O
+</pre>
+
+<h3>Ownership map</h3>
+<div class="table-wrap"><table>
+<tr><th>Path</th><th>Owner</th><th>Rule</th></tr>
+<tr><td><code>src/Clouds/Aws/**</code>, <code>src/IntegrationTests/Aot/*Lambda*</code></td><td><span class="chip aws">reference</span></td><td>Read freely, never edited by an agent. A defect found there is an SCR to the orchestrator.</td></tr>
+<tr><td><code>src/Clouds/Azure/**</code>, <code>docs/azure/**</code>, <code>filters/azure.slnf</code></td><td><span class="chip azure">azure</span></td><td>Everything that names Azure, including its generator, testing package, integration fixtures and container tests.</td></tr>
+<tr><td><code>src/Clouds/Gcp/**</code>, <code>docs/gcp/**</code>, <code>filters/gcp.slnf</code></td><td><span class="chip gcp">gcp</span></td><td>Same for Google.</td></tr>
+<tr><td><code>src/Functions/Hardened.CloudEvents/**</code></td><td><span class="chip gcp">gcp</span> author, <span class="chip azure">azure</span> consumer</td><td>Created by SCR-001. Changes the Azure agent needs are SCRs to the GCP agent, copied to the orchestrator.</td></tr>
+<tr><td><code>src/Functions/Hardened.Functions.Testing.Containers/**</code>, the AWS RIE tier</td><td><span class="chip orch">orchestrator</span></td><td>The shared Testcontainers harness and the observation channel, built during Phase 2 so both agents copy a working reference in Phase 3.</td></tr>
+<tr><td><code>src/Functions/Hardened.Functions.*</code>, <code>src/Requests/**</code>, <code>src/Web/**</code>, <code>src/Shared/**</code>, <code>src/SourceGenerators/**</code></td><td><span class="chip shared">shared</span></td><td>SCR only. The orchestrator applies on <code>main</code>; both agents rebase.</td></tr>
+<tr><td><code>src/Templates/**</code></td><td><span class="chip shared">shared</span></td><td>Each agent delivers its <code>#if (azure)</code> / <code>#if (gcp)</code> blocks and <code>template.json</code> choices as one SCR in Phase 4; the orchestrator applies and runs <code>scripts/verify-templates.sh</code>.</td></tr>
+<tr><td><code>Hardened.slnx</code>, <code>filters/framework.slnf</code>, <code>Directory.Packages.props</code>, <code>Directory.Build.props</code>, <code>.github/workflows/*</code>, <code>src/PublicApi/**</code>, <code>coverage-baseline.json</code>, <code>scripts/*</code>, <code>AGENTS.md</code>, <code>README.md</code>, <code>docs/.vitepress/config.ts</code>, <code>docs/reference/*</code>, <code>docs/guide/project-templates.md</code></td><td><span class="chip shared">shared</span></td><td>SCR only. The package list SCR at the end of Phase 1 registers each line's projects in the solution, filters, <code>Shipped</code>, the pack list and <code>EXPECTED</code> in one edit.</td></tr>
+</table></div>
+
+<h3>The shared-change request</h3>
+<p>One message shape for every change outside an agent's own directory. It travels agent to agent when teams are enabled, and through the orchestrator otherwise; the orchestrator is always a recipient because it applies the change.</p>
+<div class="msg">SCR-007  from: gcp  to: orchestrator  cc: azure
+Files:    src/Web/Hardened.Web.Kestrel.Runtime/HardenedKestrelApplication.cs
+Why:      Cloud Run sends SIGTERM and SIGKILLs 10 s later. RunAsync hooks
+          ProcessExit and CancelKeyPress only, so the drain is not guaranteed.
+Change:   Register PosixSignal.SIGTERM in RunAsync with Cancel=true, then StopAsync.
+Patch:    (unified diff, applies to main at &lt;sha&gt;)
+Tests:    Hardened.Web.Kestrel.Runtime.Tests/ShutdownTests.SigtermDrainsInFlightRequests
+Public API: unchanged
+Blocking: no. Cloud Run fixture asserts the drain once this lands; other work continues.</div>
+<p>Replies are one line: <code>ACK SCR-007 merged at 3f2c1a9, rebase</code>, <code>NAK SCR-007: reason</code>, or <code>REVISE SCR-007: what to change</code>. A second shape, <code>NOTICE</code>, announces an API in an agent's own directory the peer may want to mirror, and needs no reply.</p>
+
+<h3>Rules the agents run under</h3>
+<ul>
+  <li><strong>Build the way CI does before every gate report.</strong> <code>dotnet build Hardened.slnx --configuration Release -p:ContinuousIntegrationBuild=true</code>, then the tests in the agent's own filter, then the public API test. Exit codes, not the tail of the log, per <code>AGENTS.md</code>.</li>
+  <li><strong>Copy the AWS line's conventions, not its types.</strong> Package per adapter family, <code>buildTransitive</code> targets binding one property, a module per adapter with equality by type, a serializer context per adapter, <code>IsAotCompatible</code> on every runtime package, a conformance enrolment per request type, tests named for behaviour.</li>
+  <li><strong>Every generator test compiles its output.</strong> <code>GeneratorTestHarness.Run(...).AssertNoErrors()</code>, the rule from <code>docs/design/testing-conventions.md</code>.</li>
+  <li><strong>Assert partial batch failures by identifier, never by count.</strong></li>
+  <li><strong>Report contradictions, do not encode them.</strong> A cloud behaviour that does not fit a neutral trigger is a NOTICE and a documented divergence, not a null image or a silent default.</li>
+  <li><strong>Never edit a shared member directly, even a one-line one.</strong> The worktree isolation enforces it; the rule exists so the agent writes the SCR instead of working around it.</li>
+  <li><strong>Rebase on <code>main</code> at every ACK and every phase gate.</strong></li>
+</ul>
+
+<h3>Mechanics in Claude Code</h3>
+<div class="table-wrap"><table>
+<tr><th>Piece</th><th>How</th></tr>
+<tr><td>Agent definitions</td><td><code>.claude/agents/azure.md</code> and <code>.claude/agents/gcp.md</code> in the clone, with the ownership map, the rules above and the phase list as the standing prompt. Frontmatter: <code>isolation: worktree</code>, <code>background: true</code>, <code>permissionMode: acceptEdits</code>, <code>effort: high</code>, tools limited to file, shell and messaging.</td></tr>
+<tr><td>Peer messaging</td><td>Agent teams, enabled with <code>CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1</code> in the clone's <code>.claude/settings.json</code>, give teammates direct messages and a shared task list. Without it, subagents' messages route through the orchestrator, which relays; the protocol is the same.</td></tr>
+<tr><td>Waiting</td><td>The orchestrator never polls. Phase gate reports and SCRs arrive as messages; <code>notify_when_idle</code> covers the case where an agent goes quiet.</td></tr>
+<tr><td>Path guard</td><td>Worktree isolation is the hard guard. A <code>PreToolUse</code> hook denying edits outside the agent's owned paths is added as a second, audited guard.</td></tr>
+<tr><td>Integration</td><td>The orchestrator merges each branch into <code>main</code> at every phase gate, runs the full gate including the simulator job locally with Docker, and pushes. Pull requests: one for the shared changes first, then one per line.</td></tr>
+</table></div>
+
+<h2 id="azure">5. The Azure line <span class="chip azure">azure agent</span></h2>
+
+<h3>Packages</h3>
+<p>Mirrors the AWS split: a core, an adapter per family, a meta package, a testing package. The generator is the one project the AWS line does not have.</p>
+<div class="table-wrap"><table>
+<tr><th>Package</th><th>Serves</th><th>Worker binding it emits</th><th>Notes</th></tr>
+<tr><td><code>Hardened.Azure.Functions.Runtime</code></td><td>the loop</td><td>—</td><td><code>FunctionsInvocationHandler</code> (trigger data in, response out), the <code>ITriggerAdapter</code> seam, <code>FunctionsPayloadRequest</code> / <code>Response</code>, an execution context carrying the worker's <code>FunctionContext.CancellationToken</code>, <code>UseHardened&lt;TApplication&gt;()</code> for the worker host builder. Sets the two <code>FunctionsAutoRegister*</code> properties to false from a target in its <code>buildTransitive</code> targets, because the SDK assigns them unconditionally and a plain property loses on import order. <em>Found in Phase 1:</em> references <code>Microsoft.Azure.Functions.Worker</code> 2.2.0 rather than the 2.5x line, which moved onto Hosting 10 and the 8.0 pins refuse; the <em>application</em> references <code>Microsoft.Azure.Functions.Worker.Sdk</code> 2.1.0 and the runtime does not, because the SDK's props turn any referencing project into a function app and would run its scanners over the runtime library. The runtime's targets fail a consumer that lacks the SDK with <code>HRDAZ010</code>.</td></tr>
+<tr><td><code>Hardened.Azure.Functions.SourceGenerator</code></td><td>metadata</td><td>—</td><td>Emits the <code>[Function]</code> shims, the <code>IFunctionMetadataProvider</code> and the <code>IFunctionExecutor</code>. Compiles <code>Hardened.SourceGenerator</code> from source like <code>Hardened.Function.SourceGenerator</code> does, reads the same handler model, and is referenced as an analyzer by the application. Section below.</td></tr>
+<tr><td><code>Hardened.Azure.Functions.ServiceBus</code></td><td><code>[Queue]</code>, <code>[Topic]</code></td><td><code>serviceBusTrigger</code>, cardinality many</td><td>Batch, <code>PerItem</code>. Per-message settlement through <code>ServiceBusMessageActions</code> is Phase 2's second step; until then a failure abandons the batch, which is the <code>ReportsItemFailures=false</code> default. Subscription name for a topic is a module property, as <code>ReportBatchItemFailures</code> is on SQS.</td></tr>
+<tr><td><code>Hardened.Azure.Functions.EventHubs</code></td><td><code>[Stream]</code></td><td><code>eventHubTrigger</code>, cardinality many</td><td>Batch, <code>Checkpoint</code>. The host checkpoints per batch, so a failure retries the batch; <code>ReportsItemFailures</code> stays false.</td></tr>
+<tr><td><code>Hardened.Azure.Functions.CosmosDb</code></td><td><code>[Change]</code></td><td><code>cosmosDBTrigger</code></td><td>Batch of documents, <code>Checkpoint</code>. Current document only; no old image exists on the change feed. Lease container name is a module property.</td></tr>
+<tr><td><code>Hardened.Azure.Functions.Blobs</code></td><td><code>[Blob]</code></td><td><code>blobTrigger</code> with <code>source: EventGrid</code></td><td>Notification-shaped body (container, name, size), the same projection the S3 adapter binds.</td></tr>
+<tr><td><code>Hardened.Azure.Functions.Timer</code></td><td><code>[Timer]</code></td><td><code>timerTrigger</code></td><td>Schedule read from an app setting named after the trigger, <code>%Hardened:Timers:nightly%</code>, so the expression stays a deployment setting as the attribute's documentation promises.</td></tr>
+<tr><td><code>Hardened.Azure.Functions.EventGrid</code></td><td><code>[Event]</code></td><td><code>eventGridTrigger</code>, CloudEvents schema</td><td>Parses through <code>Hardened.CloudEvents</code>; routes <code>EVENT /{source}/{type}</code>.</td></tr>
+<tr><td><code>Hardened.Azure.Functions.Http</code></td><td>web verbs</td><td><code>httpTrigger</code>, route <code>{*path}</code>, all methods, anonymous</td><td>One catch-all function; Hardened's routing table does the routing. <code>HttpRequestData</code> and <code>HttpResponseData</code> are streams both ways, so no base64 branch and no buffered copy. Web-shaped, <code>Answer500</code>, full web conformance profile. References <code>Hardened.Web.Runtime</code>; no function adapter may.</td></tr>
+<tr><td><code>Hardened.Azure.Functions</code></td><td>meta</td><td>—</td><td>Every adapter in one reference, no assembly, <code>HRDF003</code> keeps it honest.</td></tr>
+<tr><td><code>Hardened.Azure.Functions.Testing</code></td><td>tests</td><td>—</td><td><code>[AzureFunctionsTesting]</code> replaces <code>ITriggerDelivery</code> with a delivery that builds the worker's trigger data and binding data as the host sends them and calls the invocation handler; <code>[AzureFunctionsWebTesting]</code> is the <code>ITestHost</code> for web applications, if <code>HttpRequestData</code> can be constructed outside the worker (verified in S1, otherwise the container tier covers HTTP).</td></tr>
+</table></div>
+
+<h3>The generator</h3>
+<p>Per handler carrying a neutral trigger, and once for the web verbs, it emits into the application's assembly:</p>
+<ol>
+  <li>A shim method with <code>[Function("Queue_orders")]</code> and the real binding attribute built from the trigger's arguments and the module's properties, whose body hands the raw trigger input and <code>FunctionContext</code> to <code>FunctionsInvocationHandler</code> with the route it was generated for. Because every handler has its own function, Azure never needs a payload peek: the function identity is the route.</li>
+  <li>An <code>IFunctionMetadataProvider</code> returning the same functions with <code>Name</code>, <code>EntryPoint</code>, <code>ScriptFile</code>, <code>Language = dotnet-isolated</code> and <code>RawBindings</code> as JSON, registered by the runtime's <code>UseHardened</code>. This is the metadata the host indexes.</li>
+  <li>An <code>IFunctionExecutor</code> switching on function id and calling the shims directly, so no reflection stands between the host and the handler and the path survives Native AOT.</li>
+</ol>
+<p>Through CSharpAuthor, per the repository rule. Diagnostics: <code>HRDF001</code> stays the one voice for an unbound trigger; <code>HRDAZ001</code> is a bound trigger with no Azure binding, <code>HRDAZ002</code> a function-name collision (case-insensitive, as the host compares), and <code>HRDAZ003</code>, a binding that needs a setting the module did not supply, arrives with the first binding that needs one in Phase 2. The generator's own tests compile every emitted shape, and one test in the Azure integration fixture asserts that the metadata the provider returns equals what the SDK's build task wrote to <code>functions.metadata</code> from the same shims.</p>
+<p><em>Found in Phase 1:</em> the precedence risk did not bite. With worker indexing on, the host indexes the generated provider's list, the SDK's task still writes <code>functions.metadata</code> from the compiled shims, and the two agree; the SDK's own generators still run and emit an empty provider and executor that nothing registers, which is harmless. The shim signature needs no reshaping: raw trigger data plus <code>FunctionContext</code> is what the extension generation scans and what <code>BindInputAsync</code> binds. The Functions host image is amd64-only, so the local container rung runs under Rosetta on Apple Silicon, about twenty seconds to start, while CI runs it natively.</p>
+<p><em>Found in Phase 2:</em> the host advances an Event Hubs checkpoint and a Cosmos change-feed lease after an invocation whether it failed or not, so a thrown <code>[Stream]</code> or <code>[Change]</code> batch is not redelivered without a function-level retry policy; the adapters say so and a retry-policy module property is the Phase 4 candidate. The Event Hubs extension has no default connection, so the generator writes <code>Connection = "AzureWebJobsEventHubs"</code> unless the module names one. Under the real host the worker carries an event's offset as text, which the SDK's <code>EventData.Offset</code> refuses, so the fork reads it from the system properties; only the container rung could find that. The unbatched sources (timer, blob, Event Grid) needed the batch filter registered for the neutral delivery to fork, and the invocation handler needed to rethrow a failure the invoke filter had recorded as a value, a gap the AWS host turned out to share and now fixes the same way.</p>
+
+<h3>Spike S1, before anything else</h3>
+<p>A <code>[Queue("orders")]</code> handler, the generator, the Service Bus adapter and the Functions host container over Azurite and the Service Bus emulator. Exit criteria, each a test that stays: the host indexes exactly the functions the provider declares; a message published to the emulator reaches the handler through Hardened's executor; <code>functions.metadata</code> and the provider agree; a thrown handler abandons the batch and the message is redelivered. If the worker's settlement service or the extension generation needs the shim signatures to be something other than raw trigger data, the spike says so and the adapter seam is shaped around it before Phase 2.</p>
+
+<h3>Fixtures, AOT, template, docs</h3>
+<ul>
+  <li>Integration fixtures under <code>src/Clouds/Azure/IntegrationTests</code>, one per family, mirroring the AWS set: Queue, Topic, Timer, Event, Change, Stream, Blob, Http, plus a partial-failure pair once settlement lands. Every AWS integration test file is the template for its Azure twin; the test bodies should read the same.</li>
+  <li><code>Hardened.IntegrationTests.Aot.AzureFunctions.SUT</code> published with <code>PublishAot</code> and probed in CI the way the Lambda one is; the probe runs the published binary as the worker against the host container.</li>
+  <li>Template: <code>hardened-function --host azure</code> and <code>hardened-web --host azure-functions</code>, with <code>host.json</code>, <code>local.settings.json</code> and a <code>Program.cs</code> that is <code>HostBuilder</code> plus <code>ConfigureFunctionsWorkerDefaults</code> plus <code>UseHardened&lt;Application&gt;()</code>. Running locally is Azure Functions Core Tools; an equivalent of <code>LambdaEmulator.StartIfLocal</code> that starts <code>func host start</code> when it is on <code>PATH</code> is a Phase 4 nice-to-have.</li>
+  <li>Docs: <code>docs/azure/index.md</code>, one page per family, <code>testing.md</code>, and a <code>docs/design/azure/application-types.md</code> like the AWS one. Sidebar entries and <code>docs/reference/packages.md</code> rows arrive as an SCR.</li>
+</ul>
+
+<h2 id="gcp">6. The GCP line <span class="chip gcp">gcp agent</span></h2>
+
+<h3>Shape</h3>
+<p>Everything reaches a Cloud Run service as HTTP, so the request is already a <code>FeatureExecutionRequest</code> from Kestrel. The line is a global filter in front of routing that recognises an envelope, builds a trigger-shaped request from it (<code>Clone</code> cannot replace a body, so a wrapping request type does), and lets the pipeline route <code>QUEUE /orders</code> exactly as it would on Lambda. Failure policy needs no work: Kestrel answers 500 on a throw, Pub/Sub and Eventarc treat anything outside 102, 200, 201, 202 and 204 as a negative acknowledgement, and Scheduler retries per job. A validation refusal is a 400 and therefore also a redelivery, which matches what the SQS fork does today.</p>
+
+<div class="table-wrap"><table>
+<tr><th>Package</th><th>Serves</th><th>Recognised by</th><th>Route</th></tr>
+<tr><td><code>Hardened.Gcp.CloudRun.Runtime</code></td><td>the host</td><td>—</td><td><code>[CloudRunRuntime]</code> composing <code>[KestrelRuntime]</code>, the front door filter and its <code>ITriggerEnvelope</code> seam, <code>CloudRunTriggerRequest</code>, <code>K_SERVICE</code> and friends on transport info, and <code>CloudRunHost</code> over the Kestrel runtime's <code>KestrelListen.FromEnvironment</code> and signal-aware <code>RunAsync</code> (SCR-202, landed). Its targets bind <code>HardenedHttpModule</code>, which turns out to be required: once any binding is set, a <code>[Get]</code> beside a <code>[Queue]</code> is <code>HRDF001</code> otherwise. <em>Found in Phase 1:</em> a Cloud Run application holds two <code>IHandlerDispatch</code> registrations, the routing table from <code>[HardenedWebModule]</code> and <code>FunctionDispatchFilter</code> from the generator, which the pipeline test delivery refuses; <code>CloudRunDispatch</code> is the one dispatch composed from both, installed through <code>DependencyRegistry&lt;T&gt;.AddDecorator</code> because a module's <code>RemoveAll</code> runs before the generator's registration, and registered as <code>IWebExecutionHandlerService</code> too because the Kestrel runner resolves that directly. No framework change was needed.</td></tr>
+<tr><td><code>Hardened.Gcp.CloudRun.PubSub</code></td><td><code>[Queue]</code>, <code>[Topic]</code></td><td>push body with <code>message</code> and <code>subscription</code>; or <code>ce-type</code> <code>google.cloud.pubsub.topic.v1.messagePublished</code></td><td><code>QUEUE /{subscription}</code>, <code>TOPIC /{topic}</code>. Base64 <code>data</code> becomes the body, attributes become headers, <code>messageId</code>, <code>publishTime</code>, <code>orderingKey</code> and <code>deliveryAttempt</code> get prefixed headers. One message per request, never a batch. Unwrapped push is recognised by its headers.</td></tr>
+<tr><td><code>Hardened.Gcp.CloudRun.Eventarc</code></td><td><code>[Event]</code></td><td>binary-mode <code>ce-*</code> headers, or <code>application/cloudevents+json</code></td><td><code>EVENT /{source}/{type}</code>, through <code>Hardened.CloudEvents</code>.</td></tr>
+<tr><td><code>Hardened.Gcp.CloudRun.Storage</code></td><td><code>[Blob]</code></td><td><code>ce-type</code> <code>google.cloud.storage.object.v1.*</code>; or the Pub/Sub notification form with <code>eventType</code> and <code>bucketId</code> attributes</td><td><code>BLOB /{bucket}</code>. Both delivery forms are production paths; the second is the one the emulator tier can drive. <em>Delivered in Phase 2, with the emulator tier on the notification form.</em></td></tr>
+<tr><td><code>Hardened.Gcp.CloudRun.Firestore</code></td><td><code>[Change]</code></td><td><code>ce-type</code> <code>google.cloud.firestore.document.v1.*</code>, <code>application/protobuf</code></td><td><code>CHANGE /{collection}</code> from <code>ce-subject</code>. <code>DocumentEventData</code> decoded with <code>Google.Events.Protobuf</code>, kept in this package alone; the new value becomes JSON the way the DynamoDB adapter unwraps attribute values, and <code>[OldValue]</code> binds the previous document.</td></tr>
+<tr><td><code>Hardened.Gcp.CloudRun.Scheduler</code></td><td><code>[Timer]</code></td><td><code>POST /_triggers/timer/{name}</code>, cross-checked against <code>X-CloudScheduler-ScheduleTime</code> and the job-name header when present</td><td><code>TIMER /{name}</code>. The Scheduler job's target URL carries the name because the documented headers do not reliably.</td></tr>
+<tr><td><code>Hardened.Gcp.CloudRun.Invoke</code></td><td><code>[HardenedFunction]</code></td><td><code>POST /_triggers/invoke/{operation}</code></td><td><code>INVOKE /{operation}</code>; the handler's return value is the response body.</td></tr>
+<tr><td><code>Hardened.Gcp.CloudRun</code></td><td>meta</td><td>—</td><td>All adapters; <code>HRDF003</code> applies.</td></tr>
+<tr><td><code>Hardened.Gcp.CloudRun.Testing</code></td><td>tests</td><td>—</td><td><code>[CloudRunTesting]</code>: an <code>ITriggerDelivery</code> that builds the exact HTTP envelope (push JSON, binary CloudEvent headers, Scheduler request) and sends it through <code>Hardened.Web.Testing</code>'s host seam, so the same test runs on the pipeline host and, with <code>[KestrelTesting]</code>, over a socket.</td></tr>
+<tr><td><code>Hardened.CloudEvents</code> <span class="chip shared">shared</span></td><td>both lines</td><td>—</td><td>D8. <code>CloudEvent</code> record, structured and binary readers, a source-generated serializer context, route mapping helpers.</td></tr>
+</table></div>
+
+<h3>Spike S2, before anything else</h3>
+<p>A <code>[Queue("orders")]</code> handler on <code>[CloudRunRuntime]</code>, published, run in <code>mcr.microsoft.com/dotnet/aspnet:8.0</code> with <code>PORT</code> set, on a Testcontainers network with the Pub/Sub emulator holding a push subscription whose endpoint is the container. Exit criteria: a message published through the Google SDK against the emulator reaches the handler; a thrown handler is redelivered; SIGTERM to the container lets an in-flight request finish. The third criterion is what produces the Kestrel SCR.</p>
+
+<h3>Fixtures, AOT, template, docs</h3>
+<ul>
+  <li>Integration fixtures under <code>src/Clouds/Gcp/IntegrationTests</code>: Queue, Topic, Timer, Event, Change, Blob, Invoke, Web, each with the AWS twin's test bodies.</li>
+  <li><code>Hardened.IntegrationTests.Aot.CloudRun.SUT</code>: the existing Kestrel AOT proof already covers the socket; this one serves a Pub/Sub push through the front door, and the CI probe posts one.</li>
+  <li>Template: <code>hardened-function --host gcp</code> and <code>hardened-web --host cloud-run</code>, both with a Dockerfile, <code>PORT</code> handling and a README that shows <code>gcloud run deploy</code> without any IaC. Local run is <code>dotnet run</code> on 8080.</li>
+  <li>Docs: <code>docs/gcp/**</code> with the same page set, and the two divergences written down: no <code>[Stream]</code> on GCP, and Queue versus Topic per D5.</li>
+</ul>
+
+<h2 id="simulators">7. Simulators</h2>
+
+<h3>The ladder</h3>
+<pre class="mermaid">
+flowchart LR
+  L0["L0 pipeline<br/>[FunctionTesting]<br/>request built, pipeline run<br/>names no cloud"] --> L1["L1 envelope<br/>[LambdaTesting] [AzureFunctionsTesting] [CloudRunTesting]<br/>the wire shape the cloud sends,<br/>through the host's own loop"] --> L2["L2 host in process<br/>Runtime API stub · Kestrel socket<br/>the protocol, on a real socket"] --> L3["L3 container<br/>the published function in the cloud's host image,<br/>driven by the cloud's emulator"]
+</pre>
+<p>L0 to L2 exist for AWS and are copied per line. L3 is the new rung and the shared harness is the orchestrator's deliverable: <code>Hardened.Functions.Testing.Containers</code>, over Testcontainers, gives a test project a network, the emulator containers it names, the published application mounted into a host image, log capture, readiness, and an observation channel. The channel is the same trick the AOT probe already uses: the fixture's handlers record through an <code>IObservationSink</code> that prints one marked line per invocation to the container's stdout, and the harness tails it, so a test reads <code>await observed.Handled("queue:a-1")</code> where an L0 test read a <code>[Mock]</code>.</p>
+<p>Container tests live in their own projects and, <em>found in Phase 1</em>, in their own solution: <code>Hardened.Simulators.slnx</code>, one folder per cloud. The plan's trait filter was tried first and filters nothing on the pinned SDK with xunit.v3 3.2.2 and xunit.runner.visualstudio 3.1.5, in either direction, so a project split is the only split CI can rely on. The coverage step runs <code>Hardened.slnx</code>; a <code>Simulators</code> step in the same job restores, builds and tests the second solution afterwards. Both keep the no-skip rule; a test that cannot find Docker fails, as the DynamoDB tests always have. Coverage is not collected for the simulator tier, because the code under test runs in another process.</p>
+<p>The lower rungs share one test file: a class-level testing attribute is read off the declaring type, so a derived class cannot raise the fidelity of inherited tests, and the convention both lines settled on is two test projects linking one file, one at L0 with <code>[FunctionTesting]</code> and one at L1 with the provider's attribute, plus <code>[PipelineDelivery]</code> (SCR-204) for a single class that wants the neutral delivery inside an envelope-level assembly.</p>
+
+<h3>Matrix</h3>
+<p><em>Delivered by 2026-09-08:</em> AWS has the queue, event family, API Gateway and direct invoke fixtures in the Lambda image (10 tests). GCP has Queue and Blob through the Pub/Sub emulator, Web and Invoke over real HTTP, and Timer and Event with hand-built requests (13 tests in six projects). Azure has Queue on the Service Bus emulator under the real Functions host (3 tests), with the rest of its column due with its Phase 2 gate.</p>
+<div class="legend"><span class="fid ok">✓</span> emulator drives the host <span class="fid warn">△</span> host in a container, request hand-built or delivery form differs from production <span class="fid no">✗</span> no emulator; L1 is the top</div>
+<div class="table-wrap"><table>
+<tr><th>Trigger</th><th>AWS <span class="chip aws">orch</span></th><th>Azure <span class="chip azure">azure</span></th><th>GCP <span class="chip gcp">gcp</span></th></tr>
+<tr><td>Host</td><td>Lambda RIE, <code>public.ecr.aws/lambda/dotnet:8</code>, invoked at <code>/2015-03-31/functions/function/invocations</code></td><td>Functions host, <code>mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated8.0</code>, app at <code>/home/site/wwwroot</code>, <code>AzureWebJobsStorage</code> on Azurite</td><td><code>mcr.microsoft.com/dotnet/aspnet:8.0</code> with the publish output, <code>PORT=8080</code></td></tr>
+<tr><td>Queue</td><td><span class="fid warn">△</span> recorded SQS envelope posted to RIE</td><td><span class="fid ok">✓</span> Service Bus emulator (<code>Testcontainers.ServiceBus</code>, MSSQL dependency started by the module)</td><td><span class="fid ok">✓</span> Pub/Sub emulator push subscription to the container (<code>Testcontainers.PubSub</code>)</td></tr>
+<tr><td>Topic</td><td><span class="fid warn">△</span> recorded SNS envelope</td><td><span class="fid ok">✓</span> Service Bus emulator topic and subscription</td><td><span class="fid no">✗</span> Eventarc has no emulator; the CloudEvent form is L1 only</td></tr>
+<tr><td>Timer</td><td><span class="fid warn">△</span> recorded scheduled event</td><td><span class="fid ok">✓</span> the host fires the timer itself; schedule set to run at once</td><td><span class="fid warn">△</span> Scheduler-shaped request posted to the container</td></tr>
+<tr><td>Event</td><td><span class="fid warn">△</span> recorded EventBridge event</td><td><span class="fid no">✗</span> no official Event Grid emulator; CloudEvent posted to the host's Event Grid endpoint is the candidate △, verified in Phase 3</td><td><span class="fid warn">△</span> binary CloudEvent posted to the container</td></tr>
+<tr><td>Change</td><td><span class="fid warn">△</span> recorded DynamoDB stream batch</td><td><span class="fid warn">△</span> Cosmos vNext emulator supports the change feed, but its HTTPS certificate has to be trusted inside the host container and the Cosmos trigger is reported to fail indexing against it; best effort, L1 guaranteed</td><td><span class="fid no">✗</span> Firestore emulator exists, Eventarc delivery does not; L1 only</td></tr>
+<tr><td>Stream</td><td><span class="fid warn">△</span> recorded Kinesis batch</td><td><span class="fid ok">✓</span> Event Hubs emulator (<code>Testcontainers.EventHubs</code>, Azurite dependency)</td><td>— not bound (D4)</td></tr>
+<tr><td>Blob</td><td><span class="fid warn">△</span> recorded S3 notification</td><td><span class="fid warn">△</span> Azurite blob plus a hand-built Event Grid notification; a blob trigger polling Azurite is the candidate ✓</td><td><span class="fid warn">△</span> fake-gcs-server publishing object notifications into the Pub/Sub emulator, delivered as the Pub/Sub form rather than the Eventarc form; its notification path is reported unreliable, so the hand-built push is the fallback</td></tr>
+<tr><td>HTTP</td><td><span class="fid warn">△</span> recorded API Gateway v2 event</td><td><span class="fid ok">✓</span> real HTTP to the host on port 80</td><td><span class="fid ok">✓</span> real HTTP to the container</td></tr>
+<tr><td>Invoke</td><td><span class="fid ok">✓</span> RIE invocation is the real thing</td><td>— not bound (D4)</td><td><span class="fid ok">✓</span> real HTTP</td></tr>
+</table></div>
+<p class="small">The AWS column is parity work for the orchestrator: it makes the harness real before the agents need it, and it is where the observation channel and the wait strategies get debugged. A LocalStack tier, where SQS event source mappings invoke the function inside LocalStack, is possible with <code>Testcontainers.LocalStack</code> and is deliberately not in scope; the RIE tier answers the question this plan asks.</p>
+
+<h3>Budget</h3>
+<div class="table-wrap"><table>
+<tr><th>Line</th><th>Containers per test assembly</th><th>Expected startup</th><th>Where it costs</th></tr>
+<tr><td>AWS</td><td>1 (RIE)</td><td class="num">≈ 5 s</td><td>none</td></tr>
+<tr><td>Azure</td><td>3 to 6 (host, Azurite, Service Bus + MSSQL, Event Hubs, Cosmos)</td><td class="num">≈ 60 to 120 s</td><td>one fixture per assembly, shared across its tests; Cosmos optional</td></tr>
+<tr><td>GCP</td><td>2 to 3 (app, Pub/Sub emulator, fake-gcs-server)</td><td class="num">≈ 20 s</td><td>none beyond the publish step</td></tr>
+</table></div>
+
+<h2 id="shared">8. Shared changes expected</h2>
+<p>What the orchestrator expects to apply on <code>main</code>, in the order the lines will ask for them. Anything not listed is a surprise worth a NOTICE.</p>
+<ol>
+  <li><strong>SCR-001</strong> <span class="chip gcp">gcp</span> Create <code>src/Functions/Hardened.CloudEvents</code> with its tests, solution folder, filter entries and <code>Shipped</code> row. <em>Landed as SCR-201 on 2026-09-08.</em></li>
+  <li><strong>SCR-002</strong> <span class="chip gcp">gcp</span> <code>Hardened.Web.Kestrel.Runtime</code>: a <code>KestrelListen.FromEnvironment</code> helper reading <code>PORT</code> and binding <code>0.0.0.0</code>, and SIGTERM registration in <code>HardenedKestrelApplication.RunAsync</code>. Defaults are not changed; both are opt-in so the existing template and the Kestrel integration fixture behave as before. Public API grows by two members. <em>Landed as SCR-202: the container test showed plain <code>RunAsync</code> returning on <code>ProcessExit</code> and the client reading a closed connection.</em></li>
+  <li><strong>SCR-003 / 004</strong> <span class="chip azure">azure</span> <span class="chip gcp">gcp</span> Package lists at the end of Phase 1: <code>Hardened.slnx</code> folders, <code>filters/*.slnf</code>, <code>Directory.Packages.props</code> pins in two new labelled groups (Azure, Google), <code>Shipped</code>, the pack list and <code>EXPECTED</code> in <code>release.yaml</code>, <code>coverage.runsettings</code> if a generator assembly needs excluding. <em>Landed as SCR-101 and SCR-203: seven packages, <code>EXPECTED</code> 45 to 52, and Logging.Abstractions raised to 8.0.3 for the Service Bus extension's dependencies.</em></li>
+  <li><strong>SCR-005</strong> <span class="chip orch">orch</span> The simulator CI step; the AOT publish loop in <code>build-package.yaml</code> gains the two new SUTs later. <em>Landed as a step over <code>Hardened.Simulators.slnx</code>, section 7.</em></li>
+  <li><strong>SCR-204</strong> <span class="chip gcp">gcp</span> <code>[PipelineDelivery]</code> in <code>Hardened.Functions.Testing</code>, the counterpart of <code>[PipelineHost]</code>. <em>Landed.</em></li>
+  <li><strong>SCR-006</strong> <span class="chip azure">azure</span> <code>TriggerModuleGenerator</code>: only if S1 finds the Azure generator needs the handler model exposed differently. Expected answer: it does not, because <code>Hardened.Function.SourceGenerator</code> already links the same files.</li>
+  <li><strong>SCR-007+</strong> whatever the spikes find. Candidates known now: a <code>[HardenedFunction]</code> route seam for the GCP invoke prefix, and the diagnostic text of <code>HRDF001</code> naming the provider that lacks a trigger kind.</li>
+  <li><strong>Phase 4</strong> Templates, <code>docs/.vitepress/config.ts</code> sidebars, <code>docs/reference/packages.md</code>, <code>docs/guide/project-templates.md</code>, <code>AGENTS.md</code> layout table and a section per line, <code>README.md</code> host table, <code>coverage-baseline.json</code> from a CI run, never from a local one.</li>
+</ol>
+<div class="callout">Not a shared change, but worth stating: <code>src/Clouds/Aws</code> is frozen for the duration. Anything an agent learns that would improve the AWS line is a NOTICE, and the orchestrator decides whether it lands now or after.</div>
+
+<h2 id="phases">9. Phases and gates</h2>
+<p>Phases are a sequence, so they are numbered. Each ends with a gate report from the agent and a merge to <code>main</code> by the orchestrator. Durations are calibrated against the AWS line, which was rebuilt on the seam in about two days of commits on 2026-09-06 and 07; Azure carries the generator and the heavier container tier.</p>
+<div class="table-wrap"><table>
+<tr><th>Phase</th><th>Orchestrator <span class="chip orch">orch</span></th><th>Azure <span class="chip azure">azure</span></th><th>GCP <span class="chip gcp">gcp</span></th><th>Gate</th><th>Wall clock</th></tr>
+<tr><td>0 · Scaffold</td><td>Clone into <code>~/HardenedCloud</code>; commit this plan as <code>docs/design/CLOUD-LINES-PLAN.html</code>; <code>.claude/agents</code>, settings, hooks; branches and worktrees; <code>src/Clouds/Azure</code> and <code>Gcp</code> with a <code>Directory.Build.props</code> each; empty solution folders and filters; confirm Docker locally and in CI.</td><td>—</td><td>—</td><td>Both agents build a clean <code>main</code> in their worktrees.</td><td class="num">½ day</td></tr>
+<tr><td>1 · Spikes</td><td>Start the container harness; RIE tier for one AWS fixture.</td><td>S1: metadata handoff proven end to end in the host container.</td><td>S2: Pub/Sub push into Kestrel in a container, SIGTERM drain; SCR-001 and SCR-002.</td><td>Spike report with the tests that stay; package list SCR. <em>Done 2026-09-08: GCP 139 tests, Azure 67, each with three container tests passing.</em></td><td class="num">1 to 2 days</td></tr>
+<tr><td>2 · Lines</td><td>Finish the harness and the AWS column; apply SCRs; first merges.</td><td>Runtime, generator, eight adapters, conformance enrolments, unit tests, integration fixtures, <code>.Testing</code>, public API approvals, <code>IsAotCompatible</code>.</td><td>Runtime, front door, seven adapters, <code>Hardened.CloudEvents</code>, conformance, fixtures, <code>.Testing</code>, approvals.</td><td>CI-mode build green; every fixture's L0 and L1 tests pass; API diffs reviewed. <em>Both done 2026-09-08: GCP 281 tests and thirteen packages; Azure 243 tests and eleven packages, with the queue, topic and stream tiers green under the real host.</em></td><td class="num">3 to 4 days</td></tr>
+<tr><td>3 · Simulators</td><td>SCR-005; the <code>simulators</code> job; merge and run it.</td><td>Azure column of the matrix; settlement through <code>ServiceBusMessageActions</code>.</td><td>GCP column of the matrix.</td><td>Simulator job green locally and in CI.</td><td class="num">2 to 3 days</td></tr>
+<tr><td>4 · Ship shape</td><td>Apply template and docs SCRs; run <code>verify-templates.sh</code>; baseline coverage from CI; release list and <code>EXPECTED</code>.</td><td>AOT SUT and probe; template blocks; docs pages; design note.</td><td>AOT SUT and probe; Dockerfile template; docs pages; design note.</td><td>Full gate, including templates and docs build. <em>Both complete 2026-09-08. GCP: AOT SUT native with zero IL warnings and probed in CI, templates for both shapes verified and built as images, docs/gcp in the site. Azure: the worker cannot start as a native binary, so the line ships trimmed and self-contained with the AOT publish kept as the analyzer gate and a trimmed worker probed under the real host in CI; templates for both shapes verified with Core Tools; docs/azure in the site; the retry-policy property landed.</em></td><td class="num">1 to 2 days</td></tr>
+<tr><td>5 · Integration</td><td>Three pull requests: shared, GCP, Azure. Address review.</td><td>Review fixes.</td><td>Review fixes.</td><td>Ian merges.</td><td class="num">1 day</td></tr>
+</table></div>
+
+<h3>Definition of done, per line</h3>
+<ul>
+  <li>A handler with a neutral trigger, and no cloud named anywhere in the application, runs on the new host by changing package references. The template proves it for every trigger the line binds.</li>
+  <li>Every request type enrolled in a conformance suite; every runtime package <code>IsAotCompatible</code>; an AOT SUT published and probed in CI.</li>
+  <li>The same test file passes at L0, L1 and L3 for every trigger the matrix marks ✓ or △.</li>
+  <li>Every shipped assembly in <code>Shipped</code>, the pack list and <code>EXPECTED</code>; public API approved deliberately; a coverage floor from CI.</li>
+  <li>Docs published, sidebar linked, packages reference updated, <code>AGENTS.md</code> carrying the line's traps.</li>
+  <li><code>HRDF001</code> names the provider for the trigger it cannot serve; the templates refuse the combinations a provider cannot serve (<code>HTPL005</code> gcp with stream, <code>HTPL006</code> azure with invoke, <code>HTPL007</code> azure-functions with the union model).</li>
+</ul>
+
+<h2 id="risks">10. Risks</h2>
+<div class="table-wrap"><table>
+<tr><th>Risk</th><th>Line</th><th>Mitigation</th></tr>
+<tr><td>The Worker SDK's build task needs the shims to look a particular way for <code>extensions.json</code>, or worker indexing and the on-disk <code>functions.metadata</code> disagree about precedence.</td><td><span class="chip azure">azure</span></td><td>S1 exists to find this in the first two days. Fallback: ship <code>functions.metadata</code> from Hardened's own build task, the pattern <code>Hardened.OpenApiDocument.BuildTask</code> already uses.</td></tr>
+<tr><td>Per-message settlement on Service Bus needs the extension's <code>ServiceBusMessageActions</code>, which ties the adapter to the extension package's converter model.</td><td><span class="chip azure">azure</span></td><td>Phase 2 step two, behind <code>ReportsItemFailures</code>; the abandon-the-batch default is correct without it.</td></tr>
+<tr><td>Cosmos vNext emulator: HTTPS certificate inside the host container, and a reported indexing failure of the Cosmos trigger against it.</td><td><span class="chip azure">azure</span></td><td>Marked △ in the matrix; L1 is the guaranteed tier for <code>[Change]</code> on Azure.</td></tr>
+<tr><td>Service Bus emulator triggers in bridged Docker networks (installer issue #87).</td><td><span class="chip azure">azure</span></td><td>Shared Testcontainers network with aliases first; <code>host.docker.internal</code> second; the issue's workaround third.</td></tr>
+<tr><td>Native AOT through the worker: extension packages may not be trim-clean.</td><td><span class="chip azure">azure</span></td><td><em>Found in Phase 4:</em> the block is in <code>Microsoft.Azure.Functions.Worker.Core</code> itself, whose <code>WorkerInformation</code> reads <code>Assembly.Location</code>, empty under Native AOT, on top of the worker's open issues. The Azure line therefore ships trimmed and self-contained: the AOT publish stays as the analyzer gate (a trim or AOT warning outside the worker's own assemblies fails it), the runtime's targets root the worker assemblies and keep reflection-based serialization on for the worker's binding parser, and the CI probe mounts the trimmed worker into the host image beside Azurite and the Service Bus emulator. Every adapter is in the proof. The linux-x64 host probe could not run on this Mac and is the one step only CI confirms.</td></tr>
+<tr><td>Firestore events are protobuf; <code>Google.Protobuf</code> under trimming is unproven here.</td><td><span class="chip gcp">gcp</span></td><td>Closed in Phase 4: the GCP AOT SUT references the Firestore adapter, publishes with zero IL warnings, and the CI probe posts a protobuf document event the native binary decodes, old value included. The package stays on its own so a service without documents carries no protobuf.</td></tr>
+<tr><td>fake-gcs-server's Pub/Sub notifications may not fire (issue #1898).</td><td><span class="chip gcp">gcp</span></td><td>Matrix says △ with a hand-built push as the fallback.</td></tr>
+<tr><td>Scheduler header names beyond <code>X-CloudScheduler-ScheduleTime</code> are not confirmed by the docs fetched.</td><td><span class="chip gcp">gcp</span></td><td>The route is in the target URL; headers are cross-checked when present.</td></tr>
+<tr><td>Two agents on one file through SCRs is slower than direct edits.</td><td><span class="chip shared">shared</span></td><td>The package list SCR batches the registrations once; reserved labelled groups in <code>Directory.Packages.props</code> keep later pins conflict-free.</td></tr>
+<tr><td>A timing test already flakes in CI: <code>TimeoutTests.OneBudgetCoversEveryRetryAttempt</code> failed on the docs-only PR #306.</td><td><span class="chip shared">shared</span></td><td>Agents report it as a known flake rather than re-running blindly; a NOTICE to the orchestrator if it recurs, so it can be widened or pinned outside this work.</td></tr>
+<tr><td><em>Found in Phase 1:</em> the Functions host image is amd64-only.</td><td><span class="chip azure">azure</span></td><td>Local L3 runs under Rosetta, about twenty seconds to start; CI is amd64. Recorded in the matrix.</td></tr>
+<tr><td><em>Found in Phase 1:</em> gcr.io no longer serves the emulator tag <code>Testcontainers.PubSub</code> 4.14.0 defaults to.</td><td><span class="chip gcp">gcp</span></td><td>Pinned to <code>583.0.0-emulators</code> in the GCP tier and moved by hand when it goes the same way.</td></tr>
+<tr><td><em>Found in Phase 1:</em> <code>Microsoft.Azure.Functions.Worker</code> 2.5x needs Hosting 10, and the Service Bus extension needs Logging.Abstractions 8.0.3.</td><td><span class="chip azure">azure</span></td><td>Worker pinned at 2.2.0; Logging.Abstractions raised to 8.0.3 so a consumer referencing both never hits NU1605.</td></tr>
+<tr><td><em>Found in Phase 1:</em> <code>dotnet test --filter</code> is inert on the pinned SDK.</td><td><span class="chip shared">shared</span></td><td>The simulator tier is a second solution; see section 7.</td></tr>
+<tr><td><em>Found in Phase 2:</em> a handler's failure is recorded on the response as a value, and only the batch filter read it back, so an unbatched source whose handler threw was reported as handled on Lambda and on the Azure worker.</td><td><span class="chip shared">shared</span></td><td>Both hosts now rethrow a recorded failure under the rethrow policy, each with a test that a thrown timer handler fails the invocation. The seam itself is unchanged; a third host has to remember the same line, and the plan says so here.</td></tr>
+<tr><td>The <code>Hardened.Gcp</code> versus <code>Hardened.Google</code> prefix.</td><td><span class="chip gcp">gcp</span></td><td>Cheap to change until the package list SCR; the plan uses <code>Gcp</code> to match the directory name.</td></tr>
+</table></div>
+
+<h2 id="scope">11. Out of scope</h2>
+<ul>
+  <li>Infrastructure as code for either cloud (no CDK equivalent, no Bicep, no Terraform), per the August constraint.</li>
+  <li>Service clients and stores: nothing like the old DynamoDB client package for Cosmos, Firestore or Storage.</li>
+  <li>Durable Functions, Pub/Sub pull as a long-running worker, Event Grid namespaces and MQTT, Azure Container Apps as a tested host (it works through <code>PORT</code> on Kestrel but is not verified here).</li>
+  <li>A LocalStack event-source-mapping tier for AWS.</li>
+  <li>Rewriting <code>docs/aws</code>, which still documents <code>Hardened.Amz</code>. The orchestrator can take it between merges if wanted; it is not part of the two lines.</li>
+</ul>
+
+<h2 id="sources">12. Sources and calibration</h2>
+<h3>Facts verified for this plan</h3>
+<ul>
+  <li>Azure Functions in-process model retirement date, isolated worker SDK version table and Native AOT support: <a href="https://learn.microsoft.com/en-us/azure/azure-functions/dotnet-isolated-process-guide">Guide for running C# Azure Functions in an isolated worker process</a>.</li>
+  <li>Worker SDK properties <code>FunctionsEnableWorkerIndexing</code>, <code>FunctionsEnableMetadataSourceGen</code>, <code>FunctionsAutoRegisterGeneratedMetadataProvider</code>, <code>FunctionsEnableExecutorSourceGen</code>, <code>FunctionsAutoRegisterGeneratedFunctionsExecutor</code>, and the <code>GenerateFunctionMetadata</code> task: <a href="https://github.com/Azure/azure-functions-dotnet-worker/blob/main/sdk/Sdk/Targets/Microsoft.Azure.Functions.Worker.Sdk.targets">Microsoft.Azure.Functions.Worker.Sdk.targets</a>; the generated provider's shape and registration: <a href="https://github.com/Azure/azure-functions-dotnet-worker/tree/main/sdk/Sdk.Generators/FunctionMetadataProviderGenerator">FunctionMetadataProviderGenerator</a>.</li>
+  <li>Functions host container image and layout: <a href="https://hub.docker.com/r/microsoft/azure-functions-dotnet-isolated">azure-functions/dotnet-isolated</a>.</li>
+  <li>Service Bus emulator features and limits: <a href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/overview-emulator">overview</a>; Event Hubs emulator and its Azurite dependency: <a href="https://learn.microsoft.com/en-us/azure/event-hubs/test-locally-with-event-hub-emulator">test locally</a>; Cosmos DB vNext emulator feature table, change feed supported: <a href="https://learn.microsoft.com/en-us/azure/cosmos-db/emulator-linux">Linux-based emulator</a>; Cosmos trigger indexing failure report: <a href="https://github.com/microsoft/aspire/issues/16195">aspire #16195</a>; Service Bus bridged-network issue: <a href="https://github.com/Azure/azure-service-bus-emulator-installer/issues/87">installer #87</a>.</li>
+  <li>Event Grid CloudEvents endpoint validation: <a href="https://learn.microsoft.com/en-us/azure/event-grid/end-point-validation-cloud-events-schema">endpoint validation</a>.</li>
+  <li>Cloud Run container contract, <code>PORT</code>, SIGTERM and the ten-second grace: <a href="https://docs.cloud.google.com/run/docs/container-contract">container runtime contract</a>.</li>
+  <li>Eventarc CloudEvents delivery, binary mode, event types: <a href="https://docs.cloud.google.com/eventarc/docs/cloudevents">CloudEvents format</a>; Pub/Sub push body and acknowledgement codes: <a href="https://docs.cloud.google.com/pubsub/docs/push">push subscriptions</a>; Pub/Sub emulator features including push: <a href="https://docs.cloud.google.com/pubsub/docs/emulator">emulator</a>; Scheduler <code>X-CloudScheduler-ScheduleTime</code>: <a href="https://docs.cloud.google.com/scheduler/docs/creating">creating jobs</a>; Firestore events as protobuf: <a href="https://docs.cloud.google.com/eventarc/standard/docs/run/route-trigger-cloud-firestore">route Firestore events</a>.</li>
+  <li>Testcontainers for .NET modules used: <a href="https://dotnet.testcontainers.org/modules/">Azurite, ServiceBus, EventHubs, CosmosDb, PubSub, Firestore, FakeGcsServer, LocalStack</a>; the repository already pins the 4.14.0 line for DynamoDB.</li>
+  <li>Lambda Runtime Interface Emulator and the invocations endpoint: <a href="https://docs.aws.amazon.com/lambda/latest/dg/images-test.html">testing container images locally</a>.</li>
+  <li>fake-gcs-server notification reliability: <a href="https://github.com/fsouza/fake-gcs-server/issues/1898">#1898</a>.</li>
+  <li>Claude Code mechanics: sub-agents and worktree isolation, agent teams, cross-session messaging and hooks, from the current docs at <a href="https://code.claude.com/docs/en/sub-agents">sub-agents</a>, <a href="https://code.claude.com/docs/en/agent-teams">agent teams</a>, <a href="https://code.claude.com/docs/en/hooks">hooks</a>.</li>
+</ul>
+<h3>Calibration from the AWS line on main</h3>
+<div class="table-wrap"><table>
+<tr><th>Project</th><th class="num">Lines of C#</th><th>Note</th></tr>
+<tr><td><code>Hardened.Aws.Lambda.Runtime</code></td><td class="num">1,319</td><td>loop, seam, payload types, emulator</td></tr>
+<tr><td>Adapters, eight packages</td><td class="num">128 to 667</td><td>Invoke smallest, DynamoDB largest</td></tr>
+<tr><td><code>Hardened.Aws.Lambda.Testing</code></td><td class="num">684</td><td>envelope delivery and the web host</td></tr>
+<tr><td><code>Hardened.Aws.Lambda.Runtime.Tests</code></td><td class="num">2,049</td><td>79 tests, conformance included</td></tr>
+<tr><td>Integration fixtures</td><td class="num">8 fixtures</td><td>48 tests, one Runtime API loop suite</td></tr>
+<tr><td>Neutral triggers and the function generator</td><td class="num">1,812</td><td>shared, unchanged by this plan</td></tr>
+</table></div>
+<p class="small">Both new lines are expected to land between one and two times the AWS line's size: Azure above it, for the generator and the container tier; GCP below it, because the host already exists.</p>
+</main>
+</div>
+</body>
+</html>

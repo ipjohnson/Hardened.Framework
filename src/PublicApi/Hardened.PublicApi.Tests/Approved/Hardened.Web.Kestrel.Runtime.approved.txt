@@ -7,6 +7,7 @@ namespace Hardened.Web.Kestrel.Runtime
         public System.IServiceProvider Services { get; }
         public System.Threading.Tasks.ValueTask DisposeAsync() { }
         public System.Threading.Tasks.Task RunAsync(System.Threading.CancellationToken cancellationToken = default) { }
+        public System.Threading.Tasks.Task RunAsync(System.Collections.Generic.IReadOnlyList<System.Runtime.InteropServices.PosixSignal> signals, System.TimeSpan grace, System.Threading.CancellationToken cancellationToken = default) { }
         public System.Threading.Tasks.Task StartAsync(System.Threading.CancellationToken cancellationToken = default) { }
         public System.Threading.Tasks.Task StopAsync(System.Threading.CancellationToken cancellationToken = default) { }
         public static Hardened.Web.Kestrel.Runtime.HardenedKestrelApplication Create(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>? configureKestrel = null, System.Action<Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions>? configureTransport = null) { }
@@ -28,6 +29,13 @@ namespace Hardened.Web.Kestrel.Runtime
     public static class HardenedKestrelServiceCollectionExtensions
     {
         public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddHardenedKestrel(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>? configureKestrel = null, System.Action<Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions>? configureTransport = null) { }
+    }
+    public static class KestrelListen
+    {
+        public const int DefaultPort = 8080;
+        public const string PortVariable = "PORT";
+        public static void FromEnvironment(Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions kestrel, int defaultPort = 8080) { }
+        public static int Port(string? configured, int defaultPort = 8080) { }
     }
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Web.Runtime.DependencyInjection.HardenedWebModule]

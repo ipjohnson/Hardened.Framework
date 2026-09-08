@@ -1,0 +1,27 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Gcp.CloudRun.Runtime.Tests")]
+namespace Hardened.Gcp.CloudRun.Testing
+{
+    public sealed class CloudRunEnvelopeDelivery : Hardened.Functions.Testing.ITriggerDelivery
+    {
+        public const string Project = "test-project";
+        public const string PublishTime = "2026-01-01T00:00:00.000Z";
+        public CloudRunEnvelopeDelivery(System.IServiceProvider provider) { }
+        public static string DatabaseSource { get; }
+        public System.Threading.Tasks.Task<object?> Call(object message, string scheme, string path, System.Type? responseType) { }
+        public System.Threading.Tasks.Task Deliver(System.Collections.Generic.IReadOnlyList<object> messages, string scheme, string path) { }
+        public static bool Acknowledged(int status) { }
+        public static string BucketSource(string bucket) { }
+        public static string Subscription(string queue) { }
+        public static string TopicSource(string topic) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public class CloudRunTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute
+    {
+        public CloudRunTestingAttribute() { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+    }
+    public static class PubSubPush
+    {
+        public static byte[] Body(string subscription, System.ReadOnlySpan<byte> data, System.Collections.Generic.IReadOnlyDictionary<string, string>? attributes = null, string? messageId = null, string? publishTime = null, string? orderingKey = null, int? deliveryAttempt = default) { }
+    }
+}

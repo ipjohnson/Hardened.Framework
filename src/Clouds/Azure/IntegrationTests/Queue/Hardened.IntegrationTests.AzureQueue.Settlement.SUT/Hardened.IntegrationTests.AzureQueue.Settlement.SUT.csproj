@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The queue fixture's handlers, deployed against a function that settles each message itself.
+
+      Its own assembly rather than a second application beside AzureQueueTestApp, which is how the
+      SQS fixture holds its pair: on this provider every application's shims are [Function] methods
+      the Worker SDK's build task scans out of the assembly, so two applications in one assembly
+      would be two functions of the same name in one functions.metadata. One application per
+      worker is the rule the host imposes, and this project is what it looks like.
+
+      The handlers are linked from the queue fixture rather than copied, so the pair differs in the
+      one line the application says and nothing else.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <UseAppHost>false</UseAppHost>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.AzureQueue.Settlement.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="..\Hardened.IntegrationTests.AzureQueue.SUT\OrderHandlers.cs" Link="OrderHandlers.cs"/>
+        <Compile Include="..\Hardened.IntegrationTests.AzureQueue.SUT\ObservedOrderStore.cs" Link="ObservedOrderStore.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.ServiceBus\Hardened.Azure.Functions.ServiceBus.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.SourceGenerator\Hardened.Azure.Functions.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
+    <Import Project="..\..\..\Hardened.Azure.Functions.ServiceBus\Package\Hardened.Azure.Functions.ServiceBus.targets"/>
+    <Import Project="..\..\..\Hardened.Azure.Functions.Runtime\Package\Hardened.Azure.Functions.Runtime.targets"/>
+
+</Project>

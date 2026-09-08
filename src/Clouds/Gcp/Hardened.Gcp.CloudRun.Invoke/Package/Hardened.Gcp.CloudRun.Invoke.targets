@@ -1,0 +1,10 @@
+<Project>
+    <!--
+        Which module serves this package's trigger. The property is declared by
+        Hardened.Requests.Abstract, which owns [HardenedFunction]; see Hardened.Functions.Runtime's
+        targets for the rule. Conditional, so a csproj can replace this binding and keep the rest.
+    -->
+    <PropertyGroup>
+        <HardenedInvokeModule Condition="'$(HardenedInvokeModule)' == ''">Hardened.Gcp.CloudRun.Invoke.InvokeModule</HardenedInvokeModule>
+    </PropertyGroup>
+</Project>

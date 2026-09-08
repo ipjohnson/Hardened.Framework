@@ -1,0 +1,91 @@
+namespace Hardened.Azure.Functions.Testing
+{
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public class AzureFunctionsTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute
+    {
+        public AzureFunctionsTestingAttribute() { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
+    public sealed class AzureFunctionsWebTestingAttribute : Hardened.Web.Testing.TestHostAttribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public AzureFunctionsWebTestingAttribute() { }
+        public override Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public sealed class FunctionsTriggerDelivery : Hardened.Functions.Testing.ITriggerDelivery
+    {
+        public FunctionsTriggerDelivery(Hardened.Azure.Functions.Runtime.Hosting.FunctionsInvocationHandler handler, System.IServiceProvider provider) { }
+        public System.Threading.Tasks.Task<object?> Call(object message, string scheme, string path, System.Type? responseType) { }
+        public System.Threading.Tasks.Task Deliver(System.Collections.Generic.IReadOnlyList<object> messages, string scheme, string path) { }
+    }
+    public sealed class FunctionsWebHost : Hardened.Web.Testing.ITestHost, System.IAsyncDisposable
+    {
+        public const string RoutePrefix = "api";
+        public FunctionsWebHost() { }
+        public System.Uri BaseAddress { get; }
+        public bool IsTerminal { get; }
+        public System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential) { }
+        public System.Threading.Tasks.ValueTask DisposeAsync() { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task StartAsync(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken) { }
+    }
+    public static class MetadataAgreement
+    {
+        public static System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<string>> Disagreements(Microsoft.Azure.Functions.Worker.Core.FunctionMetadata.IFunctionMetadataProvider provider, string? directory = null) { }
+    }
+    public sealed class RecordingMessageActions : Microsoft.Azure.Functions.Worker.ServiceBusMessageActions
+    {
+        public RecordingMessageActions() { }
+        public System.Collections.Generic.IReadOnlyList<string> Abandoned { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Completed { get; }
+        public System.Collections.Generic.IReadOnlyList<string> DeadLettered { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Deferred { get; }
+        public override System.Threading.Tasks.Task AbandonMessageAsync(Azure.Messaging.ServiceBus.ServiceBusReceivedMessage message, System.Collections.Generic.IDictionary<string, object>? propertiesToModify = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public override System.Threading.Tasks.Task CompleteMessageAsync(Azure.Messaging.ServiceBus.ServiceBusReceivedMessage message, System.Threading.CancellationToken cancellationToken = default) { }
+        public override System.Threading.Tasks.Task DeadLetterMessageAsync(Azure.Messaging.ServiceBus.ServiceBusReceivedMessage message, System.Collections.Generic.Dictionary<string, object>? propertiesToModify = null, string? deadLetterReason = null, string? deadLetterErrorDescription = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public override System.Threading.Tasks.Task DeferMessageAsync(Azure.Messaging.ServiceBus.ServiceBusReceivedMessage message, System.Collections.Generic.IDictionary<string, object>? propertiesToModify = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+    public sealed class TestFunctionContext : Microsoft.Azure.Functions.Worker.FunctionContext
+    {
+        public TestFunctionContext(string functionName, System.Collections.Generic.IReadOnlyDictionary<string, object?> bindingData, System.IServiceProvider services, System.Threading.CancellationToken cancellationToken = default) { }
+        public override Microsoft.Azure.Functions.Worker.BindingContext BindingContext { get; }
+        public override System.Threading.CancellationToken CancellationToken { get; }
+        public override Microsoft.Azure.Functions.Worker.IInvocationFeatures Features { get; }
+        public override Microsoft.Azure.Functions.Worker.FunctionDefinition FunctionDefinition { get; }
+        public override string FunctionId { get; }
+        public override System.IServiceProvider InstanceServices { get; set; }
+        public override string InvocationId { get; }
+        public override System.Collections.Generic.IDictionary<object, object> Items { get; set; }
+        public override Microsoft.Azure.Functions.Worker.RetryContext RetryContext { get; }
+        public override Microsoft.Azure.Functions.Worker.TraceContext TraceContext { get; }
+    }
+    public sealed class TestHttpCookies : Microsoft.Azure.Functions.Worker.Http.HttpCookies
+    {
+        public TestHttpCookies() { }
+        public System.Collections.Generic.IReadOnlyList<Microsoft.Azure.Functions.Worker.Http.IHttpCookie> Cookies { get; }
+        public override void Append(Microsoft.Azure.Functions.Worker.Http.IHttpCookie cookie) { }
+        public override void Append(string name, string value) { }
+        public override Microsoft.Azure.Functions.Worker.Http.IHttpCookie CreateNew() { }
+        public static string Render(Microsoft.Azure.Functions.Worker.Http.IHttpCookie cookie) { }
+    }
+    public sealed class TestHttpRequestData : Microsoft.Azure.Functions.Worker.Http.HttpRequestData
+    {
+        public TestHttpRequestData(Microsoft.Azure.Functions.Worker.FunctionContext context, string method, System.Uri url, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, Microsoft.Extensions.Primitives.StringValues>>? headers = null, System.IO.Stream? body = null) { }
+        public override System.IO.Stream Body { get; }
+        public override System.Collections.Generic.IReadOnlyCollection<Microsoft.Azure.Functions.Worker.Http.IHttpCookie> Cookies { get; }
+        public override Microsoft.Azure.Functions.Worker.Http.HttpHeadersCollection Headers { get; }
+        public override System.Collections.Generic.IEnumerable<System.Security.Claims.ClaimsIdentity> Identities { get; }
+        public override string Method { get; }
+        public override System.Uri Url { get; }
+        public override Microsoft.Azure.Functions.Worker.Http.HttpResponseData CreateResponse() { }
+    }
+    public sealed class TestHttpResponseData : Microsoft.Azure.Functions.Worker.Http.HttpResponseData
+    {
+        public TestHttpResponseData(Microsoft.Azure.Functions.Worker.FunctionContext context) { }
+        public override System.IO.Stream Body { get; set; }
+        public override Microsoft.Azure.Functions.Worker.Http.HttpCookies Cookies { get; }
+        public override Microsoft.Azure.Functions.Worker.Http.HttpHeadersCollection Headers { get; set; }
+        public override System.Net.HttpStatusCode StatusCode { get; set; }
+    }
+}

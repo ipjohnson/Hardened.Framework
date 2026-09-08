@@ -54,18 +54,19 @@
     </ItemGroup>
 
     <!--
-      The two Abstractions packages are on 8.0.2, not 8.0.1, and Logging is on 8.0.1, not 8.0.0.
+      The two Abstractions packages are above 8.0.1, and Logging is on 8.0.1, not 8.0.0.
       Microsoft.Extensions.Logging 8.0.1 requires Logging.Abstractions >= 8.0.2 and pulls
       DependencyInjection 8.0.1, which requires DependencyInjection.Abstractions >= 8.0.2, so
       pinning either Abstractions at 8.0.1 is a package downgrade (NU1605). The framework half was
-      pinned that way and the AWS half was not; the list takes the coherent set.
+      pinned that way and the AWS half was not; the list takes the coherent set. Logging.Abstractions
+      is one patch higher still, at 8.0.3, for the Azure line; the Azure group below says why.
     -->
     <ItemGroup Label="Microsoft.Extensions and BCL">
         <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
-        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
         <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
         <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
@@ -116,6 +117,48 @@
     </ItemGroup>
 
     <!--
+      The isolated worker is on 2.2.0 rather than the 2.5x line, because 2.50.0 moved
+      Microsoft.Azure.Functions.Worker.Core onto Microsoft.Extensions.Hosting 10.0.0 and this
+      repository is on the 8.0 line: every project referencing both the worker and a pinned
+      Microsoft.Extensions package would restore with a downgrade error (NU1605). 2.2.0 is the last
+      worker on Hosting 8.0.1. The Sdk is build-only and the application references it, not the
+      runtime package; see Hardened.Azure.Functions.Runtime.csproj for why.
+
+      The Service Bus extension brings Microsoft.Extensions.Azure 1.13.0, which requires
+      Microsoft.Extensions.Logging.Abstractions 8.0.3. That is why the Logging.Abstractions pin in
+      the group above is 8.0.3 rather than the 8.0.2 the rest of the set needs: NuGet would resolve
+      the transitive requirement upward on its own, but the first project to reference both an
+      Azure package and Logging.Abstractions directly at 8.0.2 would fail restore with a downgrade
+      (NU1605), and that project would be an ordinary consumer's.
+
+      Azure.Messaging.ServiceBus is what a test publishes with; the extension depends on 7.20.1 and
+      resolves upward to this. The Testcontainers modules move with the base package in the Testing
+      group, which has to be the same version or the module fails to load its base types.
+    -->
+    <ItemGroup Label="Azure">
+        <!--
+          The version Microsoft.Azure.Functions.Worker.Extensions.EventHubs 6.5.0 resolves, pinned
+          for the one direct reference (the stream fixture's host tests publish with it): a higher
+          pin would not move the adapter, which takes the SDK transitively, and 5.12 marks the
+          Offset the adapter reads obsolete.
+        -->
+        <PackageVersion Include="Azure.Messaging.EventHubs" Version="5.11.5" />
+        <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.20.2" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.2.0" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.CosmosDB" Version="4.16.1" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventGrid" Version="3.6.0" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.EventHubs" Version="6.5.0" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.ServiceBus" Version="5.24.0" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs" Version="6.8.2" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
+        <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
+        <PackageVersion Include="Testcontainers.Azurite" Version="4.14.0" />
+        <PackageVersion Include="Testcontainers.EventHubs" Version="4.14.0" />
+        <PackageVersion Include="Testcontainers.ServiceBus" Version="4.14.0" />
+    </ItemGroup>
+
+    <!--
       xunit.v3, never xunit 2.x. Hardened.Shared.Testing depends on DependencyModules.xUnit, which
       brings v3, and referencing it alongside 2.x makes every Fact and Assert ambiguous.
 
@@ -140,11 +183,25 @@
         <PackageVersion Include="PublicApiGenerator" Version="11.4.6" />
         <PackageVersion Include="SimpleFixture.NSubstitute" Version="4.0.0-RC191" />
         <PackageVersion Include="SimpleFixture.xUnit" Version="4.0.0-RC191" />
+        <PackageVersion Include="Testcontainers" Version="4.14.0" />
         <PackageVersion Include="Testcontainers.DynamoDb" Version="4.14.0" />
         <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
         <PackageVersion Include="xunit.v3" Version="3.2.2" />
         <PackageVersion Include="xunit.v3.assert" Version="3.2.2" />
         <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
+    </ItemGroup>
+
+    <!--
+      The Google line's own pins. The runtime packages reference no Google SDK - a Pub/Sub push and
+      an Eventarc event arrive as HTTP and are read as such - with one exception: a Firestore
+      event's data is protobuf, and Google.Events.Protobuf decodes it, kept to the Firestore
+      package alone. The rest belongs to the container tier: the Pub/Sub emulator module on the
+      Testcontainers line pinned in the Testing group, and the client the tests publish through.
+    -->
+    <ItemGroup Label="Google">
+        <PackageVersion Include="Google.Cloud.PubSub.V1" Version="3.37.0" />
+        <PackageVersion Include="Google.Events.Protobuf" Version="1.8.0" />
+        <PackageVersion Include="Testcontainers.PubSub" Version="4.14.0" />
     </ItemGroup>
 
 </Project>

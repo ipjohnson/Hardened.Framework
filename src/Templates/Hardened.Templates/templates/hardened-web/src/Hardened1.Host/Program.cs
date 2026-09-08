@@ -11,6 +11,16 @@ using Hardened.Aws.Lambda.Runtime.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 #endif
+#if (cloudRun)
+using Hardened.Gcp.CloudRun.Runtime.Hosting;
+using Hardened.Web.Kestrel.Runtime;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+#endif
+#if (azureFunctions)
+using Hardened.Azure.Functions.Runtime.Hosting;
+using Microsoft.Extensions.Hosting;
+#endif
 #if (aspnet)
 using Hardened.Web.AspNetCore.Runtime;
 using Microsoft.AspNetCore.Builder;
@@ -20,7 +30,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 #endif
 
-#if (!lambda)
+#if (!lambda && !azureFunctions)
 // Listens on 5080. Override with PORT.
 var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var configured) ? configured : 5080;
 #endif
@@ -113,4 +123,49 @@ new Application().PopulateServiceCollection(services);
 // No server and no port. API Gateway is the server, and what this starts is the loop that reads
 // the requests it forwards.
 await HardenedLambdaBootstrap.Run(services.BuildServiceProvider());
+#endif
+#if (cloudRun)
+var services = new ServiceCollection();
+
+services.AddLogging(logging => logging.AddSimpleConsole(options => options.SingleLine = true));
+
+services.AddHardenedEnvironment(environment);
+
+new Application().PopulateServiceCollection(services);
+
+// Every interface on the port above. Cloud Run sets PORT and sends to it; started by hand this is
+// 5080 like every other host, so the launch profile and the README stay true.
+await using var app = HardenedKestrelApplication.Create(
+    services,
+    kestrel => kestrel.ListenAnyIP(port));
+
+await app.StartAsync();
+
+var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Hardened1.Host");
+
+logger.LogInformation("Listening on http://localhost:{Port}", port);
+#if (OpenApiUi)
+
+if (environment.Matches("development")) {
+    logger.LogInformation("Browse http://localhost:{Port}/docs to access your API.", port);
+}
+#endif
+
+// SIGTERM is how Cloud Run retires an instance, ten seconds before SIGKILL. This waits for it and
+// gives what is in flight those ten seconds; the plain RunAsync returns on ProcessExit and the
+// process exits before the server has drained.
+await CloudRunHost.RunAsync(app);
+#endif
+#if (azureFunctions)
+// No server and no port. The Functions host is the server: it starts this process as its worker,
+// receives every request on the one HTTP function the generator wrote, and hands it over the
+// worker channel as the worker's own request data. Started by `func start` and by Azure alike.
+//
+// ConfigureFunctionsWorkerDefaults and not ConfigureFunctionsWebApplication: nothing here starts
+// an ASP.NET Core server, and the routes are Hardened's table behind the one function.
+var host = new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseHardened<Application>(environment))
+    .Build();
+
+host.Run();
 #endif

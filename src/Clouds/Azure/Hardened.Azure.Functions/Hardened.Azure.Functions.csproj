@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Every Azure Functions adapter in one reference: HTTP, Service Bus, Timer, Event Hubs, Cosmos DB, Blob Storage and Event Grid. Reference the individual packages instead to keep out of the deployment what the function is not triggered by.</Description>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Azure.Functions</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;azure;functions;serverless</PackageTags>
+
+        <!--
+          No code, and no assembly either, for the reason Hardened.Aws.Lambda gives: a meta package
+          that shipped an empty lib/ would put a few kilobytes of nothing into every deployment.
+          NU5128 is the warning for declaring a dependency group with no lib beside it, which is
+          what a meta package is.
+        -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      Convenience, not the recommended reference. Referencing this gets a function every adapter and
+      therefore every worker extension - and, through the Sdk's build task, every WebJobs extension
+      in the host's extension bundle - whatever it is triggered by. It is here because a function
+      that genuinely serves several families should not have to list five packages to say so.
+
+      HRDF003 is what keeps that honest: the generator reports, at Info, every trigger a binding was
+      set for that the project does not use, and names the packages that would replace this one.
+
+      The adapters' targets reach a consumer through here only because they are packed to
+      buildTransitive/. In build/ they would apply to a direct reference and to nothing else, so a
+      project referencing this package would get no binding at all - and the failure is a function
+      that deploys with no functions in it.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Azure.Functions.Runtime\Hardened.Azure.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions.Blobs\Hardened.Azure.Functions.Blobs.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions.CosmosDb\Hardened.Azure.Functions.CosmosDb.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions.EventGrid\Hardened.Azure.Functions.EventGrid.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions.EventHubs\Hardened.Azure.Functions.EventHubs.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions.Http\Hardened.Azure.Functions.Http.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions.ServiceBus\Hardened.Azure.Functions.ServiceBus.csproj"/>
+        <ProjectReference Include="..\Hardened.Azure.Functions.Timer\Hardened.Azure.Functions.Timer.csproj"/>
+    </ItemGroup>
+
+</Project>

@@ -47,7 +47,7 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
 <!--#endif -->
     <PackageVersion Include="Hardened.Web.Testing" Version="$(HardenedVersion)" />
-<!--#if (kestrel) -->
+<!--#if (kestrel || cloudRun) -->
     <PackageVersion Include="Hardened.Web.Kestrel.Testing" Version="$(HardenedVersion)" />
 <!--#endif -->
 <!--#if (aspnet) -->
@@ -90,6 +90,32 @@
     <PackageVersion Include="Hardened.Aws.Lambda.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Aws.Lambda.ApiGateway" Version="$(HardenedVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Google Cloud Run">
+    <!-- The Cloud Run host composes the Kestrel one: Kestrel on PORT, a SIGTERM drain, and the
+         front door that serves triggers beside the routes. -->
+    <PackageVersion Include="Hardened.Gcp.CloudRun.Runtime" Version="$(HardenedVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Label="Azure Functions">
+    <!--
+      The Worker SDK is the host project's reference rather than the runtime package's: it is
+      what marks the project as a function app, scans the function the generator wrote into
+      functions.metadata, builds the host's extensions and writes worker.config.json. It follows
+      the worker's release line rather than Hardened's, which is why it is not $(HardenedVersion).
+    -->
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
+    <PackageVersion Include="Hardened.Azure.Functions.Runtime" Version="$(HardenedVersion)" />
+    <!-- The one adapter web routes need: one anonymous HTTP trigger catching every method under
+         every path, with Hardened's routing table doing the routing. -->
+    <PackageVersion Include="Hardened.Azure.Functions.Http" Version="$(HardenedVersion)" />
+    <!-- The generator that writes that trigger: the function, the metadata the host indexes and
+         the executor it invokes through. -->
+    <PackageVersion Include="Hardened.Azure.Functions.SourceGenerator" Version="$(HardenedVersion)" />
+    <!-- [AzureFunctionsWebTesting], the host that sends a test's request through the worker's
+         own request and response types. -->
+    <PackageVersion Include="Hardened.Azure.Functions.Testing" Version="$(HardenedVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Hardened source generators">

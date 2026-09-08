@@ -10,11 +10,14 @@ using DependencyModules.FakeItEasy;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Hardened1;
-#if (kestrel)
+#if (kestrel || cloudRun)
 using Hardened.Web.Kestrel.Testing;
 #endif
 #if (aspnet)
 using Hardened.Web.AspNetCore.Testing;
+#endif
+#if (azureFunctions)
+using Hardened.Azure.Functions.Testing;
 #endif
 #if (kiotaClient)
 using Hardened.Kiota.Testing;
@@ -40,16 +43,24 @@ using Hardened.Refit.Testing;
 #if (fakeiteasy)
 [assembly: FakeItEasySupport]
 #endif
-#if (kestrel || aspnet)
+#if (kestrel || aspnet || cloudRun)
 
 // The host. After this, the attribute the application names its host with - [KestrelRuntime] or
 // [AspNetCoreRuntime] - runs a test carrying it on a real socket; Hardened1SocketTests does.
 #endif
-#if (kestrel)
+#if (kestrel || cloudRun)
 [assembly: KestrelTesting]
 #endif
 #if (aspnet)
 [assembly: AspNetCoreTesting]
+#endif
+#if (azureFunctions)
+
+// The host. Every test's request is built as the worker's own request data and goes through the
+// real invocation handler, the HTTP adapter and the routing table, and the answer comes back as
+// the worker's response data - so the adapter is exercised without a Functions host process.
+// Delete this line and the same tests run on the pipeline alone.
+[assembly: AzureFunctionsWebTesting]
 #endif
 #if (hasClient)
 

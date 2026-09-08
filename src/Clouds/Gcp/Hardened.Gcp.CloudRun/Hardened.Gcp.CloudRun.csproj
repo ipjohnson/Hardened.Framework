@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Every Google Cloud Run adapter in one reference: Pub/Sub, Cloud Scheduler, direct invocation, Cloud Storage, Firestore and Eventarc. Reference the individual packages instead to keep out of the image what the service is not triggered by.</Description>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Gcp.CloudRun</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless</PackageTags>
+
+        <!--
+          No code, and no assembly either. A meta package that shipped an empty lib/ would put a
+          few kilobytes of nothing into every image, which is a poor look for the package whose
+          existence is a size argument. NU5128 is the warning for declaring a dependency group with
+          no lib beside it, which is what a meta package is.
+        -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      Convenience, not the recommended reference. Referencing this gets a service every envelope
+      and therefore Google.Protobuf, whatever it is triggered by. HRDF003 is what keeps that
+      honest: the generator reports, at Info, every trigger a binding was set for that the project
+      does not use, and names the packages that would replace this one.
+
+      The adapters' build assets reach a consumer through here only because they are packed to
+      buildTransitive/.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Eventarc\Hardened.Gcp.CloudRun.Eventarc.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Firestore\Hardened.Gcp.CloudRun.Firestore.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Invoke\Hardened.Gcp.CloudRun.Invoke.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.PubSub\Hardened.Gcp.CloudRun.PubSub.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Scheduler\Hardened.Gcp.CloudRun.Scheduler.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Storage\Hardened.Gcp.CloudRun.Storage.csproj"/>
+    </ItemGroup>
+
+</Project>

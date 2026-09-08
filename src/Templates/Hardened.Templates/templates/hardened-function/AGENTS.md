@@ -5,9 +5,9 @@ build it and how the handler works; this file does not repeat any of that.
 
 ## Most of this function is generated at build time
 
-Hardened is a compile-time framework. The Lambda entry point, the payload binding, the filter chain
-and the dependency injection registrations are written by source generators during the build, not
-resolved by reflection at run time.
+Hardened is a compile-time framework. The dispatch to the handler, the payload binding, the filter
+chain and the dependency injection registrations are written by source generators during the
+build, not resolved by reflection at run time.
 
 **They are ordinary C#, and you can read them.** `EmitCompilerGeneratedFiles` is on:
 
@@ -18,29 +18,78 @@ src/Hardened1/obj/Debug/net8.0/generated/     one directory per generator
 Build first. Reading that directory answers most "how does this work" questions faster than reading
 the framework.
 
-## There is no Program.cs, and there should not be one
+## Program.cs is written, not generated
 
-The generator writes the entry point AWS invokes. Adding a `Main` does not override it — it gives
-the assembly a second entry point and the build fails. Local invocation goes through the test
-project, which is why the tests are the way this function is run.
+`src/Hardened1/Program.cs` is the entry point, and it is short on purpose: it builds the container
+#if (aws)
+and starts the invocation loop. Nothing generates a `Main`, so a second entry point is a compile
+error, and deleting this one leaves a deployed function that fails on its first invocation with
+"Entry point not found". The call to `LambdaEmulator.StartIfLocal` in it is what runs the function
+locally; delete that line and the function still deploys.
+#endif
+#if (gcp)
+and starts Kestrel on `PORT`. Nothing generates a `Main`, so a second entry point is a compile
+error, and deleting this one leaves a container with nothing to start. `CloudRunHost.Listen` and
+`CloudRunHost.RunAsync` are the container contract, the port and the `SIGTERM` drain; replace them
+with the plain Kestrel calls and a request in flight when Cloud Run retires the instance is cut
+off.
+#endif
+#if (azure)
+and starts the isolated worker. Nothing generates a `Main`, so a second entry point is a compile
+error, and deleting this one leaves a worker the host cannot start. `UseHardened<Application>()`
+inside `ConfigureFunctionsWorkerDefaults` is what registers the generated metadata provider and
+executor with the worker; `ConfigureFunctionsWebApplication` is not a substitute, because it
+starts an ASP.NET Core server this project does not carry.
+
+**The Functions host is a separate process, and `Microsoft.Azure.Functions.Worker.Sdk` is what
+talks to it.** The Sdk's build task scans the `[Function]` methods the Azure generator wrote into
+`functions.metadata`, builds the host's extensions and writes `worker.config.json`; remove the
+package and the build fails with `HRDAZ010` naming it. The host is not started by this project:
+`func start` starts it locally, and Azure starts it in a deployment.
+
+**The generated functions are in
+`src/Hardened1/obj/Debug/net8.0/generated/Hardened.Azure.Functions.SourceGenerator/`.** One
+`[Function]` per source, named `Queue_orders` for `[Queue("orders")]`, with the extension's own
+trigger attribute on it. The host indexes them from the generated `IFunctionMetadataProvider`
+rather than by reflection, so what the host lists is what that file declares.
+#if (topic || change)
+
+**The module line on `Application.cs` is required.** It carries the one deployment fact the
+neutral trigger has no slot for, and the generator writes it into the function's binding; the
+build fails with `HRDAZ003` naming the property when it is missing.
+#endif
+#endif
 
 ## Things that will not be obvious
 
-**`[assembly: LambdaFunctionTesting]` in the test project is load-bearing.** It registers the invoke
-filter provider and, at startup, puts the invoke filter into the chain. Without it the pipeline
-holds no filters at all, so an invocation builds a chain of length zero, returns an empty stream and
-never reaches the handler — with no error anywhere. A test that suddenly asserts against nothing is
-the symptom.
+**`[assembly: FunctionTesting]` in the test project is load-bearing.** It is what makes the
+generated façades resolvable, so a test taking `Application.Queues` or `Application.Invocations`
+as a parameter fails to resolve without it rather than running nothing.
+#if (aws)
+`[assembly: LambdaTesting]` beside it raises the fidelity: the payload is packed into the envelope
+AWS sends and goes in through the invocation loop. No test method reads differently either way.
+#endif
+#if (gcp)
+`[assembly: CloudRunTesting]` beside it raises the fidelity: the payload is packed into the request
+Google sends and posted to the test's web host. **It needs `[assembly: WebTesting]` beside it**,
+because that is what registers the host the request is posted to; the delivery says so if it is
+missing rather than running nothing. No test method reads differently either way.
+#endif
+#if (azure)
+`[assembly: AzureFunctionsTesting]` beside it raises the fidelity: the payload is packed into the
+trigger data the isolated worker would bind and handed to the real invocation handler. No test
+method reads differently either way. Nothing in a test starts the Functions host.
+#endif
 
 **The source generator packages are required.** The runtime packages carry no analyzers, so removing
 `Hardened.Library.SourceGenerator` or `Hardened.Function.SourceGenerator` does not fail
 with a missing package — it fails with `'Application' does not contain a definition for
-'PopulateServiceCollection'`, or it builds clean and the function has no entry point. All versions
+'PopulateServiceCollection'`, or it builds clean and the function has no dispatch. All versions
 are pinned in one place, `Directory.Packages.props`.
 
 **One package line, one version.** Every `Hardened.*` package, host adapters included, releases
 together on `HardenedVersion` in `Directory.Packages.props`. There is no second line to keep in
-step: the AWS packages are part of the framework repository rather than a separate release, which
+step: the cloud packages are part of the framework repository rather than a separate release, which
 is what the old `Hardened.Amz.*` pin was and what let a template name a generator that no longer
 matched the interface it emitted against.
 
@@ -81,7 +130,7 @@ FakeItEasy. Remove either and a `[Mock]` parameter fails with "Mock library not 
 #endif
 
 **`[HardenedTest]` boots the real application.** Test method parameters are resolved from the
-application's own container, and the test harness drives the real invocation path.
+application's own container, and the test harness drives the real delivery path.
 #if (moq)
 Take a `Mock<T>` parameter to substitute a service for the whole application.
 #else

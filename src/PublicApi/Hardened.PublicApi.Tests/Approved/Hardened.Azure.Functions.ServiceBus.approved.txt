@@ -1,0 +1,56 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Azure.Functions.Runtime.Tests")]
+namespace Hardened.Azure.Functions.ServiceBus
+{
+    public sealed class ServiceBusAdapter : Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter
+    {
+        public ServiceBusAdapter(bool reportsItemFailures = false) { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger) { }
+        public System.Threading.Tasks.ValueTask<object?> WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Azure.Functions.Worker.FunctionContext functionContext) { }
+    }
+    public sealed class ServiceBusDelivery
+    {
+        public ServiceBusDelivery(Azure.Messaging.ServiceBus.ServiceBusReceivedMessage[] messages, Microsoft.Azure.Functions.Worker.ServiceBusMessageActions? actions = null) { }
+        public Microsoft.Azure.Functions.Worker.ServiceBusMessageActions? Actions { get; }
+        public Azure.Messaging.ServiceBus.ServiceBusReceivedMessage[] Messages { get; }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Azure.Functions.Runtime.Modules.FunctionsRuntimeModule]
+    public class ServiceBusModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public ServiceBusModule() { }
+        public string? Connection { get; set; }
+        public bool? ReportsItemFailures { get; set; }
+        public string? Subscription { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class ServiceBusModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public ServiceBusModuleAttribute() { }
+        public string Connection { get; set; }
+        public bool ReportsItemFailures { get; set; }
+        public string Subscription { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public class ServiceBusRequest : Hardened.Azure.Functions.Runtime.Execution.FunctionsPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
+    {
+        public const string DeliveryCountHeader = "x-azure-servicebus-delivery-count";
+        public const string MessageIdHeader = "x-azure-servicebus-message-id";
+        public ServiceBusRequest(string scheme, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Azure.Messaging.ServiceBus.ServiceBusReceivedMessage> messages, bool reportsItemFailures = false, Microsoft.Azure.Functions.Worker.ServiceBusMessageActions? actions = null) { }
+        public Microsoft.Azure.Functions.Worker.ServiceBusMessageActions? Actions { get; }
+        public int Count { get; }
+        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        public Hardened.Requests.Abstract.Execution.BatchFailureMode FailureMode { get; }
+        public System.Collections.Generic.IReadOnlyList<Azure.Messaging.ServiceBus.ServiceBusReceivedMessage> Messages { get; }
+        public bool ReportsItemFailures { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForMessage(Azure.Messaging.ServiceBus.ServiceBusReceivedMessage message) { }
+        public void RecordFailure(int index, System.Exception failure) { }
+    }
+}
