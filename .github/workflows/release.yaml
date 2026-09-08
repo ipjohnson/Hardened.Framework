@@ -276,6 +276,13 @@ jobs:
             src/Clouds/Azure/Hardened.Azure.Functions.ServiceBus/Hardened.Azure.Functions.ServiceBus.csproj \
             src/Clouds/Azure/Hardened.Azure.Functions.SourceGenerator/Hardened.Azure.Functions.SourceGenerator.csproj \
             src/Clouds/Azure/Hardened.Azure.Functions.Testing/Hardened.Azure.Functions.Testing.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions/Hardened.Azure.Functions.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Blobs/Hardened.Azure.Functions.Blobs.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.CosmosDb/Hardened.Azure.Functions.CosmosDb.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.EventGrid/Hardened.Azure.Functions.EventGrid.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.EventHubs/Hardened.Azure.Functions.EventHubs.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Http/Hardened.Azure.Functions.Http.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Timer/Hardened.Azure.Functions.Timer.csproj \
             src/Clouds/Gcp/Hardened.Gcp.CloudRun.PubSub/Hardened.Gcp.CloudRun.PubSub.csproj \
             src/Clouds/Gcp/Hardened.Gcp.CloudRun.Runtime/Hardened.Gcp.CloudRun.Runtime.csproj \
             src/Clouds/Gcp/Hardened.Gcp.CloudRun.Testing/Hardened.Gcp.CloudRun.Testing.csproj \
@@ -364,7 +371,9 @@ jobs:
           # generator and testing package, and the Cloud Run runtime, Pub/Sub adapter and testing package.
           # 58 with the rest of the GCP line: the Scheduler, Invoke, Storage, Firestore and Eventarc
           # adapters and the Hardened.Gcp.CloudRun meta package.
-          EXPECTED=58
+          # 65 with the rest of the Azure line: the HTTP, Timer, Event Hubs, Cosmos DB, Blobs and Event Grid
+          # adapters and the Hardened.Azure.Functions meta package.
+          EXPECTED=65
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

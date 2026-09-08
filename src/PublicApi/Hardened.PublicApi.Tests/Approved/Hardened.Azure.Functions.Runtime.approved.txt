@@ -7,7 +7,7 @@ namespace Hardened.Azure.Functions.Runtime.Adapters
         Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext context);
         Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output);
         bool Handles(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger);
-        System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Azure.Functions.Worker.FunctionContext functionContext);
+        System.Threading.Tasks.ValueTask<object?> WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Azure.Functions.Worker.FunctionContext functionContext);
     }
 }
 namespace Hardened.Azure.Functions.Runtime.Execution
@@ -87,8 +87,8 @@ namespace Hardened.Azure.Functions.Runtime.Hosting
     {
         public FunctionsInvocationHandler(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Execution.IRequestExecutor executor, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, System.Collections.Generic.IEnumerable<Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter> adapters) { }
         public System.Collections.Generic.IReadOnlyList<Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter> Adapters { get; }
-        public System.Threading.Tasks.Task Invoke(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext functionContext) { }
-        public static System.Threading.Tasks.Task Invoke(Microsoft.Azure.Functions.Worker.FunctionContext context, string scheme, string path, object data, Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch dispatch = 0) { }
+        public System.Threading.Tasks.Task<object?> Invoke(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext functionContext) { }
+        public static System.Threading.Tasks.Task<object?> Invoke(Microsoft.Azure.Functions.Worker.FunctionContext context, string scheme, string path, object data, Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch dispatch = 0) { }
     }
     public static class HardenedFunctionsWorkerBuilderExtensions
     {

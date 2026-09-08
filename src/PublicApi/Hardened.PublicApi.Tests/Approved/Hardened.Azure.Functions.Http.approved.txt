@@ -1,0 +1,70 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Azure.Functions.Runtime.Tests")]
+namespace Hardened.Azure.Functions.Http
+{
+    public sealed class HttpAdapter : Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter
+    {
+        public HttpAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger) { }
+        public System.Threading.Tasks.ValueTask<object?> WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Azure.Functions.Worker.FunctionContext functionContext) { }
+    }
+    public class HttpFunctionRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public HttpFunctionRequest(Microsoft.Azure.Functions.Worker.Http.HttpRequestData request, string? routedPath) { }
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public Microsoft.Azure.Functions.Worker.Http.HttpRequestData Data { get; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+    public class HttpFunctionResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    {
+        public HttpFunctionResponse(System.IO.Stream body) { }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; set; }
+        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        public System.Exception? ExceptionValue { get; set; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public bool IsBinary { get; set; }
+        public Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
+        public bool ResponseStarted { get; }
+        public object? ResponseValue { get; set; }
+        public bool ShouldSerialize { get; set; }
+        public int? Status { get; set; }
+        public object Clone() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+    public sealed class HttpFunctionTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    {
+        public HttpFunctionTransportInfo(Microsoft.Azure.Functions.Worker.Http.HttpRequestData request) { }
+        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        public string? Get(string key) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Azure.Functions.Runtime.Modules.FunctionsRuntimeModule]
+    public class HttpModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public HttpModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class HttpModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public HttpModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}

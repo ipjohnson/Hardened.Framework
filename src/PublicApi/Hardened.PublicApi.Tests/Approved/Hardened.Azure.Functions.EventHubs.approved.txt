@@ -1,0 +1,51 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Azure.Functions.Runtime.Tests")]
+namespace Hardened.Azure.Functions.EventHubs
+{
+    public sealed class EventHubsAdapter : Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter
+    {
+        public EventHubsAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger) { }
+        public System.Threading.Tasks.ValueTask<object?> WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Azure.Functions.Worker.FunctionContext functionContext) { }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Azure.Functions.Runtime.Modules.FunctionsRuntimeModule]
+    public class EventHubsModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public EventHubsModule() { }
+        public string? Connection { get; set; }
+        public string? ConsumerGroup { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class EventHubsModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public EventHubsModuleAttribute() { }
+        public string Connection { get; set; }
+        public string ConsumerGroup { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public class EventHubsRequest : Hardened.Azure.Functions.Runtime.Execution.FunctionsPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
+    {
+        public const string EnqueuedTimeHeader = "x-azure-eventhubs-enqueued-time";
+        public const string MessageIdHeader = "x-azure-eventhubs-message-id";
+        public const string OffsetHeader = "x-azure-eventhubs-offset";
+        public const string PartitionKeyHeader = "x-azure-eventhubs-partition-key";
+        public const string SequenceNumberHeader = "x-azure-eventhubs-sequence-number";
+        public const string StreamScheme = "STREAM";
+        public EventHubsRequest(string scheme, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Azure.Messaging.EventHubs.EventData> events) { }
+        public int Count { get; }
+        public System.Collections.Generic.IReadOnlyList<Azure.Messaging.EventHubs.EventData> Events { get; }
+        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        public Hardened.Requests.Abstract.Execution.BatchFailureMode FailureMode { get; }
+        public bool ReportsItemFailures { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForEvent(Azure.Messaging.EventHubs.EventData eventData) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
+        public void RecordFailure(int index, System.Exception failure) { }
+    }
+}

@@ -1,0 +1,61 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Azure.Functions.Runtime.Tests")]
+namespace Hardened.Azure.Functions.CosmosDb
+{
+    public sealed class CosmosDbAdapter : Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter
+    {
+        public const string ChangeScheme = "CHANGE";
+        public CosmosDbAdapter() { }
+        public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext context) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output) { }
+        public bool Handles(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger) { }
+        public System.Threading.Tasks.ValueTask<object?> WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Azure.Functions.Worker.FunctionContext functionContext) { }
+    }
+    public sealed class CosmosDbDocument : System.IEquatable<Hardened.Azure.Functions.CosmosDb.CosmosDbDocument>
+    {
+        public CosmosDbDocument(System.ReadOnlyMemory<byte> Json, string? Id, string? Lsn, string? Timestamp, string? ETag) { }
+        public string? ETag { get; init; }
+        public string? Id { get; init; }
+        public System.ReadOnlyMemory<byte> Json { get; init; }
+        public string? Lsn { get; init; }
+        public string? Timestamp { get; init; }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Azure.Functions.Runtime.Modules.FunctionsRuntimeModule]
+    public class CosmosDbModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public CosmosDbModule() { }
+        public string? Connection { get; set; }
+        public string? Database { get; set; }
+        public string? LeaseContainer { get; set; }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class CosmosDbModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public CosmosDbModuleAttribute() { }
+        public string Connection { get; set; }
+        public string Database { get; set; }
+        public string LeaseContainer { get; set; }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+    public class CosmosDbRequest : Hardened.Azure.Functions.Runtime.Execution.FunctionsPayloadRequest, Hardened.Requests.Abstract.Execution.IBatchRequest
+    {
+        public const string ETagHeader = "x-azure-cosmos-etag";
+        public const string IdHeader = "x-azure-cosmos-id";
+        public const string LsnHeader = "x-azure-cosmos-lsn";
+        public const string TimestampHeader = "x-azure-cosmos-ts";
+        public CosmosDbRequest(string scheme, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, System.Collections.Generic.IReadOnlyList<Hardened.Azure.Functions.CosmosDb.CosmosDbDocument> documents) { }
+        public int Count { get; }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Azure.Functions.CosmosDb.CosmosDbDocument> Documents { get; }
+        public System.Collections.Generic.IReadOnlyList<int> FailedItems { get; }
+        public Hardened.Requests.Abstract.Execution.BatchFailureMode FailureMode { get; }
+        public bool ReportsItemFailures { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForDocument(Hardened.Azure.Functions.CosmosDb.CosmosDbDocument document) { }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest ForItem(int index) { }
+        public void RecordFailure(int index, System.Exception failure) { }
+    }
+}
