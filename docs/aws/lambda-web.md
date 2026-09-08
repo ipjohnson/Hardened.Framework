@@ -113,14 +113,41 @@ the tool up. Deleting `Program.cs` leaves the project with no entry point at all
 handler fails on its first invocation with "Entry point not found".
 :::
 
-## Responses are buffered
+## Response mode
 
-The adapter writes a payload format 2.0 response when the handler returns. There is no streaming
-mode: the body has to be a `MemoryStream` the adapter can read back, and an application whose
-handlers return `IAsyncEnumerable<T>` gets that sequence buffered before the response is sent.
+A function answers in one of two ways, and the deployment picks which:
 
-An HTTP API buffers every response anyway, so this matches what a deployment behind one can do.
-`[ServerSentEvents]` handlers work under Kestrel and ASP.NET Core; see
+| `HARDENED_LAMBDA_RESPONSE_MODE` | What leaves the function | Front door |
+|---|---|---|
+| `buffered` (the default) | One payload format 2.0 response when the handler returns | An HTTP API, or a function URL in `BUFFERED` invoke mode |
+| `stream` | A stream that opens at the first body byte | A function URL in `RESPONSE_STREAM` invoke mode |
+
+The variable has to match the invoke mode of the front door in front of it. The wire protocol is
+fixed there rather than chosen by the function: `RESPONSE_STREAM` expects an HTTP prelude before the
+body, `BUFFERED` and an HTTP API expect the JSON envelope, and neither accepts the other. The event
+the function receives is the same document either way, which is why something has to say which.
+
+An unrecognised value fails the application at startup rather than falling back. A deployment that
+spelt it wrong would otherwise run buffered behind a front door expecting the prelude, and the first
+request would be a 500 with nothing in the logs to say why.
+
+```csharp
+// Amending it from the application, for a host that decides its own mode.
+services.ConfigureLambdaResponseMode(mode => mode.Mode = LambdaResponseMode.Stream);
+```
+
+In `stream` mode the status, headers and cookies are sent as the prelude that opens the stream, and
+they are read at the **first body byte** rather than when the handler returns. Anything set after
+the first write is recorded on the response and never reaches the client. That is what makes a
+refusal work: the pipeline serializes it before any handler wrote, so the stream opens with the
+refusal's own status.
+
+Only a web-shaped source can stream. A queue, a topic, a stream record or a scheduled rule has no
+caller holding a connection, so a function serving one stays buffered under a `stream` variable
+rather than failing. That keeps the setting safe to apply account-wide.
+
+`[ServerSentEvents]` handlers need `stream`. Under `buffered` their events are delivered together
+when the invocation ends, or never when the function times out first. See
 [Streaming responses](/guide/streaming).
 
 ## Testing

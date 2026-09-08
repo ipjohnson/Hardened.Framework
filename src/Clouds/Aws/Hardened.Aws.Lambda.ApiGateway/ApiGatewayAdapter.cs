@@ -1,7 +1,9 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
 using Amazon.Lambda.Core;
+using Amazon.Lambda.Core.ResponseStreaming;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
@@ -29,7 +31,7 @@ namespace Hardened.Aws.Lambda.ApiGateway;
 /// function does serve several sources and something has to choose.
 /// </para>
 /// </remarks>
-public sealed class ApiGatewayAdapter : IPayloadAdapter {
+public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
     /// <summary>
     /// The field that says this is payload format 2.0, and the whole of how it is told from 1.0.
     /// </summary>
@@ -81,6 +83,38 @@ public sealed class ApiGatewayAdapter : IPayloadAdapter {
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Answer500;
 
     public IExecutionResponse CreateResponse(Stream output) => new ApiGatewayResponse(output);
+
+    /// <summary>
+    /// The same status, headers and cookies <see cref="WriteResponse"/> would have written, sent as
+    /// the prelude that opens the stream instead of as an envelope around a finished body.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>Headers</c> rather than <c>MultiValueHeaders</c>: a function URL reads the single-valued
+    /// collection, and it is the deployment shape that streams. A multi-valued header joins on ","
+    /// here exactly as it does in the buffered envelope, so the two modes put the same bytes on the
+    /// wire.
+    /// </para>
+    /// <para>
+    /// Null and zero both become 200, for the reason the envelope gives: null is "handled, no
+    /// opinion", and zero is not a status a handler can have meant.
+    /// </para>
+    /// </remarks>
+    public HttpResponseStreamPrelude CreatePrelude(IExecutionResponse response) {
+        var prelude = new HttpResponseStreamPrelude {
+            StatusCode = (HttpStatusCode)(response.Status is null or 0 ? 200 : response.Status.Value)
+        };
+
+        foreach (var header in response.Headers) {
+            prelude.Headers[header.Key] = header.Value.ToString();
+        }
+
+        foreach (var cookie in SetCookies((ApiGatewayResponse)response)) {
+            prelude.Cookies.Add(cookie);
+        }
+
+        return prelude;
+    }
 
     /// <remarks>
     /// <para>
@@ -196,21 +230,34 @@ public sealed class ApiGatewayAdapter : IPayloadAdapter {
     private static void WriteCookies(Utf8JsonWriter writer, ApiGatewayResponse response) {
         writer.WriteStartArray("cookies");
 
+        foreach (var cookie in SetCookies(response)) {
+            writer.WriteStringValue(cookie);
+        }
+
+        writer.WriteEndArray();
+    }
+
+    /// <summary>
+    /// The response's cookies as Set-Cookie strings.
+    /// </summary>
+    /// <remarks>
+    /// Shared by the envelope and the prelude, so a cookie cannot be rendered one way buffered and
+    /// another way streamed. <c>Item1</c> is the value: appending the tuple itself resolves to
+    /// <c>Append(object)</c> and emits its <c>ToString()</c>, which is how every Set-Cookie once
+    /// read "name=(value, CookieSetOptions { Expires = , ... })".
+    /// </remarks>
+    private static IEnumerable<string> SetCookies(ApiGatewayResponse response) {
         var builder = new StringBuilder();
 
         foreach (var cookie in response.Cookies.Cookies) {
             builder.Append(cookie.Key);
             builder.Append('=');
-            // Item1 is the value. Appending the tuple itself resolves to Append(object) and emits
-            // its ToString(), which is how every Set-Cookie once read
-            // "name=(value, CookieSetOptions { Expires = , ... })".
             builder.Append(cookie.Value.Item1);
             cookie.Value.Item2.AppendSettings(builder);
 
-            writer.WriteStringValue(builder.ToString());
+            yield return builder.ToString();
+
             builder.Clear();
         }
-
-        writer.WriteEndArray();
     }
 }
