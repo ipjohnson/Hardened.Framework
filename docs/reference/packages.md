@@ -113,7 +113,8 @@ whichever runtime serves them; see [Triggers](/guide/triggers).
 | Package | Contents |
 |---|---|
 | `Hardened.Functions.Runtime` | `[Queue]`, `[Topic]`, `[Timer]`, `[Event]`, `[Change]`, `[Stream]`, `[Blob]`, and `BatchFailureMode` |
-| `Hardened.Functions.Testing` | `[assembly: FunctionTesting]`: the generated trigger façades a test sends through |
+| `Hardened.Functions.Testing` | `[assembly: FunctionTesting]`: the generated trigger façades a test sends through, and `[PipelineDelivery]`, which opts a class back to that delivery under a provider's testing attribute |
+| `Hardened.CloudEvents` | `CloudEvent`, `CloudEventReader` for the structured and binary forms, `CloudEventHeaders` and `CloudEventRoutes`. What the Eventarc adapters read through; names no cloud |
 
 ## AWS
 
@@ -176,6 +177,42 @@ The DynamoDB client and its test container are the exception: they were the only
 that was not a host, so they came across as `Hardened.Aws.DynamoDbClient` and
 `Hardened.Aws.DynamoDbClient.Testing` rather than being rebuilt.
 :::
+
+## Google Cloud Run
+
+On the framework's version line, and released with it. One host package, and one adapter per
+source. Every delivery reaches a Cloud Run service as an HTTP request, and none of the adapters
+references a Google SDK except Firestore, whose events are protobuf; see
+[Google Cloud Run](/gcp/).
+
+### The host
+
+| Package | Contents |
+|---|---|
+| `Hardened.Gcp.CloudRun.Runtime` | `[CloudRunRuntime]`, `CloudRunHost`, the trigger front door and `CloudRunTriggerRequest`. Serves the web verbs itself, on Kestrel |
+| `Hardened.Gcp.CloudRun` | The host and every adapter in one reference. Convenience rather than the recommended reference: `HRDF003` names the adapters the service does not use |
+
+### Adapters
+
+| Package | Serves | Module |
+|---|---|---|
+| `Hardened.Gcp.CloudRun.PubSub` | `[Queue]` from a push subscription, `[Topic]` from an Eventarc trigger on a topic | `[PubSubModule]` |
+| `Hardened.Gcp.CloudRun.Scheduler` | `[Timer]` | `[SchedulerModule]`, with `Prefix` |
+| `Hardened.Gcp.CloudRun.Invoke` | `[HardenedFunction]` | `[InvokeModule]`, with `Prefix` |
+| `Hardened.Gcp.CloudRun.Storage` | `[Blob]`, from Eventarc or a bucket notification | `[StorageModule]` |
+| `Hardened.Gcp.CloudRun.Firestore` | `[Change]`, with `[OldValue]` | `[FirestoreModule]` |
+| `Hardened.Gcp.CloudRun.Eventarc` | `[Event]` | `[EventarcModule]` |
+
+An application does not write an adapter module out. The trigger on a handler binds it, through a
+build property the adapter package declares; `[SchedulerModule]` and `[InvokeModule]` are written
+out only to move their URL prefix. `[CloudRunRuntime]` is on every application, because the host
+is a fact about the deployment. There is no `[Stream]` adapter, and `HRDF001` names the gap.
+
+### Testing
+
+| Package | Contents |
+|---|---|
+| `Hardened.Gcp.CloudRun.Testing` | `[assembly: CloudRunTesting]`, which delivers through the push, CloudEvent or Scheduler request Cloud Run actually receives rather than straight into the pipeline |
 
 ## Versioning
 

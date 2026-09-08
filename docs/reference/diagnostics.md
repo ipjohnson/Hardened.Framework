@@ -178,6 +178,8 @@ at one status are two types either way. A model that used to be rejected now bui
 | `HTPL001` | error | `--host aws-lambda` with `--response-model union`. The union model needs net11.0 and the Lambda managed runtime is net8.0 |
 | `HTPL002` | error | The Kiota tool could not be restored, so the [client](/guide/clients) cannot be generated |
 | `HTPL003` | error | The Kiota tool and `Microsoft.Kiota.Bundle` disagree. Both versions move together |
+| `HTPL004` | error | The Refitter tool could not be restored, so the [client](/guide/clients) cannot be generated |
+| `HTPL005` | error | `--host gcp` with `--trigger stream`. Google Cloud has no stream source for `[Stream]` |
 
 ## Triggers
 

@@ -1,7 +1,7 @@
 # Project templates
 
 `dotnet new hardened-web` writes a solution that builds, tests and serves. Two more templates
-write a Lambda function and a reusable library.
+write a serverless function and a reusable library.
 
 ```bash
 dotnet new install Hardened.Templates
@@ -19,8 +19,8 @@ The reference page is at `http://localhost:5080/docs`.
 
 | Short name | Writes |
 |---|---|
-| `hardened-web` | An HTTP API on Kestrel, ASP.NET Core or AWS Lambda |
-| `hardened-function` | An AWS Lambda function that is not an HTTP API |
+| `hardened-web` | An HTTP API on Kestrel, ASP.NET Core, AWS Lambda or Google Cloud Run |
+| `hardened-function` | A function that is not an HTTP API, on AWS Lambda or Google Cloud Run |
 | `hardened-library` | A module other applications compose |
 
 ## hardened-web
@@ -31,7 +31,7 @@ dotnet new hardened-web -n Todos [options]
 
 | Option | Values | Default |
 |---|---|---|
-| `-ho, --host` | `kestrel`, `aspnet`, `aws-lambda` | `kestrel` |
+| `-ho, --host` | `kestrel`, `aspnet`, `aws-lambda`, `cloud-run` | `kestrel` |
 | `-c, --contract` | `code`, `openapi`, `smithy` | `code` |
 | `-rm, --response-model` | `response`, `throws`, `union` | `response` |
 | `-cl, --client` | `kiota`, `refit`, `none` | `kiota` |
@@ -72,6 +72,11 @@ Test Tool beside the process when it is not the Lambda service running it. The a
 on 5080 through the tool's API Gateway emulator, so `dotnet run --project src/Todos.Host` and F5
 work the way they do on the other hosts; see
 [Running it locally](/aws/lambda-web#running-it-locally).
+
+`cloud-run` runs the application as a Google Cloud Run service: the Kestrel host in a container,
+listening on `PORT`, with `CloudRunHost.RunAsync` draining a request in flight when Cloud Run sends
+`SIGTERM`. The template writes the `Dockerfile`, and `gcloud run deploy --source .` is the
+deployment; see [Web services](/gcp/web).
 
 [kestrel]: https://github.com/ipjohnson/Hardened.Framework/blob/main/src/Web/Hardened.Web.Kestrel.Runtime/README.md
 
@@ -133,7 +138,7 @@ dotnet new hardened-function -n OrderIntake [options]
 | Option | Values | Default |
 |---|---|---|
 | `--trigger` | `invoke`, `queue`, `topic`, `timer`, `change`, `stream`, `blob` | `invoke` |
-| `-ho, --host` | `aws` | `aws` |
+| `-ho, --host` | `aws`, `gcp` | `aws` |
 | `--test-framework` | `xunit`, `nunit` | `xunit` |
 | `--mocks` | `nsubstitute`, `moq`, `fakeiteasy` | `nsubstitute` |
 | `--hardened-version` | a published version | the version the template shipped with |
@@ -162,15 +167,15 @@ entry point the runtime starts — written rather than generated, so do not add 
 the project references. Each is a [trigger attribute](/guide/triggers) naming the queue, topic,
 schedule, table, stream or bucket, and nothing in the project names a cloud:
 
-| `--trigger` | Handler carries | AWS adapter |
-|---|---|---|
-| `invoke` | `[HardenedFunction]` | `Hardened.Aws.Lambda.Invoke` |
-| `queue` | `[Queue("orders")]` | `Hardened.Aws.Lambda.Sqs` |
-| `topic` | `[Topic("orders")]` | `Hardened.Aws.Lambda.Sns` |
-| `timer` | `[Timer("nightly")]` | `Hardened.Aws.Lambda.EventBridge` |
-| `change` | `[Change("orders")]` | `Hardened.Aws.Lambda.DynamoDb` |
-| `stream` | `[Stream("orders")]` | `Hardened.Aws.Lambda.Kinesis` |
-| `blob` | `[Blob("uploads")]` | `Hardened.Aws.Lambda.S3` |
+| `--trigger` | Handler carries | AWS adapter | Cloud Run adapter |
+|---|---|---|---|
+| `invoke` | `[HardenedFunction]` | `Hardened.Aws.Lambda.Invoke` | `Hardened.Gcp.CloudRun.Invoke` |
+| `queue` | `[Queue("orders")]` | `Hardened.Aws.Lambda.Sqs` | `Hardened.Gcp.CloudRun.PubSub` |
+| `topic` | `[Topic("orders")]` | `Hardened.Aws.Lambda.Sns` | `Hardened.Gcp.CloudRun.PubSub` |
+| `timer` | `[Timer("nightly")]` | `Hardened.Aws.Lambda.EventBridge` | `Hardened.Gcp.CloudRun.Scheduler` |
+| `change` | `[Change("orders")]` | `Hardened.Aws.Lambda.DynamoDb` | `Hardened.Gcp.CloudRun.Firestore` |
+| `stream` | `[Stream("orders")]` | `Hardened.Aws.Lambda.Kinesis` | none; `HTPL005` refuses the combination |
+| `blob` | `[Blob("uploads")]` | `Hardened.Aws.Lambda.S3` | `Hardened.Gcp.CloudRun.Storage` |
 
 On a batched trigger the runtime unpacks the batch and calls the handler once per item. Returning
 handles the item; throwing fails the invocation, which is what returns the batch to the source.
@@ -182,6 +187,12 @@ Running the project starts the AWS Lambda Test Tool on 5050, which is where a pa
 there is no HTTP API and nothing on 5080. Most of the time there is nothing to run, because the
 tests invoke the function through the real pipeline with no AWS account and nothing to deploy. See
 [Lambda functions](/aws/lambda-function).
+
+With `--host gcp` the application names its host, `[CloudRunRuntime]`, because a Cloud Run service
+is a container listening on a port. Running the project is the service on 8080, or `PORT`, and a
+trigger is an HTTP request that can be posted to it by hand; there is no emulator to start. The
+template writes the `Dockerfile`, and the README shows the `gcloud` command that wires each source
+to the deployed service. See [Google Cloud Run](/gcp/).
 
 ## hardened-library
 
@@ -240,3 +251,4 @@ combination you chose.
 - [Modules](/guide/modules): how `[HardenedModule]` composes
 - [Writing a test](/guide/testing): what the scaffolded tests do
 - [AWS](/aws/): the Lambda runtimes in depth
+- [Google Cloud Run](/gcp/): the Cloud Run runtime in depth
