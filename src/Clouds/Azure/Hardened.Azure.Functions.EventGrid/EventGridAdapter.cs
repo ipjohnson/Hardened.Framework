@@ -22,7 +22,8 @@ namespace Hardened.Azure.Functions.EventGrid;
 /// runs is a question about the event. So the shim carries no route and the adapter builds one -
 /// <c>EVENT /{source}/{type}</c>, the shape the EventBridge adapter routes under - from the
 /// CloudEvent, through <c>Hardened.CloudEvents</c>, which is the same reader Eventarc's events go
-/// through on Cloud Run.
+/// through on Cloud Run. The event's attributes become the headers <see cref="CloudEventHeaders"/>
+/// names, so a handler reads the event id the same way on either.
 /// </para>
 /// <para>
 /// <b>The shim binds the event as a string</b>: the JSON of one CloudEvent, which is what the host
@@ -32,21 +33,6 @@ namespace Hardened.Azure.Functions.EventGrid;
 /// </para>
 /// </remarks>
 public sealed class EventGridAdapter : ITriggerAdapter {
-    /// <summary>The event's id, as a header.</summary>
-    public const string IdHeader = "ce-id";
-
-    /// <summary>The event's source.</summary>
-    public const string SourceHeader = "ce-source";
-
-    /// <summary>The event's type.</summary>
-    public const string TypeHeader = "ce-type";
-
-    /// <summary>The event's subject, when the producer set one.</summary>
-    public const string SubjectHeader = "ce-subject";
-
-    /// <summary>When the producer said the event happened, as written.</summary>
-    public const string TimeHeader = "ce-time";
-
     /// <summary>
     /// Whether the shim was generated for this family. A string on its own says nothing - three
     /// families bind one - so the scheme the shim carries is part of the check.
@@ -59,12 +45,13 @@ public sealed class EventGridAdapter : ITriggerAdapter {
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        Set(headers, IdHeader, cloudEvent.Id);
-        Set(headers, SourceHeader, cloudEvent.Source);
-        Set(headers, TypeHeader, cloudEvent.Type);
-        Set(headers, SubjectHeader, cloudEvent.Subject);
-        Set(headers, TimeHeader, cloudEvent.Time);
-        Set(headers, "Content-Type", cloudEvent.DataContentType ?? "application/json");
+        CloudEventHeaders.Write(headers, cloudEvent);
+
+        // The data's own type, when the producer said; JSON otherwise, which is what a CloudEvent
+        // carrying data with no type declared is defined to hold.
+        headers["Content-Type"] = string.IsNullOrEmpty(cloudEvent.DataContentType)
+            ? "application/json"
+            : cloudEvent.DataContentType;
 
         return new FunctionsPayloadRequest(
             CloudEventRoutes.EventScheme,
@@ -73,12 +60,6 @@ public sealed class EventGridAdapter : ITriggerAdapter {
                 ? Stream.Null
                 : new MemoryStream(cloudEvent.Data.ToArray(), writable: false),
             headers);
-    }
-
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
-            headers[name] = value;
-        }
     }
 
     public IExecutionResponse CreateResponse(Stream output) => new FunctionsPayloadResponse(output);

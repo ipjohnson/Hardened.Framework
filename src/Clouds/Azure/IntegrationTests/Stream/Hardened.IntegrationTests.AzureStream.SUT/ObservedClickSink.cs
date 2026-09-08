@@ -9,7 +9,7 @@ namespace Hardened.IntegrationTests.AzureStream.SUT;
 /// One line per call, the marker the container harness reads and then a single-line JSON object,
 /// the arrangement the queue fixture's <c>ObservedOrderStore</c> documents. A negative count is
 /// refused after the line is printed, which is how a test outside the process makes the handler
-/// fail and sees the partition replayed.
+/// fail and sees the invocation reported failed.
 /// </remarks>
 public sealed class ObservedClickSink : IClickSink {
     private const string Marker = "HARDENED-OBSERVED ";

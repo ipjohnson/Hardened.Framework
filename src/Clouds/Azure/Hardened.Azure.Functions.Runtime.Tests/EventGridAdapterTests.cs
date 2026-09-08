@@ -40,16 +40,21 @@ public class EventGridAdapterTests {
         Assert.Equal("""{"id":"e-1","quantity":5}""", new StreamReader(request.Body).ReadToEnd());
     }
 
+    /// <summary>
+    /// Under the names the lines share, so a handler reading the event id reads the same header
+    /// behind Event Grid and behind Eventarc.
+    /// </summary>
     [Fact]
     public void TheEventsAttributesAreHeaders() {
         var request = Adapter.CreateRequest(
             new FunctionsTrigger(CloudEventRoutes.EventScheme, "", Event), Context());
 
-        Assert.Equal("7bf73129", request.Headers[EventGridAdapter.IdHeader].ToString());
-        Assert.Equal("com.acme.orders", request.Headers[EventGridAdapter.SourceHeader].ToString());
-        Assert.Equal("OrderPlaced", request.Headers[EventGridAdapter.TypeHeader].ToString());
-        Assert.Equal("orders/e-1", request.Headers[EventGridAdapter.SubjectHeader].ToString());
-        Assert.Equal("2026-09-07T12:00:00Z", request.Headers[EventGridAdapter.TimeHeader].ToString());
+        Assert.Equal("1.0", request.Headers[CloudEventHeaders.SpecVersion].ToString());
+        Assert.Equal("7bf73129", request.Headers[CloudEventHeaders.Id].ToString());
+        Assert.Equal("com.acme.orders", request.Headers[CloudEventHeaders.Source].ToString());
+        Assert.Equal("OrderPlaced", request.Headers[CloudEventHeaders.Type].ToString());
+        Assert.Equal("orders/e-1", request.Headers[CloudEventHeaders.Subject].ToString());
+        Assert.Equal("2026-09-07T12:00:00Z", request.Headers[CloudEventHeaders.Time].ToString());
     }
 
     [Fact]
