@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      One function app serving a queue, a topic, a schedule and an event source: the Events
+      fixture on Lambda with another set of package references. Three adapter packages for four
+      triggers, because Service Bus serves both the queue and the topic.
+
+      An executable with UseAppHost off, for the reason the queue fixture gives.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <UseAppHost>false</UseAppHost>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.AzureEvents.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <!-- The Worker SDK is the application's reference; see the queue fixture. -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.ServiceBus\Hardened.Azure.Functions.ServiceBus.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.Timer\Hardened.Azure.Functions.Timer.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.EventGrid\Hardened.Azure.Functions.EventGrid.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.SourceGenerator\Hardened.Azure.Functions.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <!--
+      Imported from the source tree, for the reason the queue fixture gives: the declarations
+      first, then one binding per adapter package, then the worker registration.
+    -->
+    <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
+    <Import Project="..\..\..\Hardened.Azure.Functions.ServiceBus\Package\Hardened.Azure.Functions.ServiceBus.targets"/>
+    <Import Project="..\..\..\Hardened.Azure.Functions.Timer\Package\Hardened.Azure.Functions.Timer.targets"/>
+    <Import Project="..\..\..\Hardened.Azure.Functions.EventGrid\Package\Hardened.Azure.Functions.EventGrid.targets"/>
+    <Import Project="..\..\..\Hardened.Azure.Functions.Runtime\Package\Hardened.Azure.Functions.Runtime.targets"/>
+
+</Project>

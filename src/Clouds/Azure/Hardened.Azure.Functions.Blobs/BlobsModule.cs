@@ -2,6 +2,7 @@ using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Azure.Functions.Runtime.Adapters;
 using Hardened.Azure.Functions.Runtime.Modules;
+using Hardened.Requests.Runtime.Filters;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Azure.Functions.Blobs;
@@ -26,6 +27,10 @@ public partial class BlobsModule : IServiceCollectionConfiguration {
 
     public void ConfigureServices(IServiceCollection services) {
         services.AddSingleton<ITriggerAdapter>(new BlobsAdapter());
+
+        // One blob per invocation is never a batch, but the neutral test delivery always is, and
+        // the filter is what forks it per message; it passes an unbatched request straight through.
+        services.AddBatchExecutionFilter();
     }
 
     /// <summary>By type alone, so applying the module twice loads one adapter.</summary>

@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Text;
 using System.Text.Json;
 using Hardened.Azure.Functions.Runtime.Adapters;
@@ -63,9 +62,10 @@ public sealed class CosmosDbAdapter : ITriggerAdapter {
     /// might want as headers read off it.
     /// </summary>
     /// <remarks>
-    /// Written back out through a <see cref="Utf8JsonWriter"/> rather than kept as elements of the
-    /// parsed document, because a <see cref="JsonElement"/> is a window into pooled memory and the
-    /// forks outlive the parse.
+    /// Each document's text is copied out of the feed as the host wrote it rather than kept as an
+    /// element of the parsed document, because a <see cref="JsonElement"/> is a window into pooled
+    /// memory and the forks outlive the parse. Copied, not re-serialized: a writer would escape
+    /// the document differently from the feed, and the body is the document as it arrived.
     /// </remarks>
     internal static IReadOnlyList<CosmosDbDocument> Split(string feed) {
         var documents = new List<CosmosDbDocument>();
@@ -91,14 +91,8 @@ public sealed class CosmosDbAdapter : ITriggerAdapter {
     }
 
     private static CosmosDbDocument Document(JsonElement element) {
-        var buffer = new ArrayBufferWriter<byte>();
-
-        using (var writer = new Utf8JsonWriter(buffer)) {
-            element.WriteTo(writer);
-        }
-
         return new CosmosDbDocument(
-            buffer.WrittenSpan.ToArray(),
+            Encoding.UTF8.GetBytes(element.GetRawText()),
             String(element, "id"),
             Number(element, "_lsn"),
             Number(element, "_ts"),

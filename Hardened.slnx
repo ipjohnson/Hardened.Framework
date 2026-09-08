@@ -114,6 +114,21 @@
     <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.Testing/Hardened.Azure.Functions.Testing.csproj" />
     <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.Timer/Hardened.Azure.Functions.Timer.csproj" />
   </Folder>
+  <Folder Name="/Clouds/Azure/IntegrationTests/Blob/">
+    <Project Path="src/Clouds/Azure/IntegrationTests/Blob/Hardened.IntegrationTests.AzureBlob.SUT/Hardened.IntegrationTests.AzureBlob.SUT.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Blob/Hardened.IntegrationTests.AzureBlob.SUT.Tests/Hardened.IntegrationTests.AzureBlob.SUT.Tests.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Blob/Hardened.IntegrationTests.AzureBlob.Worker.Tests/Hardened.IntegrationTests.AzureBlob.Worker.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Azure/IntegrationTests/Change/">
+    <Project Path="src/Clouds/Azure/IntegrationTests/Change/Hardened.IntegrationTests.AzureChange.SUT/Hardened.IntegrationTests.AzureChange.SUT.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Change/Hardened.IntegrationTests.AzureChange.SUT.Tests/Hardened.IntegrationTests.AzureChange.SUT.Tests.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Change/Hardened.IntegrationTests.AzureChange.Worker.Tests/Hardened.IntegrationTests.AzureChange.Worker.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Azure/IntegrationTests/Events/">
+    <Project Path="src/Clouds/Azure/IntegrationTests/Events/Hardened.IntegrationTests.AzureEvents.SUT/Hardened.IntegrationTests.AzureEvents.SUT.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Events/Hardened.IntegrationTests.AzureEvents.SUT.Tests/Hardened.IntegrationTests.AzureEvents.SUT.Tests.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Events/Hardened.IntegrationTests.AzureEvents.Worker.Tests/Hardened.IntegrationTests.AzureEvents.Worker.Tests.csproj" />
+  </Folder>
   <Folder Name="/Clouds/Azure/IntegrationTests/Http/">
     <Project Path="src/Clouds/Azure/IntegrationTests/Http/Hardened.IntegrationTests.AzureHttp.SUT/Hardened.IntegrationTests.AzureHttp.SUT.csproj" />
     <Project Path="src/Clouds/Azure/IntegrationTests/Http/Hardened.IntegrationTests.AzureHttp.SUT.Tests/Hardened.IntegrationTests.AzureHttp.SUT.Tests.csproj" />
@@ -123,6 +138,13 @@
     <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.SUT/Hardened.IntegrationTests.AzureQueue.SUT.csproj" />
     <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.SUT.Tests/Hardened.IntegrationTests.AzureQueue.SUT.Tests.csproj" />
     <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.Worker.Tests/Hardened.IntegrationTests.AzureQueue.Worker.Tests.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.Settlement.SUT/Hardened.IntegrationTests.AzureQueue.Settlement.SUT.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.Settlement.SUT.Tests/Hardened.IntegrationTests.AzureQueue.Settlement.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Azure/IntegrationTests/Stream/">
+    <Project Path="src/Clouds/Azure/IntegrationTests/Stream/Hardened.IntegrationTests.AzureStream.SUT/Hardened.IntegrationTests.AzureStream.SUT.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Stream/Hardened.IntegrationTests.AzureStream.SUT.Tests/Hardened.IntegrationTests.AzureStream.SUT.Tests.csproj" />
+    <Project Path="src/Clouds/Azure/IntegrationTests/Stream/Hardened.IntegrationTests.AzureStream.Worker.Tests/Hardened.IntegrationTests.AzureStream.Worker.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Aws/">
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj" />

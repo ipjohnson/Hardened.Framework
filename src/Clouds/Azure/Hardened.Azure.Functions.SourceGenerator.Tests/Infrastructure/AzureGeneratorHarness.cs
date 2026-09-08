@@ -1,3 +1,4 @@
+using System.Reflection;
 using Hardened.Azure.Functions.Runtime.Hosting;
 using Hardened.Azure.Functions.ServiceBus;
 using Hardened.Azure.Functions.SourceGenerator;
@@ -5,7 +6,9 @@ using Hardened.Functions.Runtime.Attributes;
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.SourceGeneration.Testing;
 using Hardened.SourceGenerator.Shared;
+using Microsoft.Azure.Functions.Worker.Core.FunctionMetadata;
 using Microsoft.CodeAnalysis;
+using Xunit;
 
 namespace Hardened.Azure.Functions.SourceGenerator.Tests.Infrastructure;
 
@@ -48,20 +51,40 @@ public class TriggerDriver : IIncrementalGenerator {
 /// </summary>
 public static class AzureGeneratorHarness {
 
-    /// <summary>The module the Service Bus package's targets bind, as the property would name it.</summary>
+    /// <summary>The modules each adapter package's targets bind, as the properties would name them.</summary>
     public const string ServiceBusModule = "Hardened.Azure.Functions.ServiceBus.ServiceBusModule";
 
+    public const string TimerModule = "Hardened.Azure.Functions.Timer.TimerModule";
+
+    public const string EventHubsModule = "Hardened.Azure.Functions.EventHubs.EventHubsModule";
+
+    public const string CosmosDbModule = "Hardened.Azure.Functions.CosmosDb.CosmosDbModule";
+
+    public const string BlobsModule = "Hardened.Azure.Functions.Blobs.BlobsModule";
+
+    public const string EventGridModule = "Hardened.Azure.Functions.EventGrid.EventGridModule";
+
+    public const string HttpModule = "Hardened.Azure.Functions.Http.HttpModule";
+
     /// <summary>
-    /// One type per assembly the generated code touches. The Azure runtime brings the worker and
-    /// the Service Bus adapter brings the extension and the Service Bus SDK, transitively.
+    /// One type per assembly the generated code touches. The Azure runtime brings the worker, and
+    /// each adapter brings its extension and the SDK behind it, transitively; the web runtime
+    /// brings the verbs.
     /// </summary>
     public static readonly Type[] Anchors = [
         typeof(HardenedFunctionAttribute),
         typeof(QueueAttribute),
+        typeof(global::Hardened.Web.Runtime.Attributes.GetAttribute),
         typeof(global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<>),
         typeof(global::Hardened.Shared.Runtime.Attributes.HardenedModuleAttribute),
         typeof(FunctionsInvocationHandler),
-        typeof(ServiceBusAdapter)
+        typeof(ServiceBusAdapter),
+        typeof(global::Hardened.Azure.Functions.Timer.TimerAdapter),
+        typeof(global::Hardened.Azure.Functions.EventHubs.EventHubsAdapter),
+        typeof(global::Hardened.Azure.Functions.CosmosDb.CosmosDbAdapter),
+        typeof(global::Hardened.Azure.Functions.Blobs.BlobsAdapter),
+        typeof(global::Hardened.Azure.Functions.EventGrid.EventGridAdapter),
+        typeof(global::Hardened.Azure.Functions.Http.HttpAdapter)
     ];
 
     /// <summary>
@@ -83,6 +106,7 @@ public static class AzureGeneratorHarness {
         var source = $$"""
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Functions.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
 
             namespace TestApp;
 
@@ -115,4 +139,23 @@ public static class AzureGeneratorHarness {
     /// <summary>The entry point's worker registration, or an empty string when none was written.</summary>
     public static string WorkerSource(GeneratorResult result) =>
         result.GeneratedSources.TryGetValue("TestApplication.AzureFunctionsWorker.cs", out var source) ? source : "";
+
+    /// <summary>
+    /// The generated provider, loaded from the compiled output and constructed, so a test reads
+    /// what the worker would answer the host with rather than the text it was written from.
+    /// </summary>
+    public static IFunctionMetadataProvider Provider(GeneratorResult result) {
+        using var stream = new MemoryStream();
+
+        var emitted = result.Compilation.Emit(stream);
+
+        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
+
+        var assembly = Assembly.Load(stream.ToArray());
+        var type = assembly.GetType("TestApp.Generated.TestApplicationAzureFunctionMetadataProvider");
+
+        Assert.NotNull(type);
+
+        return (IFunctionMetadataProvider)Activator.CreateInstance(type)!;
+    }
 }

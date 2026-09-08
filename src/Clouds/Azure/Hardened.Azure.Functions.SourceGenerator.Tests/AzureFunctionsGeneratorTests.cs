@@ -271,21 +271,6 @@ public class AzureFunctionsGeneratorTests {
     /// The generated provider, loaded from the compilation the test built and instantiated, so
     /// what is asserted is what the worker would answer the host with.
     /// </summary>
-    private static IFunctionMetadataProvider Provider(Hardened.SourceGeneration.Testing.GeneratorResult result) {
-        using var stream = new MemoryStream();
-
-        var emitted = result.Compilation.Emit(stream);
-
-        Assert.True(emitted.Success, string.Join(Environment.NewLine, emitted.Diagnostics));
-
-        var assembly = Assembly.Load(stream.ToArray());
-        var type = assembly.GetType("TestApp.Generated.TestApplicationAzureFunctionMetadataProvider");
-
-        Assert.NotNull(type);
-
-        return (IFunctionMetadataProvider)Activator.CreateInstance(type)!;
-    }
-
     private static int Occurrences(string text, string fragment) {
         var count = 0;
 

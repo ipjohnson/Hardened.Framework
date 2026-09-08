@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      The worker rung of the ladder: the pipeline rung's EventFamilyTests.cs and EventTests.cs,
+      linked rather than copied, with [AzureFunctionsTesting] raising the delivery to the trigger
+      data the isolated worker would bind - Service Bus messages, the timer's JSON, a CloudEvent.
+      Beside them, the one test that only makes sense at this rung: data no adapter claims.
+    -->
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit.runner.visualstudio">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="DependencyModules.NSubstitute"/>
+        <PackageReference Include="NSubstitute"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="..\Hardened.IntegrationTests.AzureEvents.SUT.Tests\EventFamilyTests.cs" Link="EventFamilyTests.cs"/>
+        <Compile Include="..\Hardened.IntegrationTests.AzureEvents.SUT.Tests\EventTests.cs" Link="EventTests.cs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.IntegrationTests.AzureEvents.SUT\Hardened.IntegrationTests.AzureEvents.SUT.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Azure.Functions.Testing\Hardened.Azure.Functions.Testing.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>
+    </ItemGroup>
+
+</Project>

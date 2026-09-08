@@ -91,6 +91,16 @@ public class FunctionsInvocationHandler {
 
         await _executor.Run(context, adapter.FailurePolicy);
 
+        // The IO filter records a handler's throw on the response rather than letting it
+        // propagate, which is what a web host wants - it answers a 500 - and what the batch filter
+        // reads per item before rethrowing. An unbatched request has no batch filter to rethrow
+        // for it, so the failure surfaces here: the family said a failure fails the invocation,
+        // and returning normally would tell the host it succeeded.
+        if (adapter.FailurePolicy == HostFailurePolicy.Rethrow &&
+            context.Response.ExceptionValue is { } failure) {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
+        }
+
         return await adapter.WriteResponse(context, functionContext);
     }
 

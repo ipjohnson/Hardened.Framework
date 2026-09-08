@@ -302,7 +302,8 @@ internal static class AzureFunctionsEmitter {
 
     /// <summary>A type as generated text: fully qualified, with its array rank.</summary>
     private static string Name(ITypeDefinition type) =>
-        "global::" + type.Namespace + "." + type.Name + (type.IsArray ? "[]" : "");
+        (string.IsNullOrEmpty(type.Namespace) ? type.Name : "global::" + type.Namespace + "." + type.Name) +
+        (type.IsArray ? "[]" : "");
 
     private static string Output(CSharpFileDefinition file) {
         var output = new OutputContext(new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global });
