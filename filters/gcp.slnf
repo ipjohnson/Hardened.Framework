@@ -3,7 +3,13 @@
     "path": "..\\Hardened.slnx",
     "projects": [
       "src\\Clouds\\Gcp\\Hardened.Gcp.CloudRun.PubSub\\Hardened.Gcp.CloudRun.PubSub.csproj",
+      "src\\Clouds\\Gcp\\Hardened.Gcp.CloudRun.Runtime.Tests\\Hardened.Gcp.CloudRun.Runtime.Tests.csproj",
       "src\\Clouds\\Gcp\\Hardened.Gcp.CloudRun.Runtime\\Hardened.Gcp.CloudRun.Runtime.csproj",
+      "src\\Clouds\\Gcp\\Hardened.Gcp.CloudRun.Testing\\Hardened.Gcp.CloudRun.Testing.csproj",
+      "src\\Clouds\\Gcp\\IntegrationTests\\Queue\\Hardened.IntegrationTests.CloudRunQueue.SUT.Tests\\Hardened.IntegrationTests.CloudRunQueue.SUT.Tests.csproj",
+      "src\\Clouds\\Gcp\\IntegrationTests\\Queue\\Hardened.IntegrationTests.CloudRunQueue.SUT\\Hardened.IntegrationTests.CloudRunQueue.SUT.csproj",
+      "src\\Clouds\\Gcp\\IntegrationTests\\Queue\\Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests\\Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests.csproj",
+      "src\\Functions\\Hardened.CloudEvents.Tests\\Hardened.CloudEvents.Tests.csproj",
       "src\\Functions\\Hardened.CloudEvents\\Hardened.CloudEvents.csproj"
     ]
   }

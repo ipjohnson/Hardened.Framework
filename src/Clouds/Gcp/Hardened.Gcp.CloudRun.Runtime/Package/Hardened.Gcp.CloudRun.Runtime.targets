@@ -1,0 +1,19 @@
+<Project>
+    <!--
+        Which module serves the web verbs on this host. On Cloud Run that is the host itself:
+        [Get] and its siblings are served by Kestrel, which [CloudRunRuntime] composes, so the
+        binding names this package's own module and an application that declared the attribute
+        already keeps its own.
+
+        Set here rather than left unset because the generator reports HRDF001 for any trigger in
+        use that no bound module serves once any binding at all is set - and an adapter package
+        beside this one sets one. A service with a [Queue] handler and a [Get] route is the
+        ordinary shape on Cloud Run, and it has to build.
+
+        The property is declared by Hardened.Web.Runtime's targets, which owns the attributes.
+        Conditional, so a csproj can replace this binding and keep the rest.
+    -->
+    <PropertyGroup>
+        <HardenedHttpModule Condition="'$(HardenedHttpModule)' == ''">Hardened.Gcp.CloudRun.Runtime.CloudRunRuntime</HardenedHttpModule>
+    </PropertyGroup>
+</Project>

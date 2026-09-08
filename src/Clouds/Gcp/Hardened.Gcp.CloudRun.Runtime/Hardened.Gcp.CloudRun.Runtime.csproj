@@ -49,10 +49,20 @@
     </ItemGroup>
 
     <!--
-      No build assets. This package binds no trigger, because it recognises no envelope: the
-      HardenedQueueModule and friends are set by the adapter packages, one property each, and
+      One build asset, binding the web verbs to this host. The trigger properties -
+      HardenedQueueModule and friends - are set by the adapter packages, one property each, and
       declared by Hardened.Functions.Runtime, which owns the attributes.
+
+      buildTransitive/ rather than build/, and Package\ rather than build\ in the source tree, for
+      the reasons Hardened.Gcp.CloudRun.PubSub's csproj gives.
     -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Gcp.CloudRun.Runtime.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="DependencyModules.Runtime" />

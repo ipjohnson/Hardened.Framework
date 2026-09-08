@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      A queue service as an application would write one: a handler with [Queue] and nothing else.
+      No module attribute for Pub/Sub, no envelope registration, no filter - the trigger is the
+      whole declaration, and the generator plus the runtime package's build properties supply the
+      rest. That is the claim this fixture exists to hold.
+
+      An executable, because the container tier runs it as one: the build output mounted into
+      mcr.microsoft.com/dotnet/aspnet:8.0 and started with `dotnet <assembly>`. UseAppHost is off
+      because the mount is the build output: an apphost built on macOS is a native binary a Linux
+      container cannot start, and the container runs the assembly rather than the apphost anyway.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <UseAppHost>false</UseAppHost>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.CloudRunQueue.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Gcp.CloudRun.PubSub\Hardened.Gcp.CloudRun.PubSub.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console"/>
+    </ItemGroup>
+
+    <!--
+      Imported from the source tree rather than arriving with a package reference, because in this
+      repository these are ProjectReferences and a project reference carries no build assets. A
+      consuming application gets them from buildTransitive/ inside the packages; importing the same
+      files here is what keeps the two from drifting.
+
+      Two kinds of import, which is the shape the split produces. The first declares the trigger
+      properties, from the package that owns the attributes. The second binds one property, from
+      the one adapter package this service uses. Writing [Topic] in this project fails with
+      HRDF001, because nothing here declares what would serve it.
+    -->
+    <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
+    <Import Project="..\..\..\Hardened.Gcp.CloudRun.PubSub\Package\Hardened.Gcp.CloudRun.PubSub.targets"/>
+
+</Project>
