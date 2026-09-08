@@ -1,0 +1,29 @@
+namespace Hardened.Azure.Functions.Testing
+{
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public class AzureFunctionsTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute
+    {
+        public AzureFunctionsTestingAttribute() { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+    }
+    public sealed class FunctionsTriggerDelivery : Hardened.Functions.Testing.ITriggerDelivery
+    {
+        public FunctionsTriggerDelivery(Hardened.Azure.Functions.Runtime.Hosting.FunctionsInvocationHandler handler, System.IServiceProvider provider) { }
+        public System.Threading.Tasks.Task<object?> Call(object message, string scheme, string path, System.Type? responseType) { }
+        public System.Threading.Tasks.Task Deliver(System.Collections.Generic.IReadOnlyList<object> messages, string scheme, string path) { }
+    }
+    public sealed class TestFunctionContext : Microsoft.Azure.Functions.Worker.FunctionContext
+    {
+        public TestFunctionContext(string functionName, System.Collections.Generic.IReadOnlyDictionary<string, object?> bindingData, System.IServiceProvider services, System.Threading.CancellationToken cancellationToken = default) { }
+        public override Microsoft.Azure.Functions.Worker.BindingContext BindingContext { get; }
+        public override System.Threading.CancellationToken CancellationToken { get; }
+        public override Microsoft.Azure.Functions.Worker.IInvocationFeatures Features { get; }
+        public override Microsoft.Azure.Functions.Worker.FunctionDefinition FunctionDefinition { get; }
+        public override string FunctionId { get; }
+        public override System.IServiceProvider InstanceServices { get; set; }
+        public override string InvocationId { get; }
+        public override System.Collections.Generic.IDictionary<object, object> Items { get; set; }
+        public override Microsoft.Azure.Functions.Worker.RetryContext RetryContext { get; }
+        public override Microsoft.Azure.Functions.Worker.TraceContext TraceContext { get; }
+    }
+}

@@ -1,0 +1,102 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Gcp.CloudRun.Runtime.Tests")]
+namespace Hardened.Gcp.CloudRun.Runtime
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Web.Kestrel.Runtime.KestrelRuntime]
+    public class CloudRunRuntime : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public CloudRunRuntime() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class CloudRunRuntimeAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public CloudRunRuntimeAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Gcp.CloudRun.Runtime.Dispatch
+{
+    public sealed class CloudRunDispatch : Hardened.Requests.Abstract.Execution.IExecutionFilter, Hardened.Requests.Abstract.Execution.IHandlerDispatch, Hardened.Web.Runtime.Handlers.IWebExecutionHandlerService
+    {
+        public static readonly System.Collections.Generic.IReadOnlySet<string> TriggerSchemes;
+        public CloudRunDispatch(Hardened.Requests.Abstract.Execution.IHandlerDispatch web, Hardened.Requests.Abstract.Execution.IHandlerDispatch? function) { }
+        public Hardened.Requests.Abstract.Execution.IHandlerDispatch? Function { get; }
+        public Hardened.Requests.Abstract.Execution.IHandlerDispatch Web { get; }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+        public static void Compose(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+}
+namespace Hardened.Gcp.CloudRun.Runtime.Envelopes
+{
+    public interface ITriggerEnvelope
+    {
+        bool Recognises(Hardened.Requests.Abstract.Execution.IExecutionRequest request);
+        Hardened.Gcp.CloudRun.Runtime.Execution.CloudRunTriggerRequest? Unwrap(Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Gcp.CloudRun.Runtime.Envelopes.TriggerPayload payload);
+    }
+    public sealed class TriggerFrontDoor : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public const int BufferLimit = 16777216;
+        public TriggerFrontDoor(System.Collections.Generic.IEnumerable<Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope> envelopes) { }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Gcp.CloudRun.Runtime.Envelopes.ITriggerEnvelope> Envelopes { get; }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
+    }
+    public sealed class TriggerPayload : System.IDisposable
+    {
+        public TriggerPayload(System.ReadOnlyMemory<byte> raw) { }
+        public System.Text.Json.JsonElement? Json { get; }
+        public System.ReadOnlyMemory<byte> Raw { get; }
+        public System.IO.Stream AsStream() { }
+        public void Dispose() { }
+    }
+}
+namespace Hardened.Gcp.CloudRun.Runtime.Execution
+{
+    public sealed class CloudRunTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    {
+        public const string ConfigurationKey = "gcp.cloud_run.configuration";
+        public const string ConfigurationVariable = "K_CONFIGURATION";
+        public const string RevisionKey = "faas.version";
+        public const string RevisionVariable = "K_REVISION";
+        public const string ServiceKey = "faas.name";
+        public const string ServiceVariable = "K_SERVICE";
+        public CloudRunTransportInfo(Hardened.Requests.Abstract.Execution.ITransportInfo inner) { }
+        public CloudRunTransportInfo(Hardened.Requests.Abstract.Execution.ITransportInfo inner, string? service, string? revision, string? configuration) { }
+        public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
+        public string? Get(string key) { }
+    }
+    public sealed class CloudRunTriggerRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public CloudRunTriggerRequest(string scheme, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers, Hardened.Requests.Abstract.Execution.IExecutionRequest delivery) { }
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Delivery { get; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+}
+namespace Hardened.Gcp.CloudRun.Runtime.Hosting
+{
+    public static class CloudRunHost
+    {
+        public const int DefaultPort = 8080;
+        public const string PortVariable = "PORT";
+        public static readonly System.TimeSpan ShutdownGrace;
+        public static readonly System.Collections.Generic.IReadOnlyList<System.Runtime.InteropServices.PosixSignal> Signals;
+        public static void Listen(Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions kestrel) { }
+        public static int Port() { }
+        public static int Port(string? configured) { }
+        public static System.Threading.Tasks.Task RunAsync(Hardened.Web.Kestrel.Runtime.HardenedKestrelApplication app, System.Threading.CancellationToken cancellationToken = default) { }
+    }
+}

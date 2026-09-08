@@ -54,18 +54,19 @@
     </ItemGroup>
 
     <!--
-      The two Abstractions packages are on 8.0.2, not 8.0.1, and Logging is on 8.0.1, not 8.0.0.
+      The two Abstractions packages are above 8.0.1, and Logging is on 8.0.1, not 8.0.0.
       Microsoft.Extensions.Logging 8.0.1 requires Logging.Abstractions >= 8.0.2 and pulls
       DependencyInjection 8.0.1, which requires DependencyInjection.Abstractions >= 8.0.2, so
       pinning either Abstractions at 8.0.1 is a package downgrade (NU1605). The framework half was
-      pinned that way and the AWS half was not; the list takes the coherent set.
+      pinned that way and the AWS half was not; the list takes the coherent set. Logging.Abstractions
+      is one patch higher still, at 8.0.3, for the Azure line; the Azure group below says why.
     -->
     <ItemGroup Label="Microsoft.Extensions and BCL">
         <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
         <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Logging" Version="8.0.1" />
-        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
+        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.3" />
         <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
         <PackageVersion Include="Microsoft.Extensions.Options" Version="8.0.2" />
         <PackageVersion Include="Microsoft.Extensions.Primitives" Version="8.0.0" />
@@ -124,9 +125,11 @@
       runtime package; see Hardened.Azure.Functions.Runtime.csproj for why.
 
       The Service Bus extension brings Microsoft.Extensions.Azure 1.13.0, which requires
-      Microsoft.Extensions.Logging.Abstractions 8.0.3 - one patch above the pin in the group above.
-      NuGet resolves that transitively without complaint, and it stays that way only while no Azure
-      project references Logging.Abstractions directly, which would be a downgrade against the pin.
+      Microsoft.Extensions.Logging.Abstractions 8.0.3. That is why the Logging.Abstractions pin in
+      the group above is 8.0.3 rather than the 8.0.2 the rest of the set needs: NuGet would resolve
+      the transitive requirement upward on its own, but the first project to reference both an
+      Azure package and Logging.Abstractions directly at 8.0.2 would fail restore with a downgrade
+      (NU1605), and that project would be an ordinary consumer's.
 
       Azure.Messaging.ServiceBus is what a test publishes with; the extension depends on 7.20.1 and
       resolves upward to this. The Testcontainers modules move with the base package in the Testing

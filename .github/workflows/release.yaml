@@ -272,6 +272,13 @@ jobs:
             src/Web/Hardened.Web.StaticContent/Hardened.Web.StaticContent.csproj \
             src/Web/Hardened.Web.Testing/Hardened.Web.Testing.csproj \
             src/Functions/Hardened.CloudEvents/Hardened.CloudEvents.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Runtime/Hardened.Azure.Functions.Runtime.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.ServiceBus/Hardened.Azure.Functions.ServiceBus.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.SourceGenerator/Hardened.Azure.Functions.SourceGenerator.csproj \
+            src/Clouds/Azure/Hardened.Azure.Functions.Testing/Hardened.Azure.Functions.Testing.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.PubSub/Hardened.Gcp.CloudRun.PubSub.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Runtime/Hardened.Gcp.CloudRun.Runtime.csproj \
+            src/Clouds/Gcp/Hardened.Gcp.CloudRun.Testing/Hardened.Gcp.CloudRun.Testing.csproj \
             src/Functions/Hardened.Functions.Runtime/Hardened.Functions.Runtime.csproj \
             src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
@@ -347,7 +354,9 @@ jobs:
           # 44 with the DynamoDB client and its testing package, restored from the Amz line.
           # 45 with Hardened.CloudEvents, the dependency-free CloudEvents reader the GCP line and the
           # Azure [Event] adapter share.
-          EXPECTED=45
+          # 52 with the first packages of the Azure and GCP lines: the Azure runtime, Service Bus adapter,
+          # generator and testing package, and the Cloud Run runtime, Pub/Sub adapter and testing package.
+          EXPECTED=52
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

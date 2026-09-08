@@ -1,0 +1,121 @@
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Azure.Functions.Runtime.Tests")]
+namespace Hardened.Azure.Functions.Runtime.Adapters
+{
+    public interface ITriggerAdapter
+    {
+        Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
+        Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext context);
+        Hardened.Requests.Abstract.Execution.IExecutionResponse CreateResponse(System.IO.Stream output);
+        bool Handles(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger);
+        System.Threading.Tasks.ValueTask WriteResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Microsoft.Azure.Functions.Worker.FunctionContext functionContext);
+    }
+}
+namespace Hardened.Azure.Functions.Runtime.Execution
+{
+    public enum FunctionsDispatch
+    {
+        Trigger = 0,
+        Web = 1,
+    }
+    public class FunctionsExecutionContext : Hardened.Requests.Abstract.Execution.IExecutionContext
+    {
+        public FunctionsExecutionContext(System.IServiceProvider rootServiceProvider, System.IServiceProvider requestServices, Hardened.Requests.Abstract.Execution.IKnownServices knownServices, Hardened.Requests.Abstract.Execution.IExecutionRequest request, Hardened.Requests.Abstract.Execution.IExecutionResponse response, Microsoft.Azure.Functions.Worker.FunctionContext functionContext, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null) { }
+        public Hardened.Requests.Abstract.Authorization.ICallerPrincipal CallerPrincipal { get; set; }
+        public System.Threading.CancellationToken CancellationToken { get; set; }
+        public string CorrelationId { get; init; }
+        public Hardened.Requests.Abstract.Execution.DefaultOutputFunc? DefaultOutput { get; set; }
+        public Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch Dispatch { get; init; }
+        public Microsoft.Azure.Functions.Worker.FunctionContext FunctionContext { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo? HandlerInfo { get; set; }
+        public object? HandlerInstance { get; set; }
+        public Hardened.Requests.Abstract.Execution.IKnownServices KnownServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Request { get; }
+        public Hardened.Shared.Runtime.Metrics.IMetricLogger RequestMetrics { get; }
+        public System.IServiceProvider RequestServices { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Response { get; }
+        public System.IServiceProvider RootServiceProvider { get; }
+        public Hardened.Shared.Runtime.Diagnostics.MachineTimestamp StartTime { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionContext Clone(Hardened.Requests.Abstract.Execution.IExecutionRequest? request = null, Hardened.Requests.Abstract.Execution.IExecutionResponse? response = null, System.IServiceProvider? serviceProvider = null, Hardened.Shared.Runtime.Metrics.IMetricLogger? metricLogger = null) { }
+        public void ReplaceCancellationToken(System.Threading.CancellationToken token) { }
+    }
+    public class FunctionsPayloadRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    {
+        public FunctionsPayloadRequest(string method, string path, System.IO.Stream body, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> headers) { }
+        public string? Accept { get; }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; }
+        public System.Collections.Generic.IReadOnlyList<string> Cookies { get; }
+        public System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues> Headers { get; }
+        public string Method { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequestParameters? Parameters { get; set; }
+        public string Path { get; }
+        public Hardened.Requests.Abstract.PathTokens.IPathTokenCollection PathTokens { get; set; }
+        public Hardened.Requests.Abstract.QueryString.IQueryStringCollection QueryString { get; }
+        public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
+        public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
+    }
+    public class FunctionsPayloadResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    {
+        public FunctionsPayloadResponse(System.IO.Stream body, Hardened.Requests.Abstract.Headers.IHeaderCollection? headers = null) { }
+        public System.IO.Stream Body { get; set; }
+        public string? ContentType { get; set; }
+        public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
+        public System.Exception? ExceptionValue { get; set; }
+        public Hardened.Requests.Abstract.Headers.IHeaderCollection Headers { get; }
+        public bool IsBinary { get; set; }
+        public Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput? Output { get; set; }
+        public System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput>? OutputFactory { get; set; }
+        public bool ResponseStarted { get; }
+        public object? ResponseValue { get; set; }
+        public bool ShouldSerialize { get; set; }
+        public int? Status { get; set; }
+        public object Clone() { }
+        public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
+    }
+    public sealed class FunctionsTrigger
+    {
+        public FunctionsTrigger(string scheme, string path, object data, Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch dispatch = 0) { }
+        public object Data { get; }
+        public Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch Dispatch { get; }
+        public string Path { get; }
+        public string Scheme { get; }
+    }
+}
+namespace Hardened.Azure.Functions.Runtime.Hosting
+{
+    public class FunctionsInvocationHandler
+    {
+        public FunctionsInvocationHandler(System.IServiceProvider rootServiceProvider, Hardened.Requests.Abstract.Execution.IRequestExecutor executor, Hardened.Shared.Runtime.Metrics.IMetricLoggerProvider metricLoggerProvider, System.Collections.Generic.IEnumerable<Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter> adapters) { }
+        public System.Collections.Generic.IReadOnlyList<Hardened.Azure.Functions.Runtime.Adapters.ITriggerAdapter> Adapters { get; }
+        public System.Threading.Tasks.Task Invoke(Hardened.Azure.Functions.Runtime.Execution.FunctionsTrigger trigger, Microsoft.Azure.Functions.Worker.FunctionContext functionContext) { }
+        public static System.Threading.Tasks.Task Invoke(Microsoft.Azure.Functions.Worker.FunctionContext context, string scheme, string path, object data, Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch dispatch = 0) { }
+    }
+    public static class HardenedFunctionsWorkerBuilderExtensions
+    {
+        public static Microsoft.Azure.Functions.Worker.IFunctionsWorkerApplicationBuilder UseHardened<TApplication>(this Microsoft.Azure.Functions.Worker.IFunctionsWorkerApplicationBuilder builder, Hardened.Shared.Runtime.Application.IHardenedEnvironment? environment = null)
+            where TApplication :  class, DependencyModules.Runtime.Interfaces.IDependencyModule, Hardened.Azure.Functions.Runtime.Hosting.IHardenedFunctionsApplication, new () { }
+    }
+    public interface IHardenedFunctionsApplication
+    {
+        void ConfigureFunctionsWorker(Microsoft.Extensions.DependencyInjection.IServiceCollection services);
+    }
+}
+namespace Hardened.Azure.Functions.Runtime.Modules
+{
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [Hardened.Requests.Runtime.DependencyInjection.HardenedRequestModule]
+    public class FunctionsRuntimeModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public FunctionsRuntimeModule() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class FunctionsRuntimeModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public FunctionsRuntimeModuleAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}

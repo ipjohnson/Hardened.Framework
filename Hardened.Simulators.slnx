@@ -8,7 +8,13 @@
     suite. The fixtures and the applications they mount stay in Hardened.slnx; only the projects
     that need Docker live here, one folder per cloud.
   -->
+  <Folder Name="/Azure/">
+    <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.Host.Tests/Hardened.IntegrationTests.AzureQueue.Host.Tests.csproj" />
+  </Folder>
   <Folder Name="/Aws/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.Tests/Hardened.IntegrationTests.Rie.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Gcp/">
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Queue/Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests/Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests.csproj" />
   </Folder>
 </Solution>
