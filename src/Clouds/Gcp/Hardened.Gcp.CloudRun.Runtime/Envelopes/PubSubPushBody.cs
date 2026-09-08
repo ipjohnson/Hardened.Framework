@@ -135,7 +135,7 @@ public static class PubSubPushBody {
     }
 
     /// <summary>A string property of a JSON object, or null when absent or not a string.</summary>
-    public static string? String(JsonElement element, string property) =>
+    private static string? String(JsonElement element, string property) =>
         element.ValueKind == JsonValueKind.Object &&
         element.TryGetProperty(property, out var value) &&
         value.ValueKind == JsonValueKind.String
