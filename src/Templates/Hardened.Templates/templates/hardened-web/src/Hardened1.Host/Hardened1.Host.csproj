@@ -25,6 +25,8 @@
     <PackageReference Include="Hardened.Web.AspNetCore.Runtime" />
 <!--#endif -->
 <!--#if (lambda) -->
+    <!-- The logging provider Program.cs installs, in place of the console one. -->
+    <PackageReference Include="Amazon.Lambda.Logging.AspNetCore" />
     <!--
       The host and the one adapter web routes need. No Lambda source generator: the entry point is
       Program.cs rather than something emitted.

@@ -100,4 +100,69 @@ public class FeatureExecutionContextTests {
         Assert.Throws<InvalidOperationException>(() => new FeatureExecutionContext(
             provider, provider, features.Collection, Substitute.For<IMetricLogger>()));
     }
+
+    /// <summary>
+    /// Each required feature is checked, not only the first one to be read.
+    /// </summary>
+    /// <remarks>
+    /// The three are read in sequence and each throws with the name of what was missing. A test on
+    /// one of them passes while the other two are unguarded, which is how a server supplying two of
+    /// the three would have reached a null reference somewhere further in instead of the message.
+    /// </remarks>
+    [Theory]
+    [InlineData("request")]
+    [InlineData("responseBody")]
+    public void Constructor_NamesWhicheverRequiredFeatureIsMissing(string missing) {
+        var features = new ServerFeatures();
+
+        if (missing == "request") {
+            features.Collection.Set<Microsoft.AspNetCore.Http.Features.IHttpRequestFeature>(null!);
+        }
+        else {
+            features.Collection.Set<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>(null!);
+        }
+
+        var services = new ServiceCollection();
+        services.AddSingleton(Substitute.For<IKnownServices>());
+        var provider = services.BuildServiceProvider();
+
+        var failure = Assert.Throws<InvalidOperationException>(() => new FeatureExecutionContext(
+            provider, provider, features.Collection, Substitute.For<IMetricLogger>()));
+
+        Assert.Contains("did not supply", failure.Message);
+    }
+
+    /// <summary>
+    /// A server with no lifetime feature leaves the token unable to cancel rather than failing.
+    /// </summary>
+    /// <remarks>
+    /// The feature is optional the way the connection one is. Without it there is no disconnect to
+    /// observe, and <c>CancellationToken.None</c> is what says so - a token that can never be
+    /// cancelled, rather than one that is already cancelled and would abort every request.
+    /// </remarks>
+    [Fact]
+    public void NoLifetimeFeatureLeavesATokenThatCannotCancel() {
+        var features = new ServerFeatures();
+        features.Collection.Set<Microsoft.AspNetCore.Http.Features.IHttpRequestLifetimeFeature>(null!);
+
+        var context = Context(features, out _);
+
+        Assert.False(context.CancellationToken.CanBeCanceled);
+        Assert.False(context.CancellationToken.IsCancellationRequested);
+    }
+
+    /// <summary>And with the feature, the token is the one the server will cancel.</summary>
+    [Fact]
+    public void TheLifetimeFeatureSuppliesTheToken() {
+        var features = new ServerFeatures();
+
+        var context = Context(features, out _);
+
+        Assert.True(context.CancellationToken.CanBeCanceled);
+        Assert.False(context.CancellationToken.IsCancellationRequested);
+
+        features.Aborted.Cancel();
+
+        Assert.True(context.CancellationToken.IsCancellationRequested);
+    }
 }

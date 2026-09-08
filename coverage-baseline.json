@@ -137,7 +137,7 @@
   },
   "Hardened.Web.Kestrel.Runtime": {
     "line": 98.8,
-    "branch": 85.9
+    "branch": 85.1
   },
   "Hardened.Web.Kestrel.Testing": {
     "line": 100.0,

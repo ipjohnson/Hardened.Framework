@@ -134,6 +134,54 @@ public class FeatureTransportInfoTests {
         Assert.Null(Info().Get("something.else"));
     }
 
+    /// <summary>
+    /// A connection with no address answers null rather than the empty string.
+    /// </summary>
+    /// <remarks>
+    /// Kestrel supplies the feature and leaves the addresses unset for a connection that has no IP
+    /// at all - a Unix domain socket or a named pipe - which is a different shape from the feature
+    /// being absent. Both have to reach the same answer, or a socket-hosted application publishes
+    /// an address attribute holding nothing.
+    /// </remarks>
+    [Fact]
+    public void AConnectionWithNoAddressIsNull() {
+        var info = Info(remote: null, remotePort: 51234, local: null, localPort: 443);
+
+        Assert.Null(info.Get(KnownTransportKeys.ClientAddress));
+        Assert.Null(info.Get(KnownTransportKeys.NetworkPeerAddress));
+        Assert.Null(info.Get(KnownTransportKeys.ServerAddress));
+
+        // The ports are still known: it is the address that is missing, not the connection.
+        Assert.Equal("51234", info.Get(KnownTransportKeys.ClientPort));
+        Assert.Equal("443", info.Get(KnownTransportKeys.ServerPort));
+    }
+
+    /// <summary>The ports answer null too when there is no connection feature at all.</summary>
+    [Fact]
+    public void NoConnectionFeatureAnswersNullForPorts() {
+        var info = new FeatureTransportInfo(null, new HttpRequestFeature { Protocol = "HTTP/1.1" });
+
+        Assert.Null(info.Get(KnownTransportKeys.ClientPort));
+        Assert.Null(info.Get(KnownTransportKeys.NetworkPeerPort));
+        Assert.Null(info.Get(KnownTransportKeys.ServerPort));
+    }
+
+    /// <summary>
+    /// A request with no protocol answers null rather than an empty version.
+    /// </summary>
+    /// <remarks>
+    /// <c>IHttpRequestFeature.Protocol</c> is settable and a server that never set it leaves the
+    /// empty string. Publishing that would put an attribute with no value on every span.
+    /// </remarks>
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    public void AMissingProtocolIsNull(string? protocol) {
+        var info = new FeatureTransportInfo(null, new HttpRequestFeature { Protocol = protocol! });
+
+        Assert.Null(info.Get(KnownTransportKeys.NetworkProtocolVersion));
+    }
+
     /// <summary>Every key it publishes is one it understands.</summary>
     [Fact]
     public void EveryPublishedKeyIsAnswerable() {

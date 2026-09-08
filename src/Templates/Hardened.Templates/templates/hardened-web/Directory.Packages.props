@@ -90,6 +90,11 @@
     <PackageVersion Include="Hardened.Aws.Lambda.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Aws.Lambda.ApiGateway" Version="$(HardenedVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+    <!--
+      The logging provider the Lambda entry point installs instead, on AWS's own line rather than
+      Hardened's. Program.cs says why a function logs through this and not through the console.
+    -->
+    <PackageVersion Include="Amazon.Lambda.Logging.AspNetCore" Version="5.0.1" />
   </ItemGroup>
 
   <ItemGroup Label="Google Cloud Run">

@@ -2,10 +2,18 @@
 """
 Fail the build when any assembly's coverage falls below its recorded baseline.
 
-A ratchet, not a cliff. Each baseline starts at the coverage that assembly already had, so
-nothing regresses on day one, and each workstream raises its own floor as it lands. Before this
-existed, CI measured coverage on every build, printed it, and enforced nothing — the numbers
-could fall to zero and the build stayed green.
+A floor, not a ratchet. Each baseline starts at the coverage that assembly already had, so
+nothing regresses on day one. Before this existed, CI measured coverage on every build, printed
+it, and enforced nothing — the numbers could fall to zero and the build stayed green.
+
+It used to raise each floor as a workstream landed, and that is what made it fire on branches
+that changed nothing. A raise records one run's reading, and an assembly's reading moves on its
+own: coverage is an average over a denominator, and the denominator moves when the collector
+reports a branch point in one run and not the next. Hardened.Web.Kestrel.Runtime was pinned at
+85.9, then read 85.7 on main and 85.1 on a branch touching no file in it - not because anything
+regressed, but because four covered branches left the denominator. So improvements are reported
+and the floor is left where it is. Raise one deliberately, when the coverage it records is meant
+to be kept, and take the reading from main rather than from the branch proposing the raise.
 
 Usage:
     python3 scripts/coverage-gate.py --summary coverage-report/Summary.json
@@ -168,10 +176,12 @@ def main() -> int:
     new_assemblies = sorted(set(measured) - set(baseline))
 
     if improvements:
+        # Reported, not acted on. Telling every green run to raise its floors is what pinned an
+        # assembly at the top of its wobble and failed the next ordinary run; see the module
+        # docstring. A floor is raised deliberately or not at all.
         print("Coverage improved:")
         print("\n".join(improvements))
-        print("\nRaise the floor: python3 scripts/coverage-gate.py --summary "
-              f"{args.summary} --update\n")
+        print()
 
     if new_assemblies:
         print("Assemblies with no baseline (add one with --update):")
