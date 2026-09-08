@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Hardened.Web.Kestrel.Runtime.Impl;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets;
@@ -96,6 +97,58 @@ public sealed class HardenedKestrelApplication : IAsyncDisposable {
             AppDomain.CurrentDomain.ProcessExit -= OnProcessExit;
 
             await StopAsync(CancellationToken.None);
+        }
+    }
+
+    /// <summary>
+    /// Starts listening if it has not already, and returns once <paramref name="cancellationToken"/>
+    /// is cancelled or one of <paramref name="signals"/> arrives, with in-flight requests drained
+    /// for up to <paramref name="grace"/> before it does.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Opt-in, beside <see cref="RunAsync(CancellationToken)"/>. That one returns on
+    /// <c>ProcessExit</c>, which is what the runtime raises for SIGTERM when nothing has registered
+    /// for the signal, and the process then exits as soon as the handlers return, before the
+    /// server has stopped: a container stopped with a request in flight answers it with a closed
+    /// connection. Observed on 2026-09-08 in <c>mcr.microsoft.com/dotnet/aspnet:8.0</c> under
+    /// <c>docker stop</c>, which is the Cloud Run and Container Apps contract exactly.
+    /// </para>
+    /// <para>
+    /// A registration with <c>Cancel = true</c> takes the signal away from the runtime, so the stop
+    /// that follows is a drain rather than a race with process exit. Both platforms send SIGTERM
+    /// and follow it with SIGKILL ten seconds later, which is the grace to pass.
+    /// </para>
+    /// </remarks>
+    public async Task RunAsync(
+        IReadOnlyList<PosixSignal> signals, TimeSpan grace, CancellationToken cancellationToken = default) {
+        if (!IsStarted) {
+            await StartAsync(cancellationToken);
+        }
+
+        var shutdown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var registrations = new List<PosixSignalRegistration>(signals.Count);
+
+        foreach (var signal in signals) {
+            registrations.Add(PosixSignalRegistration.Create(signal, context => {
+                context.Cancel = true;
+                shutdown.TrySetResult();
+            }));
+        }
+
+        await using var registration = cancellationToken.Register(() => shutdown.TrySetResult());
+
+        try {
+            await shutdown.Task;
+        }
+        finally {
+            foreach (var one in registrations) {
+                one.Dispose();
+            }
+
+            using var bounded = new CancellationTokenSource(grace);
+
+            await StopAsync(bounded.Token);
         }
     }
 
