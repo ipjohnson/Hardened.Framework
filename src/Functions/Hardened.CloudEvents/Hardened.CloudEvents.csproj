@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <IsAotCompatible>true</IsAotCompatible>
+        <Description>CloudEvents 1.0 for Hardened function adapters: the structured JSON form and the binary HTTP form read into one CloudEvent, with a source-generated serializer context and the route helpers an adapter maps source, type and subject through. No dependency on the CloudNative SDK.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.CloudEvents</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;serverless;functions;cloudevents</PackageTags>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <!--
+      Shared by the Google and Azure lines (decision D8 in docs/design/CLOUD-LINES-PLAN.html):
+      Eventarc, Cloud Storage and Firestore arrive as CloudEvents on Cloud Run, and Event Grid
+      delivers the same shape to a Functions worker. One reader for both, with no CloudNative SDK
+      behind it, is what keeps the two adapters from drifting and keeps the package trimmable.
+
+      Microsoft.Extensions.Primitives is the whole dependency: the binary form is read off the
+      header dictionary every Hardened request already carries, which is keyed by StringValues.
+    -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.CloudEvents.Tests"/>
+        <InternalsVisibleTo Include="Hardened.Gcp.CloudRun.Runtime.Tests"/>
+    </ItemGroup>
+
+</Project>

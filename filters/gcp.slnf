@@ -1,0 +1,10 @@
+{
+  "solution": {
+    "path": "..\\Hardened.slnx",
+    "projects": [
+      "src\\Clouds\\Gcp\\Hardened.Gcp.CloudRun.PubSub\\Hardened.Gcp.CloudRun.PubSub.csproj",
+      "src\\Clouds\\Gcp\\Hardened.Gcp.CloudRun.Runtime\\Hardened.Gcp.CloudRun.Runtime.csproj",
+      "src\\Functions\\Hardened.CloudEvents\\Hardened.CloudEvents.csproj"
+    ]
+  }
+}

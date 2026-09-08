@@ -148,4 +148,15 @@
         <PackageVersion Include="xunit.v3.extensibility.core" Version="3.2.2" />
     </ItemGroup>
 
+    <!--
+      The Google line's own pins. The runtime packages reference no Google SDK at all - a Pub/Sub
+      push and an Eventarc event arrive as HTTP and are read as such - so everything here belongs
+      to the container tier: the Pub/Sub emulator module on the Testcontainers line pinned in the
+      Testing group, and the client the tests publish through against it.
+    -->
+    <ItemGroup Label="Google">
+        <PackageVersion Include="Google.Cloud.PubSub.V1" Version="3.37.0" />
+        <PackageVersion Include="Testcontainers.PubSub" Version="4.14.0" />
+    </ItemGroup>
+
 </Project>
