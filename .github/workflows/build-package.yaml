@@ -93,6 +93,7 @@ jobs:
           smithy --version
 
       - run: dotnet restore Hardened.slnx
+      - run: dotnet restore Hardened.Simulators.slnx
 
       # ContinuousIntegrationBuild turns warnings into errors (see Directory.Build.props).
       # The solution builds warning-free; this is what stops that drifting back.
@@ -269,30 +270,33 @@ jobs:
             --ruleset .spectral.yaml \
             --fail-severity=error
 
-      # Everything except the container tier, which runs in the step after this one. A container test
-      # exercises code in another process, so it contributes nothing to these numbers and would only
-      # hold the coverage run open while emulators start.
+      # Everything except the simulator tier, which is its own solution and runs in the step after
+      # this one. A container test exercises code in another process, so it contributes nothing to
+      # these numbers and would only hold the coverage run open while emulators start.
       - name: Test with coverage
         run: |
           set -o pipefail
           dotnet test Hardened.slnx \
             --no-build --configuration Release \
-            --filter "Category!=Simulator" \
             --settings coverage.runsettings \
             --collect:"Code Coverage" \
             --results-directory ./coverage \
             | tee test-output.log
 
       # The simulator tier: a fixture's build output inside the image its cloud runs it in, driven
-      # by that cloud's emulator through Testcontainers. Docker is on the runner; a test that cannot
-      # reach it fails rather than skips, as every Docker test here does. The same skip checks below
-      # read this log too.
+      # by that cloud's emulator through Testcontainers. Its own solution, because a trait filter on
+      # `dotnet test` filters nothing on this SDK; see the note in Hardened.Simulators.slnx. Built
+      # here rather than with the main solution so the two builds cannot disagree about a fixture:
+      # the applications it mounts were built by the main build, in the same configuration, and
+      # only the test projects themselves are new. Docker is on the runner; a test that cannot reach
+      # it fails rather than skips, as every Docker test here does. The same skip checks below read
+      # this log too.
       - name: Simulators
         run: |
           set -o pipefail
-          dotnet test Hardened.slnx \
+          dotnet build Hardened.Simulators.slnx --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
+          dotnet test Hardened.Simulators.slnx \
             --no-build --configuration Release \
-            --filter "Category=Simulator" \
             | tee simulator-output.log
 
       # xUnit drops test cases that share a unique ID, reporting it only as an

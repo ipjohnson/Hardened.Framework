@@ -1,0 +1,14 @@
+<Solution>
+  <!--
+    The simulator tier: test projects that mount a fixture's build output into the image its cloud
+    runs it in and drive it through that cloud's emulator. A solution of their own rather than a
+    trait inside Hardened.slnx, because `dotnet test - -filter` filters nothing on the pinned SDK
+    with xunit.v3 3.2.2 and xunit.runner.visualstudio 3.1.5: a trait filter ran every test, so the
+    coverage run would have started every emulator and the simulator step would have rerun the
+    suite. The fixtures and the applications they mount stay in Hardened.slnx; only the projects
+    that need Docker live here, one folder per cloud.
+  -->
+  <Folder Name="/Aws/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.Tests/Hardened.IntegrationTests.Rie.Tests.csproj" />
+  </Folder>
+</Solution>

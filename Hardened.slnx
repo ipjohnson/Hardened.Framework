@@ -40,7 +40,6 @@
   </Folder>
   <Folder Name="/Clouds/Aws/IntegrationTests/Rie/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.SUT/Hardened.IntegrationTests.Rie.SUT.csproj" />
-    <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.Tests/Hardened.IntegrationTests.Rie.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Aws/IntegrationTests/Sqs/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT/Hardened.IntegrationTests.Sqs.SUT.csproj" />

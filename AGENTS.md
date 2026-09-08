@@ -9,6 +9,12 @@ and how an application consumes it; this file does not repeat that.
 `filters/framework.slnf` is what an editor opens. A cloud gets a filter of its own when it has
 projects to filter.
 
+The one exception is `Hardened.Simulators.slnx`: the test projects that run a fixture inside a
+cloud's host image against its emulator live there and nowhere else, one folder per cloud. CI
+restores, builds and tests it as its own step after the coverage run. It is a second solution
+rather than a trait, because `dotnet test --filter` filters nothing on the pinned SDK with xunit.v3;
+a trait filter ran every test in both steps.
+
 | Path | Contents |
 |---|---|
 | `src/Shared` | Module entry points, configuration, environment, metrics, the test framework |
