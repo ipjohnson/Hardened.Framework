@@ -31,6 +31,12 @@ public class TimeoutController {
     /// </remarks>
     public const int ShortBudget = 100;
 
+    /// <summary>
+    /// What one attempt of <see cref="Retried"/> costs, so a count of them is what exceeds a
+    /// budget rather than a backoff drawn at random.
+    /// </summary>
+    private const int AttemptCost = 50;
+
     private readonly HandlerCallCounter _counter;
 
     public TimeoutController(HandlerCallCounter counter) {
@@ -92,14 +98,22 @@ public class TimeoutController {
     /// filter ahead of <c>FilterOrder.Retry</c> buys.
     /// </summary>
     /// <remarks>
-    /// Five attempts at 40ms of backoff each cannot fit in 150ms, so the budget is what stops this
-    /// rather than the attempt count. A per-attempt deadline would let all five run.
+    /// Three attempts at <c>AttemptCost</c> exhaust the 150ms budget, so what stops this is the
+    /// budget rather than the attempt count. A per-attempt deadline would let all five run.
+    /// <para>
+    /// The cost is the handler's rather than the retry backoff's because <c>SleepTime</c> is drawn
+    /// from a range and can come in near zero, which fit all five attempts inside the budget and
+    /// failed this test about one run in twelve.
+    /// </para>
     /// </remarks>
     [Get("/retried")]
     [Timeout(Milliseconds = 150)]
-    [Retry(Attempts = 5, SleepTime = 40, TotalBudget = 0)]
-    public string Retried() =>
+    [Retry(Attempts = 5, SleepTime = 0, TotalBudget = 0)]
+    public async Task<string> Retried() {
+        await Task.Delay(AttemptCost);
+
         throw new InvalidOperationException("attempt " + _counter.Next("retried"));
+    }
 
     /// <summary>How many times a handler has run, so an attempt count is assertable.</summary>
     [Get("/calls/{handler}")]

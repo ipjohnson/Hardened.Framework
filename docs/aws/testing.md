@@ -104,8 +104,8 @@ a conditional write exactly as the service does. Derive from it and override `Dd
 the tables:
 
 ```csharp
-using Hardened.Amz.DynamoDbClient;
-using Hardened.Amz.DynamoDbClient.Testing;
+using Hardened.Aws.DynamoDbClient;
+using Hardened.Aws.DynamoDbClient.Testing;
 
 public class OrdersDatabaseAttribute : LocalDynamoDbAttribute {
     protected override async Task DdbSetup(

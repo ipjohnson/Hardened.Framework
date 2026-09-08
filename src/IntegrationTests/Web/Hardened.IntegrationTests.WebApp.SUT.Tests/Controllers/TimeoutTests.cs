@@ -120,7 +120,7 @@ public class TimeoutTests {
     /// <summary>
     /// One budget covers every attempt rather than resetting per attempt. The filter sits ahead of
     /// <c>FilterOrder.Retry</c>, so the retry loop runs inside the deadline and stops when it
-    /// fires; five attempts at forty milliseconds of backoff cannot fit in a hundred and fifty.
+    /// fires; five attempts at fifty milliseconds each cannot fit in a hundred and fifty.
     /// </summary>
     [HardenedTest]
     public async Task OneBudgetCoversEveryRetryAttempt(ITestWebApp testWebApp) {

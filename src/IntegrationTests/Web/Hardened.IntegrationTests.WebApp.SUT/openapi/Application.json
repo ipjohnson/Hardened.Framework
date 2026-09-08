@@ -5080,7 +5080,7 @@
         ],
         "operationId": "retried",
         "summary": "One budget across every attempt rather than one per attempt, which is what putting the filter ahead of FilterOrder.Retry buys.",
-        "description": "Five attempts at 40ms of backoff each cannot fit in 150ms, so the budget is what stops this rather than the attempt count. A per-attempt deadline would let all five run.",
+        "description": "Three attempts at AttemptCost exhaust the 150ms budget, so what stops this is the budget rather than the attempt count. A per-attempt deadline would let all five run. The cost is the handler's rather than the retry backoff's because SleepTime is drawn from a range and can come in near zero, which fit all five attempts inside the budget and failed this test about one run in twelve.",
         "responses": {
           "200": {
             "description": "OK",
