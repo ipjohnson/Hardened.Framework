@@ -75,7 +75,6 @@
     <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.SUT/Hardened.IntegrationTests.AzureQueue.SUT.csproj" />
     <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.SUT.Tests/Hardened.IntegrationTests.AzureQueue.SUT.Tests.csproj" />
     <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.Worker.Tests/Hardened.IntegrationTests.AzureQueue.Worker.Tests.csproj" />
-    <Project Path="src/Clouds/Azure/IntegrationTests/Queue/Hardened.IntegrationTests.AzureQueue.Host.Tests/Hardened.IntegrationTests.AzureQueue.Host.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Aws/">
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj" />
