@@ -8,7 +8,6 @@
       "src\\Clouds\\Azure\\Hardened.Azure.Functions.SourceGenerator.Tests\\Hardened.Azure.Functions.SourceGenerator.Tests.csproj",
       "src\\Clouds\\Azure\\Hardened.Azure.Functions.SourceGenerator\\Hardened.Azure.Functions.SourceGenerator.csproj",
       "src\\Clouds\\Azure\\Hardened.Azure.Functions.Testing\\Hardened.Azure.Functions.Testing.csproj",
-      "src\\Clouds\\Azure\\IntegrationTests\\Queue\\Hardened.IntegrationTests.AzureQueue.Host.Tests\\Hardened.IntegrationTests.AzureQueue.Host.Tests.csproj",
       "src\\Clouds\\Azure\\IntegrationTests\\Queue\\Hardened.IntegrationTests.AzureQueue.SUT.Tests\\Hardened.IntegrationTests.AzureQueue.SUT.Tests.csproj",
       "src\\Clouds\\Azure\\IntegrationTests\\Queue\\Hardened.IntegrationTests.AzureQueue.SUT\\Hardened.IntegrationTests.AzureQueue.SUT.csproj",
       "src\\Clouds\\Azure\\IntegrationTests\\Queue\\Hardened.IntegrationTests.AzureQueue.Worker.Tests\\Hardened.IntegrationTests.AzureQueue.Worker.Tests.csproj",
