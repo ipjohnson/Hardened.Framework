@@ -33,7 +33,9 @@
             <FunctionsAutoRegisterGeneratedFunctionsExecutor>false</FunctionsAutoRegisterGeneratedFunctionsExecutor>
         </PropertyGroup>
 
-        <Error Condition="'$(OutputType)' == 'Exe' And '$(FunctionsExecutionModel)' != 'isolated'"
+        <!-- Not a test project: xUnit v3 makes one an Exe, and it reaches this file through
+             Hardened.Azure.Functions.Testing. Microsoft.NET.Test.Sdk is what marks it. -->
+        <Error Condition="'$(OutputType)' == 'Exe' And '$(FunctionsExecutionModel)' != 'isolated' And '$(IsTestProject)' != 'true'"
                Code="HRDAZ010"
                Text="$(MSBuildProjectName) references Hardened.Azure.Functions.Runtime and not Microsoft.Azure.Functions.Worker.Sdk. The Sdk is what writes worker.config.json and functions.metadata and builds the host extensions, so without it the Functions host never starts this worker. Add a PackageReference to Microsoft.Azure.Functions.Worker.Sdk." />
     </Target>

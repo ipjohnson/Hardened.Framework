@@ -46,6 +46,10 @@
         {
           "choice": "cloud-run",
           "description": "Google Cloud Run: Kestrel on PORT in a container, with a Dockerfile and a SIGTERM drain."
+        },
+        {
+          "choice": "azure-functions",
+          "description": "Azure Functions: the routes behind one anonymous HTTP trigger, in the isolated worker the Functions host starts. Runs locally with Azure Functions Core Tools."
         }
       ]
     },
@@ -119,6 +123,14 @@
     "cloudRun": {
       "type": "computed",
       "value": "(host == 'cloud-run')"
+    },
+    "azureFunctions": {
+      "type": "computed",
+      "value": "(host == 'azure-functions')"
+    },
+    "azureFunctionsUnionConflict": {
+      "type": "computed",
+      "value": "(host == 'azure-functions' && responseModel == 'union')"
     },
     "responseModel": {
       "type": "parameter",
@@ -298,10 +310,24 @@
           ]
         },
         {
-          "comment": "Program.cs is kept on Lambda now: the entry point is written rather than generated, so excluding it leaves the project with no Main at all. The socket smoke test still goes, because it binds a port itself and a Lambda application answers through the test tool's API Gateway emulator instead - which the template's own verification covers over a real socket.",
-          "condition": "(lambda)",
+          "comment": "Program.cs is kept on Lambda now: the entry point is written rather than generated, so excluding it leaves the project with no Main at all. The socket smoke test still goes, because it binds a port itself and a Lambda application answers through the test tool's API Gateway emulator instead - which the template's own verification covers over a real socket. The same on Azure Functions: the host is a separate process, and the worker rung's [AzureFunctionsWebTesting] is the in-process step above the pipeline.",
+          "condition": "(lambda || azureFunctions)",
           "exclude": [
             "tests/Hardened1.Tests/Hardened1SocketTests.cs"
+          ]
+        },
+        {
+          "comment": "The Functions host's configuration and the settings Core Tools reads belong to the one host that has a host; the launch profile goes with them, because F5 on a function app is `func start` rather than the project.",
+          "condition": "(!azureFunctions)",
+          "exclude": [
+            "src/Hardened1.Host/host.json",
+            "src/Hardened1.Host/local.settings.json"
+          ]
+        },
+        {
+          "condition": "(azureFunctions)",
+          "exclude": [
+            "src/Hardened1.Host/Properties/launchSettings.json"
           ]
         },
         {

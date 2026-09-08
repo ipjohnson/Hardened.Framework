@@ -62,7 +62,10 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
     # library, so each of NUnit, Moq and FakeItEasy has to compile and pass at least once, on a
     # client variant that carries the fork: NUnit on the Kiota tests, Moq on the Refit tests, and
     # NUnit with FakeItEasy on the pipeline tests the opt-out row scaffolds.
-    COMBOS=(kestrel:code aspnet:code cloud-run:code kestrel:openapi
+    # azure-functions is served by the Functions host rather than by `dotnet run`, so its
+    # local-run probe needs Azure Functions Core Tools on PATH and is skipped with a note without
+    # it; the row still generates, builds and tests.
+    COMBOS=(kestrel:code aspnet:code cloud-run:code azure-functions:code kestrel:openapi
             kestrel:code:throws kestrel:openapi:throws
             kestrel:code:union kestrel:openapi:union
             kestrel:code:response:refit kestrel:code:throws:refit kestrel:openapi:response:refit
@@ -439,10 +442,19 @@ for COMBO in "${COMBOS[@]}"; do
     # second probe silently talks to the first probe's process.
     serve() {
         local port="$1" env_name="$2" log="$3"
-        ( cd "$OUT/src/Sample.Host" && PORT="$port" HARDENED_ENVIRONMENT="$env_name" \
-            dotnet run --no-build >"$log" 2>&1 & )
+        if [ "$HOST" = azure-functions ]; then
+            # The Functions host, from Core Tools, starting the built worker: there is no server
+            # in the project to `dotnet run`. The host's route prefix is cleared by the
+            # template's host.json, so the routes below answer at the same paths.
+            ( cd "$OUT/src/Sample.Host" && HARDENED_ENVIRONMENT="$env_name" \
+                func start --no-build --port "$port" >"$log" 2>&1 & )
+        else
+            ( cd "$OUT/src/Sample.Host" && PORT="$port" HARDENED_ENVIRONMENT="$env_name" \
+                dotnet run --no-build >"$log" 2>&1 & )
+        fi
 
-        for _ in $(seq 1 60); do
+        # The Functions host takes longer to come up than Kestrel, so it gets a longer wait.
+        for _ in $(seq 1 150); do
             local code
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 1 \
                 "http://localhost:$port/todos/1" || true)
@@ -454,14 +466,26 @@ for COMBO in "${COMBOS[@]}"; do
     }
 
     stop() {
+        # The Functions host is not started from the output directory, so its own process line
+        # does not carry the path; its port does.
+        pkill -f "func start --no-build --port" 2>/dev/null || true
         pkill -f "$OUT/src/Sample.Host" 2>/dev/null || true
         sleep 0.5
     }
 
+    # A Functions app is served by Core Tools, and a machine without them cannot run this probe.
+    # Skipped with a note rather than failed, the way the smithy rows are without their CLI: the
+    # row has generated, built and tested by this point, and templates.yaml installs the tools so
+    # CI does not skip.
+    if [ "$HOST" = azure-functions ] && ! command -v func >/dev/null 2>&1; then
+        echo "   note: skipping the local run of the azure-functions row - it needs Azure Functions Core Tools (func) on PATH"
+        continue
+    fi
+
     # Whatever happens after this point, the servers this combination started are not left running.
     # An abandoned one holds its port, and the next combination that lands on it is talking to the
     # previous application's state rather than its own.
-    trap 'pkill -f "$WORK/.*/src/Sample.Host" 2>/dev/null || true; pkill -f "$WORK/amz-.*/src/Sample" 2>/dev/null || true' EXIT
+    trap 'pkill -f "$WORK/.*/src/Sample.Host" 2>/dev/null || true; pkill -f "$WORK/amz-.*/src/Sample" 2>/dev/null || true; pkill -f "func start --no-build --port" 2>/dev/null || true' EXIT
 
     # Retried rather than asked once. A 000 from a server still warming up is indistinguishable
     # from a 404 by a gate, and the difference decides whether this script fails the build.
@@ -678,6 +702,44 @@ say "cloud function templates"
 #
 # Each row is the template and its flags, then the test framework and mock library the flags named,
 # so the generated test project can be checked against what was asked for.
+#
+# The Azure rows are served by the Functions host, which is Azure Functions Core Tools: the host
+# starts the built worker, asks it for its functions and prints what it indexed, which is the
+# generated metadata provider's answer and the thing worth proving. A source's listener needs a
+# namespace or its emulator, which this run does not start, so the host reports the listener and
+# the row is judged on the index. Without `func` on PATH the run is skipped with a note.
+probe_azure_function() {
+    local out="$1" flags="$2"
+
+    if ! command -v func >/dev/null 2>&1; then
+        echo "   note: skipping the local run of hardened-function $flags - it needs Azure Functions Core Tools (func) on PATH"
+        return 0
+    fi
+
+    local port=$((6100 + RANDOM % 200))
+    ( cd "$out/src/Sample" && func start --no-build --port "$port" >"$out/serve.log" 2>&1 & )
+
+    local indexed=""
+    for _ in $(seq 1 120); do
+        if grep -qE '^\s+(Queue|Topic|Timer|Change|Stream|Blob)_[A-Za-z0-9_]+: ' "$out/serve.log" 2>/dev/null; then
+            indexed=$(grep -oE '(Queue|Topic|Timer|Change|Stream|Blob)_[A-Za-z0-9_]+: [A-Za-z]+' "$out/serve.log" | head -1)
+            break
+        fi
+        sleep 1
+    done
+
+    pkill -f "func start --no-build --port $port" 2>/dev/null || true
+    pkill -f "$out/src/Sample" 2>/dev/null || true
+
+    if [ -n "$indexed" ]; then
+        echo "   hardened-function $flags: the Functions host indexes $indexed"
+    else
+        echo "   FAILED: hardened-function $flags: the Functions host did not index the function"
+        tail -20 "$out/serve.log"
+        FAILED=1
+    fi
+}
+
 for AMZ in "hardened-function --trigger invoke|default|default" \
            "hardened-function --trigger queue|default|default" \
            "hardened-function --trigger topic|default|default" \
@@ -688,6 +750,8 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
            "hardened-web --host aws-lambda|default|default" \
            "hardened-function --host gcp --trigger invoke|default|default" \
            "hardened-function --host gcp --trigger queue|default|default" \
+           "hardened-function --host azure --trigger queue|default|default" \
+           "hardened-function --host azure --trigger timer|default|default" \
            "hardened-function --trigger invoke --test-framework nunit --mocks moq|nunit|moq" \
            "hardened-function --trigger queue --mocks fakeiteasy|default|fakeiteasy"; do
     IFS='|' read -r AMZ_COMMAND TESTS MOCKS <<<"$AMZ"
@@ -709,6 +773,9 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
         run_tests "$AMZ_OUT" "$MOCK_TEST"
         echo "   $AMZ_TEMPLATE $*: builds and tests"
 
+        if [[ "$*" == *"--host azure"* ]]; then
+            probe_azure_function "$AMZ_OUT" "$*"
+        else
         # The generated Main starts the AWS Lambda Test Tool when nothing else is running the
         # function, which is the whole local story and the reason there is no Harness project any
         # more. Proved over a socket: the web host answers through the tool's API Gateway emulator
@@ -764,13 +831,14 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
             tail -20 "$AMZ_OUT/serve.log"
             FAILED=1
         fi
+        fi
         # Worth printing: it is what says these resolved to this run's packages rather than to
         # something left in the global cache.
         #
         # `|| true` because the script runs under `set -e` and a grep that matches nothing exits 1.
         # It looked for Hardened.Amz.* until those left the templates, and the day they did this
         # line began killing the run after the first row rather than printing nothing.
-        grep -hoE '"Hardened\.(Aws\.Lambda|Gcp\.CloudRun)[A-Za-z.]*/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
+        grep -hoE '"Hardened\.(Aws\.Lambda|Gcp\.CloudRun|Azure\.Functions)[A-Za-z.]*/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
             | tr -d '"' | sort -u | head -2 | sed 's/^/     resolved /' || true
     else
         echo "   FAILED: $AMZ_TEMPLATE $*"
@@ -786,9 +854,11 @@ say "host independence"
 # they scaffold without the flag. The old suffixless paths matched nothing, so this check was
 # silently skipped on every run - which is why it now says so instead of saying nothing.
 A="$WORK/kestrel-code-default"
-# Twice: the ASP.NET Core host, and the Cloud Run host, whose test project is the Kestrel one line
-# for line because the Cloud Run runtime composes Kestrel.
-for OTHER in aspnet cloud-run; do
+# Three times: the ASP.NET Core host, the Cloud Run host, whose test project is the Kestrel one
+# line for line because the Cloud Run runtime composes Kestrel, and the Azure Functions host,
+# whose test project names the worker's test host in place of Kestrel's and carries no socket
+# test, because the socket is the Functions host's.
+for OTHER in aspnet cloud-run azure-functions; do
 B="$WORK/$OTHER-code-default"
 if [ -d "$A" ] && [ -d "$B" ]; then
     # Source only. bin/ and obj/ carry absolute paths and compiler output, which differ for
@@ -802,14 +872,19 @@ if [ -d "$A" ] && [ -d "$B" ]; then
     # The rest of that project, and everything else, may not: a test project that referenced the
     # host project would still fail here.
     same_but_the_host() {
-        local host='Hardened\.Web\.Kestrel\.\|Hardened\.Web\.AspNetCore\.\|^\[KestrelRuntime\]\|^\[AspNetCoreRuntime\]\|^\[assembly: KestrelTesting\]\|^\[assembly: AspNetCoreTesting\]'
+        local host='Hardened\.Web\.Kestrel\.\|Hardened\.Web\.AspNetCore\.\|Hardened\.Azure\.Functions\.Testing\|^\[KestrelRuntime\]\|^\[AspNetCoreRuntime\]\|^\[assembly: KestrelTesting\]\|^\[assembly: AspNetCoreTesting\]\|^\[assembly: AzureFunctionsWebTesting\]'
         diff <(grep -v "$host" "$1") <(grep -v "$host" "$2") >/dev/null 2>&1
+    }
+    # The socket test may be absent on a host that has no socket of its own, and then there is
+    # nothing to compare; present on both, it may differ only in the host it names.
+    same_socket_test() {
+        [ ! -f "$2" ] || same_but_the_host "$1" "$2"
     }
     for PART in src/Sample src/Sample.Client tests/Sample.Tests; do
         if diff -r -x bin -x obj -x SampleSocketTests.cs -x Sample.Tests.csproj -x Bootstrap.cs "$A/$PART" "$B/$PART" >/dev/null 2>&1 \
            && { [ "$PART" != tests/Sample.Tests ] \
                 || { same_but_the_host "$A/$PART/Sample.Tests.csproj" "$B/$PART/Sample.Tests.csproj" \
-                     && same_but_the_host "$A/$PART/SampleSocketTests.cs" "$B/$PART/SampleSocketTests.cs" \
+                     && same_socket_test "$A/$PART/SampleSocketTests.cs" "$B/$PART/SampleSocketTests.cs" \
                      && same_but_the_host "$A/$PART/Bootstrap.cs" "$B/$PART/Bootstrap.cs"; }; }; then
             echo "   identical across hosts: $PART (kestrel and $OTHER)"
         else

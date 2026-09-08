@@ -67,3 +67,22 @@ Console.WriteLine($"Listening on {string.Join(", ", app.Addresses)}");
 // process exits before the server has drained.
 await CloudRunHost.RunAsync(app);
 #endif
+#if (azure)
+using Hardened.Azure.Functions.Runtime.Hosting;
+using Hardened1;
+using Microsoft.Extensions.Hosting;
+
+// The whole of the entry point: the isolated worker the Functions host starts, speaking gRPC back
+// to it. Nothing here names the trigger: the handler's attribute decided which adapter got
+// registered and which function the generator wrote for the host to index. The same process runs
+// under `func start` and in Azure, so there is no local branch.
+//
+// ConfigureFunctionsWorkerDefaults and not ConfigureFunctionsWebApplication: nothing here starts
+// an ASP.NET Core server, and a request reaches the worker over the worker channel.
+
+var host = new HostBuilder()
+    .ConfigureFunctionsWorkerDefaults(worker => worker.UseHardened<Application>())
+    .Build();
+
+host.Run();
+#endif

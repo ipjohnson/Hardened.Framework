@@ -15,6 +15,9 @@ using Hardened.Aws.Lambda.Testing;
 using Hardened.Gcp.CloudRun.Testing;
 using Hardened.Web.Testing;
 #endif
+#if (azure)
+using Hardened.Azure.Functions.Testing;
+#endif
 using Hardened.Shared.Testing.Attributes;
 using Hardened1;
 
@@ -42,6 +45,14 @@ using Hardened1;
 // posted to, and [CloudRunTesting] says so if it is missing.
 [assembly: CloudRunTesting]
 [assembly: WebTesting]
+#endif
+#if (azure)
+// Raises the fidelity. Without it a message goes straight into the pipeline, which covers routing,
+// binding and the handler but names no cloud. With it the message is built as the trigger data the
+// isolated worker would bind - a Service Bus message, a timer's state, a change feed document -
+// and handed to the real invocation handler, so the adapter and the batch fan-out are exercised
+// too. A test method reads the same either way - delete this line to drop back down.
+[assembly: AzureFunctionsTesting]
 #endif
 
 // The mock library. [Mock] on a parameter asks this attribute for the double and builds nothing

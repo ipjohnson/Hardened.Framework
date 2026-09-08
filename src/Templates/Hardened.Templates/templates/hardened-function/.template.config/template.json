@@ -67,6 +67,10 @@
         {
           "choice": "gcp",
           "description": "Google Cloud Run. A container listening on PORT; the source arrives as the HTTP request Pub/Sub, Eventarc or Cloud Scheduler sends, and the function names its host with [CloudRunRuntime]."
+        },
+        {
+          "choice": "azure",
+          "description": "Azure Functions. An isolated worker the Functions host starts; the source arrives through the host's own binding, which the build writes from the handler, and the function app runs locally with Azure Functions Core Tools."
         }
       ]
     },
@@ -182,13 +186,21 @@
     "gcpStreamConflict": {
       "type": "computed",
       "value": "(host == 'gcp' && trigger == 'stream')"
+    },
+    "azure": {
+      "type": "computed",
+      "value": "(host == 'azure')"
+    },
+    "azureInvokeConflict": {
+      "type": "computed",
+      "value": "(host == 'azure' && trigger == 'invoke')"
     }
   },
   "sources": [
     {
       "modifiers": [
         {
-          "comment": "The container is the Cloud Run deployment artifact and nothing else's, so the other hosts do not carry a Dockerfile. The Lambda test tool's manifest is the reverse: only the Lambda host starts a tool, and the target that restores it sits behind the same symbol in the csproj.",
+          "comment": "The container is the Cloud Run deployment artifact and nothing else's, so the other hosts do not carry a Dockerfile. The Lambda test tool's manifest is the reverse: only the Lambda host starts a tool, and the target that restores it sits behind the same symbol in the csproj. The host and local settings files are the Functions host's, and only the Azure host has one.",
           "condition": "(!gcp)",
           "exclude": [
             "Dockerfile",
@@ -196,9 +208,16 @@
           ]
         },
         {
-          "condition": "(gcp)",
+          "condition": "(gcp || azure)",
           "exclude": [
             ".config/**"
+          ]
+        },
+        {
+          "condition": "(!azure)",
+          "exclude": [
+            "src/Hardened1/host.json",
+            "src/Hardened1/local.settings.json"
           ]
         }
       ]

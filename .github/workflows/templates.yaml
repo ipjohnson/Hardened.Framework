@@ -76,6 +76,17 @@ jobs:
           test "$(smithy --version)" = "$SMITHY_VERSION"
           smithy --version
 
+      # The Azure rows run their generated application under the Functions host, which is Azure
+      # Functions Core Tools rather than `dotnet run`. The script skips that probe with a printed
+      # note when `func` is absent rather than failing, the way it skips the smithy rows; installing
+      # the tools here is what keeps the matrix whole. The npm package downloads the host for the
+      # runner's platform on install.
+      - name: Install Azure Functions Core Tools
+        run: |
+          set -euo pipefail
+          npm install -g azure-functions-core-tools@4 --unsafe-perm true
+          func --version
+
       # Everything the run needs is in the script, so the workflow is one line and the same
       # command works on a laptop. A CI-only invocation is one nobody can reproduce when it fails.
       - name: Generate, build, test and serve from the packed template

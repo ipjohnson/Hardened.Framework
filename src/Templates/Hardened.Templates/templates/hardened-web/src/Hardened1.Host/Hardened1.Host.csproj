@@ -39,9 +39,39 @@
     <PackageReference Include="Hardened.Web.Kestrel.Runtime" />
     <PackageReference Include="Hardened.Gcp.CloudRun.Runtime" />
 <!--#endif -->
+<!--#if (azureFunctions) -->
+    <!--
+      The Worker SDK, the runtime, and the one adapter web routes need. The SDK is what makes
+      this project a function app: it scans the HTTP function the generator wrote into
+      functions.metadata, builds the host's extensions and writes worker.config.json. No Lambda
+      test tool and no Dockerfile: the Functions host is what runs the worker, locally through
+      Azure Functions Core Tools and in Azure as itself.
+    -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" />
+    <PackageReference Include="Hardened.Azure.Functions.Runtime" />
+    <PackageReference Include="Hardened.Azure.Functions.Http" />
+<!--#endif -->
     <PackageReference Include="Hardened.Library.SourceGenerator" />
     <PackageReference Include="Hardened.Web.SourceGenerator" />
+<!--#if (azureFunctions) -->
+    <!-- The host's view of the routes: one anonymous HTTP function catching every method under
+         every path, the metadata provider the host indexes from and the executor it invokes
+         through. Read it in obj/ beside the other generated files. -->
+    <PackageReference Include="Hardened.Azure.Functions.SourceGenerator" PrivateAssets="all" />
+<!--#endif -->
   </ItemGroup>
+<!--#if (azureFunctions) -->
+
+  <!--
+    The host's configuration beside the worker, and the settings `func start` reads. The local
+    settings never reach a deployment: a deployed function app reads its settings from the
+    environment the portal or `az functionapp config appsettings set` wrote.
+  -->
+  <ItemGroup>
+    <None Update="host.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="local.settings.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+<!--#endif -->
 
   <ItemGroup>
     <ProjectReference Include="..\Hardened1\Hardened1.csproj" />

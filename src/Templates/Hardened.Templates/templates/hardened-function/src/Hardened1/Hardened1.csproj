@@ -67,6 +67,32 @@
     <PackageReference Include="Hardened.Gcp.CloudRun.Storage" />
 <!--#endif -->
 <!--#endif -->
+<!--#if (azure) -->
+    <!--
+      The Worker SDK, the runtime, and one adapter for the trigger the handler declares. The SDK
+      is what makes this project a function app: it scans the function the generator wrote into
+      functions.metadata, builds the host's extensions and writes worker.config.json. The adapter
+      is a package rather than a flag so a function app carries only the extension it can reach:
+      a queue app never has the Event Hubs or Cosmos DB extension in its deployment.
+    -->
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" />
+    <PackageReference Include="Hardened.Azure.Functions.Runtime" />
+<!--#if (queue || topic) -->
+    <PackageReference Include="Hardened.Azure.Functions.ServiceBus" />
+<!--#endif -->
+<!--#if (timer) -->
+    <PackageReference Include="Hardened.Azure.Functions.Timer" />
+<!--#endif -->
+<!--#if (change) -->
+    <PackageReference Include="Hardened.Azure.Functions.CosmosDb" />
+<!--#endif -->
+<!--#if (stream) -->
+    <PackageReference Include="Hardened.Azure.Functions.EventHubs" />
+<!--#endif -->
+<!--#if (blob) -->
+    <PackageReference Include="Hardened.Azure.Functions.Blobs" />
+<!--#endif -->
+<!--#endif -->
   </ItemGroup>
 
   <ItemGroup>
@@ -76,7 +102,27 @@
       build-time only, and nothing that references this assembly should inherit them.
     -->
     <PackageReference Include="Hardened.Function.SourceGenerator" PrivateAssets="all" />
+<!--#if (azure) -->
+    <!--
+      The host's view of the handlers: one function per source, with the binding attribute the
+      Worker SDK scans, the metadata provider the host indexes from and the executor it invokes
+      through. Read it in obj/ beside the other generated files.
+    -->
+    <PackageReference Include="Hardened.Azure.Functions.SourceGenerator" PrivateAssets="all" />
+<!--#endif -->
   </ItemGroup>
+<!--#if (azure) -->
+
+  <!--
+    The host's configuration beside the worker, and the settings `func start` reads. The local
+    settings never reach a deployment: a deployed function app reads its settings from the
+    environment the portal or `az functionapp config appsettings set` wrote.
+  -->
+  <ItemGroup>
+    <None Update="host.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="local.settings.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+<!--#endif -->
 
 <!--#if (aws) -->
   <!--
