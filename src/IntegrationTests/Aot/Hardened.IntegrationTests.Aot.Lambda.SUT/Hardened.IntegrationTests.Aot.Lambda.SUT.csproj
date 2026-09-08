@@ -43,8 +43,8 @@
     <Import Project="..\..\..\Clouds\Aws\Hardened.Aws.Lambda.Sqs\Package\Hardened.Aws.Lambda.Sqs.targets"/>
 
     <ItemGroup>
-        <!-- The console logger, which the Kestrel host brought in transitively and no function host does. -->
-        <PackageReference Include="Microsoft.Extensions.Logging.Console"/>
+        <!-- The logging provider Program.cs installs, in place of the console one. -->
+        <PackageReference Include="Amazon.Lambda.Logging.AspNetCore"/>
     </ItemGroup>
 
     <ItemGroup>
