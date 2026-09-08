@@ -109,9 +109,9 @@ public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest {
         }
 
         headers[SequenceNumberHeader] = eventData.SequenceNumber.ToString(CultureInfo.InvariantCulture);
-        headers[OffsetHeader] = eventData.Offset.ToString(CultureInfo.InvariantCulture);
+        Set(headers, OffsetHeader, SystemProperty(eventData, OffsetProperty));
         Set(headers, PartitionKeyHeader, eventData.PartitionKey);
-        headers[EnqueuedTimeHeader] = eventData.EnqueuedTime.ToString("o", CultureInfo.InvariantCulture);
+        Set(headers, EnqueuedTimeHeader, SystemProperty(eventData, EnqueuedTimeProperty));
         Set(headers, MessageIdHeader, eventData.MessageId);
         Set(headers, "Content-Type", eventData.ContentType);
 
@@ -124,11 +124,31 @@ public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest {
             headers);
     }
 
+    /// <summary>The AMQP annotations the service stamps on an event, by their wire names.</summary>
+    private const string OffsetProperty = "x-opt-offset";
+
+    private const string EnqueuedTimeProperty = "x-opt-enqueued-time";
+
+    /// <summary>
+    /// A system property as the service wrote it, rather than through the SDK's typed accessor.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="EventData.Offset"/> is a <c>long</c>, and what the worker's converter puts in
+    /// the property is the host's text: the emulator and a geo-replicated namespace write offsets
+    /// such as <c>0-128</c>, which the accessor cannot cast and the SDK obsoleted it for in 5.12.
+    /// Reading the annotation as whatever it is gives the header the service's own value on
+    /// every namespace, and a test's model-factory event still renders its number.
+    /// </remarks>
+    private static string? SystemProperty(EventData eventData, string name) =>
+        eventData.SystemProperties.TryGetValue(name, out var value) ? Render(value) : null;
+
     private static string? Render(object? value) =>
         value switch {
             null => null,
             string text => text,
             byte[] => null,
+            DateTimeOffset time => time.ToString("o", CultureInfo.InvariantCulture),
+            DateTime time => new DateTimeOffset(time.ToUniversalTime(), TimeSpan.Zero).ToString("o", CultureInfo.InvariantCulture),
             IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString()
         };

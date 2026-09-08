@@ -20,8 +20,10 @@ namespace Hardened.Azure.Functions.EventHubs;
 [FunctionsRuntimeModule]
 public partial class EventHubsModule : IServiceCollectionConfiguration {
     /// <summary>
-    /// The app setting that holds the Event Hubs connection, or null for the extension's default,
-    /// <c>AzureWebJobsEventHubs</c>. Nullable, as every module property has to be; see
+    /// The app setting that holds the Event Hubs connection, or null for
+    /// <c>AzureWebJobsEventHubs</c>. The extension has no default of its own - a trigger naming
+    /// no connection fails the host at startup - so the generator writes that one, named after
+    /// the Service Bus extension's. Nullable, as every module property has to be; see
     /// <c>SqsModule</c>.
     /// </summary>
     public string? Connection { get; set; }

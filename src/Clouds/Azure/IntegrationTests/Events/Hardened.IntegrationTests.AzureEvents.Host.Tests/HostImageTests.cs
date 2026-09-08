@@ -31,12 +31,15 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.FunctionApp> {
 
         const string prefix = "Host.Functions.";
 
+        // A line under the heading is the prefix and the name and nothing else; a later log line
+        // that happens to mention a function's category carries more, and is not the list.
         var indexed = log.Split('\n')
             .Select(line => line.TrimEnd('\r'))
             .Where(line => line.Contains(prefix, StringComparison.Ordinal))
             .Select(line => line.Substring(line.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length).Trim())
+            .Where(name => name.Length > 0 && name.All(character => char.IsLetterOrDigit(character) || character == '_'))
             .Distinct()
-            .Order()
+            .Order(StringComparer.Ordinal)
             .ToArray();
 
         Assert.Equal(["Event", "Queue_orders_new", "Timer_nightly_rollup", "Topic_order_events"], indexed);

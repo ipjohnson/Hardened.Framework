@@ -31,6 +31,7 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.FunctionApp> {
             .Select(line => line.TrimEnd('\r'))
             .Where(line => line.Contains(prefix, StringComparison.Ordinal))
             .Select(line => line.Substring(line.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length).Trim())
+            .Where(name => name.Length > 0 && name.All(character => char.IsLetterOrDigit(character) || character == '_'))
             .Distinct()
             .ToArray();
 

@@ -74,17 +74,31 @@ public sealed class StreamHostSimulator : IAsyncDisposable {
             .DependsOn(_azurite)
             .DependsOn(_eventHubs)
             .WithWaitStrategy(Wait.ForUnixContainer()
-                .UntilHttpRequestIsSucceeded(request => request.ForPort(HostPort).ForPath("/")))
+                .UntilHttpRequestIsSucceeded(
+                    request => request.ForPort(HostPort).ForPath("/"),
+                    strategy => strategy.WithTimeout(StartupTimeout)))
             .Build();
     }
+
+    /// <summary>Bounded for the reason the queue fixture's simulator gives.</summary>
+    public static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(5);
 
     public ObservedInvocations Observed => new(_host);
 
     /// <summary>The connection string a test publishes with, from outside the network.</summary>
     public string PublisherConnectionString => _eventHubs.GetConnectionString();
 
-    public Task StartAsync(CancellationToken cancellationToken = default) =>
-        _host.StartAsync(cancellationToken);
+    /// <summary>Starts the host and its dependencies, or fails carrying what the host printed.</summary>
+    public async Task StartAsync(CancellationToken cancellationToken = default) {
+        try {
+            await _host.StartAsync(cancellationToken);
+        }
+        catch (TimeoutException timeout) {
+            throw new TimeoutException(
+                $"The host did not answer on its port within {StartupTimeout.TotalMinutes:0} minutes. It printed:\n" +
+                await HostLog(cancellationToken), timeout);
+        }
+    }
 
     public async Task<string> HostLog(CancellationToken cancellationToken = default) {
         var (stdout, stderr) = await _host.GetLogsAsync(ct: cancellationToken);
