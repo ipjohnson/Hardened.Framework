@@ -283,7 +283,15 @@ internal abstract class AzureBinding {
     /// <c>[Stream("orders")]</c>: a batched Event Hubs trigger, bound as <c>EventData[]</c> for
     /// <c>Hardened.Azure.Functions.EventHubs</c>.
     /// </summary>
+    /// <remarks>
+    /// The connection is always written, because the Event Hubs extension has no default of its
+    /// own: a trigger that names none fails the host at startup with "No event hub receiver
+    /// named ...". <see cref="DefaultConnection"/> follows the Service Bus extension's naming, so
+    /// a deployment sets <c>AzureWebJobsEventHubs</c> beside <c>AzureWebJobsServiceBus</c>.
+    /// </remarks>
     private sealed class StreamBinding : AzureBinding {
+        public const string DefaultConnection = "AzureWebJobsEventHubs";
+
         public override string Scheme => "STREAM";
         public override string Property => "HardenedStreamModule";
         public override string FunctionPrefix => "Stream";
@@ -298,12 +306,9 @@ internal abstract class AzureBinding {
 
         public override AttributeArguments Arguments(string source, ModuleSettings settings) {
             var named = new List<KeyValuePair<string, string>> {
-                new("IsBatched", "true")
+                new("IsBatched", "true"),
+                new("Connection", settings.Get("Connection")?.Text ?? QuoteString(DefaultConnection))
             };
-
-            if (settings.Get("Connection") is { } connection) {
-                named.Add(new KeyValuePair<string, string>("Connection", connection.Text));
-            }
 
             if (settings.Get("ConsumerGroup") is { } group) {
                 named.Add(new KeyValuePair<string, string>("ConsumerGroup", group.Text));
@@ -317,11 +322,8 @@ internal abstract class AzureBinding {
                 .String("name", "events")
                 .String("direction", "In")
                 .String("type", "eventHubTrigger")
-                .String("eventHubName", source);
-
-            if (settings.Get("Connection")?.Literal is { } connection) {
-                json.String("connection", connection);
-            }
+                .String("eventHubName", source)
+                .String("connection", settings.Get("Connection")?.Literal ?? DefaultConnection);
 
             if (settings.Get("ConsumerGroup")?.Literal is { } group) {
                 json.String("consumerGroup", group);

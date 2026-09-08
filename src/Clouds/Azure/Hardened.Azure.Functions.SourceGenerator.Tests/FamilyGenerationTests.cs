@@ -43,8 +43,9 @@ public class FamilyGenerationTests {
     }
 
     /// <summary>
-    /// Event Hubs binds the SDK's own event, batched, with the consumer group and connection the
-    /// application named.
+    /// Event Hubs binds the SDK's own event, batched, with the consumer group the application
+    /// named and a connection whether or not it named one: the extension has no default, and a
+    /// trigger without a connection fails the host at startup.
     /// </summary>
     [Fact]
     public async Task AStreamHandlerCompilesToABatchedEventHubsFunction() {
@@ -57,7 +58,10 @@ public class FamilyGenerationTests {
             application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(ConsumerGroup = \"analytics\")]")
             .AssertNoErrors();
 
-        Assert.Contains("global::Azure.Messaging.EventHubs.EventData[] events", FunctionsSource(result));
+        var functions = FunctionsSource(result);
+
+        Assert.Contains("global::Azure.Messaging.EventHubs.EventData[] events", functions);
+        Assert.Contains("IsBatched = true, Connection = \"AzureWebJobsEventHubs\", ConsumerGroup = \"analytics\"", functions);
 
         var stream = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
 
@@ -67,8 +71,27 @@ public class FamilyGenerationTests {
 
         Assert.Contains("\"type\":\"eventHubTrigger\"", binding);
         Assert.Contains("\"eventHubName\":\"clickstream\"", binding);
+        Assert.Contains("\"connection\":\"AzureWebJobsEventHubs\"", binding);
         Assert.Contains("\"consumerGroup\":\"analytics\"", binding);
         Assert.Contains("\"cardinality\":\"Many\"", binding);
+    }
+
+    /// <summary>The connection the application names replaces the default.</summary>
+    [Fact]
+    public async Task AStreamHandlersConnectionComesFromTheModule() {
+        var result = Generate(
+            """
+                [Stream("clickstream")]
+                public void OnClick(Order order) { }
+            """,
+            [("HardenedStreamModule", EventHubsModule)],
+            application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(Connection = \"Hubs\")]")
+            .AssertNoErrors();
+
+        var stream = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
+
+        Assert.Contains("\"connection\":\"Hubs\"", Assert.Single(stream.RawBindings!));
+        Assert.DoesNotContain("AzureWebJobsEventHubs", FunctionsSource(result));
     }
 
     /// <summary>
