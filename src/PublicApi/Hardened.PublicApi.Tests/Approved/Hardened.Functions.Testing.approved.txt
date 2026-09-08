@@ -17,6 +17,12 @@ namespace Hardened.Functions.Testing
         public System.Threading.Tasks.Task<object?> Call(object message, string scheme, string path, System.Type? responseType) { }
         public System.Threading.Tasks.Task Deliver(System.Collections.Generic.IReadOnlyList<object> messages, string scheme, string path) { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Class | System.AttributeTargets.Method)]
+    public sealed class PipelineDeliveryAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute
+    {
+        public PipelineDeliveryAttribute() { }
+        public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
+    }
     public sealed class TriggerInvoker
     {
         public TriggerInvoker(Hardened.Functions.Testing.ITriggerDelivery delivery) { }
