@@ -45,6 +45,7 @@ public class NameAllocatorTests {
 
             foreach (var operation in service.Operations) {
                 yield return operation.MethodName;
+                yield return operation.ResponseContainerName;
             }
         }
     }
@@ -272,6 +273,96 @@ public class NameAllocatorTests {
     /// named after its type is GitHub, the repeated enum values are Elasticsearch, the empty value
     /// is Docker and Cloudflare, and the two parameters called <c>path</c> are Kubernetes.
     /// </remarks>
+    /// <summary>
+    /// The response container loses to a schema of the same name.
+    /// </summary>
+    /// <remarks>
+    /// <c>{Operation}Response</c> is one of the commonest schema naming conventions in OpenAPI, and
+    /// the container lands in the models namespace beside the schemas - so a contract declaring an
+    /// operation <c>sync</c> and a schema <c>SyncResponse</c> emitted the name twice into one
+    /// namespace. CS0101 for the duplicate, and CS0556 behind it, because the container's implicit
+    /// conversion from the schema became a conversion from itself. The document's own type keeps
+    /// the name, as it does against every other generated wrapper here.
+    /// </remarks>
+    [Fact]
+    public void TheResponseContainerLosesItsNameToASchema() {
+        var model = Parse(ContainerCollision);
+
+        var schema = Assert.Single(model.Schemas, candidate => candidate.Name == "SyncResponse");
+        var sync = Operation(model, "Sync");
+
+        Assert.NotNull(schema);
+        Assert.Equal("SyncResponseSet", sync.ResponseContainerName);
+
+        // The operation that collides with nothing keeps the derived name, so nothing moved that
+        // did not have to.
+        Assert.Equal("UnlockResponse", Operation(model, "Unlock").ResponseContainerName);
+    }
+
+    private static OperationModel Operation(ServiceSpecModel model, string methodName) {
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                if (operation.MethodName == methodName) {
+                    return operation;
+                }
+            }
+        }
+
+        throw new KeyNotFoundException(methodName);
+    }
+
+    private const string ContainerCollision = """
+        openapi: "3.0.3"
+        info: { title: T, version: "1.0" }
+        paths:
+          /sync:
+            post:
+              tags: [Sync]
+              operationId: sync
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/SyncResponse' }
+                '401':
+                  description: unauthorized
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Problem' }
+          /unlock:
+            post:
+              tags: [Sync]
+              operationId: unlock
+              responses:
+                '200':
+                  description: ok
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Unlock' }
+                '401':
+                  description: unauthorized
+                  content:
+                    application/json:
+                      schema: { $ref: '#/components/schemas/Problem' }
+        components:
+          schemas:
+            SyncResponse:
+              type: object
+              required: [status]
+              properties: { status: { type: string } }
+            Unlock:
+              type: object
+              required: [cost]
+              properties: { cost: { type: integer } }
+            Problem:
+              type: object
+              required: [title, status]
+              properties:
+                title: { type: string }
+                status: { type: integer }
+        """;
+
     private const string Colliding = """
         openapi: "3.0.3"
         info: { title: T, version: "1.0" }

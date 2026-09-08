@@ -140,7 +140,52 @@ internal static class NameAllocator {
 
         AllocateOperationNames(model, file);
         AllocateErrorTypeNames(model, types);
+        AllocateResponseContainerNames(model, types);
         AllocateMemberNames(model);
+    }
+
+    /// <summary>
+    /// The container an operation's declared responses are returned in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>{Operation}Response</c> lands in the models namespace beside the schemas, and that is one
+    /// of the commonest schema names in OpenAPI - a contract declaring an operation <c>sync</c> and
+    /// a schema <c>SyncResponse</c> emitted the name twice into one namespace and did not compile.
+    /// The generated container is what moves, because a document's own type keeps its name.
+    /// </para>
+    /// <para>
+    /// After the operation names, which is where <c>MethodName</c> is decided, and after the error
+    /// types, so a declared error's shape keeps the name it brought. Sorted by the name being asked
+    /// for, so which of two operations that want one identifier gets it does not depend on the
+    /// order the description listed them in.
+    /// </para>
+    /// <para>
+    /// Allocated for every operation rather than only the ones that get a container. Whether one is
+    /// emitted is <c>ResponseSetPlan.RequiresResponseSet</c>, which depends on the response model -
+    /// an MSBuild property this pass does not see - so allocating on that condition would give one
+    /// document two sets of names depending on how it was built.
+    /// </para>
+    /// </remarks>
+    private static void AllocateResponseContainerNames(ServiceSpecModel model, Scope types) {
+        var operations = new List<OperationModel>();
+
+        foreach (var service in model.Services) {
+            operations.AddRange(service.Operations);
+        }
+
+        operations.Sort((left, right) => string.CompareOrdinal(left.MethodName, right.MethodName));
+
+        foreach (var operation in operations) {
+            var desired = operation.MethodName + "Response";
+
+            // Qualified by what distinguishes the container from the schema it collided with: it is
+            // the set of responses rather than one of them, and "response set" is what the rest of
+            // the generator calls it. A number would say nothing, and the document is not what the
+            // two disagreed over.
+            operation.ResponseContainerName =
+                types.Allocate(desired, operation.MethodName + "ResponseSet");
+        }
     }
 
     /// <summary>

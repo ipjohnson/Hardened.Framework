@@ -125,12 +125,19 @@ internal static class ResponseSetPlan {
 
     /// <summary>The name the service interface returns for this operation.</summary>
     /// <remarks>
+    /// <para>
     /// Public because <c>ServiceInterfaceEmitter</c> names it in a signature and this is the only
     /// definition of the scheme. Deriving it a second time there is how a generated type and the
     /// signature that returns it come to disagree.
+    /// </para>
+    /// <para>
+    /// Read off the model rather than composed here, for the reason <see cref="ErrorCaseName"/>
+    /// gives: the container shares a namespace with the schemas, so whether it can keep the name it
+    /// wants needs the whole document. <c>NameAllocator</c> decided it.
+    /// </para>
     /// </remarks>
     public static string ContainerName(OperationModel operation) =>
-        operation.MethodName + "Response";
+        operation.ResponseContainerName;
 
     /// <summary>The case type for one declared success status.</summary>
     /// <remarks>

@@ -55,7 +55,13 @@ internal static class SpecModelSerializer {
     /// spec record - the <c>secscheme</c> records carrying declared security schemes, and each
     /// operation's <c>SecurityRequirements</c>. Bumped for the new record tag, same reasoning as 4.
     /// </remarks>
-    private const string Header = "#hardened-openapi-model 5";
+    /// <remarks>
+    /// 6 adds each operation's <c>ResponseContainerName</c>, which the name allocator decides
+    /// against the schemas rather than the emitter deriving it. Additive, and bumped anyway: a 5
+    /// reader handed a 6 file would find no name and re-derive the colliding one, which is the
+    /// silent half of the defect the allocation exists to close.
+    /// </remarks>
+    private const string Header = "#hardened-openapi-model 6";
 
     private const char FieldSeparator = '\t';
 
@@ -564,6 +570,7 @@ internal static class SpecModelSerializer {
         record.Add("OperationId", operation.OperationId);
         record.Add("Summary", operation.Summary);
         record.Add("MethodName", operation.MethodName);
+        record.Add("ResponseContainerName", operation.ResponseContainerName);
         record.Add("Path", operation.Path);
         record.Add("HttpMethod", operation.HttpMethod);
         record.Add("DispatchKey", operation.DispatchKey);
@@ -679,6 +686,7 @@ internal static class SpecModelSerializer {
 
     private static OperationModel ReadOperation(Record record) => new() {
         MethodName = record.String("MethodName") ?? "",
+        ResponseContainerName = record.String("ResponseContainerName") ?? "",
         OperationId = record.String("OperationId") ?? "",
         Path = record.String("Path") ?? "",
         HttpMethod = record.String("HttpMethod") ?? "",

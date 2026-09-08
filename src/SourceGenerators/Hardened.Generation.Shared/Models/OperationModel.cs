@@ -18,6 +18,30 @@ internal class OperationModel : IEquatable<OperationModel> {
     }
 
     private string _methodName = "";
+
+    /// <summary>
+    /// The C# name of the container this operation's declared responses are returned in.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Allocated by <c>NameAllocator</c> against the same scope the schemas take their names from,
+    /// because the container lands in the models namespace beside them and
+    /// <c>{Operation}Response</c> is one of the commonest schema names in OpenAPI. A contract with
+    /// an operation <c>sync</c> and a schema <c>SyncResponse</c> emitted the name twice into one
+    /// namespace: CS0101 for the type, and a CS0556 behind it, because the container's implicit
+    /// conversion from the schema became a conversion from itself.
+    /// </para>
+    /// <para>
+    /// Falls back to the derived form, so a model built by hand - which every emitter test does -
+    /// gets the name it always had without going through the allocator.
+    /// </para>
+    /// </remarks>
+    public string ResponseContainerName {
+        get => _responseContainerName.Length > 0 ? _responseContainerName : MethodName + "Response";
+        set => _responseContainerName = value ?? "";
+    }
+
+    private string _responseContainerName = "";
     public string Path { get; set; } = "";
     public string HttpMethod { get; set; } = "";
 
@@ -258,6 +282,7 @@ internal class OperationModel : IEquatable<OperationModel> {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
         return OperationId == other.OperationId && Path == other.Path &&
+               ResponseContainerName == other.ResponseContainerName &&
                HttpMethod == other.HttpMethod && DispatchKey == other.DispatchKey &&
                Tag == other.Tag && Tags.SequenceEqual(other.Tags) &&
                Summary == other.Summary &&
