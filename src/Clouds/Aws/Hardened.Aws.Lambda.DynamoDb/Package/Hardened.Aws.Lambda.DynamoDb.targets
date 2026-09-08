@@ -15,6 +15,6 @@
             <HardenedChangeModule>MyCompany.SomeOtherModule</HardenedChangeModule>
     -->
     <PropertyGroup>
-        <HardenedChangeModule Condition="'$(HardenedChangeModule)' == ''">Hardened.Aws.Lambda.DynamoDb.DynamoDbModule</HardenedChangeModule>
+        <HardenedChangeModule Condition="'$(HardenedChangeModule)' == ''">Hardened.Aws.Lambda.DynamoDb.DynamoDbStreamsModule</HardenedChangeModule>
     </PropertyGroup>
 </Project>

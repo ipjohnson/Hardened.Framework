@@ -93,7 +93,7 @@ Reporting has to match the deployment here too:
 
 ```csharp
 [HardenedModule]
-[DynamoDbModule(ReportBatchItemFailures = true)]
+[DynamoDbStreamsModule(ReportBatchItemFailures = true)]
 public partial class Application;
 ```
 

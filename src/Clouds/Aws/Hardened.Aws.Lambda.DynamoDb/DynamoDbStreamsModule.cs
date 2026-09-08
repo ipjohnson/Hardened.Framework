@@ -9,23 +9,32 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Hardened.Aws.Lambda.DynamoDb;
 
 /// <summary>
-/// Registers the DynamoDB Streams adapter, applied to an application as <c>[DynamoDbModule]</c>.
+/// Registers the DynamoDB Streams adapter, applied to an application as
+/// <c>[DynamoDbStreamsModule]</c>.
 /// </summary>
 /// <remarks>
+/// <para>
 /// An application does not normally write this. <c>[Change]</c> on a handler is what selects it,
 /// through the <c>HardenedChangeModule</c> build property this package declares - which is also how
 /// the same handler reaches a Cosmos change feed on another provider.
+/// </para>
+/// <para>
+/// <b>Streams in the name, because DynamoDB is two things here.</b> This serves a table's change
+/// feed; <c>Hardened.Aws.DynamoDbClient</c>'s <c>[DynamoDbClientModule]</c> supplies clients that
+/// read and write the table itself. Both were <c>[DynamoDbModule]</c> until 0.31.0, so an
+/// application doing both could not name either without qualifying it.
+/// </para>
 /// </remarks>
 [DependencyModule]
 [LambdaRuntimeModule]
-public partial class DynamoDbModule : IServiceCollectionConfiguration {
+public partial class DynamoDbStreamsModule : IServiceCollectionConfiguration {
     /// <summary>
     /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>.
     /// </summary>
     /// <remarks>
     /// Nullable, as every module property here has to be: DependencyModules copies a property
     /// across guarded by a null check only for a nullable one, so a non-nullable bool would be
-    /// assigned false by <c>[DynamoDbModule]</c> written with no arguments.
+    /// assigned false by <c>[DynamoDbStreamsModule]</c> written with no arguments.
     /// </remarks>
     public bool? ReportBatchItemFailures { get; set; }
 
@@ -39,7 +48,7 @@ public partial class DynamoDbModule : IServiceCollectionConfiguration {
     /// <summary>
     /// By type alone, so applying the module twice loads one adapter.
     /// </summary>
-    public override bool Equals(object? obj) => obj is DynamoDbModule;
+    public override bool Equals(object? obj) => obj is DynamoDbStreamsModule;
 
-    public override int GetHashCode() => typeof(DynamoDbModule).GetHashCode();
+    public override int GetHashCode() => typeof(DynamoDbStreamsModule).GetHashCode();
 }
