@@ -155,7 +155,12 @@ public async Task StoresAnOrder(IOrderRepository repository) {
 
 The default is `amazon/dynamodb-local:latest`. One container is started per image and shared by
 every test in the process that names it, so tests needing isolation from one another should use
-distinct keys rather than distinct databases. Every client name resolves to that same container.
+distinct keys rather than distinct databases.
+
+Every client name resolves to that same container, including a name the application configured a
+second account or region for. A test asserting behaviour across two accounts is asserting something
+DynamoDB Local cannot represent, so pretending otherwise would only make the failure harder to
+read.
 
 ### Without the rest of the package
 
@@ -168,6 +173,11 @@ var client   = LocalDynamoDb.CreateClient();                    // already point
 ```
 
 Nothing there knows what a table or a key looks like.
+
+`LocalDynamoDb.StopAll()` ends every container the process started. Testcontainers' Ryuk reaps them
+when the run ends regardless, so this is not needed for correctness — it is there so a suite can end
+its containers at a point it chooses, which makes the lifetime legible and reclaims the memory
+before the process finishes.
 
 ::: warning Docker has to be running
 Testcontainers needs a Docker daemon. On a machine without one, these tests fail at container
