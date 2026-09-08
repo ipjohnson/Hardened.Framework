@@ -28,8 +28,13 @@ namespace Hardened.Gcp.CloudRun.Runtime.Execution;
 /// authorization token is, and its transport is what this request's own transport answers with,
 /// plus the three Cloud Run facts.
 /// </para>
+/// <para>
+/// Open for an adapter whose record carries more than a body: a Firestore change keeps the
+/// document event it was decoded from, so <c>[OldValue]</c> can read the previous document off
+/// the request. Such a subclass overrides <see cref="Clone"/> so a fork keeps what it carries.
+/// </para>
 /// </remarks>
-public sealed class CloudRunTriggerRequest : IExecutionRequest {
+public class CloudRunTriggerRequest : IExecutionRequest {
     private IPathTokenCollection? _pathTokens;
 
     /// <param name="scheme">The trigger scheme - <c>QUEUE</c>, <c>TOPIC</c>, <c>EVENT</c>, <c>TIMER</c>.</param>
@@ -46,7 +51,8 @@ public sealed class CloudRunTriggerRequest : IExecutionRequest {
         : this(scheme, path, body, headers, delivery, new CloudRunTransportInfo(delivery.Transport)) {
     }
 
-    private CloudRunTriggerRequest(
+    /// <summary>For a clone, and for a subclass: the transport is shared rather than built again.</summary>
+    protected CloudRunTriggerRequest(
         string scheme,
         string path,
         Stream body,
@@ -102,18 +108,27 @@ public sealed class CloudRunTriggerRequest : IExecutionRequest {
     /// because this shape has nowhere to put them. The transport is shared rather than cloned: a
     /// fork is the same message on the same connection.
     /// </remarks>
-    public IExecutionRequest Clone(
+    public virtual IExecutionRequest Clone(
         string? method = null,
         string? path = null,
         IDictionary<string, StringValues>? headers = null,
         IQueryStringCollection? queryString = null,
-        IReadOnlyList<string>? cookies = null) {
-        return new CloudRunTriggerRequest(
-            method ?? Method, path ?? Path, Body, headers ?? Headers, Delivery, Transport) {
-            // Clone(), not the same instance: a forked chain rebinds its own parameters, and
-            // sharing them would let one fork overwrite another's. Null stays null.
-            Parameters = Parameters?.Clone(),
-            PathTokens = PathTokens
-        };
+        IReadOnlyList<string>? cookies = null) =>
+        CopyInto(new CloudRunTriggerRequest(
+            method ?? Method, path ?? Path, Body, headers ?? Headers, Delivery, Transport));
+
+    /// <summary>
+    /// What every clone carries besides its constructor arguments: its own parameters, and the
+    /// path tokens routing set.
+    /// </summary>
+    /// <remarks>
+    /// <c>Parameters?.Clone()</c>, not the same instance: a forked chain rebinds its own
+    /// parameters, and sharing them would let one fork overwrite another's. Null stays null.
+    /// </remarks>
+    protected TRequest CopyInto<TRequest>(TRequest clone) where TRequest : CloudRunTriggerRequest {
+        clone.Parameters = Parameters?.Clone();
+        clone.PathTokens = PathTokens;
+
+        return clone;
     }
 }

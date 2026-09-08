@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using DotNet.Testcontainers.Builders;
 using Hardened.Functions.Testing.Containers;
+using Hardened.Gcp.CloudRun.Testing.Containers;
 using Xunit;
 
 namespace Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests;

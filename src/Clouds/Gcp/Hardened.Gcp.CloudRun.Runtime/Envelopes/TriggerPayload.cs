@@ -55,7 +55,14 @@ public sealed class TriggerPayload : IDisposable {
     /// The bytes as a stream, for a request whose body is the payload itself. Seekable, read-only,
     /// and over the same memory rather than a copy.
     /// </summary>
-    public Stream AsStream() => new ReadOnlyMemoryStream(_raw);
+    public Stream AsStream() => AsStream(_raw);
+
+    /// <summary>
+    /// <paramref name="bytes"/> as a seekable, read-only stream over the same memory. For an
+    /// envelope whose handler body is a slice of what arrived - a binary CloudEvent's data - and
+    /// for one that decoded its own.
+    /// </summary>
+    public static Stream AsStream(ReadOnlyMemory<byte> bytes) => new ReadOnlyMemoryStream(bytes);
 
     public void Dispose() {
         _document?.Dispose();

@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Serves [HardenedFunction] handlers on Google Cloud Run as direct invocations over HTTP: a POST to /_triggers/invoke/{operation} carries the caller's payload to the operation, and the handler's return value is the response body.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Gcp.CloudRun.Invoke</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless;invoke</PackageTags>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Gcp.CloudRun.Runtime.Tests"/>
+    </ItemGroup>
+
+    <!-- buildTransitive/, and Package\ in the source tree, for the reasons the PubSub csproj gives. -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Gcp.CloudRun.Invoke.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DependencyModules.Runtime" />
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+    </ItemGroup>
+
+</Project>

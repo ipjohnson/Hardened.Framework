@@ -31,6 +31,12 @@ namespace Hardened.Gcp.CloudRun.Runtime.Envelopes;
 /// nothing had looked. What it paid is the buffering, which is why an envelope's recognition is
 /// asked to be specific.
 /// </para>
+/// <para>
+/// The envelopes are asked in registration order, except that an <see cref="IFallbackTriggerEnvelope"/>
+/// is asked after every ordinary one: a Storage notification is a push with two attributes more,
+/// and a Firestore event is a CloudEvent with a particular type, so the specific envelope has to
+/// see the delivery before the generic one claims it.
+/// </para>
 /// </remarks>
 public sealed class TriggerFrontDoor : IExecutionFilter {
     /// <summary>
@@ -43,10 +49,14 @@ public sealed class TriggerFrontDoor : IExecutionFilter {
     private readonly ITriggerEnvelope[] _envelopes;
 
     public TriggerFrontDoor(IEnumerable<ITriggerEnvelope> envelopes) {
-        _envelopes = envelopes.ToArray();
+        var all = envelopes.ToArray();
+
+        _envelopes = all.Where(envelope => envelope is not IFallbackTriggerEnvelope)
+            .Concat(all.Where(envelope => envelope is IFallbackTriggerEnvelope))
+            .ToArray();
     }
 
-    /// <summary>The envelopes this front door asks, in registration order.</summary>
+    /// <summary>The envelopes this front door asks, in the order it asks them.</summary>
     public IReadOnlyList<ITriggerEnvelope> Envelopes => _envelopes;
 
     public async Task Execute(IExecutionChain chain) {

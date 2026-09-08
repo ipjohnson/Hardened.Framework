@@ -178,13 +178,15 @@
     </ItemGroup>
 
     <!--
-      The Google line's own pins. The runtime packages reference no Google SDK at all - a Pub/Sub
-      push and an Eventarc event arrive as HTTP and are read as such - so everything here belongs
-      to the container tier: the Pub/Sub emulator module on the Testcontainers line pinned in the
-      Testing group, and the client the tests publish through against it.
+      The Google line's own pins. The runtime packages reference no Google SDK - a Pub/Sub push and
+      an Eventarc event arrive as HTTP and are read as such - with one exception: a Firestore
+      event's data is protobuf, and Google.Events.Protobuf decodes it, kept to the Firestore
+      package alone. The rest belongs to the container tier: the Pub/Sub emulator module on the
+      Testcontainers line pinned in the Testing group, and the client the tests publish through.
     -->
     <ItemGroup Label="Google">
         <PackageVersion Include="Google.Cloud.PubSub.V1" Version="3.37.0" />
+        <PackageVersion Include="Google.Events.Protobuf" Version="1.8.0" />
         <PackageVersion Include="Testcontainers.PubSub" Version="4.14.0" />
     </ItemGroup>
 

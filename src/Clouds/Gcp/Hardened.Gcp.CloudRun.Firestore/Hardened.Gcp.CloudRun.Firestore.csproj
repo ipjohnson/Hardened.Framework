@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>Serves [Change] handlers on Google Cloud Run from Firestore through Eventarc: a document event's new value is the handler's body as plain JSON, the collection is the route, and [OldValue] binds the previous document.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <PackageId>Hardened.Gcp.CloudRun.Firestore</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;gcp;cloudrun;serverless;firestore;change</PackageTags>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <IsAotCompatible>true</IsAotCompatible>
+    </PropertyGroup>
+
+    <!--
+      Its own package because of one dependency. A Firestore event's data is application/protobuf,
+      a DocumentEventData, and decoding it needs Google.Events.Protobuf and Google.Protobuf behind
+      it - the only protobuf in the Google line. Kept here so a service that handles no change
+      feed carries neither, and so the Native AOT proof for the line can leave this package out if
+      the protobuf runtime does not trim cleanly, which the plan records as the risk.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Functions\Hardened.CloudEvents\Hardened.CloudEvents.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj"
+                          OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Gcp.CloudRun.Runtime.Tests"/>
+    </ItemGroup>
+
+    <!-- buildTransitive/, and Package\ in the source tree, for the reasons the PubSub csproj gives. -->
+    <ItemGroup>
+        <Content Include="Package\Hardened.Gcp.CloudRun.Firestore.targets">
+            <Pack>true</Pack>
+            <PackagePath>buildTransitive/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="DependencyModules.Runtime" />
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <PackageReference Include="Google.Events.Protobuf" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+        <PackageReference Include="Microsoft.Extensions.Primitives" />
+    </ItemGroup>
+
+</Project>

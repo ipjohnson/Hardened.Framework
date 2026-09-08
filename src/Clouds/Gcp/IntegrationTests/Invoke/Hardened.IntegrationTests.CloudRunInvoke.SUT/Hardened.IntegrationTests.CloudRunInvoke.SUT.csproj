@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      A directly invoked service as an application would write one: a handler with
+      [HardenedFunction] and nothing else. An executable, because the container tier invokes it
+      over real HTTP; UseAppHost is off because the mount is the build output.
+    -->
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <UseAppHost>false</UseAppHost>
+        <IsPackable>false</IsPackable>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Hardened.IntegrationTests.CloudRunInvoke.SUT</RootNamespace>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Gcp.CloudRun.Invoke\Hardened.Gcp.CloudRun.Invoke.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Function.SourceGenerator\Hardened.Function.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Validation.SourceGenerator\Hardened.Validation.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.DependencyModules.SourceGenerator\Hardened.DependencyModules.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console"/>
+    </ItemGroup>
+
+    <!--
+      Two declarations: Hardened.Requests.Abstract owns [HardenedFunction] and declares
+      HardenedInvokeModule; Hardened.Functions.Runtime declares the trigger properties. One binding,
+      from the invoke package.
+    -->
+    <Import Project="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Package\Hardened.Requests.Abstract.targets"/>
+    <Import Project="..\..\..\..\..\Functions\Hardened.Functions.Runtime\Package\Hardened.Functions.Runtime.targets"/>
+    <Import Project="..\..\..\Hardened.Gcp.CloudRun.Invoke\Package\Hardened.Gcp.CloudRun.Invoke.targets"/>
+
+</Project>

@@ -1,0 +1,10 @@
+<Project>
+    <!--
+        Which module serves this package's trigger. The property is declared by
+        Hardened.Functions.Runtime, which owns [Event]; see its targets for the rule. Conditional,
+        so a csproj can replace this binding and keep the rest.
+    -->
+    <PropertyGroup>
+        <HardenedEventModule Condition="'$(HardenedEventModule)' == ''">Hardened.Gcp.CloudRun.Eventarc.EventarcModule</HardenedEventModule>
+    </PropertyGroup>
+</Project>

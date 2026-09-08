@@ -4,7 +4,7 @@ using Google.Cloud.PubSub.V1;
 using Google.Protobuf;
 using Testcontainers.PubSub;
 
-namespace Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests;
+namespace Hardened.Gcp.CloudRun.Testing.Containers;
 
 /// <summary>
 /// The Pub/Sub emulator, and the two clients the tests drive it with.
@@ -72,10 +72,20 @@ public sealed class PubSubEmulator : IAsyncDisposable {
         return topicName;
     }
 
-    /// <summary>Publishes one message with <paramref name="json"/> as its data.</summary>
-    public Task PublishAsync(TopicName topic, string json, CancellationToken cancellationToken = default) =>
-        Publisher().PublishAsync(
-            topic, new[] { new PubsubMessage { Data = ByteString.CopyFromUtf8(json) } }, cancellationToken);
+    /// <summary>Publishes one message with <paramref name="json"/> as its data and <paramref name="attributes"/> on it.</summary>
+    public Task PublishAsync(
+        TopicName topic, string json, IReadOnlyDictionary<string, string>? attributes = null,
+        CancellationToken cancellationToken = default) {
+        var message = new PubsubMessage { Data = ByteString.CopyFromUtf8(json) };
+
+        if (attributes != null) {
+            foreach (var attribute in attributes) {
+                message.Attributes[attribute.Key] = attribute.Value;
+            }
+        }
+
+        return Publisher().PublishAsync(topic, new[] { message }, cancellationToken);
+    }
 
     private static PublisherServiceApiClient Publisher() =>
         new PublisherServiceApiClientBuilder { EmulatorDetection = EmulatorDetection.EmulatorOrProduction }.Build();

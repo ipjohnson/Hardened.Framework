@@ -53,14 +53,48 @@
     <Project Path="src/Functions/Hardened.CloudEvents.Tests/Hardened.CloudEvents.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Gcp/">
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun/Hardened.Gcp.CloudRun.csproj" />
     <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Runtime/Hardened.Gcp.CloudRun.Runtime.csproj" />
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Eventarc/Hardened.Gcp.CloudRun.Eventarc.csproj" />
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Firestore/Hardened.Gcp.CloudRun.Firestore.csproj" />
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Invoke/Hardened.Gcp.CloudRun.Invoke.csproj" />
     <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.PubSub/Hardened.Gcp.CloudRun.PubSub.csproj" />
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Scheduler/Hardened.Gcp.CloudRun.Scheduler.csproj" />
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Storage/Hardened.Gcp.CloudRun.Storage.csproj" />
     <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Testing/Hardened.Gcp.CloudRun.Testing.csproj" />
     <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Runtime.Tests/Hardened.Gcp.CloudRun.Runtime.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Gcp/IntegrationTests/Blob/">
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Blob/Hardened.IntegrationTests.CloudRunBlob.SUT/Hardened.IntegrationTests.CloudRunBlob.SUT.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Blob/Hardened.IntegrationTests.CloudRunBlob.SUT.Tests/Hardened.IntegrationTests.CloudRunBlob.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Gcp/IntegrationTests/Change/">
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Change/Hardened.IntegrationTests.CloudRunChange.SUT/Hardened.IntegrationTests.CloudRunChange.SUT.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Change/Hardened.IntegrationTests.CloudRunChange.SUT.Tests/Hardened.IntegrationTests.CloudRunChange.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Gcp/IntegrationTests/Event/">
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Event/Hardened.IntegrationTests.CloudRunEvent.SUT/Hardened.IntegrationTests.CloudRunEvent.SUT.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Event/Hardened.IntegrationTests.CloudRunEvent.SUT.Tests/Hardened.IntegrationTests.CloudRunEvent.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Gcp/IntegrationTests/Invoke/">
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Invoke/Hardened.IntegrationTests.CloudRunInvoke.SUT/Hardened.IntegrationTests.CloudRunInvoke.SUT.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Invoke/Hardened.IntegrationTests.CloudRunInvoke.SUT.Tests/Hardened.IntegrationTests.CloudRunInvoke.SUT.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Gcp/IntegrationTests/Queue/">
     <Project Path="src/Clouds/Gcp/IntegrationTests/Queue/Hardened.IntegrationTests.CloudRunQueue.SUT/Hardened.IntegrationTests.CloudRunQueue.SUT.csproj" />
     <Project Path="src/Clouds/Gcp/IntegrationTests/Queue/Hardened.IntegrationTests.CloudRunQueue.SUT.Tests/Hardened.IntegrationTests.CloudRunQueue.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Gcp/IntegrationTests/Timer/">
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Timer/Hardened.IntegrationTests.CloudRunTimer.SUT/Hardened.IntegrationTests.CloudRunTimer.SUT.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Timer/Hardened.IntegrationTests.CloudRunTimer.SUT.Tests/Hardened.IntegrationTests.CloudRunTimer.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Gcp/IntegrationTests/Topic/">
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Topic/Hardened.IntegrationTests.CloudRunTopic.SUT/Hardened.IntegrationTests.CloudRunTopic.SUT.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Topic/Hardened.IntegrationTests.CloudRunTopic.SUT.Tests/Hardened.IntegrationTests.CloudRunTopic.SUT.Tests.csproj" />
+  </Folder>
+  <Folder Name="/Clouds/Gcp/IntegrationTests/Web/">
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Web/Hardened.IntegrationTests.CloudRunWeb.SUT/Hardened.IntegrationTests.CloudRunWeb.SUT.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Web/Hardened.IntegrationTests.CloudRunWeb.SUT.Tests/Hardened.IntegrationTests.CloudRunWeb.SUT.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Azure/">
     <Project Path="src/Clouds/Azure/Hardened.Azure.Functions.Runtime/Hardened.Azure.Functions.Runtime.csproj" />

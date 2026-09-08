@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Description>The container rung of the Google line: a fixture's build output in the image Cloud Run runs it in, and the Pub/Sub emulator that drives it, over the shared Testcontainers harness.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!--
+          Not packable, for the reason Hardened.Functions.Testing.Containers is not: every consumer
+          is a simulator project in this repository. It is a project of its own so the five Google
+          simulator projects share one service container and one emulator rather than a copy each.
+        -->
+        <IsPackable>false</IsPackable>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Google.Cloud.PubSub.V1"/>
+        <PackageReference Include="Testcontainers.PubSub"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing.Containers\Hardened.Functions.Testing.Containers.csproj"/>
+    </ItemGroup>
+
+</Project>

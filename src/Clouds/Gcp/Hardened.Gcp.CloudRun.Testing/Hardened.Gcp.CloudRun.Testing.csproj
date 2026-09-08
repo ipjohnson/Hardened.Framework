@@ -9,7 +9,7 @@
           never published ahead of time. Marking it would make the flag a claim about code no
           consumer will ever trim. See Hardened.Shared.Testing.csproj for the whole of it.
         -->
-        <Description>Raises the fidelity of a Hardened function test on Google Cloud Run: delivers through the envelope Pub/Sub actually sends, in through the front door and the same dispatch a deployed service runs, on the pipeline host or over a Kestrel socket.</Description>
+        <Description>Raises the fidelity of a Hardened function test on Google Cloud Run: delivers through the envelope each source actually sends - a Pub/Sub push, an Eventarc CloudEvent, a Cloud Scheduler request, a direct invocation - in through the front door and the same dispatch a deployed service runs, on the pipeline host or over a Kestrel socket.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
@@ -23,12 +23,21 @@
       actually sends to be what the front door reads. It goes in through Hardened.Web.Testing's
       host seam, which is what lets the same test run on the pipeline and, with [KestrelTesting],
       over a socket without changing a line.
+
+      The meta package rather than the six, and this is the one place that is the right reference:
+      a test project has no image to keep small, and it builds an envelope for every source
+      whether or not the application under test serves them all.
     -->
     <ItemGroup>
+        <InternalsVisibleTo Include="Hardened.Gcp.CloudRun.Runtime.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Functions\Hardened.CloudEvents\Hardened.CloudEvents.csproj"/>
         <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
-        <ProjectReference Include="..\Hardened.Gcp.CloudRun.PubSub\Hardened.Gcp.CloudRun.PubSub.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun\Hardened.Gcp.CloudRun.csproj"/>
     </ItemGroup>
 
 </Project>

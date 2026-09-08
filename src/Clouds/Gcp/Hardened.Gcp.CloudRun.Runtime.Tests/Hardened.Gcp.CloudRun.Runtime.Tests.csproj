@@ -33,7 +33,12 @@
     -->
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Eventarc\Hardened.Gcp.CloudRun.Eventarc.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Firestore\Hardened.Gcp.CloudRun.Firestore.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Invoke\Hardened.Gcp.CloudRun.Invoke.csproj"/>
         <ProjectReference Include="..\Hardened.Gcp.CloudRun.PubSub\Hardened.Gcp.CloudRun.PubSub.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Scheduler\Hardened.Gcp.CloudRun.Scheduler.csproj"/>
+        <ProjectReference Include="..\Hardened.Gcp.CloudRun.Storage\Hardened.Gcp.CloudRun.Storage.csproj"/>
         <ProjectReference Include="..\Hardened.Gcp.CloudRun.Testing\Hardened.Gcp.CloudRun.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Runtime\Hardened.Functions.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\Functions\Hardened.Functions.Testing\Hardened.Functions.Testing.csproj"/>

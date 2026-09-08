@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <Description>Serves [Queue] handlers on Google Cloud Run from a Pub/Sub push subscription: the push envelope becomes the handler's message, its attributes become headers, and the subscription's name is the route.</Description>
+        <Description>Serves [Queue] and [Topic] handlers on Google Cloud Run from Pub/Sub: a push subscription's envelope, wrapped or unwrapped, routes on the subscription's name, and an Eventarc trigger on a topic routes on the topic's; the message is the handler's body and its attributes are headers either way.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
@@ -20,6 +20,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Gcp.CloudRun.Runtime\Hardened.Gcp.CloudRun.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Functions\Hardened.CloudEvents\Hardened.CloudEvents.csproj"/>
         <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj"

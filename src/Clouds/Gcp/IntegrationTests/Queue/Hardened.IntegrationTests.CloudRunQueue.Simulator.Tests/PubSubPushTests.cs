@@ -2,6 +2,7 @@ using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Networks;
 using Google.Cloud.PubSub.V1;
 using Hardened.Functions.Testing.Containers;
+using Hardened.Gcp.CloudRun.Testing.Containers;
 using Xunit;
 
 namespace Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests;

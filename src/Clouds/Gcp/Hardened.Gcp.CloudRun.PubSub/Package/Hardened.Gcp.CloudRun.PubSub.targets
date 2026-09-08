@@ -1,18 +1,16 @@
 <Project>
     <!--
-        Which module serves this package's trigger. One property, because one trigger is served by
-        exactly one adapter package on a given provider - two packages setting the same property
-        resolve first-import-wins, silently, on an import order nobody controls.
+        Which module serves this package's triggers. One property each, because one trigger is
+        served by exactly one adapter package on a given provider - two packages setting the same
+        property resolve first-import-wins, silently, on an import order nobody controls.
 
-        The property is declared elsewhere, by whichever package owns the attribute that binds it:
-        a generator sees an MSBuild property only if something declared it CompilerVisibleProperty,
-        and the declaration has to be visible wherever the trigger can be written, which is not
-        here. See Hardened.Functions.Runtime's targets.
+        The properties are declared elsewhere, by whichever package owns the attribute that binds
+        them: a generator sees an MSBuild property only if something declared it
+        CompilerVisibleProperty, and the declaration has to be visible wherever the trigger can be
+        written, which is not here. See Hardened.Functions.Runtime's targets.
 
-        Only the queue. A [Topic] on Google is a Pub/Sub topic delivered through Eventarc as a
-        CloudEvent, whose envelope this package does not read yet; leaving HardenedTopicModule
-        unset makes a [Topic] handler fail the build with HRDF001 rather than compile and never be
-        reached.
+        One module, two triggers: a [Queue] is a push subscription and a [Topic] is an Eventarc
+        trigger on the topic, and both deliver the same message.
 
         Conditional, so a csproj can replace this binding and keep the rest. A csproj is evaluated
         before a package's targets, so a value set there survives and this only fills the gap:
@@ -21,5 +19,6 @@
     -->
     <PropertyGroup>
         <HardenedQueueModule Condition="'$(HardenedQueueModule)' == ''">Hardened.Gcp.CloudRun.PubSub.PubSubModule</HardenedQueueModule>
+        <HardenedTopicModule Condition="'$(HardenedTopicModule)' == ''">Hardened.Gcp.CloudRun.PubSub.PubSubModule</HardenedTopicModule>
     </PropertyGroup>
 </Project>

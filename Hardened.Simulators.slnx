@@ -15,6 +15,12 @@
     <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.Tests/Hardened.IntegrationTests.Rie.Tests.csproj" />
   </Folder>
   <Folder Name="/Gcp/">
+    <Project Path="src/Clouds/Gcp/Hardened.Gcp.CloudRun.Testing.Containers/Hardened.Gcp.CloudRun.Testing.Containers.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Blob/Hardened.IntegrationTests.CloudRunBlob.Simulator.Tests/Hardened.IntegrationTests.CloudRunBlob.Simulator.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Event/Hardened.IntegrationTests.CloudRunEvent.Simulator.Tests/Hardened.IntegrationTests.CloudRunEvent.Simulator.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Invoke/Hardened.IntegrationTests.CloudRunInvoke.Simulator.Tests/Hardened.IntegrationTests.CloudRunInvoke.Simulator.Tests.csproj" />
     <Project Path="src/Clouds/Gcp/IntegrationTests/Queue/Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests/Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Timer/Hardened.IntegrationTests.CloudRunTimer.Simulator.Tests/Hardened.IntegrationTests.CloudRunTimer.Simulator.Tests.csproj" />
+    <Project Path="src/Clouds/Gcp/IntegrationTests/Web/Hardened.IntegrationTests.CloudRunWeb.Simulator.Tests/Hardened.IntegrationTests.CloudRunWeb.Simulator.Tests.csproj" />
   </Folder>
 </Solution>
