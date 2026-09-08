@@ -62,7 +62,7 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
     # library, so each of NUnit, Moq and FakeItEasy has to compile and pass at least once, on a
     # client variant that carries the fork: NUnit on the Kiota tests, Moq on the Refit tests, and
     # NUnit with FakeItEasy on the pipeline tests the opt-out row scaffolds.
-    COMBOS=(kestrel:code aspnet:code kestrel:openapi
+    COMBOS=(kestrel:code aspnet:code cloud-run:code kestrel:openapi
             kestrel:code:throws kestrel:openapi:throws
             kestrel:code:union kestrel:openapi:union
             kestrel:code:response:refit kestrel:code:throws:refit kestrel:openapi:response:refit
@@ -686,6 +686,8 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
            "hardened-function --trigger stream|default|default" \
            "hardened-function --trigger blob|default|default" \
            "hardened-web --host aws-lambda|default|default" \
+           "hardened-function --host gcp --trigger invoke|default|default" \
+           "hardened-function --host gcp --trigger queue|default|default" \
            "hardened-function --trigger invoke --test-framework nunit --mocks moq|nunit|moq" \
            "hardened-function --trigger queue --mocks fakeiteasy|default|fakeiteasy"; do
     IFS='|' read -r AMZ_COMMAND TESTS MOCKS <<<"$AMZ"
@@ -713,8 +715,26 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
         # on PORT, and a function brings the tool's page up on the emulator port. Random ports, so
         # a row never talks to a tool an earlier row left behind, and the tool is restored by the
         # generated project's own build from the manifest the template pins it in.
+        # A Cloud Run function is the process itself, on PORT, and there is no tool: it is probed
+        # with the request its source would send, an invocation's POST or a Pub/Sub push, both of
+        # which the handler answers 200.
         EMULATOR_PORT=$((5600 + RANDOM % 200))
-        if [ "$AMZ_TEMPLATE" = hardened-web ]; then
+        PROBE_METHOD=GET
+        PROBE_BODY=""
+        if [[ "$*" == *"--host gcp"* ]]; then
+            GCP_PORT=$((5900 + RANDOM % 200))
+            ( cd "$AMZ_OUT/src/Sample" && PORT="$GCP_PORT" \
+                dotnet run --no-build >"$AMZ_OUT/serve.log" 2>&1 & )
+            PROBE_METHOD=POST
+            if [[ "$*" == *"--trigger queue"* ]]; then
+                # {"id":"A-1","quantity":1}, base64, from a subscription named orders.
+                PROBE="http://localhost:$GCP_PORT/"
+                PROBE_BODY='{"message":{"data":"eyJpZCI6IkEtMSIsInF1YW50aXR5IjoxfQ==","messageId":"1"},"subscription":"projects/p/subscriptions/orders"}'
+            else
+                PROBE="http://localhost:$GCP_PORT/_triggers/invoke/Process"
+                PROBE_BODY='{"id":"A-1","quantity":1}'
+            fi
+        elif [ "$AMZ_TEMPLATE" = hardened-web ]; then
             LAMBDA_PORT=$((5800 + RANDOM % 200))
             ( cd "$AMZ_OUT/src/Sample.Host" && PORT="$LAMBDA_PORT" HARDENED_LAMBDA_EMULATOR_PORT="$EMULATOR_PORT" \
                 dotnet run --no-build >"$AMZ_OUT/serve.log" 2>&1 & )
@@ -726,14 +746,19 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
         fi
         CODE=000
         for _ in $(seq 1 100); do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 "$PROBE" || true)
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 -X "$PROBE_METHOD" \
+                -H 'Content-Type: application/json' ${PROBE_BODY:+-d "$PROBE_BODY"} "$PROBE" || true)
             [ "$CODE" = "200" ] && break
             sleep 0.5
         done
         # SIGTERM to the application takes the tool it started down with it.
         pkill -f "$AMZ_OUT/src/Sample" 2>/dev/null || true
         if [ "$CODE" = "200" ]; then
-            echo "   $AMZ_TEMPLATE $*: runs locally against the AWS Lambda Test Tool"
+            if [[ "$*" == *"--host gcp"* ]]; then
+                echo "   $AMZ_TEMPLATE $*: runs locally on PORT and answers its trigger"
+            else
+                echo "   $AMZ_TEMPLATE $*: runs locally against the AWS Lambda Test Tool"
+            fi
         else
             echo "   FAILED: $AMZ_TEMPLATE $*: $PROBE answered $CODE"
             tail -20 "$AMZ_OUT/serve.log"
@@ -745,7 +770,7 @@ for AMZ in "hardened-function --trigger invoke|default|default" \
         # `|| true` because the script runs under `set -e` and a grep that matches nothing exits 1.
         # It looked for Hardened.Amz.* until those left the templates, and the day they did this
         # line began killing the run after the first row rather than printing nothing.
-        grep -hoE '"Hardened\.Aws\.Lambda[A-Za-z.]*/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
+        grep -hoE '"Hardened\.(Aws\.Lambda|Gcp\.CloudRun)[A-Za-z.]*/[^"]+"' "$AMZ_OUT"/src/*/obj/project.assets.json 2>/dev/null \
             | tr -d '"' | sort -u | head -2 | sed 's/^/     resolved /' || true
     else
         echo "   FAILED: $AMZ_TEMPLATE $*"
@@ -760,7 +785,11 @@ say "host independence"
 # The -default suffix, because that is what the bare rows' output directories are named now that
 # they scaffold without the flag. The old suffixless paths matched nothing, so this check was
 # silently skipped on every run - which is why it now says so instead of saying nothing.
-A="$WORK/kestrel-code-default"; B="$WORK/aspnet-code-default"
+A="$WORK/kestrel-code-default"
+# Twice: the ASP.NET Core host, and the Cloud Run host, whose test project is the Kestrel one line
+# for line because the Cloud Run runtime composes Kestrel.
+for OTHER in aspnet cloud-run; do
+B="$WORK/$OTHER-code-default"
 if [ -d "$A" ] && [ -d "$B" ]; then
     # Source only. bin/ and obj/ carry absolute paths and compiler output, which differ for
     # reasons that have nothing to do with the host.
@@ -782,16 +811,17 @@ if [ -d "$A" ] && [ -d "$B" ]; then
                 || { same_but_the_host "$A/$PART/Sample.Tests.csproj" "$B/$PART/Sample.Tests.csproj" \
                      && same_but_the_host "$A/$PART/SampleSocketTests.cs" "$B/$PART/SampleSocketTests.cs" \
                      && same_but_the_host "$A/$PART/Bootstrap.cs" "$B/$PART/Bootstrap.cs"; }; }; then
-            echo "   identical across hosts: $PART"
+            echo "   identical across hosts: $PART (kestrel and $OTHER)"
         else
-            echo "   FAILED: $PART differs between kestrel and aspnet"
+            echo "   FAILED: $PART differs between kestrel and $OTHER"
             diff -r -x bin -x obj "$A/$PART" "$B/$PART" | head -20
             FAILED=1
         fi
     done
 else
-    echo "   skipped: both hosts are not in this run's combinations"
+    echo "   skipped: kestrel and $OTHER are not both in this run's combinations"
 fi
+done
 
 say "renamed value"
 # --response-model standard was the throws mode's name until 0.19.0. The choice stays accepted for

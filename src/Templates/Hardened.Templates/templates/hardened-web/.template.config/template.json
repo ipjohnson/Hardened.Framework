@@ -42,6 +42,10 @@
         {
           "choice": "aws-lambda",
           "description": "AWS Lambda behind API Gateway, with a harness that runs it locally over HTTP."
+        },
+        {
+          "choice": "cloud-run",
+          "description": "Google Cloud Run: Kestrel on PORT in a container, with a Dockerfile and a SIGTERM drain."
         }
       ]
     },
@@ -111,6 +115,10 @@
     "lambda": {
       "type": "computed",
       "value": "(host == 'aws-lambda')"
+    },
+    "cloudRun": {
+      "type": "computed",
+      "value": "(host == 'cloud-run')"
     },
     "responseModel": {
       "type": "parameter",
@@ -248,6 +256,14 @@
   "sources": [
     {
       "modifiers": [
+        {
+          "comment": "The container is the Cloud Run deployment artifact and nothing else's.",
+          "condition": "(!cloudRun)",
+          "exclude": [
+            "Dockerfile",
+            ".dockerignore"
+          ]
+        },
         {
           "comment": "The JSON context too. Its whole body sits behind the same condition, so without the exclusion a spec-first project received it as a zero-byte file - which builds, and reads as debris.",
           "condition": "(!codeFirst)",

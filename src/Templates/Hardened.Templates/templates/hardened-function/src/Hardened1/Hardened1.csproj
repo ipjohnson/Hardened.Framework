@@ -43,6 +43,30 @@
     <PackageReference Include="Hardened.Aws.Lambda.S3" />
 <!--#endif -->
 <!--#endif -->
+<!--#if (gcp) -->
+    <!--
+      The host, and one adapter for the trigger the handler declares. On Cloud Run every source
+      arrives as an HTTP request, so the host is Kestrel on PORT with a front door ahead of
+      routing, and an adapter is what teaches the front door one envelope: a queue service never
+      carries the Scheduler or Firestore code.
+    -->
+    <PackageReference Include="Hardened.Gcp.CloudRun.Runtime" />
+<!--#if (invoke) -->
+    <PackageReference Include="Hardened.Gcp.CloudRun.Invoke" />
+<!--#endif -->
+<!--#if (queue || topic) -->
+    <PackageReference Include="Hardened.Gcp.CloudRun.PubSub" />
+<!--#endif -->
+<!--#if (timer) -->
+    <PackageReference Include="Hardened.Gcp.CloudRun.Scheduler" />
+<!--#endif -->
+<!--#if (change) -->
+    <PackageReference Include="Hardened.Gcp.CloudRun.Firestore" />
+<!--#endif -->
+<!--#if (blob) -->
+    <PackageReference Include="Hardened.Gcp.CloudRun.Storage" />
+<!--#endif -->
+<!--#endif -->
   </ItemGroup>
 
   <ItemGroup>
@@ -54,6 +78,7 @@
     <PackageReference Include="Hardened.Function.SourceGenerator" PrivateAssets="all" />
   </ItemGroup>
 
+<!--#if (aws) -->
   <!--
     Running this project locally starts the AWS Lambda Test Tool, the dotnet tool pinned in
     .config/dotnet-tools.json. It is restored inside the build, so F5 on a fresh clone needs no instruction
@@ -71,5 +96,6 @@
     <Warning Condition="'$(_LambdaTestToolRestoreExitCode)' != '0'"
              Text="The AWS Lambda Test Tool could not be restored, so running this project locally will not start it. The pin is amazon.lambda.testtool in .config/dotnet-tools.json; `dotnet tool restore` there shows what NuGet said." />
   </Target>
+<!--#endif -->
 
 </Project>

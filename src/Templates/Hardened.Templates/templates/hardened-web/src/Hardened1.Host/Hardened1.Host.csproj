@@ -33,6 +33,12 @@
     <PackageReference Include="Hardened.Aws.Lambda.ApiGateway" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
 <!--#endif -->
+<!--#if (cloudRun) -->
+    <!-- The host. It composes the Kestrel runtime, named here as well so the entry point's types
+         read as the package they come from. -->
+    <PackageReference Include="Hardened.Web.Kestrel.Runtime" />
+    <PackageReference Include="Hardened.Gcp.CloudRun.Runtime" />
+<!--#endif -->
     <PackageReference Include="Hardened.Library.SourceGenerator" />
     <PackageReference Include="Hardened.Web.SourceGenerator" />
   </ItemGroup>

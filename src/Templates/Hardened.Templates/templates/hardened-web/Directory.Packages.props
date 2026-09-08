@@ -47,7 +47,7 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
 <!--#endif -->
     <PackageVersion Include="Hardened.Web.Testing" Version="$(HardenedVersion)" />
-<!--#if (kestrel) -->
+<!--#if (kestrel || cloudRun) -->
     <PackageVersion Include="Hardened.Web.Kestrel.Testing" Version="$(HardenedVersion)" />
 <!--#endif -->
 <!--#if (aspnet) -->
@@ -90,6 +90,12 @@
     <PackageVersion Include="Hardened.Aws.Lambda.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Aws.Lambda.ApiGateway" Version="$(HardenedVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup Label="Google Cloud Run">
+    <!-- The Cloud Run host composes the Kestrel one: Kestrel on PORT, a SIGTERM drain, and the
+         front door that serves triggers beside the routes. -->
+    <PackageVersion Include="Hardened.Gcp.CloudRun.Runtime" Version="$(HardenedVersion)" />
   </ItemGroup>
 
   <ItemGroup Label="Hardened source generators">

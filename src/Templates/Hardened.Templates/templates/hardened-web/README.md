@@ -24,6 +24,18 @@ serialiser, with the debugger attached to it. The tool's own page is at <http://
 `src/Hardened1.Host/.config/dotnet-tools.json` and restored by the build. A deployed function sets
 `AWS_LAMBDA_RUNTIME_API`, and then none of this runs.
 #endif
+#if (cloudRun)
+
+On Cloud Run the same host runs in a container. `PORT` is what Cloud Run sets, and
+`CloudRunHost.RunAsync` in `Program.cs` is what drains a request in flight when Cloud Run sends
+`SIGTERM`. The `Dockerfile` is the deployment artifact:
+
+```bash
+gcloud run deploy hardened1 --source . --region us-central1 --allow-unauthenticated
+```
+
+There is no infrastructure package; that command is the deployment.
+#endif
 
 ```bash
 curl localhost:5080/todos
@@ -91,8 +103,8 @@ from a terminal browse to the page yourself.
 #endif
 | `tests/Hardened1.Tests` | Tests, against the library rather than the host. |
 
-That split is the point rather than a convention. Swapping the host — Kestrel, ASP.NET Core, or
-AWS Lambda behind API Gateway — changes only the host project. The others are identical whichever
+That split is the point rather than a convention. Swapping the host — Kestrel, ASP.NET Core,
+AWS Lambda behind API Gateway, or Cloud Run — changes only the host project. The others are identical whichever
 one you pick, which is why the tests target the library: a test suite that named the host would be
 tied to a deployment target for no reason.
 

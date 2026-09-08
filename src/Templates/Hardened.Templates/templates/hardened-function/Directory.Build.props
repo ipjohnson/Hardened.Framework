@@ -9,4 +9,23 @@
          obj/<configuration>/<tfm>/generated/, one directory per generator. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
+<!--#if (gcpStreamConflict) -->
+
+  <!--
+    This combination cannot work, and it fails here rather than at deploy time.
+
+    Google has no sharded, checkpointed stream a [Stream] handler can be moved to. Pub/Sub ordering
+    keys order messages within a key and are not a shard a consumer replays from a position, so
+    no Cloud Run package binds HardenedStreamModule, and the build would otherwise reach HRDF001
+    with the same answer in the framework's words.
+
+    dotnet new cannot refuse a combination of parameters, so the refusal is a build error instead.
+    Regenerate with --trigger queue, which is a Pub/Sub push subscription and can carry an ordering
+    key.
+  -->
+  <Target Name="HardenedTemplateRejectsGcpStream" BeforeTargets="Build">
+    <Error Code="HTPL005"
+           Text="--host gcp cannot be combined with --trigger stream: Google Cloud has no stream source for [Stream]. Regenerate with --trigger queue." />
+  </Target>
+<!--#endif -->
 </Project>

@@ -58,11 +58,15 @@
       "type": "parameter",
       "datatype": "choice",
       "defaultValue": "aws",
-      "description": "Which cloud runs the function. The handler does not change with it - the host decides one package reference and the entry point.",
+      "description": "Which cloud runs the function. The handler does not change with it - the host decides the package references, the entry point and, on Cloud Run, the host attribute on the application.",
       "choices": [
         {
           "choice": "aws",
-          "description": "AWS Lambda. The only host with adapters today; Azure and Google are the reason this is a flag rather than the premise."
+          "description": "AWS Lambda. The default."
+        },
+        {
+          "choice": "gcp",
+          "description": "Google Cloud Run. A container listening on PORT; the source arrives as the HTTP request Pub/Sub, Eventarc or Cloud Scheduler sends, and the function names its host with [CloudRunRuntime]."
         }
       ]
     },
@@ -170,8 +174,36 @@
     "aws": {
       "type": "computed",
       "value": "(host == 'aws')"
+    },
+    "gcp": {
+      "type": "computed",
+      "value": "(host == 'gcp')"
+    },
+    "gcpStreamConflict": {
+      "type": "computed",
+      "value": "(host == 'gcp' && trigger == 'stream')"
     }
   },
+  "sources": [
+    {
+      "modifiers": [
+        {
+          "comment": "The container is the Cloud Run deployment artifact and nothing else's, so the other hosts do not carry a Dockerfile. The Lambda test tool's manifest is the reverse: only the Lambda host starts a tool, and the target that restores it sits behind the same symbol in the csproj.",
+          "condition": "(!gcp)",
+          "exclude": [
+            "Dockerfile",
+            ".dockerignore"
+          ]
+        },
+        {
+          "condition": "(gcp)",
+          "exclude": [
+            ".config/**"
+          ]
+        }
+      ]
+    }
+  ],
   "primaryOutputs": [
     {
       "path": "src/Hardened1/Hardened1.csproj"

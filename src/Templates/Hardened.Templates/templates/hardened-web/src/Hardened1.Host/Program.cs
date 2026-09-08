@@ -11,6 +11,12 @@ using Hardened.Aws.Lambda.Runtime.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 #endif
+#if (cloudRun)
+using Hardened.Gcp.CloudRun.Runtime.Hosting;
+using Hardened.Web.Kestrel.Runtime;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+#endif
 #if (aspnet)
 using Hardened.Web.AspNetCore.Runtime;
 using Microsoft.AspNetCore.Builder;
@@ -113,4 +119,36 @@ new Application().PopulateServiceCollection(services);
 // No server and no port. API Gateway is the server, and what this starts is the loop that reads
 // the requests it forwards.
 await HardenedLambdaBootstrap.Run(services.BuildServiceProvider());
+#endif
+#if (cloudRun)
+var services = new ServiceCollection();
+
+services.AddLogging(logging => logging.AddSimpleConsole(options => options.SingleLine = true));
+
+services.AddHardenedEnvironment(environment);
+
+new Application().PopulateServiceCollection(services);
+
+// Every interface on the port above. Cloud Run sets PORT and sends to it; started by hand this is
+// 5080 like every other host, so the launch profile and the README stay true.
+await using var app = HardenedKestrelApplication.Create(
+    services,
+    kestrel => kestrel.ListenAnyIP(port));
+
+await app.StartAsync();
+
+var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Hardened1.Host");
+
+logger.LogInformation("Listening on http://localhost:{Port}", port);
+#if (OpenApiUi)
+
+if (environment.Matches("development")) {
+    logger.LogInformation("Browse http://localhost:{Port}/docs to access your API.", port);
+}
+#endif
+
+// SIGTERM is how Cloud Run retires an instance, ten seconds before SIGKILL. This waits for it and
+// gives what is in flight those ten seconds; the plain RunAsync returns on ProcessExit and the
+// process exits before the server has drained.
+await CloudRunHost.RunAsync(app);
 #endif

@@ -51,6 +51,19 @@
     <PackageVersion Include="Hardened.Aws.Lambda.Testing" Version="$(HardenedVersion)" />
   </ItemGroup>
 
+  <ItemGroup Label="Google Cloud Run">
+    <PackageVersion Include="Hardened.Gcp.CloudRun.Runtime" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Gcp.CloudRun.Invoke" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Gcp.CloudRun.PubSub" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Gcp.CloudRun.Scheduler" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Gcp.CloudRun.Firestore" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Gcp.CloudRun.Storage" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Gcp.CloudRun.Testing" Version="$(HardenedVersion)" />
+    <!-- The host the Cloud Run envelope is posted to in a test. Hardened.Gcp.CloudRun.Testing
+         brings it, and the test project names it beside [assembly: WebTesting]. -->
+    <PackageVersion Include="Hardened.Web.Testing" Version="$(HardenedVersion)" />
+  </ItemGroup>
+
   <ItemGroup Label="Hardened source generators">
     <!-- Not optional. The runtime packages carry no analyzers, so without these the module's
          generated half never exists and PopulateServiceCollection does not compile. -->

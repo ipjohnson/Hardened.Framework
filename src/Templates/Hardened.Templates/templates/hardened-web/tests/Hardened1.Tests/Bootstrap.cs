@@ -10,7 +10,7 @@ using DependencyModules.FakeItEasy;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Hardened1;
-#if (kestrel)
+#if (kestrel || cloudRun)
 using Hardened.Web.Kestrel.Testing;
 #endif
 #if (aspnet)
@@ -40,12 +40,12 @@ using Hardened.Refit.Testing;
 #if (fakeiteasy)
 [assembly: FakeItEasySupport]
 #endif
-#if (kestrel || aspnet)
+#if (kestrel || aspnet || cloudRun)
 
 // The host. After this, the attribute the application names its host with - [KestrelRuntime] or
 // [AspNetCoreRuntime] - runs a test carrying it on a real socket; Hardened1SocketTests does.
 #endif
-#if (kestrel)
+#if (kestrel || cloudRun)
 [assembly: KestrelTesting]
 #endif
 #if (aspnet)
