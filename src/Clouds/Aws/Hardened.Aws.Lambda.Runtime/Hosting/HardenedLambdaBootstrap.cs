@@ -1,5 +1,6 @@
 using Amazon.Lambda.RuntimeSupport;
 using Amazon.Lambda.Core;
+using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Aws.Lambda.Runtime.Hosting;
@@ -9,10 +10,10 @@ namespace Hardened.Aws.Lambda.Runtime.Hosting;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The whole of an application's entry point:
+/// The whole of an application's entry point, once the container is built:
 /// </para>
 /// <code>
-/// await HardenedLambdaBootstrap.Run(new Application());
+/// await HardenedLambdaBootstrap.Run(services.BuildServiceProvider());
 /// </code>
 /// <para>
 /// <b>The container is built before the loop starts, on purpose.</b> Everything a request resolves
@@ -31,9 +32,21 @@ public static class HardenedLambdaBootstrap {
     /// <param name="cancellationToken">
     /// Stops the loop. See the overload below for why a deployed function never uses it.
     /// </param>
-    public static Task Run(
-        IServiceProvider serviceProvider, CancellationToken cancellationToken = default) =>
-        Run(serviceProvider.GetRequiredService<LambdaInvocationHandler>(), cancellationToken);
+    public static async Task Run(
+        IServiceProvider serviceProvider, CancellationToken cancellationToken = default) {
+        // Through the guard, so the services run once per provider however the host was reached -
+        // the same call KestrelServerRunner.StartAsync makes, and for the same reason.
+        //
+        // Nothing here ran it, and a Lambda has no other start signal: the runtime hands over an
+        // invocation and that is the whole lifecycle. So AuthenticationStartupService installed no
+        // middleware, AuthorizationStartupService installed no filter provider and CorsStartupService
+        // never ran - every request arrived anonymous, every route was open, and nothing said so.
+        // Invisible from inside this repository because every test host starts the provider itself,
+        // and only the deployed function was open.
+        await ApplicationLogic.Start(serviceProvider, null);
+
+        await Run(serviceProvider.GetRequiredService<LambdaInvocationHandler>(), cancellationToken);
+    }
 
     /// <summary>
     /// Serves invocations against a handler built by hand, for a host that assembles its own.

@@ -34,12 +34,19 @@
     generator that no longer matched the interface it emitted against.
   -->
   <ItemGroup Label="Logging">
-    <!-- The console logger the entry point installs. A deployed function writes to CloudWatch
-         through stdout, so this is what makes a log line reach it. -->
+    <!-- The console logger the Cloud Run entry point installs, which is what puts a log line on
+         the stdout Cloud Logging collects. An AWS function uses Amazon.Lambda.Logging.AspNetCore
+         instead; see Program.cs. -->
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
   </ItemGroup>
 
   <ItemGroup Label="AWS Lambda">
+    <!--
+      The logging provider the entry point installs, on its own line rather than Hardened's: it is
+      AWS's package and moves with the Lambda runtime client. Program.cs says why a Lambda function
+      logs through this and not through the console provider.
+    -->
+    <PackageVersion Include="Amazon.Lambda.Logging.AspNetCore" Version="5.0.1" />
     <PackageVersion Include="Hardened.Aws.Lambda.Runtime" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Aws.Lambda.Invoke" Version="$(HardenedVersion)" />
     <PackageVersion Include="Hardened.Aws.Lambda.Sqs" Version="$(HardenedVersion)" />

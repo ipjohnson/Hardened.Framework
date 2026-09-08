@@ -28,19 +28,22 @@ public class ExceptionToModelConverterTests {
     /// The status the operation's contract declared for validation failures, or null for an
     /// operation that declared none.
     /// </param>
-    private static IExecutionContext Context(int? validationErrorStatus = null) {
+    private static IExecutionContext Context(
+        int? validationErrorStatus = null,
+        IReadOnlyDictionary<int, object>? declaredErrorBodies = null) {
         var response = Substitute.For<IExecutionResponse>();
         response.Headers.Returns(new Dictionary<string, StringValues>());
 
         var context = Substitute.For<IExecutionContext>();
         context.Response.Returns(response);
 
-        if (validationErrorStatus != null) {
+        if (validationErrorStatus != null || declaredErrorBodies != null) {
             // The type the pipeline carries, rather than a substitute: ValidationErrorStatus is a
             // default interface member, and a stub for it would prove the stub works.
             context.HandlerInfo.Returns(new ExecutionRequestHandlerInfo(
                 "/events", "POST", typeof(ExceptionToModelConverterTests), "Handle",
-                validationErrorStatus: validationErrorStatus));
+                validationErrorStatus: validationErrorStatus,
+                declaredErrorBodies: declaredErrorBodies));
         }
 
         return context;
@@ -349,6 +352,86 @@ public class ExceptionToModelConverterTests {
 
         Assert.Equal(409, status);
         Assert.Equal("already exists", Assert.IsType<ErrorModel>(model).Message);
+    }
+
+    /// <summary>
+    /// A refusal with no body of its own answers the one the contract declared for that status.
+    /// </summary>
+    /// <remarks>
+    /// The refusals the pipeline raises are the whole reason this exists.
+    /// <c>AuthorizationException</c> is a <c>StatusCodeException</c> built with <c>value: null</c>,
+    /// so an application whose document declares a <c>Problem</c> for its 401 answered the generic
+    /// model instead - an undescribed shape at a described status.
+    /// </remarks>
+    [Fact]
+    public void ARefusalWithNoBodyAnswersTheDeclaredOne() {
+        var declared = new { Title = "Unauthorized", Status = 401 };
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(declaredErrorBodies: new Dictionary<int, object> { { 401, declared } }),
+            new StatusCodeException(401, value: null, message: "authentication required"));
+
+        Assert.Equal(401, status);
+        Assert.Same(declared, model);
+    }
+
+    /// <summary>
+    /// And a status the contract declared nothing for keeps the generic model.
+    /// </summary>
+    [Fact]
+    public void ARefusalAtAnUndeclaredStatusKeepsTheGenericModel() {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(declaredErrorBodies: new Dictionary<int, object> {
+                { 401, new { Title = "Unauthorized" } }
+            }),
+            new StatusCodeException(403, value: null, message: "forbidden"));
+
+        Assert.Equal(403, status);
+        Assert.Equal("forbidden", Assert.IsType<ErrorModel>(model).Message);
+    }
+
+    /// <summary>
+    /// An implementation that predates the member reads as declaring nothing.
+    /// </summary>
+    /// <remarks>
+    /// <c>DeclaredErrorBodies</c> is a default interface member for that reason, and this is the
+    /// stub the default is for: an application's own <c>IExecutionRequestHandlerInfo</c>, compiled
+    /// before the member existed, still loads and still answers.
+    /// </remarks>
+    [Fact]
+    public void AHandlerThatDeclaresNothingReadsAsEmpty() {
+        // Through the interface, because the member is a default one: a call on the class would
+        // not compile, which is the whole shape being pinned.
+        IExecutionRequestHandlerInfo handlerInfo = new MinimalHandlerInfo();
+
+        Assert.Empty(handlerInfo.DeclaredErrorBodies);
+
+        var context = Substitute.For<IExecutionContext>();
+        var response = Substitute.For<IExecutionResponse>();
+
+        response.Headers.Returns(new Dictionary<string, StringValues>());
+        context.Response.Returns(response);
+        context.HandlerInfo.Returns(handlerInfo);
+
+        var (status, model) = Converter.ConvertExceptionToModel(
+            context, new StatusCodeException(401, value: null, message: "authentication required"));
+
+        Assert.Equal(401, status);
+        Assert.Equal("authentication required", Assert.IsType<ErrorModel>(model).Message);
+    }
+
+    /// <summary>An implementation of the interface that overrides none of its default members.</summary>
+    private sealed class MinimalHandlerInfo : IExecutionRequestHandlerInfo {
+        public string Path => "/secured";
+
+        public string Method => "GET";
+
+        public Type HandlerType => typeof(ExceptionToModelConverterTests);
+
+        public string InvokeMethod => "Handle";
+
+        public IReadOnlyList<IExecutionRequestParameter> Parameters { get; } =
+            Array.Empty<IExecutionRequestParameter>();
     }
 
     /// <summary>

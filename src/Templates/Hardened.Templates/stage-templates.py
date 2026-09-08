@@ -19,6 +19,43 @@ TOKENS = {
     "0.0.0-DEPENDENCYMODULES-VERSION": sys.argv[4],
 }
 
+# A scaffold pinning a preview cannot restore from nuget.org, because a preview is published to
+# GitHub Packages alone - so `dotnet new` wrote a project that did not build, with NU1101 and
+# nothing saying which feed was missing. This does not add the feed, it names it: an authenticated
+# source with no credentials answers 401, and a 401 fails the whole restore rather than the one
+# package, which would be worse than what it replaces. Commented out, with what to do, so the
+# restore fails exactly as it did and the file says why.
+#
+# The credentials are environment variables rather than a token written into the project. NuGet
+# expands %VAR% in a config value when it restores, so nothing lands on disk.
+#
+# A release is on nuget.org and the marker comes out, leaving the file the two lines it always was.
+PREVIEW_MARKER = "<!--#PREVIEW-SOURCE#-->\n"
+
+PREVIEW_SOURCE = """  <!-- This project pins a preview of Hardened, and previews are published to GitHub Packages
+       rather than nuget.org. To restore it, uncomment the source and the credentials below and
+       set GITHUB_USERNAME and a GITHUB_TOKEN holding read:packages. NuGet expands the variables
+       when it restores, so no token is written into this file.
+
+       Delete all of this once the project pins a released version.
+
+  <packageSources>
+    <add key="hardened-previews" value="https://nuget.pkg.github.com/ipjohnson/index.json" />
+  </packageSources>
+  <packageSourceCredentials>
+    <hardened-previews>
+      <add key="Username" value="%GITHUB_USERNAME%" />
+      <add key="ClearTextPassword" value="%GITHUB_TOKEN%" />
+    </hardened-previews>
+  </packageSourceCredentials>
+  -->
+"""
+
+
+def preview_source(version):
+    """The feed a preview scaffold needs, or nothing for a released one."""
+    return PREVIEW_SOURCE if "-preview" in version else ""
+
 source, destination = sys.argv[1], sys.argv[2]
 
 if os.path.isdir(destination):
@@ -33,6 +70,7 @@ shutil.copytree(
 )
 
 stamped = {token: 0 for token in TOKENS}
+markers = 0
 
 for root, _, files in os.walk(destination):
     for name in files:
@@ -44,7 +82,10 @@ for root, _, files in os.walk(destination):
         except (UnicodeDecodeError, OSError):
             continue
 
-        if not any(token in content for token in TOKENS):
+        if PREVIEW_MARKER in content:
+            content = content.replace(PREVIEW_MARKER, preview_source(sys.argv[3]))
+            markers += 1
+        elif not any(token in content for token in TOKENS):
             continue
 
         for token, version in TOKENS.items():
@@ -62,3 +103,12 @@ for token, version in TOKENS.items():
         sys.exit(1)
 
     print(f"stage-templates: stamped {version} into {stamped[token]} file(s)")
+
+# One per template. Zero means the marker was renamed or dropped, and a preview scaffold would go
+# back to restoring from a feed that does not have it.
+if markers == 0:
+    print(f"stage-templates: no nuget.config carried {PREVIEW_MARKER.strip()}; a preview scaffold "
+          "would not see the feed its packages are on", file=sys.stderr)
+    sys.exit(1)
+
+print(f"stage-templates: resolved the preview source in {markers} nuget.config file(s)")

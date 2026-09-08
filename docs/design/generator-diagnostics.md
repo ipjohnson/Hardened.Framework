@@ -418,6 +418,7 @@ error, with no `NoWarn`: there is no reading of zero that means anything else.
 | `HOAG020` | An operation declares a markup content type but names no view to render it. |
 | `HRDR0xx`, `HRDV0xx`, `HRDW0xx` | Runtime, validation and web generators. The ones with an entry have a section above. |
 | `HRDAZ001`–`HRDAZ004`, `HRDAZ010` | The Azure Functions generator and the runtime package's build check; see below. |
+| `HRDT001` | The testing package's build check; see below. |
 | `HRDOA001` | `<HardenedOpenApiVersion>` is not 3.0.0, 3.1.0 or 3.2.0. |
 | `HRDOA002` | Warning. A streamed response under a document version with no `itemSchema`; the operation is described as an array of the item under `schema`, so a client generated from the document reads a list rather than a stream. |
 | `HRDOA003` | Warning. `[Enable<OpenApiDocumentPublishing>]` sits on a module declaring no routes, so the document is empty. |
@@ -473,6 +474,19 @@ executable that references the runtime package and not `Microsoft.Azure.Function
 builds, but nothing writes `worker.config.json`, `functions.metadata` or the host's extensions,
 so the host starts no worker and indexes nothing. The runtime package does not reference the Sdk
 itself, because the Sdk is a build-time package the application has to own.
+
+## Testing (HRDT)
+
+### HRDT001 — a test project references no runner package
+
+Raised by `Hardened.Shared.Testing`'s targets rather than by a generator. `[HardenedTest]` ships in
+`Hardened.Shared.Testing.xUnit` and `Hardened.Shared.Testing.NUnit`; the neutral package holds the
+entry point attribute, `ITestContext` and the seam a runner fills. A project on the layout that
+predates the split gets one `CS0246` per test method — forty across four projects in one migration,
+all saying the same thing and none of them saying which package to add.
+
+A warning, because referencing the neutral package without writing a `[HardenedTest]` is
+legitimate.
 
 ## Description build tasks (HOAT, HSMT)
 

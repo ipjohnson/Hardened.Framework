@@ -77,6 +77,25 @@ public record ResponseInformationModel {
     public string? NullResponseBodyExpression { get; set; }
 
     /// <summary>
+    /// C# naming the body the contract declares for each status it names, or null where it declares
+    /// none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The dictionary literal the handler info takes, filled from the same generated fields
+    /// <see cref="NullResponseBodyExpression"/> names. What a refusal the pipeline raised writes:
+    /// the exception carries no body, so only the contract can say what shape the status answers
+    /// with.
+    /// </para>
+    /// <para>
+    /// One string for the reason <see cref="ProducedContentTypes"/> is one - this is a
+    /// <c>record</c>, and a collection member would compare by reference and never invalidate the
+    /// incremental cache.
+    /// </para>
+    /// </remarks>
+    public string? DeclaredErrorBodiesExpression { get; set; }
+
+    /// <summary>
     /// Every media type this operation can produce, comma-separated, or null where it said nothing.
     /// </summary>
     /// <remarks>
@@ -190,7 +209,8 @@ public record ResponseInformationModel {
     /// </remarks>
     public override string ToString() {
         return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
-               $":{DefaultStatusCode}:{NullResponseBodyExpression}:{ProducedContentTypes}" +
+               $":{DefaultStatusCode}:{NullResponseBodyExpression}:{DeclaredErrorBodiesExpression}" +
+               $":{ProducedContentTypes}" +
                $":{UnionCases}:{UnionDiagnostic}:{ThrowsDiagnostic}:{ValidationErrorStatus}" +
                $":{StreamFramingDiagnostic}";
     }

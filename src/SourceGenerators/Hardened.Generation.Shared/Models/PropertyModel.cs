@@ -80,6 +80,31 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     public bool ConstrainedAsRequired => IsRequired && !IsNullable && !IsReadOnly;
 
     /// <summary>
+    /// Whether a response leaves the member out rather than writing <c>null</c> into it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Optional and not nullable means "may be absent, and is of this type if present" - so
+    /// <c>null</c> is a value the document forbids. Nothing said so, and every generated model
+    /// wrote one for every optional member the handler had nothing to put in: a client whose
+    /// generated <c>expiresAt</c> is <c>long</c> - which is what the contract describes, and what a
+    /// Refitter interface and a Swift <c>Codable</c> struct both produce - refuses the body with
+    /// "Cannot get the value of a token type 'Null' as a number". Kiota makes every property
+    /// nullable and read the invalid payload happily, which is why it survived.
+    /// </para>
+    /// <para>
+    /// Required-and-nullable is the opposite case and is left alone: the document says the member is
+    /// always present and may be null, so writing the null is the contract being kept. Optional-and-
+    /// nullable permits both, and keeps what it did.
+    /// </para>
+    /// <para>
+    /// A header-bound member is already <c>[JsonIgnore]</c> in both directions, and a second ignore
+    /// attribute on one declaration does not compile.
+    /// </para>
+    /// </remarks>
+    public bool OmittedWhenNull => !IsRequired && !IsNullable && !IsHeaderBound;
+
+    /// <summary>
     /// The schema's <c>readOnly</c>: the property appears in responses and must not be sent in a
     /// request.
     /// </summary>

@@ -19,7 +19,15 @@ using var emulator = await LambdaEmulator.StartIfLocal(typeof(Application));
 
 var services = new ServiceCollection();
 
-services.AddLogging(builder => builder.AddSimpleConsole().SetMinimumLevel(LogLevel.Information));
+// Through the Lambda logger, not the console provider. Amazon.Lambda.RuntimeSupport replaces
+// Console.Out process-wide with its own writer and takes a lock on it, including to print an
+// unhandled exception - which it does before reporting the invocation as failed. A console provider
+// writing from its own background thread is a second party on that lock, and the two can deadlock:
+// the handler's exception is never reported, and the invocation hangs until the function times out
+// rather than failing fast. This provider writes through Amazon.Lambda.Core's LambdaLogger, which
+// is the single-lock path, and it keeps what the console provider loses on the way - the request id
+// on every line, and the JSON shape AWS_LAMBDA_LOG_FORMAT asks for.
+services.AddLogging(builder => builder.AddLambdaLogger().SetMinimumLevel(LogLevel.Information));
 
 // What the framework reads configuration and the environment through. A deployed function gets its
 // settings from the environment, so this is where the process arguments enter.

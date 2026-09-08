@@ -107,7 +107,14 @@
         <PackageVersion Include="Amazon.Lambda.APIGatewayEvents" Version="2.7.0" />
         <PackageVersion Include="Amazon.Lambda.Core" Version="3.3.0" />
         <PackageVersion Include="Amazon.Lambda.DynamoDBEvents" Version="3.1.1" />
-        <PackageVersion Include="Amazon.Lambda.Logging.AspNetCore" Version="3.1.0" />
+        <!--
+          The ILogger provider a Lambda entry point installs, in place of the console one. It writes
+          through Amazon.Lambda.Core's LambdaLogger rather than Console.Out; see the function
+          template's Program.cs for why that matters. 5.0.1 rather than the 3.1.0 this was pinned at
+          because 3.x reports every line to the platform as Trace with the real severity embedded in
+          the message text, so a level filter or an alarm keyed on it matches nothing.
+        -->
+        <PackageVersion Include="Amazon.Lambda.Logging.AspNetCore" Version="5.0.1" />
         <PackageVersion Include="Amazon.Lambda.RuntimeSupport" Version="2.2.0" />
         <PackageVersion Include="Amazon.Lambda.Serialization.SystemTextJson" Version="2.4.3" />
         <PackageVersion Include="Amazon.Lambda.SNSEvents" Version="2.1.0" />

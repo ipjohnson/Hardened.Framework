@@ -1,0 +1,32 @@
+<Project>
+    <!--
+        A test project that references this package and no runner package.
+
+        [HardenedTest] is not here. This package holds the entry point attribute, ITestContext and
+        the running-test seam; the attribute that a runner actually discovers ships in
+        Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit, and a project on the old
+        single-package layout gets one CS0246 per test method - forty of them across four projects
+        in one migration, all saying the same thing and none of them saying which package to add.
+
+        A warning rather than an error, because referencing this package without writing a
+        [HardenedTest] is legitimate: a project may want ITestContext or the entry point attribute
+        and drive its tests some other way. NoWarn silences it for those.
+
+        Read off @(PackageReference) rather than the resolved graph, because a runner package is
+        the test project's own choice and is always a direct reference - the framework's testing
+        packages deliberately depend on neither, so that one on Moq does not pull in NSubstitute.
+    -->
+    <Target Name="HardenedTestingRunnerReference"
+            BeforeTargets="CoreCompile"
+            Condition="'$(IsTestProject)' == 'true'">
+        <ItemGroup>
+            <_HardenedTestRunner Include="@(PackageReference)"
+                                 Condition="'%(Identity)' == 'Hardened.Shared.Testing.xUnit' Or
+                                            '%(Identity)' == 'Hardened.Shared.Testing.NUnit'" />
+        </ItemGroup>
+
+        <Warning Condition="'@(_HardenedTestRunner)' == ''"
+                 Code="HRDT001"
+                 Text="$(MSBuildProjectName) references Hardened.Shared.Testing and no runner package, so [HardenedTest] is not defined and every test method carrying it is CS0246. Add a PackageReference to Hardened.Shared.Testing.xUnit or Hardened.Shared.Testing.NUnit." />
+    </Target>
+</Project>

@@ -2,7 +2,10 @@ using System.Text.Json;
 using DependencyModules.Testing.Attributes;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.IntegrationTests.Sqs.SUT;
+using Hardened.Shared.Runtime.Application;
 using Hardened.Shared.Testing.Attributes;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
 
@@ -98,5 +101,58 @@ public class LambdaRuntimeLoopTests {
 
         Assert.True(answer.Failed);
         Assert.Contains("handler refused the order", answer.Body);
+    }
+
+    /// <summary>A startup service that records that it ran, and nothing else.</summary>
+    private sealed class Probe : IStartupService {
+        public bool Ran;
+
+        public Task<bool> Startup(IServiceProvider rootProvider) {
+            Ran = true;
+
+            return Task.FromResult(true);
+        }
+    }
+
+    /// <summary>
+    /// The startup services run, over a provider the function built itself.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Its own provider rather than the injected one, and that is the whole point. Every test host
+    /// in this repository calls <c>ApplicationLogic.Start</c> before it hands a provider out, so a
+    /// test taking one asserts against a container something else already started - which is why
+    /// nothing here noticed that the bootstrap never started one. This builds the container the way
+    /// <c>Program.cs</c> does and leaves the bootstrap as the only thing that could have run them.
+    /// </para>
+    /// <para>
+    /// The startup set is the middleware chain: authentication installs its middleware there,
+    /// authorization installs its filter provider, CORS installs its configuration. A function that
+    /// skips it serves every request anonymous and every route open, with nothing logged.
+    /// </para>
+    /// <para>
+    /// In this class rather than a file of its own, because the runtime client reads its address
+    /// from the environment and xUnit runs two classes as two collections in parallel - which is two
+    /// tests writing one process-wide variable.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public async Task TheBootstrapRunsTheStartupServicesOnTheProviderItIsGiven() {
+        var probe = new Probe();
+
+        var services = new ServiceCollection();
+
+        services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.None));
+        services.AddTransient<IHardenedEnvironment>(_ => new EnvironmentImpl("test"));
+        services.AddSingleton(Substitute.For<IOrderStore>());
+        services.AddSingleton<IStartupService>(probe);
+
+        new SqsTestApp().PopulateServiceCollection(services);
+
+        Assert.False(probe.Ran);
+
+        await Serve(services.BuildServiceProvider(), OneOrder);
+
+        Assert.True(probe.Ran);
     }
 }

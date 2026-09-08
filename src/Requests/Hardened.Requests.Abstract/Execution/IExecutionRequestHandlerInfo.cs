@@ -113,6 +113,41 @@ public interface IExecutionRequestHandlerInfo {
     /// </remarks>
     int? ValidationErrorStatus => null;
 
+    /// <summary>
+    /// The body the operation declares for a status, for the refusals the pipeline raises itself.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A generated instance of the schema the description declared for that status, holding the
+    /// status and its reason phrase and nothing else - the same instances
+    /// <see cref="NullResponseBody"/> is taken from, and shared with it.
+    /// </para>
+    /// <para>
+    /// Read only where the exception carries no body of its own. A handler that throws the
+    /// generated exception type has written one, and that one wins; a refusal the framework raises
+    /// has none, because <c>AuthorizationException</c> and its siblings cannot know the shape a
+    /// document declared. Without this a contract-first application published a <c>Problem</c> for
+    /// its 401 and answered <c>{"type":"AuthorizationException",…}</c> - an undescribed shape at a
+    /// described status, which a generated client has no branch for.
+    /// </para>
+    /// <para>
+    /// Empty means the description declared no body for any status it names, which leaves every
+    /// refusal answering the generic <c>ErrorModel</c> exactly as it did.
+    /// </para>
+    /// </remarks>
+    IReadOnlyDictionary<int, object> DeclaredErrorBodies => NoDeclaredErrorBodies;
+
+    /// <summary>
+    /// What <see cref="DeclaredErrorBodies"/> answers where nothing was declared.
+    /// </summary>
+    /// <remarks>
+    /// A field rather than a fresh instance, because a default member is evaluated on every read
+    /// and this one is read on every refusal. <c>Array.Empty</c> is what the members above use;
+    /// there is no dictionary equivalent to reach for.
+    /// </remarks>
+    private static readonly IReadOnlyDictionary<int, object> NoDeclaredErrorBodies =
+        new Dictionary<int, object>();
+
     IReadOnlyList<IExecutionRequestParameter> Parameters { get; }
 
     IReadOnlyList<object> Metadata => Array.Empty<object>();
