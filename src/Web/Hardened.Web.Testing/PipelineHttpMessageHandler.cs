@@ -39,12 +39,28 @@ namespace Hardened.Web.Testing;
 /// </para>
 /// </remarks>
 public sealed class PipelineHttpMessageHandler : HttpMessageHandler {
-    private readonly IServiceProvider _rootServiceProvider;
+    private readonly Func<ValueTask<IServiceProvider>> _container;
     private readonly TestCredential? _credential;
 
     /// <param name="rootServiceProvider">The application's root container, which the chain is resolved from.</param>
     public PipelineHttpMessageHandler(IServiceProvider rootServiceProvider)
         : this(rootServiceProvider, null) {
+    }
+
+    /// <summary>
+    /// A handler over a host that builds a container per request.
+    /// </summary>
+    /// <remarks>
+    /// A delegate rather than a container, because this outlives one request: a typed client holds
+    /// one handler for the whole test and sends through it many times, and each of those sends is a
+    /// separate invocation as far as the deployment is concerned.
+    /// </remarks>
+    /// <param name="container">Produces the container for one request.</param>
+    /// <param name="credential">As above.</param>
+    public PipelineHttpMessageHandler(
+        Func<ValueTask<IServiceProvider>> container, TestCredential? credential) {
+        _container = container;
+        _credential = credential;
     }
 
     /// <param name="credential">
@@ -53,7 +69,7 @@ public sealed class PipelineHttpMessageHandler : HttpMessageHandler {
     /// its own.
     /// </param>
     public PipelineHttpMessageHandler(IServiceProvider rootServiceProvider, TestCredential? credential) {
-        _rootServiceProvider = rootServiceProvider;
+        _container = () => new ValueTask<IServiceProvider>(rootServiceProvider);
         _credential = credential;
     }
 
@@ -63,7 +79,8 @@ public sealed class PipelineHttpMessageHandler : HttpMessageHandler {
 
         var body = new MemoryStream();
 
-        var response = await PipelineRequest.Run(_rootServiceProvider, executionRequest, body, cancellationToken);
+        var response = await PipelineRequest.Run(
+            await _container(), executionRequest, body, cancellationToken);
 
         return ToResponse(response, body, request);
     }

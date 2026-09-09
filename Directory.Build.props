@@ -80,7 +80,7 @@
       breaks. Same no-float rationale as ValidationModulesVersion.
     -->
     <PropertyGroup>
-        <DependencyModulesVersion Condition="'$(DependencyModulesVersion)' == ''">1.3.1</DependencyModulesVersion>
+        <DependencyModulesVersion Condition="'$(DependencyModulesVersion)' == ''">1.5.0</DependencyModulesVersion>
     </PropertyGroup>
 
     <!--

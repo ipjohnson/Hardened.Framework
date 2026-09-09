@@ -1,3 +1,4 @@
+using DependencyModules.Testing.Attributes;
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Testing;
@@ -205,7 +206,7 @@ public class ConditionalGetTests {
     /// different feature.
     /// </summary>
     [HardenedTest]
-    public async Task A304FromAHandlersOwnTagStillRanTheHandler(ITestWebApp testWebApp) {
+    public async Task A304FromAHandlersOwnTagStillRanTheHandler([Shared] ITestWebApp testWebApp) {
         await testWebApp.Get(Document, IfNoneMatch(ConditionalController.Version));
 
         var next = await testWebApp.Get(Document);

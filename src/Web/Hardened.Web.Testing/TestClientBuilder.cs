@@ -40,10 +40,20 @@ internal static class TestClientBuilder {
     private static readonly ConcurrentDictionary<Assembly, IReadOnlyList<ITestClientRoute>> Routes = new();
     private static readonly ConcurrentDictionary<Assembly, IReadOnlyList<ITestClientReader>> Readers = new();
 
-    public static HttpClient CreateHttpClient(IServiceProvider rootServiceProvider, TestCredential? credential) {
+    public static HttpClient CreateHttpClient(
+        IServiceProvider rootServiceProvider, TestCredential? credential) =>
+        CreateHttpClient(rootServiceProvider, credential, reuseContainer: false);
+
+    /// <param name="reuseContainer">
+    /// Whether every request this client makes reaches one container, which is what
+    /// <c>[Shared]</c> on the parameter asks for. False is a container per request, on a host that
+    /// rebuilds.
+    /// </param>
+    public static HttpClient CreateHttpClient(
+        IServiceProvider rootServiceProvider, TestCredential? credential, bool reuseContainer) {
         var host = HostOf(rootServiceProvider);
 
-        var client = new HttpClient(host.CreateHandler(credential)) {
+        var client = new HttpClient(host.CreateHandler(credential, reuseContainer)) {
             BaseAddress = host.BaseAddress
         };
 
@@ -88,8 +98,16 @@ internal static class TestClientBuilder {
         throw new InvalidOperationException(NoRouteMessage(clientType, testAssembly));
     }
 
-    public static TestClientContext CreateContext(IServiceProvider rootServiceProvider, TestCredential? credential) =>
-        new(HostOf(rootServiceProvider), credential, CreateHttpClient(rootServiceProvider, credential));
+    public static TestClientContext CreateContext(
+        IServiceProvider rootServiceProvider, TestCredential? credential) =>
+        CreateContext(rootServiceProvider, credential, reuseContainer: false);
+
+    /// <param name="reuseContainer">As on <see cref="CreateHttpClient"/>.</param>
+    public static TestClientContext CreateContext(
+        IServiceProvider rootServiceProvider, TestCredential? credential, bool reuseContainer) =>
+        new(HostOf(rootServiceProvider),
+            credential,
+            CreateHttpClient(rootServiceProvider, credential, reuseContainer));
 
     public static string NoRouteMessage(Type clientType, Assembly testAssembly) =>
         $"{clientType.FullName} cannot be built for a test parameter. None of the three routes " +

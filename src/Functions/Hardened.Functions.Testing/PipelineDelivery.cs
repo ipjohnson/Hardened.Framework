@@ -1,4 +1,6 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using DependencyModules.Testing.Attributes.Interfaces;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Runtime.QueryString;
@@ -26,10 +28,39 @@ namespace Hardened.Functions.Testing;
 /// </remarks>
 public sealed class PipelineDelivery : ITriggerDelivery {
     private readonly IServiceProvider _provider;
-    private bool _installed;
+    private readonly ITestContainerSource? _source;
 
     public PipelineDelivery(IServiceProvider provider) {
         _provider = provider;
+        _source = provider.GetService<ITestContainerSource>();
+    }
+
+    /// <summary>
+    /// The container one delivery runs against, composed and started.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A container per delivery, because two sends are two invocations and a trigger source makes
+    /// no promise that one environment serves both. Two queue handlers deployed as two functions are
+    /// two processes, so a handler passing only because the previous send warmed a singleton is a
+    /// test that cannot fail for the reason production will.
+    /// </para>
+    /// <para>
+    /// A batch is one delivery and therefore one container, which is right: three messages in one
+    /// send are one invocation, and the fan-out to a handler call per message happens inside it.
+    /// </para>
+    /// <para>
+    /// What crosses between them is what the test declared - a <c>[Mock]</c>, anything marked
+    /// <c>[Shared]</c>, and the harness services the entry point pins. Absent where the harness was
+    /// built by hand rather than run by the runner, and then there is one container as before.
+    /// </para>
+    /// </remarks>
+    private async ValueTask<IServiceProvider> ContainerForDeliveryAsync() {
+        var provider = _source is { } source ? await source.CreateAsync() : _provider;
+
+        Install(provider);
+
+        return provider;
     }
 
     /// <summary>
@@ -39,16 +70,16 @@ public sealed class PipelineDelivery : ITriggerDelivery {
         new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     public async Task Deliver(IReadOnlyList<object> messages, string scheme, string path) {
-        Install();
+        var provider = await ContainerForDeliveryAsync();
 
         var bodies = messages
             .Select(message => JsonSerializer.SerializeToUtf8Bytes(message, Wire))
             .ToArray();
 
-        using var scope = _provider.CreateScope();
+        using var scope = provider.CreateScope();
 
         var context = new TestExecutionContext(
-            _provider,
+            provider,
             scope.ServiceProvider,
             scope.ServiceProvider.GetRequiredService<IKnownServices>(),
             new TriggerRequest(scheme, path, bodies),
@@ -57,7 +88,7 @@ public sealed class PipelineDelivery : ITriggerDelivery {
 
         // Rethrow, because every trigger family does: failing the invocation is what makes a source
         // redeliver, and a test asserting that a bad message fails has to see the exception.
-        await _provider.GetRequiredService<IRequestExecutor>()
+        await provider.GetRequiredService<IRequestExecutor>()
             .Run(context, HostFailurePolicy.Rethrow);
     }
 
@@ -68,7 +99,7 @@ public sealed class PipelineDelivery : ITriggerDelivery {
     /// the response type is passed rather than assumed.
     /// </remarks>
     public async Task<object?> Call(object message, string scheme, string path, Type? responseType) {
-        Install();
+        var provider = await ContainerForDeliveryAsync();
 
         var body = JsonSerializer.SerializeToUtf8Bytes(message, Wire);
 
@@ -84,7 +115,7 @@ public sealed class PipelineDelivery : ITriggerDelivery {
             response,
             CancellationToken.None);
 
-        await _provider.GetRequiredService<IRequestExecutor>()
+        await provider.GetRequiredService<IRequestExecutor>()
             .Run(context, HostFailurePolicy.Rethrow);
 
         return response.ResponseValue;
@@ -95,17 +126,21 @@ public sealed class PipelineDelivery : ITriggerDelivery {
     /// </summary>
     /// <remarks>
     /// The same thing a host does at start. <c>MiddlewareService</c> holds a plain list, so
-    /// appending per message would put a second copy of dispatch in the chain and run every handler
-    /// twice from the second message onwards.
+    /// appending twice would put a second copy of dispatch in the chain and run every handler twice.
+    ///
+    /// Once per container rather than once per delivery, and a flag would be the wrong shape now: a
+    /// fresh container has a fresh empty chain, so it needs its own dispatch, and the previous
+    /// container's flag says nothing about it. <c>MiddlewareService</c> is per container, so asking
+    /// whether this one has been composed is the question that keeps its answer.
     /// </remarks>
-    private void Install() {
-        if (_installed) {
+    private static void Install(IServiceProvider provider) {
+        var middleware = provider.GetRequiredService<IMiddlewareService>();
+
+        if (Composed.TryGetValue(middleware, out _)) {
             return;
         }
 
-        _installed = true;
-
-        var dispatch = _provider.GetServices<IHandlerDispatch>().ToArray();
+        var dispatch = provider.GetServices<IHandlerDispatch>().ToArray();
 
         if (dispatch.Length != 1) {
             var kinds = dispatch.Select(one => one.GetType().Name).Distinct().ToArray();
@@ -124,8 +159,19 @@ public sealed class PipelineDelivery : ITriggerDelivery {
                           "will run. Split the web routes and the triggers into two applications.");
         }
 
-        _provider.GetRequiredService<IMiddlewareService>().Use(_ => dispatch[0]);
+        middleware.Use(_ => dispatch[0]);
+
+        Composed.Add(middleware, Composed);
     }
+
+    /// <summary>
+    /// The chains dispatch has already been appended to.
+    /// </summary>
+    /// <remarks>
+    /// Weak on the key, so a container the test is finished with is collectable rather than held
+    /// alive by a record that it was composed.
+    /// </remarks>
+    private static readonly ConditionalWeakTable<IMiddlewareService, object> Composed = new();
 
     /// <summary>
     /// One invocation, which is not a batch and never fans out.

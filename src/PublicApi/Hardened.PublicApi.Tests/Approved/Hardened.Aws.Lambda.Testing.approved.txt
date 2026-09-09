@@ -2,6 +2,7 @@ namespace Hardened.Aws.Lambda.Testing
 {
     public sealed class LambdaEnvelopeDelivery : Hardened.Functions.Testing.ITriggerDelivery
     {
+        public LambdaEnvelopeDelivery(DependencyModules.Testing.Attributes.Interfaces.ITestContainerSource source, string region = "us-east-1", string account = "123456789012") { }
         public LambdaEnvelopeDelivery(Hardened.Aws.Lambda.Runtime.Hosting.LambdaInvocationHandler handler, string region = "us-east-1", string account = "123456789012") { }
         public System.Threading.Tasks.Task<object?> Call(object message, string scheme, string path, System.Type? responseType) { }
         public System.Threading.Tasks.Task Deliver(System.Collections.Generic.IReadOnlyList<object> messages, string scheme, string path) { }
@@ -16,10 +17,13 @@ namespace Hardened.Aws.Lambda.Testing
     {
         public LambdaWebHost() { }
         public System.Uri BaseAddress { get; }
+        public Hardened.Web.Testing.TestContainerPolicy ContainerPolicy { get; }
         public bool IsTerminal { get; }
         public System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential) { }
+        public System.Net.Http.HttpMessageHandler CreateHandler(Hardened.Web.Testing.TestCredential? credential, bool reuseContainer) { }
         public System.Threading.Tasks.ValueTask DisposeAsync() { }
         public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken) { }
+        public System.Threading.Tasks.Task<Hardened.Web.Testing.TestWebResponse> SendAsync(Hardened.Web.Testing.TestHostRequest request, System.Threading.CancellationToken cancellationToken, bool reuseContainer) { }
         public System.Threading.Tasks.Task StartAsync(System.IServiceProvider provider, System.Threading.CancellationToken cancellationToken) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]

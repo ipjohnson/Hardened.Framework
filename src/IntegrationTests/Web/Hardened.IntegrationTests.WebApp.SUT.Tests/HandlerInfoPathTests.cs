@@ -20,6 +20,12 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// filter silently never ran — for every route in every library that owns a URL space, which is
 /// the arrangement <c>[BasePath]</c> on a module exists to support.
 /// </para>
+/// <para>
+/// These configure the registry and then assert on a request, and every request runs against a
+/// container of its own. The registry is a test parameter, so it is one object across all of them
+/// without anything being said: a parameter is handed over to be looked at, and a filter registered
+/// into a container the test merely happened to hold would reach none of the ones that ran.
+/// </para>
 /// </remarks>
 public class HandlerInfoPathTests {
 

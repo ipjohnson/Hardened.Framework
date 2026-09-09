@@ -40,7 +40,42 @@ namespace Hardened.Web.Testing;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly)]
-public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestStartupAttribute {
+public class WebTestingAttribute
+    : Attribute, ITestServiceSetupAttribute, ITestStartupAttribute, ISharedTestRegistration {
+
+    /// <summary>
+    /// The clients this test takes, which are the parameters that must not be pinned.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A test parameter is one instance for the whole test, because it was handed over to be looked
+    /// at. A client is the exception: it is handed over to send with, and on a host that rebuilds it
+    /// reaches a container per request, so pinning one would pin the thing that is supposed to be
+    /// rebuilt and every request would reach the same container while the test believed otherwise.
+    /// </para>
+    /// <para>
+    /// The same three the harness supplies itself, recognised the same way it recognises them when
+    /// it registers them: <see cref="ITestWebApp"/>, an <c>HttpClient</c>, and a type
+    /// <c>TestClientBuilder.HasRoute</c> answers for. Nothing infers - a generated client is an
+    /// ordinary type in an ordinary signature until you know the harness built it.
+    /// </para>
+    /// <para>
+    /// <c>[Shared]</c> on one of these still means something, and something different: not "pin the
+    /// object" but "send every request to one container", which is read at construction in
+    /// <see cref="IsShared"/> and threaded to the host.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<Type> IsolatedServices(System.Reflection.MethodInfo testMethod) {
+        var testAssembly = testMethod.DeclaringType!.Assembly;
+
+        return testMethod.GetParameters()
+            .Select(parameter => parameter.ParameterType)
+            .Where(type => type == typeof(ITestWebApp) ||
+                           type == typeof(HttpClient) ||
+                           TestClientBuilder.HasRoute(type, testAssembly))
+            .Distinct()
+            .ToArray();
+    }
     public void SetupServiceCollection(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
         var host = ResolveHost(testMethod, serviceCollection);
 
@@ -77,11 +112,18 @@ public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestS
         var testAssembly = declaringType.Assembly;
         var credential = TestCredential.Resolve(testMethod);
 
+        // [Shared] on the ITestWebApp parameter, read here because the mark has to reach the way
+        // the client is built rather than only the instance the test is handed: pinning the object
+        // would change nothing about which container its requests reach.
+        var sharedWebApp = SharedParameter(testMethod, typeof(ITestWebApp));
+
         serviceCollection.AddTransient<ITestWebApp>(sp => {
             var loggerType = typeof(ILogger<>).MakeGenericType(declaringType);
             var logger = (ILogger)sp.GetRequiredService(loggerType);
             var appRoot = sp.GetRequiredService<IApplicationRoot>();
-            return new TestWebApp(appRoot, logger, credential, testAssembly);
+            var app = new TestWebApp(appRoot, logger, credential, testAssembly);
+
+            return sharedWebApp ? app.ReusingOneContainer() : app;
         });
 
         RegisterClientParameters(testMethod, serviceCollection, credential, testAssembly);
@@ -114,9 +156,12 @@ public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestS
                 continue;
             }
 
+            var reuse = IsShared(parameter);
+
             if (type == typeof(HttpClient)) {
                 serviceCollection.AddScoped(type, sp =>
-                    TestClientBuilder.CreateHttpClient(sp.GetRequiredService<IApplicationRoot>().Provider, credential));
+                    TestClientBuilder.CreateHttpClient(
+                        sp.GetRequiredService<IApplicationRoot>().Provider, credential, reuse));
 
                 continue;
             }
@@ -124,7 +169,8 @@ public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestS
             if (TestClientBuilder.HasRoute(type, testAssembly)) {
                 serviceCollection.AddScoped(type, sp => TestClientBuilder.Build(
                     type,
-                    TestClientBuilder.CreateContext(sp.GetRequiredService<IApplicationRoot>().Provider, credential),
+                    TestClientBuilder.CreateContext(
+                        sp.GetRequiredService<IApplicationRoot>().Provider, credential, reuse),
                     testAssembly));
 
                 continue;
@@ -137,6 +183,25 @@ public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestS
             }
         }
     }
+
+    /// <summary>
+    /// Whether a parameter asked for one container across its calls.
+    /// </summary>
+    /// <remarks>
+    /// <c>[Shared]</c> on a client is the escape hatch for a test whose subject is the reuse itself:
+    /// a response cache serving a second request, a rate limiter tripping on the eleventh, a filter
+    /// the test registered reaching a later request. Without it every request runs against a
+    /// container of its own on a host that rebuilds.
+    /// </remarks>
+    private static bool IsShared(System.Reflection.ParameterInfo parameter) =>
+        parameter.GetCustomAttributes(inherit: true)
+            .OfType<ISharedTestRegistration>()
+            .Any(registration => registration.Shared);
+
+    /// <summary>The same, for a parameter named by type rather than held.</summary>
+    private static bool SharedParameter(ITestMethodContext testMethod, Type type) =>
+        testMethod.Method.GetParameters()
+            .Any(parameter => parameter.ParameterType == type && IsShared(parameter));
 
     /// <summary>
     /// The narrowest host in scope: the attributes arrive widest first, so they are read from the

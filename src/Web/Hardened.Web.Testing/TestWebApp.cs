@@ -16,6 +16,7 @@ public class TestWebApp : TestContext, ITestWebApp {
     private readonly TestCredential? _credential;
     private readonly Assembly? _testAssembly;
     private ITestHost? _host;
+    private bool _reuseContainer;
 
     public TestWebApp(IApplicationRoot applicationRoot, ILogger logger)
         : this(applicationRoot, logger, null, null) {
@@ -112,7 +113,9 @@ public class TestWebApp : TestContext, ITestWebApp {
             : SetupBodyStream(bodyValue);
 
         return await Host.SendAsync(
-            new TestHostRequest(httpMethod, path, headers, body, _credential), testWebRequest.Token.Value);
+            new TestHostRequest(httpMethod, path, headers, body, _credential),
+            testWebRequest.Token.Value,
+            _reuseContainer);
     }
 
     /// <summary>
@@ -120,6 +123,20 @@ public class TestWebApp : TestContext, ITestWebApp {
     /// built by hand, which no attribute registered a host for.
     /// </summary>
     private ITestHost Host => _host ??= TestClientBuilder.HostOf(_applicationRoot.Provider);
+
+    /// <summary>
+    /// Sends every request to one container, which is what <c>[Shared]</c> on the parameter asks
+    /// for and what a test whose subject is the reuse needs.
+    /// </summary>
+    /// <remarks>
+    /// Set at construction by the harness rather than exposed to a test, so the only way to ask is
+    /// the attribute. A host that reuses anyway ignores it.
+    /// </remarks>
+    internal TestWebApp ReusingOneContainer() {
+        _reuseContainer = true;
+
+        return this;
+    }
 
     private Stream SetupBodyStream(object? bodyValue) {
         if (bodyValue == null)

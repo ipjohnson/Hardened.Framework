@@ -25,7 +25,7 @@ namespace Hardened.Shared.Testing.Attributes
         public string Variable { get; }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method)]
-    public class HardenedTestEntryPointAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider, DependencyModules.Runtime.Interfaces.IModuleEnvironmentProvider, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute, DependencyModules.Testing.Attributes.Interfaces.ITestStartupAttribute
+    public class HardenedTestEntryPointAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider, DependencyModules.Runtime.Interfaces.IModuleEnvironmentProvider, DependencyModules.Testing.Attributes.Interfaces.ISharedTestRegistration, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute, DependencyModules.Testing.Attributes.Interfaces.ITestStartupAttribute
     {
         public HardenedTestEntryPointAttribute(System.Type entryPoint) { }
         public System.Type EntryPoint { get; }
