@@ -84,9 +84,16 @@ public abstract class BaseRequestModelGenerator {
 
         // And the ones it writes on a status the handler answers by returning a value, which
         // WriteSingleResponse rather than WriteDeclaredResponses publishes.
-        model.SingleResponseHeaders = declared.Headers(
-            model.ResponseInformation.DefaultStatusCode ?? 200,
-            System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>());
+        // Seeded with what the return type itself declares - a Created<T> carries a Location - so a
+        // handler returning one publishes the header a set's case would. DeclaredResponses does the
+        // same for a set, off the case type rather than the body's.
+        var typeHeaders = DeclaredResponseHeaders(context, model.ResponseInformation);
+
+        // Headers() answers null when it merged nothing in, so the type's own would be dropped on
+        // every handler no filter also declares a header for - which is all of them.
+        model.SingleResponseHeaders =
+            declared.Headers(model.ResponseInformation.DefaultStatusCode ?? 200, typeHeaders)
+            ?? (typeHeaders.Count > 0 ? typeHeaders : null);
 
         model.ParameterEnums = ParameterEnums(context, methodDeclaration);
 
@@ -235,6 +242,27 @@ public abstract class BaseRequestModelGenerator {
     }
 
     /// <summary>
+    /// The headers the return type declares, for a handler that returns one on its own.
+    /// </summary>
+    /// <remarks>
+    /// Off the response type rather than the body's: a <c>Created&lt;Todo&gt;</c> sends a
+    /// <c>Todo</c> and carries a <c>Location</c>, and the <c>Location</c> is the wrapper's. The
+    /// same read <c>DeclaredResponses</c> makes per case.
+    /// </remarks>
+    private static IReadOnlyList<Hardened.Generation.Models.ResponseHeaderModel> DeclaredResponseHeaders(
+        GeneratorSyntaxContext context, ResponseInformationModel response) {
+        var single = UnionResponseSelector.Decode(response.DeclaredResponse).FirstOrDefault();
+
+        if (single.TypeName == null || !single.AppliesHeaders) {
+            return System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
+        }
+
+        return CaseSymbol(context, single.TypeName) is { } symbol
+            ? UnionResponseSelector.DeclaredHeaders(symbol)
+            : System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
+    }
+
+    /// <summary>
     /// The symbol for a case type's definition, from the emitted spelling.
     /// </summary>
     /// <remarks>
@@ -307,7 +335,22 @@ public abstract class BaseRequestModelGenerator {
         }
 
         if (response.UnionCases == null) {
-            return declared;
+            // A response type returned on its own describes what it sends, not itself. A schema
+            // written from Created<Todo> describes {value, location, status}, which no client ever
+            // receives - the same defect writing Response<T1..Tn>'s own schema would have been.
+            var single = UnionResponseSelector.Decode(response.DeclaredResponse).FirstOrDefault();
+
+            if (single.BodyTypeName == null) {
+                return declared;
+            }
+
+            // Null rather than the wrapper where the body type will not resolve.
+            // Compilation.GetTypeByMetadataName answers null for a name it finds in more than one
+            // reference, which the forwarded BCL primitives are - so Created<string> lands here.
+            // No schema is a gap; the wrapper is a shape no client ever receives, offered as the
+            // contract.
+            return context.SemanticModel.Compilation.GetTypeByMetadataName(
+                single.BodyTypeName.Replace("global::", ""));
         }
 
         var successStatus = response.DefaultStatusCode ?? 200;
@@ -737,7 +780,16 @@ public abstract class BaseRequestModelGenerator {
 
         var successStatus = DeclaredSuccessStatus(context);
 
+        // What the return type states about itself, for a handler with no set around it. Read
+        // before the status below, because a type's own [HttpStatus] is what the document has to
+        // publish - the same precedence a case has inside a set.
+        var declaredResponse =
+            UnionResponseSelector.ReadDeclared(context.SemanticModel, methodDeclaration, successStatus);
+
+        var declaredCase = UnionResponseSelector.Decode(declaredResponse).FirstOrDefault();
+
         return new ResponseInformationModel {
+            DeclaredResponse = declaredResponse,
             StreamFraming = framing,
             StreamFramingDiagnostic = framing != null && !isAsyncEnumerable ? framing : null,
             IsAsync = isAsync,
@@ -746,7 +798,9 @@ public abstract class BaseRequestModelGenerator {
             OutputType = output,
             ReturnType = returnType,
             RawResponseContentType = rawResponse,
-            DefaultStatusCode = successStatus,
+            // The type's status where it declares one, so a handler returning Created<T> publishes
+            // 201 rather than the 200 nothing asked for.
+            DefaultStatusCode = declaredCase.TypeName != null ? declaredCase.Status : successStatus,
             ProducedContentTypes = DeclaredContentTypes(context),
 
             // Structural, so this recognises Response<T1..Tn>, a generated response union and a
