@@ -130,5 +130,15 @@
                  Link="SpecBridge/%(Filename)%(Extension)"/>
         <Compile Include="../Hardened.SourceGenerator.Tests/OpenApiDocument/XmlDocumentationTests.cs"
                  Link="SpecBridge/XmlDocumentationTests.cs"/>
+        <!--
+            And the route-template and constraint-fact suites, for the reason their own remarks
+            give: both files are source-linked into several generator assemblies, coverage is
+            measured per assembly, and a test in one assembly covers that assembly's copy and
+            nothing else.
+        -->
+        <Compile Include="../Hardened.SourceGenerator.Tests/Web/RouteConstraintFactsTests.cs"
+                 Link="Routing/RouteConstraintFactsTests.cs"/>
+        <Compile Include="../Hardened.SourceGenerator.Tests/Web/RouteTemplateTests.cs"
+                 Link="Routing/RouteTemplateTests.cs"/>
     </ItemGroup>
 </Project>

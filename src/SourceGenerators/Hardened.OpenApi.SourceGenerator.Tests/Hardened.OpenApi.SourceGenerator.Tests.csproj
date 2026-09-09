@@ -97,4 +97,19 @@
         <None Include="Fixtures/**/*" CopyToOutputDirectory="PreserveNewest"/>
     </ItemGroup>
 
+    <!--
+        The route-template and constraint-fact suites, for the reason their own remarks give:
+        both files are source-linked into several generator assemblies, coverage is measured per
+        assembly, and a test in one assembly covers that assembly's copy and nothing else. This
+        project is the one that references Hardened.Idl.SourceGenerator, so it is where the copy
+        the described front end compiles gets driven. The tests are the same tests; nothing is
+        restated.
+    -->
+    <ItemGroup>
+        <Compile Include="../Hardened.SourceGenerator.Tests/Web/RouteConstraintFactsTests.cs"
+                 Link="Web/RouteConstraintFactsTests.cs"/>
+        <Compile Include="../Hardened.SourceGenerator.Tests/Web/RouteTemplateTests.cs"
+                 Link="Web/RouteTemplateTests.cs"/>
+    </ItemGroup>
+
 </Project>
