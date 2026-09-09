@@ -204,3 +204,11 @@ TestResults/
 # Claude Code: per-agent worktrees and local settings for the cloud-line orchestration.
 .claude/worktrees/
 .claude/settings.local.json
+
+# Everything else under .claude is checked in - the agents, and the skills beside them. The build
+# output rules above are broad enough to swallow one by accident: [Rr]elease/ near the top of this
+# file matches .claude/skills/release/ exactly, so the release skill was invisible to git until this
+# was written. Negate the directory rather than renaming skills around a pattern meant for bin
+# folders.
+!.claude/skills/
+!.claude/skills/**
