@@ -451,8 +451,13 @@ public static class LinkGenerator {
             property.Modifiers |= ComponentModifier.Public;
             property.Set = null;
             property.Get.LambdaSyntax = true;
+            // global::, because the namespace alone binds to whatever is in scope at the point of
+            // use. An application named for a type in its own root namespace - Todo.Host importing
+            // Todo.TodoLibrary, where Todo is also a record - otherwise resolves the first segment
+            // to that type and fails with CS0426. The property's own type is qualified already;
+            // this is the one place the name was built by hand.
             property.Get.AddCode(
-                $"_{imported.PropertyName} ??= new {imported.LinksType.Namespace}.{imported.LinksType.Name}(_context);");
+                $"_{imported.PropertyName} ??= new global::{imported.LinksType.Namespace}.{imported.LinksType.Name}(_context);");
 
             var backing = links.AddField(
                 imported.LinksType.MakeNullable(), "_" + imported.PropertyName);
