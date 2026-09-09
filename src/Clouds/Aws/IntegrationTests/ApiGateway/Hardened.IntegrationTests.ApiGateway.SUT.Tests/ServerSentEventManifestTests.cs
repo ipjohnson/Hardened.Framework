@@ -23,7 +23,23 @@ public class ServerSentEventManifestTests {
             .SelectMany(manifest => manifest.Handlers)
             .ToArray();
 
-        Assert.Equal(["GET /orders/live"], handlers);
+        Assert.Contains("GET /orders/live", handlers);
+    }
+
+    /// <summary>
+    /// Token names only. The route is <c>/orders/{id:int}/live</c>, and the constraint is how the
+    /// router decides what matches: an operator reading this line wants the route they wrote, and a
+    /// constraint a contract declared is named after a hash of its pattern -
+    /// <c>{deviceId:spec_p_588343bc}</c> - which appears in nobody's source.
+    /// </summary>
+    [HardenedTest]
+    public void AConstrainedRouteIsListedWithoutItsConstraint(IServiceProvider provider) {
+        var handlers = provider.GetServices<IServerSentEventManifest>()
+            .SelectMany(manifest => manifest.Handlers)
+            .ToArray();
+
+        Assert.Contains("GET /orders/{id}/live", handlers);
+        Assert.DoesNotContain(handlers, handler => handler.Contains(":int"));
     }
 
     /// <summary>
@@ -36,7 +52,8 @@ public class ServerSentEventManifestTests {
             .SelectMany(manifest => manifest.Handlers)
             .ToArray();
 
-        Assert.DoesNotContain(handlers, handler => handler.Contains("/orders/{id}"));
-        Assert.DoesNotContain(handlers, handler => handler == "POST /orders");
+        Assert.DoesNotContain("GET /orders/{id}", handlers);
+        Assert.DoesNotContain("DELETE /orders/{id}", handlers);
+        Assert.DoesNotContain("POST /orders", handlers);
     }
 }

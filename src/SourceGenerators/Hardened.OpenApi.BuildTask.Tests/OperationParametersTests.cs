@@ -33,15 +33,20 @@ public class OperationParametersTests {
         bool required = false,
         int? minLength = null,
         int? maxLength = null,
-        string? refName = null) =>
+        string? refName = null,
+        string @in = "path",
+        string? pattern = null,
+        string? routeConstraint = null) =>
         new() {
             Name = name,
-            In = "path",
+            In = @in,
             Type = type,
             IsRequired = required,
             MinLength = minLength,
             MaxLength = maxLength,
-            Ref = refName
+            Ref = refName,
+            Pattern = pattern,
+            RouteConstraint = routeConstraint
         };
 
     private static OperationModel Operation(params ParameterModel[] parameters) =>
@@ -132,10 +137,21 @@ public class OperationParametersTests {
 
     [Fact]
     public void ARequiredStringParameterCarriesRequired() {
-        var model = Build(Operation(Parameter(required: true, minLength: 1)));
+        var model = Build(Operation(Parameter(@in: "query", required: true, minLength: 1)));
 
         Assert.Contains(
             model!.Members[0].Attributes, attribute => attribute.Type.Name == "RequiredAttribute");
+    }
+
+    /// <summary>
+    /// Suppressed on a path parameter whatever its type: a request that reached the handler matched
+    /// the template, and a segment that is absent or empty matched nothing and was answered 404. So
+    /// <c>[Required]</c> there is a check that cannot fail, and an operation constrained only that
+    /// way used to get a validator - and a 400 in its document that no caller could provoke.
+    /// </summary>
+    [Fact]
+    public void ARequiredPathParameterDoesNotCarryRequired() {
+        Assert.Null(Build(Operation(Parameter(required: true))));
     }
 
     /// <summary>
@@ -185,11 +201,51 @@ public class OperationParametersTests {
     public void ARequiredStringParameterStillCarriesRequiredAlongsideAValueType() {
         var model = Build(Operation(
             Parameter("petId", type: "integer", required: true),
-            Parameter("name", required: true, minLength: 1)));
+            Parameter("name", @in: "query", required: true, minLength: 1)));
 
         Assert.Empty(model!.Members[0].Attributes);
         Assert.Contains(
             model.Members[1].Attributes, attribute => attribute.Type.Name == "RequiredAttribute");
+    }
+
+    #endregion
+
+    #region constraints the route already makes
+
+    /// <summary>
+    /// A pattern <c>RouteConstraintEmitter</c> compiled into the route is tested by the router,
+    /// before binding, so the same test on the validation path can never fail. Emitted anyway it
+    /// cost a regex match on every request that got through, and it published a 400 for an
+    /// operation whose only declaration was that pattern.
+    /// </summary>
+    [Fact]
+    public void APathPatternCompiledIntoTheRouteIsNotAlsoAValidatorCheck() {
+        Assert.Null(Build(Operation(
+            Parameter(pattern: "^[a-z]+$", routeConstraint: "spec_p_18b2c15a"))));
+    }
+
+    /// <summary>
+    /// The pattern the registry refused compiles to no route constraint, so it stays where it was:
+    /// on the validation path, which is the behaviour before route constraints existed.
+    /// </summary>
+    [Fact]
+    public void APathPatternWithNoRouteConstraintIsStillAValidatorCheck() {
+        var model = Build(Operation(Parameter(pattern: "^[a-z]+$")));
+
+        Assert.Contains(
+            model!.Members[0].Attributes, attribute => attribute.Type.Name == "PatternAttribute");
+    }
+
+    /// <summary>
+    /// A query parameter's pattern is never a route constraint - it judges a request that did name
+    /// a resource - so it is unaffected.
+    /// </summary>
+    [Fact]
+    public void AQueryPatternIsAValidatorCheck() {
+        var model = Build(Operation(Parameter(@in: "query", pattern: "^[a-z]+$")));
+
+        Assert.Contains(
+            model!.Members[0].Attributes, attribute => attribute.Type.Name == "PatternAttribute");
     }
 
     #endregion

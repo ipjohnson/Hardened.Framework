@@ -144,6 +144,24 @@ rule a client is validated against is the one the document advertises. Operation
 validators also publish the 400 itself, with the envelope's schema, under
 `components.schemas.RequestValidationError`. See [The OpenAPI document](/guide/openapi-document).
 
+An operation the router already guards publishes no 400. A constraint on a path token is a
+[route constraint](/guide/routing#constraining-what-a-token-matches), tested before any filter or
+binder runs, so a value that would have failed it is a 404 and the validator never sees one:
+
+| Declaration | Refused by | Published |
+|---|---|---|
+| `pattern` on a path token | the router | 404, with no body |
+| `{id:int}` with an `int` parameter | the router | 404, with no body |
+| `required` on a path token | the router, as a route that did not match | 404, with no body |
+| `pattern` on a query value or a header | the validator | 400, the envelope |
+| `minimum` on a path token | the validator | 400, the envelope |
+| a parameter whose type the constraint does not cover, `{id:long}` binding an `int` | the binder | 400, the envelope |
+
+So `pattern` and `minimum` on the same token answer differently, and deliberately: the first says
+which URLs name a resource, the second judges a request that named one. Where the operation declares
+a 404 of its own, its description says the router answers that status too, and without the declared
+body — two 404s reach the wire and a document can key one.
+
 ## Rules the vocabulary cannot express
 
 A business rule is handler code. Throw the same exception the generated filters throw and the

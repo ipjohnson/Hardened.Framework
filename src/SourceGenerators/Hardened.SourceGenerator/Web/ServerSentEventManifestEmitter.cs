@@ -4,6 +4,7 @@ using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Requests;
+using Hardened.SourceGenerator.Web.Routing;
 
 namespace Hardened.SourceGenerator.Web;
 
@@ -39,14 +40,22 @@ internal static class ServerSentEventManifestEmitter {
     /// The handlers framed as events, as the verb and path an operator reads off a log line.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Ordered and deduplicated so the emitted list does not move between builds over nothing,
     /// which would dirty the incremental cache and the fixtures with it.
+    /// </para>
+    /// <para>
+    /// Token names only. A route constraint is how the router decides what matches, and one a
+    /// specification declared is named after a hash of the pattern - so the warning named
+    /// <c>/devices/{deviceId:spec_p_588343bc}</c>, a route the operator cannot find in their own
+    /// contract.
+    /// </para>
     /// </remarks>
     public static IReadOnlyList<string> Collect(IReadOnlyList<RequestHandlerModel> handlers) =>
         handlers
             .Where(handler =>
                 handler.ResponseInformation.StreamFraming == StreamFramingNames.ServerSentEvents)
-            .Select(handler => handler.Name.Method + " " + handler.Name.Path)
+            .Select(handler => handler.Name.Method + " " + RouteTemplate.NamesOnly(handler.Name.Path))
             .Distinct()
             .OrderBy(name => name, System.StringComparer.Ordinal)
             .ToList();

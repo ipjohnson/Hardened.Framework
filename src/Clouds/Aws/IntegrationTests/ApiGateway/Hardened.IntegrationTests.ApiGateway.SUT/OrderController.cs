@@ -38,4 +38,18 @@ public class OrderController {
 
         await Task.Yield();
     }
+
+    /// <summary>
+    /// The same thing under a constrained token, so the manifest has a route whose template carries
+    /// routing syntax. The host prints these to an operator, and a constraint is not part of the
+    /// route anyone wrote down - a pattern a contract declared is named after a hash of itself.
+    /// </summary>
+    [Get("/orders/{id:int}/live")]
+    [ServerSentEvents]
+    public async IAsyncEnumerable<Order> LiveForOrder(
+        int id, [EnumeratorCancellation] CancellationToken cancellationToken) {
+        yield return new Order { Id = id.ToString(), Quantity = 1 };
+
+        await Task.Yield();
+    }
 }

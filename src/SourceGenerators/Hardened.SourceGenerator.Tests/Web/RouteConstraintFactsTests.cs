@@ -202,6 +202,53 @@ public class RouteConstraintFactsTests {
         Assert.Null(RouteConstraintFacts.Call(term));
     }
 
+    /// <summary>
+    /// What the document writer asks: can the converter still refuse a value this constraint let
+    /// through. Every arm is pinned, because a wrong <c>true</c> here deletes a 400 a caller can
+    /// still be sent.
+    /// </summary>
+    [Theory]
+    [InlineData("int", "Int32", true)]
+    [InlineData("int", "int", true)]
+    [InlineData("int", "Int64", true)]
+    [InlineData("int", "Decimal", true)]
+    [InlineData("int", "Double", true)]
+    [InlineData("int", "Single", true)]
+    [InlineData("long", "Int64", true)]
+    [InlineData("long", "Double", true)]
+    [InlineData("decimal", "Decimal", true)]
+    [InlineData("decimal", "Double", true)]
+    [InlineData("bool", "Boolean", true)]
+    [InlineData("guid", "Guid", true)]
+    [InlineData("date", "DateOnly", true)]
+    [InlineData("date", "DateTime", true)]
+    [InlineData("datetime", "DateTimeOffset", true)]
+    [InlineData("range(1,100)", "Int32", true)]
+    [InlineData("int:min(1)", "Int32", true)]
+    // A wider constraint admits values a narrower type refuses, so the refusal stays reachable.
+    [InlineData("long", "Int32", false)]
+    [InlineData("decimal", "Int32", false)]
+    [InlineData("min(1)", "Int32", false)]
+    [InlineData("max(100)", "Int32", false)]
+    // Every numeric constraint admits a leading minus, so none of them guarantees an unsigned parse.
+    [InlineData("int", "UInt32", false)]
+    [InlineData("int", "Int16", false)]
+    // A time of day is what DateOnly refuses.
+    [InlineData("datetime", "DateOnly", false)]
+    [InlineData("date", "Guid", false)]
+    // Constraints that say nothing about a type.
+    [InlineData("alpha", "Int32", false)]
+    [InlineData("hex", "Int32", false)]
+    [InlineData("slug", "Guid", false)]
+    [InlineData("length(6)", "Int32", false)]
+    // A constraint the application declared: nothing is known about what it tests.
+    [InlineData("isbn", "Int32", false)]
+    [InlineData("", "Int32", false)]
+    public void AConstraintGuaranteesTheConversionsItsOwnTestMakes(
+        string chain, string csType, bool guaranteed) {
+        Assert.Equal(guaranteed, RouteConstraintFacts.GuaranteesConversion(chain, csType));
+    }
+
     /// <summary>Alphabetical, because this list is read by a person in an error message.</summary>
     [Fact]
     public void NamesAreListedInOrder() {

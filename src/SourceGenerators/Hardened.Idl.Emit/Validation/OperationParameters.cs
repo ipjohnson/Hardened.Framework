@@ -62,8 +62,16 @@ internal static class OperationParameters {
 
             // Suppressed where the C# type already guarantees presence, exactly as SchemaEmitter
             // has always done for properties. A required integer path parameter is the common case.
+            //
+            // Suppressed on a path parameter whatever its type, because the route guarantees
+            // presence there: a request that reached the handler matched the template, and a segment
+            // that is absent or empty matched nothing and was answered 404. Emitted, it generated a
+            // validator for an operation that had nothing else to check, and the document then
+            // published a 400 for a refusal no caller can provoke - the same unfailable-check
+            // reasoning HRDV003 gives for a value type.
             var emitRequired = parameter.ConstrainedAsRequired &&
-                               !TypeMapper.IsNonNullableValueType(csType, spec.Schemas);
+                               !TypeMapper.IsNonNullableValueType(csType, spec.Schemas) &&
+                               !IsPathParameter(parameter);
 
             var attributes = ConstraintAttributes.ForParameter(
                 parameter, emitRequired, csType, patterns);
@@ -112,6 +120,13 @@ internal static class OperationParameters {
                 members)
             : null;
     }
+
+    /// <remarks>
+    /// The same test <see cref="RouteConstraintEmitter"/> makes, and for the same reason: a path
+    /// parameter is decided by the router rather than by a validator.
+    /// </remarks>
+    private static bool IsPathParameter(ParameterModel parameter) =>
+        string.Equals(parameter.In, "path", System.StringComparison.OrdinalIgnoreCase);
 
     private static SchemaModel? BodySchema(OperationModel operation, ServiceSpecModel spec) {
         if (operation.RequestBodyRef == null) {

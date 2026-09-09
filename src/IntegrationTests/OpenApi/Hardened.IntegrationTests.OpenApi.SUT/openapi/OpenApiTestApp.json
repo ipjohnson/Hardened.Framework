@@ -429,16 +429,6 @@
         "responses": {
           "204": {
             "description": "Pet deleted"
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RequestValidationError"
-                }
-              }
-            }
           }
         }
       },
@@ -470,18 +460,8 @@
               }
             }
           },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RequestValidationError"
-                }
-              }
-            }
-          },
           "404": {
-            "description": "No pet with that id",
+            "description": "No pet with that id. A token that fails its route constraint answers this status too, before the handler and with no body.",
             "content": {
               "application/json": {
                 "schema": {
@@ -632,16 +612,6 @@
                 }
               }
             }
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RequestValidationError"
-                }
-              }
-            }
           }
         }
       }
@@ -775,16 +745,6 @@
               "application/json": {
                 "schema": {
                   "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RequestValidationError"
                 }
               }
             }

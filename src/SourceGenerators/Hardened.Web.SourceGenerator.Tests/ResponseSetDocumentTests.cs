@@ -328,19 +328,29 @@ public class ResponseSetDocumentTests {
     /// A value that violates a route constraint means the route did not match, and the answer is
     /// the router's bodyless 404. The constraint is stripped from the path template, so this entry
     /// is the one trace of it the document carries.
+    ///
+    /// <para>
+    /// And no 400 beside it: <c>:int</c> is the same test the converter would make, so the value
+    /// that would have failed to bind was refused a step earlier. The same handler with a bare
+    /// <c>{id}</c> is <see cref="ABindingRefusalPublishesTheFourHundred"/>.
+    /// </para>
     /// </summary>
     [Fact]
-    public void AConstrainedPathTokenPublishesTheFourOhFour() {
+    public void AConstrainedPathTokenPublishesTheFourOhFourAndNoFourHundred() {
         var responses = Responses(Document("""
                 [Get("/todos/{id:int}")]
                 public Todo ById(int id) => new Todo(id, "t");
             """), "/todos/{id}", "get");
 
-        Assert.Equal(new[] { "200", "400", "404" }, Statuses(responses));
+        Assert.Equal(new[] { "200", "404" }, Statuses(responses));
         Assert.False(responses.GetProperty("404").TryGetProperty("content", out _));
     }
 
-    /// <summary>An operation that declares its own 404 keeps its own description.</summary>
+    /// <summary>
+    /// An operation that declares its own 404 keeps its own description, and gains a sentence: the
+    /// router answers the same status with no body, which is the other 404 a caller can be sent and
+    /// the one a document cannot key separately.
+    /// </summary>
     [Fact]
     public void ADeclaredFourOhFourIsNotOverwritten() {
         var responses = Responses(Document("""
@@ -348,8 +358,14 @@ public class ResponseSetDocumentTests {
                 public Response<Todo, NotFound> ById(int id) => new Todo(id, "t");
             """), "/todos/{id}", "get");
 
-        Assert.Equal(new[] { "200", "400", "404" }, Statuses(responses));
-        Assert.True(responses.GetProperty("404").TryGetProperty("content", out _));
+        Assert.Equal(new[] { "200", "404" }, Statuses(responses));
+
+        var notFound = responses.GetProperty("404");
+
+        Assert.True(notFound.TryGetProperty("content", out _));
+        Assert.Contains(
+            "A token that fails its route constraint answers this status too",
+            notFound.GetProperty("description").GetString());
     }
 
     #endregion

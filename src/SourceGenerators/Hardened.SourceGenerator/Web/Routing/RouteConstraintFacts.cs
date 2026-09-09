@@ -208,6 +208,74 @@ public static class RouteConstraintFacts {
         };
 
     /// <summary>
+    /// Whether a token guarded by <paramref name="chain"/> always converts to <paramref name="csType"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A constraint runs before binding, so a value it rejects never reaches the converter: the
+    /// route did not match, and the answer is the router's 404. Where the constraint makes the same
+    /// test the converter would make, the converter cannot refuse — which is what lets the document
+    /// stop declaring a 400 for an operation no request can produce one from.
+    /// </para>
+    /// <para>
+    /// The guarantees are the ones <c>StringConverterService</c> makes good on, and they run one
+    /// way only. A value that passed <see cref="RouteConstraints.IsInt"/> parses again as a wider
+    /// integral or as any fractional type; <c>{id:long}</c> admits <c>99999999999</c>, which an
+    /// <c>int</c> parameter still refuses, so nothing is claimed there. Unsigned types are claimed
+    /// by nothing at all, because every numeric constraint here admits a leading minus.
+    /// </para>
+    /// <para>
+    /// A name this does not know guarantees nothing. A <c>[RouteConstraint]</c> the application
+    /// declared tests whatever its author wrote, and reading that as a type guarantee would drop a
+    /// 400 a caller can still be sent.
+    /// </para>
+    /// </remarks>
+    public static bool GuaranteesConversion(string chain, string csType) {
+        if (Terms(chain) is not { } terms) {
+            return false;
+        }
+
+        foreach (var term in terms) {
+            if (Guarantees(term, csType)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <remarks>
+    /// Arity is part of the lookup for the reason <see cref="Call"/> gives. <c>min</c> and
+    /// <c>max</c> parse as a <c>long</c> and bound one end, so neither narrows to <c>int</c>;
+    /// <c>range</c> bounds both ends with integer literals, so its value is inside <c>int</c>'s
+    /// range as well as <c>long</c>'s.
+    /// </remarks>
+    private static bool Guarantees(Term term, string csType) =>
+        (term.Name, term.Arguments.Count) switch {
+            ("int", 0) => AtLeastInt32(csType) || Fractional(csType),
+            ("range", 2) => AtLeastInt32(csType) || Fractional(csType),
+            ("long", 0) => AtLeastInt64(csType) || Fractional(csType),
+            ("min", 1) => AtLeastInt64(csType) || Fractional(csType),
+            ("max", 1) => AtLeastInt64(csType) || Fractional(csType),
+            ("decimal", 0) => Fractional(csType),
+            ("bool", 0) => csType is "Boolean" or "bool",
+            ("guid", 0) => csType is "Guid",
+            ("date", 0) => csType is "DateOnly" or "DateTime" or "DateTimeOffset",
+            // Not DateOnly: the accepted formats include a time of day, which DateOnly refuses.
+            ("datetime", 0) => csType is "DateTime" or "DateTimeOffset",
+            _ => false
+        };
+
+    private static bool AtLeastInt32(string csType) =>
+        csType is "Int32" or "int" || AtLeastInt64(csType);
+
+    private static bool AtLeastInt64(string csType) =>
+        csType is "Int64" or "long";
+
+    private static bool Fractional(string csType) =>
+        csType is "Decimal" or "decimal" or "Double" or "double" or "Single" or "float";
+
+    /// <summary>
     /// The argument counts a parameterised name accepts, for the diagnostic that has to say so.
     /// Empty when the name takes none.
     /// </summary>
