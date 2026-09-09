@@ -243,6 +243,50 @@ public class ResponseSetDocumentTests {
         Assert.False(responses.GetProperty("429").TryGetProperty("Detail", out _));
     }
 
+    /// <summary>
+    /// A response whose headers are chosen at run time declares none, rather than the names of the
+    /// parameters a convenience constructor takes.
+    /// </summary>
+    /// <remarks>
+    /// <c>Ok&lt;T&gt;</c> is the only shipped response with a second constructor, and widest-wins
+    /// picked it: <c>(T value, string headerName, string headerValue)</c> against the primary's
+    /// <c>(T Value, IReadOnlyDictionary&lt;string, string&gt; Headers)</c>. Every 200 a handler
+    /// declared <c>Ok&lt;T&gt;</c> for published <c>headerName</c> and <c>headerValue</c> as header
+    /// names, which no response carries. The primary is what the convention reads now, and its
+    /// dictionary is not a string parameter - so a type whose headers are supplied rather than
+    /// fixed declares nothing, which is the truth about it.
+    /// </remarks>
+    [Fact]
+    public void AResponseWithRuntimeChosenHeadersDeclaresNone() {
+        var responses = Responses(Document("""
+                [Get("/todos/{id}")]
+                public Response<Ok<Todo>, NotFound> ById(string id) =>
+                    new Ok<Todo>(new Todo(1, "t"));
+            """), "/todos/{id}", "get");
+
+        var ok = responses.GetProperty("200");
+
+        Assert.False(ok.TryGetProperty("headers", out _));
+    }
+
+    /// <summary>
+    /// The case beside it still declares the header it always sends, so the change is to
+    /// <c>Ok&lt;T&gt;</c> rather than to the convention.
+    /// </summary>
+    [Fact]
+    public void ACaseWithOneConstructorStillDeclaresItsHeader() {
+        var responses = Responses(Document("""
+                [Post("/todos")]
+                public Response<Created<Todo>, Ok<Todo>> Create() =>
+                    new Created<Todo>(new Todo(1, "t"), "/todos/1");
+            """), "/todos", "post");
+
+        Assert.True(responses.GetProperty("201").GetProperty("headers")
+            .TryGetProperty("Location", out _));
+
+        Assert.False(responses.GetProperty("200").TryGetProperty("headers", out _));
+    }
+
     #endregion
 
     #region the statuses the framework itself answers

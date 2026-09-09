@@ -494,10 +494,7 @@ public static class UnionResponseSelector {
             return System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
         }
 
-        var constructor = caseType.Constructors
-            .Where(candidate => candidate.DeclaredAccessibility == Accessibility.Public)
-            .OrderByDescending(candidate => candidate.Parameters.Length)
-            .FirstOrDefault();
+        var constructor = PrimaryConstructor(caseType);
 
         if (constructor == null) {
             return System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
@@ -523,6 +520,74 @@ public static class UnionResponseSelector {
 
         return (IReadOnlyList<Hardened.Generation.Models.ResponseHeaderModel>?)headers
                ?? System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
+    }
+
+    /// <summary>
+    /// The constructor the convention reads, which is the primary one where the type has one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Widest-wins picked <c>Ok&lt;T&gt;</c>'s convenience overload -
+    /// <c>(T value, string headerName, string headerValue)</c>, three parameters against the
+    /// primary's two - and published <c>headerName</c> and <c>headerValue</c> as header names on
+    /// every 200 a handler declared <c>Ok&lt;T&gt;</c> for. Two headers the service does not send,
+    /// on the one shipped response whose headers are chosen at run time and so has no static set to
+    /// declare at all. It is also the only shipped response with a second constructor, which is why
+    /// widest-wins held everywhere else.
+    /// </para>
+    /// <para>
+    /// Identified through <c>Deconstruct</c> rather than syntax. A positional record emits one
+    /// matching its primary constructor, and that survives into metadata - which is where these
+    /// types are read from, so <c>DeclaringSyntaxReferences</c> is empty and the syntax check that
+    /// would answer this in source has nothing to look at.
+    /// </para>
+    /// <para>
+    /// A case type that is not a positional record has no primary constructor to prefer, and falls
+    /// back to the widest. That covers the generated case types and a hand-written class, neither
+    /// of which this changes.
+    /// </para>
+    /// </remarks>
+    private static IMethodSymbol? PrimaryConstructor(INamedTypeSymbol caseType) {
+        var constructors = caseType.Constructors
+            .Where(candidate => candidate.DeclaredAccessibility == Accessibility.Public)
+            .OrderByDescending(candidate => candidate.Parameters.Length)
+            .ToList();
+
+        if (constructors.Count < 2) {
+            return constructors.FirstOrDefault();
+        }
+
+        var deconstruct = caseType.GetMembers("Deconstruct")
+            .OfType<IMethodSymbol>()
+            .FirstOrDefault(method => method.Parameters.Length > 0);
+
+        if (deconstruct != null) {
+            var primary = constructors.FirstOrDefault(candidate => Matches(candidate, deconstruct));
+
+            if (primary != null) {
+                return primary;
+            }
+        }
+
+        return constructors[0];
+    }
+
+    /// <summary>Whether a constructor is the one a record's <c>Deconstruct</c> was written from.</summary>
+    private static bool Matches(IMethodSymbol constructor, IMethodSymbol deconstruct) {
+        if (constructor.Parameters.Length != deconstruct.Parameters.Length) {
+            return false;
+        }
+
+        for (var index = 0; index < constructor.Parameters.Length; index++) {
+            if (!string.Equals(
+                    constructor.Parameters[index].Name,
+                    deconstruct.Parameters[index].Name,
+                    StringComparison.Ordinal)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Whether the case implements one of the response interfaces.</summary>
