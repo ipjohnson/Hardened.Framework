@@ -113,23 +113,15 @@ public sealed class PipelineHost : ITestHost {
             return Provider;
         }
 
+        // The test's own container, not one more of its own. It is composed and started already,
+        // it is where every pinned parameter came from, and it is the one thing in the test a reader
+        // can point at - so "one container for this client" and "the container the test is in" being
+        // the same container is the reading that needs no explaining. Two clients that both ask
+        // therefore land together, which is what modelling one warm environment means.
         if (reuse) {
-            return _reused ??= await Build(source);
+            return Provider;
         }
 
-        return await Build(source);
-    }
-
-    /// <summary>
-    /// The one container a caller marked <c>[Shared]</c> reaches, built on its first request.
-    /// </summary>
-    /// <remarks>
-    /// Held here rather than per client, so two clients that both asked to reuse are two callers on
-    /// one warm environment - which is the thing they asked to model.
-    /// </remarks>
-    private IServiceProvider? _reused;
-
-    private async ValueTask<IServiceProvider> Build(ITestContainerSource source) {
         var provider = await source.CreateAsync();
 
         Compose(provider);

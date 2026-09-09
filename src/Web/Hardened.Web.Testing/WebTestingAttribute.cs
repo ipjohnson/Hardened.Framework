@@ -40,7 +40,42 @@ namespace Hardened.Web.Testing;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly)]
-public class WebTestingAttribute : Attribute, ITestServiceSetupAttribute, ITestStartupAttribute {
+public class WebTestingAttribute
+    : Attribute, ITestServiceSetupAttribute, ITestStartupAttribute, ISharedTestRegistration {
+
+    /// <summary>
+    /// The clients this test takes, which are the parameters that must not be pinned.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A test parameter is one instance for the whole test, because it was handed over to be looked
+    /// at. A client is the exception: it is handed over to send with, and on a host that rebuilds it
+    /// reaches a container per request, so pinning one would pin the thing that is supposed to be
+    /// rebuilt and every request would reach the same container while the test believed otherwise.
+    /// </para>
+    /// <para>
+    /// The same three the harness supplies itself, recognised the same way it recognises them when
+    /// it registers them: <see cref="ITestWebApp"/>, an <c>HttpClient</c>, and a type
+    /// <c>TestClientBuilder.HasRoute</c> answers for. Nothing infers - a generated client is an
+    /// ordinary type in an ordinary signature until you know the harness built it.
+    /// </para>
+    /// <para>
+    /// <c>[Shared]</c> on one of these still means something, and something different: not "pin the
+    /// object" but "send every request to one container", which is read at construction in
+    /// <see cref="IsShared"/> and threaded to the host.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<Type> IsolatedServices(System.Reflection.MethodInfo testMethod) {
+        var testAssembly = testMethod.DeclaringType!.Assembly;
+
+        return testMethod.GetParameters()
+            .Select(parameter => parameter.ParameterType)
+            .Where(type => type == typeof(ITestWebApp) ||
+                           type == typeof(HttpClient) ||
+                           TestClientBuilder.HasRoute(type, testAssembly))
+            .Distinct()
+            .ToArray();
+    }
     public void SetupServiceCollection(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
         var host = ResolveHost(testMethod, serviceCollection);
 

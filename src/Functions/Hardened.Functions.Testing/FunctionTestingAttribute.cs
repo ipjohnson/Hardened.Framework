@@ -36,7 +36,28 @@ namespace Hardened.Functions.Testing;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method)]
-public class FunctionTestingAttribute : Attribute, ITestServiceSetupAttribute {
+public class FunctionTestingAttribute : Attribute, ITestServiceSetupAttribute, ISharedTestRegistration {
+
+    /// <summary>
+    /// The façades this test takes, which are the parameters that must not be pinned.
+    /// </summary>
+    /// <remarks>
+    /// A test parameter is one instance for the whole test, because it was handed over to be looked
+    /// at. A façade is the exception: it is handed over to drive with, and it builds a container per
+    /// call, so pinning one would pin the very thing that is supposed to be rebuilt and every send
+    /// would reach the same container while the test believed otherwise.
+    ///
+    /// Answered here because nothing else can know. A façade is an ordinary type in an ordinary
+    /// signature, indistinguishable from a service the application registered until you know which
+    /// harness put it there - and the rule for recognising one is already written down, in the
+    /// constructor <see cref="TriggerInvoker.Constructor"/> looks for.
+    /// </remarks>
+    public IReadOnlyList<Type> IsolatedServices(System.Reflection.MethodInfo testMethod) =>
+        testMethod.GetParameters()
+            .Select(parameter => parameter.ParameterType)
+            .Where(type => TriggerInvoker.Constructor(type) != null)
+            .Distinct()
+            .ToArray();
     public void SetupServiceCollection(
         ITestMethodContext testMethod, IServiceCollection serviceCollection) {
         serviceCollection.AddTriggerTesting();

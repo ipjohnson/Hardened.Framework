@@ -96,13 +96,12 @@ public sealed class LambdaWebHost : ITestHost {
             return Provider;
         }
 
-        return reuse ? _reused ??= await source.CreateAsync() : await source.CreateAsync();
+        // The test's own container, for the reason PipelineHost gives: it is where every pinned
+        // parameter came from, so a client asked to reuse lands where the test already is. That is
+        // also the honest picture of a warm sandbox, which is one environment rather than a second
+        // one nobody named.
+        return reuse ? Provider : await source.CreateAsync();
     }
-
-    /// <summary>
-    /// The one environment a caller marked <c>[Shared]</c> reaches, which is what a warm sandbox is.
-    /// </summary>
-    private IServiceProvider? _reused;
 
     public HttpMessageHandler CreateHandler(TestCredential? credential) =>
         new HostHandler(this, credential);

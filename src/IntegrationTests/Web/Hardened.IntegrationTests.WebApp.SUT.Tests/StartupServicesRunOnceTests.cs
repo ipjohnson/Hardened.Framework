@@ -1,3 +1,4 @@
+using DependencyModules.Testing.Attributes;
 using System.Reflection;
 using Hardened.Shared.Runtime.Application;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,9 +26,17 @@ public class StartupServicesRunOnceTests {
     }
 
     /// <summary>The chain the services composed still answers, with the handler behind them.</summary>
+    /// <remarks>
+    /// <c>[Shared]</c> so the request runs against the container the test was resolved from. The
+    /// counter is a test parameter and therefore one object across every container, so a request on
+    /// a container of its own would run the services again against that same counter and 2 would be
+    /// correct - true, and useless as a guard, because it stops telling "once each in two
+    /// containers" apart from the regression this exists to catch, which is twice in one.
+    /// </remarks>
     [HardenedTest]
     [CountingStartupService]
-    public async Task TheChainAnswersAfterTheOneRun(CountingStartupService service, ITestWebApp app) {
+    public async Task TheChainAnswersAfterTheOneRun(
+        CountingStartupService service, [Shared] ITestWebApp app) {
         var response = await app.Get("/verbs/item/1");
 
         response.Assert.Ok();

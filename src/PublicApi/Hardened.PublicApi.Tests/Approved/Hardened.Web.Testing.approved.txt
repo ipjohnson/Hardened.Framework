@@ -233,9 +233,10 @@ namespace Hardened.Web.Testing
         public WebAssertionException(string message) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly)]
-    public class WebTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute, DependencyModules.Testing.Attributes.Interfaces.ITestStartupAttribute
+    public class WebTestingAttribute : System.Attribute, DependencyModules.Testing.Attributes.Interfaces.ISharedTestRegistration, DependencyModules.Testing.Attributes.Interfaces.ITestServiceSetupAttribute, DependencyModules.Testing.Attributes.Interfaces.ITestStartupAttribute
     {
         public WebTestingAttribute() { }
+        public System.Collections.Generic.IReadOnlyList<System.Type> IsolatedServices(System.Reflection.MethodInfo testMethod) { }
         public void SetupServiceCollection(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection) { }
         public System.Threading.Tasks.Task StartupAsync(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, System.IServiceProvider serviceProvider) { }
     }

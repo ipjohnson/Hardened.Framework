@@ -1,4 +1,3 @@
-using DependencyModules.Testing.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.RequestFilter;
 
@@ -22,10 +21,10 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// the arrangement <c>[BasePath]</c> on a module exists to support.
 /// </para>
 /// <para>
-/// <c>[Shared]</c> on the registry because these tests configure it and then assert on a request:
-/// every request runs against a container of its own, so a filter registered into the container the
-/// test happens to hold would reach none of them. Pinning it makes the registry the test writes to
-/// and the one every container reads one object, which is what the test means.
+/// These configure the registry and then assert on a request, and every request runs against a
+/// container of its own. The registry is a test parameter, so it is one object across all of them
+/// without anything being said: a parameter is handed over to be looked at, and a filter registered
+/// into a container the test merely happened to hold would reach none of the ones that ran.
 /// </para>
 /// </remarks>
 public class HandlerInfoPathTests {
@@ -40,7 +39,7 @@ public class HandlerInfoPathTests {
     /// </remarks>
     [HardenedTest]
     public async Task EveryHandlerReportsThePathItIsServedAt(
-        ITestWebApp testWebApp, [Shared] IGlobalFilterRegistry registry) {
+        ITestWebApp testWebApp, IGlobalFilterRegistry registry) {
         var seen = PathsSeenByAPerHandlerFilter(registry);
 
         await testWebApp.Get("/web-library/string-methods/concat/a/b");
@@ -54,7 +53,7 @@ public class HandlerInfoPathTests {
     /// </summary>
     [HardenedTest]
     public async Task APathPrefixFilterMatchesRoutesUnderAModuleBasePath(
-        ITestWebApp testWebApp, [Shared] IGlobalFilterRegistry registry) {
+        ITestWebApp testWebApp, IGlobalFilterRegistry registry) {
         registry.RegisterFilter(handlerInfo =>
             handlerInfo.Path.StartsWith("/web-library", StringComparison.Ordinal)
                 ? new RequestFilterInfo(_ => new StampFilter(), FilterOrder.HandlerCreation)
@@ -73,7 +72,7 @@ public class HandlerInfoPathTests {
     /// </summary>
     [HardenedTest]
     public async Task AHandlerOutsideAnyModuleBasePathIsUnaffected(
-        ITestWebApp testWebApp, [Shared] IGlobalFilterRegistry registry) {
+        ITestWebApp testWebApp, IGlobalFilterRegistry registry) {
         var seen = PathsSeenByAPerHandlerFilter(registry);
 
         await testWebApp.Get("/binding/path/42");
