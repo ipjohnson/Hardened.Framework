@@ -884,16 +884,6 @@
               }
             }
           },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RequestValidationError"
-                }
-              }
-            }
-          },
           "404": {
             "description": "The path did not name a resource: a token failed its route constraint."
           },

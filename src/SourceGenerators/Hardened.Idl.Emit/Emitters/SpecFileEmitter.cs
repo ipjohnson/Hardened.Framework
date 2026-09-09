@@ -172,15 +172,19 @@ internal static class SpecFileEmitter {
 
         EmitFilterTypes(file, model, excludeFromCoverage);
 
-        // Interfaces first: building them registers the patterns their constraints reference, and
-        // the [GeneratedRegex] members are written from the registry once it is complete.
         var validation = root.AddNamespace(ValidationNamespace);
-        var operations = ValidationEmitter.Emit(validation, model, modelsNamespace, patterns);
 
-        // Before the patterns are written, because assigning route constraints registers the
-        // patterns they compile to and EmitPatterns writes from what was registered.
+        // Route constraints first, because assigning one decides what the interfaces are for:
+        // a path parameter guarded by a compiled constraint needs no [Pattern] on the validation
+        // path, and where that was its only constraint the operation needs no interface at all.
+        // Run afterwards, the interface was already built and carried a check the router had
+        // already made - which is also what put an unreachable 400 in the document.
         RouteConstraintEmitter.Emit(validation, model, patterns);
 
+        var operations = ValidationEmitter.Emit(validation, model, modelsNamespace, patterns);
+
+        // Last, because both passes above register the patterns they reference and this writes the
+        // [GeneratedRegex] members from what was registered.
         ValidationEmitter.EmitPatterns(validation, patterns);
 
         // Recorded so the generator is told which interface each handler implements, rather than

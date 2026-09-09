@@ -6,6 +6,7 @@ using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
+using Hardened.SourceGenerator.Web.Routing;
 
 namespace Hardened.SourceGenerator.OpenApiDocument;
 
@@ -92,13 +93,13 @@ public static class OpenApiDocumentGenerator {
         // Grouped by path, because a document keys operations under one path entry rather than
         // repeating the path per verb.
         // Grouped by the template, which is what the document keys on - not by the route, which is
-        // what the router keys on. The two differ wherever a token carries a constraint: ToTemplate
-        // strips it, so /pets/{petId:guid} and /pets/{petId} are one path item in a document and two
-        // routes in a table. Grouping on the route emitted the same key twice, and every parser
-        // keeps the last - so a GET declared beside a constrained DELETE vanished from the document
-        // while continuing to serve.
+        // what the router keys on. The two differ wherever a token carries a constraint:
+        // RouteTemplate strips it, so /pets/{petId:guid} and /pets/{petId} are one path item in a
+        // document and two routes in a table. Grouping on the route emitted the same key twice, and
+        // every parser keeps the last - so a GET declared beside a constrained DELETE vanished from
+        // the document while continuing to serve.
         var byPath = handlers
-            .GroupBy(handler => ToTemplate(RoutePath.Combine(basePath, handler.Name.Path)))
+            .GroupBy(handler => RouteTemplate.NamesOnly(RoutePath.Combine(basePath, handler.Name.Path)))
             .OrderBy(group => group.Key, System.StringComparer.Ordinal);
 
         var firstPath = true;
@@ -398,8 +399,7 @@ public static class OpenApiDocumentGenerator {
         // under one name is a document no generator can read.
         var declared = handler.DeclaredHeaderParameters
             .Where(header => !bound.Any(parameter => string.Equals(
-                string.IsNullOrEmpty(parameter.BindingName) ? parameter.Name : parameter.BindingName,
-                header.Name, System.StringComparison.OrdinalIgnoreCase)))
+                BoundName(parameter), header.Name, System.StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
         if (bound.Count == 0 && declared.Count == 0) {
@@ -415,9 +415,7 @@ public static class OpenApiDocumentGenerator {
                 builder.Append(',');
             }
 
-            var name = string.IsNullOrEmpty(parameter.BindingName)
-                ? parameter.Name
-                : parameter.BindingName;
+            var name = BoundName(parameter);
 
             // A parameter carrying a default is one the caller may omit - the binder answers
             // with the default rather than a 400 - so publishing it required documents a demand
@@ -766,8 +764,14 @@ public static class OpenApiDocumentGenerator {
         var successContentType = ContentType(handler);
 
         foreach (var group in byStatus) {
+            var description = group.First().Description;
+
+            if (group.Key == 404 && RouteTemplate.HasConstraint(handler.Name.Path)) {
+                description = Sentence(description) + ConstrainedPathNote;
+            }
+
             var builder = new StringBuilder("{\"description\":\"")
-                .Append(JsonSchemaWriter.Escape(group.First().Description))
+                .Append(JsonSchemaWriter.Escape(description))
                 .Append('"');
 
             WriteResponseHeaders(builder, group);
@@ -923,6 +927,14 @@ public static class OpenApiDocumentGenerator {
     /// non-string value, whether or not a validator was generated for it - the gate that required
     /// one is why a documented 400 depended on the operation happening to declare a constraint.
     /// A string binds as itself and cannot fail conversion.
+    ///
+    /// <para>
+    /// A route constraint that guarantees the conversion is the other way a parameter cannot refuse.
+    /// The router decides first, so a value the converter would have rejected is a 404 and never
+    /// reaches binding at all - which is what <c>{id:int}</c> is written for. Reading the path here
+    /// is what stops this writer publishing a 400 the 404 writer in the same file has already
+    /// explained away.
+    /// </para>
     /// </remarks>
     private static bool HasBindingRefusals(RequestHandlerModel handler) {
         foreach (var parameter in handler.RequestParameterInformationList) {
@@ -933,13 +945,25 @@ public static class OpenApiDocumentGenerator {
 
             var name = parameter.ParameterType.Name.TrimEnd('?');
 
-            if (name is not ("String" or "string" or "Object" or "object")) {
-                return true;
+            if (name is "String" or "string" or "Object" or "object") {
+                continue;
             }
+
+            if (parameter.BindingType == ParameterBindType.Path &&
+                RouteConstraintFacts.GuaranteesConversion(
+                    RouteTemplate.ConstraintOn(handler.Name.Path, BoundName(parameter)), name)) {
+                continue;
+            }
+
+            return true;
         }
 
         return false;
     }
+
+    /// <summary>The name the caller uses for a parameter, which is the route token's name.</summary>
+    private static string BoundName(RequestParameterInformation parameter) =>
+        string.IsNullOrEmpty(parameter.BindingName) ? parameter.Name : parameter.BindingName;
 
     /// <summary>Whether the handler already declares <paramref name="status"/> itself.</summary>
     private static bool DeclaresStatus(RequestHandlerModel handler, int status) {
@@ -1001,11 +1025,18 @@ public static class OpenApiDocumentGenerator {
     /// the router's 404 - deliberately bodyless, before binding and before the handler. The
     /// constraint itself is stripped from the path template, because a template expression is a
     /// name and nothing else, which left the document with no trace of the refusal at all.
-    /// Skipped where the operation declares its own 404, whose description then wins.
+    ///
+    /// <para>
+    /// Where the operation declares a 404 of its own, that description wins and
+    /// <see cref="ConstrainedPathNote"/> is added to it by <see cref="WriteDeclaredResponses"/>
+    /// instead. Two 404s reach the wire and only one can be written down, so the one that is
+    /// written says the other exists: a client author reading a declared body schema is otherwise
+    /// told nothing about the empty body they will also be sent.
+    /// </para>
     /// </remarks>
     private static void WriteConstrainedPathResponse(
         SortedDictionary<int, string> responses, RequestHandlerModel handler) {
-        if (!HasConstrainedPathToken(handler.Name.Path)) {
+        if (!RouteTemplate.HasConstraint(handler.Name.Path)) {
             return;
         }
 
@@ -1017,27 +1048,22 @@ public static class OpenApiDocumentGenerator {
                          "\"The path did not name a resource: a token failed its route constraint.\"}";
     }
 
-    private static bool HasConstrainedPathToken(string path) {
-        var open = path.IndexOf('{');
+    /// <summary>
+    /// <paramref name="text"/> punctuated as a sentence, so a second one can follow it.
+    /// </summary>
+    /// <remarks>
+    /// A description written in a contract usually has no full stop - <c>No pet with that id</c> -
+    /// and appending to it produced one run-on sentence.
+    /// </remarks>
+    private static string Sentence(string text) =>
+        text.Length == 0 || text[text.Length - 1] is '.' or '!' or '?' ? text : text + ".";
 
-        while (open >= 0) {
-            var close = path.IndexOf('}', open);
-
-            if (close < 0) {
-                return false;
-            }
-
-            var colon = path.IndexOf(':', open);
-
-            if (colon > open && colon < close) {
-                return true;
-            }
-
-            open = path.IndexOf('{', close);
-        }
-
-        return false;
-    }
+    /// <summary>
+    /// What a declared 404 gains where a route constraint answers the same status.
+    /// </summary>
+    private const string ConstrainedPathNote =
+        " A token that fails its route constraint answers this status too, before the handler and " +
+        "with no body.";
 
     /// <summary>
     /// The media type a success goes out as: <c>[RawResponse]</c>'s, else the contract's declared
@@ -1211,72 +1237,6 @@ public static class OpenApiDocumentGenerator {
 
     private static string Pascal(string value) =>
         value.Length == 0 ? value : char.ToUpperInvariant(value[0]) + value.Substring(1);
-
-    /// <summary>
-    /// The route as a document writes it.
-    ///
-    /// <para>
-    /// Hardened's own form matches except for the catch-all marker: <c>/files/{*path}</c> is a
-    /// Hardened route, and <c>{*path}</c> is not a valid OpenAPI path template — a template
-    /// expression is a name, and the name has to match a declared parameter. The marker says how
-    /// much of the path the token takes, which is a routing concern the document has no way to
-    /// express, so it is dropped and the parameter is written under its own name.
-    /// </para>
-    ///
-    /// <para>
-    /// That does lose something: a specification round-tripped back through
-    /// <c>Hardened.OpenApi.BuildTask</c> gives a single-segment token where the source route had a
-    /// catch-all. Worth knowing, and better than emitting a document no OpenAPI reader accepts.
-    /// </para>
-    /// </summary>
-    private static string ToTemplate(string path) {
-        if (path.IndexOf('{') < 0) {
-            return path;
-        }
-
-        var builder = new StringBuilder(path.Length);
-        var index = 0;
-
-        while (index < path.Length) {
-            var open = path.IndexOf('{', index);
-
-            if (open < 0) {
-                builder.Append(path, index, path.Length - index);
-                break;
-            }
-
-            var close = path.IndexOf('}', open);
-
-            if (close < 0) {
-                builder.Append(path, index, path.Length - index);
-                break;
-            }
-
-            builder.Append(path, index, open - index).Append('{');
-
-            var start = open + 1;
-
-            // The catch-all marker: how much of the path the token takes, which a document cannot
-            // express.
-            if (start < close && path[start] == '*') {
-                start++;
-            }
-
-            // The constraint: what the token has to look like to match. A template expression is a
-            // parameter name and nothing else, so ":int" is not a shorter spelling of a schema - it
-            // is a syntax error that happens to parse. Left in, it made the name in the template
-            // disagree with the name in "parameters", which Spectral reports as path-params and a
-            // generated client turns into a request for /boards/%7BboardId:guid%7D.
-            var name = path.IndexOf(':', start);
-            var end = name >= 0 && name < close ? name : close;
-
-            builder.Append(path, start, end - start).Append('}');
-
-            index = close + 1;
-        }
-
-        return builder.ToString();
-    }
 
     /// <summary>
     /// The vocabulary schema for a code-first enum parameter, or null when the type is not one.

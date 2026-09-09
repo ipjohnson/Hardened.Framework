@@ -80,6 +80,20 @@
             <Link>Validation\%(RecursiveDir)/%(FileName)%(Extension)</Link>
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Compile>
+        <!--
+            Two files rather than Web/Routing/**, which brings the route tree and everything it
+            binds against. A function has no routes; the document writer these two serve is shared
+            with the hosts that do, and it reads a token's constraint to decide whether binding can
+            still refuse the value.
+        -->
+        <Compile Include="../Hardened.SourceGenerator/Web/Routing/RouteConstraintFacts.cs">
+            <Link>Web\Routing\RouteConstraintFacts.cs</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
+        <Compile Include="../Hardened.SourceGenerator/Web/Routing/RouteTemplate.cs">
+            <Link>Web\Routing\RouteTemplate.cs</Link>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Compile>
     </ItemGroup>
 
     <Import Project="../ValidationModulesImpl.props"/>

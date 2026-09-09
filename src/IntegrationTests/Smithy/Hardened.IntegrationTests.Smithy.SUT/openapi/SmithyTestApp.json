@@ -302,7 +302,7 @@
             }
           },
           "404": {
-            "description": "Not Found",
+            "description": "Not Found. A token that fails its route constraint answers this status too, before the handler and with no body.",
             "content": {
               "application/json": {
                 "schema": {
@@ -365,16 +365,6 @@
                 },
                 "itemSchema": {
                   "$ref": "#/components/schemas/PetEventStream"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The request failed validation.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RequestValidationError"
                 }
               }
             }

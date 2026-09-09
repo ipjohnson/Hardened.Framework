@@ -51,7 +51,8 @@ internal static class ConstraintAttributes {
     /// </param>
     public static IReadOnlyList<Model> ForParameter(
         ParameterModel parameter, bool required, string csType, PatternRegistry patterns) =>
-        Build(parameter, required, patterns, csType);
+        Build(parameter, required, patterns, csType,
+            patternIsARouteConstraint: !string.IsNullOrEmpty(parameter.RouteConstraint));
 
     /// <param name="required">
     /// From the caller rather than the model: it also knows whether the C# type makes
@@ -63,7 +64,7 @@ internal static class ConstraintAttributes {
     /// </param>
     public static IReadOnlyList<Model> ForProperty(
         PropertyModel property, bool required, PatternRegistry patterns, string csType) =>
-        Build(property, required, patterns, csType);
+        Build(property, required, patterns, csType, patternIsARouteConstraint: false);
 
     /// <param name="csType">
     /// The type the member will have. Every constraint below is a comparison the validation
@@ -72,8 +73,15 @@ internal static class ConstraintAttributes {
     /// member that fell back to JsonElement, and OpenAI types parameters as generated enums; all
     /// three produced CS0019 on an operator that does not exist for the operands.
     /// </param>
+    /// <param name="patternIsARouteConstraint">
+    /// True where <see cref="RouteConstraintEmitter"/> compiled this member's pattern into the
+    /// route. The router then refuses a non-matching value before binding, so the same test on the
+    /// validation path can never fail: it costs a regex match on every request that got through, and
+    /// it made the document declare a 400 for an operation whose only constraint was that pattern.
+    /// </param>
     private static IReadOnlyList<Model> Build(
-        IConstraintFacets facets, bool required, PatternRegistry patterns, string csType) {
+        IConstraintFacets facets, bool required, PatternRegistry patterns, string csType,
+        bool patternIsARouteConstraint) {
         var numeric = TypeMapper.IsNumeric(csType);
         var stringLike = TypeMapper.IsStringLike(csType);
         var counted = TypeMapper.HasItemCount(csType);
@@ -127,7 +135,7 @@ internal static class ConstraintAttributes {
             attributes.Add(new Model(Attribute("RangeAttribute"), arguments));
         }
 
-        if (stringLike && !string.IsNullOrEmpty(pattern)) {
+        if (stringLike && !string.IsNullOrEmpty(pattern) && !patternIsARouteConstraint) {
             var arguments = patterns.AttributeArguments(pattern!);
 
             // Null when the runtime's regex engine will not take it; the pattern is reported once

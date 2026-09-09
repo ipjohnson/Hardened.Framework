@@ -41,9 +41,10 @@ public class DocumentWriterTests {
     private static RequestHandlerModel Handler(
         RequestParameterInformation? parameter = null,
         IReadOnlyList<ResponseSchemaModel>? responses = null,
-        IReadOnlyList<string>? security = null) =>
+        IReadOnlyList<string>? security = null,
+        string path = "/todos/{id}") =>
         new(
-            new RequestHandlerNameModel("/todos/{id}", "GET"),
+            new RequestHandlerNameModel(path, "GET"),
             Type("TodoController"),
             "GetTodo",
             TypeDefinition.Get("TestApp.Generated", "TodoController_GetTodo"),
@@ -237,6 +238,73 @@ public class DocumentWriterTests {
             .GetProperty("responses");
 
         Assert.Equal("My own.", responses.GetProperty("400").GetProperty("description").GetString());
+    }
+
+    #endregion
+
+    #region what the router already refused
+
+    private static RequestParameterInformation PathToken(string type = "Int32") =>
+        new(TypeDefinition.Get("System", type), "id", true, null, ParameterBindType.Path, "id", 0);
+
+    private static JsonElement Responses(RequestHandlerModel handler) =>
+        Write(handler)
+            .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get")
+            .GetProperty("responses");
+
+    /// <summary>
+    /// The router decides before the binder, so a value the converter would have refused is a 404
+    /// and never reaches binding. Both writers used to run: the 404 explained the refusal and the
+    /// 400 claimed one the same operation could not produce.
+    /// </summary>
+    [Fact]
+    public void AConstrainedTokenGuaranteeingTheConversionDeclaresNoFourHundred() {
+        var responses = Responses(Handler(PathToken(), path: "/todos/{id:int}"));
+
+        Assert.False(responses.TryGetProperty("400", out _));
+        Assert.True(responses.TryGetProperty("404", out _));
+    }
+
+    /// <summary>The same handler with nothing guarding the token: the 400 is real.</summary>
+    [Fact]
+    public void AnUnconstrainedTokenStillDeclaresTheFourHundred() {
+        Assert.True(Responses(Handler(PathToken())).TryGetProperty("400", out _));
+    }
+
+    /// <summary>
+    /// A constraint wider than the type still lets a refusal through - <c>{id:long}</c> admits
+    /// 99999999999, which an <c>int</c> parameter refuses - so the 400 stays.
+    /// </summary>
+    [Fact]
+    public void AConstraintWiderThanTheTypeStillDeclaresTheFourHundred() {
+        Assert.True(
+            Responses(Handler(PathToken(), path: "/todos/{id:long}")).TryGetProperty("400", out _));
+    }
+
+    /// <summary>
+    /// Two 404s reach the wire and a document can write one, so the one it writes says the other
+    /// exists. A client author reading the declared body schema is otherwise told nothing about the
+    /// empty body they will also be sent.
+    /// </summary>
+    [Fact]
+    public void ADeclaredNotFoundSaysARouteConstraintAnswersItToo() {
+        var handler = Handler(
+            responses: [new ResponseSchemaModel(404, "No such todo", Schema("Problem"))],
+            path: "/todos/{id:int}");
+
+        Assert.Equal(
+            "No such todo. A token that fails its route constraint answers this status too, " +
+            "before the handler and with no body.",
+            Responses(handler).GetProperty("404").GetProperty("description").GetString());
+    }
+
+    /// <summary>The note is for the operations a route constraint can refuse, and no others.</summary>
+    [Fact]
+    public void ADeclaredNotFoundOnAnUnconstrainedRouteIsLeftAlone() {
+        var handler = Handler(responses: [new ResponseSchemaModel(404, "No such todo", Schema("Problem"))]);
+
+        Assert.Equal(
+            "No such todo", Responses(handler).GetProperty("404").GetProperty("description").GetString());
     }
 
     #endregion

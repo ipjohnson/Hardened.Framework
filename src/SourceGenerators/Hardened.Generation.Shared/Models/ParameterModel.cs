@@ -110,12 +110,26 @@ internal class ParameterModel : IEquatable<ParameterModel>, IConstraintFacets {
     /// </summary>
     public bool RequiredByConstraint { get; set; }
 
+    /// <summary>
+    /// Whether anything declared here still reaches a generated validator.
+    /// </summary>
+    /// <remarks>
+    /// Two of these declarations are the router's rather than the validator's, and neither counts.
+    /// A path parameter is present whenever the route matched, so <c>required</c> on one is a check
+    /// that cannot fail; a pattern compiled into a route constraint has already refused every value
+    /// that would have failed it. Counted, each one promised a 400 for an operation that declared
+    /// nothing else - <c>OperationParameters</c> emits no attribute for either, so there was no
+    /// validator to answer it.
+    /// </remarks>
     public bool HasValidationConstraints =>
-        IsRequired || MinLength.HasValue || MaxLength.HasValue ||
+        (IsRequired && !IsPath) || MinLength.HasValue || MaxLength.HasValue ||
         Minimum.HasValue || Maximum.HasValue ||
         ExclusiveMinimum || ExclusiveMaximum ||
-        Pattern != null || MinItems.HasValue || MaxItems.HasValue ||
+        (Pattern != null && RouteConstraint == null) || MinItems.HasValue || MaxItems.HasValue ||
         EnumValues is { Count: > 0 };
+
+    /// <summary>Whether the parameter binds from a path segment.</summary>
+    private bool IsPath => string.Equals(In, "path", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Every member, including the ones only the document reads.

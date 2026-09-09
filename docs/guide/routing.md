@@ -102,6 +102,12 @@ and a wrong value means "no such URL". Leave it off when the value is input bein
 Parsing is invariant, so the same request matches on every machine. Where two constraints could
 match one segment, the narrower is tried first, in the order of the table.
 
+A constrained token changes the published document as well as the wire. The operation gains a 404
+describing the refusal, and loses the 400 it would have published for a conversion the constraint
+now guarantees — see [what the document says](/guide/validation#what-the-document-says). The router
+answers that 404 before binding, so it carries no body; where the operation declares a 404 of its
+own, the description says so.
+
 ### Declaring your own constraint
 
 ```csharp
