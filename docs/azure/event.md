@@ -19,9 +19,9 @@ its body.
 
 ```xml
 <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
-<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.31.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.EventGrid" Version="0.31.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.31.0-rc1000" PrivateAssets="all" />
+<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.32.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.EventGrid" Version="0.32.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.32.0-rc1000" PrivateAssets="all" />
 ```
 
 The adapter reads the event through `Hardened.CloudEvents`, which names no cloud and is the same

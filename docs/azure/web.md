@@ -19,9 +19,9 @@ public class OrderRoutes {
 
 ```xml
 <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
-<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.31.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.Http" Version="0.31.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.31.0-rc1000" PrivateAssets="all" />
+<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.32.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.Http" Version="0.32.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.32.0-rc1000" PrivateAssets="all" />
 ```
 
 `dotnet new hardened-web --host azure-functions` writes this shape: a library with the routes
