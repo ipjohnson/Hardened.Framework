@@ -16,9 +16,9 @@ public class OrderEventHandlers {
 
 ```xml
 <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
-<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.30.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.ServiceBus" Version="0.30.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.30.0-rc1000" PrivateAssets="all" />
+<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.31.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.ServiceBus" Version="0.31.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.31.0-rc1000" PrivateAssets="all" />
 ```
 
 The same package serves `[Queue]`; the delivery, the headers and the settlement are the ones

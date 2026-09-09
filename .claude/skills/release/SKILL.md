@@ -30,10 +30,21 @@ never remove it.
 **Open pull requests are not in this release.** `gh pr list`. Not a blocker. Name them, so nobody
 finds out afterwards that their work missed the cut.
 
-**The pack list covers every packable project.** This has drifted four times. The workflow's own
-`EXPECTED` check compares what it packed against a number, so it catches a *removed* package and is
-blind to an *added* one: a new project reaches the solution, nobody adds it to the list, and the
-release ships without it.
+**Everything the release workflow itself checks, before the tag rather than after it.** This is the
+rule the rest of the section is only an instance of: `release.yaml` runs its guards *after* it has
+already pushed to nuget.org, so a guard that fails leaves a published release and a red run. Read its
+step list and run the same checks here.
+
+```bash
+grep -n 'name: ' .github/workflows/release.yaml | sed -n '/Resolve version/,$p'
+```
+
+Two of them have failed a real release from this repository, and both are cheap to run locally.
+
+*The pack list covers every packable project.* The workflow has a step for this now, and its
+`EXPECTED` count is a separate, weaker guard: `EXPECTED` compares what it packed against a number, so
+it catches a package that was *removed* and is blind to one that was *added*. Run the step's own
+logic, or this equivalent:
 
 ```bash
 sed -n '/name: Pack/,/EXPECTED=/p' .github/workflows/release.yaml \
@@ -44,13 +55,29 @@ find src -name '*.csproj' -not -path '*/obj/*' \
   | while read -r p; do grep -qiE '<IsPackable>\s*false\s*</IsPackable>' "$p" || echo "$p"; done \
   | sort -u > /tmp/packable.txt
 
-comm -13 /tmp/packlist.txt /tmp/packable.txt   # packable, unlisted: must be empty except templates
+comm -13 /tmp/packlist.txt /tmp/packable.txt   # packable, unlisted: templates only
 comm -23 /tmp/packlist.txt /tmp/packable.txt   # listed, not packable: must be empty
 ```
 
-Case-insensitive on `IsPackable`, because at least one project writes `False`. The six projects
-under `src/Templates/**/templates/` are scaffolding content rather than packages and are the only
-allowed entries in the first list. Check `EXPECTED` equals the list length.
+Case-insensitive on `IsPackable`, because at least one project writes `False`. The six projects under
+`src/Templates/**/templates/` are scaffolding content rather than packages and are the only allowed
+entries in the first list.
+
+*The documented version is the one being released.* Every copyable `PackageReference`,
+`<HardenedVersion>` and `dotnet new install` line under `docs/` outside `design/` must cite the new
+version. This failed v0.31.0-rc1000 **after** the packages had shipped, which is the whole reason
+this section is written the way it is.
+
+```bash
+VERSION=<the version>
+COPYABLE='(Version="|<HardenedVersion>|Hardened\.Templates@)[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+'
+grep -rnE "$COPYABLE" docs --include='*.md' --exclude-dir=design | grep -v 'Hardened\.Amz\.' \
+  | grep -oE "$COPYABLE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+' | sort -u
+```
+
+Sweep the whole of `docs/` outside `design/`, including the prose line in `reference/packages.md`
+that names the current line. Leave `design/` alone: those are maintainer notes and cite historical
+versions on purpose, and leave any line mentioning `Hardened.Amz.`, which is frozen.
 
 ## 2. Bump the open line
 
@@ -66,8 +93,8 @@ Move it to the next line and update the comment above it to say what has now rel
 the next minor and state the choice in the PR body, because the sequence skips numbers on purpose
 (there was no 0.7.0; 0.23.0 through 0.29.0 were skipped).
 
-Commit it with anything else the release needs, open one pull request, wait for CI, merge. Do not
-put the version in the branch name.
+Commit it with the documentation sweep and anything else the release needs, open **one** pull
+request, wait for CI, merge. Do not put the version in the branch name.
 
 ## 3. Dry run, before the tag
 

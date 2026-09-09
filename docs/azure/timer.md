@@ -16,9 +16,9 @@ public class Housekeeping {
 
 ```xml
 <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
-<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.30.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.Timer" Version="0.30.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.30.0-rc1000" PrivateAssets="all" />
+<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.31.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.Timer" Version="0.31.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.31.0-rc1000" PrivateAssets="all" />
 ```
 
 `dotnet new hardened-function --host azure --trigger timer` writes this shape with tests.

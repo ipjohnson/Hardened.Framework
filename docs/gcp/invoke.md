@@ -20,8 +20,8 @@ public class OrderHandler(OrderLog log) {
 ## Packages
 
 ```xml
-<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.30.0-rc1000" />
-<PackageReference Include="Hardened.Gcp.CloudRun.Invoke" Version="0.30.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.31.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Invoke" Version="0.31.0-rc1000" />
 ```
 
 `dotnet new hardened-function --host gcp --trigger invoke` writes this shape with tests. It is the

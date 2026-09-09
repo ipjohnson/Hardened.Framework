@@ -18,8 +18,8 @@ its body.
 ## Packages
 
 ```xml
-<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.30.0-rc1000" />
-<PackageReference Include="Hardened.Gcp.CloudRun.Eventarc" Version="0.30.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.31.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Eventarc" Version="0.31.0-rc1000" />
 ```
 
 The adapter reads the event through `Hardened.CloudEvents`, which names no cloud. Binary mode,
