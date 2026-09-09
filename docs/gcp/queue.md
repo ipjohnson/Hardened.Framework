@@ -27,8 +27,8 @@ subscription. See [Triggers](/guide/triggers) for the vocabulary.
 ## Packages
 
 ```xml
-<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.31.0-rc1000" />
-<PackageReference Include="Hardened.Gcp.CloudRun.PubSub" Version="0.31.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.32.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.PubSub" Version="0.32.0-rc1000" />
 ```
 
 The same package serves `[Topic]`, from a different delivery; see [Topics](/gcp/topic).
