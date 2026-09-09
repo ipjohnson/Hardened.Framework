@@ -41,7 +41,9 @@ public static class InvokeMethodCodeGenerator {
                  requestHandlerModel.ResponseInformation.ReturnType.Name != typeof(void).Name) {
             EmitSingleResponseDispatch(
                 invokeMethod, invokeStatement, context,
-                requestHandlerModel.ResponseInformation.ReturnTypeProvidesHeaders);
+                requestHandlerModel.ResponseInformation.ReturnTypeProvidesHeaders,
+                UnionResponseSelector.Decode(
+                    requestHandlerModel.ResponseInformation.DeclaredResponse).FirstOrDefault());
         }
         else {
             invokeMethod.AddIndentedStatement(invokeStatement);
@@ -69,7 +71,17 @@ public static class InvokeMethodCodeGenerator {
         MethodDefinition invokeMethod,
         IOutputComponent invokeStatement,
         ParameterDefinition context,
-        bool providesHeaders) {
+        bool providesHeaders,
+        UnionCaseModel declared) {
+        // The return type states its status, its headers and which member is its body. Emitted
+        // directly rather than through a switch: a set switches on its Value to find out which case
+        // it holds, and here the type is the answer.
+        if (declared.TypeName != null) {
+            EmitDeclaredResponseDispatch(invokeMethod, invokeStatement, context, declared);
+
+            return;
+        }
+
         if (!providesHeaders) {
             invokeMethod.Assign(invokeStatement).To(context.Property("Response.ResponseValue"));
 
@@ -84,6 +96,59 @@ public static class InvokeMethodCodeGenerator {
                 "IProvidesResponseHeaders __headerProvider) __headerProvider.ApplyHeaders(context.Response.Headers)"));
 
         invokeMethod.Assign(result).To(context.Property("Response.ResponseValue"));
+    }
+
+    /// <summary>
+    /// The four things a set's switch does for its case, for a handler whose return type is the
+    /// case.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Status, headers, the inner body and bodylessness. A handler returning
+    /// <c>Created&lt;Todo&gt;</c> declares all four in its signature, and before this the emitter
+    /// read none of them: it answered 200 with no <c>Location</c> and serialized the wrapper, so
+    /// the body carried <c>"status": 201</c> inside a 200 response. Thrown, the identical value was
+    /// answered correctly, because <c>ResponseException</c> reads the same three interfaces.
+    /// </para>
+    /// <para>
+    /// No <c>is</c> test and no cast for the headers: the type is known here, which is the whole
+    /// difference from the fallback above. That one is gated on
+    /// <c>ReturnTypeProvidesHeaders</c> because <c>is</c> against a sealed type that provably cannot
+    /// implement an interface is CS8121 rather than a test returning false - a gate only the
+    /// specification bridge ever set, so a hand-written handler never reached it.
+    /// </para>
+    /// </remarks>
+    private static void EmitDeclaredResponseDispatch(
+        MethodDefinition invokeMethod,
+        IOutputComponent invokeStatement,
+        ParameterDefinition context,
+        UnionCaseModel declared) {
+        var result = invokeMethod.Assign(invokeStatement).ToVar(ResultVariable);
+
+        invokeMethod.Assign(CodeOutputComponent.Get(declared.Status.ToString()))
+            .To(context.Property("Response.Status"));
+
+        if (declared.AppliesHeaders) {
+            invokeMethod.AddIndentedStatement(
+                CodeOutputComponent.Get(ResultVariable)
+                    .Invoke("ApplyHeaders", context.Property("Response.Headers")));
+        }
+
+        if (declared.CarriesBody && declared.HasBody) {
+            invokeMethod
+                .Assign(CodeOutputComponent.Get(
+                    "((global::Hardened.Requests.Abstract.Responses.ICarriesResponseBody)" +
+                    ResultVariable + ").Body"))
+                .To(context.Property("Response.ResponseValue"));
+        }
+        else {
+            invokeMethod.Assign(result).To(context.Property("Response.ResponseValue"));
+        }
+
+        if (!declared.HasBody) {
+            invokeMethod.Assign(CodeOutputComponent.Get("false"))
+                .To(context.Property("Response.ShouldSerialize"));
+        }
     }
 
     /// <summary>

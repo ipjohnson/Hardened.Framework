@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Responses;
@@ -86,6 +87,65 @@ public class TodoController {
 
         return new Todo(id, "declared");
     }
+
+    #region returned on its own, with no set around it
+
+    /// <summary>
+    /// The same <c>Created&lt;Todo&gt;</c> as <see cref="Create"/>, returned on its own.
+    /// </summary>
+    /// <remarks>
+    /// A handler with one outcome has no set to declare, and the value already states its status,
+    /// its header and which of its members is the body. Until the serializer read that, this
+    /// answered 200 with no <c>Location</c> and the wrapper on the wire - so the body carried
+    /// <c>"status": 201</c> inside a 200.
+    /// </remarks>
+    [Post("/bare")]
+    public Created<Todo> CreateBare(NewTodo request) =>
+        new(new Todo(7, request.Title), "/responses/7");
+
+    /// <summary>The identical value, thrown instead of returned.</summary>
+    /// <remarks>
+    /// The comparison that matters. <c>ResponseException</c> has read all three interfaces since it
+    /// existed, so this path was always right and the returned one was not.
+    /// </remarks>
+    [Post("/bare-thrown")]
+    public Todo CreateBareThrown(NewTodo request) =>
+        throw new Created<Todo>(new Todo(7, request.Title), "/responses/7").AsException();
+
+    /// <summary>A bodyless response returned on its own.</summary>
+    /// <remarks>
+    /// <c>NoContent</c> states <c>HasBody</c> false, which is what stops "null" being written into
+    /// a 204 - the same thing the set's switch does through <c>ShouldSerialize</c>.
+    /// </remarks>
+    [Delete("/bare/{id}")]
+    public NoContent RemoveBare(int id) => new();
+
+    /// <summary>
+    /// Writes a status, then returns a type that declares another.
+    /// </summary>
+    /// <remarks>
+    /// The declared status wins. A handler that says <c>Created&lt;T&gt;</c> has said 201, and an
+    /// earlier write is the contradiction rather than the override - which is what a set already
+    /// does, and <see cref="CreateInSetOverridden"/> is the twin that proves the two agree rather
+    /// than asserting it.
+    /// </remarks>
+    [Post("/bare-overridden")]
+    public Created<Todo> CreateBareOverridden(IExecutionContext context, NewTodo request) {
+        context.Response.Status = 202;
+
+        return new Created<Todo>(new Todo(7, request.Title), "/responses/7");
+    }
+
+    /// <summary>The same contradiction inside a declared set.</summary>
+    [Post("/set-overridden")]
+    public Response<Created<Todo>, Conflict> CreateInSetOverridden(
+        IExecutionContext context, NewTodo request) {
+        context.Response.Status = 202;
+
+        return new Created<Todo>(new Todo(7, request.Title), "/responses/7");
+    }
+
+    #endregion
 }
 
 public record ApiError(string Code, string Message);

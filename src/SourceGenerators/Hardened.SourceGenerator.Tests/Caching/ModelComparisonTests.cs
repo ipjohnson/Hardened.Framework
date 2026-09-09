@@ -194,6 +194,8 @@ public class ModelComparisonTests {
     /// makes such a failure unreadable. Streaming framing is the third, and adding it here is what
     /// this test is for. The framing finding is the fourth: a handler whose attribute is removed or
     /// whose return type changes has to change this string, or the diagnostic outlives the code.
+    /// The declared response is the fifth: a handler returning Created&lt;T&gt; dispatches on the
+    /// status, header and body the type states, and a change to any of them has to be visible here.
     /// </remarks>
     [Fact]
     public void AResponseModelDescribesAllOfItsResponseAnnotations() {
@@ -209,6 +211,7 @@ public class ModelComparisonTests {
                 "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }",
             ProducedContentTypes = "text/plain,text/csv",
             UnionCases = "global::App.Todo|201|01;global::App.NotFound|404|01",
+            DeclaredResponse = "global::App.Created|201|111|global::App.Todo",
             ThrowsDiagnostic = "OutOfStock",
             ValidationErrorStatus = 422,
             StreamFramingDiagnostic = "sse"
@@ -221,7 +224,8 @@ public class ModelComparisonTests {
             "Models.DefaultErrorBodies.NotFoundProblem:" +
             "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }:" +
             "text/plain,text/csv:" +
-            "global::App.Todo|201|01;global::App.NotFound|404|01::OutOfStock:422:sse",
+            "global::App.Todo|201|01;global::App.NotFound|404|01:" +
+            "global::App.Created|201|111|global::App.Todo::OutOfStock:422:sse",
             model.ToString());
     }
 

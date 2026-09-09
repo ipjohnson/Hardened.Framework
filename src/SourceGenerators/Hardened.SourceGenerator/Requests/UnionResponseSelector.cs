@@ -94,6 +94,8 @@ public static class UnionResponseSelector {
 
     private const string StatusCodeInterfaceName = "IStatusCode";
 
+    private const string StatusResponseInterfaceName = "IHttpStatusResponse";
+
     private const string ResponsesNamespace = "Hardened.Requests.Abstract.Responses";
 
     /// <summary>
@@ -115,6 +117,54 @@ public static class UnionResponseSelector {
         var cases = Cases(returned, successStatus ?? 200);
 
         return cases == null ? null : Encode(cases);
+    }
+
+    /// <summary>
+    /// The one case a handler that returns a response type on its own answers with, encoded, or
+    /// null where the return type states nothing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A handler returning <c>Created&lt;Todo&gt;</c> has declared exactly as much as a one-case
+    /// set: the status, whether headers are contributed, and which member is the body. It is read
+    /// through the same five helpers a set's cases are, because it is the same question asked of one
+    /// type - and the alternative was a second, drifting answer to it.
+    /// </para>
+    /// <para>
+    /// <b>Null for a response set</b>, which <see cref="Read"/> already describes case by case, and
+    /// null for every ordinary return type, which states nothing and needs no dispatch beyond the
+    /// assignment it already gets.
+    /// </para>
+    /// <para>
+    /// The type's own <c>[HttpStatus]</c> beats <paramref name="successStatus"/>, exactly as a
+    /// case's does inside a set. That is not a new precedence rule; it is the existing one asked
+    /// about one type.
+    /// </para>
+    /// </remarks>
+    public static string? ReadDeclared(
+        SemanticModel semanticModel, MethodDeclarationSyntax methodDeclaration, int? successStatus) {
+        var returned = Unwrap(semanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
+
+        if (returned == null || !Implements(returned, StatusResponseInterfaceName)) {
+            return null;
+        }
+
+        // A set is described case by case; this is only for a type answering on its own.
+        if (Cases(returned, successStatus ?? 200) != null) {
+            return null;
+        }
+
+        var status = Status(returned, successStatus ?? 200);
+
+        return Encode(new[] {
+            new UnionCaseModel(
+                returned.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                status,
+                AppliesHeaders(returned),
+                HasBody(status),
+                Implements(returned, BodyInterfaceName),
+                BodyType(returned))
+        });
     }
 
     /// <summary>

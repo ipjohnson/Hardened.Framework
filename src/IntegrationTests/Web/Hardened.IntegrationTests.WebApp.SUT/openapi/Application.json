@@ -5239,6 +5239,46 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/verbs/created-by-type": {
+      "post": {
+        "tags": [
+          "HttpMethod"
+        ],
+        "operationId": "createByType",
+        "summary": "A response type returned on its own, which states its own 201 and its own Location.",
+        "description": "Here because the published document is half of what this states. The type declares the status, the header and which member is the body, and a document that described the wrapper at 200 would have a generated client wrong about every creation endpoint - which is what it did until the generator read the return type.",
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedNote"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/verbs/emptied": {
       "delete": {
         "tags": [
@@ -5551,6 +5591,17 @@
           "status": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "CreatedNote": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
           }
         }
       },

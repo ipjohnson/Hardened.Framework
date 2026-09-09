@@ -193,6 +193,17 @@ public record ResponseInformationModel {
     public string? StreamFraming { get; set; }
 
     /// <summary>
+    /// The single case a handler returning a response type on its own declares, encoded, or null.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="UnionCases"/> for a handler that has no set. A type like <c>Created&lt;T&gt;</c>
+    /// states its status, its headers and which member is its body whether or not a set is written
+    /// around it, and this is where that statement is carried so the dispatch and the document read
+    /// the same one.
+    /// </remarks>
+    public string? DeclaredResponse { get; set; }
+
+    /// <summary>
     /// Both ways a handler can say something about its response, not one of them.
     /// </summary>
     /// <remarks>
@@ -211,7 +222,8 @@ public record ResponseInformationModel {
         return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
                $":{DefaultStatusCode}:{NullResponseBodyExpression}:{DeclaredErrorBodiesExpression}" +
                $":{ProducedContentTypes}" +
-               $":{UnionCases}:{UnionDiagnostic}:{ThrowsDiagnostic}:{ValidationErrorStatus}" +
+               $":{UnionCases}:{DeclaredResponse}:{UnionDiagnostic}:{ThrowsDiagnostic}" +
+               $":{ValidationErrorStatus}" +
                $":{StreamFramingDiagnostic}";
     }
 }

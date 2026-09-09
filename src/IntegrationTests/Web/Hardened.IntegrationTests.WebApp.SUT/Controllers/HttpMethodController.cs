@@ -46,6 +46,19 @@ public class HttpMethodController {
     [Post("/created", SuccessStatus = 201)]
     public string CreateItem() => "created";
 
+    /// <summary>
+    /// A response type returned on its own, which states its own 201 and its own Location.
+    /// </summary>
+    /// <remarks>
+    /// Here because the published document is half of what this states. The type declares the
+    /// status, the header and which member is the body, and a document that described the wrapper
+    /// at 200 would have a generated client wrong about every creation endpoint - which is what it
+    /// did until the generator read the return type.
+    /// </remarks>
+    [Post("/created-by-type")]
+    public global::Hardened.Web.Runtime.Responses.Created<CreatedNote> CreateByType() =>
+        new(new CreatedNote("created"), "/verbs/created-by-type/1");
+
     /// <summary>A declared 204, which also means the body is not written.</summary>
     [Delete("/emptied", SuccessStatus = 204)]
     public string EmptyItem() => "this body is not written";
@@ -65,3 +78,5 @@ public class HttpMethodController {
         return new Created<MathAddModel>(model, $"/verbs/item/{model.Values.Count}");
     }
 }
+
+public record CreatedNote(string Title);
