@@ -27,9 +27,6 @@ public class CorrelationIdTests {
     private const string Base64Digits =
         "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
 
-    /// <summary>2020-01-01T00:00:00Z, the epoch the id's leading millisecond counts from.</summary>
-    private const long Epoch = 1_577_836_800_000;
-
     /// <summary>
     /// Listens to the pipeline's source so that spans are actually created, since without a
     /// listener <c>StartActivity</c> returns null and there is nothing to read a trace id from.
@@ -93,7 +90,7 @@ public class CorrelationIdTests {
         var id = Pipeline.Context().CorrelationId;
         var after = DateTimeOffset.UtcNow;
 
-        var stamped = DateTimeOffset.FromUnixTimeMilliseconds(DecodeMillisecond(id) + Epoch);
+        var stamped = DateTimeOffset.FromUnixTimeMilliseconds(DecodeMillisecond(id));
 
         Assert.InRange(stamped, before.AddSeconds(-2), after.AddSeconds(2));
     }
@@ -355,7 +352,7 @@ public class CorrelationIdTests {
         Assert.Equal(issued.Count, issued.Distinct().Count());
     }
 
-    /// <summary>Reads back the millisecond the id leads with, as a count from <see cref="Epoch"/>.</summary>
+    /// <summary>Reads back the Unix millisecond the id leads with.</summary>
     private static long DecodeMillisecond(string id) =>
         id[..7].Aggregate(0L, (value, c) => (value << 6) | (uint)Base64Digits.IndexOf(c));
 

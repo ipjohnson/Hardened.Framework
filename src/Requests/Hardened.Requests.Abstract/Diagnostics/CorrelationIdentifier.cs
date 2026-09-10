@@ -59,9 +59,8 @@ public static class CorrelationIdentifier {
     /// <remarks>
     /// <para>
     /// <b>Seven characters of millisecond, six of counter.</b> Six bits a character puts 42 bits of
-    /// millisecond in the first seven, which is 139 years from the epoch below, and 36 bits of
-    /// counter in the last six, which is 68.7 billion. Two ids can only collide if they share both
-    /// fields. Within one process that cannot happen: the counter only repeats after 68.7 billion
+    /// Unix millisecond in the first seven, which runs out in 2109, and 36 bits of counter in the
+    /// last six, which is 68.7 billion. Two ids can only collide if they share both fields. Within one process that cannot happen: the counter only repeats after 68.7 billion
     /// ids, so every id issued inside one millisecond has a distinct one. Between processes it
     /// takes two counters landing on the same value in the same millisecond, which at a fleet-wide
     /// million requests a second comes to one duplicate pair per 700 million requests or so. That
@@ -83,6 +82,16 @@ public static class CorrelationIdentifier {
     /// slower than the thing it was meant to improve on. Taking 64 at a time and handing them out
     /// from thread-local state measures 98M. A thread that dies mid-block abandons what is left of
     /// it, which costs nothing but 63 counter values.
+    /// </para>
+    /// <para>
+    /// <b>One sequence for the process, rather than a seed per thread.</b> Seeding each thread
+    /// independently would drop the shared counter entirely, and measured 0.61ns against 0.64ns
+    /// for taking a block, so it saves nothing. What it costs is the guarantee: independent seeds
+    /// put threads back on a birthday bound against each other, and the millisecond protects far
+    /// less there than it does between processes, because the threads of one process are all
+    /// writing into the same milliseconds all the time. One sequence makes an intra-process
+    /// duplicate impossible instead, and thread-pool threads that come and go just take a block
+    /// rather than each drawing a seed.
     /// </para>
     /// <para>
     /// <b>Base64 rather than base62, for the shifts.</b> Sixty-two needs a division per character
@@ -108,10 +117,11 @@ public static class CorrelationIdentifier {
     /// </para>
     /// </remarks>
     private static class Fallback {
+        /// <summary>
+        /// Ids a thread reserves at a time. A power of two, which is what lets the cursor's own low
+        /// bits say when a block is spent.
+        /// </summary>
         private const int BlockSize = 64;
-
-        /// <summary>2020-01-01T00:00:00Z. 42 bits of millisecond from here runs out in 2159.</summary>
-        private const long Epoch = 1_577_836_800_000;
 
         /// <summary>
         /// In ASCII order, which the base64 alphabets in the wild are not - theirs start at
@@ -122,25 +132,35 @@ public static class CorrelationIdentifier {
 
         private static readonly long TicksPerMillisecond = Stopwatch.Frequency / 1000;
 
+        /// <summary>
+        /// Where <see cref="Stopwatch"/>'s own zero falls, in Unix milliseconds. Its timestamps
+        /// count from an arbitrary origin, usually boot, so this is what turns one into a date.
+        /// </summary>
         private static readonly long OriginMillisecond =
-            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - Epoch
+            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             - Stopwatch.GetTimestamp() / TicksPerMillisecond;
 
-        private static long _next = BitConverter.ToInt64(RandomNumberGenerator.GetBytes(8));
+        /// <summary>
+        /// The next block to hand out. Seeded at random and aligned to <see cref="BlockSize"/>,
+        /// which <c>Interlocked.Add</c> then preserves for the life of the process.
+        /// </summary>
+        private static long _next =
+            BitConverter.ToInt64(RandomNumberGenerator.GetBytes(8)) & ~(BlockSize - 1L);
 
+        /// <summary>
+        /// This thread's cursor into the block it holds. Zero on a thread that has never asked for
+        /// one, which is aligned, so the first call takes a block like any other.
+        /// </summary>
         [ThreadStatic] private static ulong _threadNext;
-
-        [ThreadStatic] private static int _threadRemaining;
 
         public static string NextId() {
             var millisecond = (ulong)(OriginMillisecond + Stopwatch.GetTimestamp() / TicksPerMillisecond);
 
-            if (_threadRemaining == 0) {
+            // Blocks are aligned, so a cursor sitting on a boundary is a spent block, and every
+            // other value is one this thread still owns. That is the whole refill test.
+            if ((_threadNext & (BlockSize - 1)) == 0) {
                 _threadNext = unchecked((ulong)(Interlocked.Add(ref _next, BlockSize) - BlockSize));
-                _threadRemaining = BlockSize;
             }
-
-            _threadRemaining--;
 
             return Encode(millisecond, _threadNext++);
         }
