@@ -195,7 +195,7 @@ document and the wire cannot disagree.
 | Attribute | Effect |
 |---|---|
 | [`[Tag(name)]`](/reference/attributes) | the tag an operation groups under. Defaults to the class name minus `Controller` |
-| [`[Server(url, description?)]`](/reference/attributes) | a base URL listed under `servers`. Repeatable, and valid on the assembly |
+| [`[Server(url, description?)]`](/reference/attributes) | a base URL listed under `servers`. Repeatable, and read off the `[HardenedModule]` class in the compilation that writes the document - which is the library rather than the host wherever the two are separate projects. The assembly target compiles and publishes nothing |
 
 A handler's XML documentation comment carries into the operation: `<summary>` becomes `summary`
 and `<remarks>` becomes `description`.

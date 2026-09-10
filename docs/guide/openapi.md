@@ -242,11 +242,16 @@ two 2xx statuses always gets a response container.
 A `[Handler]` class implements a generated interface, and attributes go on its methods as they
 would anywhere. Which of them mean anything depends on when they are read:
 
-| | Read at | On a `[Handler]` method |
+| | Read at | On the implementation |
 |---|---|---|
-| `[Retry]`, `[RateLimit]`, `[CacheResponse<T>]`, `[Compress]`, `[ConditionalGet]`, `[Timeout]`, your own `IRequestFilterProvider` | run time, off the handler's metadata | Honoured. This is where a per-operation filter goes in a spec-first project |
+| `[Retry]`, `[RateLimit]`, `[CacheResponse<T>]`, `[Compress]`, `[ConditionalGet]`, `[Timeout]`, your own `IRequestFilterProvider` | run time, off the handler's metadata | Honoured on a method. This is where a per-operation filter goes in a spec-first project |
 | `[AuthorizeGrants]`, `[Authorize<TAuth>]`, `[AllowAnonymous]`, an `IAuthorizationConvention` | run time, into the handler's `Requirement` | Honoured, and can only narrow what the contract admits |
-| `[Throws<T>]`, `[Tag]`, `[Server]` | build time, into the document | Inert. The build task writes the document from the contract before the compiler runs, so it never sees them |
+| `[Throws<T>]` and `[RawResponse]` on a method, `[Tag]` and `[Server]` on the class | build time, into the document | Inert, and `HOAG032` says so. The build task writes the document from the contract before the compiler runs, so it never sees them |
+
+The contract is where each of those four is spelled instead: `responses` for the statuses, the
+response's media type for the content type, the operation's `tags` for the group, and a `servers`
+block for the base URLs. A `servers` block is published as written, and wins over a `[Server]` on
+the module class where an application has both.
 
 Anything shaping the document has to be in the description. Anything shaping the pipeline can be
 on the implementation:

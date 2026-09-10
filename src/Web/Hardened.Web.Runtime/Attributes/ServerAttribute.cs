@@ -11,16 +11,38 @@ namespace Hardened.Web.Runtime.Attributes;
 /// </para>
 ///
 /// <para>
-/// Applied to the entry point, and more than once where an application is served from several
-/// places:
+/// Applied to the <c>[HardenedModule]</c> class in the compilation that writes the document, and
+/// more than once where an application is served from several places:
 /// </para>
 ///
 /// <code>
 /// [HardenedModule]
+/// [HardenedWebModule]
 /// [Server("https://api.example.com", "Production")]
 /// [Server("https://staging.example.com", "Staging")]
-/// public partial class Application { }
+/// public partial class Catalog { }
 /// </code>
+///
+/// <para>
+/// <b>Which class, when there are two.</b> The document is written where the routes are, which in
+/// the layout the templates ship is the library rather than the host: a project with a
+/// <c>Catalog</c> module and a <c>Catalog.Host</c> application publishes from the library, and the
+/// attribute on the host's <c>Application</c> reaches a compilation that writes no document. It is
+/// read off the module class's own attribute list, so a handler class is not a placement either -
+/// <c>HOAG032</c> says so on a described handler.
+/// </para>
+///
+/// <para>
+/// <b>The assembly target is not read.</b> <c>AttributeTargets.Assembly</c> is on the usage below
+/// and the document writer takes the entry point's class attributes only, so
+/// <c>[assembly: Server(...)]</c> compiles and publishes nothing.
+/// </para>
+///
+/// <para>
+/// A specification-first application says it in the contract instead. A <c>servers</c> block there
+/// is published as written, and wins over this attribute where both exist, which is the precedence
+/// <c>info</c> already has.
+/// </para>
 ///
 /// <para>
 /// Not the same thing as <c>[BasePath]</c>, and deliberately not derived from it. A base path is

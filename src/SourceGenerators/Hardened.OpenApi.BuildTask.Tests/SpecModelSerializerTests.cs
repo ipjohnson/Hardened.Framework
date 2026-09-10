@@ -407,6 +407,21 @@ public class SpecModelSerializerTests {
                 },
             },
             Services = { new ServiceModel { Tag = "Pet", TagDescription = "Everything about pets.", Operations = { operation } } },
+            // The document's own identity. Absent here for as long as it has existed, so the round
+            // trip for every one of these was written and never proven - which is the hole this
+            // file's reflection comparer exists to close, left open by the model it compares.
+            Title = "Petstore API",
+            Version = "2.1.0",
+            InfoDescription = "Everything about the pets in the store.",
+            SecuritySchemes = {
+                new SecuritySchemeModel { Name = "bearer", Json = "{\"type\":\"http\",\"scheme\":\"bearer\"}" },
+            },
+            // Two, because the list is ordered and one entry cannot show that. The second carries
+            // no description, which is the member that has to stay null rather than becoming "".
+            Servers = {
+                new ServerModel { Url = "https://api.example.com", Description = "production" },
+                new ServerModel { Url = "https://staging.example.com" },
+            },
             FilterTypes = {
                 new FilterTypeModel {
                     Name = "rateLimit",

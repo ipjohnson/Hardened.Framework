@@ -56,8 +56,8 @@ only when *no* entry matches a described service.
 
 ### HOAG032 — declaration is not read on a described handler
 
-A `[Handler]` method carries a declaration the described path never reads, so it compiles, reads as
-a commitment, and changes nothing.
+A `[Handler]` class or one of its methods carries a declaration the described path never reads, so
+it compiles, reads as a commitment, and changes nothing.
 
 ```
 'ReportServiceImpl.Export' carries [RawResponse], which is read from a handler's own syntax and a
@@ -66,9 +66,22 @@ nothing. Remove it: the content type a described response commits to comes from 
 media type.
 ```
 
-`[RawResponse]` is the only one today. The generator reads it off the handler's own syntax, and a
-described operation has none — its signature is generated from the contract, which says the same
-thing with the response's media type.
+Four today, on the two rungs a handler has:
+
+| Declaration | Where | The contract says it with |
+|---|---|---|
+| `[RawResponse]` | method | the response's media type |
+| `[Throws<T>]` | method | the operation's `responses` |
+| `[Tag]` | class | the operation's `tags` |
+| `[Server]` | class | a `servers` block |
+
+The generator reads each off the handler's own syntax, and a described operation has none: its
+signature is generated from the contract.
+
+Both rungs are walked, because the attributes divide across them. `[Tag]` and `[Server]` are
+`AttributeTargets.Class`. The walk over methods this rule started as would have taken a table entry
+for either and reported nothing: a diagnostic that looks configured and is not, which is the shape
+of the defect the rule exists to catch.
 
 A warning, so a project that wants to keep the attribute for its own reasons can say
 `<NoWarn>$(NoWarn);HOAG032</NoWarn>`.

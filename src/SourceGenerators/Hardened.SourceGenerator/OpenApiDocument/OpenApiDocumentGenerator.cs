@@ -69,7 +69,7 @@ public static class OpenApiDocumentGenerator {
 
         builder.Append('}');
 
-        WriteServers(builder, appModel);
+        WriteServers(builder, appModel, identity);
         WriteTags(builder, handlers);
 
         builder.Append(",\"paths\":{");
@@ -387,7 +387,36 @@ public static class OpenApiDocumentGenerator {
         return (null, null, null);
     }
 
-    private static void WriteServers(StringBuilder builder, EntryPointSelector.Model appModel) {
+    /// <summary>
+    /// Where the application is served, from the contract when it says and from <c>[Server]</c>
+    /// otherwise.
+    /// </summary>
+    /// <remarks>
+    /// The same precedence <c>info</c> gets: what the contract declares about itself wins, and the
+    /// attribute is how a code-first application - or a described one whose contract says nothing -
+    /// answers the same question. Either or, rather than a union: an author who wrote both said one
+    /// thing twice, and publishing both would put the same host in the list two ways.
+    /// </remarks>
+    private static void WriteServers(
+        StringBuilder builder, EntryPointSelector.Model appModel, DocumentIdentity? identity) {
+        if (identity != null && identity.Servers.Count > 0) {
+            var firstDeclared = true;
+
+            foreach (var (url, description) in identity.Servers) {
+                if (url.Length == 0) {
+                    continue;
+                }
+
+                WriteServer(builder, url, description ?? "", ref firstDeclared);
+            }
+
+            if (!firstDeclared) {
+                builder.Append(']');
+            }
+
+            return;
+        }
+
         if (appModel.AttributeModels == null) {
             return;
         }
@@ -408,25 +437,28 @@ public static class OpenApiDocumentGenerator {
                 continue;
             }
 
-            builder.Append(first ? ",\"servers\":[" : ",");
-
-            builder.Append("{\"url\":\"").Append(JsonSchemaWriter.Escape(url)).Append('"');
-
-            var description = AttributeArguments.Text(parts, 1, "description");
-
-            if (description.Length > 0) {
-                builder.Append(",\"description\":\"")
-                    .Append(JsonSchemaWriter.Escape(description)).Append('"');
-            }
-
-            builder.Append('}');
-
-            first = false;
+            WriteServer(builder, url, AttributeArguments.Text(parts, 1, "description"), ref first);
         }
 
         if (!first) {
             builder.Append(']');
         }
+    }
+
+    private static void WriteServer(
+        StringBuilder builder, string url, string description, ref bool first) {
+        builder.Append(first ? ",\"servers\":[" : ",");
+
+        builder.Append("{\"url\":\"").Append(JsonSchemaWriter.Escape(url)).Append('"');
+
+        if (description.Length > 0) {
+            builder.Append(",\"description\":\"")
+                .Append(JsonSchemaWriter.Escape(description)).Append('"');
+        }
+
+        builder.Append('}');
+
+        first = false;
     }
 
     /// <summary>

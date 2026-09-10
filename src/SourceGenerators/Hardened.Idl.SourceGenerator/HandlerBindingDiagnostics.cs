@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
 
 namespace Hardened.Idl.SourceGenerator;
@@ -11,7 +12,7 @@ namespace Hardened.Idl.SourceGenerator;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Both are warnings rather than errors, and deliberately. Generating the interfaces without
+/// All three are warnings rather than errors, and deliberately. Generating the interfaces without
 /// implementing them is a supported thing to do - a package that carries a contract for a client to
 /// consume, or one project describing a service another implements - so an error would make a
 /// legitimate target impossible to build.
@@ -19,7 +20,7 @@ namespace Hardened.Idl.SourceGenerator;
 /// <para>
 /// <c>TreatWarningsAsErrors</c> is set for continuous-integration builds, so a project that means to
 /// ship interfaces alone silences these in its own csproj:
-/// <c>&lt;NoWarn&gt;$(NoWarn);HOAG030;HOAG031&lt;/NoWarn&gt;</c>. That is the escape hatch, and it
+/// <c>&lt;NoWarn&gt;$(NoWarn);HOAG030;HOAG031;HOAG032&lt;/NoWarn&gt;</c>. That is the escape hatch, and it
 /// is deliberate that it has to be written down rather than inferred.
 /// </para>
 /// </remarks>
@@ -31,22 +32,36 @@ internal static class HandlerBindingDiagnostics {
     /// <summary>A handler whose base list names no described service.</summary>
     public const string NoServiceInterfaceId = "HOAG031";
 
-    /// <summary>A declaration the described path does not read, written on a handler method.</summary>
+    /// <summary>A declaration the described path does not read, on a handler class or method.</summary>
     public const string InertDeclarationId = "HOAG032";
 
     /// <summary>
     /// The declarations that are code-first syntax only, by attribute name.
     /// </summary>
     /// <remarks>
-    /// <c>[RawResponse]</c> commits a response to a content type, and the generator reads it off
-    /// the handler's own syntax. A described operation's signature is generated, so there is no
-    /// syntax to read it from: the attribute compiles on the implementation, reads as a commitment
-    /// in review, and changes nothing. A contract says the same thing with the response's media
-    /// type.
+    /// <para>
+    /// Each of these is read off a handler's own syntax by the attribute-routed generator. A
+    /// described operation's signature is generated instead, so there is no syntax to read it from:
+    /// the attribute compiles on the implementation, reads as a commitment in review, and changes
+    /// nothing. Every one of them has a spelling in the contract, which is what the message names.
+    /// </para>
+    /// <para>
+    /// A generic attribute keys on its simple name here. <c>AttributeModelHelper</c> puts the type
+    /// arguments in the type definition rather than in <c>Name</c>, so <c>[Throws&lt;Gone&gt;]</c>
+    /// arrives as <c>ThrowsAttribute</c> and an exact lookup finds it.
+    /// </para>
     /// </remarks>
     private static readonly Dictionary<string, string> InertDeclarations = new(StringComparer.Ordinal) {
         ["RawResponseAttribute"] =
-            "the content type a described response commits to comes from the contract's media type"
+            "the content type a described response commits to comes from the contract's media type",
+        ["ThrowsAttribute"] =
+            "a described operation answers the statuses its contract declares, and the generated " +
+            "signature carries them",
+        ["TagAttribute"] =
+            "a described operation is grouped by the tag its contract gives it",
+        ["ServerAttribute"] =
+            "write a servers block in the contract, or declare [Server] on the [HardenedModule] " +
+            "class whose compilation writes the document"
     };
 
     /// <summary>
@@ -68,9 +83,9 @@ internal static class HandlerBindingDiagnostics {
         id: InertDeclarationId,
         title: "Declaration is not read on a described handler",
         messageFormat:
-        "'{0}.{1}' carries [{2}], which is read from a handler's own syntax and a described " +
+        "'{0}' carries [{1}], which is read from a handler's own syntax and a described " +
         "operation's signature is generated - so it compiles, reads as a commitment, and changes " +
-        "nothing. Remove it: {3}.",
+        "nothing. Remove it: {2}.",
         category: "Hardened.Generation",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -158,28 +173,48 @@ internal static class HandlerBindingDiagnostics {
     }
 
     /// <summary>
-    /// Every declaration on this handler's methods that the described path does not read.
+    /// Every declaration on this handler that the described path does not read.
     /// </summary>
     /// <remarks>
-    /// Read off the filters <c>HandlerSelector</c> already collected rather than from a walk of
-    /// its own, so an attribute added to <see cref="InertDeclarations"/> is one line. The location
-    /// is the class's, which is what <c>HandlerInfo</c> carries; the message names the method.
+    /// <para>
+    /// Read off what <c>HandlerSelector</c> already collected rather than from a walk of its own,
+    /// so an attribute added to <see cref="InertDeclarations"/> costs a table entry and nothing
+    /// else. The location is the class's, which is what <c>HandlerInfo</c> carries; the message
+    /// names the method where there is one.
+    /// </para>
+    /// <para>
+    /// Both rungs, because the attributes divide across them. <c>[RawResponse]</c> and
+    /// <c>[Throws&lt;T&gt;]</c> are written on a method and <c>[Tag]</c> and <c>[Server]</c> are
+    /// <c>AttributeTargets.Class</c>, so a walk over methods alone would take a table entry for
+    /// either of the last two and report nothing - a diagnostic that looks configured and is not,
+    /// which is the shape of the defect this whole file exists to catch.
+    /// </para>
     /// </remarks>
     private static void ReportInertDeclarations(HandlerInfo handler, List<Diagnostic> diagnostics) {
+        foreach (var filter in handler.ClassFilters) {
+            Report(handler, filter, handler.ImplementationType.Name, diagnostics);
+        }
+
         foreach (var method in handler.MethodFilters) {
             foreach (var filter in method.Filters) {
-                if (!InertDeclarations.TryGetValue(filter.TypeDefinition.Name, out var instead)) {
-                    continue;
-                }
-
-                diagnostics.Add(Diagnostic.Create(
-                    InertDeclarationDescriptor(),
-                    handler.Location ?? Location.None,
-                    handler.ImplementationType.Name,
-                    method.MethodName,
-                    filter.TypeDefinition.Name.Replace("Attribute", ""),
-                    instead));
+                Report(
+                    handler, filter,
+                    handler.ImplementationType.Name + "." + method.MethodName, diagnostics);
             }
         }
+    }
+
+    private static void Report(
+        HandlerInfo handler, AttributeModel declaration, string where, List<Diagnostic> diagnostics) {
+        if (!InertDeclarations.TryGetValue(declaration.TypeDefinition.Name, out var instead)) {
+            return;
+        }
+
+        diagnostics.Add(Diagnostic.Create(
+            InertDeclarationDescriptor(),
+            handler.Location ?? Location.None,
+            where,
+            declaration.TypeDefinition.Name.Replace("Attribute", ""),
+            instead));
     }
 }

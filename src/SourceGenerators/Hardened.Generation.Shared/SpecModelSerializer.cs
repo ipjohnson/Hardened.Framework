@@ -61,7 +61,12 @@ internal static class SpecModelSerializer {
     /// reader handed a 6 file would find no name and re-derive the colliding one, which is the
     /// silent half of the defect the allocation exists to close.
     /// </remarks>
-    private const string Header = "#hardened-openapi-model 6";
+    /// <remarks>
+    /// 7 adds the <c>server</c> records carrying the contract's own <c>servers</c>. Bumped for the
+    /// new record tag, same reasoning as 4: a 6 reader handed a 7 file throws on the tag rather
+    /// than skipping it.
+    /// </remarks>
+    private const string Header = "#hardened-openapi-model 7";
 
     private const char FieldSeparator = '\t';
 
@@ -88,6 +93,16 @@ internal static class SpecModelSerializer {
             var record = new Record("secscheme");
             record.Add("Name", scheme.Name);
             record.Add("Json", scheme.Json);
+            record.WriteTo(builder);
+        }
+
+        // In the order the contract wrote them. A document's servers list is ordered - a reader
+        // and a generated client take the first as the default - so sorting these the way the
+        // schemes are sorted would choose a different default than the author did.
+        foreach (var server in model.Servers) {
+            var record = new Record("server");
+            record.Add("Url", server.Url);
+            record.Add("Description", server.Description);
             record.WriteTo(builder);
         }
 
@@ -167,6 +182,13 @@ internal static class SpecModelSerializer {
                     model.SecuritySchemes.Add(new SecuritySchemeModel {
                         Name = record.String("Name") ?? "",
                         Json = record.String("Json") ?? ""
+                    });
+                    break;
+
+                case "server":
+                    model.Servers.Add(new ServerModel {
+                        Url = record.String("Url") ?? "",
+                        Description = record.String("Description")
                     });
                     break;
 

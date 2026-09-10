@@ -5,6 +5,14 @@ openapi: "3.0.0"
 info:
   title: Petstore API
   version: "1.0.0"
+# Where the service is served, which the published document used to drop: this block was read for
+# its path component and nothing else, so a client generated from the document had every path and
+# no host to send one to. No path here on purpose - these routes are served at the root, and a
+# document that said otherwise would be wrong in the direction that is hardest to notice.
+servers:
+  - url: https://petstore.example.invalid
+    description: production
+  - url: https://staging.petstore.example.invalid
 # The group's own prose, which used to be parsed to nothing: the published document's tags
 # carried the name alone.
 tags:

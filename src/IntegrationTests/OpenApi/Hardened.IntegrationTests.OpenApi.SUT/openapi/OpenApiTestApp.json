@@ -4,6 +4,15 @@
     "title": "Petstore API",
     "version": "1.0.0"
   },
+  "servers": [
+    {
+      "url": "https://petstore.example.invalid",
+      "description": "production"
+    },
+    {
+      "url": "https://staging.petstore.example.invalid"
+    }
+  ],
   "tags": [
     {
       "name": "Pet",
