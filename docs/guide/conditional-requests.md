@@ -24,17 +24,36 @@ ETag: "OybX3FuqNfSKoSm+h1FJqQ=="
 
 ## Turning it on
 
-The attribute goes on an operation or on a class. For every GET handler in the application:
+The attribute goes on an operation, on a class, or on a module. For every GET handler compiled with
+that module:
 
 ```csharp
 [HardenedModule]
-[Enable<ConditionalGet>]
-[KestrelRuntime]
-public partial class Application { }
+[HardenedWebModule]
+[ConditionalGet]
+public partial class Catalog { }
 ```
 
 The module-wide form stands down for any handler carrying `[ConditionalGet]` itself, so explicit
 beats convention.
+
+Write it there rather than as `[Enable<ConditionalGet>]`, which does the same thing at run time and
+publishes nothing:
+
+```csharp
+GET /library/books                    ['200', '400']
+GET /library/books/{id}               ['200', '304', '400', '404']   ← the one with [ConditionalGet]
+```
+
+Every one of those answers a 304 over the wire. Only the operation that spelled the attribute says
+so, because `[Enable<T>]` registers the filter at startup and the document is written at build time
+- so a generated client has no branch for the answer it will actually be sent. A declaration on the
+module class stays inside the compilation, and the document publishes the 304, the `ETag` on both
+statuses and both conditional request headers on every read the filter covers.
+
+`[Enable<ConditionalGet>]` still works, and is still what a **host** writes to switch the feature on
+for handlers it only references. It cannot publish into a library's document: they are separate
+compilations, and the library's was written first.
 
 GET handlers only, in both forms. The routing table sends a HEAD to the GET leaf, and on any
 other method the conditional headers mean a 412, which this does not answer. A class-level

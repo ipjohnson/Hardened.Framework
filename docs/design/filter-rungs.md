@@ -6,6 +6,39 @@ a whole application without leaving the compilation, and the route that does lea
 note is about closing that: four rungs walked for every handler, the wide two collected once, and
 one merged metadata list that everything downstream reads.
 
+## What is built
+
+**The entry-point rung, both halves.** A filter attribute on a `[HardenedModule]` class is collected
+by the generator into one array beside the routing table, registered as
+`IApplicationFilterDeclarations`, and merged into each handler's `Metadata` by `ExecutionHelper` as
+its chain is built — dropped for a handler that declares the same closed type nearer. The same
+declarations' facets ride on `EntryPointSelector.Model` and are narrowed per operation by
+`OpenApiDocumentGenerator`, so the document publishes what the pipeline installs. Both front ends
+arrive through those two functions, so a described application gets it too.
+
+Scoped to the compilation it was written in: `IApplicationFilterDeclarations.DeclaringAssembly` is
+matched against `handlerInfo.HandlerType.Assembly`, so a process composing several modules gives
+each one's declarations to that module's own handlers and no others. That is open question 1,
+answered the way `TimeoutResolver` already answers it for `[assembly: Timeout]`.
+
+**What is not built**, and why each is its own change:
+
+- *The assembly rung.* `FilterResponseSelector` already reads it for the document and nothing
+  installs from it, so the asymmetry in the table below stands. Collecting it at build time needs an
+  incremental provider `EntryPointSelector.Model` does not carry, and `AttributeTargets.Assembly` is
+  on no filter attribute this framework ships except `[Timeout]` — so it is a vocabulary decision
+  across the whole attribute set rather than one generator change.
+- *`AttributeUsage.AllowMultiple` as the replace-or-compose switch.* `CacheResponseAttribute`'s own
+  remarks are the counterexample: it carries `AllowMultiple = true` because the compiler dedupes a
+  generic attribute on its unbound form, not because two declarations compose. The rule built here
+  is nearest-wins on the closed type, full stop; a generic attribute a handler closes differently
+  still stacks, and the merge's remarks say so.
+- *The applicability hoist and its two diagnostics.* `[ConditionalGet]` still states its reach six
+  times, and the two halves still agree by inspection rather than by construction.
+- *`TimeoutResolver` folding into the shared walk.* Its entry-point rung is a registered
+  `TimeoutPolicy` service taking the tightest, not an attribute, so subsuming it changes what the
+  rung means rather than where it is read.
+
 ## What happens today
 
 Three separate mechanisms put a filter in a chain.
@@ -242,15 +275,18 @@ specifically; the collection change is what makes any filter attribute work ther
 
 ## Open questions
 
-1. **Does a wider rung reach a referenced library's handlers?** Compile-time collection cannot cross
-   that seam; a DI registration does it automatically. Two different answers, and only one can be
-   the default. The walk above chooses compile-time, which means a host's declaration covers the
-   host's own handlers — the same answer `TimeoutResolver` already gives for `[assembly: Timeout]`.
+1. ~~**Does a wider rung reach a referenced library's handlers?**~~ Settled: no. The declarations
+   carry the assembly they were written in and reach only handlers from it.
 2. **Does `[Enable<T>]`'s type argument also contribute facets to the document?** Cheap where the
    entry point and the handlers share a compilation, impossible where they do not — which argues for
-   documenting the limit rather than half-closing it.
-3. **Which existing global filters move to a rung.** `[Enable<HardenedCompression>]` is next with the
-   same shape.
-4. **Does `TimeoutResolver` fold into the shared walk in the same change, or after it?** Its assembly
-   rung and cache are exactly what the walk subsumes, but it also carries the tighten-only convention
-   pass, which nothing else has.
+   documenting the limit rather than half-closing it. Documented, not built.
+3. **Which existing global filters move to a rung.** `[Enable<ResponseCompression>]` is next with the
+   same shape: `[Compress]` is already a filter attribute allowing `Class`, so it needs no runtime
+   change at all.
+4. **Does `TimeoutResolver` fold into the shared walk?** Its assembly rung and cache are what the
+   walk would subsume, but its entry-point rung is a registered policy rather than an attribute, and
+   it carries the tighten-only convention pass. Neither half is a refactor.
+5. **Where does an attribute say whether a nearer declaration replaces it or composes with it?** The
+   merge keys on the closed type and drops the wider one, which is right for every filter attribute
+   shipped today and wrong the moment a generic one is declared at two rungs with different
+   arguments. It belongs on the attribute type, beside the applicability the hoist wants there.

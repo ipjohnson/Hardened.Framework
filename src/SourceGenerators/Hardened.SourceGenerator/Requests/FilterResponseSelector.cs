@@ -75,6 +75,44 @@ public static class FilterResponseSelector {
     internal static DeclaredOperationFacts Read(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax method,
+        CancellationToken cancellationToken) =>
+        Collect(
+            context,
+            Declarations(context, method),
+            Written(context, method),
+            cancellationToken);
+
+    /// <summary>
+    /// The same reading, over declarations that are not on a handler at all.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The entry point's rung. A filter declared there covers every handler in the compilation, so
+    /// what it answers belongs on every operation the same declaration installs on - narrowed by
+    /// the same <see cref="DeclaredScope"/>, since a declaration that reaches only the reads
+    /// publishes only on the reads.
+    /// </para>
+    /// <para>
+    /// No <see cref="Written"/> rung. That one reads <c>[AnswersHeader]</c> and
+    /// <c>[ReadsHeader]</c> written directly beside a handler, where the operation is the subject.
+    /// An entry point is not an operation, and a header declared there would describe every route
+    /// in the application without a filter behind it to write one.
+    /// </para>
+    /// </remarks>
+    internal static DeclaredOperationFacts ReadDeclarations(
+        GeneratorSyntaxContext context,
+        IEnumerable<AttributeSyntax> declarations,
+        CancellationToken cancellationToken) =>
+        Collect(
+            context,
+            declarations.Select(attribute => Declaration.FromSyntax(context, attribute)),
+            Enumerable.Empty<(ISymbol, AttributeData)>(),
+            cancellationToken);
+
+    private static DeclaredOperationFacts Collect(
+        GeneratorSyntaxContext context,
+        IEnumerable<Declaration> declarations,
+        IEnumerable<(ISymbol Carrier, AttributeData Facet)> written,
         CancellationToken cancellationToken) {
         Dictionary<int, ScopedRefusal>? byStatus = null;
         List<ScopedResponseHeader>? responseHeaders = null;
@@ -86,7 +124,7 @@ public static class FilterResponseSelector {
         // and the further one add a 504 the operation can never answer.
         HashSet<string>? spoken = null;
 
-        foreach (var declaration in Declarations(context, method)) {
+        foreach (var declaration in declarations) {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (declaration.Type == null) {
@@ -136,7 +174,7 @@ public static class FilterResponseSelector {
         // it carries a Location - and those are read off the symbol rather than through
         // Declarations, because Declarations carries an attribute's type and this needs the
         // arguments the attribute was written with.
-        foreach (var (carrier, facet) in Written(context, method)) {
+        foreach (var (carrier, facet) in written) {
             if (Is(facet, AnswersHeader)) {
                 AddResponseHeader(carrier, facet, ref spoken, ref responseHeaders);
             }

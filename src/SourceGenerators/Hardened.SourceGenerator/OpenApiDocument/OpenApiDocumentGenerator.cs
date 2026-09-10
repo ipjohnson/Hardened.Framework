@@ -42,6 +42,11 @@ public static class OpenApiDocumentGenerator {
         OpenApiVersion version = OpenApiVersionFacts.Default, DocumentIdentity? identity = null) {
         var builder = new StringBuilder();
 
+        // Before anything reads a handler, because the entry point's rung says something about
+        // every one of them. Both front ends arrive here, so a described application publishes what
+        // its module declares on the same terms an attribute-routed one does.
+        handlers = WithEntryPointRung(appModel, handlers);
+
         // Identity, in preference order: the contract's own (specification-first), an
         // [OpenApiInfo] on the entry point (code-first), then the fallbacks every application got
         // before either existed - the entry point's class name and "1.0.0". The fallbacks renamed
@@ -192,6 +197,97 @@ public static class OpenApiDocumentGenerator {
         }
 
         return builder.Append('}').ToString();
+    }
+
+    /// <summary>
+    /// <paramref name="handlers"/> with what the entry point declares folded into each one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A filter declared on the entry point installs on every handler in the compilation that it
+    /// applies to, so what it answers belongs on those operations. Read once for the application
+    /// and narrowed per handler here, because whether a declaration reaches an operation depends on
+    /// that operation's verb and on whether it streams - the same
+    /// <c>Methods</c>/<c>NotWhenStreaming</c> narrowing a declaration on a controller gets.
+    /// </para>
+    /// <para>
+    /// Copied rather than amended in place. A handler model is a Roslyn cache key and the same
+    /// instance is handed to the routing table, so writing the document must not change what the
+    /// table reads.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<RequestHandlerModel> WithEntryPointRung(
+        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers) {
+        if (appModel.FilterFacts is not DeclaredOperationFacts facts || facts.IsEmpty) {
+            return handlers;
+        }
+
+        var merged = new List<RequestHandlerModel>(handlers.Count);
+
+        foreach (var handler in handlers) {
+            merged.Add(Merged(
+                handler,
+                facts.For(handler.Name.Method, handler.ResponseInformation.IsAsyncEnumerable)));
+        }
+
+        return merged;
+    }
+
+    private static RequestHandlerModel Merged(
+        RequestHandlerModel handler, OperationDeclarations reaching) {
+        if (reaching.Refusals.Count == 0 && reaching.ResponseHeaders.Count == 0 &&
+            reaching.RequestHeaders.Count == 0) {
+            return handler;
+        }
+
+        // The rung's responses go last, so a status the handler declared itself keeps the shape the
+        // handler gave it - the order Compose puts a declaration's own refusals in.
+        var merged = handler.WithFilters(
+            handler.Filters,
+            responseSchemas: reaching.WithHeaders(
+                handler.ResponseSchemas.Concat(reaching.Refusals).ToList()));
+
+        // A refusal names what can be answered instead of the handler and says nothing about what
+        // the handler answers when it runs, so the return type is still the only source of the
+        // success. The same rule [Throws<T>] follows.
+        if (reaching.Refusals.Count > 0 && handler.ResponseInformation.UnionCases == null) {
+            merged.DeclaredResponsesAreComplete = false;
+        }
+
+        merged.DeclaredHeaderParameters =
+            Combined(handler.DeclaredHeaderParameters, reaching.HeaderParameters());
+
+        // Headers() answers null where it merged nothing in, which is every handler the rung
+        // declares no header for.
+        merged.SingleResponseHeaders =
+            reaching.Headers(
+                handler.ResponseInformation.DefaultStatusCode ?? 200,
+                handler.SingleResponseHeaders ?? System.Array.Empty<ResponseHeaderModel>())
+            ?? handler.SingleResponseHeaders;
+
+        return merged;
+    }
+
+    /// <summary>
+    /// The handler's own header parameters, then the rung's that it does not already name.
+    /// </summary>
+    private static IReadOnlyList<DeclaredHeaderParameterModel> Combined(
+        IReadOnlyList<DeclaredHeaderParameterModel> declared,
+        IReadOnlyList<DeclaredHeaderParameterModel> wider) {
+        if (wider.Count == 0) {
+            return declared;
+        }
+
+        var result = new List<DeclaredHeaderParameterModel>(declared);
+
+        foreach (var header in wider) {
+            if (!result.Exists(existing =>
+                    string.Equals(existing.Name, header.Name, System.StringComparison.OrdinalIgnoreCase))) {
+                result.Add(header);
+            }
+        }
+
+        return result;
     }
 
     private static void WriteOperation(

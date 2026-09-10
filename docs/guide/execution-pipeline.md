@@ -175,6 +175,37 @@ The handler instance is created once, at `HandlerCreation`, and every attempt sh
 that keeps mutable per-request state on itself cannot be retried.
 :::
 
+## Attaching a filter to a module
+
+The same attribute goes on a `[HardenedModule]` class, where it covers every handler compiled with
+it:
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+[ConditionalGet]
+public partial class Catalog { }
+```
+
+Three things follow from the declaration being inside the compilation rather than outside it.
+
+**The document says so too.** A filter reaching an operation is a fact about that operation, and the
+generator writing `openapi.json` reads the declaration off the module class the same way it reads
+one off a controller. A registration made at startup cannot be read at build time, so a filter
+attached that way answers a status the document never mentions.
+
+**Nearest wins.** A handler or a controller declaring the same attribute keeps its own, and the
+module's is dropped for that handler. Nothing is installed twice.
+
+**It reaches the handlers it was compiled with, and no others.** A module that a host references
+covers its own handlers; the host's declaration covers the host's. That is the same rung
+`[assembly: Timeout]` resolves through, and for the same reason - a referenced library was compiled,
+and described, before the host existed.
+
+A declaration decides for itself which handlers it applies to, and installs nothing on the rest.
+`[ConditionalGet]` on a module covers the reads and leaves the writes alone, in the document as well
+as in the chain.
+
 ## Attaching a filter to everything
 
 `IGlobalFilterRegistry` registers across all handlers. Do it from an `IStartupService`:

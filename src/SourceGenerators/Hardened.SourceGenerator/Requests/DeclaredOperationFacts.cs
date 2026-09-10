@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Shared;
 
 namespace Hardened.SourceGenerator.Requests;
 
@@ -23,7 +24,7 @@ namespace Hardened.SourceGenerator.Requests;
 /// not have.
 /// </para>
 /// </remarks>
-internal sealed class DeclaredOperationFacts : IEquatable<DeclaredOperationFacts> {
+internal sealed class DeclaredOperationFacts : IEquatable<DeclaredOperationFacts>, IEntryPointFilterFacts {
 
     public static readonly DeclaredOperationFacts Empty = new(
         Array.Empty<ScopedRefusal>(),

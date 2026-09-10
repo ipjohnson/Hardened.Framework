@@ -145,7 +145,7 @@ See [Authorization](/guide/authorization).
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[ConditionalGet]` | Class, method | Answers a caller holding the response with a [304](/guide/conditional-requests). GET handlers only |
+| `[ConditionalGet]` | Module, class, method | Answers a caller holding the response with a [304](/guide/conditional-requests). GET handlers only |
 
 Both features are off until the application asks for them, and both can be turned on for every
 handler from the module instead:
@@ -160,6 +160,12 @@ handler from the module instead:
 Each stands down for a handler carrying its own `[Compress]` or `[ConditionalGet]`, so explicit beats
 convention. A budget resolves the same way, over four levels: the operation, its class, the
 handler's assembly, then the entry point.
+
+`[Enable<ConditionalGet>]` registers its filter at startup, so the document cannot see it: every GET
+answers a 304 and only the operations that spelled the attribute say so. Writing `[ConditionalGet]`
+on the module class instead keeps the declaration inside the compilation, so the document publishes
+it on every read the filter covers. The `[Enable<T>]` form is what a host writes to switch the
+feature on for handlers it only references.
 
 The verb attributes also declare `SuccessStatus`, the status a successful response answers with
 and the document publishes; unset means 200. The `NullReturnStatus`, `ValidationErrorStatus` and
