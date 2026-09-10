@@ -1,10 +1,12 @@
 # Filters at the entry point and the assembly
 
-A filter can be declared on a handler method and on its controller class. It cannot be declared for
-a whole application without leaving the compilation, and the route that does leave it —
+A filter could be declared on a handler method and on its controller class. It could not be declared
+for a whole application without leaving the compilation, and the route that does leave it —
 `[Enable<T>]` and a DI-registered global provider — is invisible to the document generator. This
 note is about closing that: four rungs walked for every handler, the wide two collected once, and
-one merged metadata list that everything downstream reads.
+one merged metadata list that everything downstream reads. The entry-point rung is built and the
+assembly rung is not, so what follows is half history and half proposal — the next section says
+which is which.
 
 ## What is built
 
@@ -39,9 +41,11 @@ answered the way `TimeoutResolver` already answers it for `[assembly: Timeout]`.
   `TimeoutPolicy` service taking the tightest, not an attribute, so subsuming it changes what the
   rung means rather than where it is read.
 
-## What happens today
+## What the gap was
 
-Three separate mechanisms put a filter in a chain.
+Three separate mechanisms put a filter in a chain, and this section describes them as they stood
+before the entry-point rung existed. The three are all still there; what changed is that a fourth
+now sits beside them.
 
 **Attributes on a handler.** `BaseRequestModelGenerator.GetFilters` collects attributes implementing
 `IRequestFilterProvider` from the method and from its containing class — two rungs, no more.
@@ -75,19 +79,20 @@ The document is written from a fourth thing: `FilterResponseSelector.Declaration
 method, its class, and the assembly, and reads the `[AnswersStatus]` / `[AnswersHeader]` /
 `[ReadsHeader]` facets off whatever it finds.
 
-## What that costs
+## What that cost
 
-The rungs do not line up. Filters install from two, facets are read from three, and neither reads
+The rungs did not line up. Filters installed from two, facets were read from three, and neither read
 the entry point — so:
 
-- `[ConditionalGet]` on a module class compiles (its `AttributeUsage` allows `Class`) and installs
-  nothing.
+- `[ConditionalGet]` on a module class compiled — its `AttributeUsage` allows `Class` — and
+  installed nothing. That is the rung this note closed.
 - `[assembly: ConditionalGet]` does not compile at all; the usage is `Method | Class`. The
-  document side would have read it.
+  document side would have read it. That rung is still open.
 - `[Enable<ConditionalGet>]` installs the filter on every GET and publishes it on none. That is the
   0.32 trial's A-04: four GETs answer 304 over the wire, one operation declares it in the document,
   and the template's own generated Kiota client throws `no error factory is registered for this
-  code: 304` on exactly the request the feature exists to make cheap.
+  code: 304` on exactly the request the feature exists to make cheap. It still behaves that way,
+  and is now what a host writes for handlers it only references.
 
 The runtime half of A-04 is not a defect — 304 everywhere is what the flag promises. The document
 half cannot be fixed where it stands, because the predicate that decides which handlers are covered
