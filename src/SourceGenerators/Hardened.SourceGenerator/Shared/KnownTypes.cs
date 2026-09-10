@@ -89,6 +89,8 @@ public static class KnownTypes {
                     public const string Serializer = "Hardened.Requests.Runtime.Serializer";
 
                     public const string PathTokens = "Hardened.Requests.Runtime.PathTokens";
+
+                    public const string Validation = "Hardened.Requests.Runtime.Validation";
                 }
             }
 
@@ -195,6 +197,10 @@ public static class KnownTypes {
         public static readonly ITypeDefinition IExecutionResponse =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
                 "IExecutionResponse");
+
+        /// <summary>The binder's refusal of a null body - see <c>RequestBody.Required</c>.</summary>
+        public static readonly ITypeDefinition RequestBody =
+            TypeDefinition.Get(Namespace.Hardened.Requests.Runtime.Validation, "RequestBody");
 
         public static ITypeDefinition DefaultOutputFunc =
             TypeDefinition.Get(Namespace.Hardened.Requests.Abstract.Execution, "DefaultOutputFunc");

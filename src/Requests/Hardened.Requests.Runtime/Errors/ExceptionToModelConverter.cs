@@ -197,13 +197,56 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
             Type = "ValidationError",
             Message = "One or more validation errors occurred.",
             Errors = MissingMembers(exception, body) ?? [
-                new RequestValidationFieldError {
-                    Field = FieldFrom(exception.Path, body),
-                    Code = "invalid",
-                    Message = WithoutPositionSuffix(exception.Message)
-                }
+                EmptyBody(exception)
+                    ? new RequestValidationFieldError {
+                        Field = body, Code = "required", Message = body + " is required."
+                    }
+                    : new RequestValidationFieldError {
+                        Field = NotWellFormed(exception) ? body : FieldFrom(exception.Path, body),
+                        Code = "invalid",
+                        Message = WithoutPositionSuffix(exception.Message)
+                    }
             ]
         };
+
+    /// <summary>
+    /// Whether the payload is not JSON at all, as opposed to JSON the model could not take.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The difference decides whose name goes on the error. A value the reader understood and could
+    /// not convert has a path that <em>is</em> the field at fault - <c>$.weightKg</c> for
+    /// <c>"heavy"</c> against an <c>int</c> - and naming it is the whole use of the answer. A
+    /// document that does not parse has a path too, and it means something else entirely: wherever
+    /// the reader had got to when the text ran out. <c>{"accountId":</c> reported
+    /// <c>body.accountId</c>, and <c>accountId</c> is not at fault - the caller's JSON is.
+    /// </para>
+    /// <para>
+    /// Read off the inner exception rather than the message. System.Text.Json wraps a reader
+    /// failure in its own <c>JsonReaderException</c> and a converter failure in a
+    /// <c>FormatException</c> or nothing at all, so the type is the signal and the prose is not. It
+    /// is still a dependency on an internal name, which is what
+    /// <c>MalformedBodyMessageTests</c> is for: an SDK that changes it fails a test here rather
+    /// than silently mis-naming a field in production.
+    /// </para>
+    /// </remarks>
+    private static bool NotWellFormed(JsonException exception) =>
+        exception.InnerException?.GetType().Name == "JsonReaderException";
+
+    /// <summary>
+    /// Whether the caller sent no body at all.
+    /// </summary>
+    /// <remarks>
+    /// An empty payload is not malformed JSON, it is the absence of one, and a caller told
+    /// <c>"The input does not contain any JSON tokens. Expected the input to start with a valid
+    /// JSON token, when isFinalBlock is true."</c> has been handed the reader's diagnostics rather
+    /// than an answer. It is the same thing a literal <c>null</c> body is - see
+    /// <c>RequestBody.Required</c>, which produces this error's twin from the binder - so it is
+    /// reported the same way.
+    /// </remarks>
+    private static bool EmptyBody(JsonException exception) =>
+        NotWellFormed(exception) &&
+        exception.Message.StartsWith("The input does not contain any JSON tokens", StringComparison.Ordinal);
 
     /// <summary>
     /// The prefix a body field is reported under: the handler's own parameter identifier, which is

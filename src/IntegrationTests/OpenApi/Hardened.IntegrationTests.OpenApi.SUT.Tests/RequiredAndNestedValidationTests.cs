@@ -160,6 +160,24 @@ public class RequiredAndNestedValidationTests {
     }
 
     /// <summary>
+    /// A literal <c>null</c> body against a <c>requestBody: required: true</c>.
+    /// </summary>
+    /// <remarks>
+    /// The trial's B-01, found spec-first: the generated binder ended in a null-forgiving <c>!</c>,
+    /// so the null reached the handler and the first dereference was a 500. The contract says the
+    /// body is required, which makes this the one refusal the document had already promised.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ANullBodyIsRefusedRatherThanDereferenced(ITestWebApp testWebApp) {
+        var error = await Rejected(testWebApp, "null");
+
+        var field = Assert.Single(error.Errors!);
+
+        Assert.Equal("body", field.Field);
+        Assert.Equal("required", field.Code);
+    }
+
+    /// <summary>
     /// A missing value type and a missing reference type in one body, answered together.
     /// </summary>
     /// <remarks>

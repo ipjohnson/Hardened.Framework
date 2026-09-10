@@ -328,7 +328,17 @@ public static class BindRequestParametersMethodGenerator {
                 parameterInformation.ParameterType
             }, context));
 
-        invokeMethod.Assign(Bang(Parenthesis(deserializeStatement)))
-            .To(parametersVar.Property(parameterInformation.MemberName));
+        // A null-forgiving `!` is a promise to the compiler, not a check. `null` is a valid JSON
+        // document, so a caller sending those four bytes deserialized to null, the null reached the
+        // handler, and the first dereference was a 500 - the one malformed payload that was not a
+        // 400. Where the handler declared the parameter nullable it has said it handles that case,
+        // and gets the null.
+        IOutputComponent bound = parameterInformation.ParameterType.IsNullable
+            ? Parenthesis(deserializeStatement)
+            : Invoke(
+                KnownTypes.Requests.RequestBody, "Required",
+                deserializeStatement, QuoteString(parameterInformation.Name));
+
+        invokeMethod.Assign(bound).To(parametersVar.Property(parameterInformation.MemberName));
     }
 }

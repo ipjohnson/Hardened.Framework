@@ -46,7 +46,10 @@ namespace TestApp.Generated
         {
             var parameters = new global::TestApp.Generated.OrderController_Place_554.Parameters();
             var contentSerializationService = context.KnownServices.ContextSerializationService;
-            parameters.body = (await contentSerializationService.DeserializeRequestBody<global::TestApp.Order>(context))!;
+            parameters.body = global::Hardened.Requests.Runtime.Validation.RequestBody.Required(
+                await contentSerializationService.DeserializeRequestBody<global::TestApp.Order>(context),
+                "body"
+            );
             return parameters;
         }
 

@@ -190,6 +190,20 @@ type takes the same shape: `?limit=abc` against an `int` parameter answers this 
 object that was missing it — `body.lines[0].sku`, not `body.sku`. Which layer caught a fault is not
 something a caller can tell.
 
+A body the reader could not use at all is answered as a fact about the body:
+
+| Sent | Field | Code |
+|---|---|---|
+| nothing, or an empty body | `body` | `required` |
+| `null` | `body` | `required` |
+| `{"weightKg":` — a document that does not parse | `body` | `invalid` |
+| `{"weightKg":"heavy"}` — a value that would not convert | `body.weightKg` | `invalid` |
+
+The field is the handler's own body parameter identifier, so a handler taking `MemberRequest request`
+reports `request`. Only the last row names a member: a malformed document has a reader path too, and
+it means wherever the text ran out rather than what is wrong — `{"accountId":` was answered
+`body.accountId`, about a member that is present and correct as far as it goes.
+
 ## What the document says
 
 The published OpenAPI document repeats every declared constraint as the facet it came from, so the

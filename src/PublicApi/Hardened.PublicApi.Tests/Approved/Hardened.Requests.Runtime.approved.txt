@@ -890,6 +890,10 @@ namespace Hardened.Requests.Runtime.Streaming
 }
 namespace Hardened.Requests.Runtime.Validation
 {
+    public static class RequestBody
+    {
+        public static T Required<T>(T? value, string field) { }
+    }
     public class RequestValidationError
     {
         public RequestValidationError() { }
