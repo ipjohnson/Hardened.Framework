@@ -115,7 +115,7 @@ public partial class RequestLogger : IRequestLogger {
     /// <remarks>
     /// Read from the context rather than from <c>Activity.Current</c>, because the context is what
     /// guarantees an id exists at all: with no collector attached there is no span, and the context
-    /// generates one of the same shape instead.
+    /// issues one of its own instead.
     /// </remarks>
     private void OpenCorrelationScope(IExecutionContext context) {
         var correlationId = context.CorrelationId;
