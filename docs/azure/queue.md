@@ -27,9 +27,9 @@ Bus queue. See [Triggers](/guide/triggers) for the vocabulary.
 
 ```xml
 <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
-<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.32.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.ServiceBus" Version="0.32.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.32.0-rc1000" PrivateAssets="all" />
+<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.33.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.ServiceBus" Version="0.33.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.33.0-rc1000" PrivateAssets="all" />
 ```
 
 The same package serves `[Topic]`, from a subscription; see [Topics](/azure/topic).
