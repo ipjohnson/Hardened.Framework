@@ -576,14 +576,20 @@ internal static class SmithySpecParser {
 
                 if (target != null) {
                     // Classified like any member, for the reasons the output payload gives.
-                    Describe(context, target, out var type, out _, out var reference, out var facts);
+                    Describe(context, target, out var type, out var format, out var reference,
+                        out var facts);
 
-                    model.RequestBodyContentType ??= "application/json";
+                    model.RequestBodyContentType ??= PayloadContentType(context, target, format);
 
                     if (reference != null) {
                         model.RequestBodyRef = reference;
                     } else if (type != null && !facts.IsArray) {
                         model.RequestBodyType = type;
+
+                        // The format the response side has always kept. Dropped here, a blob became
+                        // a string parameter that cannot take a binary body, and neither the
+                        // generated signature nor the published document said so.
+                        model.RequestBodyFormat = format;
                     } else {
                         context.Diagnostics.Add(
                             $"operation '{operationName}' binds @httpPayload to '{target}', a " +
@@ -783,11 +789,16 @@ internal static class SmithySpecParser {
 
                 // @mediaType on the payload target is the response's content type - text/plain on
                 // a string label, application/pdf on a blob. Accepted by the trait table and never
-                // read, which left a Smithy service unable to answer anything but JSON.
-                if (context.Ast.TryGetShape(target, out var payloadShape) &&
-                    SmithyAst.TryGetTrait(payloadShape, SmithyTraits.MediaType, out var mediaType) &&
-                    mediaType.ValueKind == JsonValueKind.String) {
-                    model.ResponseContentType = mediaType.GetString();
+                // read, which left a Smithy service unable to answer anything but JSON. A blob that
+                // names no media type is bytes all the same, and JSON cannot carry them.
+                //
+                // Assigned only where the payload implies something other than the default, so
+                // every shape that was already answering JSON keeps whatever the rest of the parse
+                // decided for it.
+                var responseContentType = PayloadContentType(context, target, format);
+
+                if (responseContentType != "application/json") {
+                    model.ResponseContentType = responseContentType;
                 }
 
                 return headers;
@@ -816,6 +827,30 @@ internal static class SmithySpecParser {
     /// body anyway, and the parser disagreed with the protocol it implements. It also runs once per
     /// shape, so a structure reached by two operations would take the first one's bindings.
     /// </remarks>
+    /// <summary>
+    /// The content type an <c>@httpPayload</c> target implies.
+    /// </summary>
+    /// <remarks>
+    /// <c>@mediaType</c> on the target where it declares one, and otherwise the default for the
+    /// shape: a blob is bytes and JSON cannot carry them. Everything else keeps the JSON default
+    /// this front end has always applied.
+    ///
+    /// One rule for both directions, because the shape decides it rather than the direction. The
+    /// request side had no rule at all and always said <c>application/json</c>, so a binary body
+    /// was negotiated as JSON and refused; the response side read <c>@mediaType</c> and nothing
+    /// else, so a blob with no media type went out quoted.
+    /// </remarks>
+    private static string PayloadContentType(ParseContext context, string target, string? format) {
+        if (context.Ast.TryGetShape(target, out var shape) &&
+            SmithyAst.TryGetTrait(shape, SmithyTraits.MediaType, out var mediaType) &&
+            mediaType.ValueKind == JsonValueKind.String &&
+            mediaType.GetString() is { Length: > 0 } declared) {
+            return declared;
+        }
+
+        return format == "byte" ? "application/octet-stream" : "application/json";
+    }
+
     private static void MarkHeaderBound(
         ParseContext context, string outputId, IReadOnlyDictionary<string, string> boundOut) {
         if (boundOut.Count == 0) {

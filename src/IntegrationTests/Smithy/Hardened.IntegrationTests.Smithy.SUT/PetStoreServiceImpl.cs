@@ -45,6 +45,18 @@ public class PetStoreServiceImpl : IPetStoreService {
     }
 
     /// <summary>
+    /// The blob is the body, so the parameter is <c>byte[]</c> and the bytes are the ones sent.
+    /// </summary>
+    /// <remarks>
+    /// The signature is the assertion. It came out <c>string</c>, because the request side dropped
+    /// the format the response side kept, and a handler cannot read a binary body through one. That
+    /// this file compiles is what says the parameter is bytes; the count it answers is what says
+    /// they arrived unchanged rather than through a text round trip.
+    /// </remarks>
+    public Task<PutPetPhotoOutput> PutPetPhoto(string petId, byte[] body) =>
+        Task.FromResult(new PutPetPhotoOutput(body.Length));
+
+    /// <summary>
     /// The three parameters are the three bindings: <c>@httpLabel</c>, <c>@httpQuery("verbose")</c>
     /// and <c>@httpHeader("X-Trace-Id")</c>. The header's C# name comes from its wire name, because
     /// NameAllocator assigns every name in the model from the wire spelling.

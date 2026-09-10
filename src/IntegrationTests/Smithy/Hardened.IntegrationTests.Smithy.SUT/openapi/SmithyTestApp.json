@@ -22,7 +22,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-amz-json-1.0": {
               "schema": {
                 "$ref": "#/components/schemas/GetBalanceInput"
               }
@@ -60,7 +60,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
+            "application/x-amz-json-1.0": {
               "schema": {
                 "$ref": "#/components/schemas/TransferInput"
               }
@@ -371,6 +371,48 @@
           }
         }
       }
+    },
+    "/pets/{petId}/photo": {
+      "put": {
+        "tags": [
+          "PetStore"
+        ],
+        "operationId": "PutPetPhoto",
+        "description": "Replaces a pet's photo, sent as the whole request body.",
+        "parameters": [
+          {
+            "name": "petId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "byte"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PutPetPhotoOutput"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -644,6 +686,17 @@
         "required": [
           "petId",
           "grams"
+        ]
+      },
+      "PutPetPhotoOutput": {
+        "type": "object",
+        "properties": {
+          "byteCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "byteCount"
         ]
       },
       "RequestValidationError": {

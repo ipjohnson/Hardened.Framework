@@ -217,7 +217,20 @@ internal static class SpecHandlerModelBuilder {
             // walks a type symbol, and these types are written by the build task rather than
             // declared in the consumer's source - so the published document carried paths and
             // operation ids and no schemas at all.
-            RequestSchema = SpecSchemaWriter.ForRef(operation.RequestBodyRef, schemas),
+            // A named body is a reference; a scalar one the contract typed without naming has to
+            // be written inline, the way a scalar response already is. Without the second arm a
+            // blob payload published no requestBody at all, so a generated client sent a bodyless
+            // request to an operation whose whole point is the body.
+            RequestSchema = SpecSchemaWriter.ForRef(operation.RequestBodyRef, schemas)
+                            ?? SpecSchemaWriter.ForScalar(
+                                operation.RequestBodyType, operation.RequestBodyFormat),
+
+            // Only where the contract named something other than JSON, so the writer's default
+            // stays the default rather than being restated on every operation.
+            RequestContentType =
+                operation.RequestBodyContentType is { } contentType && contentType != "application/json"
+                    ? contentType
+                    : null,
             ResponseSchemas = BuildResponseSchemas(operation, schemas),
 
             // One item of a streamed response, which the document writer publishes as itemSchema
@@ -365,7 +378,12 @@ internal static class SpecHandlerModelBuilder {
                 "",
                 index++));
         } else if (operation.RequestBodyType != null) {
-            var csType = TypeMapper.MapToCSharpType(operation.RequestBodyType, null);
+            // The format too, so the bound parameter is the type the generated interface declares.
+            // ServiceInterfaceEmitter reads the same pair; the two disagreeing is a signature the
+            // dispatch cannot call.
+            var csType = TypeMapper.MapToCSharpType(
+                operation.RequestBodyType, operation.RequestBodyFormat);
+
             var bodyType = TypeMapper.GetTypeDefinition(modelsNamespace, csType, false);
 
             parameters.Add(new RequestParameterInformation(

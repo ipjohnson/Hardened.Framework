@@ -110,6 +110,18 @@ internal class OperationModel : IEquatable<OperationModel> {
     public string? RequestBodyType { get; set; }
 
     /// <summary>
+    /// The request body's <c>format</c>, where it is a scalar the contract typed rather than named.
+    /// </summary>
+    /// <remarks>
+    /// The mirror of <see cref="ResponseFormat"/>, and absent until it was needed: the response
+    /// side carried the format and the request side dropped it, so a Smithy <c>blob</c> bound as
+    /// <c>@httpPayload</c> came out <c>byte[]</c> on the way back and <c>string</c> on the way in.
+    /// A parameter typed <c>string</c> cannot take a binary body, which is what made the operation
+    /// one no client could call.
+    /// </remarks>
+    public string? RequestBodyFormat { get; set; }
+
+    /// <summary>
     /// The media type the response schema was read from - "application/json", "text/plain",
     /// "text/html". Null when the operation declares no response content.
     /// </summary>
@@ -291,6 +303,7 @@ internal class OperationModel : IEquatable<OperationModel> {
                RequestBodyContentType == other.RequestBodyContentType &&
                RequestBodyRef == other.RequestBodyRef &&
                RequestBodyType == other.RequestBodyType &&
+               RequestBodyFormat == other.RequestBodyFormat &&
                ResponseContentType == other.ResponseContentType &&
                ResponseRef == other.ResponseRef &&
                ResponseType == other.ResponseType &&

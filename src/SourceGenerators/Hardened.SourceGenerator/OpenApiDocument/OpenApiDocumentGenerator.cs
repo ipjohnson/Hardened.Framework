@@ -590,7 +590,15 @@ public static class OpenApiDocumentGenerator {
 
         Merge(components, handler.RequestSchema);
 
-        builder.Append(",\"requestBody\":{\"required\":true,\"content\":{\"application/json\":{\"schema\":")
+        // The media type the operation actually reads, which was hardcoded to JSON - so an
+        // operation taking a blob published a content map naming the one type its body cannot be,
+        // and a generated client sent the wrong Content-Type on the request the operation exists
+        // for.
+        var contentType = handler.RequestContentType ?? "application/json";
+
+        builder.Append(",\"requestBody\":{\"required\":true,\"content\":{\"")
+            .Append(JsonSchemaWriter.Escape(contentType))
+            .Append("\":{\"schema\":")
             .Append(handler.RequestSchema.Schema)
             .Append("}}}");
     }

@@ -247,7 +247,12 @@ internal static class ServiceInterfaceEmitter {
         if (operation.RequestBodyRef != null) {
             method.AddParameter(Model(operation.RequestBodyRef, modelsNamespace), "body");
         } else if (operation.RequestBodyType != null) {
-            var csType = TypeMapper.MapToCSharpType(operation.RequestBodyType, null);
+            // With the format, which the response side has always passed: a blob is
+            // ("string", "byte") and maps to byte[], and dropping the format put a string in the
+            // signature of a handler whose body is bytes.
+            var csType = TypeMapper.MapToCSharpType(
+                operation.RequestBodyType, operation.RequestBodyFormat);
+
             method.AddParameter(TypeMapper.GetTypeDefinition(modelsNamespace, csType, false), "body");
         }
 
