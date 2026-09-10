@@ -34,6 +34,18 @@ registered for you, so a handler carrying `[RateLimit]` is limited with nothing 
 A handler with no store registered is not limited: the filter resolves `IRateLimitStore` per
 request and passes the request straight through when there is none.
 
+It goes on a `[HardenedModule]` class as well, where it caps every handler compiled with it and
+publishes the 429 on each of them:
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+[RateLimit(PermitLimit = 100, WindowSeconds = 60)]
+public partial class Catalog { }
+```
+
+A handler carrying its own `[RateLimit]` keeps that one instead.
+
 ::: danger Each instance counts separately
 Two replicas behind a load balancer allow twice the configured limit between them. On Lambda
 every execution environment has its own count, and the number of environments is what you do
