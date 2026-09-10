@@ -26,8 +26,8 @@ Referencing `Hardened.Aws.Lambda.Sqs` is what decides that `[Queue]` means SQS. 
 ## Packages
 
 ```xml
-<PackageReference Include="Hardened.Aws.Lambda.Runtime" Version="0.32.0-rc1000" />
-<PackageReference Include="Hardened.Aws.Lambda.Sqs" Version="0.32.0-rc1000" />
+<PackageReference Include="Hardened.Aws.Lambda.Runtime" Version="0.33.0-rc1000" />
+<PackageReference Include="Hardened.Aws.Lambda.Sqs" Version="0.33.0-rc1000" />
 ```
 
 `Hardened.Aws.Lambda.Sns` serves `[Topic]` the same way. A topic fans out — every subscriber sees

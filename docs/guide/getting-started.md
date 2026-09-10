@@ -53,12 +53,12 @@ Two kinds of package reference, the runtime and the source generators:
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="Hardened.Shared.Runtime" Version="0.32.0-rc1000" />
-    <PackageReference Include="Hardened.Web.Runtime" Version="0.32.0-rc1000" />
-    <PackageReference Include="Hardened.Web.Kestrel.Runtime" Version="0.32.0-rc1000" />
+    <PackageReference Include="Hardened.Shared.Runtime" Version="0.33.0-rc1000" />
+    <PackageReference Include="Hardened.Web.Runtime" Version="0.33.0-rc1000" />
+    <PackageReference Include="Hardened.Web.Kestrel.Runtime" Version="0.33.0-rc1000" />
 
-    <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.32.0-rc1000" />
-    <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.32.0-rc1000" />
+    <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.33.0-rc1000" />
+    <PackageReference Include="Hardened.Web.SourceGenerator" Version="0.33.0-rc1000" />
 </ItemGroup>
 ```
 
