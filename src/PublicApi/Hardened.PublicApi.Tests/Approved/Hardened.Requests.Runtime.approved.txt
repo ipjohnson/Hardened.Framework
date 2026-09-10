@@ -327,6 +327,7 @@ namespace Hardened.Requests.Runtime.Execution
     {
         public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithRequirement(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Abstract.Authorization.Requirement? requirement) { }
         public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithTimeout(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout) { }
+        public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithWiderRungs(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Collections.Generic.IReadOnlyList<object> rungs) { }
     }
     public class ExecutionRequestParameter : Hardened.Requests.Abstract.Execution.IExecutionRequestParameter
     {

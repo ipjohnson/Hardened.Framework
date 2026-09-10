@@ -259,6 +259,8 @@ public static class RoutingTableGenerator {
 
         ServerSentEventManifestEmitter.Emit(appClass, eventStreams);
 
+        ApplicationFilterEmitter.Emit(appClass, appModel.FilterDeclarations);
+
         GenerateDependencyInjection(
             appClass, routingType, appModel, endPointModels, enums, eventStreams, cancellationToken,
             options);
@@ -298,6 +300,19 @@ public static class RoutingTableGenerator {
 
         diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
             new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
+
+        // Only where the entry point declares a filter. Registered rather than handed to each
+        // handler, because ExecutionHelper composes every chain and a handler class is generated
+        // from its own declarations and cannot name its entry point.
+        if (applicationModel.FilterDeclarations.Count > 0) {
+            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
+                new[] {
+                    KnownTypes.Requests.IApplicationFilterDeclarations,
+                    TypeDefinition.Get(applicationModel.EntryPointType.Namespace,
+                        applicationModel.EntryPointType.Name + "." +
+                        ApplicationFilterEmitter.ContainerName)
+                }));
+        }
 
         // Only where a handler is framed as events, so an application with none generates exactly
         // what it generated before this existed.

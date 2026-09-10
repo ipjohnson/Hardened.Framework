@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Shared;
 
-public static class EntryPointSelector {
+public static partial class EntryPointSelector {
     public class Model {
         public ITypeDefinition EntryPointType { get; set; } = default!;
 
@@ -43,6 +43,19 @@ public static class EntryPointSelector {
         /// <see cref="Shared.ImportedCachedHandlers.ImportsAStore"/>.
         /// </summary>
         public bool ImportsAStore { get; set; }
+
+        /// <summary>
+        /// The filters this entry point declares for every handler in its compilation, ready to
+        /// construct. See <see cref="ReadFilterRung"/>.
+        /// </summary>
+        public IReadOnlyList<AttributeModel> FilterDeclarations { get; set; } =
+            Array.Empty<AttributeModel>();
+
+        /// <summary>
+        /// What those declarations answer, unnarrowed, for the document writer to apply per
+        /// operation. Null where the entry point declares no filter.
+        /// </summary>
+        public IEntryPointFilterFacts? FilterFacts { get; set; }
     }
 
     public class Comparer : IEqualityComparer<Model> {
@@ -65,7 +78,9 @@ public static class EntryPointSelector {
                    x.EnabledFeatures.SequenceEqual(y.EnabledFeatures) &&
                    x.ImportedLinks.SequenceEqual(y.ImportedLinks) &&
                    x.ImportedCachedHandlers.SequenceEqual(y.ImportedCachedHandlers, StringComparer.Ordinal) &&
-                   x.ImportsAStore == y.ImportsAStore;
+                   x.ImportsAStore == y.ImportsAStore &&
+                   x.FilterDeclarations.SequenceEqual(y.FilterDeclarations) &&
+                   Equals(x.FilterFacts, y.FilterFacts);
         }
 
         private bool CompareProperties(Model x, Model y) {
@@ -123,6 +138,23 @@ public static class EntryPointSelector {
         }
     }
 
+    /// <summary>
+    /// Reads the filters this entry point declares for every handler in its compilation into
+    /// <paramref name="model"/>.
+    /// </summary>
+    /// <remarks>
+    /// A partial method for the reason <see cref="IEntryPointFilterFacts"/> is an interface: this
+    /// folder is the one every generator compiles, and what a declaration answers is built out of
+    /// response models that only the generators writing a document compile. Those implement this;
+    /// in the rest the call is erased and the two members stay empty, which is what they mean for a
+    /// generator that writes no document.
+    /// </remarks>
+    static partial void ReadFilterRung(
+        GeneratorSyntaxContext context,
+        ClassDeclarationSyntax entryPoint,
+        Model model,
+        CancellationToken cancellationToken);
+
     public static Func<SyntaxNode, CancellationToken, bool> UsingAttribute() {
         return (node, _) => node is ClassDeclarationSyntax && node.IsAttributed("HardenedModule");
     }
@@ -169,7 +201,7 @@ public static class EntryPointSelector {
                 importsAStore = ImportedCachedHandlers.ImportsAStore(syntaxContext, attributes);
             }
 
-            return new Model {
+            var model = new Model {
                 EntryPointType = ((ClassDeclarationSyntax)syntaxContext.Node).GetTypeDefinition(),
                 MethodDefinitions = GenerateMethodDefinitions(syntaxContext, methods),
                 RootEntryPoint = rootEntryPoint,
@@ -180,6 +212,15 @@ public static class EntryPointSelector {
                 ImportedCachedHandlers = importedCachedHandlers,
                 ImportsAStore = importsAStore
             };
+
+            // And once more, for the same reason as the three above: which of those attributes
+            // provide a filter, and what each of them answers. After the model rather than into its
+            // initializer, because the implementation lives in a generator this file cannot name.
+            if (syntaxContext.Node is ClassDeclarationSyntax entryPointClass) {
+                ReadFilterRung(syntaxContext, entryPointClass, model, token);
+            }
+
+            return model;
         };
     }
 

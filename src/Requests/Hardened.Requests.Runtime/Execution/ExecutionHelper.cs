@@ -231,11 +231,25 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
         IExecutionFilter ioFilter,
         IExecutionFilter invokeFilter,
         IExecutionFilter instanceFilter) {
+        // First, because everything below reads the handler: a convention reads its requirement,
+        // the resolver reads its metadata for a deadline, and the registry's predicates ask what it
+        // declares - and a declaration on the entry point is one of the things it declares.
+        var wider = WiderRungs(serviceProvider, handlerInfo);
+
+        handlerInfo = handlerInfo.WithWiderRungs(wider);
         handlerInfo = ApplyConventions(serviceProvider, handlerInfo);
         handlerInfo = handlerInfo.WithTimeout(TimeoutResolver.Resolve(serviceProvider, handlerInfo));
 
         var filterList =
             serviceProvider.GetRequiredService<IGlobalFilterRegistry>().GetFilters(handlerInfo);
+
+        // Beside the registry's rather than with the handler's own, which is the position
+        // [Enable<T>] already gives them: ties break on insertion order, so a declaration covering
+        // the application runs ahead of one on a handler that asked for the same place. The wider
+        // declaration was written first.
+        foreach (var provider in GetFilterInfo(wider)) {
+            filterList.AddRange(provider.GetFilters(handlerInfo));
+        }
 
         AddTimeoutFilter(filterList, handlerInfo);
 
@@ -346,6 +360,72 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
             _ => filter,
             FilterOrder.Before + FilterOrder.Serialization,
             nameof(TimeoutFilter)));
+    }
+
+    /// <summary>
+    /// The entry point's filter declarations that reach this handler.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Nearest wins.</b> A declaration whose type the handler already carries on its method or
+    /// its class is dropped here, so the nearer one is the only one installed - which is the rule
+    /// <c>ConditionalGetAttribute.Declares</c> hand-rolls today for the one filter that had an
+    /// application-wide form.
+    /// </para>
+    /// <para>
+    /// <b>Keyed on the closed type</b>, which is what makes a generic filter attribute behave:
+    /// <c>Authorize&lt;BearerAuth&gt;</c> and <c>Authorize&lt;PetsOAuth&gt;</c> are two types and
+    /// compose, while two <c>[ConditionalGet]</c> are one. The consequence to know is that a
+    /// generic attribute a handler closes differently does not suppress the wider one -
+    /// <c>[CacheResponse&lt;VaryByRoute&gt;]</c> on the entry point beside
+    /// <c>[CacheResponse&lt;VaryByQuery&gt;]</c> on a handler is two declarations, and two that
+    /// disagree about a duration fail as the chain is built. Which of the two a nearer declaration
+    /// means is the attribute's to say, and it has nowhere to say it yet.
+    /// </para>
+    /// <para>
+    /// Asked once per handler, as its chain is built. An application whose entry point declares no
+    /// filter registers nothing, so this is one failed service lookup per handler and no walk at
+    /// all.
+    /// </para>
+    /// </remarks>
+    private static object[] WiderRungs(
+        IServiceProvider serviceProvider, IExecutionRequestHandlerInfo handlerInfo) {
+        // GetService rather than GetServices, for the reason ApplyConventions gives: the
+        // convenience overload resolves IEnumerable<T> as required, and Hardened's container does
+        // not synthesise an empty one.
+        var registered = serviceProvider.GetService<IEnumerable<IApplicationFilterDeclarations>>();
+
+        if (registered == null) {
+            return Array.Empty<object>();
+        }
+
+        List<object>? reaching = null;
+
+        foreach (var declarations in registered) {
+            // One per module that declares anything, so the handler's own assembly is what picks
+            // out the declarations that are about it.
+            if (!Equals(declarations.DeclaringAssembly, handlerInfo.HandlerType.Assembly)) {
+                continue;
+            }
+
+            foreach (var declaration in declarations.Declared) {
+                if (!DeclaredNearer(handlerInfo.Metadata, declaration.GetType())) {
+                    (reaching ??= new List<object>()).Add(declaration);
+                }
+            }
+        }
+
+        return reaching == null ? Array.Empty<object>() : reaching.ToArray();
+    }
+
+    private static bool DeclaredNearer(IReadOnlyList<object> metadata, Type declaration) {
+        foreach (var item in metadata) {
+            if (item.GetType() == declaration) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

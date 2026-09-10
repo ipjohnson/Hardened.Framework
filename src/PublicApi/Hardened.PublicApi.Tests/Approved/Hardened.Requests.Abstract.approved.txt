@@ -716,6 +716,11 @@ namespace Hardened.Requests.Abstract.RequestFilter
         public const int Serialization = 7000;
         public const int Validation = 8000;
     }
+    public interface IApplicationFilterDeclarations
+    {
+        System.Collections.Generic.IReadOnlyList<object> Declared { get; }
+        System.Reflection.Assembly DeclaringAssembly { get; }
+    }
     public interface IGlobalFilterRegistry
     {
         System.Collections.Generic.List<Hardened.Requests.Abstract.RequestFilter.RequestFilterInfo> GetFilters(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo requestHandlerInfo);

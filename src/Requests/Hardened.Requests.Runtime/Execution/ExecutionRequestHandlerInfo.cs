@@ -60,21 +60,25 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
     /// </para>
     /// <para>
     /// A null override keeps what the source carried. <see cref="Requirement"/> falls back to the
-    /// primary constructor's derivation from metadata, which is the same answer the source reached.
+    /// primary constructor's derivation from metadata, which is the same answer the source reached
+    /// - unless <paramref name="metadata"/> replaced the list it was derived from, which is why
+    /// <see cref="ExecutionRequestHandlerInfoExtensions.WithWiderRungs"/> states the requirement
+    /// rather than leaving it null.
     /// </para>
     /// </remarks>
     internal ExecutionRequestHandlerInfo(
         IExecutionRequestHandlerInfo source,
         string? path,
         Requirement? requirement,
-        TimeoutPolicy? timeout = null)
+        TimeoutPolicy? timeout = null,
+        IReadOnlyList<object>? metadata = null)
         : this(
             path ?? source.Path,
             source.Method,
             source.HandlerType,
             source.InvokeMethod,
             source.Parameters,
-            source.Metadata,
+            metadata ?? source.Metadata,
             requirement ?? source.Requirement,
             source.SuccessStatus,
             source.NullResponseBody,
@@ -211,4 +215,66 @@ public static class ExecutionRequestHandlerInfoExtensions {
         timeout is null || Equals(timeout, handlerInfo.Timeout)
             ? handlerInfo
             : new ExecutionRequestHandlerInfo(handlerInfo, path: null, requirement: null, timeout);
+
+    /// <summary>
+    /// The same handler, also carrying the declarations written on a rung wider than itself.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Merged into <see cref="IExecutionRequestHandlerInfo.Metadata"/> rather than kept in a
+    /// list beside it</b>, so every existing reader inherits the wider view rather than each one
+    /// growing a second lookup: <c>RequirementFrom</c>, <c>TimeoutFrom</c> and a filter asking what
+    /// else was declared on the handler it is being installed on all read that one list.
+    /// <c>ConditionalGetAttribute.Declares</c> is the last of those, and it is what makes
+    /// <c>[Enable&lt;ConditionalGet&gt;]</c> stand down for a handler already covered by a rung.
+    /// </para>
+    /// <para>
+    /// <b>Appended, because nearest-first is load-bearing.</b> The generator emits a method's own
+    /// attributes ahead of its class's and <c>TimeoutFrom</c> takes the first, so a rung wider than
+    /// both belongs after both. <c>HandlerMetadataOrderTests</c> pins the half of that ordering the
+    /// generator writes.
+    /// </para>
+    /// <para>
+    /// <b>The requirement is stated rather than re-derived.</b> A handler can carry one that no
+    /// attribute in its metadata expresses - a described operation's <c>security:</c>, or a
+    /// convention - so recomputing from the merged list would drop it. What a wider rung
+    /// contributes is conjoined onto what the handler already required, which is what
+    /// <c>RequirementFrom</c> does with the rungs it can already see.
+    /// </para>
+    /// <para>
+    /// Returns the handler unchanged where no declaration reached it, which is every handler in an
+    /// application whose entry point declares no filter.
+    /// </para>
+    /// </remarks>
+    public static IExecutionRequestHandlerInfo WithWiderRungs(
+        this IExecutionRequestHandlerInfo handlerInfo, IReadOnlyList<object> rungs) {
+        if (rungs.Count == 0) {
+            return handlerInfo;
+        }
+
+        var merged = new List<object>(handlerInfo.Metadata.Count + rungs.Count);
+
+        merged.AddRange(handlerInfo.Metadata);
+        merged.AddRange(rungs);
+
+        return new ExecutionRequestHandlerInfo(
+            handlerInfo,
+            path: null,
+            requirement: Conjoined(handlerInfo.Requirement, rungs),
+            timeout: null,
+            metadata: merged);
+    }
+
+    /// <summary>
+    /// What the handler already required, and what the wider rungs require of it.
+    /// </summary>
+    private static Requirement? Conjoined(Requirement? required, IReadOnlyList<object> rungs) {
+        var wider = IExecutionRequestHandlerInfo.RequirementFrom(rungs);
+
+        if (wider == null) {
+            return required;
+        }
+
+        return required == null ? wider : Requirement.AllOf([required, wider]);
+    }
 }

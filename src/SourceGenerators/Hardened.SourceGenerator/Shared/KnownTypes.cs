@@ -77,6 +77,8 @@ public static class KnownTypes {
 
                     public const string Outputs = "Hardened.Requests.Abstract.Outputs";
 
+                    public const string RequestFilter = "Hardened.Requests.Abstract.RequestFilter";
+
                 }
 
                 public static class Runtime {
@@ -285,6 +287,11 @@ public static class KnownTypes {
         public static readonly ITypeDefinition IServerSentEventManifest =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Serializer,
                 "IServerSentEventManifest");
+
+        /// <summary>The filters an entry point declares for every handler in its compilation.</summary>
+        public static readonly ITypeDefinition IApplicationFilterDeclarations =
+            TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition,
+                Namespace.Hardened.Requests.Abstract.RequestFilter, "IApplicationFilterDeclarations");
 
         public static readonly ITypeDefinition IExecutionRequestParameter =
             TypeDefinition.Get(TypeDefinitionEnum.InterfaceDefinition, Namespace.Hardened.Requests.Abstract.Execution,
