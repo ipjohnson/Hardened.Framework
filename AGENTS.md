@@ -299,5 +299,6 @@ function runtimes do not reference it.
 - `docs/design/response-caching.md` — `[CacheResponse<T>]`, the store package, who a stored answer is for, invalidating by tag, revalidating with a 304
 - `docs/design/request-timeouts.md` — `[Timeout]`, the four rungs it resolves through, `x-hardened-timeout` and the Smithy `@timeout` trait, tighten-only conventions, why the token is put back
 - `docs/design/client-testing.md` — `Returns<T>()` in `Hardened.Web.Testing`, the route and reader seam it reads through, `[assembly: KiotaTesting]` and `[assembly: RefitTesting]`, why there is a package per generator
+- `docs/design/filter-rungs.md` — proposed: a filter declared on the entry point or the assembly, collected once and read by the document as well as the pipeline. Not built yet
 - `docs/` — the published site. `npm run build` there fails on a dead internal link
 - Full user documentation: <https://ipjohnson.github.io/Hardened.Framework>
