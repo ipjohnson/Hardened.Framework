@@ -14,7 +14,7 @@ use hardened.api#timeout
 @httpBearerAuth
 service PetStore {
     version: "2024-01-01"
-    operations: [GetPet, ListPets, CreatePet, GetSecuredPet, PetEvents]
+    operations: [GetPet, ListPets, CreatePet, GetSecuredPet, PetEvents, PutPetPhoto]
 }
 
 @documentation("Requires an authenticated caller.")
@@ -75,6 +75,38 @@ operation ListPets {
         pets: PetList
 
         nextToken: String
+    }
+}
+
+// The @httpPayload direction this model never exercised: a blob as the whole body rather than a
+// member of one. CreatePet's `photo` is the other path - a blob inside a JSON structure, so base64
+// in a document; this is bytes on the wire.
+//
+// It produced an operation no client could call. The parameter came out `string`, because the
+// request side dropped the format the response side kept. The document carried no requestBody at
+// all, because only a named body was ever written. And the content map said application/json for a
+// body that cannot be JSON.
+//
+// Comments rather than /// doc comments deliberately: a /// here is the operation's `description`
+// in the published document, and this reasoning belongs to the repository rather than to anyone
+// reading the contract.
+
+/// Replaces a pet's photo, sent as the whole request body.
+@auth([])
+@http(method: "PUT", uri: "/pets/{petId}/photo", code: 200)
+operation PutPetPhoto {
+    input := {
+        @httpLabel
+        @required
+        petId: String
+
+        @required
+        @httpPayload
+        photo: Blob
+    }
+    output := {
+        @required
+        byteCount: Integer
     }
 }
 

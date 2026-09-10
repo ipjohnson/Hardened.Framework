@@ -66,7 +66,12 @@ internal static class SpecModelSerializer {
     /// new record tag, same reasoning as 4: a 6 reader handed a 7 file throws on the tag rather
     /// than skipping it.
     /// </remarks>
-    private const string Header = "#hardened-openapi-model 7";
+    /// <remarks>
+    /// 8 adds each operation's <c>RequestBodyFormat</c>. Additive, and bumped for the reason 6 was:
+    /// a 7 reader handed an 8 file finds no format and maps the body to the type alone, which puts
+    /// <c>string</c> where <c>byte[]</c> belongs - the silent half of the defect the field closes.
+    /// </remarks>
+    private const string Header = "#hardened-openapi-model 8";
 
     private const char FieldSeparator = '\t';
 
@@ -603,6 +608,7 @@ internal static class SpecModelSerializer {
         record.Add("IsDeprecated", operation.IsDeprecated);
         record.Add("SecurityRequirements", operation.SecurityRequirements);
         record.Add("RequestBodyContentType", operation.RequestBodyContentType);
+        record.Add("RequestBodyFormat", operation.RequestBodyFormat);
         record.Add("RequestBodyRef", operation.RequestBodyRef);
         record.Add("RequestBodyType", operation.RequestBodyType);
         record.Add("ResponseContentType", operation.ResponseContentType);
@@ -720,6 +726,7 @@ internal static class SpecModelSerializer {
         IsDeprecated = record.Bool("IsDeprecated"),
         SecurityRequirements = record.Strings("SecurityRequirements") ?? new List<string>(),
         RequestBodyContentType = record.String("RequestBodyContentType"),
+        RequestBodyFormat = record.String("RequestBodyFormat"),
         RequestBodyRef = record.String("RequestBodyRef"),
         RequestBodyType = record.String("RequestBodyType"),
         ResponseContentType = record.String("ResponseContentType"),

@@ -260,8 +260,45 @@ public async Task<CreatePetOutput> CreatePet(CreatePetInput body) {
 | `@streaming union`, bound as an `@httpPayload` output | the same struct, and `IAsyncEnumerable<TUnion>` on the interface. The response streams as server-sent events: each item is one member as `data:`, with the member's name as `event:`, and the document describes the item as the choice of its members |
 | `document` | `JsonElement` |
 | `Timestamp` | `DateTimeOffset` |
-| `Blob` | `byte[]` |
+| `Blob` | `byte[]`, whether it is a member of a body or the body itself |
 | `@jsonName("x")` | `[JsonPropertyName("x")]` on the property |
+
+## A body that is not JSON
+
+`@httpPayload` makes one member the whole body rather than a member of one, in either direction.
+What it targets decides the media type:
+
+| Payload target | Content type |
+|---|---|
+| a `blob` | `application/octet-stream` |
+| anything else | `application/json` |
+| any shape carrying `@mediaType` | what the trait says |
+
+```smithy
+@http(method: "PUT", uri: "/pets/{petId}/photo", code: 200)
+operation PutPetPhoto {
+    input := {
+        @httpLabel
+        @required
+        petId: String
+
+        @required
+        @httpPayload
+        photo: Blob
+    }
+}
+```
+
+```csharp
+public Task<PutPetPhotoOutput> PutPetPhoto(string petId, byte[] body) =>
+    Task.FromResult(new PutPetPhotoOutput(body.Length));
+```
+
+The published operation declares `application/octet-stream` with a `string`/`byte` schema, which is
+how a generated client learns to send the bytes rather than a JSON document.
+
+A blob inside a structure is the other thing, and stays base64 in a JSON body. `@httpPayload` is
+what moves it onto the wire as itself.
 
 ## Bounding an operation
 

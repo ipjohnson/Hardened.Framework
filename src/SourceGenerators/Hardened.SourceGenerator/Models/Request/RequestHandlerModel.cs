@@ -60,6 +60,7 @@ public class RequestHandlerModel {
             DeclaredResponsesAreComplete = DeclaredResponsesAreComplete,
             DeclaredTimeout = DeclaredTimeout,
             RequestSchema = RequestSchema,
+            RequestContentType = RequestContentType,
             Tag = Tag,
             TagDescription = TagDescription,
             OperationId = OperationId,
@@ -196,6 +197,17 @@ public class RequestHandlerModel {
 
     /// <summary>The request body's JSON Schema, on the same terms.</summary>
     public HandlerSchema? RequestSchema { get; set; }
+
+    /// <summary>
+    /// The media type the request body is read as, when it is not <c>application/json</c>.
+    /// </summary>
+    /// <remarks>
+    /// Null for every operation that takes JSON, which is nearly all of them, and the document
+    /// writer takes the default in that case. It was the default for all of them: the writer
+    /// spelled <c>application/json</c> into every <c>requestBody</c> it produced, so an operation
+    /// whose body is a blob published a content map naming the one media type its body cannot be.
+    /// </remarks>
+    public string? RequestContentType { get; set; }
 
     /// <summary>
     /// The <c>operationId</c> the handler declared with <c>[Operation]</c>, or the one its
