@@ -176,6 +176,29 @@ filled the cache, so the key has to include whatever the response varies on. Add
 
 ## Apply it everywhere
 
+The attribute goes on a `[HardenedModule]` class, where it covers every handler compiled with it:
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+[CacheResponse<VaryByRoute>(Duration = 60)]
+public partial class Catalog { }
+```
+
+A handler declaring `[CacheResponse<VaryByRoute>]` itself keeps its own and the module's is dropped
+for that handler, so explicit beats convention.
+
+::: warning Two strategies do not replace each other
+The dedup is on the closed type, which is what lets
+[two strategies compose on one handler](#composing-two). So a handler declaring
+`[CacheResponse<VaryByQuery>]` beside a module's `[CacheResponse<VaryByRoute>]` gets **both**, and
+two that disagree about a `Duration` or a `Scope` fail as the chain is built. Close the module's
+declaration over the same strategy the handlers vary from, or declare per handler.
+:::
+
+`AddGlobalFilter` does the same at run time, and is what a host writes for handlers it only
+references:
+
 ```csharp
 services.AddGlobalFilter(
     new CacheResponseAttribute<VaryByRoute> { Duration = 60 },
@@ -183,7 +206,7 @@ services.AddGlobalFilter(
 ```
 
 A globally registered instance stands down on any handler that declares `[CacheResponse]`
-itself, so explicit beats convention.
+itself, on the same terms.
 
 ## Configuration
 

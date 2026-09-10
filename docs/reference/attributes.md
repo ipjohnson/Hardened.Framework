@@ -65,20 +65,20 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[Retry]` | Class, method | Re-runs the handler after a failure. `Attempts` (3), `SleepTime` (500 ms), `TotalBudget` (10 s), `AllowNonIdempotent`. Declines client errors, and non-idempotent verbs unless told otherwise |
+| `[Retry]` | Module, class, method | Re-runs the handler after a failure. `Attempts` (3), `SleepTime` (500 ms), `TotalBudget` (10 s), `AllowNonIdempotent`. Declines client errors, and non-idempotent verbs unless told otherwise |
 | `[Timeout]` | Class, method, assembly | [Bounds how long the operation may take](/guide/request-timeouts). `Milliseconds` (30 s), `Status` (504), `RetryAfterSeconds`. The nearest declaration wins, and nothing is bounded until one is written |
 
 `Hardened.Requests.Runtime.RateLimiting`
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[RateLimit]` | Class, method | [Caps how often the operation may be called](/guide/rate-limiting). `PermitLimit` (100), `WindowSeconds` (60). Publishes the 429 |
+| `[RateLimit]` | Module, class, method | [Caps how often the operation may be called](/guide/rate-limiting). `PermitLimit` (100), `WindowSeconds` (60). Publishes the 429 |
 
 `Hardened.Requests.Runtime.Caching`
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[CacheResponse<T>(values, …)]` | Class, method | [Stores the response](/guide/response-caching) and serves it without running the handler. `Duration`, `Scope`, `Tags`. `AllowMultiple`, and the parts compose into one key |
+| `[CacheResponse<T>(values, …)]` | Module, class, method | [Stores the response](/guide/response-caching) and serves it without running the handler. `Duration`, `Scope`, `Tags`. `AllowMultiple`, and the parts compose into one key |
 
 `Hardened.Requests.Caching.Memory`
 
@@ -138,8 +138,8 @@ See [Authorization](/guide/authorization).
 
 | Attribute | Target | Purpose |
 |---|---|---|
-| `[Compress]` | Class, method | [Compresses this operation's responses](/guide/compression) under the configured media-type rule. `Favor` picks a coding |
-| `[Compress<TPredicate>(args)]` | Class, method | The same, decided by a predicate over the value the handler returned |
+| `[Compress]` | Module, class, method | [Compresses this operation's responses](/guide/compression) under the configured media-type rule. `Favor` picks a coding |
+| `[Compress<TPredicate>(args)]` | Module, class, method | The same, decided by a predicate over the value the handler returned |
 
 `Hardened.Web.Runtime.Conditional`
 
@@ -147,8 +147,12 @@ See [Authorization](/guide/authorization).
 |---|---|---|
 | `[ConditionalGet]` | Module, class, method | Answers a caller holding the response with a [304](/guide/conditional-requests). GET handlers only |
 
-Both features are off until the application asks for them, and both can be turned on for every
-handler from the module instead:
+Every filter attribute above goes on a `[HardenedModule]` class as well, where it covers each
+handler compiled with it. That is the form to reach for: the declaration stays inside the
+compilation, so the [document publishes what the pipeline installs](/guide/execution-pipeline#attaching-a-filter-to-a-module).
+
+The `[Enable<T>]` forms below do the same at run time, and are what a host writes for handlers it
+only references:
 
 | Attribute | Target | Purpose |
 |---|---|---|

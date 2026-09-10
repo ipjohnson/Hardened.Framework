@@ -20,7 +20,21 @@ Vary: Accept-Encoding
 
 ## Turning it on
 
-For one operation or one class, `[Compress]` as above. For the whole application:
+For one operation or one class, `[Compress]` as above. For every handler compiled with a module,
+the same attribute on the module class:
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+[Compress]
+public partial class Catalog { }
+```
+
+An operation carrying `[Compress]` itself keeps its own, so the nearer declaration is the one that
+applies.
+
+`[Enable<ResponseCompression>]` does the same at run time and is what a host writes for handlers it
+only references:
 
 ```csharp
 [HardenedModule]
@@ -29,9 +43,7 @@ For one operation or one class, `[Compress]` as above. For the whole application
 public partial class Application { }
 ```
 
-An operation carrying `[Compress]` is left alone by the application-wide default, so the
-declaration on the operation is the one that applies. Nothing is compressed until one of the two
-is written.
+Nothing is compressed until one of these is written.
 
 gzip is offered first and Brotli behind it, both at the fastest level. The coding is negotiated
 from the client's `Accept-Encoding` when the filter is entered. Whether the body is compressed at
