@@ -313,7 +313,7 @@ internal static class JsonTypeInfoEmitter {
         // the request body it describes unserializable; see ResponseOnlyAttribute.
         var getter = $"static obj => (({declaringTypeName})obj).{propName}";
 
-        var required = RequiresPresenceCheck(prop, allSchemas);
+        var required = RequiresPresenceCheck(prop);
 
         var open = required ? RequireMethodName + "(" : "";
         var close = required ? ")," : ",";
@@ -331,8 +331,11 @@ internal static class JsonTypeInfoEmitter {
         // records are populated through their constructor, whose init-only members cannot be
         // assigned through a delegate. The constructor still supplies the value; the setter is never
         // the thing that fills it.
+        // Implicitly typed, so the delegate's own nullability decides the parameter's. Spelled
+        // `(object obj, string value)` it was CS8622 against Action<object, string?> for every
+        // reference member - which nothing noticed while only value types reached here.
         sb.AppendLine(required
-            ? $"                    Setter = static (object obj, {genericType} value) => {{ }},"
+            ? "                    Setter = static (obj, value) => { },"
             : "                    Setter = null,");
 
         // Absent rather than null for a member the description declares optional and not nullable.
@@ -348,23 +351,28 @@ internal static class JsonTypeInfoEmitter {
     }
 
     /// <summary>
-    /// Whether absence of this member has to be caught by the deserializer.
+    /// Whether the reader must refuse a body that omits this member.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The exact complement of where <c>[Required]</c> is emitted.</b> A required member of a
-    /// reference type carries <c>[Required]</c> and is checked by the generated validator, which
-    /// aggregates its error with every other failed constraint in the same body. A required member
-    /// of a <em>value</em> type carries nothing: the validation generator answers
-    /// <c>value.x is null</c> against an <c>int</c>, which is CS0037, so the constraint is
-    /// suppressed - correctly - and nothing takes its place.
+    /// <b>Every member the contract declares required</b>, whatever its type - the same set
+    /// <c>SchemaEmitter</c> writes <c>[JsonRequired]</c> for, because it is one rule read by two
+    /// deserializers. <c>[Required]</c> stays beside it and answers a different question: a member
+    /// that was sent as <c>null</c> is present, and refusing that is the validator's.
     /// </para>
     /// <para>
-    /// The result was that a missing required value silently became <c>default(T)</c>. An omitted
-    /// enum became its first declared member and the API answered 201 with a value the caller never
-    /// sent; an omitted integer became 0, caught only where some unrelated constraint happened to
-    /// reject 0. This is what closes that, and it is deliberately narrow: reference types keep the
-    /// aggregating validator path they already had.
+    /// It was value types only, because <c>[Required]</c> cannot cover one - the validation
+    /// generator answers <c>value.x is null</c> against an <c>int</c>, which is CS0037, so the
+    /// constraint is suppressed and a missing required value silently became <c>default(T)</c>. An
+    /// omitted enum became its first declared member and the API answered 201 with a value the
+    /// caller never sent. Reference types were left to the validator, on the reasoning that it
+    /// aggregates where the reader stops at the first fault.
+    /// </para>
+    /// <para>
+    /// The reader aggregates missing members too, and asking one question in two layers meant
+    /// whichever answered first hid the other: a body omitting an integer and three strings was told
+    /// about the integer, and about the strings one round trip later, from a validator that had not
+    /// run. Asked in one place, all four come back at once.
     /// </para>
     /// <para>
     /// <b>A declared <c>default</c> does not exempt it.</b> <c>required</c> and <c>default</c> are
@@ -374,15 +382,13 @@ internal static class JsonTypeInfoEmitter {
     /// today. Exempting these would preserve the silent zero for the one shape where the document
     /// most obviously disagrees with itself.
     /// </para>
+    /// <para>
+    /// A <c>readOnly</c> member is excluded, by <c>ConstrainedAsRequired</c> rather than here: the
+    /// server owns the value, and demanding it would refuse the create call of a client that
+    /// correctly left it out.
+    /// </para>
     /// </remarks>
-    private static bool RequiresPresenceCheck(PropertyModel prop, List<SchemaModel> allSchemas) {
-        if (!prop.ConstrainedAsRequired) {
-            return false;
-        }
-
-        return TypeMapper.IsNonNullableValueType(
-            TypeMapper.MapPropertyToCSharpType(prop), allSchemas);
-    }
+    private static bool RequiresPresenceCheck(PropertyModel prop) => prop.ConstrainedAsRequired;
 
     private const string RequireMethodName = "Required";
 
@@ -407,7 +413,7 @@ internal static class JsonTypeInfoEmitter {
     /// <summary>Whether anything in this specification needs the helper above.</summary>
     private static bool AnyRequiresPresenceCheck(List<SchemaModel> schemas) =>
         schemas.Any(schema => schema.Kind == SchemaKind.Object &&
-                              schema.Properties.Any(prop => RequiresPresenceCheck(prop, schemas)));
+                              schema.Properties.Any(RequiresPresenceCheck));
 
     private static void EmitParameterInfo(StringBuilder sb, PropertyModel prop, int position,
         List<SchemaModel> allSchemas, string ns) {

@@ -43,10 +43,11 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
     public SystemTextJsonRequestDeserializer(IOptions<IJsonSerializerConfiguration> configuration,
         IEnumerable<IJsonTypeInfoResolver> resolvers) {
         _serializerOptions =
-            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
-                configuration.Value.DeSerializerOptions ??
-                new JsonSerializerOptions(JsonSerializerDefaults.Web),
-                resolvers);
+            RequiredMemberPresence.Enforce(
+                Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
+                    configuration.Value.DeSerializerOptions ??
+                    new JsonSerializerOptions(JsonSerializerDefaults.Web),
+                    resolvers));
     }
 
     public bool IsDefaultSerializer => true;

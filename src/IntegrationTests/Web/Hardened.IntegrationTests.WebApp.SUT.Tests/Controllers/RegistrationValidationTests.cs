@@ -24,6 +24,42 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// </remarks>
 public class RegistrationValidationTests {
 
+    /// <summary>
+    /// The trial's blocker: a member declared present by its nullable annotation and by nothing
+    /// else. The document published <c>required: ["memberId"]</c> and the request answered 201 with
+    /// a null in a domain whose C# type says it cannot be there.
+    /// </summary>
+    /// <remarks>
+    /// A raw JSON body, because what is under test is a member that is <em>absent</em> - a typed
+    /// object has no way to leave one out. The field is reported under the handler's own parameter
+    /// name, which is what every other error in this file does.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnAbsentMemberDeclaredPresentByItsTypeIsRefused(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post("{}", "/registration/member");
+
+        response.Assert.BadRequest();
+
+        var error = response.Deserialize<RequestValidationError>();
+
+        Assert.NotNull(error);
+
+        var field = Assert.Single(error.Errors!, e => e.Field == "request.memberId");
+
+        Assert.Equal("required", field.Code);
+        Assert.Equal("memberId is required.", field.Message);
+    }
+
+    /// <summary>Sent is sent, whatever else is wrong with it.</summary>
+    [HardenedTest]
+    public async Task TheSameMemberSentIsAccepted(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post("""{"memberId":"M-0001"}""", "/registration/member");
+
+        response.Assert.Ok();
+
+        Assert.Equal("M-0001", response.Deserialize<string>());
+    }
+
     [HardenedTest]
     public async Task MissingRequiredField_Returns400(ITestWebApp testWebApp) {
         var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration");
