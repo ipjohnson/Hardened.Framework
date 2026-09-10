@@ -181,6 +181,8 @@ internal static class OpenApiSpecParser {
 
         var basePath = applyServerBasePath ? ServerBasePath(document) : "";
 
+        ReadServers(document, basePath, model);
+
         if (document.Paths != null) {
             foreach (var pathKvp in document.Paths) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -509,6 +511,57 @@ internal static class OpenApiSpecParser {
                     operation.ResponseIsArray = false;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// The contract's <c>servers</c>, for the published document to repeat.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Read for <see cref="ServerBasePath"/> and otherwise dropped, which left a
+    /// specification-first document with no <c>servers</c> at all: a generated client had every
+    /// path and no host to send one to, and <c>[Server]</c> is read off the entry point rather than
+    /// the contract so there was no in-framework way to say it either.
+    /// </para>
+    /// <para>
+    /// <paramref name="basePath"/> is removed from the end of a URL that carries it, because the
+    /// build has already put it on every route. Publishing both would have a client join
+    /// <c>https://api.example.com/v1</c> to <c>/v1/todos</c>, which is the doubling
+    /// <c>ServerBasePath</c>'s own remarks give as the reason it is opt-in. Only that exact suffix
+    /// goes: a second server whose path differs from the first was never the one applied, and
+    /// guessing at it here would be a second wrong answer rather than a fix.
+    /// </para>
+    /// <para>
+    /// A URL with an unresolved <c>{variable}</c> is published as written. A document reader knows
+    /// what a server variable is; only the route tree does not, which is why
+    /// <see cref="ServerBasePath"/> refuses one and this does not.
+    /// </para>
+    /// </remarks>
+    private static void ReadServers(OpenApiDocument document, string basePath, ServiceSpecModel model) {
+        if (document.Servers == null) {
+            return;
+        }
+
+        foreach (var server in document.Servers) {
+            if (server?.Url is not { } url || string.IsNullOrWhiteSpace(url)) {
+                continue;
+            }
+
+            url = url.TrimEnd('/');
+
+            if (basePath.Length > 0 && url.EndsWith(basePath, StringComparison.Ordinal)) {
+                url = url.Substring(0, url.Length - basePath.Length);
+            }
+
+            if (url.Length == 0) {
+                continue;
+            }
+
+            model.Servers.Add(new ServerModel {
+                Url = url,
+                Description = FirstNonEmpty(server.Description)
+            });
         }
     }
 

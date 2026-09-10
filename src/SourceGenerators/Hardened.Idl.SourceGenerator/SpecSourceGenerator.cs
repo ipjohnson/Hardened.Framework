@@ -244,15 +244,17 @@ public class SpecSourceGenerator : IIncrementalGenerator {
         });
 
         // The document's identity, merged across every spec the project declares: first
-        // non-empty title, version and description win, schemes union by name. Its own provider,
-        // so editing a handler does not recompute it and editing the contract's info block
-        // invalidates exactly the document.
+        // non-empty title, version and description win, schemes union by name, servers union by
+        // URL in the order they were written. Its own provider, so editing a handler does not
+        // recompute it and editing the contract's info block invalidates exactly the document.
         var identityProvider = openApiFiles.Collect().Select((specs, _) => {
             string? title = null;
             string? version = null;
             string? description = null;
             var schemes = new List<(string Name, string Json)>();
             var schemeNames = new HashSet<string>(StringComparer.Ordinal);
+            var servers = new List<(string Url, string? Description)>();
+            var serverUrls = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (var spec in specs) {
                 if (spec == null) {
@@ -268,11 +270,20 @@ public class SpecSourceGenerator : IIncrementalGenerator {
                         schemes.Add((scheme.Name, scheme.Json));
                     }
                 }
+
+                foreach (var server in spec.Servers) {
+                    if (serverUrls.Add(server.Url)) {
+                        servers.Add((server.Url, server.Description));
+                    }
+                }
             }
 
             schemes.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
 
-            return new DocumentIdentity(title, version, description, schemes);
+            // Deliberately not sorted, unlike the schemes. A scheme is addressed by name and its
+            // order is nothing; servers are a list whose first entry is the default a client takes,
+            // so the author's order is the answer.
+            return new DocumentIdentity(title, version, description, schemes, servers);
         });
 
         // Find entry points for routing table generation

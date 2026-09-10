@@ -49,7 +49,7 @@ front end only leaves a gap in the other.
 | `HOAG020` | error | An operation declares a markup content type and names no view to render it |
 | `HOAG030` | warning | A described service has no `[Handler]`. Its routes exist and fail at request time. `NoWarn` it in a project that ships contracts without implementations |
 | `HOAG031` | warning | A `[Handler]` class names no described service in its base list. Usually a spelling mismatch. A base class beside the interface is fine |
-| `HOAG032` | warning | A described handler carries a declaration read from a handler's own syntax, such as `[RawResponse]`. A described operation's signature is generated, so it compiles, reads as a commitment, and changes nothing. The contract says the same thing with the response's media type |
+| `HOAG032` | warning | A described handler carries a declaration read from a handler's own syntax: `[RawResponse]` or `[Throws<T>]` on a method, `[Tag]` or `[Server]` on the class. A described operation's signature is generated, so each compiles, reads as a commitment, and changes nothing. The message names what the contract says instead |
 
 ## Routing
 

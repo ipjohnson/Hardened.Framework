@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text.Json;
 using CSharpAuthor;
 using Hardened.Generation.Models;
@@ -63,6 +64,28 @@ public class DocumentWriterTests {
         JsonDocument.Parse(
             OpenApiDocumentGenerator.Write(EntryPoint(), [handler], "", version, identity))
             .RootElement;
+
+    /// <summary>The same, over an entry point carrying <c>[Server]</c> arguments as source text.</summary>
+    private static JsonElement WriteWithServerAttribute(string arguments, DocumentIdentity? identity = null) {
+        var appModel = new EntryPointSelector.Model {
+            EntryPointType = Type("Application"),
+            AttributeModels = [new AttributeModel(Type("ServerAttribute"), arguments, "")]
+        };
+
+        return JsonDocument.Parse(
+            OpenApiDocumentGenerator.Write(
+                appModel, [Handler()], "", OpenApiVersionFacts.Default, identity))
+            .RootElement;
+    }
+
+    private static (string Url, string? Description)[] Servers(JsonElement document) =>
+        document.GetProperty("servers").EnumerateArray()
+            .Select(server => (
+                server.GetProperty("url").GetString()!,
+                server.TryGetProperty("description", out var description)
+                    ? description.GetString()
+                    : null))
+            .ToArray();
 
     private static JsonElement LimitSchema(JsonElement document) {
         foreach (var parameter in document
@@ -184,6 +207,66 @@ public class DocumentWriterTests {
         var requirement = Assert.Single(operation.GetProperty("security").EnumerateArray());
 
         Assert.Equal(0, requirement.GetProperty("BearerAuth").GetArrayLength());
+    }
+
+    /// <summary>
+    /// A contract's own <c>servers</c>, which used to be read for a base path and dropped.
+    /// </summary>
+    /// <remarks>
+    /// Where the application is served is the one thing a document cannot derive from the code, so
+    /// dropping it left a generated client with every path and no host to send one to.
+    /// </remarks>
+    [Fact]
+    public void TheContractsServersArePublishedInTheOrderItWroteThem() {
+        var document = Write(
+            Handler(),
+            identity: new DocumentIdentity(
+                null, null, null, [],
+                [("https://api.example.com", "production"), ("https://staging.example.com", null)]));
+
+        Assert.Equal(
+            [("https://api.example.com", "production"), ("https://staging.example.com", null)],
+            Servers(document));
+    }
+
+    /// <summary>The attribute still answers for an application whose contract says nothing.</summary>
+    [Fact]
+    public void AServerAttributeIsPublishedWhenNoContractDeclaresOne() {
+        var document = WriteWithServerAttribute("\"https://api.example.com\", \"production\"");
+
+        Assert.Equal([("https://api.example.com", "production")], Servers(document));
+    }
+
+    /// <summary>
+    /// The contract wins, which is the precedence <c>info</c> already has.
+    /// </summary>
+    /// <remarks>
+    /// Either or rather than a union: an author who wrote both said one thing twice, and merging
+    /// them would put the same deployment in the list two ways.
+    /// </remarks>
+    [Fact]
+    public void TheContractsServersWinOverTheAttribute() {
+        var document = WriteWithServerAttribute(
+            "\"https://attribute.example.com\"",
+            new DocumentIdentity(null, null, null, [], [("https://contract.example.com", null)]));
+
+        Assert.Equal([("https://contract.example.com", null)], Servers(document));
+    }
+
+    /// <summary>
+    /// Nothing said, nothing written.
+    /// </summary>
+    /// <remarks>
+    /// An absent <c>servers</c> and an empty one are different documents: a reader takes the
+    /// absent case as the document's own location and the empty one as served from nowhere.
+    /// </remarks>
+    [Fact]
+    public void AnApplicationThatDeclaresNoServerWritesNoServersKey() {
+        Assert.False(Write(Handler()).TryGetProperty("servers", out _));
+
+        Assert.False(
+            Write(Handler(), identity: new DocumentIdentity(null, null, null, [], []))
+                .TryGetProperty("servers", out _));
     }
 
     [Fact]

@@ -129,19 +129,21 @@ public class HandlerBindingDiagnosticsTests {
             Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, d.Severity));
     }
 
+    private static AttributeModel Declaration(string attributeName) =>
+        new(TypeDefinition.Get("Hardened.Requests.Abstract.Attributes", attributeName), "", "");
+
     private static HandlerInfo HandlerDeclaring(string method, string attributeName) =>
         new(TypeDefinition.Get("Test.Api", "PetServiceImpl"),
             new[] { (ITypeDefinition)TypeDefinition.Get("Test.Api", "IPetService") },
             Array.Empty<AttributeModel>(),
-            new[] {
-                new HandlerMethodFilterInfo(
-                    method,
-                    new[] {
-                        new AttributeModel(
-                            TypeDefinition.Get("Hardened.Requests.Abstract.Attributes", attributeName),
-                            "", "")
-                    })
-            });
+            new[] { new HandlerMethodFilterInfo(method, new[] { Declaration(attributeName) }) });
+
+    /// <summary>The same handler with the declaration on the class rather than on a method.</summary>
+    private static HandlerInfo HandlerClassDeclaring(string attributeName) =>
+        new(TypeDefinition.Get("Test.Api", "PetServiceImpl"),
+            new[] { (ITypeDefinition)TypeDefinition.Get("Test.Api", "IPetService") },
+            new[] { Declaration(attributeName) },
+            Array.Empty<HandlerMethodFilterInfo>());
 
     /// <summary>
     /// <c>[RawResponse]</c> on a described handler, which the generator reads from a handler's own
@@ -179,6 +181,56 @@ public class HandlerBindingDiagnosticsTests {
             Assert.Single(Report(
                 new[] { Operation("IPetService", "/pets") },
                 new[] { HandlerDeclaring("ListPets", "RawResponseAttribute") })).Severity);
+
+    /// <summary>
+    /// <c>[Throws&lt;T&gt;]</c>, which is how a code-first handler puts a status in the document.
+    /// </summary>
+    /// <remarks>
+    /// A described operation answers the statuses its contract declares, so the attribute changed
+    /// nothing and nothing said so - while the same declaration is <c>HRDT001</c>, a build error,
+    /// code-first when the thrown type states no status. The generic keys on its simple name here:
+    /// <c>AttributeModelHelper</c> puts the type arguments in the type definition rather than in
+    /// <c>Name</c>.
+    /// </remarks>
+    [Fact]
+    public void AThrowsDeclarationIsReported() {
+        var message = Assert.Single(Report(
+            new[] { Operation("IPetService", "/pets") },
+            new[] { HandlerDeclaring("ListPets", "ThrowsAttribute") })).GetMessage();
+
+        Assert.Contains("PetServiceImpl.ListPets", message);
+        Assert.Contains("[Throws]", message);
+        Assert.Contains("contract declares", message);
+    }
+
+    /// <summary>
+    /// <c>[Tag]</c> and <c>[Server]</c>, which are <c>AttributeTargets.Class</c>.
+    /// </summary>
+    /// <remarks>
+    /// The rung that had no reader. A walk over methods alone would take the table entry for either
+    /// of these and report nothing - a diagnostic that looks configured and is not, which is the
+    /// defect this rule exists to catch, one level up.
+    /// </remarks>
+    [Theory]
+    [InlineData("TagAttribute", "[Tag]", "grouped by the tag")]
+    [InlineData("ServerAttribute", "[Server]", "servers block")]
+    public void AClassLevelDeclarationIsReported(string attribute, string named, string instead) {
+        var message = Assert.Single(Report(
+            new[] { Operation("IPetService", "/pets") },
+            new[] { HandlerClassDeclaring(attribute) })).GetMessage();
+
+        // The class alone, because there is no method to name.
+        Assert.Contains("'PetServiceImpl'", message);
+        Assert.Contains(named, message);
+        Assert.Contains(instead, message);
+    }
+
+    /// <summary>A class declaration the described path does read is left alone, as a method's is.</summary>
+    [Fact]
+    public void AClassLevelDeclarationTheDescribedPathReadsIsNotReported() =>
+        Assert.Empty(Report(
+            new[] { Operation("IPetService", "/pets") },
+            new[] { HandlerClassDeclaring("RateLimitAttribute") }));
 
     /// <summary>
     /// A declaration the described path does read is left alone. Without this the rule could pass

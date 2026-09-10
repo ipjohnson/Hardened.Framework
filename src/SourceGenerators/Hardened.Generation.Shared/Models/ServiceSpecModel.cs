@@ -70,6 +70,14 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     /// <summary>The schemes the contract declares, for the published document.</summary>
     public List<SecuritySchemeModel> SecuritySchemes { get; set; } = new();
 
+    /// <summary>The servers the contract declares, for the published document.</summary>
+    /// <remarks>
+    /// Their path component is already removed where <c>HardenedOpenApiApplyServerBasePath</c> put
+    /// it on every route instead, so a client joining a server URL to a path cannot apply it twice.
+    /// See <see cref="ServerModel"/>.
+    /// </remarks>
+    public List<ServerModel> Servers { get; set; } = new();
+
     /// <summary>
     /// What the build task emitted for validation, per operation. Empty when nothing is constrained.
     /// </summary>
@@ -167,6 +175,25 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
         if (UiUrl != other.UiUrl) return false;
         if (SourceUrl != other.SourceUrl) return false;
         if (UiEnvironments != other.UiEnvironments) return false;
+
+        // The identity the contract declares about itself. Absent here, a contract that only
+        // renamed itself or only changed where it is served produced a model this compared equal,
+        // and the provider carrying it downstream never recomputed - so the published document
+        // kept the previous title, or published no servers after they were added.
+        if (Title != other.Title) return false;
+        if (Version != other.Version) return false;
+        if (InfoDescription != other.InfoDescription) return false;
+        if (SecuritySchemes.Count != other.SecuritySchemes.Count) return false;
+        if (Servers.Count != other.Servers.Count) return false;
+
+        for (var i = 0; i < SecuritySchemes.Count; i++) {
+            if (!SecuritySchemes[i].Equals(other.SecuritySchemes[i])) return false;
+        }
+
+        for (var i = 0; i < Servers.Count; i++) {
+            if (!Servers[i].Equals(other.Servers[i])) return false;
+        }
+
         if (Schemas.Count != other.Schemas.Count) return false;
         if (Services.Count != other.Services.Count) return false;
         if (FilterTypes.Count != other.FilterTypes.Count) return false;
@@ -196,6 +223,9 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public override int GetHashCode() {
         unchecked {
             var hash = FileName.GetHashCode();
+            hash = (hash * 397) ^ (Title?.GetHashCode() ?? 0);
+            hash = (hash * 397) ^ (Version?.GetHashCode() ?? 0);
+            foreach (var s in Servers) hash = (hash * 397) ^ s.GetHashCode();
             foreach (var s in Schemas) hash = (hash * 397) ^ s.GetHashCode();
             foreach (var s in Services) hash = (hash * 397) ^ s.GetHashCode();
             foreach (var f in FilterTypes) hash = (hash * 397) ^ f.GetHashCode();
