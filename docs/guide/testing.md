@@ -50,7 +50,10 @@ public class MathServiceTests {
 }
 ```
 
-The application is built for each test and disposed when the test ends.
+The application is built for each test and disposed when the test ends. On the pipeline, and on
+the Lambda web host, each request the test sends is then run against a container of its own, so two
+requests in one test do not share a `[SingletonService]`. See
+[A container per request](/guide/testing-hosts#a-container-per-request).
 
 ## Setting up a project
 
@@ -98,6 +101,7 @@ A web application adds `[assembly: WebTesting]` from `Hardened.Web.Testing`; see
 |---|---|
 | Any registered service | The application's own registration, resolved from the test's container |
 | `[Mock] T` | A mock of `T` from the library the test project names, NSubstitute, Moq or FakeItEasy, registered over the application's registration. [Substituting services](/guide/testing-mocks) |
+| `[Shared] T` | The same, sending every request that parameter makes to one container. Valid on `ITestWebApp`, an `HttpClient` and a client type. [A container per request](/guide/testing-hosts#a-container-per-request) |
 | `ITestContext` | Named steps, a retry engine, a logger and the test's cancellation token. [Steps and retries](/guide/testing-steps) |
 | `ITestWebApp` | Sends requests through the pipeline. [Sending requests](/guide/testing-web) |
 | A client type | A Kiota client, a Refit interface or any class taking one `HttpClient`, built over the pipeline. [Typed clients](/guide/testing-clients) |
@@ -140,7 +144,7 @@ Kestrel, ASP.NET Core or Lambda. A test that needs the host names one; see
 - [Credentials](/guide/testing-credentials): who a request is sent as
 - [Typed clients](/guide/testing-clients): a generated client as a parameter
 - [Asserting a response](/guide/testing-responses): `Returns<T>()`, `ReturnsStatus<T>()` and `LastResponse`
-- [Test hosts](/guide/testing-hosts): the same tests on Kestrel or ASP.NET Core
+- [Test hosts](/guide/testing-hosts): the same tests on Kestrel or ASP.NET Core, and which hosts rebuild the container
 - [Steps and retries](/guide/testing-steps): `ITestContext`
 - [Writing a test attribute](/guide/testing-attributes): setup shared by many tests
 - [Testing AWS handlers](/aws/testing): Lambda functions, SQS batches, stream records, DynamoDB Local

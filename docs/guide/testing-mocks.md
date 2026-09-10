@@ -42,8 +42,9 @@ With Moq, a parameter typed `Mock<T>` is the mock to configure and the container
 
 ## Behind a route
 
-A handler resolves from the same container, so a mock reaches it through `ITestWebApp` and
-through a typed client alike:
+A mock is a test parameter, so it is one object for the whole test even where each request runs
+against a container of its own. It reaches the handler through `ITestWebApp` and through a typed
+client alike:
 
 ```csharp
 [HardenedTest]
@@ -57,7 +58,8 @@ public async Task CreateTodo_StoresTheTodo(TodosClient client, [Mock] ITodoStore
 }
 ```
 
-The id came from the mock, so the handler used it.
+The id came from the mock, so the handler used it. What else survives a rebuilt container is
+in [A container per request](/guide/testing-hosts#a-container-per-request).
 
 ## A fake instead of a mock
 

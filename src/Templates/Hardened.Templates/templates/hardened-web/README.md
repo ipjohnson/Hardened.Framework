@@ -180,10 +180,10 @@ it cannot fall out of step.
 #endif
 
 Every route is in the published document, and `tests/Hardened1.Tests/DocumentStatusTests.cs` holds
-the document to the statuses this suite exercises, operation by operation. Adding a route fails
-that test until its `Expected` table names the new operation and the statuses a test drives - which
-is the point: a status the document declares and nothing answers is the defect a reference page
-cannot show.
+the document to what this application answers, operation by operation. Adding a route fails that
+test until its `Probes` table carries a request per status the new operation can answer - which is
+the point: a status the document declares and nothing answers is the defect a reference page cannot
+show.
 #if (specFirst)
 
 #if (openapi)
@@ -330,7 +330,19 @@ route; `tests/Hardened1.Tests/TodoStoreMockTests.cs` does. The fake is FakeItEas
 #endif
 
 Every declared status has a test, not only the happy one - a response set exercised only at 200 is
-indistinguishable from having none.
+indistinguishable from having none. `tests/Hardened1.Tests/DocumentStatusTests.cs` is what holds
+the suite to that. It sends a request per status, records what came back, and fails when the
+published document declares a status nothing answered or the application answers one the document
+never mentions. Its table is requests rather than status codes, so a status cannot be claimed
+there without a request that produces it.
+
+Each request runs against a container of its own. A todo one request creates is gone by the next,
+because the next request built its own container and its own `[SingletonService]` store. That is
+the deployment model rather than a harness detail: an execution environment is not promised
+between invocations, so a handler leaning on what the last request left behind fails in a test
+here rather than intermittently in production.
+`tests/Hardened1.Tests/ContainerIsolationTests.cs` shows both sides. Mark a parameter `[Shared]`
+to send every request to one container, for a test whose subject is the reuse itself.
 
 #if (hasClient)
 ## Clients
