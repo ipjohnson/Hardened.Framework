@@ -30,6 +30,17 @@ namespace Hardened.Aws.Lambda.Testing
     public sealed class LambdaWebTestingAttribute : Hardened.Web.Testing.TestHostAttribute
     {
         public LambdaWebTestingAttribute() { }
+        public Hardened.Aws.Lambda.Runtime.Streaming.LambdaResponseMode ResponseMode { get; set; }
         public override Hardened.Web.Testing.ITestHost CreateHost(DependencyModules.Testing.Attributes.Interfaces.ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    public sealed class StreamedResponseCapture : Hardened.Aws.Lambda.Runtime.Streaming.IResponseStreamFactory
+    {
+        public StreamedResponseCapture() { }
+        public byte[] Body { get; }
+        public bool Opened { get; }
+        public int PlainStreams { get; }
+        public Amazon.Lambda.Core.ResponseStreaming.HttpResponseStreamPrelude? Prelude { get; }
+        public System.IO.Stream CreateHttpStream(Amazon.Lambda.Core.ResponseStreaming.HttpResponseStreamPrelude prelude) { }
+        public System.IO.Stream CreateStream() { }
     }
 }

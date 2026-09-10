@@ -218,6 +218,11 @@ A buffered deployment accumulates the whole body before returning it, so a strea
 all at once at the end. An application with `[ServerSentEvents]` handlers deployed in buffered mode
 logs a warning at startup naming them. See [Response mode](/aws/lambda-web#response-mode).
 
+Streaming on Lambda is tested with `[LambdaWebTesting(ResponseMode = LambdaResponseMode.Stream)]`,
+which runs the real streamed invocation and hands the test what the response stream was given. It
+cannot be exercised by hand against the Lambda Test Tool, for two reasons that are both AWS's; see
+[Testing a streaming function](/aws/testing#testing-a-streaming-function).
+
 The Azure Functions worker hands the whole body to the host when the invocation returns, so a
 streamed response there arrives at the end whatever the handler does.
 

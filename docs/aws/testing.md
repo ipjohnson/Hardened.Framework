@@ -213,6 +213,67 @@ One behaviour does differ, because the transport does. `[LambdaWebTesting]` is t
 has nothing behind it to hand an unmatched path to, so a path with no route is a 404 from the host
 rather than a fall-through.
 
+### Testing a streaming function
+
+`ResponseMode` runs the test as a function URL in `RESPONSE_STREAM` invoke mode, which is the mode
+`[ServerSentEvents]` handlers have to be deployed in:
+
+```csharp
+[LambdaWebTesting(ResponseMode = LambdaResponseMode.Stream)]
+public class OrderStreamTests {
+
+    [HardenedTest]
+    public async Task TheEventsArriveAsFrames(ITestWebApp app) {
+        var response = await app.Get("/orders/live");
+
+        response.Assert.Ok();
+        Assert.Equal("text/event-stream", response.Headers[KnownHeaders.ContentType].ToString());
+    }
+}
+```
+
+A streamed invocation answers nothing through its output stream. It opens a Lambda response stream
+at the first byte and writes there, so the mode also registers `StreamedResponseCapture` over the
+runtime's stream factory, and the host builds the response from what that recorded: the prelude's
+status and headers, and the bytes.
+
+Take `IResponseStreamFactory` as a parameter to assert on the stream itself:
+
+```csharp
+[HardenedTest]
+public async Task TheInvocationStreams(ITestWebApp app, IResponseStreamFactory streams) {
+    await app.Get("/orders/live");
+
+    var capture = Assert.IsType<StreamedResponseCapture>(streams);
+
+    Assert.True(capture.Opened);
+    Assert.Equal(HttpStatusCode.OK, capture.Prelude!.StatusCode);
+}
+```
+
+**That assertion is the one worth writing**, because the frames are not a discriminator. A buffered
+invocation writes the same bytes - that is what the buffered-mode warning is about, every event
+delivered at the end rather than as it happens - so a test asserting only on the body passes with
+the mode ignored.
+
+An adapter with no caller holding a connection stays buffered under the same mode rather than
+failing, so an SQS function under `Stream` opens nothing and the host reads its envelope as usual.
+
+Sends are one at a time: the capture is reset before each request and read after it, so two requests
+issued concurrently from one test would interleave into one capture. `ITestWebApp` and a typed
+client both send sequentially.
+
+### The Lambda Test Tool cannot do this
+
+There is no equivalent by hand. The tool runs every function on one port and routes by a
+`/{FunctionName}` prefix, so `AWS_LAMBDA_RUNTIME_API` carries a path - and AWS's streaming client
+reads that variable as `host:port` and parses everything after the colon as a port number, which
+throws. Shortening it does not help either: the same client writes a request line with no function
+name in it, so the tool could not route the request. Both are in
+`Amazon.Lambda.RuntimeSupport`, and neither is reachable from here.
+
+Run locally in buffered mode, and test the streaming mode with `ResponseMode` above.
+
 ## Next
 
 - [Triggers](/guide/triggers): the façades, and what each source delivers
