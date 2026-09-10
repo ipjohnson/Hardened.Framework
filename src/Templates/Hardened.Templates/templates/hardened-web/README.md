@@ -3,6 +3,37 @@
 A web application on [Hardened](https://github.com/ipjohnson/Hardened.Framework) — a compile-time,
 source-generated .NET framework. Routing, request handlers, parameter binding and dependency
 injection are written during the build rather than resolved by reflection at run time.
+#if (lambdaUnionConflict || azureFunctionsUnionConflict)
+
+## This project does not build
+
+You asked for `--response-model union` on a host that cannot run it, and `dotnet new` said so and
+exited non-zero. These files were written anyway, because the template engine does not unwind what
+it created, and the first build refuses:
+
+```
+#if (lambdaUnionConflict)
+error HTPL001: --host aws-lambda cannot be combined with --response-model union
+#endif
+#if (azureFunctionsUnionConflict)
+error HTPL007: --host azure-functions cannot be combined with --response-model union
+#endif
+```
+
+The union response model needs `net11.0`, because the compiler requires `IUnion` and
+`UnionAttribute` from the .NET 11 reference assemblies.
+#if (lambdaUnionConflict)
+The AWS Lambda managed runtime is `net8.0`, and a `net11.0` assembly does not load on it.
+#endif
+#if (azureFunctionsUnionConflict)
+The Azure Functions host starts its isolated worker on a released .NET, which a preview is not.
+#endif
+Nothing about that is visible at deploy time: the package would upload and the first invocation
+would fail to load the assembly. That is why the refusal is a build error rather than a warning.
+
+Delete this directory and scaffold again with `--response-model response`. It declares the same set
+of statuses, in the same shape, on `net8.0`.
+#endif
 
 ## Run it
 

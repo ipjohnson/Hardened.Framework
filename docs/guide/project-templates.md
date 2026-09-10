@@ -112,9 +112,13 @@ routes show the difference: they answer 404 and 409 in every mode, and creating 
 under `response` and `union` and 200 under `throws`. [Declared responses](/guide/responses) covers
 the three.
 
-`union` writes a `net11.0` project pinned to the .NET 11 SDK in `global.json`. It cannot be
-combined with `--host aws-lambda`, whose managed runtime is `net8.0`. `dotnet new` cannot refuse a
-combination of options, so the first build refuses with `HTPL001`.
+`union` writes a `net11.0` project pinned to the .NET 11 SDK in `global.json`. It cannot be combined
+with `--host aws-lambda`, whose managed runtime is `net8.0`, or with `--host azure-functions`, whose
+worker runs the versions the Functions host supports.
+
+Either combination is refused at instantiation: `dotnet new` prints the reason and exits non-zero.
+The files are written first and stay, because the template engine does not unwind what it created,
+so the first build of them refuses again with `HTPL001`.
 
 `standard` is accepted as the old name for `throws` and writes the same project.
 

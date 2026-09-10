@@ -408,6 +408,27 @@
   ],
   "postActions": [
     {
+      // dotnet new has no way to refuse a combination of parameters: there is no constraint that
+      // reads a symbol, and choices cannot be filtered by another choice's value. What it does
+      // have is this - a post action the CLI cannot run automatically, whose description and
+      // instructions it prints and whose failure it reports. So the refusal arrives at
+      // instantiation, with a non-zero exit, instead of the command reporting success for a
+      // combination the template already knows cannot build.
+      //
+      // The files are still written, because the engine does not unwind what it created. The
+      // build error in Directory.Build.props stays as the backstop for anyone who scaffolds past
+      // this, and it is what a second `dotnet build` still says.
+      "condition": "(lambdaUnionConflict || azureFunctionsUnionConflict)",
+      "description": "--response-model union cannot be combined with this host: union needs net11.0, and neither the AWS Lambda managed runtime nor the Azure Functions worker runs a net11.0 assembly.",
+      "manualInstructions": [
+        {
+          "text": "Regenerate with --response-model response, which declares the same set on net8.0. The project written here does not build as it stands - the first build refuses with HTPL001."
+        }
+      ],
+      "actionId": "84C0DA21-51C8-4541-9940-6CA19AF04EE6",
+      "continueOnError": false
+    },
+    {
       "condition": "(!skipRestore)",
       "description": "Restore the packages the template pinned.",
       "manualInstructions": [

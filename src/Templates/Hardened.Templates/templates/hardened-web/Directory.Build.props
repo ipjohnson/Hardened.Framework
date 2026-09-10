@@ -51,7 +51,12 @@
     function is invoked - the build would be green, the package would upload, and the first request
     would fail to load the assembly.
 
-    dotnet new cannot refuse a combination of parameters, so the refusal is a build error instead.
+    The refusal arrives twice, and both are deliberate. dotnet new reports it at instantiation,
+    through a post action the CLI cannot run - the only mechanism the template engine has for
+    refusing a combination of parameters, because no constraint reads a symbol. That leaves the
+    files on disk, since the engine does not unwind what it created, so this target is the
+    backstop: it is what a build says to anyone who scaffolded past a non-zero exit.
+
     Regenerate with the response model set to `response`, which declares the same set on net8.0
     and needs no preview anything.
   -->
