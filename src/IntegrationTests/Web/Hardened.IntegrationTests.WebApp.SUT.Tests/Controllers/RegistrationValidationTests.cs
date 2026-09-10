@@ -50,6 +50,66 @@ public class RegistrationValidationTests {
         Assert.Equal("memberId is required.", field.Message);
     }
 
+    /// <summary>
+    /// A literal <c>null</c> body: the four bytes that are a valid JSON document and carry no value.
+    /// </summary>
+    /// <remarks>
+    /// The trial's B-01, and a 500 until now. The generated binder ended in a null-forgiving
+    /// <c>!</c>, so the null reached the handler and the first dereference threw - the one malformed
+    /// payload of the set that was not a 400, where <c>5</c>, <c>"text"</c>, <c>[]</c>, a truncated
+    /// object and an absent body were all refused properly.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ANullBodyIsRefusedRatherThanDereferenced(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post("null", "/registration/member");
+
+        response.Assert.BadRequest();
+
+        var field = Assert.Single(
+            response.Deserialize<RequestValidationError>()!.Errors!, e => e.Field == "request");
+
+        Assert.Equal("required", field.Code);
+        Assert.Equal("request is required.", field.Message);
+    }
+
+    /// <summary>
+    /// An empty body is the same thing said a different way, and answers the same.
+    /// </summary>
+    /// <remarks>
+    /// It used to hand the caller the reader's own diagnostics - <c>"The input does not contain any
+    /// JSON tokens. Expected the input to start with a valid JSON token, when isFinalBlock is
+    /// true."</c> - which describes the framework's parser rather than the caller's mistake.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnEmptyBodyIsRefusedTheSameWay(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post("", "/registration/member");
+
+        response.Assert.BadRequest();
+
+        var field = Assert.Single(
+            response.Deserialize<RequestValidationError>()!.Errors!, e => e.Field == "request");
+
+        Assert.Equal("required", field.Code);
+        Assert.Equal("request is required.", field.Message);
+    }
+
+    /// <summary>
+    /// A body that does not parse is the body's fault. It was reported against whichever member the
+    /// reader had reached when the text ran out - <c>request.memberId</c> here, a member that is
+    /// present and correct as far as it goes.
+    /// </summary>
+    [HardenedTest]
+    public async Task AMalformedBodyIsRefusedAgainstTheBody(ITestWebApp testWebApp) {
+        var response = await testWebApp.Post("""{"memberId":""", "/registration/member");
+
+        response.Assert.BadRequest();
+
+        var field = Assert.Single(response.Deserialize<RequestValidationError>()!.Errors!);
+
+        Assert.Equal("request", field.Field);
+        Assert.Equal("invalid", field.Code);
+    }
+
     /// <summary>Sent is sent, whatever else is wrong with it.</summary>
     [HardenedTest]
     public async Task TheSameMemberSentIsAccepted(ITestWebApp testWebApp) {

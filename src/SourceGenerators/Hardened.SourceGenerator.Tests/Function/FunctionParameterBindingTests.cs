@@ -29,8 +29,27 @@ public class FunctionParameterBindingTests {
             .SourceContaining("Process.FunctionHandler");
 
         Assert.Contains(
-            "parameters.model = (await contentSerializationService.DeserializeRequestBody<global::TestApp.DataModel>(context))!;",
+            "parameters.model = global::Hardened.Requests.Runtime.Validation.RequestBody.Required(",
             source);
+        Assert.Contains(
+            "await contentSerializationService.DeserializeRequestBody<global::TestApp.DataModel>(context)",
+            source);
+    }
+
+    /// <summary>
+    /// A payload the function declared nullable is bound as it arrives: the handler has said a null
+    /// payload is a case it handles, so nothing refuses one on its behalf.
+    /// </summary>
+    [Fact]
+    public void ANullableModelParameterIsNotGuarded() {
+        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
+                [HardenedFunction]
+                public void Process(DataModel? model) { }
+            """, FunctionGeneratorHarness.SupportTypes))
+            .AssertNoErrors()
+            .SourceContaining("Process.FunctionHandler");
+
+        Assert.DoesNotContain("RequestBody.Required", source);
     }
 
     /// <summary>
