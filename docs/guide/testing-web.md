@@ -126,8 +126,8 @@ Anything else is an `Assert.Equal` against `StatusCode`.
 
 ## A mock behind a route
 
-`[Mock]` composes with `ITestWebApp`. The handler resolves from the container the mock was
-registered in:
+`[Mock]` composes with `ITestWebApp`. A mock is a test parameter, so it is one object for the whole
+test and every container a request runs against resolves that one:
 
 ```csharp
 using NSubstitute;
@@ -143,7 +143,9 @@ public async Task UsesTheMockedService(ITestWebApp app, [Mock] IMathService<int>
 }
 ```
 
-[Substituting services](/guide/testing-mocks) has the rest.
+[Substituting services](/guide/testing-mocks) has the rest, and
+[A container per request](/guide/testing-hosts#a-container-per-request) has what else
+survives a rebuild.
 
 ## What runs
 
