@@ -36,7 +36,8 @@ absence is unrepresentable there — and `HRDV003` says so.
 
 ### Presence, and who checks it
 
-A non-nullable reference member is one the caller must send. Nothing else declares it:
+A non-nullable reference member the constructor takes is one the caller must send. Nothing else
+declares it:
 
 ```csharp
 public record NewTodo(string Title);        // {} is a 400: title is required
@@ -47,6 +48,22 @@ public record Paged(string Cursor = "");    // {} is accepted, Cursor is ""
 That is the same declaration the published document reads — `required: ["title"]` comes from the
 annotation on `Title` and from nothing else — so the document and the server now answer the same
 question the same way. A member the server owns is excluded from both by `[ResponseOnly]`.
+
+A settable property is not demanded, whatever its type:
+
+```csharp
+public class Manifest {
+    public string Id { get; set; } = "";        // optional, and the document says so
+    public string Carrier { get; set; }         // the document says required; nothing checks it
+}
+```
+
+An initializer is how a property says "this when nothing sends it", and it compiles into the
+constructor body where reflection cannot see it — so demanding these would refuse bodies their author
+meant to accept. The document reads the initializer from source and leaves `id` optional; `carrier`,
+which has none, is published as required and is `[Required]`'s to enforce. Write the demand where the
+reader can see it — a constructor parameter, `required string Carrier`, or `[JsonRequired]` — or
+declare `[Required]` and let the validator answer.
 
 **Presence is the reader's question; content is the validator's.** Absence is the one thing a
 validator cannot see, and the one thing the JSON reader knows for certain, so a body that omits a

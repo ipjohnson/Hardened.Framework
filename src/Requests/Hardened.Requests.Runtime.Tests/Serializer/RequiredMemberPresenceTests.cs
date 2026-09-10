@@ -101,6 +101,27 @@ public class RequiredMemberPresenceTests {
     }
 
     /// <summary>
+    /// A settable property is left to <c>[Required]</c>. Its "optional" is an initializer -
+    /// <c>= ""</c>, <c>= []</c> - which compiles into the constructor body, so nothing here can tell
+    /// one from a member its author meant to demand. Demanding them refused the payloads of this
+    /// repository's own Invoke fixture, whose four settable properties carry three initializers
+    /// between them.
+    /// </summary>
+    private class Manifest {
+        public string Id { get; set; } = "";
+
+        public List<string> Records { get; set; } = [];
+    }
+
+    [Fact]
+    public void ASettablePropertyIsNotDemanded() {
+        var accepted = Accepted<Manifest>("{}");
+
+        Assert.Equal("", accepted.Id);
+        Assert.Empty(accepted.Records);
+    }
+
+    /// <summary>
     /// <c>[ResponseOnly]</c> is OpenAPI's <c>readOnly</c>: the server owns the value. Demanding one
     /// would refuse the create call of a client that correctly left it out.
     /// </summary>

@@ -35,12 +35,22 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// question.
 /// </para>
 /// <para>
-/// The rule here is <c>JsonSchemaWriter</c>'s, member for member, because a rule stated twice is a
-/// rule that drifts: a member with a constructor default is excluded in both places, and an
-/// assembly without nullable annotations enables neither. The one thing this cannot see is a type
-/// whose annotations the trimmer removed, which is why it is installed by the reflection-based
-/// deserializer alone - the source-generated resolvers carry <c>IsRequired</c> from their own
-/// generator, decided at build time from the same contract.
+/// <b>A member the constructor demands.</b> A constructor parameter can say "optional" two ways -
+/// <c>= default</c> or a nullable type - and both are honoured here, so a non-nullable parameter
+/// with no default is a demand its author made and nothing else. A settable property says it a third
+/// way, with an initializer: <c>public string Cursor { get; set; } = "";</c> means "this when nothing
+/// sends it", and an initializer is compiled into the constructor body where reflection cannot see
+/// it. So a settable property is left to <c>[Required]</c>, because demanding one would refuse
+/// bodies its author meant to accept - a DTO whose fields all carry <c>= ""</c> being the ordinary
+/// shape of that.
+/// </para>
+/// <para>
+/// The rest of the rule is <c>JsonSchemaWriter</c>'s, member for member, because a rule stated twice
+/// is a rule that drifts: a default excludes a member in both places, <c>[ResponseOnly]</c> excludes
+/// it in both, and an assembly without nullable annotations enables neither. The one thing this
+/// cannot see is a type whose annotations the trimmer removed, which is why it is installed by the
+/// reflection-based deserializer alone - the source-generated resolvers carry <c>IsRequired</c> from
+/// their own generator, decided at build time from the same contract.
 /// </para>
 /// <para>
 /// Costs nothing per request. A modifier runs once per type, when
@@ -92,17 +102,16 @@ internal static class RequiredMemberPresence {
                 continue;
             }
 
-            // A member the reader cannot populate cannot be demanded of a caller. A get-only
-            // property is either constructor-bound - in which case the parameter below is what
-            // carries it - or it is not deserialized at all, and requiring one of those would
-            // refuse every request.
-            if (property.Set == null && Parameter(typeInfo.Type, member.Name) == null) {
+            // Only a member the constructor takes. A settable property's "optional" is an
+            // initializer, which is compiled into the constructor body and invisible here, so
+            // demanding one would refuse a body its author meant to accept.
+            if (Parameter(typeInfo.Type, member.Name) is not { } parameter) {
                 continue;
             }
 
             // The caller may omit a member the server fills in. This is the one exclusion the
             // document makes too.
-            if (Parameter(typeInfo.Type, member.Name) is { HasDefaultValue: true }) {
+            if (parameter.HasDefaultValue) {
                 continue;
             }
 
