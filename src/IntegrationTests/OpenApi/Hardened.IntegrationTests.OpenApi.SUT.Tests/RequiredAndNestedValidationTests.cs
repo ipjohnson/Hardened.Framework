@@ -142,7 +142,10 @@ public class RequiredAndNestedValidationTests {
     }
 
     /// <summary>
-    /// A required member of a nested object is enforced too, not only a range on one.
+    /// A required member of a nested object is enforced too, not only a range on one - and it is
+    /// reported under the element that was missing it. An error naming <c>sku</c> against the body
+    /// tells a caller with fifty lines nothing, which is the same reason the index is asserted
+    /// above.
     /// </summary>
     [HardenedTest]
     public async Task ARequiredMemberOfAnArrayItemIsEnforced(ITestWebApp testWebApp) {
@@ -150,6 +153,26 @@ public class RequiredAndNestedValidationTests {
             testWebApp,
             """{"species":"cat","weightGrams":3000,"lines":[{"quantity":2}]}""");
 
-        Assert.Contains(error.Errors!, e => e.Field.Contains("sku"));
+        var field = Assert.Single(error.Errors!, e => e.Field == "body.lines[0].sku");
+
+        Assert.Equal("required", field.Code);
+        Assert.Equal("sku is required.", field.Message);
+    }
+
+    /// <summary>
+    /// A missing value type and a missing reference type in one body, answered together.
+    /// </summary>
+    /// <remarks>
+    /// The trial's B-07. Presence was asked in two layers - <c>[JsonRequired]</c> for a value type,
+    /// <c>[Required]</c> for a reference type - and the reader aborted before the validator ran, so
+    /// a caller was told about <c>weightGrams</c> and learned about <c>lines</c> one round trip
+    /// later. The reader aggregates missing members, so asking it once answers both.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AMissingValueMemberDoesNotHideAMissingReferenceMember(ITestWebApp testWebApp) {
+        var error = await Rejected(testWebApp, """{"species":"cat"}""");
+
+        Assert.Contains(error.Errors!, e => e.Field == "body.weightGrams");
+        Assert.Contains(error.Errors!, e => e.Field == "body.lines");
     }
 }

@@ -67,6 +67,12 @@ public class MissingRequiredMembersTests {
     /// One missing member, reported as the validator would report it: same field spelling, same
     /// code, same wording - and no trace of the message's own quoting or punctuation.
     /// </summary>
+    /// <remarks>
+    /// The message names the member and the field carries the path, which is what
+    /// <c>ReportRequired</c> does - it is handed <c>"unitPriceCents"</c> and the context supplies the
+    /// path. Spelled <c>"body.unitPriceCents is required."</c> it read as though the caller had sent
+    /// a member called <c>body.unitPriceCents</c>.
+    /// </remarks>
     [Fact]
     public void AMissingMemberIsReportedAsARequiredFieldError() {
         var error = Assert.Single(
@@ -74,7 +80,7 @@ public class MissingRequiredMembersTests {
 
         Assert.Equal("body.unitPriceCents", error.Field);
         Assert.Equal("required", error.Code);
-        Assert.Equal("body.unitPriceCents is required.", error.Message);
+        Assert.Equal("unitPriceCents is required.", error.Message);
     }
 
     /// <summary>
@@ -110,6 +116,26 @@ public class MissingRequiredMembersTests {
             new[] { "request.category", "request.unitPriceCents" },
             errors.Select(error => error.Field));
     }
+
+    /// <summary>
+    /// The object that was missing it, not the body. A member of an array element is
+    /// <c>body.lines[0].sku</c>, which is the path the validator reports for the same member and the
+    /// only one a caller with fifty lines can act on - the exception's <c>Path</c> is that object.
+    /// </summary>
+    [Fact]
+    public void AMissingMemberOfANestedObjectIsReportedUnderItsOwnPath() {
+        var exception = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Order>(
+            """{"lines":[{"sku":"A"},{}]}""", new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+
+        var error = Assert.Single(Convert(exception).Errors!);
+
+        Assert.Equal("body.lines[1].sku", error.Field);
+        Assert.Equal("sku is required.", error.Message);
+    }
+
+    private record Line([property: JsonPropertyName("sku")] [property: JsonRequired] string Sku);
+
+    private record Order([property: JsonPropertyName("lines")] List<Line> Lines);
 
     /// <summary>
     /// Any other <c>JsonException</c> keeps the general body-read answer. Malformed JSON is not a

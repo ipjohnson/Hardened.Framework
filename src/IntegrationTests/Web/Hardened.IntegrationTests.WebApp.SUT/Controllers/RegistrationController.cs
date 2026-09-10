@@ -39,6 +39,16 @@ public class RegistrationController {
     [Post("/for/{tenant}")]
     public string RegisterForTenant(string tenant, RegistrationModel model) => $"{tenant}:{model.Name}";
 
+    /// <summary>
+    /// A body whose only declaration is the nullable annotation on its member.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="MemberRequest"/> carries no constraint at all, so nothing generates a validator
+    /// for it. What refuses an absent member here is the reader.
+    /// </remarks>
+    [Post("/member")]
+    public string RegisterMember(MemberRequest request) => request.MemberId;
+
     [Post("/anonymous")]
     public string Unconstrained(MathAddModel model) =>
         string.Join(",", model.Values ?? new List<int>());

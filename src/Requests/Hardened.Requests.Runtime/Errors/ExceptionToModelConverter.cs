@@ -196,7 +196,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
         new() {
             Type = "ValidationError",
             Message = "One or more validation errors occurred.",
-            Errors = MissingMembers(exception.Message, body) ?? [
+            Errors = MissingMembers(exception, body) ?? [
                 new RequestValidationFieldError {
                     Field = FieldFrom(exception.Path, body),
                     Code = "invalid",
@@ -230,7 +230,7 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// </para>
     /// <para>
     /// <b>Indistinguishable from the validator's own answer, deliberately.</b> Same field spelling,
-    /// same <c>required</c> code, same <c>"{field} is required."</c> wording - so which layer caught
+    /// same <c>required</c> code, same <c>"{member} is required."</c> wording - so which layer caught
     /// a missing member is this framework's business and not the caller's. System.Text.Json
     /// aggregates, listing every member it missed, so the list is complete rather than first-only.
     /// </para>
@@ -244,9 +244,12 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
     /// silently degrading in production.
     /// </para>
     /// </remarks>
-    private static List<RequestValidationFieldError>? MissingMembers(string message, string body) {
+    private static List<RequestValidationFieldError>? MissingMembers(
+        JsonException exception, string body) {
         const string prefix = "JSON deserialization for type ";
         const string marker = "missing required properties";
+
+        var message = exception.Message;
 
         if (!message.StartsWith(prefix, StringComparison.Ordinal) ||
             message.IndexOf(marker, StringComparison.Ordinal) == -1) {
@@ -279,10 +282,17 @@ public class ExceptionToModelConverter : IExceptionToModelConverter {
                 continue;
             }
 
-            var field = body + "." + member;
-
             errors.Add(new RequestValidationFieldError {
-                Field = field, Code = "required", Message = field + " is required."
+                // The object that was missing it, not the body: a member of an array element is
+                // body.lines[0].sku, which is the path a validator reports and the only one a
+                // caller with fifty lines can act on. The exception's Path is that object -
+                // $.lines[0] - and $ for the body itself.
+                Field = FieldFrom(exception.Path, body) + "." + member,
+                Code = "required",
+                // The member, not the path, which is what ValidationModules puts in this sentence:
+                // the field is already carried beside it, and repeating the prefix read as though
+                // the caller had sent a member called "body.sku".
+                Message = member + " is required."
             });
         }
 

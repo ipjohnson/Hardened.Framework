@@ -213,21 +213,26 @@ internal static class SchemaEmitter {
         var emitRequired = property.ConstrainedAsRequired &&
                            !TypeMapper.IsNonNullableValueType(csType, allSchemas);
 
-        // The other half of that sentence. A required member of a value type gets no [Required] -
-        // the validation generator would emit `value.x is null` against an int, which is CS0037 -
-        // so absence used to become default(T) in silence: an omitted enum became its first
-        // declared member and the API answered 201 with a value the caller never sent.
+        // Presence is the deserializer's job; content is the validator's.
         //
-        // [JsonRequired] rather than a nullable member, so the model's shape is unchanged and a
-        // handler still reads an int. The deserializer is the only layer that still knows the
-        // member was absent, and this is how it is told to care.
+        // A required member of a value type gets no [Required] - the validation generator would
+        // emit `value.x is null` against an int, which is CS0037 - so absence used to become
+        // default(T) in silence: an omitted enum became its first declared member and the API
+        // answered 201 with a value the caller never sent. [JsonRequired] rather than a nullable
+        // member, so the model's shape is unchanged and a handler still reads an int.
+        //
+        // A required reference member carries it too. It used to be left to [Required] alone,
+        // because the validator aggregates and the deserializer was thought to stop at the first
+        // fault - but System.Text.Json aggregates missing members as well, and splitting the one
+        // question across two layers meant whichever fired first hid the other's answer. A body
+        // that omitted an integer and three strings was told about the integer, and the three
+        // strings arrived one round trip later. Asked in one place, all four come back at once.
         //
         // Emitted here *and* as IsRequired in JsonTypeInfoEmitter, because the two deserializers
         // read different things: the reflection-based one reads this attribute, and the
         // source-generated resolver builds JsonPropertyInfo by hand and never sees it. readOnly is
         // enforced twice for the same reason - a null Setter there, [ResponseOnly] here.
-        if (property.ConstrainedAsRequired &&
-            TypeMapper.IsNonNullableValueType(csType, allSchemas)) {
+        if (property.ConstrainedAsRequired) {
             parameter.AddAttribute(
                 TypeDefinition.Get("System.Text.Json.Serialization", "JsonRequiredAttribute"))
                 .Target = "property";

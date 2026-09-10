@@ -5,6 +5,7 @@ using System.Text;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.OpenApiDocument;
 
@@ -413,10 +414,19 @@ public static class JsonSchemaWriter {
     /// A member whose constructor parameter carries a default is one the caller may omit: the
     /// server fills it in and answers as if it had been sent. The document said required for every
     /// non-nullable member, so a strictly validating client was made to send what the server did
-    /// not need. Only positional parameters are read, matched to the property by name the way a
-    /// record declares them; a property initializer is syntax rather than a symbol and is not seen.
-    /// A default the document cannot spell still makes the member optional, it just carries no
-    /// <c>default</c>, and so does a null one, which the member's nullability already says.
+    /// not need. Constructor parameters are matched to the property by name the way a record
+    /// declares them. A default the document cannot spell still makes the member optional, it just
+    /// carries no <c>default</c>, and so does a null one, which the member's nullability already
+    /// says.
+    ///
+    /// <para>
+    /// A property initializer counts, and is read from syntax because it is not on the symbol.
+    /// <c>public string RequestContext { get; set; } = "";</c> says the same thing a parameter's
+    /// <c>= ""</c> says - this when nothing sends it - and publishing such a member as required told
+    /// a client to send a value the server was filling in for them. It carries no <c>default</c>
+    /// either: the initializer is an expression rather than a constant, and half of them
+    /// (<c>= []</c>, <c>= new()</c>, <c>= DateTime.UtcNow</c>) have no JSON spelling at all.
+    /// </para>
     /// </remarks>
     private static (bool Declared, string? Literal) DefaultOf(
         INamedTypeSymbol owner, IPropertySymbol property, IAssemblySymbol? compilationAssembly) {
@@ -428,7 +438,24 @@ public static class JsonSchemaWriter {
             }
         }
 
-        return (false, null);
+        return (HasInitializer(property), null);
+    }
+
+    /// <summary>Whether the property is declared with an initializer.</summary>
+    /// <remarks>
+    /// From the declaring syntax, which is the only place it is: an initializer compiles into the
+    /// constructor body, so neither the symbol nor reflection over the built assembly can see one.
+    /// A property declared in more than one place cannot carry two initializers, so the first
+    /// reference that is a property declaration answers for all of them.
+    /// </remarks>
+    private static bool HasInitializer(IPropertySymbol property) {
+        foreach (var reference in property.DeclaringSyntaxReferences) {
+            if (reference.GetSyntax() is PropertyDeclarationSyntax { Initializer: not null }) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static string? DefaultLiteral(IParameterSymbol parameter, IAssemblySymbol? compilationAssembly) {

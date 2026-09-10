@@ -31,8 +31,59 @@ the whole of it.
 
 The attributes live in the `ValidationModules.Constraints` namespace. Every bounded attribute
 takes named `Min` and `Max` arguments, so a single bound is one argument. `[Required]` marks a
-member the caller must send. On a non-nullable value type it is unnecessary, because absence is
-unrepresentable there.
+member the caller may not send as `null`. On a non-nullable value type it is unnecessary, because
+absence is unrepresentable there — and `HRDV003` says so.
+
+### Presence, and who checks it
+
+A non-nullable reference member the constructor takes is one the caller must send. Nothing else
+declares it:
+
+```csharp
+public record NewTodo(string Title);        // {} is a 400: title is required
+public record Draft(string? Title);         // {} is accepted, Title is null
+public record Paged(string Cursor = "");    // {} is accepted, Cursor is ""
+```
+
+That is the same declaration the published document reads — `required: ["title"]` comes from the
+annotation on `Title` and from nothing else — so the document and the server now answer the same
+question the same way. A member the server owns is excluded from both by `[ResponseOnly]`.
+
+A settable property is not demanded, whatever its type:
+
+```csharp
+public class Manifest {
+    public string Id { get; set; } = "";        // optional, and the document says so
+    public string Carrier { get; set; }         // the document says required; nothing checks it
+}
+```
+
+An initializer is how a property says "this when nothing sends it", and it compiles into the
+constructor body where reflection cannot see it — so demanding these would refuse bodies their author
+meant to accept. The document reads the initializer from source and leaves `id` optional; `carrier`,
+which has none, is published as required and is `[Required]`'s to enforce. Write the demand where the
+reader can see it — a constructor parameter, `required string Carrier`, or `[JsonRequired]` — or
+declare `[Required]` and let the validator answer.
+
+**Presence is the reader's question; content is the validator's.** Absence is the one thing a
+validator cannot see, and the one thing the JSON reader knows for certain, so a body that omits a
+required member is refused before any constraint runs. Every member it missed is named at once:
+
+```json
+{ "errors": [
+  { "field": "body.accountId", "code": "required", "message": "accountId is required." },
+  { "field": "body.weightKg",  "code": "required", "message": "weightKg is required." } ] }
+```
+
+The trade is worth knowing: a body that both omits a required member and breaks a constraint on a
+member it did send is answered about the omission, and about the constraint on the next request.
+Everything the reader accepted is validated together, as before.
+
+A non-nullable **value** type is not covered by this. The document publishes one as required because
+C# serialization cannot omit it — a fact about what a response always contains rather than a demand
+its author made, and `int?` or `= 0` are the only ways C# has to say otherwise. To demand one, say
+so: `required int Grams`, or `[JsonRequired]`. A contract-first model needs neither, because a
+contract's `required` is a demand and is compiled as one whatever the member's type.
 
 | Attribute | Checks |
 |---|---|
@@ -135,7 +186,9 @@ and the failure message says "at least 1" without inventing an upper bound.
 A failed request never reaches the handler. The generated filter answers 400 with one entry per
 failed field, in the shape at the top of this page. A value that fails to parse as its declared
 type takes the same shape: `?limit=abc` against an `int` parameter answers this envelope with
-`limit` as the field, not a 500.
+`limit` as the field, not a 500. So does a body that omitted a required member, reported under the
+object that was missing it — `body.lines[0].sku`, not `body.sku`. Which layer caught a fault is not
+something a caller can tell.
 
 ## What the document says
 

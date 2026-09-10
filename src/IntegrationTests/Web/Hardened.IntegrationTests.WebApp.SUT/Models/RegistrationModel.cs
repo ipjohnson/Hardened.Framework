@@ -28,6 +28,19 @@ public class RegistrationModel {
     public AddressModel? Address { get; set; }
 }
 
+/// <summary>
+/// A member declared present by its type and by nothing else: no <c>[Required]</c>, no
+/// <c>required</c> modifier, no constraint of any kind.
+/// </summary>
+/// <remarks>
+/// The trial's blocker, in the shape it was found in. The published document says
+/// <c>required: ["memberId"]</c> - written from the nullable annotation - and the validator is built
+/// from <c>[Required]</c> alone, so <c>{}</c> used to answer 201 with a null in a domain whose C#
+/// type says it cannot be there. Deliberately unconstrained: a <c>[StringLength]</c> here would have
+/// given the model a validator, which is how the case hid on models that happened to carry one.
+/// </remarks>
+public record MemberRequest(string MemberId);
+
 /// <summary>A second level, so a failure has a path to report rather than a field.</summary>
 /// <remarks>Sealed because VM0031 (new in ValidationModules rc1012) otherwise asks what should
 /// happen when a more derived value reaches [ValidateNested] - nothing derives from this.</remarks>

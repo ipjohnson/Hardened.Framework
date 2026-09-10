@@ -128,6 +128,13 @@ after publishing.
 document, so an application using it publishes a description its own wire format disagrees with.
 Leave it off and let the build write the converters.
 
+One rule does not survive the publish. A non-nullable reference member of a **hand-written** model
+is required of a caller because the reader reads the model's nullable annotations, which is
+reflection — so under AOT that member becomes optional again while the document still publishes it
+as required. Say it in the model instead, with `required string Title` or `[JsonRequired]`: the
+source generator reads both, and a contract-first model needs neither, because its `required` was
+compiled in at build time. See [Validation](/guide/validation#presence-and-who-checks-it).
+
 ## Next
 
 - [Content negotiation](/guide/content-negotiation): how the JSON serializer is chosen

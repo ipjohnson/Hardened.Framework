@@ -594,6 +594,56 @@ public class OpenApiDocumentEmissionTests {
     }
 
     /// <summary>
+    /// A property initializer says what a positional default says - this when nothing sends it - so
+    /// the member is not required either.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The mutable-DTO spelling, and it was published as required because an initializer is syntax
+    /// rather than a symbol and nothing looked for it. This repository's own Invoke fixture is that
+    /// shape: four settable properties, three of them carrying <c>= ""</c> or <c>= []</c>, all
+    /// documented as demands on a caller the handler was filling in for.
+    /// </para>
+    /// <para>
+    /// No <c>default</c> is written. The initializer is an expression rather than a constant, and
+    /// half of them - <c>= []</c>, <c>= new()</c>, <c>= DateTime.UtcNow</c> - have no JSON spelling
+    /// at all.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void APropertyInitializerIsADefaultAndTheMemberIsNotRequired() {
+        var document = JsonDocument.Parse(Extract(
+            RequestGeneratorHarness
+                .Generate(Application(
+                    """
+                    public class Manifest {
+                        public string Id { get; set; } = "";
+
+                        public List<string> Records { get; set; } = [];
+
+                        public string Carrier { get; set; }
+
+                        public int Quantity { get; set; }
+                    }
+
+                    public class ManifestController {
+                        [Post("/manifests")]
+                        public Manifest Place(Manifest manifest) => manifest;
+                    }
+                    """,
+                    Enable))
+                .AssertNoErrors()
+                .SourceContaining("OpenApiDocument"))).RootElement;
+
+        var manifest = document
+            .GetProperty("components").GetProperty("schemas").GetProperty("Manifest");
+
+        Assert.Equal(new[] { "carrier", "quantity" }, Required(manifest));
+        Assert.False(manifest.GetProperty("properties").GetProperty("id")
+            .TryGetProperty("default", out _));
+    }
+
+    /// <summary>
     /// A constructed type is one component per set of arguments. Page&lt;Shipment&gt; and
     /// Page&lt;Courier&gt; shared one component named Page, written from whichever was reached
     /// first, so the second operation was documented as returning the first one's items.

@@ -3816,6 +3816,49 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/registration/member": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "operationId": "registerMember",
+        "summary": "A body whose only declaration is the nullable annotation on its member.",
+        "description": "carries no constraint at all, so nothing generates a validator for it. What refuses an absent member here is the reader.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MemberRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/response-cache/catalog": {
       "get": {
         "tags": [
@@ -5598,7 +5641,6 @@
       "Document": {
         "type": "object",
         "required": [
-          "version",
           "served"
         ],
         "properties": {
@@ -5670,6 +5712,18 @@
           },
           "settled": {
             "type": "boolean"
+          }
+        }
+      },
+      "MemberRequest": {
+        "type": "object",
+        "description": "A member declared present by its type and by nothing else: no [Required], no required modifier, no constraint of any kind.",
+        "required": [
+          "memberId"
+        ],
+        "properties": {
+          "memberId": {
+            "type": "string"
           }
         }
       },
