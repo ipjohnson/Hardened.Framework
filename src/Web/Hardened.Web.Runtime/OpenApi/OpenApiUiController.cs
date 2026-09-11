@@ -1,4 +1,4 @@
-namespace Hardened.Web.Runtime.OpenApi;
+﻿namespace Hardened.Web.Runtime.OpenApi;
 
 /// <summary>
 /// Turns one page's configuration into its model.
@@ -22,5 +22,6 @@ public class OpenApiUiController {
         new(configuration.Title,
             configuration.DocumentPath,
             configuration.ScriptUrl,
-            configuration.ScriptIntegrity);
+            configuration.ScriptIntegrity,
+            configuration.MessagePackScriptUrl);
 }

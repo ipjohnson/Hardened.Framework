@@ -1,4 +1,5 @@
-using System.Text;
+﻿using System.Text;
+using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Runtime.QueryString;
@@ -150,4 +151,89 @@ public class OpenApiUiPageTests {
 
         Assert.Contains(nameof(OpenApiUiModel), exception.Message);
     }
+
+    #region the MessagePack plugin
+
+    private static readonly OpenApiUiModel WithPlugin = Model with {
+        MessagePackScriptUrl = "https://cdn.example.com/msgpack.min.js"
+    };
+
+    /// <summary>
+    /// A page installing no plugin is the page it has always been: the attribute form, and no
+    /// inline script anywhere on it.
+    /// </summary>
+    [Fact]
+    public async Task WriteOutput_WithoutThePluginThereIsNoInlineScript() {
+        var (page, _) = await Render(Model);
+
+        Assert.Contains("<script id=\"api-reference\" data-url=\"/openapi.json\"></script>", page);
+        Assert.DoesNotContain("createApiReference", page);
+        Assert.DoesNotContain("msgpack", page);
+    }
+
+    /// <summary>
+    /// A plugin is a function, so it cannot travel in a <c>data-</c> attribute. Installing one moves
+    /// the page to <c>createApiReference</c>, which is the form that takes one.
+    /// </summary>
+    [Fact]
+    public async Task WriteOutput_ThePluginFormInitialisesInScript() {
+        var (page, _) = await Render(WithPlugin);
+
+        Assert.Contains("<div id=\"app\"></div>", page);
+        Assert.Contains("Scalar.createApiReference('#app', {", page);
+        Assert.DoesNotContain("data-url", page);
+    }
+
+    /// <summary>The decoder, from wherever it was configured.</summary>
+    [Fact]
+    public async Task WriteOutput_ThePluginFormLoadsTheDecoder() {
+        var (page, _) = await Render(WithPlugin);
+
+        Assert.Contains("<script src=\"https://cdn.example.com/msgpack.min.js\"></script>", page);
+    }
+
+    /// <summary>
+    /// The two spellings in the wild, and nothing else - which is what lets a page installing this
+    /// keep Scalar's own rendering for every other media type.
+    /// </summary>
+    [Fact]
+    public async Task WriteOutput_ThePluginClaimsTheMessagePackMediaTypesOnly() {
+        var (page, _) = await Render(WithPlugin);
+
+        Assert.Contains("mimeTypes: ['application/msgpack', 'application/x-msgpack']", page);
+        Assert.DoesNotContain("'application/json'", page);
+    }
+
+    /// <summary>
+    /// The reference UI keeps its own script tag and its hash. The plugin changes how the page
+    /// initialises, not what it initialises from.
+    /// </summary>
+    [Fact]
+    public async Task WriteOutput_ThePluginFormKeepsTheIntegrityHash() {
+        var (page, _) = await Render(WithPlugin);
+
+        Assert.Contains("src=\"https://cdn.example.com/ui.js\"", page);
+        Assert.Contains("integrity=\"sha384-abc\"", page);
+        Assert.Contains("crossorigin=\"anonymous\"", page);
+    }
+
+    /// <summary>
+    /// The document URL now lands in a JavaScript string literal rather than an HTML attribute, so
+    /// it is escaped as one. Asserted by parsing it back, which is the only check that says the
+    /// value survived rather than that some escape sequence appeared.
+    /// </summary>
+    [Theory]
+    [InlineData("/openapi.json")]
+    [InlineData("/a\";globalThis.pwned=1;//")]
+    [InlineData("/a\\b</script>")]
+    public async Task WriteOutput_TheDocumentUrlCannotCloseTheScript(string documentPath) {
+        var (page, _) = await Render(WithPlugin with { DocumentPath = documentPath });
+
+        var start = page.IndexOf("url: ", StringComparison.Ordinal) + "url: ".Length;
+        var literal = page[start..page.IndexOf(",\n", start, StringComparison.Ordinal)];
+
+        Assert.Equal(documentPath, JsonSerializer.Deserialize<string>(literal));
+    }
+
+    #endregion
 }

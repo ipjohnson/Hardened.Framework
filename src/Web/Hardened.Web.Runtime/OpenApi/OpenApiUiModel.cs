@@ -1,4 +1,4 @@
-namespace Hardened.Web.Runtime.OpenApi;
+﻿namespace Hardened.Web.Runtime.OpenApi;
 
 /// <summary>
 /// Everything the reference page needs, resolved from configuration before it is rendered.
@@ -13,4 +13,13 @@ public sealed record OpenApiUiModel(
     string Title,
     string DocumentPath,
     string ScriptUrl,
-    string? ScriptIntegrity);
+    string? ScriptIntegrity,
+    /// <summary>
+    /// Where the MessagePack decoder is loaded from, or null where the page installs no plugin.
+    /// </summary>
+    /// <remarks>
+    /// One nullable field rather than a flag beside a URL. The two could not usefully disagree, and
+    /// a page that is on with nowhere to load the decoder from is not a state worth being able to
+    /// express.
+    /// </remarks>
+    string? MessagePackScriptUrl = null);
