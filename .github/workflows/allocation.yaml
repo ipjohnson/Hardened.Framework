@@ -1,0 +1,105 @@
+name: allocation
+
+# The half of the benchmark suite that is worth gating on, and the reason it is a separate
+# workflow from benchmarks.yaml rather than a job in it: that one is a weekly reading of trends
+# and deliberately fails nothing, while this one blocks a pull request.
+#
+# It gates bytes, never nanoseconds. Hosted runners are shared vCPUs with no pinning, and
+# benchmarks.yaml says at length why a threshold on absolute times would flake there. That
+# argument does not reach allocation - BytesAllocatedPerOperation is a count, and it does not move
+# with how fast the machine is. scripts/allocation-gate.py has the measurements behind that.
+#
+# The verification pass runs first, and runs here rather than only on the Sunday schedule because
+# that is the lesson of the run it was added after: the gate caught a broken harness on 23 August
+# and nothing acted on it until 11 September, because a scheduled workflow failing is quieter than
+# a pull request going red.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  allocation:
+    runs-on: ubuntu-latest
+    # The two measured classes take about four minutes on a developer machine and rather longer on
+    # a shared runner. The ceiling bounds a run that has hung without cutting off a slow one.
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Two SDKs, for the reason build-package.yaml gives at length: global.json selects the .NET
+      # 11 preview to compile with, and the net8.0 assemblies need the 8.0 runtime to start.
+      #
+      # Both are named exactly. A benchmark is a measurement and the runtime it was taken on is
+      # part of the result, which matters more here than in benchmarks.yaml: a patch bump to .NET 8
+      # can change what the BCL allocates underneath the pipeline, and against a floating version
+      # that arrives as every entry in the baseline moving at once on a branch that changed no
+      # pipeline code. Bump it deliberately, and re-baseline in the same commit.
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            11.0.100-preview.7.26381.103
+
+      # Part of the result, and the first thing to read when every entry moves together.
+      - name: Record the runtime
+        run: |
+          {
+            echo "## Runtime"
+            echo
+            echo '```'
+            echo "sdk:      $(dotnet --version)"
+            echo "runtimes: $(dotnet --list-runtimes | grep Microsoft.NETCore.App | tr '\n' ' ')"
+            echo "cpu:      $(nproc) cores"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - run: dotnet restore Hardened.slnx
+
+      - run: dotnet build src/Benchmarks/Hardened.Benchmarks --no-restore --configuration Release
+
+      # Seconds, and it decides whether anything below it means anything: a route that fails to
+      # match still completes, faster than one that matches and allocating almost nothing, so an
+      # unverified suite would report an excellent number for doing nothing and this gate would
+      # accept it.
+      - name: Verify every pipeline agrees before measuring
+        run: |
+          dotnet run --project src/Benchmarks/Hardened.Benchmarks \
+            --configuration Release --no-build -- --verify --aspnet
+
+      # --job short, because iteration count does not move allocation. Measured on 2026-09-11: the
+      # fifteen pipeline benchmarks read identically under short and under the default job.
+      #
+      # --exporters json, because the markdown and CSV exporters round to two decimal places of a
+      # kilobyte, which is coarser than the 24 bytes this is meant to catch.
+      #
+      # --artifacts is pinned for the reason benchmarks.yaml gives: BenchmarkDotNet writes relative
+      # to the working directory rather than the project, so with `--project` from the repo root
+      # the results land somewhere the gate would not find them.
+      - name: Measure
+        run: |
+          dotnet run --project src/Benchmarks/Hardened.Benchmarks \
+            --configuration Release --no-build -- \
+            --no-verify --filter "*PipelineBenchmarks*" "*StringConversionBenchmarks*" \
+            --job short --exporters json --artifacts BenchmarkDotNet.Artifacts
+
+      - name: Gate on allocation
+        run: python3 scripts/allocation-gate.py --results BenchmarkDotNet.Artifacts/results
+
+      # Uploaded on a failure too, which is what makes a red run usable for re-baselining:
+      #   gh run download <run-id> -n allocation-results -D /tmp/alloc
+      #   python3 scripts/allocation-gate.py --results /tmp/alloc/results --update
+      - name: Upload full results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allocation-results
+          path: BenchmarkDotNet.Artifacts
+          retention-days: 90
+          if-no-files-found: warn
