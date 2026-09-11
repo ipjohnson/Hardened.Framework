@@ -111,6 +111,54 @@ Two real bugs were caught this way while building it:
   its status overwritten with 404 by the terminal delegate. `HttpContextFactory.TrackingResponseFeature`
   tracks the same signal Kestrel does — headers flush on first body write.
 
+It caught a third later, and that one says something about the gate rather than about the harness.
+From 23 August to 11 September 2026 the scheduled run failed every week at this step: `hardened-native`
+and `hardened-features` answered the miss with no status at all. The SUT declares `[AspNetCoreRuntime]`
+so one assembly can serve both measured deployments, and `AspNetCoreRuntimeLibrary` replaces
+`IResourceNotFoundHandler` unconditionally with the one that leaves the status unset for ASP.NET's own
+terminal 404 to answer. `HardenedAppFactory.BuildProvider` puts the terminal handler back for the two
+harnesses that own the whole response.
+
+The gate did its job. Nobody read it, because a scheduled workflow failing is quieter than a build
+failing, which is the same observation the comment at the top of `benchmarks.yaml` makes about the
+credential it lost. If these numbers matter between Sundays, run `--verify` locally.
+
+## The allocation gate
+
+`allocation.yaml` runs on every pull request. It runs the verification pass, measures
+`PipelineBenchmarks` and `StringConversionBenchmarks` at `--job short`, and fails the build when a
+benchmark allocates more per operation than `allocation-baseline.json` records for it.
+
+It gates bytes and never nanoseconds, which is the distinction the comment at the top of
+`benchmarks.yaml` draws. `BytesAllocatedPerOperation` is a count rather than a duration, so it does
+not move with how fast the machine is or what the neighbouring container is doing. It is also the
+column that carried the signal the last time this mattered: the three allocations removed in #335
+came to 56 bytes per request and every one of the fifteen pipeline measurements moved by exactly
+the predicted amount, while the timings for that same change moved by less than the run-to-run
+variance on a quiet laptop running the full default job.
+
+A ceiling, not a ratchet. An improvement is printed and the ceiling is left where it is, for the
+reason `scripts/coverage-gate.py` gives at length about floors. Move one deliberately:
+
+```bash
+gh run download <run-id> -n allocation-results -D /tmp/alloc
+python3 scripts/allocation-gate.py --results /tmp/alloc/results --update
+```
+
+Take the reading from a CI run rather than a local one, and never run `--update` in CI. The results
+artifact is uploaded on a failed run too, which is what makes a red run usable for re-baselining.
+
+The platform is part of the reading. Seeding the baseline on 2026-09-11, twenty of the twenty-two
+benchmarks read the same byte for byte on an arm64 macOS laptop and on the x64 Linux runner. The
+other two were `POST sum`, which reads a JSON body, and it allocated 32 bytes more on the runner in
+all three harnesses. A local run will therefore report those as improvements, which is harmless:
+improvements do not fail and do not move the ceiling.
+
+If every entry moves by the same handful of bytes in the same direction on a branch that changed no
+pipeline code, read the runtime version in the run summary before reading the diff. A patch bump to
+.NET 8 can change what the BCL allocates underneath the pipeline. That is why the workflow names
+both SDKs exactly rather than floating them.
+
 ## Adding a scenario
 
 Add it to `Scenarios` in `Infrastructure/RequestScenario.cs`, then implement the same route in

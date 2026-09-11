@@ -23,7 +23,7 @@ public class StartupBenchmarks {
     /// <summary>Service collection populated and provider built, nothing resolved yet.</summary>
     [Benchmark(Baseline = true)]
     public object BuildProvider() {
-        using var provider = HardenedAppFactory.BuildProvider();
+        using var provider = HardenedAppFactory.BuildProvider(terminalHost: true);
 
         return provider;
     }
@@ -31,7 +31,7 @@ public class StartupBenchmarks {
     /// <summary>Adds the startup services — the filter registry and CORS populate here.</summary>
     [Benchmark]
     public object BuildAndStart() {
-        using var provider = HardenedAppFactory.BuildProvider();
+        using var provider = HardenedAppFactory.BuildProvider(terminalHost: true);
 
         HardenedAppFactory.RunStartup(provider);
 

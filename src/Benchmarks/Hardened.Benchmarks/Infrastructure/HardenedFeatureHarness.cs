@@ -34,7 +34,7 @@ public sealed class HardenedFeatureHarness : IPipelineHarness {
     public string Name => "hardened-features";
 
     public HardenedFeatureHarness() {
-        _provider = HardenedAppFactory.BuildProvider();
+        _provider = HardenedAppFactory.BuildProvider(terminalHost: true);
         HardenedAppFactory.RunStartup(_provider);
 
         // What KestrelServerRunner.StartAsync does before it begins listening.

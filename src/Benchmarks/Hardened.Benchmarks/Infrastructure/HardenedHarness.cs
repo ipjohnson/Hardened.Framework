@@ -1,8 +1,10 @@
 using Hardened.Benchmarks.Contracts;
 using Hardened.Benchmarks.Sut;
+using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Abstract.QueryString;
+using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
@@ -11,6 +13,7 @@ using Hardened.Web.Runtime.Handlers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
@@ -29,7 +32,12 @@ namespace Hardened.Benchmarks.Infrastructure;
 /// </summary>
 internal static class HardenedAppFactory {
 
-    public static ServiceProvider BuildProvider() {
+    /// <param name="terminalHost">
+    /// Whether this harness owns the whole response. Every Hardened host does except the ASP.NET
+    /// adapter, which sits in a pipeline that may have static files, another middleware or MVC
+    /// behind it.
+    /// </param>
+    public static ServiceProvider BuildProvider(bool terminalHost) {
         var services = new ServiceCollection();
 
         // No providers: logging is registered because the framework requires it, but anything
@@ -46,6 +54,20 @@ internal static class HardenedAppFactory {
         services.AddTransient<ISumService, SumService>();
 
         new BenchmarkApplication().PopulateServiceCollection(services);
+
+        // The SUT declares [AspNetCoreRuntime] so one assembly can serve both measured
+        // deployments, and AspNetCoreRuntimeLibrary replaces IResourceNotFoundHandler
+        // unconditionally with the one that leaves the status unset for ASP.NET's own terminal 404
+        // to answer. On a host that owns the whole response nothing answers it, so a miss came back
+        // with no status at all - which is what the verification pass reports as "expected 404, got
+        // 200 and no body", and why it has been refusing to time anything.
+        //
+        // Put back here rather than by splitting the SUT in two, because one assembly serving both
+        // deployments is the thing that makes the two columns comparable.
+        if (terminalHost) {
+            services.RemoveAll<IResourceNotFoundHandler>();
+            services.AddSingleton<IResourceNotFoundHandler, ResourceNotFoundHandler>();
+        }
 
         return services.BuildServiceProvider();
     }
@@ -74,7 +96,7 @@ public sealed class HardenedNativeHarness : IPipelineHarness {
     public string Name => "hardened-native";
 
     public HardenedNativeHarness() {
-        _provider = HardenedAppFactory.BuildProvider();
+        _provider = HardenedAppFactory.BuildProvider(terminalHost: true);
         HardenedAppFactory.RunStartup(_provider);
 
         // The transport-free equivalent of what UseHardened does for ASP.NET, and of what
@@ -177,7 +199,7 @@ public sealed class HardenedAspNetHarness : IPipelineHarness {
     public string Name => "hardened-aspnet";
 
     public HardenedAspNetHarness() {
-        _provider = HardenedAppFactory.BuildProvider();
+        _provider = HardenedAppFactory.BuildProvider(terminalHost: false);
         HardenedAppFactory.RunStartup(_provider);
 
         // UseHardened appends the web filter to the middleware chain itself, which is why this
