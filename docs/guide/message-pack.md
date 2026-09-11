@@ -219,10 +219,27 @@ var options = MessagePackSerializerOptions.Standard
         [], [HardenedFormatterResolver.Instance, StandardResolver.Instance]));
 ```
 
-## What is not covered
+## A `oneOf` is JSON only
 
-**A `oneOf` schema.** The generated choice type has a JSON converter written for it and no
-MessagePack formatter.
+MessagePack does not carry a choice, and will not. The JSON side resolves one with a generated
+converter that reads a discriminator out of the payload before it knows which type to build;
+MessagePack binds a formatter to a static type at build and has no equivalent step, and a binary
+format that carries no discriminator of its own is the wrong place to put a choice.
+
+So a contract declaring a `oneOf` generates and serializes it as JSON exactly as before, and the
+build says the other representation is short of it:
+
+```
+HOAT034: Schema 'Payload' is a oneOf, and MessagePack does not carry one - a choice is
+resolved from a discriminator in the payload, which is a JSON-only shape here. It is
+generated and serialized as JSON as before; an operation that answers it as
+application/x-msgpack fails at the response. Declare that operation as JSON only.
+```
+
+A warning rather than an error, because a contract is free to declare a choice that no MessagePack
+operation ever answers with.
+
+## What is not covered
 
 **`Vary: Accept` and response caching across two representations.** A cached answer is stored under
 the request rather than under the representation it was negotiated into.

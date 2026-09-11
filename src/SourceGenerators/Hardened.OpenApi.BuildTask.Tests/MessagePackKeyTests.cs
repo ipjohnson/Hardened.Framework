@@ -288,4 +288,42 @@ public class MessagePackKeyTests {
     public void TheOtherModesDemandNothing(SpecSerializer serializer) {
         Assert.Empty(Findings(Spec(serializer, At("sensor", null), At("note", null))));
     }
+
+    private static ServiceSpecModel WithChoice(SpecSerializer serializer) =>
+        new() {
+            FileName = "spec",
+            Serializer = serializer,
+            Schemas = { new SchemaModel { Name = "Payload", Kind = SchemaKind.OneOf } }
+        };
+
+    private static SpecDiagnostics.Problem[] Choices(ServiceSpecModel model) =>
+        SpecDiagnostics.Find(model, "HOAT").Where(problem => problem.Code == "HOAT034").ToArray();
+
+    /// <summary>
+    /// A choice is a JSON-only shape here. It is resolved from a discriminator read out of the
+    /// payload, and MessagePack binds a formatter to a static type with no equivalent step - so
+    /// the choice type gets no formatter, and an operation answering it as MessagePack fails at
+    /// the response rather than at the build. Said at the build instead.
+    /// </summary>
+    [Theory]
+    [InlineData(SpecSerializer.MessagePackNamed)]
+    [InlineData(SpecSerializer.MessagePackKeyed)]
+    public void AChoiceUnderMessagePackIsReported(SpecSerializer serializer) {
+        var problem = Assert.Single(Choices(WithChoice(serializer)));
+
+        Assert.Contains("Payload", problem.Message);
+        Assert.Contains("oneOf", problem.Message);
+    }
+
+    /// <summary>
+    /// A warning rather than a build error: the contract is free to declare a choice no MessagePack
+    /// operation answers with, and its JSON representation is unchanged.
+    /// </summary>
+    [Fact]
+    public void TheChoiceFindingDoesNotStopTheBuild() =>
+        Assert.False(Assert.Single(Choices(WithChoice(SpecSerializer.MessagePackKeyed))).Fatal);
+
+    [Fact]
+    public void AChoiceUnderJsonIsNotReported() =>
+        Assert.Empty(Choices(WithChoice(SpecSerializer.Json)));
 }

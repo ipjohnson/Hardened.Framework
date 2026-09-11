@@ -24,7 +24,7 @@ namespace Hardened.Idl;
 /// left with it.
 /// </para>
 /// <para>
-/// Codes are the front end's prefix plus 020-024, 027, 032 and 033, one number per finder. 032 rather
+/// Codes are the front end's prefix plus 020-024, 027 and 032-034, one number per finder. 032 rather
 /// than the retired 025, because a project still carrying a NoWarn for what 025 used to be would
 /// silence a diagnostic about something else; 028-031 belong to the document export. The prefix
 /// is a
@@ -378,6 +378,7 @@ internal static class SpecDiagnostics {
         FindUnmappedKeywords(model, diagnosticPrefix, problems);
         FindUnboundPathTokens(model, diagnosticPrefix, problems);
         FindMessagePackKeys(model, diagnosticPrefix, problems);
+        FindMessagePackUnions(model, diagnosticPrefix, problems);
 
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
@@ -484,6 +485,51 @@ internal static class SpecDiagnostics {
 
                 next++;
             }
+        }
+    }
+
+    /// <summary>
+    /// A <c>oneOf</c> under a MessagePack serializer, which does not carry one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A choice is a JSON-only shape here, deliberately.</b> The JSON side resolves one with a
+    /// generated converter that reads a discriminator out of the payload before it knows which
+    /// type to build. MessagePack binds a formatter to a static type at build and has no
+    /// equivalent step, and a binary format that carries no discriminator of its own is not the
+    /// place to put a choice. So the choice type gets no formatter and no
+    /// <c>[MessagePackObject]</c>.
+    /// </para>
+    /// <para>
+    /// Reported rather than left to the runtime. The failure is otherwise a
+    /// <c>MessagePackSerializationException</c> on the first response that carries the choice - a
+    /// 500 in front of a caller, from a contract that built clean.
+    /// </para>
+    /// <para>
+    /// A warning, not a build error. A contract is free to declare a choice that no MessagePack
+    /// operation ever answers with, and the JSON representation of it works exactly as it did; what
+    /// is worth saying is that one representation of this document is short of a shape the other
+    /// has.
+    /// </para>
+    /// </remarks>
+    private static void FindMessagePackUnions(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
+        if (model.Serializer == SpecSerializer.Json) {
+            return;
+        }
+
+        foreach (var schema in model.Schemas) {
+            if (schema.Kind != SchemaKind.OneOf) {
+                continue;
+            }
+
+            problems.Add(new Problem(
+                prefix + "034",
+                $"Schema '{schema.Name}' is a oneOf, and MessagePack does not carry one - a choice " +
+                "is resolved from a discriminator in the payload, which is a JSON-only shape here. " +
+                "It is generated and serialized as JSON as before; an operation that answers it as " +
+                "application/x-msgpack fails at the response. Declare that operation as JSON only.",
+                fatal: false));
         }
     }
 
