@@ -243,11 +243,12 @@ To control an error status, set `context.Response.Status` from an
 
 ### Response shape
 
-`[RawResponse]` writes the return value to the body without serializing it:
+`[Produces]` states the media type, and a handler returning `string`, `byte[]` or `Stream` writes
+its value to the body without serializing it:
 
 ```csharp
 [Get("/robots.txt")]
-[RawResponse("text/plain")]
+[Produces("text/plain")]
 public string Robots() => "User-agent: *\nDisallow:";
 ```
 

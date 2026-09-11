@@ -305,7 +305,23 @@ namespace Hardened.Requests.Runtime.Execution
     }
     public class ExecutionRequestHandlerInfo : Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo
     {
-        public ExecutionRequestHandlerInfo(string path, string method, System.Type handlerType, string invokeMethod, System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null, System.Collections.Generic.IReadOnlyList<object>? metadata = null, Hardened.Requests.Abstract.Authorization.Requirement? requirement = null, int? successStatus = default, object? nullResponseBody = null, System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null, string? bodyParameterName = null, int? validationErrorStatus = default, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout = null, bool streamsResponse = false, System.Collections.Generic.IReadOnlyDictionary<int, object>? declaredErrorBodies = null) { }
+        public ExecutionRequestHandlerInfo(
+                    string path,
+                    string method,
+                    System.Type handlerType,
+                    string invokeMethod,
+                    System.Collections.Generic.IReadOnlyList<Hardened.Requests.Abstract.Execution.IExecutionRequestParameter>? parameters = null,
+                    System.Collections.Generic.IReadOnlyList<object>? metadata = null,
+                    Hardened.Requests.Abstract.Authorization.Requirement? requirement = null,
+                    int? successStatus = default,
+                    object? nullResponseBody = null,
+                    System.Collections.Generic.IReadOnlyList<string>? producedContentTypes = null,
+                    string? bodyParameterName = null,
+                    int? validationErrorStatus = default,
+                    Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout = null,
+                    bool streamsResponse = false,
+                    System.Collections.Generic.IReadOnlyDictionary<int, object>? declaredErrorBodies = null,
+                    bool writesRawBytes = false) { }
         public string? BodyParameterName { get; }
         public System.Collections.Generic.IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
         public System.Type HandlerType { get; }
@@ -321,10 +337,12 @@ namespace Hardened.Requests.Runtime.Execution
         public int? SuccessStatus { get; }
         public Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Timeout { get; }
         public int? ValidationErrorStatus { get; }
+        public bool WritesRawBytes { get; }
         public Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo WithPath(string? path) { }
     }
     public static class ExecutionRequestHandlerInfoExtensions
     {
+        public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithProducedContentTypes(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Collections.Generic.IReadOnlyList<string> producedContentTypes) { }
         public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithRequirement(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Abstract.Authorization.Requirement? requirement) { }
         public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithTimeout(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? timeout) { }
         public static Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo WithWiderRungs(this Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Collections.Generic.IReadOnlyList<object> rungs) { }
@@ -359,7 +377,7 @@ namespace Hardened.Requests.Runtime.Execution
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class IOFilterProvider : Hardened.Requests.Abstract.RequestFilter.IIOFilterProvider
     {
-        public IOFilterProvider(Hardened.Requests.Abstract.Serializer.IContextSerializationService contextSerializationService, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IResponseHeaderConfiguration> responseHeaderConfiguration, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Streaming.IStreamingConfiguration> streamingConfiguration) { }
+        public IOFilterProvider(Hardened.Requests.Abstract.Serializer.IContextSerializationService contextSerializationService, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IResponseHeaderConfiguration> responseHeaderConfiguration, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Streaming.IStreamingConfiguration> streamingConfiguration, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService? serializationLocatorService = null, Hardened.Requests.Runtime.Serializer.RawResponseSerializer? rawResponseWriter = null, Hardened.Requests.Runtime.Serializer.StreamingJsonResponseSerializer? streamingWriter = null, Hardened.Requests.Abstract.Serializer.IContentNegotiationPolicy? negotiationPolicy = null) { }
         public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest) { }
         public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideAsyncEnumerableFilter<TItem>(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest, Hardened.Requests.Abstract.Serializer.IStreamFraming? framing) { }
         public Hardened.Requests.Abstract.Execution.IExecutionFilter ProvideFilter(Hardened.Requests.Abstract.Execution.IExecutionRequestHandlerInfo handlerInfo, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task<Hardened.Requests.Abstract.Execution.IExecutionRequestParameters>> deserializeRequest) { }
@@ -779,9 +797,8 @@ namespace Hardened.Requests.Runtime.Serializer
     public class AotResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
     {
         public AotResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
+        public string ContentType { get; }
         public bool IsDefaultSerializer { get; }
-        public int Order { get; }
-        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
@@ -790,6 +807,7 @@ namespace Hardened.Requests.Runtime.Serializer
         public ContextSerializationService(Microsoft.Extensions.Logging.ILogger<Hardened.Requests.Runtime.Serializer.ContextSerializationService> logger, Hardened.Requests.Abstract.Serializer.ISerializationLocatorService serializationLocatorService, Hardened.Requests.Abstract.Serializer.INullValueResponseHandler nullValueResponse, Hardened.Requests.Abstract.Serializer.IExceptionResponseSerializer exceptionResponseSerializer) { }
         public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Serializer.IResponseSerializer? bound, string? declaredContentType) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class ExceptionResponseSerializer : Hardened.Requests.Abstract.Serializer.IExceptionResponseSerializer
@@ -807,13 +825,12 @@ namespace Hardened.Requests.Runtime.Serializer
     {
         public static Hardened.Requests.Abstract.Execution.DefaultOutputFunc OutputFunc(string contentType) { }
     }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
     public class RawResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
     {
         public const string DefaultContentType = "text/plain";
         public RawResponseSerializer() { }
+        public string ContentType { get; }
         public bool IsDefaultSerializer { get; }
-        public int Order { get; }
         public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
@@ -821,15 +838,16 @@ namespace Hardened.Requests.Runtime.Serializer
     public class SerializationLocatorService : Hardened.Requests.Abstract.Serializer.ISerializationLocatorService
     {
         public SerializationLocatorService(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IRequestDeserializer> requestDeserializers, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IResponseSerializer> responseSerializers, Hardened.Requests.Abstract.Serializer.IContentNegotiationPolicy? negotiationPolicy = null) { }
+        public Hardened.Requests.Abstract.Serializer.IResponseSerializer? DefaultSerializer { get; }
         public Hardened.Requests.Abstract.Serializer.IRequestDeserializer FindRequestDeserializer(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public Hardened.Requests.Abstract.Serializer.IResponseSerializer FindResponseSerializer(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public Hardened.Requests.Abstract.Serializer.IResponseSerializer? ProducerOf(string contentType) { }
     }
-    [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Add)]
     public class StreamingJsonResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
     {
         public StreamingJsonResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
+        public string ContentType { get; }
         public bool IsDefaultSerializer { get; }
-        public int Order { get; }
         public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
@@ -867,8 +885,8 @@ namespace Hardened.Requests.Runtime.Serializer
     public class SystemTextJsonResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
     {
         public SystemTextJsonResponseSerializer(Microsoft.Extensions.Options.IOptions<Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers) { }
+        public string ContentType { get; }
         public bool IsDefaultSerializer { get; }
-        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
 }

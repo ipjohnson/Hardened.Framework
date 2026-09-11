@@ -1202,16 +1202,38 @@ public static class OpenApiDocumentGenerator {
         "with no body.";
 
     /// <summary>
-    /// The media type a success goes out as: <c>[RawResponse]</c>'s, else the contract's declared
-    /// one, else JSON. The declared type never reached here, so a <c>text/plain</c> contract
-    /// published its success under a JSON key or under nothing.
+    /// The media type a success goes out as: what the operation declared, else the contract's, else
+    /// JSON.
     /// </summary>
-    private static string ContentType(RequestHandlerModel handler) =>
-        !string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
+    /// <remarks>
+    /// <para>
+    /// <b>The first of the declared set</b>, which is the representation the operation leads with
+    /// and the one a client expressing no preference is answered with. An operation producing
+    /// several is written under that key; naming all of them means a <c>content:</c> map per
+    /// response and is a separate change to this emitter.
+    /// </para>
+    /// <para>
+    /// Read from <c>ProducedContentTypes</c> ahead of <c>RawResponseContentType</c>, because the
+    /// second is only set where the first names exactly one type and the handler writes text or
+    /// bytes. Before <c>[Produces]</c> the two could not disagree: the only way to state a media
+    /// type code-first was <c>[RawResponse]</c>, which went on nothing else.
+    /// </para>
+    /// </remarks>
+    private static string ContentType(RequestHandlerModel handler) {
+        var produced = handler.ResponseInformation.ProducedContentTypes;
+
+        if (!string.IsNullOrEmpty(produced)) {
+            var comma = produced!.IndexOf(',');
+
+            return (comma < 0 ? produced : produced.Substring(0, comma)).Trim();
+        }
+
+        return !string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
             ? handler.ResponseInformation.RawResponseContentType!
             : !string.IsNullOrEmpty(handler.ResponseInformation.DeclaredContentType)
                 ? handler.ResponseInformation.DeclaredContentType!
                 : "application/json";
+    }
 
     /// <summary>
     /// A streamed response: the media type it is framed as, the shape of one item, and the whole

@@ -63,17 +63,8 @@ public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemp
     public virtual string ContentType => "text/html; charset=utf-8";
 
     /// <inheritdoc />
-    public bool SupportsContentType(string? accept, IExecutionContext context) {
-        var accepted = AcceptedContentTypes.Parse(accept).MediaTypes;
-
-        for (var i = 0; i < accepted.Count; i++) {
-            if (MediaType.Matches(accepted[i], ContentType)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    public bool SupportsContentType(string? accept, IExecutionContext context) =>
+        MediaType.Accepts(accept, ContentType);
 
     /// <inheritdoc />
     /// <remarks>

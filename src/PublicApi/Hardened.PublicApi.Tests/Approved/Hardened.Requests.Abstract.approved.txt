@@ -48,8 +48,15 @@ namespace Hardened.Requests.Abstract.Attributes
     {
         public OutputAttribute() { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]
+    public class ProducesAttribute : System.Attribute
+    {
+        public ProducesAttribute(params string[] contentTypes) { }
+        public string[] ContentTypes { get; }
+    }
     [System.AttributeUsage(System.AttributeTargets.Method)]
-    public class RawResponseAttribute : System.Attribute
+    [System.Obsolete("Use [Produces] instead. [RawResponse(\"text/csv\")] is [Produces(\"text/csv\")].")]
+    public class RawResponseAttribute : Hardened.Requests.Abstract.Attributes.ProducesAttribute
     {
         public RawResponseAttribute(string contentType = "text/plain") { }
         public string ContentType { get; }
@@ -63,12 +70,6 @@ namespace Hardened.Requests.Abstract.Attributes
     public sealed class ResponseOnlyAttribute : System.Attribute
     {
         public ResponseOnlyAttribute() { }
-    }
-    [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false)]
-    public class SupportedContentTypesAttribute : System.Attribute
-    {
-        public SupportedContentTypesAttribute(params string[] contentTypes) { }
-        public string[] ContentTypes { get; }
     }
 }
 namespace Hardened.Requests.Abstract.Authorization
@@ -424,6 +425,7 @@ namespace Hardened.Requests.Abstract.Execution
         int? SuccessStatus { get; }
         Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? Timeout { get; }
         int? ValidationErrorStatus { get; }
+        bool WritesRawBytes { get; }
         Hardened.Requests.Abstract.Authorization.Requirement? RequirementFrom(System.Collections.Generic.IReadOnlyList<object> metadata);
         Hardened.Requests.Abstract.Timeouts.TimeoutPolicy? TimeoutFrom(System.Collections.Generic.IReadOnlyList<object> metadata);
     }
@@ -918,12 +920,6 @@ namespace Hardened.Requests.Abstract.Responses
 }
 namespace Hardened.Requests.Abstract.Serializer
 {
-    public sealed class AcceptedContentTypes
-    {
-        public static readonly Hardened.Requests.Abstract.Serializer.AcceptedContentTypes Any;
-        public System.Collections.Generic.IReadOnlyList<string> MediaTypes { get; }
-        public static Hardened.Requests.Abstract.Serializer.AcceptedContentTypes Parse(string? acceptHeader) { }
-    }
     public enum ContentNegotiationMode
     {
         Strict = 0,
@@ -953,6 +949,7 @@ namespace Hardened.Requests.Abstract.Serializer
     {
         System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Serializer.IResponseSerializer? bound, string? declaredContentType);
     }
     public interface IExceptionResponseSerializer
     {
@@ -971,15 +968,17 @@ namespace Hardened.Requests.Abstract.Serializer
     }
     public interface IResponseSerializer
     {
+        string ContentType { get; }
         bool IsDefaultSerializer { get; }
-        int Order { get; }
         bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
     public interface ISerializationLocatorService
     {
+        Hardened.Requests.Abstract.Serializer.IResponseSerializer? DefaultSerializer { get; }
         Hardened.Requests.Abstract.Serializer.IRequestDeserializer FindRequestDeserializer(Hardened.Requests.Abstract.Execution.IExecutionContext context);
         Hardened.Requests.Abstract.Serializer.IResponseSerializer FindResponseSerializer(Hardened.Requests.Abstract.Execution.IExecutionContext context);
+        Hardened.Requests.Abstract.Serializer.IResponseSerializer? ProducerOf(string contentType);
     }
     public interface IServerSentEventManifest
     {
@@ -1015,7 +1014,17 @@ namespace Hardened.Requests.Abstract.Serializer
     public static class MediaType
     {
         public const string Any = "*/*";
+        public static bool Accepts(string? accept, string? produced) { }
+        public static Hardened.Requests.Abstract.Serializer.MediaType.AcceptEnumerator Enumerate(string? accept) { }
+        public static int FirstAccepted(string? accept, System.Collections.Generic.IReadOnlyList<string> produced) { }
+        public static bool Matches(System.ReadOnlySpan<char> requested, string produced) { }
         public static bool Matches(string? requested, string? produced) { }
+        public ref struct AcceptEnumerator
+        {
+            public System.ReadOnlySpan<char> Current { get; }
+            public Hardened.Requests.Abstract.Serializer.MediaType.AcceptEnumerator GetEnumerator() { }
+            public bool MoveNext() { }
+        }
     }
     public class NotAcceptableException : Hardened.Requests.Abstract.Errors.StatusCodeException
     {
@@ -1027,12 +1036,10 @@ namespace Hardened.Requests.Abstract.Serializer
         Normal = 0,
         Deferred = 1000,
     }
-    public enum ResponseSerializerOrder
+    public sealed class ResponseContentTypeDefault
     {
-        Template = -1000,
-        Specialized = -100,
-        Normal = 0,
-        Deferred = 1000,
+        public ResponseContentTypeDefault(params string[] contentTypes) { }
+        public System.Collections.Generic.IReadOnlyList<string> ContentTypes { get; }
     }
     public class SseItem<T> : Hardened.Requests.Abstract.Serializer.ISseEvent, System.IEquatable<Hardened.Requests.Abstract.Serializer.SseItem<T>>
     {

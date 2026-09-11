@@ -35,9 +35,8 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Impl
     public class NewtonsoftSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
     {
         public NewtonsoftSerializer(Hardened.Requests.Serializers.Newtonsoft.Impl.ISharedSerializer sharedSerializer, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
+        public string ContentType { get; }
         public bool IsDefaultSerializer { get; }
-        public int Order { get; }
-        public bool CanProduce(string mediaType, Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
     }
     [DependencyModules.Runtime.Attributes.SingletonService]

@@ -196,6 +196,9 @@ public class ModelComparisonTests {
     /// whose return type changes has to change this string, or the diagnostic outlives the code.
     /// The declared response is the fifth: a handler returning Created&lt;T&gt; dispatches on the
     /// status, header and body the type states, and a change to any of them has to be visible here.
+    /// Whether the handler writes raw bytes is the sixth: it decides whether a serializer is bound
+    /// at all, and it is read off the return type rather than any attribute. The two content-type
+    /// findings are the seventh and eighth, for the reason the framing finding is here.
     /// </remarks>
     [Fact]
     public void AResponseModelDescribesAllOfItsResponseAnnotations() {
@@ -203,6 +206,7 @@ public class ModelComparisonTests {
             IsAsync = true,
             OutputType = Type("Fortunes"),
             RawResponseContentType = "text/csv",
+            WritesRawBytes = true,
             StreamFraming = "sse",
             ReturnType = Type("String"),
             DefaultStatusCode = 201,
@@ -214,18 +218,20 @@ public class ModelComparisonTests {
             DeclaredResponse = "global::App.Created|201|111|global::App.Todo",
             ThrowsDiagnostic = "OutOfStock",
             ValidationErrorStatus = 422,
-            StreamFramingDiagnostic = "sse"
+            StreamFramingDiagnostic = "sse",
+            MissingContentTypeDiagnostic = true,
+            UnproducibleContentTypeDiagnostic = "text/csv"
         };
 
         // Every field, because this string is what the incremental caches compare to decide
         // whether to rerun. A field left out of it is a change the generator does not notice.
         Assert.Equal(
-            "True:System.Fortunes:text/csv:sse:System.String:201:" +
+            "True:System.Fortunes:text/csv:True:sse:System.String:201:" +
             "Models.DefaultErrorBodies.NotFoundProblem:" +
             "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }:" +
             "text/plain,text/csv:" +
             "global::App.Todo|201|01;global::App.NotFound|404|01:" +
-            "global::App.Created|201|111|global::App.Todo::OutOfStock:422:sse",
+            "global::App.Created|201|111|global::App.Todo::OutOfStock:422:sse:True:text/csv",
             model.ToString());
     }
 

@@ -5,27 +5,20 @@ namespace Hardened.Requests.Abstract.Attributes;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The generator reads this as response information rather than as a filter and assigns the content
-/// type onto <c>IExecutionResponse.ContentType</c> before the handler runs.
-/// <c>RawResponseSerializer</c> then claims the response through ordinary serializer selection, and
-/// writes a string, <c>byte[]</c> or <c>Stream</c> straight to the body.
+/// <b>Superseded by <see cref="ProducesAttribute"/>, which it now derives from.</b> The two facts
+/// this stated - the media type, and that the return value is already bytes - are the media type
+/// and the return type, and the return type is in the signature. A handler returning
+/// <c>byte[]</c> or <c>Stream</c> takes the pass-through writer whatever it declares, and a handler
+/// returning a <c>string</c> takes it by declaring a media type nothing else writes.
 /// </para>
 /// <para>
-/// Because the content type is committed rather than negotiated, the client cannot overrule it - a
-/// handler that says it returns a PDF returns a PDF whatever <c>Accept</c> asked for. That is the
-/// difference between this and simply returning a string, which is offered as <c>text/plain</c> but
-/// serialised as JSON for a client that asks for JSON.
+/// Kept for one release so that the break is announced rather than discovered.
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method)]
-public class RawResponseAttribute : Attribute {
-    /// <remarks>
-    /// The argument used to be accepted and dropped on the floor - no property, no field. The
-    /// generator reads the value off the syntax node rather than off an instance, so the emitted
-    /// code was right and nothing failed; the attribute was simply unreadable to anything else,
-    /// including reflection over a handler's metadata.
-    /// </remarks>
-    public RawResponseAttribute(string contentType = "text/plain") {
+[Obsolete("Use [Produces] instead. [RawResponse(\"text/csv\")] is [Produces(\"text/csv\")].")]
+public class RawResponseAttribute : ProducesAttribute {
+    public RawResponseAttribute(string contentType = "text/plain") : base(contentType) {
         ContentType = contentType;
     }
 

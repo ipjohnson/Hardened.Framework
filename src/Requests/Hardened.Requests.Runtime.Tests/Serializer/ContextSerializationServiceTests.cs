@@ -166,6 +166,87 @@ public class ContextSerializationServiceTests {
             Pipeline.Logger<ContextSerializationService>(), Locator, NullValues, Exceptions);
     }
 
+    // ── a bound serializer ─────────────────────────────────────────────
+
+    /// <summary>
+    /// A serializer the pipeline resolved when it was composed writes the response, and the locator
+    /// is never asked. That is the whole of what the binding buys: no <c>Accept</c> to walk, no
+    /// serializer set to search, no container resolve.
+    /// </summary>
+    [Fact]
+    public async Task ABoundSerializerWritesWithoutTheLocator() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var bound = Substitute.For<IResponseSerializer>();
+
+        bound.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
+        context.Response.ResponseValue = new { Name = "value" };
+
+        await fixture.Service.SerializeResponse(context, bound, "application/json");
+
+        await bound.Received(1).SerializeResponse(context);
+        fixture.Locator.DidNotReceive().FindResponseSerializer(Arg.Any<IExecutionContext>());
+    }
+
+    /// <summary>
+    /// A handler that assigns its own content type overrules the binding, which is the one decision
+    /// the build cannot make for it.
+    /// </summary>
+    [Fact]
+    public async Task AHandlerThatPicksItsOwnContentTypeSendsTheResponseToTheLocator() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var bound = Substitute.For<IResponseSerializer>();
+
+        bound.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
+        context.Response.ResponseValue = new { Name = "value" };
+        context.Response.ContentType = "text/csv";
+
+        await fixture.Service.SerializeResponse(context, bound, "application/json");
+
+        await bound.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+        await fixture.ResponseSerializer.Received(1).SerializeResponse(context);
+    }
+
+    /// <summary>
+    /// Assigning the content type the operation already declared is not an override, so a raw
+    /// handler - whose declared type is on the response before it runs - keeps its binding.
+    /// </summary>
+    [Fact]
+    public async Task AssigningTheDeclaredContentTypeKeepsTheBinding() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var bound = Substitute.For<IResponseSerializer>();
+
+        bound.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
+        context.Response.ResponseValue = new byte[] { 1, 2 };
+        context.Response.ContentType = "application/pdf";
+
+        await fixture.Service.SerializeResponse(context, bound, "application/pdf");
+
+        await bound.Received(1).SerializeResponse(context);
+        fixture.Locator.DidNotReceive().FindResponseSerializer(Arg.Any<IExecutionContext>());
+    }
+
+    /// <summary>
+    /// A bound handler that threw still negotiates its error. An error model is rarely writable as
+    /// the operation's success representation, and the answer is a JSON document under the
+    /// refusal's status.
+    /// </summary>
+    [Fact]
+    public async Task ABoundHandlerThatThrewStillGoesToTheExceptionSerializer() {
+        var fixture = new Fixture();
+        var context = Pipeline.Context();
+        var bound = Substitute.For<IResponseSerializer>();
+
+        context.Response.ExceptionValue = new InvalidOperationException("no");
+
+        await fixture.Service.SerializeResponse(context, bound, "application/pdf");
+
+        await fixture.Exceptions.Received(1).Handle(context, Arg.Any<Exception>());
+        await bound.DidNotReceive().SerializeResponse(Arg.Any<IExecutionContext>());
+    }
+
     [Fact]
     public async Task AResponseValueIsHandedToTheLocatedSerializer() {
         var fixture = new Fixture();

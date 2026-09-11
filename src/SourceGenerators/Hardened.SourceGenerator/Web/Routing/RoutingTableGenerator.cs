@@ -96,6 +96,15 @@ public static class RoutingTableGenerator {
             // rather than left to be found in an environment.
             StreamFramingDiagnostics.Report(
                 context, name, handler.ResponseInformation.StreamFramingDiagnostic);
+
+            // What the operation says it produces, against what could produce it. Bytes with no
+            // declaration is an error; a model declared as something nothing here writes is a
+            // warning, because the host may register the serializer.
+            ContentTypeDiagnostics.Report(
+                context,
+                name,
+                handler.ResponseInformation.MissingContentTypeDiagnostic,
+                handler.ResponseInformation.UnproducibleContentTypeDiagnostic);
         }
 
         // Per application, because the store is: [CacheResponse] on a handler and the module

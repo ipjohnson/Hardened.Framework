@@ -521,6 +521,10 @@ internal static class SpecHandlerModelBuilder {
             ReturnType = returnType,
             DeclaredContentType = operation.ResponseContentType,
 
+            // The same statement the code-first side reads off a byte[] return type, made here
+            // because this is where that return type is chosen. Nothing serializes this response.
+            WritesRawBytes = operation.RawBytesResponse,
+
             // The payload carries its own headers where the contract binds them to its members,
             // which is Smithy's @httpHeader on an output. There is no response set on this path, so
             // the dispatch has to apply them beside the assignment or they never reach the wire.

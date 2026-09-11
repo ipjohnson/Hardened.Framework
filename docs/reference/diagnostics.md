@@ -49,7 +49,7 @@ front end only leaves a gap in the other.
 | `HOAG020` | error | An operation declares a markup content type and names no view to render it |
 | `HOAG030` | warning | A described service has no `[Handler]`. Its routes exist and fail at request time. `NoWarn` it in a project that ships contracts without implementations |
 | `HOAG031` | warning | A `[Handler]` class names no described service in its base list. Usually a spelling mismatch. A base class beside the interface is fine |
-| `HOAG032` | warning | A described handler carries a declaration read from a handler's own syntax: `[RawResponse]` or `[Throws<T>]` on a method, `[Tag]` or `[Server]` on the class. A described operation's signature is generated, so each compiles, reads as a commitment, and changes nothing. The message names what the contract says instead |
+| `HOAG032` | warning | A described handler carries a declaration read from a handler's own syntax: `[Produces]` or `[Throws<T>]` on a method, `[Tag]` or `[Server]` on the class. A described operation's signature is generated, so each compiles, reads as a commitment, and changes nothing. The message names what the contract says instead |
 
 ## Routing
 
@@ -65,6 +65,8 @@ front end only leaves a gap in the other.
 | `HRDR008` | error | More than one routing generator is compiling this assembly |
 | `HRDR009` | error | More than one parameter binds from the request body. The message names them and the ways out |
 | `HRDR010` | warning | A parameter binds from the body of a request that carries none, on a `GET`, `HEAD` or `DELETE` |
+| `HRDR011` | error | A handler returns `byte[]` or `Stream` and carries no `[Produces]`. Nothing else can say what the bytes are |
+| `HRDR012` | warning | An operation declares a media type nothing in this compilation writes a model as. A host that registers a serializer for it makes this correct |
 
 ## Validation
 
