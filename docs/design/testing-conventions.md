@@ -132,7 +132,7 @@ public void EveryVerbCompiles(string verb) { … }
 
 ## 8. Raise your floor in the same change
 
-`coverage-baseline.json` records the coverage each assembly must not fall below. CI fails on a
+`build/coverage-baseline.json` records the coverage each assembly must not fall below. CI fails on a
 regression. When your work raises coverage:
 
 ```bash
@@ -176,8 +176,8 @@ Each workstream owns a disjoint set of directories. Do not add tests to a projec
 workstream owns — see `TESTING-PLAN.md` §6 for the map.
 
 Every test project is already created and registered in the solution. If you find yourself editing
-`.sln`, `Directory.Build.props` or `coverage.runsettings`, stop: those are shared, and ten agents
-editing them conflict. `coverage-baseline.json` is the one shared file you are expected to touch,
+`.sln`, `src/Directory.Build.props` or `build/coverage.runsettings`, stop: those are shared, and ten agents
+editing them conflict. `build/coverage-baseline.json` is the one shared file you are expected to touch,
 and only to raise your own assembly's floor.
 
 ## 12. xunit version, and the runner packages

@@ -15,6 +15,14 @@ restores, builds and tests it as its own step after the coverage run. It is a se
 rather than a trait, because `dotnet test --filter` filters nothing on the pinned SDK with xunit.v3;
 a trait filter ran every test in both steps.
 
+The repository root holds the two solutions, `AGENTS.md`, `LICENSE`, `README.md`, and the two files
+a tool will only read from the directory it is invoked in: `global.json` and `nuget.config`. Every
+other build input lives below it. `src/Directory.Build.props` and `src/Directory.Packages.props`
+are found by walking up from each project, so they sit beside the projects they apply to; the
+`src/Clouds/*/Directory.Build.props` files import them with `GetPathOfFileAbove`. `build/` holds
+`coverage.runsettings`, `coverage-baseline.json`, `allocation-baseline.json` and `spectral.yaml`,
+each named on the command line by the workflow or gate script that reads it.
+
 | Path | Contents |
 |---|---|
 | `src/Shared` | Module entry points, configuration, environment, metrics, the test framework |
@@ -57,7 +65,7 @@ Before opening a pull request, build the way CI does:
 dotnet build Hardened.slnx --configuration Release -p:ContinuousIntegrationBuild=true
 ```
 
-`ContinuousIntegrationBuild` sets `TreatWarningsAsErrors` (`Directory.Build.props`). Local
+`ContinuousIntegrationBuild` sets `TreatWarningsAsErrors` (`src/Directory.Build.props`). Local
 builds deliberately do not, so a build that is green locally can still fail CI on a warning.
 
 **Check the exit code, not the tail of the output.** A restore that resolves an assembly two ways
@@ -223,9 +231,9 @@ recommend it.
 `hardened-web` template pins the tool in `templates/hardened-web/.config/dotnet-tools.json` and the
 bundle as `KiotaBundleVersion` in its `Directory.Packages.props`; the repository pins the same pair
 for the client it generates over the Web integration application, in `.config/dotnet-tools.json` at
-the root and as `KiotaBundleVersion` in `Directory.Build.props` — at the root, because
-`Directory.Packages.props` pins the package to that property and is imported before any project
-body. All four are bumped together,
+the root and as `KiotaBundleVersion` in `src/Directory.Build.props` — there, because
+`src/Directory.Packages.props` pins the package to that property and is imported before any
+project body. All four are bumped together,
 by a deliberate commit, to one Kiota release; `kiota info --language CSharp --json` says which
 bundle a tool expects. `scripts/verify-templates.sh` checks both pairs before it scaffolds anything
 and is the gate, as it is for everything else in the template; the two client projects check their
@@ -282,7 +290,7 @@ Hardened.Amz was one until its source was removed. The `Hardened.Aws` generators
 up wanting any, compile it in from `src/SourceGenerators/Hardened.SourceGenerator` rather than
 restoring the package, which is what makes a break in it fail the same build.
 
-**Every package version is in `Directory.Packages.props`.** A `Version` on a `PackageReference` is
+**Every package version is in `src/Directory.Packages.props`.** A `Version` on a `PackageReference` is
 `NU1008`. A project that genuinely needs a different version says so with `VersionOverride` and a
 comment giving the reason; four do. Adding a package means adding a `PackageVersion` there first.
 

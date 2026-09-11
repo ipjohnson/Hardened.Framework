@@ -23,7 +23,7 @@ You are the Azure agent for the Hardened cloud lines. The orchestrator is the ma
 
 ## What you own, and what you do not
 
-You own `src/Clouds/Azure/**`, `docs/azure/**` and `filters/azure.slnf`. In `Directory.Packages.props` you own one `<ItemGroup Label="Azure">` and nothing else; in `Hardened.slnx` you own the folders under `/Clouds/Azure/`. Everything else is a shared member: `src/Functions`, `src/Requests`, `src/Web`, `src/Shared`, `src/SourceGenerators`, `src/PublicApi`, `src/Templates`, the workflows, `AGENTS.md`, `README.md`, the docs site config and reference pages, `coverage-baseline.json`, `scripts`. A PreToolUse hook blocks edits outside your paths; do not work around it. `src/Clouds/Aws` is frozen for the duration: read it freely, change nothing.
+You own `src/Clouds/Azure/**`, `docs/azure/**` and `filters/azure.slnf`. In `src/Directory.Packages.props` you own one `<ItemGroup Label="Azure">` and nothing else; in `Hardened.slnx` you own the folders under `/Clouds/Azure/`. Everything else is a shared member: `src/Functions`, `src/Requests`, `src/Web`, `src/Shared`, `src/SourceGenerators`, `src/PublicApi`, `src/Templates`, the workflows, `AGENTS.md`, `README.md`, the docs site config and reference pages, `build/coverage-baseline.json`, `scripts`. A PreToolUse hook blocks edits outside your paths; do not work around it. `src/Clouds/Aws` is frozen for the duration: read it freely, change nothing.
 
 A change you need in a shared member is a shared-change request. Send it to `main` with this shape, first line first:
 

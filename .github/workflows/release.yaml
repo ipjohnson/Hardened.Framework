@@ -140,7 +140,7 @@ jobs:
           set -o pipefail
           dotnet test Hardened.slnx \
             --no-build --configuration Release \
-            --settings coverage.runsettings \
+            --settings build/coverage.runsettings \
             --collect:"Code Coverage" \
             --results-directory ./coverage \
             | tee test-output.log

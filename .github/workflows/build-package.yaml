@@ -95,7 +95,7 @@ jobs:
       - run: dotnet restore Hardened.slnx
       - run: dotnet restore Hardened.Simulators.slnx
 
-      # ContinuousIntegrationBuild turns warnings into errors (see Directory.Build.props).
+      # ContinuousIntegrationBuild turns warnings into errors (see src/Directory.Build.props).
       # The solution builds warning-free; this is what stops that drifting back.
       - run: dotnet build Hardened.slnx --no-restore --configuration Release -p:ContinuousIntegrationBuild=true
 
@@ -109,7 +109,7 @@ jobs:
       #
       # `-warnaserror`, because IL2026 and IL3050 are the entire point: a warning here is a call
       # that works today and stops working once something is trimmed away. It is the MSBuild switch
-      # rather than TreatWarningsAsErrors, which Directory.Build.props already sets for CI - that
+      # rather than TreatWarningsAsErrors, which src/Directory.Build.props already sets for CI - that
       # one is the C# compiler's and does not cover what ILC reports.
       #
       # No apt-get. ILC needs a C compiler and zlib, and the runner image already has both -
@@ -543,7 +543,7 @@ jobs:
           test -s openapi-lint.json
 
           npx --yes @stoplight/spectral-cli lint openapi-lint.json \
-            --ruleset .spectral.yaml \
+            --ruleset build/spectral.yaml \
             --fail-severity=error
 
       # Everything except the simulator tier, which is its own solution and runs in the step after
@@ -554,7 +554,7 @@ jobs:
           set -o pipefail
           dotnet test Hardened.slnx \
             --no-build --configuration Release \
-            --settings coverage.runsettings \
+            --settings build/coverage.runsettings \
             --collect:"Code Coverage" \
             --results-directory ./coverage \
             | tee test-output.log

@@ -12,7 +12,7 @@ They apply to this repository unchanged. Two points matter more here than in the
 - **Docker-dependent tests fail rather than skip** on a machine without a daemon. A silently
   skipped data test is worse than a failing one.
 
-`scripts/coverage-gate.py` and `coverage-baseline.json` work exactly as they do in the framework.
+`scripts/coverage-gate.py` and `build/coverage-baseline.json` work exactly as they do in the framework.
 
 The workstream plan this repository's test work is scoped by lives alongside them:
 **[Hardened.Framework/docs/TESTING-PLAN.md](https://github.com/ipjohnson/Hardened.Framework/blob/main/docs/TESTING-PLAN.md)**
