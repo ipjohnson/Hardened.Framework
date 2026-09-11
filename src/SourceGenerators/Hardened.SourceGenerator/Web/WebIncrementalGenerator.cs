@@ -73,6 +73,17 @@ public static class WebIncrementalGenerator {
                 (context, pair) =>
                     RequireAuthorizationDiagnostics.Report(context, pair.Left, pair.Right)));
 
+        // A verb attribute on an interface member, which the selector above skips. Its own
+        // provider, reported per declaration, for the reason the authorization diagnostic gives:
+        // it carries a location, and nothing downstream of it emits source.
+        var interfaceRoutes = initializationContext.SyntaxProvider.CreateSyntaxProvider(
+            InterfaceRouteDiagnostics.Predicate,
+            InterfaceRouteDiagnostics.Transform);
+
+        initializationContext.RegisterSourceOutput(
+            interfaceRoutes,
+            SourceGeneratorWrapper.Wrap<InterfaceRouteModel?>(InterfaceRouteDiagnostics.Report));
+
         var invokeGenerator = new WebExecutionHandlerCodeGenerator();
 
         // The handler stage reports a route token nothing declares, so it has to know what the
