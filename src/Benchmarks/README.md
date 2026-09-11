@@ -111,6 +111,18 @@ Two real bugs were caught this way while building it:
   its status overwritten with 404 by the terminal delegate. `HttpContextFactory.TrackingResponseFeature`
   tracks the same signal Kestrel does — headers flush on first body write.
 
+It caught a third later, and that one says something about the gate rather than about the harness.
+From 23 August to 11 September 2026 the scheduled run failed every week at this step: `hardened-native`
+and `hardened-features` answered the miss with no status at all. The SUT declares `[AspNetCoreRuntime]`
+so one assembly can serve both measured deployments, and `AspNetCoreRuntimeLibrary` replaces
+`IResourceNotFoundHandler` unconditionally with the one that leaves the status unset for ASP.NET's own
+terminal 404 to answer. `HardenedAppFactory.BuildProvider` puts the terminal handler back for the two
+harnesses that own the whole response.
+
+The gate did its job. Nobody read it, because a scheduled workflow failing is quieter than a build
+failing, which is the same observation the comment at the top of `benchmarks.yaml` makes about the
+credential it lost. If these numbers matter between Sundays, run `--verify` locally.
+
 ## Adding a scenario
 
 Add it to `Scenarios` in `Infrastructure/RequestScenario.cs`, then implement the same route in
