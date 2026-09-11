@@ -19,15 +19,20 @@ public class CorrelationIdTests {
         Assert.False(string.IsNullOrEmpty(response.Headers[Header].ToString()));
     }
 
-    /// <summary>Shaped like a trace id whether or not one was in play.</summary>
+    /// <summary>
+    /// Thirteen base64 characters, since this application has no collector attached and so no trace
+    /// id to borrow. A traced deployment returns the 32-character trace id here instead.
+    /// </summary>
     [HardenedTest]
-    public async Task TheIdIsThirtyTwoHexCharacters(ITestWebApp testWebApp) {
+    public async Task TheIdIsThirteenBase64Characters(ITestWebApp testWebApp) {
+        const string digits = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+
         var response = await testWebApp.Request("GET", null, "/binding/path/42");
 
         var id = response.Headers[Header].ToString();
 
-        Assert.Equal(32, id.Length);
-        Assert.All(id, c => Assert.True(Uri.IsHexDigit(c), $"'{c}' is not hex"));
+        Assert.Equal(13, id.Length);
+        Assert.All(id, c => Assert.True(digits.Contains(c), $"'{c}' is not a base64 digit"));
     }
 
     /// <summary>Two requests are two ids, or it would group unrelated work together.</summary>

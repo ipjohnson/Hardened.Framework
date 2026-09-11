@@ -65,11 +65,11 @@ public interface IExecutionContext {
     /// <remarks>
     /// <para>
     /// Never null and never empty. It is the trace id when anything is collecting traces - so a log
-    /// line and a span line up without anyone correlating two different identifiers - and a freshly
-    /// generated value of the same shape when nothing is, because
-    /// <c>ActivitySource.StartActivity</c> returns null with no listener and an id that only exists
-    /// under a collector is missing exactly when it is most wanted.
-    /// See <see cref="Diagnostics.CorrelationIdentifier"/>.
+    /// line and a span line up without anyone correlating two different identifiers - and a short
+    /// issued id when nothing is, because <c>ActivitySource.StartActivity</c> returns null with no
+    /// listener and an id that only exists under a collector is missing exactly when it is most
+    /// wanted. The two are different lengths, 32 hex characters against 13 base64 ones, and nothing
+    /// downstream may assume either. See <see cref="Diagnostics.CorrelationIdentifier"/>.
     /// </para>
     /// <para>
     /// Realized on first read rather than at construction: the host builds the context and only then

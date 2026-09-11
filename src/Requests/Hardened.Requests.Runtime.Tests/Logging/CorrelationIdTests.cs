@@ -23,6 +23,10 @@ namespace Hardened.Requests.Runtime.Tests.Logging;
 /// </summary>
 public class CorrelationIdTests {
 
+    /// <summary>In ASCII order, so an id sorts as text the way it sorts as a number.</summary>
+    private const string Base64Digits =
+        "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+
     /// <summary>
     /// Listens to the pipeline's source so that spans are actually created, since without a
     /// listener <c>StartActivity</c> returns null and there is nothing to read a trace id from.
@@ -64,15 +68,46 @@ public class CorrelationIdTests {
     }
 
     /// <summary>
-    /// Shaped like a trace id whether or not it came from one, so a log query does not have to
-    /// handle two formats.
+    /// Thirteen base64 characters when nothing is tracing, rather than the 32 hex ones a trace id
+    /// would have been.
     /// </summary>
     [Fact]
-    public void CorrelationId_IsThirtyTwoHexCharacters() {
+    public void CorrelationId_IsThirteenBase64CharactersWhenNothingIsTracing() {
         var id = Pipeline.Context().CorrelationId;
 
-        Assert.Equal(32, id.Length);
-        Assert.All(id, c => Assert.True(Uri.IsHexDigit(c), $"'{c}' is not hex"));
+        Assert.Equal(13, id.Length);
+        Assert.All(id, c => Assert.True(Base64Digits.Contains(c), $"'{c}' is not a base64 digit"));
+    }
+
+    /// <summary>
+    /// The leading seven characters are the millisecond the request started, which is what the id
+    /// spends over half its length on. Decoded here rather than trusted, because a field that is
+    /// off by an epoch or written out backwards still looks like a plausible id.
+    /// </summary>
+    [Fact]
+    public void CorrelationId_LeadsWithTheMillisecondTheRequestStarted() {
+        var before = DateTimeOffset.UtcNow;
+        var id = Pipeline.Context().CorrelationId;
+        var after = DateTimeOffset.UtcNow;
+
+        var stamped = DateTimeOffset.FromUnixTimeMilliseconds(DecodeMillisecond(id));
+
+        Assert.InRange(stamped, before.AddSeconds(-2), after.AddSeconds(2));
+    }
+
+    /// <summary>
+    /// That leading field is the clock and not more counter, so it advances with elapsed time
+    /// rather than with the number of ids issued.
+    /// </summary>
+    [Fact]
+    public async Task CorrelationId_LeadsWithTheClockRatherThanMoreCounter() {
+        var first = CorrelationIdentifier.ForCurrentTrace();
+
+        await Task.Delay(25, TestContext.Current.CancellationToken);
+
+        var second = CorrelationIdentifier.ForCurrentTrace();
+
+        Assert.InRange(DecodeMillisecond(second) - DecodeMillisecond(first), 15, 5_000);
     }
 
     /// <summary>
@@ -272,6 +307,54 @@ public class CorrelationIdTests {
 
         Assert.NotEqual(zero, CorrelationIdentifier.ForCurrentTrace());
     }
+
+    /// <summary>
+    /// No duplicates within the process, whatever the thread. The generator hands each thread a
+    /// block of the counter to spend locally, and a block handed to two threads at once is the one
+    /// way this can go wrong, so it is worth taking enough ids to catch it.
+    /// </summary>
+    [Fact]
+    public void ForCurrentTrace_IssuesNoDuplicatesAcrossThreads() {
+        const int threads = 8;
+        const int each = 50_000;
+
+        var issued = new string[threads][];
+
+        Parallel.For(0, threads, thread => {
+            var mine = new string[each];
+
+            for (var i = 0; i < each; i++) {
+                mine[i] = CorrelationIdentifier.ForCurrentTrace();
+            }
+
+            issued[thread] = mine;
+        });
+
+        var all = issued.SelectMany(ids => ids).ToList();
+
+        Assert.Equal(threads * each, all.Count);
+        Assert.Equal(all.Count, all.Distinct().Count());
+    }
+
+    /// <summary>
+    /// Ids issued on one thread ascend as text, because the counter ascends and the alphabet is in
+    /// ASCII order. Two hundred of them crosses several block boundaries, which is where an
+    /// off-by-one in the refill would show up as a repeat or a jump backwards.
+    /// </summary>
+    [Fact]
+    public void ForCurrentTrace_AscendsOnOneThread() {
+        var issued = Enumerable
+            .Range(0, 200)
+            .Select(_ => CorrelationIdentifier.ForCurrentTrace())
+            .ToList();
+
+        Assert.Equal(issued.OrderBy(id => id, StringComparer.Ordinal), issued);
+        Assert.Equal(issued.Count, issued.Distinct().Count());
+    }
+
+    /// <summary>Reads back the Unix millisecond the id leads with.</summary>
+    private static long DecodeMillisecond(string id) =>
+        id[..7].Aggregate(0L, (value, c) => (value << 6) | (uint)Base64Digits.IndexOf(c));
 
     /// <summary>Captures the scopes in force when each message was written.</summary>
     private sealed class ScopeCapturingProvider : ILoggerProvider {
