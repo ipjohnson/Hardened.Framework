@@ -35,8 +35,16 @@ was taken on is part of the result. If every entry moves by the same handful of 
 direction on a run that changed no pipeline code, look at the runtime version in the step summary
 before looking at the diff.
 
-Take the reading from CI rather than from a laptop, for the reason coverage-gate.py gives: what
-gets compiled depends on what is checked out beside this repository.
+Take the reading from CI rather than from a laptop, and not only for the reason coverage-gate.py
+gives about what is checked out beside this repository. The platform moves it too. Seeding this
+baseline on 2026-09-11, twenty of the twenty-two benchmarks read the same byte for byte on an
+arm64 macOS laptop and on the x64 Linux runner. The other two were POST sum, which reads a JSON
+body, and it allocated 32 bytes more on the runner in all three harnesses - the same 32 in each,
+so a platform difference in the read path rather than noise.
+
+That asymmetry is harmless in the direction it runs: a laptop that allocates less reports an
+improvement, and improvements do not fail. A laptop that allocated more would fail against a
+baseline it was never measured against, which is one more reason this gate belongs in CI.
 
 Usage:
     python3 scripts/allocation-gate.py --results BenchmarkDotNet.Artifacts/results

@@ -148,6 +148,12 @@ python3 scripts/allocation-gate.py --results /tmp/alloc/results --update
 Take the reading from a CI run rather than a local one, and never run `--update` in CI. The results
 artifact is uploaded on a failed run too, which is what makes a red run usable for re-baselining.
 
+The platform is part of the reading. Seeding the baseline on 2026-09-11, twenty of the twenty-two
+benchmarks read the same byte for byte on an arm64 macOS laptop and on the x64 Linux runner. The
+other two were `POST sum`, which reads a JSON body, and it allocated 32 bytes more on the runner in
+all three harnesses. A local run will therefore report those as improvements, which is harmless:
+improvements do not fail and do not move the ceiling.
+
 If every entry moves by the same handful of bytes in the same direction on a branch that changed no
 pipeline code, read the runtime version in the run summary before reading the diff. A patch bump to
 .NET 8 can change what the BCL allocates underneath the pipeline. That is why the workflow names
