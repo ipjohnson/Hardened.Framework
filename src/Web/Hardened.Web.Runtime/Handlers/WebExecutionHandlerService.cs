@@ -15,7 +15,17 @@ public interface IWebExecutionHandlerService : IHandlerDispatch { }
 
 [SingletonService(Using = RegistrationType.Try)]
 public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
-    private readonly IEnumerable<IWebExecutionRequestHandlerProvider> _handlers;
+    /// <summary>
+    /// The providers to ask, in the order they are asked.
+    /// </summary>
+    /// <remarks>
+    /// The array type is load bearing. <see cref="Match"/> walks this on every request, and a
+    /// <c>foreach</c> over a field declared <see cref="IEnumerable{T}"/> goes through
+    /// <see cref="IEnumerable{T}.GetEnumerator"/> however the array got there - which allocates an
+    /// enumerator and leaves <c>MoveNext</c> behind an interface call. Declared as the array, the
+    /// compiler emits an indexed walk instead.
+    /// </remarks>
+    private readonly IWebExecutionRequestHandlerProvider[] _handlers;
     private readonly IResourceNotFoundHandler _resourceNotFoundHandler;
     private readonly IMethodNotAllowedHandler _methodNotAllowedHandler;
     private readonly IRequestLogger _requestLogger;

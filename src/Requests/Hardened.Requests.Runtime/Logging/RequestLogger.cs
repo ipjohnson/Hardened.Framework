@@ -242,6 +242,43 @@ public partial class RequestLogger : IRequestLogger {
         span.DisplayName = context.Request.Method + " " + route;
     }
 
+    private static readonly object _ok = 200;
+    private static readonly object _notFound = 404;
+    private static readonly object _badRequest = 400;
+
+    /// <summary>
+    /// The status as a metric tag, boxed once for the codes most requests report.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>IMetricLogger.Tag</c> takes <c>object</c>, because a Meter dimension is a
+    /// <c>KeyValuePair&lt;string, object?&gt;</c> and a provider needs the value boxed. Handing it
+    /// an <c>int</c> boxed one per request on every deployment, including under the null provider
+    /// whose <c>Tag</c> discards it.
+    /// </para>
+    /// <para>
+    /// Three comparisons, in the order they are most likely to be taken - nothing assigns a status
+    /// on an ordinary success path, so 200 is what most requests report. Anything else falls
+    /// through and boxes, which is what every request did before, so a status not listed here costs
+    /// nothing extra and adding one costs two lines.
+    /// </para>
+    /// </remarks>
+    private static object StatusTag(int status) {
+        if (status == 200) {
+            return _ok;
+        }
+
+        if (status == 404) {
+            return _notFound;
+        }
+
+        if (status == 400) {
+            return _badRequest;
+        }
+
+        return status;
+    }
+
     public void RequestEnd(IExecutionContext context) {
         LogRequestFinished(
             context.Request.Method,
@@ -264,12 +301,14 @@ public partial class RequestLogger : IRequestLogger {
         // Tagged whether or not anything is tracing. Buffered by the Meter provider until the logger
         // is disposed, which is what lets a dimension be attached after the measurement it describes -
         // every host records TotalRequestDuration and only then calls this.
-        context.RequestMetrics.Tag("http.response.status_code", status);
+        var statusTag = StatusTag(status);
+
+        context.RequestMetrics.Tag("http.response.status_code", statusTag);
 
         if (_spans.TryGetValue(context, out var span)) {
             _spans.Remove(context);
 
-            span.SetTag("http.response.status_code", status);
+            span.SetTag("http.response.status_code", statusTag);
 
             // 4xx is the caller's mistake, not the server's. The conventions leave a server span
             // Unset for those and reserve Error for 5xx, so that a trace backend's error rate means

@@ -47,6 +47,88 @@ public class StringConverterServiceTests {
         Assert.Equal("hello", result);
     }
 
+    [Fact]
+    public void ParseRequired_ReturnsParsedBool() {
+        var result = _service.ParseRequired<bool>("true", "testValue");
+        Assert.True(result);
+    }
+
+    /// <summary>
+    /// The nullable shapes, which are what a generated binder actually calls.
+    /// </summary>
+    /// <remarks>
+    /// An optional parameter is emitted as <c>ParseOptional&lt;int?&gt;</c>, not
+    /// <c>ParseOptional&lt;int&gt;</c>, so the type argument is the nullable one and the conversion
+    /// takes a different branch from the required case. Asserting the required forms alone left
+    /// that branch to the integration tests.
+    /// </remarks>
+    [Fact]
+    public void ParseOptional_ReturnsParsedNullableInt() {
+        var result = _service.ParseOptional<int?>("42", "testValue");
+        Assert.Equal(42, result);
+    }
+
+    [Fact]
+    public void ParseOptional_ReturnsParsedNullableLong() {
+        var result = _service.ParseOptional<long?>("9999999999", "testValue");
+        Assert.Equal(9999999999L, result);
+    }
+
+    [Fact]
+    public void ParseOptional_ReturnsParsedNullableGuid() {
+        var guid = Guid.NewGuid();
+        var result = _service.ParseOptional<Guid?>(guid.ToString(), "testValue");
+        Assert.Equal(guid, result);
+    }
+
+    [Fact]
+    public void ParseOptional_ReturnsParsedNullableBool() {
+        var result = _service.ParseOptional<bool?>("false", "testValue");
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void ParseOptional_ReturnsParsedNullableDateTime() {
+        var result = _service.ParseOptional<DateTime?>("2024-01-15", "testValue");
+        Assert.Equal(new DateTime(2024, 1, 15), result);
+    }
+
+    [Fact]
+    public void ParseOptional_ReturnsNull_WhenNullableValueIsAbsent() {
+        var result = _service.ParseOptional<int?>("", "testValue");
+        Assert.Null(result);
+    }
+
+    /// <summary>
+    /// A malformed nullable value is still an error rather than an absent one - the distinction the
+    /// class exists to keep - and the conversion branch it takes is not the required one.
+    /// </summary>
+    [Fact]
+    public void ParseOptional_Throws_WhenNullableValueIsMalformed() {
+        Assert.Throws<ValidationException>(() =>
+            _service.ParseOptional<int?>("not-a-number", "testValue"));
+    }
+
+    /// <summary>
+    /// Culture-invariant whatever the machine is set to, which is only observable on a type whose
+    /// literal form differs between cultures.
+    /// </summary>
+    [Fact]
+    public void ParseRequired_ParsesDateTimeInvariantly() {
+        var original = Thread.CurrentThread.CurrentCulture;
+
+        try {
+            Thread.CurrentThread.CurrentCulture = new CultureInfo("de-DE");
+
+            var result = _service.ParseRequired<DateTime>("2024-01-15", "testValue");
+
+            Assert.Equal(new DateTime(2024, 1, 15), result);
+        }
+        finally {
+            Thread.CurrentThread.CurrentCulture = original;
+        }
+    }
+
     /// <summary>
     /// A missing required value reports under the same code a missing required property does, so a
     /// caller handling "you left something out" handles both without knowing that one came from the
