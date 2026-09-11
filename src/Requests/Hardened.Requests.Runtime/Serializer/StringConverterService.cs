@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Runtime.CompilerServices;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Validation;
@@ -172,10 +173,143 @@ public class StringConverterService : IStringConverterService {
     /// non-nullable case is there for the nullable one rather than the two lists drifting.
     /// </para>
     /// </remarks>
-    protected virtual T StandardConverter<T>(string value) =>
-        // Boxed and cast rather than converted per-branch: unboxing to Nullable<T> from a boxed
-        // underlying value is allowed, so one table serves both.
-        (T)Convert(Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T), value);
+    protected virtual T StandardConverter<T>(string value) {
+        if (TryStandardValue<T>(value, out var converted)) {
+            return converted;
+        }
+
+        // The fallback boxes, which is what lets one table serve both shapes: unboxing to
+        // Nullable<T> from a boxed underlying value is allowed. Everything the method above does
+        // not name arrives here.
+        return (T)Convert(Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T), value);
+    }
+
+    /// <summary>
+    /// The types route templates and query strings are actually written in, parsed without a box.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="Convert"/> returns <c>object</c>, so every scalar a handler declares used to cost
+    /// a box on its way out of the parse - 24 bytes for an <c>int</c>, 32 for a <c>Guid</c>, once
+    /// per parameter per request. <see cref="Unsafe.As{TFrom,TTo}"/> reinterprets the parsed value
+    /// as <typeparamref name="T"/> instead, which is sound because the comparison immediately above
+    /// each call has established that the two are the same type.
+    /// </para>
+    /// <para>
+    /// <b>The comparisons cost nothing for the types they are written for.</b> A value-type
+    /// instantiation of a generic method is compiled on its own, so the JIT folds every
+    /// <c>typeof(T) ==</c> here to a constant and keeps the one branch that survives.
+    /// </para>
+    /// <para>
+    /// <b><c>string</c> is first for the case where they do cost something.</b> Every reference-type
+    /// instantiation shares one compiled body, where <c>typeof(T)</c> is a runtime lookup and the
+    /// comparisons genuinely run. <c>string</c> is by far the most common of them and leaves on the
+    /// first; a <c>Uri</c> or a <c>byte[]</c> walks the rest and falls through, which is a handful
+    /// of pointer comparisons against a parse that allocates anyway.
+    /// </para>
+    /// <para>
+    /// Nullable forms are listed rather than unwrapped, because unwrapping is what needed the box:
+    /// an optional parameter arrives as <c>Nullable&lt;T&gt;</c>, and the old path reached it by
+    /// unboxing a boxed underlying value. Each pair also skips the
+    /// <see cref="Nullable.GetUnderlyingType"/> call below.
+    /// </para>
+    /// <para>
+    /// Everything not here still goes through <see cref="Convert"/> and still boxes. This is the set
+    /// a route template or a query string is written in, not every type that can be parsed - adding
+    /// one is two lines, and leaving one out costs what it cost before.
+    /// </para>
+    /// </remarks>
+    private static bool TryStandardValue<T>(string value, out T converted) {
+        if (typeof(T) == typeof(string)) {
+            converted = (T)(object)value;
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(int)) {
+            var parsed = int.Parse(value, CultureInfo.InvariantCulture);
+
+            converted = Unsafe.As<int, T>(ref parsed);
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(int?)) {
+            int? parsed = int.Parse(value, CultureInfo.InvariantCulture);
+
+            converted = Unsafe.As<int?, T>(ref parsed);
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(long)) {
+            var parsed = long.Parse(value, CultureInfo.InvariantCulture);
+
+            converted = Unsafe.As<long, T>(ref parsed);
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(long?)) {
+            long? parsed = long.Parse(value, CultureInfo.InvariantCulture);
+
+            converted = Unsafe.As<long?, T>(ref parsed);
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(Guid)) {
+            var parsed = Guid.Parse(value);
+
+            converted = Unsafe.As<Guid, T>(ref parsed);
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(Guid?)) {
+            Guid? parsed = Guid.Parse(value);
+
+            converted = Unsafe.As<Guid?, T>(ref parsed);
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(bool)) {
+            var parsed = bool.Parse(value);
+
+            converted = Unsafe.As<bool, T>(ref parsed);
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(bool?)) {
+            bool? parsed = bool.Parse(value);
+
+            converted = Unsafe.As<bool?, T>(ref parsed);
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(DateTime)) {
+            var parsed = DateTime.Parse(value, CultureInfo.InvariantCulture);
+
+            converted = Unsafe.As<DateTime, T>(ref parsed);
+
+            return true;
+        }
+
+        if (typeof(T) == typeof(DateTime?)) {
+            DateTime? parsed = DateTime.Parse(value, CultureInfo.InvariantCulture);
+
+            converted = Unsafe.As<DateTime?, T>(ref parsed);
+
+            return true;
+        }
+
+        converted = default!;
+
+        return false;
+    }
 
     /// <summary>
     /// Every type a generated binder can ask for.
