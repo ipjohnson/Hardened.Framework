@@ -29,7 +29,7 @@ public class ErrorEnvelopeTests {
 
     private static readonly MessagePackSerializerOptions ClientOptions =
         MessagePackSerializerOptions.Standard.WithResolver(
-            CompositeResolver.Create([], [ErrorEnvelopeResolver.Instance, StandardResolver.Instance]));
+            CompositeResolver.Create([], [HardenedFormatterResolver.Instance, StandardResolver.Instance]));
 
     private static async Task<T?> RoundTrip<T>(T value) {
         var context = Pipeline.Context();

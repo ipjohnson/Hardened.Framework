@@ -36,14 +36,14 @@ public partial class MessagePackSerializerConfiguration {
     /// no registration and a model that is not fails the same way everywhere.
     /// </para>
     /// <para>
-    /// <see cref="ErrorEnvelopeResolver"/> answers for the framework's two error envelopes, which
-    /// cannot carry the attribute - see the formatters. Second, so an application that marks up an
-    /// envelope of its own is asked first.
+    /// <see cref="HardenedFormatterResolver"/> answers for the response bodies Hardened itself
+    /// ships - the two error envelopes and the built-in response types - none of which can carry
+    /// the attribute. Second, so an application that marks up a type of its own is asked first.
     /// </para>
     /// </remarks>
     public static IFormatterResolver[] AotResolvers { get; } = [
         SourceGeneratedFormatterResolver.Instance,
-        ErrorEnvelopeResolver.Instance,
+        HardenedFormatterResolver.Instance,
         BuiltinResolver.Instance,
         AttributeFormatterResolver.Instance,
         DynamicGenericResolver.Instance,

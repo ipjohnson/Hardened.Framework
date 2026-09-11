@@ -29,7 +29,8 @@ compile-time binding resolves a serializer by an exact lookup on its own content
 
 Importing the package changes what nothing answers. The serializer registers under
 `application/x-msgpack` and is asked only where an operation declares it, so a service that imports
-the package and declares nothing still answers JSON everywhere.
+the package and declares nothing still answers JSON everywhere. It also installs formatters for
+Hardened's own response bodies — see [below](#hardened-s-own-response-bodies).
 
 JSON is listed first above, so a client expressing no preference gets JSON. The order is the
 operation's.
@@ -179,28 +180,46 @@ It cannot be combined with `--contract smithy`. A Smithy model states its wire f
 protocol trait, and there is no MessagePack protocol to state — so the contract has nowhere to say
 that an operation answers `application/x-msgpack`, and nowhere to state a member's index.
 
-## What a refusal looks like
+## Hardened's own response bodies
+
+They are covered, so an operation can declare MessagePack whatever it answers with.
 
 `ExceptionResponseSerializer` negotiates the error body through the same locator the success goes
-through, so an operation declaring MessagePack answers its refusals as MessagePack. The framework's
-two error envelopes — `ErrorModel` and `RequestValidationError` — have formatters in this package,
-so a bind failure or a validation failure on a MessagePack operation goes out as a readable
-MessagePack body.
+through, so an operation declaring MessagePack answers its refusals as MessagePack — and a declared
+status whose body is a framework type does the same. `HardenedFormatterResolver` answers for the two
+error envelopes, `ErrorModel` and `RequestValidationError`, and for every built-in response type
+that reaches a serializer:
 
-A .NET client reading one composes options with the resolver that serves them:
+```csharp
+[Get("/readings/{id}")]
+[Produces(KnownContentType.Json, MessagePackContentType.Value)]
+public Response<Reading, NotFound> Get(int id) => ...   // the 404 answers MessagePack too
+```
+
+None of those types can carry `[MessagePackObject]` themselves — they live in
+`Hardened.Requests.Abstract`, `.Runtime` and `Hardened.Web.Runtime`, which every application
+references and none of which is taking a MessagePack dependency for them. The formatters are
+written by hand in the serializer package instead, with the keys and the member order the JSON
+representation uses, so a caller switching on `type` reads the same body either way.
+
+**Named keys, under the keyed mode too.** The document publishes no `x-message-pack-index` for a
+framework type, so a client generated from it keys these by name whichever mode it is in. Writing
+integers would disagree with every such client on every error body.
+
+Most of the built-in types never reach a serializer at all, which is why this is a short list. The
+generated dispatch assigns `ICarriesResponseBody.Body` rather than the wrapper, so `Created<T>`,
+`NotFound<T>` and the other generic wrappers send their payload; a type with `HasBody => false` —
+`NoContent`, `Accepted`, `NotModified` — writes nothing.
+
+A .NET client reading one of these bodies composes options with the same resolver:
 
 ```csharp
 var options = MessagePackSerializerOptions.Standard
     .WithResolver(CompositeResolver.Create(
-        [], [ErrorEnvelopeResolver.Instance, StandardResolver.Instance]));
+        [], [HardenedFormatterResolver.Instance, StandardResolver.Instance]));
 ```
 
 ## What is not covered
-
-**The built-in response types.** `NotFound`, `Conflict`, `Created<T>` and the rest of
-`Hardened.Web.Runtime.Responses` have no MessagePack formatter, so an operation returning one must
-not declare the media type yet. A specification-first contract is unaffected: its error payloads are
-generated models, and they are annotated with everything else.
 
 **A `oneOf` schema.** The generated choice type has a JSON converter written for it and no
 MessagePack formatter.

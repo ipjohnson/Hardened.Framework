@@ -1,7 +1,9 @@
 ﻿using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Serializers.MessagePack;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 using MessagePack;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
@@ -56,4 +58,24 @@ public class MessagePackController {
     [Post("/round")]
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
     public Reading Round(Reading reading) => reading with { Value = reading.Value + 1 };
+
+    /// <summary>
+    /// Two declared statuses, both answerable as MessagePack.
+    /// </summary>
+    /// <remarks>
+    /// The 404 body is <c>NotFound</c>, a framework type that cannot carry
+    /// <c>[MessagePackObject]</c> - it lives in <c>Hardened.Web.Runtime</c>, which is not taking a
+    /// MessagePack dependency. Before <c>HardenedFormatterResolver</c> the writer was asked for one
+    /// and found no formatter, so the media type could only be declared on an operation with a
+    /// single outcome. This is the fixture for the other case.
+    /// </remarks>
+    [Get("/declared/{id}")]
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+    public Response<Reading, NotFound> Declared(int id) {
+        if (id > 100) {
+            return new NotFound("reading", $"No reading has id {id}.");
+        }
+
+        return new Reading("sensor-" + id, id * 3);
+    }
 }

@@ -134,8 +134,8 @@ leaves out the client project and the tool manifest, and the same tests drive th
 ### The serializer
 
 `--serializer` decides what an operation can answer besides JSON. Both MessagePack modes wire the
-package, the module attribute, the media type on `GET /todos` and — with `--client refit` — the two
-Liquid templates that put the same attributes on the generated client.
+package, the module attribute, the media types on every scaffolded route and — with
+`--client refit` — the two Liquid templates that put the same attributes on the generated client.
 
 `message-pack-named` identifies each member on the wire by the name the document publishes.
 `message-pack-keyed` identifies it by an integer the contract states: smaller on the wire, and the

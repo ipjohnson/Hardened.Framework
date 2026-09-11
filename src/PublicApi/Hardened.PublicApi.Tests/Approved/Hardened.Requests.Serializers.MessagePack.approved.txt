@@ -3,9 +3,9 @@
 [assembly: MessagePack.Internal.GeneratedAssemblyMessagePackResolver(typeof(MessagePack.GeneratedMessagePackResolver), 3, 1)]
 namespace Hardened.Requests.Serializers.MessagePack
 {
-    public sealed class ErrorEnvelopeResolver : MessagePack.IFormatterResolver
+    public sealed class HardenedFormatterResolver : MessagePack.IFormatterResolver
     {
-        public static readonly Hardened.Requests.Serializers.MessagePack.ErrorEnvelopeResolver Instance;
+        public static readonly Hardened.Requests.Serializers.MessagePack.HardenedFormatterResolver Instance;
         public MessagePack.Formatters.IMessagePackFormatter<T>? GetFormatter<T>() { }
     }
     public interface IMessagePackSerializerConfiguration

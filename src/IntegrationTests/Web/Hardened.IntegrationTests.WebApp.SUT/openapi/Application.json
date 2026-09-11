@@ -3570,6 +3570,78 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/msgpack/declared/{id}": {
+      "get": {
+        "tags": [
+          "MessagePack"
+        ],
+        "operationId": "declared",
+        "summary": "Two declared statuses, both answerable as MessagePack.",
+        "description": "The 404 body is NotFound, a framework type that cannot carry [MessagePackObject] - it lives in Hardened.Web.Runtime, which is not taking a MessagePack dependency. Before HardenedFormatterResolver the writer was asked for one and found no formatter, so the media type could only be declared on an operation with a single outcome. This is the fixture for the other case.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              },
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              },
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              },
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/msgpack/negotiated/{id}": {
       "get": {
         "tags": [
@@ -5910,6 +5982,36 @@
         "properties": {
           "memberId": {
             "type": "string"
+          }
+        }
+      },
+      "NotFound": {
+        "type": "object",
+        "required": [
+          "resource",
+          "type",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "resource": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

@@ -31,18 +31,6 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl.Formatters;
 /// the whole reason the envelopes have a documented shape.
 /// </para>
 /// </remarks>
-internal static class ErrorEnvelope {
-
-    /// <summary>Reads a map header, or 0 for a nil.</summary>
-    /// <remarks>
-    /// A nil rather than a map is what a peer writes for a null envelope. Reading it as a
-    /// zero-member map hands back an empty instance instead of failing, which is what the JSON
-    /// side does with <c>null</c>.
-    /// </remarks>
-    internal static int MapHeader(ref MessagePackReader reader) =>
-        reader.TryReadNil() ? 0 : reader.ReadMapHeader();
-}
-
 internal sealed class ErrorModelFormatter : IMessagePackFormatter<ErrorModel?> {
 
     public static readonly ErrorModelFormatter Instance = new();
@@ -65,7 +53,7 @@ internal sealed class ErrorModelFormatter : IMessagePackFormatter<ErrorModel?> {
     }
 
     public ErrorModel? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) {
-        var count = ErrorEnvelope.MapHeader(ref reader);
+        var count = Problem.MapHeader(ref reader);
         var model = new ErrorModel();
 
         for (var i = 0; i < count; i++) {
@@ -123,7 +111,7 @@ internal sealed class RequestValidationErrorFormatter : IMessagePackFormatter<Re
 
     public RequestValidationError? Deserialize(
         ref MessagePackReader reader, MessagePackSerializerOptions options) {
-        var count = ErrorEnvelope.MapHeader(ref reader);
+        var count = Problem.MapHeader(ref reader);
         var model = new RequestValidationError();
 
         for (var i = 0; i < count; i++) {
@@ -189,7 +177,7 @@ internal sealed class RequestValidationFieldErrorFormatter
 
     public RequestValidationFieldError? Deserialize(
         ref MessagePackReader reader, MessagePackSerializerOptions options) {
-        var count = ErrorEnvelope.MapHeader(ref reader);
+        var count = Problem.MapHeader(ref reader);
         var model = new RequestValidationFieldError();
 
         for (var i = 0; i < count; i++) {

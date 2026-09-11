@@ -237,7 +237,7 @@ because disagreeing is a build error. There are no route attributes anywhere in 
 #if (messagePack)
 ## MessagePack
 
-`GET /todos` answers two representations of one body, and the client's `Accept` decides:
+Every route answers two representations of its body, and the client's `Accept` decides:
 
 ```
 GET /todos
@@ -245,14 +245,12 @@ Accept: application/x-msgpack
 ```
 
 JSON is declared first, so a client expressing no preference still gets JSON. Nothing else changed:
-the handler returns the same value, and `Hardened.Requests.Serializers.MessagePack` registers a
+the handlers return the same values, and `Hardened.Requests.Serializers.MessagePack` registers a
 writer under that media type and is asked only where an operation names it.
 
-Only that route. The others answer with `NotFound`, `Conflict` and `Created<Todo>` beside a `Todo`,
-and MessagePack has no formatter for the framework's own response types - so naming the media type
-on them would ask the writer for something it cannot produce. The two error envelopes are the
-exception and are covered, so a refused request on `GET /todos` comes back as a MessagePack body
-under its 400.
+The 404 and the 409 come back as MessagePack too. `NotFound` and `Conflict` are framework types
+that cannot carry the attribute themselves, so the package ships formatters for them - and for the
+two error envelopes, which is what a refusal the handler never sees comes back as.
 
 #if (messagePackKeyed)
 Each member is identified on the wire by an integer.
