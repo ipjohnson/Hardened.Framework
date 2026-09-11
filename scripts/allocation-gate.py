@@ -69,7 +69,7 @@ import sys
 TOLERANCE_BYTES = 16
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-DEFAULT_BASELINE = REPO_ROOT / "allocation-baseline.json"
+DEFAULT_BASELINE = REPO_ROOT / "build" / "allocation-baseline.json"
 
 
 def read_results(directory: pathlib.Path) -> dict[str, int]:

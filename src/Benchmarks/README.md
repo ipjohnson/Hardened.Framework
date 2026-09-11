@@ -127,7 +127,7 @@ credential it lost. If these numbers matter between Sundays, run `--verify` loca
 
 `allocation.yaml` runs on every pull request. It runs the verification pass, measures
 `PipelineBenchmarks` and `StringConversionBenchmarks` at `--job short`, and fails the build when a
-benchmark allocates more per operation than `allocation-baseline.json` records for it.
+benchmark allocates more per operation than `build/allocation-baseline.json` records for it.
 
 It gates bytes and never nanoseconds, which is the distinction the comment at the top of
 `benchmarks.yaml` draws. `BytesAllocatedPerOperation` is a count rather than a duration, so it does

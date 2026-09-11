@@ -291,18 +291,18 @@ echo "   kiota $KIOTA_TOOL and Microsoft.Kiota.Bundle $KIOTA_BUNDLE agree"
 # integration application, and a release moves all four together: a template pinned to one Kiota
 # and an integration suite proving another is two claims about what a Hardened document generates.
 REPO_TOOL=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["tools"]["microsoft.openapi.kiota"]["version"])' "$REPO/.config/dotnet-tools.json")
-# Directory.Build.props, not the client csproj. The property moved to the root when the repository
-# adopted central package management: Directory.Packages.props pins Microsoft.Kiota.Bundle to it,
+# src/Directory.Build.props, not the client csproj. The property moved there when the repository
+# adopted central package management: src/Directory.Packages.props pins Microsoft.Kiota.Bundle to it,
 # and that file is imported long before any project body, so a version it names has to be defined
 # above it. Reading the old location silently produced an empty string, which fails this check with
 # a message naming a blank version rather than a mismatch.
-REPO_BUNDLE=$(sed -n 's/.*<KiotaBundleVersion[^>]*>\(.*\)<\/KiotaBundleVersion>.*/\1/p' "$REPO/Directory.Build.props")
+REPO_BUNDLE=$(sed -n 's/.*<KiotaBundleVersion[^>]*>\(.*\)<\/KiotaBundleVersion>.*/\1/p' "$REPO/src/Directory.Build.props")
 if [ -z "$REPO_BUNDLE" ]; then
-    echo "   FAILED: no <KiotaBundleVersion> in Directory.Build.props. It moved there from the client csproj; this check has to move with it."
+    echo "   FAILED: no <KiotaBundleVersion> in src/Directory.Build.props. It moved there from the client csproj; this check has to move with it."
     exit 1
 fi
 if [ "$REPO_TOOL" != "$KIOTA_TOOL" ] || [ "$REPO_BUNDLE" != "$KIOTA_BUNDLE" ]; then
-    echo "   FAILED: the template pins kiota $KIOTA_TOOL / bundle $KIOTA_BUNDLE; the repository's .config/dotnet-tools.json and Directory.Build.props pin $REPO_TOOL / $REPO_BUNDLE"
+    echo "   FAILED: the template pins kiota $KIOTA_TOOL / bundle $KIOTA_BUNDLE; the repository's .config/dotnet-tools.json and src/Directory.Build.props pin $REPO_TOOL / $REPO_BUNDLE"
     exit 1
 fi
 echo "   the integration client pins the same pair"

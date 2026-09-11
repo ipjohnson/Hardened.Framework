@@ -19,6 +19,7 @@ version, so a change and the page describing it land in the same commit.
 | [`src/PublicApi`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/PublicApi) | The approved public surface of every shipped assembly |
 | [`src/Benchmarks`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Benchmarks) | The pipeline measured against ASP.NET Core, on the same machine |
 | [`docs`](https://github.com/ipjohnson/Hardened.Framework/tree/main/docs) | This site, and the maintainer notes under `design/` |
+| [`build`](https://github.com/ipjohnson/Hardened.Framework/tree/main/build) | Coverage and allocation baselines, the coverage run settings, the OpenAPI lint ruleset |
 
 The framework is documented in the [Guide](/guide/getting-started), the AWS packages under
 [AWS](/aws/).

@@ -47,7 +47,7 @@ run fail rather than fix it. Measured 2026-08-18:
 
     dotnet build Hardened.slnx -c Release
     dotnet test  Hardened.slnx --no-build -c Release \
-        --settings coverage.runsettings --collect:"Code Coverage"
+        --settings build/coverage.runsettings --collect:"Code Coverage"
         -> 20 assemblies, Hardened.Smithy.BuildTask among them
 
     dotnet build Hardened.slnx -c Release -p:ContinuousIntegrationBuild=true
@@ -94,7 +94,7 @@ import sys
 TOLERANCE = 0.5
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
-DEFAULT_BASELINE = REPO_ROOT / "coverage-baseline.json"
+DEFAULT_BASELINE = REPO_ROOT / "build" / "coverage-baseline.json"
 
 
 def read_summary(path: pathlib.Path) -> dict[str, dict[str, float]]:

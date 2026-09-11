@@ -6,7 +6,7 @@
 # where the change would reach main only through a merge nobody reviewed as a shared change. The
 # plan (docs/design/CLOUD-LINES-PLAN.html, section 4) says a shared member changes by request.
 #
-# Two shared files are allowed through: Directory.Packages.props and Hardened.slnx. Each agent
+# Two shared files are allowed through: src/Directory.Packages.props and Hardened.slnx. Each agent
 # edits only its own labelled group and its own solution folders in them, and the regions merge
 # cleanly; the guard cannot see regions, so that part is a rule rather than a check.
 #
@@ -27,8 +27,8 @@ if [ -z "$agent" ]; then
 fi
 
 case "$agent" in
-  azure) allowed='src/Clouds/Azure/ docs/azure/ filters/azure.slnf Directory.Packages.props Hardened.slnx Hardened.Simulators.slnx' ;;
-  gcp)   allowed='src/Clouds/Gcp/ docs/gcp/ filters/gcp.slnf src/Functions/Hardened.CloudEvents/ src/Functions/Hardened.CloudEvents.Tests/ Directory.Packages.props Hardened.slnx Hardened.Simulators.slnx' ;;
+  azure) allowed='src/Clouds/Azure/ docs/azure/ filters/azure.slnf src/Directory.Packages.props Hardened.slnx Hardened.Simulators.slnx' ;;
+  gcp)   allowed='src/Clouds/Gcp/ docs/gcp/ filters/gcp.slnf src/Functions/Hardened.CloudEvents/ src/Functions/Hardened.CloudEvents.Tests/ src/Directory.Packages.props Hardened.slnx Hardened.Simulators.slnx' ;;
   *)     exit 0 ;;
 esac
 
