@@ -1,5 +1,6 @@
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Runtime.Validation;
 using Hardened.Requests.Serializers.MessagePack;
 using Hardened.Web.Runtime.Responses;
 using MessagePack;
@@ -129,5 +130,39 @@ public class MessagePackTests {
         response.Assert.Ok();
 
         Assert.Contains("sensor-9", await response.ReadTextAsync());
+    }
+
+    // ---------------------------------------------------------------- refusals
+
+    /// <summary>
+    /// A refusal on a MessagePack operation is answered as MessagePack, because the document says
+    /// it is.
+    /// </summary>
+    /// <remarks>
+    /// It answered <b>500 with an empty body</b>. <c>ExceptionResponseSerializer</c> negotiates the
+    /// error body through the same locator the success goes through, so the MessagePack writer was
+    /// chosen, found no formatter for <c>RequestValidationError</c> - a framework type that cannot
+    /// carry <c>[MessagePackObject]</c> - and threw inside the handler that exists to answer a
+    /// throw. Every bind failure, validation failure and authorization refusal on a MessagePack
+    /// operation went out that way. See <c>ErrorEnvelopeFormatters</c>.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ARefusalIsAnsweredAsMessagePack(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get(
+            "/msgpack/packed/notanumber",
+            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value);
+
+        Assert.Equal(400, response.StatusCode);
+        Assert.StartsWith(MessagePackContentType.Value, ContentType(response));
+
+        response.Body.Position = 0;
+
+        var error = MessagePackSerializer.Deserialize<RequestValidationError>(
+            response.Body,
+            MessagePackSerializerOptions.Standard.WithResolver(ErrorEnvelopeResolver.Instance));
+
+        Assert.NotEmpty(error.Type);
+        Assert.NotEmpty(error.Errors);
+        Assert.Contains(error.Errors, field => field.Field == "id");
     }
 }

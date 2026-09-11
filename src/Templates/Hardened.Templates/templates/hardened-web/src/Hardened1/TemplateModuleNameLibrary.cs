@@ -7,6 +7,9 @@ using Hardened.Web.Runtime.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 #endif
 using Hardened.Web.Runtime.DependencyInjection;
+#if (messagePack)
+using Hardened.Requests.Serializers.MessagePack;
+#endif
 
 namespace Hardened1;
 
@@ -19,6 +22,12 @@ namespace Hardened1;
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
+#if (messagePack)
+// Registers the MessagePack reader and writer. Importing it changes what no operation answers:
+// the serializer registers under application/x-msgpack and is asked only where an operation
+// declares that media type, which the handlers below do with [Produces].
+[MessagePackSerializerLibrary]
+#endif
 #if (codeFirst)
 // This assembly's URL space. Every route below it is relative to this.
 [BasePath("/todos")]

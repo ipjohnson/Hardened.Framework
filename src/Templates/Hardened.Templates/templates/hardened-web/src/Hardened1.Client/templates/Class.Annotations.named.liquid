@@ -1,0 +1,14 @@
+{%- comment -%}
+MessagePack, on every generated contract.
+
+NJsonSchema renders Class.Annotations into each class it writes and ships the template empty, so
+overriding it adds attributes and changes nothing else about the generated code. The rest of the
+DTO generator is untouched: a custom template directory overrides one file at a time and falls
+back to the embedded template for every name it does not find.
+
+Named mode: the member's key is the name the document publishes, pinned per member in
+Class.Property.Annotations.liquid. keyAsPropertyName alone would write the C# member name, which
+is NJsonSchema's PascalCasing of the wire name - agreeing with the server only for as long as two
+unrelated PascalCase implementations agree.
+{%- endcomment -%}
+[MessagePack.MessagePackObject(true)]

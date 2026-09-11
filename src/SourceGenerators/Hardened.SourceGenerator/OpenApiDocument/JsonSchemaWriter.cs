@@ -260,6 +260,28 @@ public static class JsonSchemaWriter {
     private static string WithDefault(string schema, string? literal) =>
         literal == null ? schema : Append(schema, "\"default\":" + literal);
 
+    /// <summary>
+    /// Adds the MessagePack key a member carries, where it carries one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>x-message-pack-index</c>. Published rather than kept, because without it the document
+    /// describes a MessagePack representation whose field identity is invisible, and a client
+    /// generated from it can agree with the server about nothing but property names - which under
+    /// a keyed format is agreement about the wrong thing.
+    /// </para>
+    /// <para>
+    /// Public because the specification-first writer publishes the same extension from the same
+    /// rule, and the <c>$ref</c> wrapping <see cref="Append"/> applies is the part worth having in
+    /// one place.
+    /// </para>
+    /// </remarks>
+    public static string WithMessagePackIndex(string schema, int? index) =>
+        index is { } value
+            ? Append(schema, "\"x-message-pack-index\":" +
+                             value.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            : schema;
+
     /// <summary>Adds a keyword to a schema that has been written already.</summary>
     /// <remarks>
     /// A <c>$ref</c> takes no siblings in OpenAPI 3.0 - they are ignored - so a reference is
@@ -304,15 +326,17 @@ public static class JsonSchemaWriter {
 
             properties
                 .Append('"').Append(Escape(wireName)).Append("\":")
-                .Append(WithDefault(
-                    Describe(
-                        Nullable(
-                            SchemaConstraintWriter.Apply(
-                                SchemaFor(property.Type, components, inProgress, enums, compilationAssembly),
-                                property),
-                            property.Type),
-                        DocumentationOf(property)),
-                    defaultLiteral));
+                .Append(WithMessagePackIndex(
+                    WithDefault(
+                        Describe(
+                            Nullable(
+                                SchemaConstraintWriter.Apply(
+                                    SchemaFor(property.Type, components, inProgress, enums, compilationAssembly),
+                                    property),
+                                property.Type),
+                            DocumentationOf(property)),
+                        defaultLiteral),
+                    MessagePackIndex(property)));
 
             // A member that is always present belongs in required: a non-nullable reference type
             // because the author said so, a non-nullable value type because C# serialization
@@ -377,6 +401,40 @@ public static class JsonSchemaWriter {
         }
 
         return CamelCase(property.Name);
+    }
+
+    /// <summary>
+    /// The integer key a member carries for MessagePack, or null where it carries none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>[Key(0)]</c>, which in a code-first application the author wrote. Hardened does not put
+    /// it there and does not invent one: a source generator cannot add an attribute to a member of
+    /// a type it did not declare, and an index it chose for the document alone would describe a
+    /// wire format the server does not speak.
+    /// </para>
+    /// <para>
+    /// So what is published is what was written, on the same terms as a contract that stated it -
+    /// and the attribute on a positional record parameter reaches the property it declares, which
+    /// is where this reads it, exactly as <see cref="WireName"/> reads <c>[JsonPropertyName]</c>.
+    /// </para>
+    /// <para>
+    /// The string overload is not a key in this sense. <c>[Key("sensor")]</c> renames a member
+    /// under the named mode, where the document's property name already says the same thing.
+    /// </para>
+    /// </remarks>
+    private static int? MessagePackIndex(IPropertySymbol property) {
+        foreach (var attribute in property.GetAttributes()) {
+            if (attribute.AttributeClass?.Name == "KeyAttribute" &&
+                attribute.AttributeClass.ContainingNamespace?.ToDisplayString() == "MessagePack" &&
+                attribute.ConstructorArguments.Length == 1 &&
+                attribute.ConstructorArguments[0].Value is int index &&
+                index >= 0) {
+                return index;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

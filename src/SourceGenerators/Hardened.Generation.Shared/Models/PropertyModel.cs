@@ -33,6 +33,25 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
     /// <summary>Whether this member leaves as a header rather than in the body.</summary>
     public bool IsHeaderBound => HeaderName != null;
 
+    /// <summary>
+    /// The integer this member is keyed by in MessagePack, from <c>x-message-pack-index</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Null where the contract states none, which is a build error under the keyed serializer and
+    /// means nothing under the other two - see <c>SpecDiagnostics</c>. Nothing invents one. A keyed
+    /// wire format is worth having because the key is stable, and an index this build chose would
+    /// move the moment a property was inserted above it, breaking every client generated before the
+    /// move with a document diff that reads as an addition.
+    /// </para>
+    /// <para>
+    /// Written back into the published document by <c>SpecSchemaWriter</c>, so a client generated
+    /// from the document agrees with the server about field identity rather than about property
+    /// names.
+    /// </para>
+    /// </remarks>
+    public int? MessagePackIndex { get; set; }
+
     /// <summary>The property's <c>description</c>, as its <c>&lt;param&gt;</c> doc comment.</summary>
     public string? Description { get; set; }
     public string? Type { get; set; }
@@ -193,7 +212,7 @@ internal class PropertyModel : IEquatable<PropertyModel>, IConstraintFacets {
                Minimum == other.Minimum && Maximum == other.Maximum &&
                ExclusiveMinimum == other.ExclusiveMinimum && ExclusiveMaximum == other.ExclusiveMaximum &&
                Pattern == other.Pattern && MinItems == other.MinItems && MaxItems == other.MaxItems &&
-               HeaderName == other.HeaderName;
+               HeaderName == other.HeaderName && MessagePackIndex == other.MessagePackIndex;
     }
 
     public override bool Equals(object? obj) => Equals(obj as PropertyModel);

@@ -65,6 +65,12 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
     # azure-functions is served by the Functions host rather than by `dotnet run`, so its
     # local-run probe needs Azure Functions Core Tools on PATH and is skipped with a note without
     # it; the row still generates, builds and tests.
+        # The serializer is the seventh field, so naming it means naming the six before it. Two rows,
+    # one per MessagePack mode, both on Refit: it is the only generator that reads the Liquid
+    # templates, so a Kiota row would prove the server half and say nothing about the client. The
+    # keyed row is spec-first, because that is where the index is stated in the contract and where
+    # an unstated one is a build error; the named row is code-first, where the author writes the
+    # attribute and the build carries it into the document.
     COMBOS=(kestrel:code aspnet:code cloud-run:code azure-functions:code kestrel:openapi
             kestrel:code:throws kestrel:openapi:throws
             kestrel:code:union kestrel:openapi:union
@@ -72,7 +78,9 @@ if [ ${#COMBOS[@]} -eq 0 ]; then
             kestrel:code:response:none
             kestrel:code:response:kiota:nunit
             kestrel:openapi:response:refit:xunit:moq
-            kestrel:code:throws:none:nunit:fakeiteasy)
+            kestrel:code:throws:none:nunit:fakeiteasy
+            kestrel:openapi:response:refit:xunit:nsubstitute:message-pack-keyed
+            kestrel:code:response:refit:xunit:nsubstitute:message-pack-named)
 
     if command -v smithy >/dev/null 2>&1 && [ "$(smithy --version 2>/dev/null)" = "$SMITHY_PIN" ]; then
         # The throws model too, not only the default. Smithy's half of the property had never run:
@@ -233,6 +241,95 @@ run_tests() {
     fi
 }
 
+# The serializer option, on the files rather than on the build. Every piece of it builds clean
+# when it is missing: a document with no x-message-pack-index, a client with no attributes and a
+# service answering JSON to an Accept it said it honoured all compile and all pass the handler
+# tests, because the tests drive JSON.
+#
+# $1 the generated folder, $2 the contract, $3 the client, $4 the serializer.
+check_serializer() {
+    local out="$1" contract="$2" client="$3" serializer="$4"
+    local library="$out/src/Sample/Sample.csproj"
+    local document="$out/src/Sample/openapi/Sample.json"
+    local templates="$out/src/Sample.Client/templates"
+
+    if [ "$serializer" = default ] || [ "$serializer" = json ]; then
+        # The opt-out, checked the way --client none is: no package, no attribute, no templates.
+        if grep -q "MessagePack" "$library" "$out/src/Sample/TemplateModuleNameLibrary.cs" \
+               "$out/src/Sample/SampleLibrary.cs" 2>/dev/null || [ -d "$templates" ]; then
+            echo "   FAILED: --serializer json left MessagePack in the project"
+            FAILED=1
+        fi
+
+        return
+    fi
+
+    grep -q 'Include="Hardened.Requests.Serializers.MessagePack"' "$library" || {
+        echo "   FAILED: the MessagePack package did not reach $library"
+        FAILED=1
+    }
+
+    grep -rq "MessagePackSerializerLibrary" "$out/src/Sample" || {
+        echo "   FAILED: the MessagePack module attribute did not reach the library"
+        FAILED=1
+    }
+
+    # The document is where the two halves meet: the server publishes the key and the client reads
+    # it from there. An operation that never declared the media type, or a keyed contract whose
+    # indices were dropped on the way out, both leave a document that says nothing.
+    if [ -f "$document" ]; then
+        grep -q "application/x-msgpack" "$document" || {
+            echo "   FAILED: $document describes no MessagePack representation"
+            FAILED=1
+        }
+
+        if [ "$serializer" = message-pack-keyed ]; then
+            grep -q "x-message-pack-index" "$document" || {
+                echo "   FAILED: $document publishes no x-message-pack-index"
+                FAILED=1
+            }
+        fi
+    fi
+
+    if [ "$client" = refit ]; then
+        # Under the names NJsonSchema looks for. A file left under its template name is a file the
+        # generator never opens, and Refitter reports nothing about a template it did not find.
+        for name in Class.Annotations.liquid Class.Property.Annotations.liquid; do
+            [ -s "$templates/$name" ] || {
+                echo "   FAILED: $templates/$name did not reach the output"
+                FAILED=1
+            }
+        done
+
+        if [ -n "$(find "$templates" -name '*.named.liquid' -o -name '*.keyed.liquid' 2>/dev/null || true)" ]; then
+            echo "   FAILED: a Liquid template reached the output under its template name"
+            FAILED=1
+        fi
+
+        grep -q '"customTemplateDirectory"' "$out/src/Sample.Client/.refitter" || {
+            echo "   FAILED: .refitter does not point at the template directory"
+            FAILED=1
+        }
+
+        # The attributes in the generated client, which is the only proof the templates were read.
+        # Refitter falls back to the embedded template for a directory it cannot find and says
+        # nothing, so the build is green either way.
+        local generated
+        generated=$(find "$out/src/Sample.Client/obj" -name 'SampleClient.cs' 2>/dev/null | head -1 || true)
+
+        if [ -z "$generated" ]; then
+            echo "   FAILED: the Refit client was not generated, so the templates are unproven"
+            FAILED=1
+        elif ! grep -q "MessagePack.MessagePackObject" "$generated"; then
+            echo "   FAILED: the Liquid templates did not reach the generated client"
+            FAILED=1
+        elif [ "$serializer" = message-pack-keyed ] && ! grep -q "MessagePack.Key(0)" "$generated"; then
+            echo "   FAILED: the generated client carries no integer keys"
+            FAILED=1
+        fi
+    fi
+}
+
 rm -rf "$FEED" "$WORK"
 mkdir -p "$FEED" "$WORK"
 
@@ -334,17 +431,19 @@ for COMBO in "${COMBOS[@]}"; do
     # is what needs testing - and since 0.19.0 the default model is response, since 0.20.0 the
     # default client is kiota, and the test project defaults to xUnit and NSubstitute. Naming a
     # field exercises its flag.
-    IFS=: read -r HOST CONTRACT MODEL CLIENT TESTS MOCKS <<<"$COMBO"
+    IFS=: read -r HOST CONTRACT MODEL CLIENT TESTS MOCKS SERIALIZER <<<"$COMBO"
     MODEL="${MODEL:-default}"
     CLIENT="${CLIENT:-default}"
     TESTS="${TESTS:-default}"
     MOCKS="${MOCKS:-default}"
+    SERIALIZER="${SERIALIZER:-default}"
 
-    say "host: $HOST   contract: $CONTRACT   response model: $MODEL   client: $CLIENT   tests: $TESTS   mocks: $MOCKS"
+    say "host: $HOST   contract: $CONTRACT   response model: $MODEL   client: $CLIENT   tests: $TESTS   mocks: $MOCKS   serializer: $SERIALIZER"
     OUT="$WORK/$HOST-$CONTRACT-$MODEL"
     [ "$CLIENT" != "default" ] && OUT="$OUT-$CLIENT"
     [ "$TESTS" != "default" ] && OUT="$OUT-$TESTS"
     [ "$MOCKS" != "default" ] && OUT="$OUT-$MOCKS"
+    [ "$SERIALIZER" != "default" ] && OUT="$OUT-$SERIALIZER"
 
     # --HardenedVersion is deliberately NOT passed. The template stamps the version it was
     # packed with as the default, and that default is what a real user gets - so it is what
@@ -354,6 +453,7 @@ for COMBO in "${COMBOS[@]}"; do
     [ "$CLIENT" != "default" ] && ARGS+=(--client "$CLIENT")
     [ "$TESTS" != "default" ] && ARGS+=(--test-framework "$TESTS")
     [ "$MOCKS" != "default" ] && ARGS+=(--mocks "$MOCKS")
+    [ "$SERIALIZER" != "default" ] && ARGS+=(--serializer "$SERIALIZER")
 
     dotnet new hardened-web -n Sample -o "$OUT" "${ARGS[@]}"
 
@@ -365,6 +465,11 @@ for COMBO in "${COMBOS[@]}"; do
     dotnet nuget add source "$FEED" --name template-verify-local --configfile "$OUT/nuget.config" >/dev/null
 
     ( cd "$OUT" && dotnet build -v q --nologo )
+
+    # After the build, because two of the things it reads are build outputs: the document the
+    # library writes, and the client Refitter generates from it.
+    check_serializer "$OUT" "$CONTRACT" "$CLIENT" "$SERIALIZER"
+
     run_tests "$OUT" GetTodo_ReadsTheMockedStore
 
     # The client rows: the document the library's build wrote is what the client generated from,

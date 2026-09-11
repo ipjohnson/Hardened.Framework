@@ -5945,11 +5945,13 @@
         ],
         "properties": {
           "sensor": {
-            "type": "string"
+            "type": "string",
+            "x-message-pack-index": 0
           },
           "value": {
             "type": "integer",
-            "format": "int32"
+            "format": "int32",
+            "x-message-pack-index": 1
           }
         }
       },

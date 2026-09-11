@@ -47,6 +47,14 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
 <!--#endif -->
     <PackageVersion Include="Hardened.Web.Testing" Version="$(HardenedVersion)" />
+<!--#if (messagePack) -->
+    <!--
+      The MessagePack reader and writer, and the media type they register under. Importing it does
+      not change what an operation answers: the serializer answers only where an operation declares
+      application/x-msgpack, so this project still answers JSON everywhere it does not.
+    -->
+    <PackageVersion Include="Hardened.Requests.Serializers.MessagePack" Version="$(HardenedVersion)" />
+<!--#endif -->
 <!--#if (kestrel || cloudRun) -->
     <PackageVersion Include="Hardened.Web.Kestrel.Testing" Version="$(HardenedVersion)" />
 <!--#endif -->
@@ -74,6 +82,14 @@
       than Hardened's.
     -->
     <PackageVersion Include="Refit" Version="8.0.0" />
+<!--#if (messagePack) -->
+    <!--
+      MessagePack itself, for the generated client. The two Liquid templates beside .refitter put
+      [MessagePackObject] on every generated contract, and the attribute has to resolve here. It
+      follows MessagePack's release line, like Refit's own pin above.
+    -->
+    <PackageVersion Include="MessagePack" Version="3.1.8" />
+<!--#endif -->
     <!-- The test side of the client: builds it over the pipeline and asserts through it. A
          Hardened package, so it moves with the framework rather than with Refit. -->
     <PackageVersion Include="Hardened.Refit.Testing" Version="$(HardenedVersion)" />

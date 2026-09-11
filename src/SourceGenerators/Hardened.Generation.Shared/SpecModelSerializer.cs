@@ -84,6 +84,7 @@ internal static class SpecModelSerializer {
         spec.Add("JsonTypeInfoResolverName", model.JsonTypeInfoResolverName);
         spec.Add("ContentNegotiation", model.ContentNegotiation);
         spec.Add("ResponseModel", model.ResponseModel.ToString());
+        spec.Add("Serializer", model.Serializer.ToString());
         spec.Add("BindCancellationToken", model.BindCancellationToken);
         spec.Add("PublishUrl", model.PublishUrl);
         spec.Add("SourceUrl", model.SourceUrl);
@@ -173,6 +174,7 @@ internal static class SpecModelSerializer {
                     model.JsonTypeInfoResolverName = record.String("JsonTypeInfoResolverName") ?? "";
                     model.ContentNegotiation = record.String("ContentNegotiation") ?? "";
                     model.ResponseModel = ParseResponseModel(record.String("ResponseModel"));
+                    model.Serializer = ParseSerializer(record.String("Serializer"));
                     model.BindCancellationToken = record.Bool("BindCancellationToken");
                     model.PublishUrl = record.String("PublishUrl") ?? "";
                     model.SourceUrl = record.String("SourceUrl") ?? "";
@@ -519,6 +521,7 @@ internal static class SpecModelSerializer {
         record.Add("Pattern", property.Pattern);
         record.Add("MinItems", property.MinItems);
         record.Add("MaxItems", property.MaxItems);
+        record.Add("MessagePackIndex", property.MessagePackIndex);
         record.WriteTo(builder);
     }
 
@@ -577,6 +580,7 @@ internal static class SpecModelSerializer {
         Pattern = record.String("Pattern"),
         MinItems = record.Int("MinItems"),
         MaxItems = record.Int("MaxItems"),
+        MessagePackIndex = record.Int("MessagePackIndex"),
     };
 
     private static void WriteService(StringBuilder builder, ServiceModel service) {
@@ -993,5 +997,23 @@ internal static class SpecModelSerializer {
         return string.Equals(value, nameof(SpecResponseModel.Union), StringComparison.OrdinalIgnoreCase)
             ? SpecResponseModel.Union
             : SpecResponseModel.Throws;
+    }
+
+    /// <summary>
+    /// The serializer mode a written record names, defaulting to Json.
+    /// </summary>
+    /// <remarks>
+    /// An unrecognised value is Json on the same terms as <see cref="ParseResponseModel"/>, and it
+    /// is also what a record written before this field existed parses to - which is the shape every
+    /// project that never asked for MessagePack already has.
+    /// </remarks>
+    private static SpecSerializer ParseSerializer(string? value) {
+        if (string.Equals(value, nameof(SpecSerializer.MessagePackKeyed), StringComparison.OrdinalIgnoreCase)) {
+            return SpecSerializer.MessagePackKeyed;
+        }
+
+        return string.Equals(value, nameof(SpecSerializer.MessagePackNamed), StringComparison.OrdinalIgnoreCase)
+            ? SpecSerializer.MessagePackNamed
+            : SpecSerializer.Json;
     }
 }

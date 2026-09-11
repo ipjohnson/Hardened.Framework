@@ -60,6 +60,7 @@ const guide = [
     items: [
       { text: 'Content negotiation', link: '/guide/content-negotiation' },
       { text: 'JSON serialization', link: '/guide/json' },
+      { text: 'MessagePack', link: '/guide/message-pack' },
       { text: 'Streaming responses', link: '/guide/streaming' },
       { text: 'Views', link: '/guide/templates' },
     ],

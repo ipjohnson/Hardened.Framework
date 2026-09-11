@@ -950,6 +950,7 @@ internal static class OpenApiSpecParser {
             Pattern = second.Pattern ?? first.Pattern,
             MinItems = second.MinItems ?? first.MinItems,
             MaxItems = second.MaxItems ?? first.MaxItems,
+            MessagePackIndex = second.MessagePackIndex ?? first.MessagePackIndex,
             EnumValues = second.EnumValues is { Count: > 0 } ? second.EnumValues : first.EnumValues
         };
     }
@@ -1221,7 +1222,8 @@ internal static class OpenApiSpecParser {
             IsRequired = isRequired,
             IsNullable = IsNullable(prop),
             Default = GetOpenApiPrimitiveValue(prop.Default),
-            Description = FirstNonEmpty(prop.Description)
+            Description = FirstNonEmpty(prop.Description),
+            MessagePackIndex = MessagePackIndex(prop)
         };
 
         // Extract validation constraints
@@ -2764,6 +2766,48 @@ internal static class OpenApiSpecParser {
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// The MessagePack key a property declares, or null where it declares none.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>x-message-pack-index</c>, and only that spelling. There is no second one in the wild to
+    /// honour the way <see cref="EnumMemberNames"/> honours two: nothing in the OpenAPI extensions
+    /// registry covers a binary wire format or field numbering, so this is not a convention being
+    /// followed, and inventing a synonym for a name nobody else writes would only make two.
+    /// </para>
+    /// <para>
+    /// A negative index is read as absent. MessagePack rejects one outright, and reporting it as a
+    /// missing key sends the author to the property that has to change.
+    /// </para>
+    /// </remarks>
+    private static int? MessagePackIndex(IOpenApiSchema schema) {
+        if (schema.Extensions == null ||
+            !schema.Extensions.TryGetValue("x-message-pack-index", out var extension) ||
+            extension is not JsonNodeExtension { Node: JsonValue value } ||
+            value.GetValueKind() != JsonValueKind.Number) {
+            return null;
+        }
+
+        // Through decimal rather than straight to int. The YAML reader backs a number with a
+        // decimal and TryGetValue does not convert between CLR numeric types, so asking for an int
+        // answers false for every index a .yaml document states - which read as "no key declared"
+        // on a document that declared every one of them. A JSON document backs the same number with
+        // a JsonElement, which does convert, so both spellings are tried.
+        int index;
+
+        if (value.TryGetValue<int>(out var direct)) {
+            index = direct;
+        } else if (value.TryGetValue<decimal>(out var number) && decimal.Truncate(number) == number &&
+                   number >= int.MinValue && number <= int.MaxValue) {
+            index = (int)number;
+        } else {
+            return null;
+        }
+
+        return index < 0 ? null : index;
     }
 
     /// <summary>A string-valued member of a JSON object, or null.</summary>

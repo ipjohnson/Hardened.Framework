@@ -91,6 +91,17 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     public string ResponseModel { get; set; } = "";
 
     /// <summary>
+    /// Which serialization attributes the generated models carry - "Json", "MessagePackNamed" or
+    /// "MessagePackKeyed".
+    /// </summary>
+    /// <remarks>
+    /// A build property for the reason <see cref="ResponseModel"/> is one, and an unrecognised or
+    /// absent value is Json on the same terms: a project that never asked for MessagePack wrote no
+    /// property, and models carrying an attribute whose package is not referenced would not compile.
+    /// </remarks>
+    public string Serializer { get; set; } = "";
+
+    /// <summary>
     /// Whether the source document is embedded so the application can serve it.
     /// </summary>
     /// <remarks>
@@ -444,6 +455,11 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
                 continue;
             }
 
+            // Stamped before the diagnostics rather than with the response model below, because
+            // one of them reads it: an unkeyed property is a finding under MessagePackKeyed and
+            // nothing at all under the other two.
+            model.Serializer = SelectedSerializer();
+
             // Checked before anything is written. These describe C# that will not compile, and
             // emitting it anyway turns a fixable spec problem into a compiler error in a generated
             // file the author cannot edit.
@@ -512,6 +528,24 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     private string Emit(ServiceSpecModel model, string document, string specPath) =>
         SpecFileEmitter.Emit(
             model, Namespace, ExcludeFromCoverage, document, specPath, SelectedResponseModel());
+
+    /// <summary>
+    /// The mode <c>$(HardenedSerializer)</c> names, defaulting to Json.
+    /// </summary>
+    /// <remarks>
+    /// An unrecognised value is Json for the reason an unrecognised response model is Throws, and
+    /// with more at stake: the other two modes put an attribute on every generated model whose
+    /// package a Json project does not reference, so failing open here would fail the compile.
+    /// </remarks>
+    private SpecSerializer SelectedSerializer() {
+        if (string.Equals(Serializer, "MessagePackKeyed", System.StringComparison.OrdinalIgnoreCase)) {
+            return SpecSerializer.MessagePackKeyed;
+        }
+
+        return string.Equals(Serializer, "MessagePackNamed", System.StringComparison.OrdinalIgnoreCase)
+            ? SpecSerializer.MessagePackNamed
+            : SpecSerializer.Json;
+    }
 
     /// <summary>
     /// The mode <c>$(HardenedResponseModel)</c> names, defaulting to Throws.

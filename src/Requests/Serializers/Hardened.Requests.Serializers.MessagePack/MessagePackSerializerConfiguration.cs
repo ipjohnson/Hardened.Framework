@@ -35,9 +35,15 @@ public partial class MessagePackSerializerConfiguration {
     /// <c>[MessagePackObject]</c>, and this resolver finds them, so a model that is annotated needs
     /// no registration and a model that is not fails the same way everywhere.
     /// </para>
+    /// <para>
+    /// <see cref="ErrorEnvelopeResolver"/> answers for the framework's two error envelopes, which
+    /// cannot carry the attribute - see the formatters. Second, so an application that marks up an
+    /// envelope of its own is asked first.
+    /// </para>
     /// </remarks>
     public static IFormatterResolver[] AotResolvers { get; } = [
         SourceGeneratedFormatterResolver.Instance,
+        ErrorEnvelopeResolver.Instance,
         BuiltinResolver.Instance,
         AttributeFormatterResolver.Instance,
         DynamicGenericResolver.Instance,

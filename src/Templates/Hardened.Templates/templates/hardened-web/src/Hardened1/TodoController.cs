@@ -1,4 +1,9 @@
 using Hardened.Requests.Abstract.Responses;
+#if (messagePack)
+using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Serializers.MessagePack;
+#endif
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Responses;
 using ValidationModules.Constraints;
@@ -49,6 +54,17 @@ public class TodoController {
     // way the service was written; without it the id is the method name in camelCase.
     [Operation("listTodos")]
     [Get("/")]
+#if (messagePack)
+    // Two representations of one response, and the client's Accept decides between them. JSON is
+    // named first, so a client expressing no preference still gets JSON.
+    //
+    // Only this route. The others answer with NotFound, Conflict and Created<Todo> beside a Todo,
+    // and MessagePack has no formatter for the framework's own response types - so declaring the
+    // media type on them would ask the writer for something it cannot produce. The two error
+    // envelopes are the exception and are covered, so a refusal on this route goes out as
+    // MessagePack too.
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public Task<IReadOnlyList<Todo>> All(ITodoStore store) => store.All();
 
 #if (throwsMode)

@@ -70,7 +70,9 @@ internal static class SpecFileEmitter {
 
         foreach (var schema in model.Schemas) {
             Coverage.Apply(
-                SchemaEmitter.Emit(models, schema, modelsNamespace, patterns, model.Schemas, streamedItems),
+                SchemaEmitter.Emit(
+                    models, schema, modelsNamespace, patterns, model.Schemas, streamedItems,
+                    model.Serializer),
                 excludeFromCoverage);
         }
 

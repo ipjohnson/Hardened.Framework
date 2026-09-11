@@ -1,7 +1,13 @@
 [assembly: Hardened.Requests.Abstract.Attributes.WritesContentType(new string[] {
         "application/x-msgpack"})]
+[assembly: MessagePack.Internal.GeneratedAssemblyMessagePackResolver(typeof(MessagePack.GeneratedMessagePackResolver), 3, 1)]
 namespace Hardened.Requests.Serializers.MessagePack
 {
+    public sealed class ErrorEnvelopeResolver : MessagePack.IFormatterResolver
+    {
+        public static readonly Hardened.Requests.Serializers.MessagePack.ErrorEnvelopeResolver Instance;
+        public MessagePack.Formatters.IMessagePackFormatter<T>? GetFormatter<T>() { }
+    }
     public interface IMessagePackSerializerConfiguration
     {
         System.Func<System.IServiceProvider, MessagePack.MessagePackSerializerOptions> OptionsProvider { get; }

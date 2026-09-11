@@ -1,0 +1,21 @@
+{%- comment -%}
+MessagePack, on every generated contract. See the named template beside this for why overriding
+Class.Annotations is enough to add an attribute and change nothing else.
+
+Keyed mode, and the condition is load-bearing. A keyed object needs an index for every member, and
+the document carries x-message-pack-index only on the schemas the contract keyed - the framework's
+own error envelopes, ErrorModel and RequestValidationError, are in the same document and carry
+none. Marking those [MessagePackObject] would not compile, so they take the named form with the
+wire name pinned, which is exactly what the server writes them as.
+{%- endcomment -%}
+{%- assign unkeyed = 0 -%}
+{%- for property in Properties -%}
+{%-   if property.ExtensionData == nil or property.ExtensionData["x-message-pack-index"] == nil -%}
+{%-     assign unkeyed = unkeyed | plus: 1 -%}
+{%-   endif -%}
+{%- endfor -%}
+{%- if unkeyed == 0 and Properties.size > 0 -%}
+[MessagePack.MessagePackObject]
+{%- else -%}
+[MessagePack.MessagePackObject(true)]
+{%- endif -%}

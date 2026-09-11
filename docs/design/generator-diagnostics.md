@@ -575,6 +575,7 @@ the other.
 | `027` | The description references something it does not declare. Part of the model-diagnostics pass; see below. |
 | `018`, `019`, `028`–`031` | The document export, which the three generator packages share. See below. |
 | `032` | Warning. `nullable` declared under a banner that removed the keyword. Part of the model-diagnostics pass; see below. |
+| `033` | A member the keyed MessagePack serializer has no index for, or two members sharing one. Part of the model-diagnostics pass; see below. |
 
 ### The Smithy CLI task (HSMT010–HSMT014)
 

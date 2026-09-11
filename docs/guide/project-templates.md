@@ -35,6 +35,7 @@ dotnet new hardened-web -n Todos [options]
 | `-c, --contract` | `code`, `openapi`, `smithy` | `code` |
 | `-rm, --response-model` | `response`, `throws`, `union` | `response` |
 | `-cl, --client` | `kiota`, `refit`, `none` | `kiota` |
+| `-s, --serializer` | `json`, `message-pack-named`, `message-pack-keyed` | `json` |
 | `--test-framework` | `xunit`, `nunit` | `xunit` |
 | `--mocks` | `nsubstitute`, `moq`, `fakeiteasy` | `nsubstitute` |
 | `--openapi-ui` | `true`, `false` | `true` |
@@ -129,6 +130,25 @@ document the library writes, and tests that drive it through the pipeline. `refi
 interface with Refitter instead, and every operation on it returns `IApiResponse<T>`. `none`
 leaves out the client project and the tool manifest, and the same tests drive the pipeline through
 `ITestWebApp`. See [Generated clients](/guide/clients) and [Typed clients](/guide/testing-clients).
+
+### The serializer
+
+`--serializer` decides what an operation can answer besides JSON. Both MessagePack modes wire the
+package, the module attribute, the media type on `GET /todos` and — with `--client refit` — the two
+Liquid templates that put the same attributes on the generated client.
+
+`message-pack-named` identifies each member on the wire by the name the document publishes.
+`message-pack-keyed` identifies it by an integer the contract states: smaller on the wire, and the
+identity survives a rename. Nothing assigns an index — an index the build chose would move the next
+time a property was added above it — so a member without one is a build error naming the member and
+the next free index.
+
+It cannot be combined with `--contract smithy`. A Smithy model states its wire format through its
+protocol trait, and there is no MessagePack protocol to state, so the contract has nowhere to name
+the media type and nowhere to state an index. Refused at instantiation the way the union
+combinations are, with `HTPL008` as the build's backstop.
+
+[MessagePack](/guide/message-pack) covers the rest, including what it does not cover.
 
 ### The reference page
 
