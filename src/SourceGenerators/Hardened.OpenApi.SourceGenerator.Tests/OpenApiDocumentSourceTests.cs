@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using CSharpAuthor;
 using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
@@ -44,7 +44,9 @@ public class OpenApiDocumentSourceTests {
         string method = "GET",
         int? successStatus = null,
         HandlerSchema? response = null,
-        IReadOnlyList<ResponseSchemaModel>? responses = null) =>
+        IReadOnlyList<ResponseSchemaModel>? responses = null,
+        string? produces = null,
+        bool returnsBytesOrText = false) =>
         new(
             new RequestHandlerNameModel(path, method),
             Type("TodoController"),
@@ -53,12 +55,17 @@ public class OpenApiDocumentSourceTests {
             [],
             new ResponseInformationModel {
                 ReturnType = Type("Todo"),
-                DefaultStatusCode = successStatus
+                DefaultStatusCode = successStatus,
+                ProducedContentTypes = produces,
+                ReturnsBytesOrText = returnsBytesOrText
             },
             []) {
             ResponseSchema = response,
             ResponseSchemas = responses ?? System.Array.Empty<ResponseSchemaModel>()
         };
+
+    private static string[] ContentKeys(JsonElement response) =>
+        response.GetProperty("content").EnumerateObject().Select(p => p.Name).ToArray();
 
     private static JsonElement Document(params RequestHandlerModel[] handlers) =>
         JsonDocument.Parse(
@@ -104,6 +111,145 @@ public class OpenApiDocumentSourceTests {
 
         Assert.True(responses.TryGetProperty("204", out var noContent));
         Assert.False(noContent.TryGetProperty("content", out _));
+    }
+
+    #endregion
+
+    #region what an operation produces
+
+    /// <summary>
+    /// The defect: an operation the runtime negotiates two representations of advertised one. The
+    /// set reached the model and the writer took the substring before the first comma.
+    /// </summary>
+    [Fact]
+    public void EveryDeclaredMediaTypeGetsAContentKey() {
+        var responses = Responses(
+            Document(Handler(response: Schema("Todo"),
+                produces: "application/json,application/x-msgpack")),
+            "/todos/{id}", "get");
+
+        Assert.Equal(
+            ["application/json", "application/x-msgpack"],
+            ContentKeys(responses.GetProperty("200")));
+    }
+
+    /// <summary>
+    /// In the declared order rather than sorted. The first is the representation the operation
+    /// leads with and the one a client expressing no preference is answered with, and
+    /// <c>OpenApiSpecParser</c> reads the keys back in document order, so sorting here would make a
+    /// round trip change what the operation prefers.
+    /// </summary>
+    [Fact]
+    public void TheDeclaredOrderIsTheDocumentOrder() {
+        var responses = Responses(
+            Document(Handler(response: Schema("Todo"),
+                produces: "application/x-msgpack,application/json")),
+            "/todos/{id}", "get");
+
+        Assert.Equal(
+            ["application/x-msgpack", "application/json"],
+            ContentKeys(responses.GetProperty("200")));
+    }
+
+    /// <summary>Each key names the same schema: one body, described several ways.</summary>
+    [Fact]
+    public void EveryKeyNamesTheSameSchema() {
+        var ok = Responses(
+            Document(Handler(response: Schema("Todo"),
+                produces: "application/json,application/x-msgpack")),
+            "/todos/{id}", "get").GetProperty("200");
+
+        var content = ok.GetProperty("content");
+
+        Assert.Equal(
+            content.GetProperty("application/json").GetProperty("schema").GetRawText(),
+            content.GetProperty("application/x-msgpack").GetProperty("schema").GetRawText());
+    }
+
+    [Fact]
+    public void ADeclaredSetAlsoReachesADeclaredResponse() {
+        var responses = Responses(
+            Document(Handler(
+                responses: [Response(200, "Todo")],
+                produces: "application/json,application/x-msgpack")),
+            "/todos/{id}", "get");
+
+        Assert.Equal(
+            ["application/json", "application/x-msgpack"],
+            ContentKeys(responses.GetProperty("200")));
+    }
+
+    #endregion
+
+    #region what an error goes out as
+
+    /// <summary>
+    /// <c>ExceptionResponseSerializer</c> puts the error model through the same locator the success
+    /// went through, so an operation declaring MessagePack answers its refusals as MessagePack
+    /// wherever a serializer for it is registered. This published <c>application/json</c> for every
+    /// operation, and the runtime did not.
+    /// </summary>
+    [Fact]
+    public void AnErrorIsDescribedAsTheDeclaredSet() {
+        var responses = Responses(
+            Document(Handler(
+                responses: [Response(200, "Todo"), Response(404, "NotFound")],
+                produces: "application/x-msgpack")),
+            "/todos/{id}", "get");
+
+        Assert.Equal(
+            ["application/x-msgpack", "application/json"],
+            ContentKeys(responses.GetProperty("404")));
+    }
+
+    /// <summary>
+    /// JSON beside the declared set, because the build cannot tell the two outcomes apart. The
+    /// exception path falls back to JSON only when nothing registered can write the error model as
+    /// any declared type, and what a host registers is not readable from this compilation.
+    /// </summary>
+    [Fact]
+    public void JsonIsListedBesideItBecauseTheFallbackIsReachable() {
+        var responses = Responses(
+            Document(Handler(
+                responses: [Response(200, "Todo"), Response(404, "NotFound")],
+                produces: "application/x-msgpack")),
+            "/todos/{id}", "get");
+
+        Assert.Contains("application/json", ContentKeys(responses.GetProperty("404")));
+    }
+
+    /// <summary>
+    /// An operation that only produces JSON describes its errors as JSON and nothing else, so this
+    /// adds no noise to the documents that have always been right.
+    /// </summary>
+    [Fact]
+    public void AJsonOperationStillDescribesJsonErrorsAlone() {
+        var responses = Responses(
+            Document(Handler(
+                responses: [Response(200, "Todo"), Response(404, "NotFound")],
+                produces: "application/json")),
+            "/todos/{id}", "get");
+
+        Assert.Equal(["application/json"], ContentKeys(responses.GetProperty("404")));
+    }
+
+    /// <summary>
+    /// A handler holding bytes or text writes them itself, and
+    /// <c>RawResponseSerializer.CanProduce</c> refuses a response value that is not already bytes.
+    /// So the exception path has nothing producible and commits JSON, which is what the literal
+    /// here was always right for.
+    /// </summary>
+    [Fact]
+    public void ARawHandlerKeepsJsonErrorBodies() {
+        var responses = Responses(
+            Document(Handler(
+                responses: [Response(200, "Todo"), Response(404, "NotFound")],
+                produces: "image/png",
+                returnsBytesOrText: true)),
+            "/todos/{id}", "get");
+
+        Assert.Equal(["application/json"], ContentKeys(responses.GetProperty("404")));
+        Assert.Equal(["image/png"], ContentKeys(responses.GetProperty("200")));
     }
 
     #endregion

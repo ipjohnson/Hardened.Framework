@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -631,6 +631,8 @@ internal static class SpecModelSerializer {
         record.Add("ResponseFormat", operation.ResponseFormat);
         record.Add("ResponseIsArray", operation.ResponseIsArray);
         record.Add("ProducedContentTypes", operation.ProducedContentTypes);
+        record.Add("SuccessContentTypes", operation.SuccessContentTypes);
+        record.Add("ErrorContentTypes", operation.ErrorContentTypes);
         record.Add("ResponseArrayItemsRef", operation.ResponseArrayItemsRef);
         record.Add("ResponseArrayItemsType", operation.ResponseArrayItemsType);
         record.Add("ResponseArrayItemsFormat", operation.ResponseArrayItemsFormat);
@@ -737,6 +739,8 @@ internal static class SpecModelSerializer {
         ResponseFormat = record.String("ResponseFormat"),
         ResponseIsArray = record.Bool("ResponseIsArray"),
         ProducedContentTypes = record.Strings("ProducedContentTypes") ?? new List<string>(),
+        SuccessContentTypes = record.Strings("SuccessContentTypes") ?? new List<string>(),
+        ErrorContentTypes = record.Strings("ErrorContentTypes") ?? new List<string>(),
         ResponseArrayItemsRef = record.String("ResponseArrayItemsRef"),
         ResponseArrayItemsType = record.String("ResponseArrayItemsType"),
         ResponseArrayItemsFormat = record.String("ResponseArrayItemsFormat"),

@@ -103,10 +103,19 @@ public static class WebIncrementalGenerator {
         // tuple SourceGeneratorWrapper.Wrap<> has to name grows a level with it. At two properties
         // that type was already three deep and near-unreadable; the next one would have made it
         // four.
+        // Collapsed to one string before it reaches the pipeline, for the reason
+        // HandlerValidationGenerator collapses its compilation read to a bool: a CompilationProvider
+        // yields a new compilation per keystroke, and combining one directly rebuilds the routing
+        // table on every edit.
+        var writableContentTypes = initializationContext.CompilationProvider.Select(
+            static (compilation, _) => SerializerContentTypes.Read(compilation));
+
         var options = initializationContext.AnalyzerConfigOptionsProvider.Select(
-            (provider, _) => new WebGeneratorOptions(
-                Value(provider, "HardenedAmbiguousRoutes"),
-                Value(provider, OpenApiVersionFacts.PropertyName)));
+                (provider, _) => new WebGeneratorOptions(
+                    Value(provider, "HardenedAmbiguousRoutes"),
+                    Value(provider, OpenApiVersionFacts.PropertyName)))
+            .Combine(writableContentTypes)
+            .Select(static (pair, _) => pair.Left with { WritableContentTypes = pair.Right });
 
         var routeProvider = entryPointProvider.Combine(collection).WithComparer(new CombinedComparer());
 

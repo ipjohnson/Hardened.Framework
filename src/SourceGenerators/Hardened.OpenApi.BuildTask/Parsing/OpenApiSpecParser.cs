@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using System.Globalization;
 using System.Text.Json;
@@ -2248,6 +2248,13 @@ internal static class OpenApiSpecParser {
                             if (!opModel.ProducedContentTypes.Contains(declared)) {
                                 opModel.ProducedContentTypes.Add(declared);
                             }
+
+                            // Beside it, and only the successes. The list above gains the error
+                            // representations below so an error can be produced at all; this one is
+                            // what the document says the success is.
+                            if (!opModel.SuccessContentTypes.Contains(declared)) {
+                                opModel.SuccessContentTypes.Add(declared);
+                            }
                         }
 
                         var responseContent = SelectMediaType(response.Content);
@@ -2307,6 +2314,10 @@ internal static class OpenApiSpecParser {
                 foreach (var errorContentType in errorContentTypes) {
                     if (!opModel.ProducedContentTypes.Contains(errorContentType)) {
                         opModel.ProducedContentTypes.Add(errorContentType);
+                    }
+
+                    if (!opModel.ErrorContentTypes.Contains(errorContentType)) {
+                        opModel.ErrorContentTypes.Add(errorContentType);
                     }
                 }
             }

@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using CSharpAuthor;
 using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
@@ -418,10 +418,15 @@ internal static class SpecHandlerModelBuilder {
         return Ordered(parameters, symbols);
     }
 
+    /// <summary>The list as the model carries it, or null where the contract said nothing.</summary>
+    private static string? Joined(List<string> contentTypes) =>
+        contentTypes.Count > 0 ? string.Join(",", contentTypes) : null;
+
     private static ResponseInformationModel BuildResponseInfo(
         OperationModel operation, IReadOnlyList<SchemaModel> schemas, string modelsNamespace,
         SpecResponseModel responseModel, string specFileName) {
         ITypeDefinition? returnType = null;
+        var returnsText = false;
 
         // A stream, ahead of everything else, exactly as ServiceInterfaceEmitter.GetReturnType
         // decides it: itemSchema means the body is many of the item one after another, so the
@@ -449,6 +454,8 @@ internal static class SpecHandlerModelBuilder {
                 ProducedContentTypes = operation.ProducedContentTypes.Count > 0
                     ? string.Join(",", operation.ProducedContentTypes)
                     : null,
+                SuccessContentTypes = Joined(operation.SuccessContentTypes),
+                ErrorContentTypes = Joined(operation.ErrorContentTypes),
                 ValidationErrorStatus = DeclaredValidationStatus(operation),
                 DeclaredErrorBodiesExpression =
                     DeclaredErrorBodies(operation, schemas, modelsNamespace, specFileName)
@@ -470,6 +477,8 @@ internal static class SpecHandlerModelBuilder {
                 ProducedContentTypes = operation.ProducedContentTypes.Count > 0
                     ? string.Join(",", operation.ProducedContentTypes)
                     : null,
+                SuccessContentTypes = Joined(operation.SuccessContentTypes),
+                ErrorContentTypes = Joined(operation.ErrorContentTypes),
                 ValidationErrorStatus = DeclaredValidationStatus(operation),
                 UnionCases = unionCases,
 
@@ -503,6 +512,7 @@ internal static class SpecHandlerModelBuilder {
             var csType = TypeMapper.MapToCSharpType(operation.ResponseType, operation.ResponseFormat);
             if (csType != "object") {
                 returnType = TypeMapper.GetTypeDefinition(modelsNamespace, csType, false);
+                returnsText = csType == "string";
             }
         }
 
@@ -524,6 +534,11 @@ internal static class SpecHandlerModelBuilder {
             // The same statement the code-first side reads off a byte[] return type, made here
             // because this is where that return type is chosen. Nothing serializes this response.
             WritesRawBytes = operation.RawBytesResponse,
+
+            // Wider by exactly string, and read for a different question: whether an error model
+            // can go out under the media type this operation declared. A contract answering
+            // text/plain returns a string the handler writes itself, so it cannot.
+            ReturnsBytesOrText = operation.RawBytesResponse || returnsText,
 
             // The payload carries its own headers where the contract binds them to its members,
             // which is Smithy's @httpHeader on an output. There is no response set on this path, so
@@ -554,6 +569,8 @@ internal static class SpecHandlerModelBuilder {
             ProducedContentTypes = operation.ProducedContentTypes.Count > 0
                 ? string.Join(",", operation.ProducedContentTypes)
                 : null,
+            SuccessContentTypes = Joined(operation.SuccessContentTypes),
+            ErrorContentTypes = Joined(operation.ErrorContentTypes),
 
             ValidationErrorStatus = DeclaredValidationStatus(operation)
         };

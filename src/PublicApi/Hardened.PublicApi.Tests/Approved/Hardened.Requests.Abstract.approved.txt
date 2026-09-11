@@ -71,6 +71,12 @@ namespace Hardened.Requests.Abstract.Attributes
     {
         public ResponseOnlyAttribute() { }
     }
+    [System.AttributeUsage(System.AttributeTargets.Assembly, AllowMultiple=true)]
+    public class WritesContentTypeAttribute : System.Attribute
+    {
+        public WritesContentTypeAttribute(params string[] contentTypes) { }
+        public string[] ContentTypes { get; }
+    }
 }
 namespace Hardened.Requests.Abstract.Authorization
 {

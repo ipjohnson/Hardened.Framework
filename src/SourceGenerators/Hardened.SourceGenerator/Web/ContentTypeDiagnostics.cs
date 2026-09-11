@@ -1,4 +1,4 @@
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 
 namespace Hardened.SourceGenerator.Web;
 
@@ -18,6 +18,13 @@ namespace Hardened.SourceGenerator.Web;
 /// library that cannot compile without its host is not a library. The entry point is the only place
 /// the full registration set exists, and that is where strictness could be raised later if it earns
 /// it. <c>ContentTypeNotProducibleException</c> still answers the case that reaches run time.
+/// </para>
+/// <para>
+/// <b>Visible means declared, not registered.</b> This used to treat every media type that was not
+/// <c>application/json</c> as unproducible, so installing a serializer package did not silence it
+/// and an application adopting one could not build warning-free. A serializer package says what it
+/// writes with <c>[assembly: WritesContentType]</c> and <see cref="SerializerContentTypes"/> reads
+/// that off this compilation and its references, which is what makes the warning answerable.
 /// </para>
 /// <para>
 /// Found in the syntax transform, where the return type is known, and reported from the routing
@@ -60,16 +67,22 @@ public static class ContentTypeDiagnostics {
         isEnabledByDefault: true);
 
     /// <summary>
-    /// Reports the findings the transform carried, if there are any.
+    /// Reports the findings the transform carried, if any survive what this compilation can write.
     /// </summary>
     /// <param name="unproducible">
-    /// The declared media types nothing can write, comma-joined, as the transform found them.
+    /// The declared media types the transform could not rule producible from the return type alone,
+    /// comma-joined.
+    /// </param>
+    /// <param name="writable">
+    /// The media types a serializer in reach declares, comma-joined - see
+    /// <see cref="SerializerContentTypes"/>. A candidate named here is produced and is not reported.
     /// </param>
     public static void Report(
         SourceProductionContext context,
         string handler,
         bool declaresNothing,
-        string? unproducible) {
+        string? unproducible,
+        string writable) {
         if (declaresNothing) {
             context.ReportDiagnostic(
                 Diagnostic.Create(MissingDeclaration(), Location.None, handler));
@@ -80,6 +93,10 @@ public static class ContentTypeDiagnostics {
         }
 
         foreach (var contentType in unproducible!.Split(',')) {
+            if (SerializerContentTypes.Writes(writable, contentType)) {
+                continue;
+            }
+
             context.ReportDiagnostic(
                 Diagnostic.Create(NothingProduces(), Location.None, handler, contentType));
         }

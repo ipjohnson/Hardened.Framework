@@ -1,4 +1,4 @@
-namespace Hardened.Generation.Models;
+﻿namespace Hardened.Generation.Models;
 
 internal class OperationModel : IEquatable<OperationModel> {
     public string OperationId { get; set; } = "";
@@ -204,6 +204,34 @@ internal class OperationModel : IEquatable<OperationModel> {
     public List<string> ProducedContentTypes { get; set; } = new();
 
     /// <summary>
+    /// The media types the <em>success</em> responses declare, in document order.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The first half of <see cref="ProducedContentTypes"/>, kept apart because the two answer
+    /// different questions. That list is what the response is negotiated against and has to carry
+    /// the error representations too, or an operation answering <c>text/plain</c> declares a set no
+    /// error model can travel as and every refusal on it reaches the caller as an empty 500.
+    /// </para>
+    /// <para>
+    /// This one is what the document says the success <em>is</em>. Describing it with the union
+    /// published <c>application/json</c> on a <c>text/plain</c> success, which is true of the wire
+    /// and untrue of the contract: the JSON there is the refusal's, and a client generator reading
+    /// it typed the success as two things.
+    /// </para>
+    /// </remarks>
+    public List<string> SuccessContentTypes { get; set; } = new();
+
+    /// <summary>
+    /// The media types the <em>error</em> responses declare, in document order.
+    /// </summary>
+    /// <remarks>
+    /// The other half. An error body goes out as one of these, and the document says so rather than
+    /// naming <c>application/json</c> for every operation.
+    /// </remarks>
+    public List<string> ErrorContentTypes { get; set; } = new();
+
+    /// <summary>
     /// Opt in to a <c>byte[]</c> signature for a response the spec types as a string.
     /// </summary>
     /// <remarks>
@@ -315,6 +343,8 @@ internal class OperationModel : IEquatable<OperationModel> {
                SuccessResponses.SequenceEqual(other.SuccessResponses) &&
                ErrorResponses.SequenceEqual(other.ErrorResponses) &&
                ProducedContentTypes.SequenceEqual(other.ProducedContentTypes) &&
+               SuccessContentTypes.SequenceEqual(other.SuccessContentTypes) &&
+               ErrorContentTypes.SequenceEqual(other.ErrorContentTypes) &&
                Parameters.SequenceEqual(other.Parameters) &&
                FilterInstances.SequenceEqual(other.FilterInstances) &&
                AuthorizationBranches.SequenceEqual(other.AuthorizationBranches) &&

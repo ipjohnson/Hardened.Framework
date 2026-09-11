@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
     <PropertyGroup>
         <!-- A test fixture, not a shipped package. Without this it packs and
@@ -37,6 +37,7 @@
       <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj" />
       <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Caching.Memory\Hardened.Requests.Caching.Memory.csproj" />
       <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj" />
+      <ProjectReference Include="..\..\..\Requests\Serializers\Hardened.Requests.Serializers.MessagePack\Hardened.Requests.Serializers.MessagePack.csproj" />
       <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj" />
       <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
       <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>

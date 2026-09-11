@@ -1,4 +1,4 @@
-using Hardened.Requests.Abstract.Attributes;
+﻿using Hardened.Requests.Abstract.Attributes;
 using Hardened.SourceGeneration.Testing;
 using Hardened.SourceGenerator.Web;
 using Hardened.Web.Runtime.Attributes;
@@ -25,7 +25,7 @@ public class ContentTypeDiagnosticTests {
         typeof(ProducesAttribute)  // Hardened.Requests.Abstract
     ];
 
-    private static GeneratorResult Generate(string handler) =>
+    private static GeneratorResult Generate(string handler, string assemblyAttributes = "") =>
         GeneratorTestHarness.Run(
             $$"""
             using System.Collections.Generic;
@@ -34,6 +34,8 @@ public class ContentTypeDiagnosticTests {
             using Hardened.Requests.Abstract.Attributes;
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
+
+            {{assemblyAttributes}}
 
             namespace TestApp;
 
@@ -181,6 +183,88 @@ public class ContentTypeDiagnosticTests {
                     [Produces("application/json")]
                     public Reading Report() => new("a");
                     """),
+                ContentTypeDiagnostics.NothingProducesId));
+    }
+
+    // ── a serializer in reach declares the media type ──────────────────
+
+    /// <summary>
+    /// The finding this was written to catch, and the one it got wrong: a compilation that has a
+    /// serializer for the media type is not making a mistake.
+    /// </summary>
+    /// <remarks>
+    /// Before <c>[assembly: WritesContentType]</c> every media type but <c>application/json</c> was
+    /// treated as unproducible, so installing a serializer package did not silence this and an
+    /// application adopting MessagePack could not build warning-free.
+    /// </remarks>
+    [Fact]
+    public void ADeclaredMediaTypeASerializerWritesIsNotWarnedAbout() {
+        Assert.Empty(
+            Reported(
+                Generate(
+                    """
+                    [Get("/report")]
+                    [Produces("application/x-msgpack")]
+                    public Reading Report() => new("a");
+                    """,
+                    """[assembly: WritesContentType("application/x-msgpack")]"""),
+                ContentTypeDiagnostics.NothingProducesId));
+    }
+
+    /// <summary>
+    /// One type of a declared set having a writer says nothing about the others, so the set is
+    /// filtered rather than passed or failed whole.
+    /// </summary>
+    [Fact]
+    public void OnlyTheTypesWithNoWriterAreReported() {
+        var diagnostic = Assert.Single(
+            Reported(
+                Generate(
+                    """
+                    [Get("/report")]
+                    [Produces("application/x-msgpack", "text/csv")]
+                    public Reading Report() => new("a");
+                    """,
+                    """[assembly: WritesContentType("application/x-msgpack")]"""),
+                ContentTypeDiagnostics.NothingProducesId));
+
+        Assert.Contains("text/csv", diagnostic.GetMessage());
+    }
+
+    /// <summary>
+    /// One attribute naming several, which is how a package that writes two spellings of one format
+    /// declares them.
+    /// </summary>
+    [Fact]
+    public void OneAttributeCanNameSeveralMediaTypes() {
+        Assert.Empty(
+            Reported(
+                Generate(
+                    """
+                    [Get("/report")]
+                    [Produces("application/msgpack")]
+                    public Reading Report() => new("a");
+                    """,
+                    """[assembly: WritesContentType("application/x-msgpack", "application/msgpack")]"""),
+                ContentTypeDiagnostics.NothingProducesId));
+    }
+
+    /// <summary>
+    /// Exactly, because the runtime's lookup is exact: <c>SerializationLocatorService.ProducerOf</c>
+    /// is a dictionary hit on the serializer's own tag, and it is what the compile-time binding
+    /// uses. Matching a wildcard here would go quiet for a spelling the locator will not find.
+    /// </summary>
+    [Fact]
+    public void AWildcardDeclarationDoesNotCoverAConcreteType() {
+        Assert.Single(
+            Reported(
+                Generate(
+                    """
+                    [Get("/report")]
+                    [Produces("application/x-msgpack")]
+                    public Reading Report() => new("a");
+                    """,
+                    """[assembly: WritesContentType("application/*")]"""),
                 ContentTypeDiagnostics.NothingProducesId));
     }
 

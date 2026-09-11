@@ -1,4 +1,4 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/Benchmarks/">
     <Project Path="src/Benchmarks/Hardened.Benchmarks.AspNetSut/Hardened.Benchmarks.AspNetSut.csproj" />
     <Project Path="src/Benchmarks/Hardened.Benchmarks.Contracts/Hardened.Benchmarks.Contracts.csproj" />
@@ -226,6 +226,8 @@
     <Project Path="src/Requests/Hardened.Requests.Runtime.Tests/Hardened.Requests.Runtime.Tests.csproj" />
     <Project Path="src/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj" />
     <Project Path="src/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj" />
+    <Project Path="src/Requests/Serializers/Hardened.Requests.Serializers.MessagePack.Tests/Hardened.Requests.Serializers.MessagePack.Tests.csproj" />
+    <Project Path="src/Requests/Serializers/Hardened.Requests.Serializers.MessagePack/Hardened.Requests.Serializers.MessagePack.csproj" />
     <Project Path="src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft.Tests/Hardened.Requests.Serializers.Newtonsoft.Tests.csproj" />
     <Project Path="src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj" />
   </Folder>

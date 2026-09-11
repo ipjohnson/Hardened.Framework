@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Runtime.CompilerServices;
 using PublicApiGenerator;
 using Xunit;
@@ -70,6 +70,7 @@ public class PublicApiSurfaceTests {
         "Hardened.Requests.Abstract",
         "Hardened.Requests.Caching.Memory",
         "Hardened.Requests.Runtime",
+        "Hardened.Requests.Serializers.MessagePack",
         "Hardened.Requests.Serializers.Newtonsoft",
         "Hardened.Requests.Testing",
         "Hardened.Shared.Runtime",

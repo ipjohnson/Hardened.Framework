@@ -710,9 +710,8 @@ public static class OpenApiDocumentGenerator {
 
         components["ErrorModel"] = ErrorModelSchema;
 
-        responses[403] = "{\"description\":\"The caller does not hold what this operation requires.\"," +
-                          "\"content\":{\"application/json\":{\"schema\":" +
-                          "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}";
+        responses[403] = Envelope(
+            handler, "The caller does not hold what this operation requires.", ErrorModelRef);
     }
 
     /// <summary>
@@ -779,21 +778,16 @@ public static class OpenApiDocumentGenerator {
 
         components["ErrorModel"] = ErrorModelSchema;
 
-        var builder = new StringBuilder(
-            "{\"description\":\"The operation did not finish inside its budget.\"");
-
         // A string, like every other response header this writes. A header is a string on the
         // wire whatever it carries, which is the rule ResponseHeaderModel states.
-        if (timeout.RetryAfterSeconds > 0) {
-            builder.Append(",\"headers\":{\"Retry-After\":{" +
-                           "\"description\":\"How long to wait before trying again, in seconds.\"," +
-                           "\"schema\":{\"type\":\"string\"}}}");
-        }
+        var headers = timeout.RetryAfterSeconds > 0
+            ? "\"headers\":{\"Retry-After\":{" +
+              "\"description\":\"How long to wait before trying again, in seconds.\"," +
+              "\"schema\":{\"type\":\"string\"}}}"
+            : null;
 
-        responses[timeout.Status] = builder
-            .Append(",\"content\":{\"application/json\":{\"schema\":" +
-                    "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}")
-            .ToString();
+        responses[timeout.Status] = Envelope(
+            handler, "The operation did not finish inside its budget.", ErrorModelRef, headers);
     }
 
     /// <summary>
@@ -863,8 +857,7 @@ public static class OpenApiDocumentGenerator {
         else if (handler.ResponseSchema != null) {
             Merge(components, handler.ResponseSchema);
 
-            builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(ContentType(handler)))
-                .Append("\":{\"schema\":").Append(handler.ResponseSchema.Schema).Append("}}");
+            WriteContentMap(builder, ContentTypes(handler), handler.ResponseSchema.Schema);
         }
 
         responses[successStatus] = builder.Append('}').ToString();
@@ -897,7 +890,8 @@ public static class OpenApiDocumentGenerator {
             .GroupBy(response => response.Status)
             .OrderBy(group => group.Key);
 
-        var successContentType = ContentType(handler);
+        var successContentTypes = ContentTypes(handler);
+        var errorContentTypes = ErrorContentTypes(handler);
 
         foreach (var group in byStatus) {
             var description = group.First().Description;
@@ -912,10 +906,10 @@ public static class OpenApiDocumentGenerator {
 
             WriteResponseHeaders(builder, group);
 
-            // The handler's media type describes its success. An error body is written by the
-            // exception path, which serializes JSON whatever the success was - publishing the
-            // error under the raw media type described a body that path cannot produce.
-            var contentType = group.Key >= 400 ? "application/json" : successContentType;
+            // The handler's media types describe its success. An error body goes through the same
+            // locator under a set of its own, because the exception path serializes JSON only when
+            // nothing can write the error model as a declared type - see ErrorContentTypes.
+            var contentTypes = group.Key >= 400 ? errorContentTypes : successContentTypes;
 
             var bodies = group.Where(response => response.Schema != null).ToList();
 
@@ -926,38 +920,34 @@ public static class OpenApiDocumentGenerator {
                 WriteStreamedResponse(builder, handler, components, version);
             }
             else if (bodies.Count > 0) {
-                builder.Append(",\"content\":{\"").Append(JsonSchemaWriter.Escape(contentType))
-                    .Append("\":{\"schema\":");
+                string schema;
 
                 if (bodies.Count == 1) {
                     Merge(components, bodies[0].Schema!);
-                    builder.Append(bodies[0].Schema!.Schema);
+                    schema = bodies[0].Schema!.Schema;
                 }
                 else {
-                    builder.Append("{\"oneOf\":[");
+                    var oneOf = new StringBuilder("{\"oneOf\":[");
 
                     for (var i = 0; i < bodies.Count; i++) {
                         if (i > 0) {
-                            builder.Append(',');
+                            oneOf.Append(',');
                         }
 
                         Merge(components, bodies[i].Schema!);
-                        builder.Append(bodies[i].Schema!.Schema);
+                        oneOf.Append(bodies[i].Schema!.Schema);
                     }
 
-                    builder.Append("]}");
+                    schema = oneOf.Append("]}").ToString();
                 }
 
-                builder.Append("}}");
+                WriteContentMap(builder, contentTypes, schema);
             }
 
             responses[group.Key] = builder.Append('}').ToString();
         }
     }
 
-    /// <summary>
-    /// The media type the operation answers with, which is JSON unless it committed to another.
-    /// </summary>
     /// <summary>
     /// The <c>headers</c> a response declares, merged across the status's cases by wire name.
     /// </summary>
@@ -1048,9 +1038,7 @@ public static class OpenApiDocumentGenerator {
 
         components["RequestValidationError"] = ValidationErrorSchema;
 
-        responses[400] = "{\"description\":\"The request failed validation.\"," +
-                         "\"content\":{\"application/json\":{\"schema\":" +
-                         "{\"$ref\":\"#/components/schemas/RequestValidationError\"}}}}";
+        responses[400] = Envelope(handler, "The request failed validation.", ValidationErrorRef);
     }
 
     /// <summary>
@@ -1145,12 +1133,11 @@ public static class OpenApiDocumentGenerator {
 
         components["ErrorModel"] = ErrorModelSchema;
 
-        responses[401] = "{\"description\":\"Authentication required.\"," +
-                         "\"headers\":{\"WWW-Authenticate\":{" +
-                         "\"description\":\"The challenge naming the scheme to authenticate with.\"," +
-                         "\"schema\":{\"type\":\"string\"}}}," +
-                         "\"content\":{\"application/json\":{\"schema\":" +
-                         "{\"$ref\":\"#/components/schemas/ErrorModel\"}}}}";
+        responses[401] = Envelope(
+            handler, "Authentication required.", ErrorModelRef,
+            "\"headers\":{\"WWW-Authenticate\":{" +
+            "\"description\":\"The challenge naming the scheme to authenticate with.\"," +
+            "\"schema\":{\"type\":\"string\"}}}");
     }
 
     /// <summary>
@@ -1202,15 +1189,28 @@ public static class OpenApiDocumentGenerator {
         "with no body.";
 
     /// <summary>
-    /// The media type a success goes out as: what the operation declared, else the contract's, else
-    /// JSON.
+    /// The media type every response falls back to, and the one an error body can always be
+    /// written as.
+    /// </summary>
+    private const string Json = "application/json";
+
+    private static readonly string[] JsonOnly = { Json };
+
+    /// <summary>
+    /// The media types a success goes out as, in the order the operation prefers them: what it
+    /// declared, else the contract's, else JSON.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>The first of the declared set</b>, which is the representation the operation leads with
-    /// and the one a client expressing no preference is answered with. An operation producing
-    /// several is written under that key; naming all of them means a <c>content:</c> map per
-    /// response and is a separate change to this emitter.
+    /// <b>The whole declared set, one <c>content:</c> key each.</b> This took the first and dropped
+    /// the rest, so an operation the runtime negotiates two representations of advertised one -
+    /// <c>[Produces("application/json", "application/x-msgpack")]</c> published as JSON alone, and
+    /// a generated client had no MessagePack branch for a response the service answers with.
+    /// </para>
+    /// <para>
+    /// The first entry still means what it meant: the representation the operation leads with, and
+    /// the one a client expressing no preference is answered with. That is why the set keeps its
+    /// order here rather than being sorted - see <see cref="WriteContentMap"/>.
     /// </para>
     /// <para>
     /// Read from <c>ProducedContentTypes</c> ahead of <c>RawResponseContentType</c>, because the
@@ -1219,20 +1219,156 @@ public static class OpenApiDocumentGenerator {
     /// type code-first was <c>[RawResponse]</c>, which went on nothing else.
     /// </para>
     /// </remarks>
-    private static string ContentType(RequestHandlerModel handler) {
-        var produced = handler.ResponseInformation.ProducedContentTypes;
+    private static IReadOnlyList<string> ContentTypes(RequestHandlerModel handler) {
+        // The success half where the model carries it apart. A described operation's negotiated set
+        // ends with its error representations, which the runtime needs and the success response is
+        // not - see OperationModel.SuccessContentTypes.
+        var produced = handler.ResponseInformation.SuccessContentTypes ??
+                       handler.ResponseInformation.ProducedContentTypes;
 
         if (!string.IsNullOrEmpty(produced)) {
-            var comma = produced!.IndexOf(',');
+            var types = Split(produced!);
 
-            return (comma < 0 ? produced : produced.Substring(0, comma)).Trim();
+            if (types.Count > 0) {
+                return types;
+            }
         }
 
-        return !string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)
-            ? handler.ResponseInformation.RawResponseContentType!
-            : !string.IsNullOrEmpty(handler.ResponseInformation.DeclaredContentType)
-                ? handler.ResponseInformation.DeclaredContentType!
-                : "application/json";
+        if (!string.IsNullOrEmpty(handler.ResponseInformation.RawResponseContentType)) {
+            return new[] { handler.ResponseInformation.RawResponseContentType! };
+        }
+
+        return !string.IsNullOrEmpty(handler.ResponseInformation.DeclaredContentType)
+            ? new[] { handler.ResponseInformation.DeclaredContentType! }
+            : JsonOnly;
+    }
+
+    /// <summary>
+    /// The media types an error body goes out as.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Not JSON for every operation, which is what this published.</b>
+    /// <c>ExceptionResponseSerializer</c> puts the error model through the same locator the success
+    /// goes through, so an operation declaring <c>application/x-msgpack</c> answers its refusals as
+    /// MessagePack wherever a serializer for it is registered. The document said
+    /// <c>application/json</c> and the runtime did not.
+    /// </para>
+    /// <para>
+    /// <b>The declared set and JSON, because the build cannot tell which.</b> The fallback fires
+    /// only when nothing registered can write the error model as any declared type, and what a host
+    /// registers is not readable from this compilation - the same limit
+    /// <c>ContentTypeDiagnostics</c> works under. Describing both is honest where naming one is a
+    /// guess. The declared types come first, which is the order the runtime tries them in.
+    /// </para>
+    /// <para>
+    /// <b>A raw or streamed handler keeps JSON alone.</b> An error model is a model, and neither
+    /// writer will take one: <c>RawResponseSerializer.CanProduce</c> refuses a response value that
+    /// is not already bytes, and <c>StreamingJsonResponseSerializer.CanProduce</c> requires a
+    /// committed framing that a refusal before the first item never wrote. Both leave the exception
+    /// path with nothing producible, which is the case it commits JSON for.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<string> ErrorContentTypes(RequestHandlerModel handler) {
+        // Stated, where a contract stated it. A described operation says what its refusals look
+        // like, so there is nothing to work out and nothing to be generous about: those media types
+        // and no others.
+        if (handler.ResponseInformation.ErrorContentTypes is { } described) {
+            return Split(described);
+        }
+
+        if (handler.ResponseInformation.ReturnsBytesOrText ||
+            handler.ResponseInformation.IsAsyncEnumerable) {
+            return JsonOnly;
+        }
+
+        var declared = ContentTypes(handler);
+
+        if (declared.Count == 1 && declared[0] == Json) {
+            return JsonOnly;
+        }
+
+        var types = new List<string>(declared.Count + 1);
+
+        types.AddRange(declared);
+
+        if (!types.Contains(Json)) {
+            types.Add(Json);
+        }
+
+        return types;
+    }
+
+    private const string ErrorModelRef = "{\"$ref\":\"#/components/schemas/ErrorModel\"}";
+
+    private const string ValidationErrorRef =
+        "{\"$ref\":\"#/components/schemas/RequestValidationError\"}";
+
+    /// <summary>
+    /// One of the refusals the pipeline answers on its own: a description, optionally some headers,
+    /// and the error body under every media type the operation can answer it as.
+    /// </summary>
+    /// <remarks>
+    /// Four writers built this string by concatenation, each with <c>application/json</c> spelled
+    /// into it. That was one media type restated in four places, so an operation declaring another
+    /// had to be fixed in all four or in none.
+    /// </remarks>
+    private static string Envelope(
+        RequestHandlerModel handler, string description, string schema, string? headers = null) {
+        var builder = new StringBuilder("{\"description\":\"")
+            .Append(JsonSchemaWriter.Escape(description))
+            .Append('"');
+
+        if (headers != null) {
+            builder.Append(',').Append(headers);
+        }
+
+        WriteContentMap(builder, ErrorContentTypes(handler), schema);
+
+        return builder.Append('}').ToString();
+    }
+
+    /// <summary>
+    /// A comma-joined media type list as the set it names, in order and without repeats.
+    /// </summary>
+    private static List<string> Split(string contentTypes) {
+        var types = new List<string>();
+
+        foreach (var type in contentTypes.Split(',')) {
+            var trimmed = type.Trim();
+
+            if (trimmed.Length > 0 && !types.Contains(trimmed)) {
+                types.Add(trimmed);
+            }
+        }
+
+        return types;
+    }
+
+    /// <summary>
+    /// A <c>content:</c> map: one key per media type, each naming the same schema.
+    /// </summary>
+    /// <remarks>
+    /// Written in the order given rather than sorted, unlike <c>components</c> beside it. The order
+    /// is the operation's own preference - <c>[Produces]</c> is ordered, and
+    /// <c>OpenApiSpecParser</c> collects a response's keys in document order into
+    /// <c>ProducedContentTypes</c> - so sorting here would make a round trip through the document
+    /// change which representation the operation leads with.
+    /// </remarks>
+    private static void WriteContentMap(
+        StringBuilder builder, IReadOnlyList<string> contentTypes, string schema) {
+        builder.Append(",\"content\":{");
+
+        for (var i = 0; i < contentTypes.Count; i++) {
+            if (i > 0) {
+                builder.Append(',');
+            }
+
+            builder.Append('"').Append(JsonSchemaWriter.Escape(contentTypes[i]))
+                .Append("\":{\"schema\":").Append(schema).Append('}');
+        }
+
+        builder.Append('}');
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
@@ -509,11 +509,25 @@ internal static class SmithySpecParser {
             if (model.ResponseContentType != null &&
                 !model.ProducedContentTypes.Contains(model.ResponseContentType)) {
                 model.ProducedContentTypes.Add(model.ResponseContentType);
+
+                model.SuccessContentTypes.Add(model.ResponseContentType);
             }
 
             if (model.ErrorResponses.Count > 0 &&
                 !model.ProducedContentTypes.Contains("application/json")) {
                 model.ProducedContentTypes.Add("application/json");
+            }
+        }
+
+        // What the document says an error body is, stated here rather than worked out by the
+        // writer. The rule is the one above: JSON for a REST protocol whatever the success is, and
+        // the protocol's own content type for a dispatch protocol, which names one for everything.
+        if (model.ErrorResponses.Count > 0) {
+            var errorContentType =
+                protocol.Dispatches ? model.ResponseContentType : "application/json";
+
+            if (errorContentType != null) {
+                model.ErrorContentTypes.Add(errorContentType);
             }
         }
 

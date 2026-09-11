@@ -118,6 +118,29 @@ public record ResponseInformationModel {
     public string? ProducedContentTypes { get; set; }
 
     /// <summary>
+    /// The media types the success responses declare, comma-joined, or null where nothing said.
+    /// </summary>
+    /// <remarks>
+    /// Spec-first only, and only where it differs from <see cref="ProducedContentTypes"/>. A
+    /// described operation's negotiated set carries its error representations as well as its
+    /// success ones - see <c>OperationModel.SuccessContentTypes</c> - so describing the success
+    /// with it published <c>application/json</c> on a <c>text/plain</c> success. Code-first the two
+    /// cannot differ: <c>[Produces]</c> is a statement about the response only, and the exception
+    /// path negotiates within whatever it named.
+    /// </remarks>
+    public string? SuccessContentTypes { get; set; }
+
+    /// <summary>
+    /// The media types the error responses declare, comma-joined, or null where nothing said.
+    /// </summary>
+    /// <remarks>
+    /// Spec-first only, for the same reason, and it is the exact answer where it is set: a contract
+    /// states what its refusals look like. Code-first the document writer works it out from the
+    /// declared set and the return type, because nothing states it.
+    /// </remarks>
+    public string? ErrorContentTypes { get; set; }
+
+    /// <summary>
     /// The content type put on the response before the handler runs, or empty for a handler that
     /// negotiates.
     /// </summary>
@@ -140,6 +163,21 @@ public record ResponseInformationModel {
     /// reading, and takes the writer by declaring a media type instead.
     /// </remarks>
     public bool WritesRawBytes { get; set; }
+
+    /// <summary>
+    /// Whether the handler's return value is already what goes on the wire, so no serializer
+    /// structures it: <see cref="WritesRawBytes"/> and <c>string</c>.
+    /// </summary>
+    /// <remarks>
+    /// Wider than <see cref="WritesRawBytes"/> by exactly <c>string</c>, and carried separately
+    /// because the two answer different questions. That one decides whether the pass-through writer
+    /// is bound; this one decides whether an error model can go out under the operation's declared
+    /// media type. It cannot: an error model is a model, and
+    /// <c>RawResponseSerializer.CanProduce</c> refuses anything that is not already bytes, so the
+    /// exception path commits JSON. The document writer reads this to describe error bodies the way
+    /// the runtime answers them.
+    /// </remarks>
+    public bool ReturnsBytesOrText { get; set; }
 
     /// <summary>
     /// The status the contract declares validation failures answer with, or null for the stock
@@ -261,9 +299,10 @@ public record ResponseInformationModel {
     /// </remarks>
     public override string ToString() {
         return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{WritesRawBytes}" +
+               $":{ReturnsBytesOrText}" +
                $":{StreamFraming}:{ReturnType}" +
                $":{DefaultStatusCode}:{NullResponseBodyExpression}:{DeclaredErrorBodiesExpression}" +
-               $":{ProducedContentTypes}" +
+               $":{ProducedContentTypes}:{SuccessContentTypes}:{ErrorContentTypes}" +
                $":{UnionCases}:{DeclaredResponse}:{UnionDiagnostic}:{ThrowsDiagnostic}" +
                $":{ValidationErrorStatus}" +
                $":{StreamFramingDiagnostic}" +
