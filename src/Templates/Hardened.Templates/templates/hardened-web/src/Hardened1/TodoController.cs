@@ -1,4 +1,9 @@
 using Hardened.Requests.Abstract.Responses;
+#if (messagePack)
+using Hardened.Requests.Abstract.Attributes;
+using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Serializers.MessagePack;
+#endif
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.Responses;
 using ValidationModules.Constraints;
@@ -49,6 +54,16 @@ public class TodoController {
     // way the service was written; without it the id is the method name in camelCase.
     [Operation("listTodos")]
     [Get("/")]
+#if (messagePack)
+    // Two representations of one response, and the client's Accept decides between them. JSON is
+    // named first, so a client expressing no preference still gets JSON.
+    //
+    // Every route here declares it, including the ones that answer NotFound and Conflict: the
+    // MessagePack package carries formatters for the framework's own response bodies, so a
+    // declared 404 goes out in whichever representation was asked for. So does a refusal the
+    // handler never sees - a bind failure, a validation failure.
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public Task<IReadOnlyList<Todo>> All(ITodoStore store) => store.All();
 
 #if (throwsMode)
@@ -62,6 +77,9 @@ public class TodoController {
     [Operation("getTodo")]
     [Get("/{id}")]
     [Throws<NotFound>]
+#if (messagePack)
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public async Task<Todo> ById(ITodoStore store, [Range(Min = 1)] int id) {
         var todo = await store.Find(id);
 
@@ -82,6 +100,9 @@ public class TodoController {
     [Operation("createTodo")]
     [Post("/")]
     [Throws<Conflict>]
+#if (messagePack)
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public async Task<Todo> Create(ITodoStore store, NewTodo request) {
         if (await store.TitleExists(request.Title)) {
             throw new Conflict($"A todo titled '{request.Title}' already exists.").AsException();
@@ -94,6 +115,9 @@ public class TodoController {
     [Operation("removeTodo")]
     [Delete("/{id}")]
     [Throws<NotFound>]
+#if (messagePack)
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public async Task<Todo> Remove(ITodoStore store, [Range(Min = 1)] int id) {
         var todo = await store.Find(id);
 
@@ -114,6 +138,9 @@ public class TodoController {
     /// </remarks>
     [Operation("getTodo")]
     [Get("/{id}")]
+#if (messagePack)
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public async Task<Response<Todo, NotFound>> ById(ITodoStore store, [Range(Min = 1)] int id) {
         var todo = await store.Find(id);
 
@@ -131,6 +158,9 @@ public class TodoController {
     /// </remarks>
     [Operation("createTodo")]
     [Post("/")]
+#if (messagePack)
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public async Task<Response<Created<Todo>, Conflict>> Create(ITodoStore store, NewTodo request) {
         if (await store.TitleExists(request.Title)) {
             return new Conflict($"A todo titled '{request.Title}' already exists.");
@@ -148,6 +178,9 @@ public class TodoController {
     /// </remarks>
     [Operation("removeTodo")]
     [Delete("/{id}")]
+#if (messagePack)
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public async Task<Response<NoContent, NotFound>> Remove(ITodoStore store, [Range(Min = 1)] int id) {
         if (await store.Find(id) is null || !await store.Remove(id)) {
             return new NotFound("todo", $"No todo has id {id}.");
@@ -165,6 +198,9 @@ public class TodoController {
     /// </remarks>
     [Operation("getTodo")]
     [Get("/{id}")]
+#if (messagePack)
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public async Task<TodoResult> ById(ITodoStore store, [Range(Min = 1)] int id) {
         var todo = await store.Find(id);
 
@@ -178,6 +214,9 @@ public class TodoController {
     /// <summary>Creates one at 201 with a Location header, or 409 when the title is taken.</summary>
     [Operation("createTodo")]
     [Post("/")]
+#if (messagePack)
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public async Task<NewTodoResult> Create(ITodoStore store, NewTodo request) {
         if (await store.TitleExists(request.Title)) {
             return new Conflict($"A todo titled '{request.Title}' already exists.");
@@ -191,6 +230,9 @@ public class TodoController {
     /// <summary>Removes one at 204, or 404.</summary>
     [Operation("removeTodo")]
     [Delete("/{id}")]
+#if (messagePack)
+    [Produces(KnownContentType.Json, MessagePackContentType.Value)]
+#endif
     public async Task<RemovedTodoResult> Remove(ITodoStore store, [Range(Min = 1)] int id) {
         if (await store.Find(id) is null || !await store.Remove(id)) {
             return new NotFound("todo", $"No todo has id {id}.");

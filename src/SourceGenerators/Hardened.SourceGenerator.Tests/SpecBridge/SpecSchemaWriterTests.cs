@@ -29,10 +29,12 @@ public class SpecSchemaWriterTests {
 
     private static PropertyModel Property(
         string name, string? type = "string", string? reference = null,
-        string? description = null, bool required = false, string? headerName = null) =>
+        string? description = null, bool required = false, string? headerName = null,
+        int? messagePackIndex = null) =>
         new() {
             Name = name, Type = reference == null ? type : null, Ref = reference,
-            Description = description, IsRequired = required, HeaderName = headerName
+            Description = description, IsRequired = required, HeaderName = headerName,
+            MessagePackIndex = messagePackIndex
         };
 
     private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement;
@@ -45,6 +47,84 @@ public class SpecSchemaWriterTests {
         }
 
         throw new Xunit.Sdk.XunitException($"no component named {name}");
+    }
+
+    /// <summary>
+    /// The key the contract stated, published so a client generator can read it.
+    /// </summary>
+    /// <remarks>
+    /// Without this the document describes a MessagePack representation whose field identity is
+    /// invisible, and a client generated from it agrees with the server about property names and
+    /// nothing else - which under a keyed format is agreement about the wrong thing.
+    /// </remarks>
+    [Fact]
+    public void AKeyedPropertyPublishesItsIndex() {
+        var schemas = new List<SchemaModel> {
+            Object("Reading", Property("sensor", messagePackIndex: 0), Property("value", messagePackIndex: 7))
+        };
+
+        var reading = Component(SpecSchemaWriter.ForRef("#/components/schemas/Reading", schemas)!, "Reading");
+        var properties = reading.GetProperty("properties");
+
+        Assert.Equal(0, properties.GetProperty("sensor").GetProperty("x-message-pack-index").GetInt32());
+        Assert.Equal(7, properties.GetProperty("value").GetProperty("x-message-pack-index").GetInt32());
+    }
+
+    /// <summary>
+    /// An unkeyed property publishes nothing, so a contract that never mentioned MessagePack
+    /// produces the document it always did.
+    /// </summary>
+    [Fact]
+    public void AnUnkeyedPropertyPublishesNoExtension() {
+        var schemas = new List<SchemaModel> { Object("Pet", Property("id")) };
+
+        var pet = Component(SpecSchemaWriter.ForRef("#/components/schemas/Pet", schemas)!, "Pet");
+
+        Assert.False(
+            pet.GetProperty("properties").GetProperty("id")
+                .TryGetProperty("x-message-pack-index", out _));
+    }
+
+    /// <summary>
+    /// A keyed reference is wrapped, for the reason a described one is: a <c>$ref</c> takes no
+    /// siblings in 3.0, so the key written beside it would be dropped by every reader.
+    /// </summary>
+    [Fact]
+    public void AKeyedReferenceIsWrappedInAllOf() {
+        var schemas = new List<SchemaModel> {
+            Object("Order", Property("pet", reference: "#/components/schemas/Pet", messagePackIndex: 3)),
+            Object("Pet", Property("id"))
+        };
+
+        var order = Component(SpecSchemaWriter.ForRef("#/components/schemas/Order", schemas)!, "Order");
+        var pet = order.GetProperty("properties").GetProperty("pet");
+
+        Assert.Equal(3, pet.GetProperty("x-message-pack-index").GetInt32());
+        Assert.Equal(
+            "#/components/schemas/Pet",
+            pet.GetProperty("allOf")[0].GetProperty("$ref").GetString());
+    }
+
+    /// <summary>
+    /// An array member carries its key too. It is one member of the object whatever its type, and
+    /// a keyed object needs an answer for every member.
+    /// </summary>
+    [Fact]
+    public void AKeyedArrayMemberPublishesItsIndex() {
+        var schema = Object("Reading");
+
+        schema.Properties.Add(new PropertyModel {
+            Name = "tags", IsArray = true, ArrayItemsType = "string", MessagePackIndex = 2
+        });
+
+        var reading = Component(
+            SpecSchemaWriter.ForRef("#/components/schemas/Reading", new List<SchemaModel> { schema })!,
+            "Reading");
+
+        Assert.Equal(
+            2,
+            reading.GetProperty("properties").GetProperty("tags")
+                .GetProperty("x-message-pack-index").GetInt32());
     }
 
     [Fact]

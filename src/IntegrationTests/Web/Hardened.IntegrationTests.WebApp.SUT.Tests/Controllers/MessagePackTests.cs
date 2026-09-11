@@ -1,5 +1,6 @@
 using Hardened.IntegrationTests.WebApp.SUT.Controllers;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Runtime.Validation;
 using Hardened.Requests.Serializers.MessagePack;
 using Hardened.Web.Runtime.Responses;
 using MessagePack;
@@ -129,5 +130,83 @@ public class MessagePackTests {
         response.Assert.Ok();
 
         Assert.Contains("sensor-9", await response.ReadTextAsync());
+    }
+
+    // ---------------------------------------------------------------- refusals
+
+    /// <summary>
+    /// A refusal on a MessagePack operation is answered as MessagePack, because the document says
+    /// it is.
+    /// </summary>
+    /// <remarks>
+    /// It answered <b>500 with an empty body</b>. <c>ExceptionResponseSerializer</c> negotiates the
+    /// error body through the same locator the success goes through, so the MessagePack writer was
+    /// chosen, found no formatter for <c>RequestValidationError</c> - a framework type that cannot
+    /// carry <c>[MessagePackObject]</c> - and threw inside the handler that exists to answer a
+    /// throw. Every bind failure, validation failure and authorization refusal on a MessagePack
+    /// operation went out that way. See <c>ErrorEnvelopeFormatters</c>.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ARefusalIsAnsweredAsMessagePack(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get(
+            "/msgpack/packed/notanumber",
+            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value);
+
+        Assert.Equal(400, response.StatusCode);
+        Assert.StartsWith(MessagePackContentType.Value, ContentType(response));
+
+        response.Body.Position = 0;
+
+        var error = MessagePackSerializer.Deserialize<RequestValidationError>(
+            response.Body,
+            MessagePackSerializerOptions.Standard.WithResolver(HardenedFormatterResolver.Instance));
+
+        Assert.NotEmpty(error.Type);
+        Assert.NotEmpty(error.Errors);
+        Assert.Contains(error.Errors, field => field.Field == "id");
+    }
+
+    // ---------------------------------------------------------------- a declared 404
+
+    /// <summary>
+    /// A declared status whose body is one of the framework's own response types, answered as
+    /// MessagePack.
+    /// </summary>
+    /// <remarks>
+    /// <c>NotFound</c> lives in <c>Hardened.Web.Runtime</c> and cannot carry
+    /// <c>[MessagePackObject]</c>, so the writer used to be asked for a formatter it did not have -
+    /// which is why the media type could only be declared on an operation with one outcome.
+    /// <c>HardenedFormatterResolver</c> answers for it now.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ADeclaredNotFoundIsAnsweredAsMessagePack(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get(
+            "/msgpack/declared/500",
+            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value);
+
+        Assert.Equal(404, response.StatusCode);
+        Assert.StartsWith(MessagePackContentType.Value, ContentType(response));
+
+        response.Body.Position = 0;
+
+        var notFound = MessagePackSerializer.Deserialize<NotFound>(
+            response.Body,
+            MessagePackSerializerOptions.Standard.WithResolver(HardenedFormatterResolver.Instance));
+
+        Assert.Equal("reading", notFound.Resource);
+        Assert.Equal(404, notFound.Status);
+        Assert.Equal("No reading has id 500.", notFound.Detail);
+    }
+
+    /// <summary>And the success case on the same operation still negotiates.</summary>
+    [HardenedTest]
+    public async Task TheSuccessOnTheSameOperationStillAnswersMessagePack(ITestWebApp testWebApp) {
+        var response = await testWebApp.Get(
+            "/msgpack/declared/4",
+            request => request.Headers[KnownHeaders.Accept] = MessagePackContentType.Value);
+
+        response.Assert.Ok();
+
+        Assert.Equal(new MessagePackController.Reading("sensor-4", 12), Read(response));
     }
 }

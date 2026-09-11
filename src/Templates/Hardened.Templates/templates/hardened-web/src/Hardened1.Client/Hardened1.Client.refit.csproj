@@ -49,10 +49,35 @@
     <RefitterOutput>$(BaseIntermediateOutputPath)refitter/</RefitterOutput>
   </PropertyGroup>
 
+<!--#if (messagePack) -->
+  <!--
+    The Liquid templates are inputs to the generation below. Editing one changes what Refitter
+    writes and touches neither the document nor the settings file, so without this the up-to-date
+    check finds every input unmoved and leaves the previous output in place.
+
+    @(RefitterTemplate) is named in that target's Inputs unconditionally. An item group that is not
+    in the file expands to nothing, which is exactly what a project with no templates wants - and
+    naming it once is worth more than a second copy of the attribute behind a condition.
+  -->
+  <ItemGroup>
+    <RefitterTemplate Include="templates/*.liquid" />
+  </ItemGroup>
+<!--#endif -->
+
   <ItemGroup>
 
     <!-- Version from Directory.Packages.props, beside the tool's pin. -->
     <PackageReference Include="Refit" />
+<!--#if (messagePack) -->
+
+    <!--
+      MessagePack, because the two Liquid templates in templates/ put [MessagePackObject] and
+      [Key] on every generated contract. The package also carries the source generator that writes
+      a formatter for each of them, which is what makes the client able to read a MessagePack
+      response without a reflection fallback.
+    -->
+    <PackageReference Include="MessagePack" />
+<!--#endif -->
 
     <!--
       Ordering only: the library writes the document this project reads, so it has to build first.
@@ -95,7 +120,7 @@
           DependsOnTargets="RestoreRefitter"
           BeforeTargets="CoreCompile"
           Condition="'$(DesignTimeBuild)' != 'true'"
-          Inputs="$(RefitterSpec);$(RefitterSettings);$(MSBuildProjectDirectory)/../../.config/dotnet-tools.json"
+          Inputs="$(RefitterSpec);$(RefitterSettings);@(RefitterTemplate);$(MSBuildProjectDirectory)/../../.config/dotnet-tools.json"
           Outputs="$(RefitterOutput)TemplateModuleNameClient.cs">
     <RemoveDir Directories="$(RefitterOutput)" />
     <!-- The interface is named in the safe-identifier form the module class uses, through the

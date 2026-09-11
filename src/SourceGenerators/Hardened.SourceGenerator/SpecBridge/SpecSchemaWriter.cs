@@ -257,6 +257,12 @@ internal static class SpecSchemaWriter {
 
             builder.Append('"').Append(JsonSchemaWriter.Escape(property.Name)).Append("\":");
 
+            // What the contract said about this member's identity on a MessagePack wire, put back
+            // into the document the contract produced. That is what makes the extension round-trip:
+            // the parser reads it on the way in, so a service generated from a published document
+            // gets the indices the original contract declared rather than none.
+            var index = property.MessagePackIndex;
+
             if (property.IsArray) {
                 var array = new StringBuilder("{\"type\":\"array\",\"items\":")
                     .Append(Inline(property.ArrayItemsRef, property.ArrayItemsType,
@@ -272,17 +278,22 @@ internal static class SpecSchemaWriter {
 
                 Describe(array, property.Description);
 
-                builder.Append(Nullable(array.Append('}').ToString(), property.IsNullable));
+                builder.Append(JsonSchemaWriter.WithMessagePackIndex(
+                    Nullable(array.Append('}').ToString(), property.IsNullable), index));
             }
             else if (property.IsDictionary) {
-                builder.Append(Nullable(
-                    Map(property.DictionaryValueRef, property.DictionaryValueType,
-                        property.DictionaryValueFormat, property.Description, schemas, components, seen),
-                    property.IsNullable));
+                builder.Append(JsonSchemaWriter.WithMessagePackIndex(
+                    Nullable(
+                        Map(property.DictionaryValueRef, property.DictionaryValueType,
+                            property.DictionaryValueFormat, property.Description, schemas, components, seen),
+                        property.IsNullable),
+                    index));
             }
             else {
-                builder.Append(Inline(property.Ref, property.Type, property.Format,
-                    property.Description, property, property.IsNullable, schemas, components, seen));
+                builder.Append(JsonSchemaWriter.WithMessagePackIndex(
+                    Inline(property.Ref, property.Type, property.Format,
+                        property.Description, property, property.IsNullable, schemas, components, seen),
+                    index));
             }
         }
 

@@ -114,6 +114,18 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public SpecResponseModel ResponseModel { get; set; } = SpecResponseModel.Throws;
 
     /// <summary>
+    /// Which serialization attributes this spec's models carry.
+    /// </summary>
+    /// <remarks>
+    /// From <c>$(HardenedSerializer)</c>, and stamped here for the reason <see cref="ResponseModel"/>
+    /// is: the attributes are written by the build task and the document is published by the
+    /// generator, and the second reads only this model. A mode that reached one and not the other
+    /// would serve a document describing a MessagePack representation whose field identity is
+    /// nowhere in it.
+    /// </remarks>
+    public SpecSerializer Serializer { get; set; } = SpecSerializer.Json;
+
+    /// <summary>
     /// Whether every generated service method takes a <c>CancellationToken</c>, and the dispatch
     /// binds one to it.
     /// </summary>
@@ -165,6 +177,7 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public bool Equals(ServiceSpecModel? other) {
         if (other is not null && ContentNegotiation != other.ContentNegotiation) return false;
         if (other is not null && ResponseModel != other.ResponseModel) return false;
+        if (other is not null && Serializer != other.Serializer) return false;
         if (other is not null && BindCancellationToken != other.BindCancellationToken) return false;
 
         if (other is null) return false;

@@ -24,7 +24,7 @@ namespace Hardened.Idl;
 /// left with it.
 /// </para>
 /// <para>
-/// Codes are the front end's prefix plus 020-024, 027 and 032, one number per finder. 032 rather
+/// Codes are the front end's prefix plus 020-024, 027 and 032-034, one number per finder. 032 rather
 /// than the retired 025, because a project still carrying a NoWarn for what 025 used to be would
 /// silence a diagnostic about something else; 028-031 belong to the document export. The prefix
 /// is a
@@ -377,6 +377,8 @@ internal static class SpecDiagnostics {
         FindMixedEnums(model, diagnosticPrefix, problems);
         FindUnmappedKeywords(model, diagnosticPrefix, problems);
         FindUnboundPathTokens(model, diagnosticPrefix, problems);
+        FindMessagePackKeys(model, diagnosticPrefix, problems);
+        FindMessagePackUnions(model, diagnosticPrefix, problems);
 
         foreach (var schema in model.Schemas) {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
@@ -402,6 +404,133 @@ internal static class SpecDiagnostics {
         }
 
         return problems;
+    }
+
+    /// <summary>
+    /// A member the keyed serializer has no index for, and two members sharing one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Nothing is invented, and that is the whole of the design.</b> A keyed wire format is
+    /// worth having because the key is stable: a client generated last month and a server built
+    /// today agree about field identity without agreeing about anything else. An index assigned
+    /// from declaration order moves the moment a property is inserted above it, and the document
+    /// diff that moved it reads as an addition. An index hashed from the name is stable and
+    /// collides, which is the same failure arriving at a different time.
+    /// </para>
+    /// <para>
+    /// So an unkeyed property is a build error naming the property and the next free index, and
+    /// the author writes it into the contract once. Verbose, and nothing moves by accident.
+    /// </para>
+    /// <para>
+    /// Only under <see cref="SpecSerializer.MessagePackKeyed"/>. The named mode identifies a member
+    /// by its name and the JSON mode has no MessagePack attributes at all, so an index is
+    /// meaningless in both - and a contract carrying indices stays valid for a project that is not
+    /// using them.
+    /// </para>
+    /// <para>
+    /// A member bound to a response header is skipped. It leaves as a header rather than in the
+    /// body, so it is not in the payload the keys identify - <c>SchemaEmitter</c> gives it
+    /// <c>[IgnoreMember]</c>, and demanding an index for it would be demanding one for something
+    /// nothing ever writes.
+    /// </para>
+    /// </remarks>
+    private static void FindMessagePackKeys(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
+        if (model.Serializer != SpecSerializer.MessagePackKeyed) {
+            return;
+        }
+
+        foreach (var schema in model.Schemas) {
+            if (schema.Kind != SchemaKind.Object) {
+                continue;
+            }
+
+            var taken = new Dictionary<int, string>();
+            var next = 0;
+
+            foreach (var property in schema.Properties) {
+                if (property.IsHeaderBound || property.MessagePackIndex is not { } index) {
+                    continue;
+                }
+
+                if (index >= next) {
+                    next = index + 1;
+                }
+
+                if (taken.TryGetValue(index, out var first)) {
+                    problems.Add(new Problem(
+                        prefix + "033",
+                        $"Schema '{schema.Name}' keys both '{first}' and '{property.Name}' to " +
+                        $"x-message-pack-index {index}. One index identifies one member; give " +
+                        "one of them another."));
+
+                    continue;
+                }
+
+                taken.Add(index, property.Name);
+            }
+
+            foreach (var property in schema.Properties) {
+                if (property.IsHeaderBound || property.MessagePackIndex.HasValue) {
+                    continue;
+                }
+
+                problems.Add(new Problem(
+                    prefix + "033",
+                    $"Property '{property.Name}' of schema '{schema.Name}' declares no " +
+                    "x-message-pack-index, and $(HardenedSerializer) is MessagePackKeyed. Nothing " +
+                    "assigns one, because an index this build chose would move when a property is " +
+                    $"added above it. Write \"x-message-pack-index: {next}\" on the property."));
+
+                next++;
+            }
+        }
+    }
+
+    /// <summary>
+    /// A <c>oneOf</c> under a MessagePack serializer, which does not carry one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A choice is a JSON-only shape here, deliberately.</b> The JSON side resolves one with a
+    /// generated converter that reads a discriminator out of the payload before it knows which
+    /// type to build. MessagePack binds a formatter to a static type at build and has no
+    /// equivalent step, and a binary format that carries no discriminator of its own is not the
+    /// place to put a choice. So the choice type gets no formatter and no
+    /// <c>[MessagePackObject]</c>.
+    /// </para>
+    /// <para>
+    /// Reported rather than left to the runtime. The failure is otherwise a
+    /// <c>MessagePackSerializationException</c> on the first response that carries the choice - a
+    /// 500 in front of a caller, from a contract that built clean.
+    /// </para>
+    /// <para>
+    /// A warning, not a build error. A contract is free to declare a choice that no MessagePack
+    /// operation ever answers with, and the JSON representation of it works exactly as it did; what
+    /// is worth saying is that one representation of this document is short of a shape the other
+    /// has.
+    /// </para>
+    /// </remarks>
+    private static void FindMessagePackUnions(
+        ServiceSpecModel model, string prefix, List<Problem> problems) {
+        if (model.Serializer == SpecSerializer.Json) {
+            return;
+        }
+
+        foreach (var schema in model.Schemas) {
+            if (schema.Kind != SchemaKind.OneOf) {
+                continue;
+            }
+
+            problems.Add(new Problem(
+                prefix + "034",
+                $"Schema '{schema.Name}' is a oneOf, and MessagePack does not carry one - a choice " +
+                "is resolved from a discriminator in the payload, which is a JSON-only shape here. " +
+                "It is generated and serialized as JSON as before; an operation that answers it as " +
+                "application/x-msgpack fails at the response. Declare that operation as JSON only.",
+                fatal: false));
+        }
     }
 
     /// <summary>

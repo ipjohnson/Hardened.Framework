@@ -25,9 +25,10 @@ internal static class SchemaEmitter {
     /// </summary>
     public static IOutputComponent? Emit(
         IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns,
-        IReadOnlyList<SchemaModel>? allSchemas = null, ICollection<string>? streamedItems = null) =>
+        IReadOnlyList<SchemaModel>? allSchemas = null, ICollection<string>? streamedItems = null,
+        SpecSerializer serializer = SpecSerializer.Json) =>
         schema.Kind switch {
-            SchemaKind.Object => EmitRecord(container, schema, modelsNamespace, patterns, allSchemas),
+            SchemaKind.Object => EmitRecord(container, schema, modelsNamespace, patterns, allSchemas, serializer),
             SchemaKind.Enum => EmitEnumWithConverter(container, schema, modelsNamespace),
             SchemaKind.OneOf => EmitOneOf(
                 container, schema, modelsNamespace, allSchemas,
@@ -67,7 +68,7 @@ internal static class SchemaEmitter {
     /// </summary>
     private static ClassDefinition EmitRecord(
         IConstructContainer container, SchemaModel schema, string modelsNamespace, PatternRegistry patterns,
-        IReadOnlyList<SchemaModel>? allSchemas) {
+        IReadOnlyList<SchemaModel>? allSchemas, SpecSerializer serializer) {
         var record = container.AddClass(NamingHelper.ToPascalCase(schema.Name));
 
         record.TypeKeyword = ClassKeyword.Record;
@@ -86,6 +87,8 @@ internal static class SchemaEmitter {
         }
 
         record.Comment = DocComment.Format(schema.Description);
+
+        EmitMessagePackObject(record, serializer);
 
         if (schema.IsDeprecated) {
             Deprecation.Apply(record);
@@ -120,12 +123,13 @@ internal static class SchemaEmitter {
             constructor.IsPrimary = true;
 
             foreach (var property in parameters) {
-                EmitConstructorParameter(constructor, property, modelsNamespace, patterns, allSchemas);
+                EmitConstructorParameter(
+                    constructor, property, modelsNamespace, patterns, allSchemas, serializer);
             }
         }
 
         foreach (var property in members) {
-            EmitInitOnlyMember(record, property, modelsNamespace);
+            EmitInitOnlyMember(record, property, modelsNamespace, serializer);
         }
 
         EmitApplyHeaders(record, headerBound);
@@ -180,7 +184,7 @@ internal static class SchemaEmitter {
     /// <summary>One property, as a positional record parameter.</summary>
     private static void EmitConstructorParameter(
         ConstructorDefinition constructor, PropertyModel property, string modelsNamespace,
-        PatternRegistry patterns, IReadOnlyList<SchemaModel>? allSchemas) {
+        PatternRegistry patterns, IReadOnlyList<SchemaModel>? allSchemas, SpecSerializer serializer) {
         var csType = TypeMapper.MapPropertyToCSharpType(property);
         var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
 
@@ -206,6 +210,10 @@ internal static class SchemaEmitter {
 
         if (EmitOmitWhenNull(parameter, property) is { } omit) {
             omit.Target = "property";
+        }
+
+        if (EmitMessagePackMember(parameter, property, serializer) is { } key) {
+            key.Target = "property";
         }
 
         // Required, except where the type already guarantees it - see
@@ -284,7 +292,8 @@ internal static class SchemaEmitter {
     /// </para>
     /// </remarks>
     private static void EmitInitOnlyMember(
-        ClassDefinition record, PropertyModel property, string modelsNamespace) {
+        ClassDefinition record, PropertyModel property, string modelsNamespace,
+        SpecSerializer serializer) {
         var csType = TypeMapper.MapPropertyToCSharpType(property);
         var typeDefinition = TypeMapper.GetTypeDefinition(modelsNamespace, csType, property.IsCSharpNullable);
 
@@ -301,6 +310,7 @@ internal static class SchemaEmitter {
         EmitJsonPropertyName(member, property);
         EmitDirection(member, property);
         EmitOmitWhenNull(member, property);
+        EmitMessagePackMember(member, property, serializer);
     }
 
     /// <summary>
@@ -447,6 +457,86 @@ internal static class SchemaEmitter {
             TypeDefinition.Get(
                 "Hardened.Requests.Abstract.Attributes",
                 property.IsReadOnly ? "ResponseOnlyAttribute" : "RequestOnlyAttribute"));
+    }
+
+    /// <summary>
+    /// <c>[MessagePackObject]</c>, where the project asked for MessagePack.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>true</c> under the named mode is <c>keyAsPropertyName</c>: a member is identified on the
+    /// wire by a name rather than by an integer. Which name is <see cref="EmitMessagePackMember"/>'s
+    /// answer, and it is the document's rather than the member's. Under the keyed mode the argument
+    /// is absent and every member carries an index instead.
+    /// </para>
+    /// <para>
+    /// The record is already <c>partial</c>, which MessagePack's own source generator needs to
+    /// reach the members it writes a formatter from. Nothing here has to arrange that.
+    /// </para>
+    /// </remarks>
+    private static AttributeDefinition? EmitMessagePackObject(
+        ClassDefinition record, SpecSerializer serializer) =>
+        serializer switch {
+            SpecSerializer.MessagePackNamed => record.AddAttribute(
+                TypeDefinition.Get("MessagePack", "MessagePackObjectAttribute"),
+                new CodeOutputComponent("true") { Indented = false }),
+            SpecSerializer.MessagePackKeyed => record.AddAttribute(
+                TypeDefinition.Get("MessagePack", "MessagePackObjectAttribute")),
+            _ => null
+        };
+
+    /// <summary>
+    /// What MessagePack is told about one member: its key, or that it is not on the wire.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>[IgnoreMember]</c> for a member bound to a response header, under either MessagePack
+    /// mode, for the reason <see cref="EmitDirection"/> gives it <c>[JsonIgnore]</c>: it leaves as
+    /// a header rather than in the body, so it is in neither payload. It cannot simply be left
+    /// unannotated - a keyed object demands an answer for every member, and the named mode would
+    /// otherwise write the header into the body under its own name.
+    /// </para>
+    /// <para>
+    /// <c>[Key(n)]</c> for everything else under the keyed mode, from the index the contract
+    /// stated.
+    /// </para>
+    /// <para>
+    /// <c>[Key("name")]</c> under the named mode, with the name the document publishes rather than
+    /// the C# member's. <c>keyAsPropertyName</c> on its own writes the member name, and the member
+    /// name here is a PascalCasing of the wire name - so a contract declaring <c>unit_price</c>
+    /// would go out as <c>UnitPrice</c>, agreeing with a generated client only for as long as two
+    /// unrelated PascalCase implementations agree. The document states the name; both ends pin it,
+    /// the way <c>[JsonPropertyName]</c> already pins it for JSON.
+    /// </para>
+    /// <para>
+    /// An unkeyed body property under the keyed mode never reaches here - it is a build error
+    /// against the contract, raised before anything is emitted, because an index this emitter
+    /// invented would move the next time a property was inserted above it. See
+    /// <c>SpecDiagnostics</c>.
+    /// </para>
+    /// </remarks>
+    private static AttributeDefinition? EmitMessagePackMember(
+        BaseOutputComponent target, PropertyModel property, SpecSerializer serializer) {
+        if (serializer == SpecSerializer.Json) {
+            return null;
+        }
+
+        if (property.IsHeaderBound) {
+            return target.AddAttribute(TypeDefinition.Get("MessagePack", "IgnoreMemberAttribute"));
+        }
+
+        if (serializer == SpecSerializer.MessagePackNamed) {
+            return target.AddAttribute(
+                TypeDefinition.Get("MessagePack", "KeyAttribute"),
+                new CodeOutputComponent($"\"{property.Name}\"") { Indented = false });
+        }
+
+        return property.MessagePackIndex is { } index
+            ? target.AddAttribute(
+                TypeDefinition.Get("MessagePack", "KeyAttribute"),
+                new CodeOutputComponent(index.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                    { Indented = false })
+            : null;
     }
 
     private static AttributeDefinition EmitJsonPropertyName(

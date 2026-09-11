@@ -35,9 +35,15 @@ public partial class MessagePackSerializerConfiguration {
     /// <c>[MessagePackObject]</c>, and this resolver finds them, so a model that is annotated needs
     /// no registration and a model that is not fails the same way everywhere.
     /// </para>
+    /// <para>
+    /// <see cref="HardenedFormatterResolver"/> answers for the response bodies Hardened itself
+    /// ships - the two error envelopes and the built-in response types - none of which can carry
+    /// the attribute. Second, so an application that marks up a type of its own is asked first.
+    /// </para>
     /// </remarks>
     public static IFormatterResolver[] AotResolvers { get; } = [
         SourceGeneratedFormatterResolver.Instance,
+        HardenedFormatterResolver.Instance,
         BuiltinResolver.Instance,
         AttributeFormatterResolver.Instance,
         DynamicGenericResolver.Instance,

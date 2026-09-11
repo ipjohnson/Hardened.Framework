@@ -48,6 +48,32 @@
     <HardenedResponseModel>Union</HardenedResponseModel>
 <!--#endif -->
   </PropertyGroup>
+<!--#if (messagePack) -->
+
+  <!--
+    Which serialization attributes the generated models carry. JSON is not one of the answers: the
+    models carry [JsonPropertyName] and the rest whatever this says, and this decides whether
+    MessagePack is described on them as well.
+
+    An MSBuild property rather than an attribute, for the reason HardenedResponseModel is one: the
+    models are written by a build task that runs before the compiler, and a task that runs first
+    cannot read an attribute.
+  -->
+  <PropertyGroup>
+<!--#if (messagePackNamed) -->
+    <HardenedSerializer>MessagePackNamed</HardenedSerializer>
+<!--#endif -->
+<!--#if (messagePackKeyed) -->
+    <!--
+      Every member of every schema in contracts/todos.yaml states an x-message-pack-index, and it
+      has to: nothing assigns one. An index this build chose would move the next time a property
+      was added above it, and a keyed wire format whose keys move is worse than one that refuses to
+      build. A member with no index is HOAT033, naming the member and the next free index.
+    -->
+    <HardenedSerializer>MessagePackKeyed</HardenedSerializer>
+<!--#endif -->
+  </PropertyGroup>
+<!--#endif -->
 <!--#endif -->
 
 <!--#if (hasClient) -->
@@ -66,6 +92,18 @@
   <ItemGroup>
     <PackageReference Include="Hardened.Shared.Runtime" />
     <PackageReference Include="Hardened.Web.Runtime" />
+<!--#if (messagePack) -->
+    <!--
+      The MessagePack reader and writer. It registers under application/x-msgpack and answers only
+      where an operation declares that media type, so every route that does not is still JSON.
+
+      The package carries MessagePack itself, and MessagePack's source generator with it - which is
+      what writes a formatter for each annotated model at build. There is no reflection fallback in
+      the resolver chain this installs, so a model that is not annotated fails the same way here as
+      it would after a NativeAOT publish rather than only after one.
+    -->
+    <PackageReference Include="Hardened.Requests.Serializers.MessagePack" />
+<!--#endif -->
     <PackageReference Include="Hardened.Library.SourceGenerator" />
 <!--#if (codeFirst) -->
     <PackageReference Include="Hardened.Web.SourceGenerator" />

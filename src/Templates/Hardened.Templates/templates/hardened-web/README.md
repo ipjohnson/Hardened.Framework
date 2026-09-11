@@ -234,6 +234,81 @@ That is the trade a contract-first project makes: the specification and the code
 because disagreeing is a build error. There are no route attributes anywhere in this project.
 #endif
 
+#if (messagePack)
+## MessagePack
+
+Every route answers two representations of its body, and the client's `Accept` decides:
+
+```
+GET /todos
+Accept: application/x-msgpack
+```
+
+JSON is declared first, so a client expressing no preference still gets JSON. Nothing else changed:
+the handlers return the same values, and `Hardened.Requests.Serializers.MessagePack` registers a
+writer under that media type and is asked only where an operation names it.
+
+The 404 and the 409 come back as MessagePack too. `NotFound` and `Conflict` are framework types
+that cannot carry the attribute themselves, so the package ships formatters for them - and for the
+two error envelopes, which is what a refusal the handler never sees comes back as.
+
+#if (messagePackKeyed)
+Each member is identified on the wire by an integer.
+
+#if (codeFirst)
+```csharp
+[MessagePackObject]
+public partial record Todo(
+    [property: Key(0)] int Id,
+    [property: Key(1)] string Title,
+    [property: Key(2)] bool Done);
+```
+
+You write the indices. Hardened cannot add an attribute to a member of a type it did not declare,
+and an index it invented for the document alone would describe a wire format this service does not
+speak. What it does is publish them: each one reaches `openapi/Hardened1.json` as
+`x-message-pack-index`.
+#endif
+#if (specFirst)
+```yaml
+title:
+  type: string
+  x-message-pack-index: 1
+```
+
+Every member of every schema in the contract states one, and it has to: nothing assigns them. An
+index the build chose would move the next time a property was added above it, and every client
+generated before the move would read the wrong member with nothing failing. A member with no index
+is a build error naming the member and the next free index.
+
+The build writes `[MessagePackObject]` and `[Key(n)]` onto the generated models, and publishes each
+index back into the served document.
+#endif
+
+The numbers are the contract. Renaming `Title` is free; renumbering it breaks every client
+generated before the change, and the document diff that does it reads as an edit to one line.
+#endif
+#if (messagePackNamed)
+Each member is identified on the wire by the name the document publishes, pinned with
+`[Key("title")]` rather than left to the C# member name. Without the pin MessagePack writes
+`Title`, and a client generated from a document that says `title` reads nothing.
+
+Nothing has to be stated in the contract: the names are already there.
+#endif
+#if (refitClient)
+
+`src/Hardened1.Client/templates` holds the two Liquid files that put the same attributes on the
+generated client. NJsonSchema ships both empty and renders them into every class and property, so
+they add attributes and change nothing else about what Refitter writes.
+#endif
+#if (kiotaClient)
+
+The Kiota client talks JSON. Its models carry no serialization attributes at all - they implement
+`IParsable` with hand-written `Serialize` and `GetFieldDeserializers` - so there is nothing for a
+MessagePack attribute to act on. Scaffold with `--client refit` for a client that speaks both.
+#endif
+
+#endif
 ## How responses are declared
 
 #if (throwsMode)

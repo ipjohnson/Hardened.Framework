@@ -1,0 +1,6 @@
+{%- comment -%}
+The name this member carries on a MessagePack wire: the one the document publishes, which is the
+one the server pins with [Key("...")] too. property.Name is the JSON name - the same value the
+generated [JsonPropertyName] is written from - and property.PropertyName is the C# identifier.
+{%- endcomment -%}
+[MessagePack.Key("{{ property.Name }}")]

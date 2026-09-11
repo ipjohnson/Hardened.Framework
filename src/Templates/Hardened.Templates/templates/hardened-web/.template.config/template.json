@@ -94,6 +94,42 @@
         }
       ]
     },
+    "serializer": {
+      "type": "parameter",
+      "datatype": "choice",
+      "defaultValue": "json",
+      "description": "How a payload is written on the wire, beside JSON. Every mode still answers JSON; the two MessagePack modes add a second representation an operation declares and a client asks for.",
+      "choices": [
+        {
+          "choice": "json",
+          "description": "JSON alone. The default."
+        },
+        {
+          "choice": "message-pack-named",
+          "description": "MessagePack as well, with each member identified on the wire by its name. Nothing has to be stated in the contract: the property names are already there."
+        },
+        {
+          "choice": "message-pack-keyed",
+          "description": "MessagePack as well, with each member identified by an integer the contract states - x-message-pack-index on an OpenAPI property, [Key(n)] on a code-first model. Smaller on the wire, and the key is stable across a rename. Nothing assigns one for you."
+        }
+      ]
+    },
+    "messagePack": {
+      "type": "computed",
+      "value": "(serializer == 'message-pack-named' || serializer == 'message-pack-keyed')"
+    },
+    "messagePackNamed": {
+      "type": "computed",
+      "value": "(serializer == 'message-pack-named')"
+    },
+    "messagePackKeyed": {
+      "type": "computed",
+      "value": "(serializer == 'message-pack-keyed')"
+    },
+    "smithyMessagePackConflict": {
+      "type": "computed",
+      "value": "(contract == 'smithy' && (serializer == 'message-pack-named' || serializer == 'message-pack-keyed'))"
+    },
     "OpenApiUi": {
       "type": "parameter",
       "datatype": "bool",
@@ -391,6 +427,41 @@
           ]
         },
         {
+          "comment": "The Liquid templates that put MessagePack attributes on the generated contracts. Refitter is the only generator that reads them - Kiota has no template directory, and its models carry no serialization attributes for one to act on - so a Kiota or opt-out project leaves them out, and so does a project that is not on MessagePack at all. Each mode ships its own pair and they reach the output under the names NJsonSchema looks for, by the same rename the Refit client project uses.",
+          "condition": "(!refitClient || !messagePack)",
+          "exclude": [
+            "src/Hardened1.Client/templates/**"
+          ]
+        },
+        {
+          "condition": "(!messagePackNamed)",
+          "exclude": [
+            "src/Hardened1.Client/templates/Class.Annotations.named.liquid",
+            "src/Hardened1.Client/templates/Class.Property.Annotations.named.liquid"
+          ]
+        },
+        {
+          "condition": "(!messagePackKeyed)",
+          "exclude": [
+            "src/Hardened1.Client/templates/Class.Annotations.keyed.liquid",
+            "src/Hardened1.Client/templates/Class.Property.Annotations.keyed.liquid"
+          ]
+        },
+        {
+          "condition": "(messagePackNamed)",
+          "rename": {
+            "Class.Annotations.named.liquid": "Class.Annotations.liquid",
+            "Class.Property.Annotations.named.liquid": "Class.Property.Annotations.liquid"
+          }
+        },
+        {
+          "condition": "(messagePackKeyed)",
+          "rename": {
+            "Class.Annotations.keyed.liquid": "Class.Annotations.liquid",
+            "Class.Property.Annotations.keyed.liquid": "Class.Property.Annotations.liquid"
+          }
+        },
+        {
           "condition": "(refitClient)",
           "rename": {
             "dotnet-tools.refit.json": "dotnet-tools.json",
@@ -429,6 +500,26 @@
       "continueOnError": false
     },
     {
+      // A Smithy model states its wire format through its protocol trait, and Hardened's Smithy
+      // front end has no protocol that produces MessagePack - so there is nowhere in a .smithy
+      // file to say that an operation answers application/x-msgpack, and nowhere to state a
+      // member's index. The contract would be silent and the project would answer JSON with a
+      // MessagePack package referenced for nothing.
+      //
+      // Refused the way the union/host combinations are, and for the same reason: dotnet new has
+      // no constraint that reads a symbol, so a post action the CLI cannot run is the only
+      // mechanism that reports a refusal at instantiation with a non-zero exit.
+      "condition": "(smithyMessagePackConflict)",
+      "description": "--serializer cannot be combined with --contract smithy: a Smithy model states its wire format through its protocol, and there is no MessagePack protocol to state.",
+      "manualInstructions": [
+        {
+          "text": "Regenerate with --contract openapi, where a response declares application/x-msgpack and a property states x-message-pack-index, or with --serializer json."
+        }
+      ],
+      "actionId": "84C0DA21-51C8-4541-9940-6CA19AF04EE6",
+      "continueOnError": false
+    },
+    {
       "condition": "(!skipRestore)",
       "description": "Restore the packages the template pinned.",
       "manualInstructions": [
@@ -441,6 +532,56 @@
     }
   ],
   "specialCustomOperations": {
+    "**/*.yaml": {
+      "operations": [
+        {
+          "comment": "The contract states two representations under the MessagePack modes and the keyed one states an index per member. # is a YAML comment wherever it sits, so the markers are valid YAML in the template source and the lines are gone from the output.",
+          "type": "conditional",
+          "configuration": {
+            "if": [
+              "#if"
+            ],
+            "else": [
+              "#else"
+            ],
+            "elseif": [
+              "#elseif"
+            ],
+            "endif": [
+              "#endif"
+            ],
+            "trim": true,
+            "wholeLine": true,
+            "evaluator": "C++"
+          }
+        }
+      ]
+    },
+    "**/.refitter": {
+      "operations": [
+        {
+          "comment": "The settings file gains one line under the MessagePack modes and is otherwise untouched. It has no extension the engine recognises, so the conditional syntax is stated here rather than inherited - //#if, because the file is JSON and // is what a reader of it will not choke on before the engine strips the line.",
+          "type": "conditional",
+          "configuration": {
+            "if": [
+              "//#if"
+            ],
+            "else": [
+              "//#else"
+            ],
+            "elseif": [
+              "//#elseif"
+            ],
+            "endif": [
+              "//#endif"
+            ],
+            "trim": true,
+            "wholeLine": true,
+            "evaluator": "C++"
+          }
+        }
+      ]
+    },
     "**/*.md": {
       "operations": [
         {

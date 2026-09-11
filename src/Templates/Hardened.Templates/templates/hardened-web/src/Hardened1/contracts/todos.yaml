@@ -10,6 +10,13 @@ info:
 # Every operation declares what it can answer with, not only what it answers when nothing goes
 # wrong. That is what a declared response model has to work from: an operation listing one status
 # generates one return type however the project is configured.
+#if (messagePack)
+#
+# Each operation declares two representations of its body, and the client's Accept decides between
+# them. JSON is listed first, so a client expressing no preference still gets JSON. Nothing in the
+# generated C# names a media type: the contract says what an operation produces, and the build
+# binds the writer.
+#endif
 paths:
   /todos/{id}:
     get:
@@ -32,12 +39,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Todo'
+#if (messagePack)
+            application/x-msgpack:
+              schema:
+                $ref: '#/components/schemas/Todo'
+#endif
         '404':
           description: No todo has that id.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+#if (messagePack)
+            application/x-msgpack:
+              schema:
+                $ref: '#/components/schemas/Problem'
+#endif
     delete:
       tags:
         - Todos
@@ -62,6 +79,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+#if (messagePack)
+            application/x-msgpack:
+              schema:
+                $ref: '#/components/schemas/Problem'
+#endif
   /todos:
     get:
       tags:
@@ -80,6 +102,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Todo'
+#if (messagePack)
+            application/x-msgpack:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Todo'
+#endif
     post:
       tags:
         - Todos
@@ -91,6 +120,14 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NewTodo'
+#if (messagePack)
+          # The request side is not negotiated. A reader is chosen by the inbound Content-Type,
+          # whether or not the contract lists the media type - this says so in the document, which
+          # is what a generated client reads before it decides what to send.
+          application/x-msgpack:
+            schema:
+              $ref: '#/components/schemas/NewTodo'
+#endif
       responses:
         '201':
           description: Created.
@@ -103,14 +140,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Todo'
+#if (messagePack)
+            application/x-msgpack:
+              schema:
+                $ref: '#/components/schemas/Todo'
+#endif
         '409':
           description: A todo with that title already exists.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Problem'
+#if (messagePack)
+            application/x-msgpack:
+              schema:
+                $ref: '#/components/schemas/Problem'
+#endif
 
 components:
+#if (messagePackKeyed)
+  # x-message-pack-index is what identifies a member on a MessagePack wire, and every member of
+  # every schema here states one. Nothing assigns them: an index the build chose would move the
+  # next time a property was added above it, and every client generated before the move would read
+  # the wrong member with nothing failing. A member with no index is HOAT033 at build, naming the
+  # member and the next free index.
+  #
+  # They are the contract. Renaming title is free; renumbering it is a breaking change, and the
+  # document diff that does it reads as an edit to one line.
+  #
+  # The build publishes each one back into the served document, so a client generated from
+  # /openapi.json keys its own models the same way.
+#endif
   schemas:
     Todo:
       type: object
@@ -122,10 +182,19 @@ components:
         id:
           type: integer
           format: int32
+#if (messagePackKeyed)
+          x-message-pack-index: 0
+#endif
         title:
           type: string
+#if (messagePackKeyed)
+          x-message-pack-index: 1
+#endif
         done:
           type: boolean
+#if (messagePackKeyed)
+          x-message-pack-index: 2
+#endif
 
     NewTodo:
       type: object
@@ -138,16 +207,31 @@ components:
           type: string
           minLength: 1
           maxLength: 64
+#if (messagePackKeyed)
+          x-message-pack-index: 0
+#endif
 
     Problem:
       type: object
       properties:
         type:
           type: string
+#if (messagePackKeyed)
+          x-message-pack-index: 0
+#endif
         title:
           type: string
+#if (messagePackKeyed)
+          x-message-pack-index: 1
+#endif
         status:
           type: integer
           format: int32
+#if (messagePackKeyed)
+          x-message-pack-index: 2
+#endif
         detail:
           type: string
+#if (messagePackKeyed)
+          x-message-pack-index: 3
+#endif

@@ -78,4 +78,21 @@
            Text="--host azure-functions cannot be combined with --response-model union: union requires net11.0 and the Functions host runs the worker on a released .NET. Regenerate with --response-model response." />
   </Target>
 <!--#endif -->
+<!--#if (smithyMessagePackConflict) -->
+
+  <!--
+    The same refusal for a Smithy contract on a MessagePack serializer. A Smithy model states its
+    wire format through its protocol trait, and this front end has no protocol that produces
+    MessagePack - so the contract cannot say that an operation answers application/x-msgpack, and
+    cannot state a member's index either. The build would be green, the package would be
+    referenced, and the service would answer JSON everywhere.
+
+    dotnet new reports it first, through a post action; this is what a build says to anyone who
+    scaffolded past a non-zero exit.
+  -->
+  <Target Name="HardenedTemplateRejectsSmithyMessagePack" BeforeTargets="Build">
+    <Error Code="HTPL008"
+           Text="--contract smithy cannot be combined with --serializer message-pack-named or message-pack-keyed: a Smithy model states its wire format through its protocol, and there is no MessagePack protocol to state. Regenerate with --contract openapi, or with --serializer json." />
+  </Target>
+<!--#endif -->
 </Project>

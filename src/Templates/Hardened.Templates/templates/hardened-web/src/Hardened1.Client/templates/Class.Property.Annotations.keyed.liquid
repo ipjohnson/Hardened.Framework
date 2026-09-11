@@ -1,0 +1,11 @@
+{%- comment -%}
+The index the document states, or the wire name where it states none. The two branches match the
+two the class template picks between, and for the same reason: a schema is either wholly keyed or
+wholly unkeyed, because a contract that keys one member and not another is a build error on the
+server before the document is ever written.
+{%- endcomment -%}
+{%- if property.ExtensionData and property.ExtensionData["x-message-pack-index"] != nil -%}
+[MessagePack.Key({{ property.ExtensionData["x-message-pack-index"] }})]
+{%- else -%}
+[MessagePack.Key("{{ property.Name }}")]
+{%- endif -%}

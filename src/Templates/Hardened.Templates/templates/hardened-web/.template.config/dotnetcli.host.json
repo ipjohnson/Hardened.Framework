@@ -18,6 +18,10 @@
       "longName": "client",
       "shortName": "cl"
     },
+    "serializer": {
+      "longName": "serializer",
+      "shortName": "s"
+    },
     "testFramework": {
       "longName": "test-framework",
       "shortName": "tf"
