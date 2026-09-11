@@ -1,3 +1,4 @@
+using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
@@ -40,6 +41,9 @@ public class IOFilterProviderTests {
         var serialization = Substitute.For<IContextSerializationService>();
 
         serialization.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
+        serialization.SerializeResponse(
+                Arg.Any<IExecutionContext>(), Arg.Any<IResponseSerializer?>(), Arg.Any<string?>())
+            .Returns(Task.CompletedTask);
 
         var streaming = new StreamingConfiguration();
 

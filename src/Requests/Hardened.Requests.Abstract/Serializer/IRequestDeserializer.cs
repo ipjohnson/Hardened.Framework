@@ -7,17 +7,17 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The mirror of <see cref="ResponseSerializerOrder"/>, and it exists for the same reason: the
-/// alternative is registration order, and registration order is not something an application can
-/// steer. Within a module DependencyModules sorts by whether a registration is conditional and then
-/// by implementation type name, so which deserializer read a body came down to how two class names
-/// happened to sort.
+/// It exists because the alternative is registration order, and registration order is not something
+/// an application can steer. Within a module DependencyModules sorts by whether a registration is
+/// conditional and then by implementation type name, so which deserializer read a body came down to
+/// how two class names happened to sort.
 /// </para>
 /// <para>
-/// Separate from <see cref="ResponseSerializerOrder"/> rather than shared, because the two do not
-/// have the same tiers — there is no request-side equivalent of
-/// <see cref="ResponseSerializerOrder.Template"/>. Values line up with the response enum where the
-/// tiers do correspond, so a serializer pair can state one precedence for both directions.
+/// The response side had the same enum and no longer does. A response serializer declares the media
+/// type it writes and is located by it, so there is nothing left for an order to adjudicate. The
+/// request side keeps one: a deserializer is chosen by the inbound <c>Content-Type</c> against
+/// <see cref="IRequestDeserializer.CanProcessContext"/>, which is a predicate over the whole
+/// request rather than a tag, and nothing in this change touches it.
 /// </para>
 /// <para>
 /// Values are spaced so a deserializer can be slotted between two of them without renumbering.
@@ -49,9 +49,8 @@ public interface IRequestDeserializer {
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Separate from <see cref="IsDefaultSerializer"/> on purpose, exactly as on
-    /// <see cref="IResponseSerializer"/>: order decides who is asked first;
-    /// <c>IsDefaultSerializer</c> decides who reads a body nobody claimed.
+    /// Separate from <see cref="IsDefaultSerializer"/> on purpose: order decides who is asked
+    /// first; <c>IsDefaultSerializer</c> decides who reads a body nobody claimed.
     /// </para>
     /// <para>
     /// Added 2026-08-18. Before it, two deserializers both claiming <c>application/json</c> — which

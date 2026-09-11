@@ -36,11 +36,11 @@ public class CompressionController {
     public List<Reading> Never() => Readings(20);
 
     [Get("/text")]
-    [RawResponse("text/plain")]
+    [Produces("text/plain")]
     public string Text() => "plain text is on the list of media types the default rule compresses";
 
     [Get("/binary")]
-    [RawResponse("application/octet-stream")]
+    [Produces("application/octet-stream")]
     public byte[] Binary() => [1, 2, 3, 4, 5, 6, 7, 8];
 
     [Post("/echo")]

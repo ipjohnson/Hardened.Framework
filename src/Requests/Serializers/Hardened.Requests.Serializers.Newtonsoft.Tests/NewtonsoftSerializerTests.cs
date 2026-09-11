@@ -1,3 +1,4 @@
+using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Serializers.Newtonsoft.Tests.Support;
 using Newtonsoft.Json;
@@ -121,13 +122,19 @@ public class NewtonsoftSerializerTests {
 
     #region media type
 
+    [Fact]
+    public void ItDeclaresApplicationJson() {
+        Assert.Equal("application/json", Pipeline.ResponseSerializer(Pipeline.Pool()).ContentType);
+    }
+
     [Theory]
     [InlineData("application/json")]
     [InlineData("*/*")]
     [InlineData("application/*")]
     public void JsonMediaTypesAreClaimed(string mediaType) {
-        Assert.True(
-            Pipeline.ResponseSerializer(Pipeline.Pool()).CanProduce(mediaType, Pipeline.Context()));
+        IResponseSerializer serializer = Pipeline.ResponseSerializer(Pipeline.Pool());
+
+        Assert.True(serializer.CanProduce(mediaType, Pipeline.Context()));
     }
 
     [Theory]
@@ -135,8 +142,9 @@ public class NewtonsoftSerializerTests {
     [InlineData("text/html")]
     [InlineData("application/xml")]
     public void OtherMediaTypesAreNotClaimed(string mediaType) {
-        Assert.False(
-            Pipeline.ResponseSerializer(Pipeline.Pool()).CanProduce(mediaType, Pipeline.Context()));
+        IResponseSerializer serializer = Pipeline.ResponseSerializer(Pipeline.Pool());
+
+        Assert.False(serializer.CanProduce(mediaType, Pipeline.Context()));
     }
 
     [Fact]

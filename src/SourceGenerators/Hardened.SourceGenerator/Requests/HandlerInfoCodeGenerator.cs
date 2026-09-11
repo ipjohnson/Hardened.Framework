@@ -137,6 +137,13 @@ public static class HandlerInfoCodeGenerator {
             declaredArgs += ", streamsResponse: true";
         }
 
+        // Whether the handler writes its own bytes, which only the return type knows. It decides
+        // whether a serializer is bound to this handler's pipeline at all - a byte[] or a Stream
+        // never reaches one.
+        if (handlerModel.ResponseInformation.WritesRawBytes) {
+            declaredArgs += ", writesRawBytes: true";
+        }
+
         // The type is handed over rather than named, so it is still a type when the file is
         // serialized: written qualified in a file that qualifies, and counted in the using list.
         // Spelled into the string it was neither, and resolved only while some other part of the

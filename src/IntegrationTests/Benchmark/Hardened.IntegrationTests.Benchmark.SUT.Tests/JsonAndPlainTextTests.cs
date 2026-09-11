@@ -100,14 +100,21 @@ public class JsonAndPlainTextTests {
 
     /// <summary>
     /// This document declares <c>x-hardened-content-negotiation: lenient</c>, so a client asking
-    /// only for JSON at a text-only operation is served rather than refused.
+    /// only for JSON at a text-only operation is served the text rather than refused.
     /// </summary>
     /// <remarks>
     /// <para>
     /// The escape hatch, end to end: the root extension reaches the generated routing table, which
-    /// registers the policy, which <c>SerializationLocatorService</c> reads. Under the default -
-    /// strict - this same request is a 406, which <c>ContentNegotiationTests</c> in the OpenApi SUT
-    /// asserts.
+    /// registers the policy, which <c>IOFilterProvider</c> reads as it composes the handler. Under
+    /// the default - strict - this same request is a 406, which <c>ContentNegotiationTests</c> in
+    /// the OpenApi SUT asserts.
+    /// </para>
+    /// <para>
+    /// <b>It is served text, not JSON.</b> An operation declaring one media type is bound to that
+    /// serializer when its pipeline is composed and does not read <c>Accept</c> at all, which is
+    /// what a lenient service is asking for: answer with what you have. It used to fall back to the
+    /// default serializer and answer a quoted JSON string from an operation whose document says it
+    /// produces text/plain.
     /// </para>
     /// <para>
     /// One answer for the whole service, not per operation. A policy each operation restates is one
@@ -115,13 +122,14 @@ public class JsonAndPlainTextTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task PlainText_UnderLenientServesJsonRatherThanRefusing(ITestWebApp testWebApp) {
+    public async Task PlainText_UnderLenientAnswersWhatItDeclaresRatherThanRefusing(
+        ITestWebApp testWebApp) {
         var response = await testWebApp.Get("/plaintext", Accepting("application/json"));
 
         response.Assert.Ok();
 
-        Assert.Equal("application/json", response.Headers["Content-Type"]);
-        Assert.Equal("\"Hello, World!\"", await Body.Read(response));
+        Assert.Equal("text/plain", response.Headers["Content-Type"]);
+        Assert.Equal("Hello, World!", await Body.Read(response));
     }
 
     [HardenedTest]

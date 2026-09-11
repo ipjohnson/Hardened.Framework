@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
-using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
@@ -43,7 +42,6 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// <c>WithReflectionFallback</c> installs. There is no <c>Aot</c> twin of this type for that reason.
 /// </para>
 /// </remarks>
-[SingletonService(Using = RegistrationType.Add)]
 public class StreamingJsonResponseSerializer : IResponseSerializer {
     private readonly JsonSerializerOptions _serializerOptions;
 
@@ -71,24 +69,24 @@ public class StreamingJsonResponseSerializer : IResponseSerializer {
     public bool IsDefaultSerializer => false;
 
     /// <summary>
-    /// A serializer for two specific media types, which is what <c>Specialized</c> is for.
+    /// Newline-delimited JSON, which is what a streamed handler answers unless it names a framing.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Ahead of <see cref="RawResponseSerializer"/>, and the difference is observable. That one
-    /// claims <em>any</em> committed content type when the value is a <c>string</c>, so at equal
-    /// order the two contest a stream of strings and the winner comes down to registration order -
-    /// exactly the fragility <c>ResponseSerializerOrder</c>'s own remarks were written about.
+    /// It writes <see cref="KnownContentType.EventStream"/> too - see <see cref="CanProduce"/> -
+    /// and the tag names one of the two because the tag is how a serializer is found for a
+    /// <em>declared</em> type. A streamed handler is bound to this one from its return type as its
+    /// pipeline is composed, so the second media type never needs to be looked up.
     /// </para>
     /// <para>
-    /// Resolving it this way round is also the correct one. <c>RawResponseSerializer</c> writes a
+    /// <b>It writes the item, not the envelope.</b> <c>RawResponseSerializer</c> would write a
     /// string's characters, so <c>IAsyncEnumerable&lt;string&gt;</c> produced lines reading
-    /// <c>alpha</c> - which is not a JSON document, in a format whose entire contract is one JSON
-    /// document per line. Through this serializer the same handler emits <c>"alpha"</c>, and every
-    /// line parses regardless of item type.
+    /// <c>alpha</c> - not a JSON document, in a format whose entire contract is one JSON document
+    /// per line. Through this serializer the same handler emits <c>"alpha"</c>, and every line
+    /// parses regardless of item type.
     /// </para>
     /// </remarks>
-    public int Order => (int)ResponseSerializerOrder.Specialized;
+    public string ContentType => KnownContentType.NdJson;
 
     /// <summary>
     /// Only for a response that has already committed to a stream content type - never for one a

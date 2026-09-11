@@ -37,17 +37,8 @@ public sealed class OpenApiUiPage : IHardenedResponseOutput<OpenApiUiModel> {
     private static readonly UTF8Encoding Utf8NoBom = new(false);
 
     /// <inheritdoc />
-    public bool SupportsContentType(string? accept, IExecutionContext context) {
-        var accepted = AcceptedContentTypes.Parse(accept).MediaTypes;
-
-        for (var index = 0; index < accepted.Count; index++) {
-            if (MediaType.Matches(accepted[index], ContentTypeValue)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
+    public bool SupportsContentType(string? accept, IExecutionContext context) =>
+        MediaType.Accepts(accept, ContentTypeValue);
 
     /// <inheritdoc />
     public async Task WriteOutput(IExecutionContext context) {

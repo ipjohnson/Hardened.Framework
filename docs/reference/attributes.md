@@ -49,7 +49,8 @@ All take `As` to narrow the service type, and `Using` to choose the registration
 | `[FromBody]` | Parameter | Binds from the request body |
 | `[FromServices]` | Parameter | Binds from the container |
 | `[Output<T>]` | Method | Hands the response to a [view or other output](/guide/templates) instead of serialising it. Takes the response out of negotiation: unsupported `Accept` is a `406` |
-| `[RawResponse(contentType?)]` | Method | [Commits](/guide/content-negotiation#forcing-a-content-type) the response to a content type and writes the value unstructured. Defaults to `text/plain`. Read from code-first handlers only; on a `[Handler]` implementation it does nothing |
+| `[Produces(types…)]` | Method, class, assembly | The media types the operation [produces](/guide/content-negotiation#declaring-what-an-operation-produces), in preference order. One is a declaration and skips negotiation; several are a set the client chooses from. Nothing declared means JSON |
+| `[RawResponse(contentType?)]` | Method | Deprecated, and now `[Produces]` under its old name. A handler returning `byte[]` or `Stream` writes its own bytes whatever it declares, so the "raw" half is the return type's job |
 
 `ICustomBindingAttribute` is the interface an attribute implements to bind a parameter itself. See
 [Parameter binding](/guide/parameter-binding#custom-binding).

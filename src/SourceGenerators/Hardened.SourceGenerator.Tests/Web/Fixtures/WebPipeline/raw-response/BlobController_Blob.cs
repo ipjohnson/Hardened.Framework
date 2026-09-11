@@ -5,7 +5,7 @@ namespace TestApp.Generated
 {
     public partial class BlobController_Blob : global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<global::TestApp.BlobController>
     {
-        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/blob", "GET", typeof(global::TestApp.BlobController), "Blob")
+        private static readonly global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo _handlerInfo =         new global::Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo("/blob", "GET", typeof(global::TestApp.BlobController), "Blob", producedContentTypes: new string[] { "application/octet-stream" }, writesRawBytes: true)
 ;
 
         public BlobController_Blob(global::System.IServiceProvider serviceProvider, string? routePath = null)

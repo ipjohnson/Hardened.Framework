@@ -1,52 +1,113 @@
 # Content negotiation
 
-The client says what it wants and the pipeline serves it. A handler returns a value and says
-nothing about media types:
+An operation declares what it produces. JSON is the default, so most operations declare nothing:
+
+```csharp
+[Get("/orders/{id}")]
+public Order Read(int id) => ...;          // application/json
+
+[Get("/reports/{id}")]
+[Produces("application/pdf")]
+public byte[] Report(int id) => ...;       // application/pdf, written as-is
+
+[Get("/reports/shelf")]
+[Produces("text/plain", "text/csv")]
+public string Shelf() => ...;              // the client chooses
+```
+
+The declaration is resolved when the application starts. The serializer for it is found once, as
+each handler's pipeline is composed, and held there. A request costs the call: no `Accept` header to
+parse, no serializer set to search, no container resolve.
+
+Only the third handler above negotiates, because only it offers a choice.
+
+## What a handler returns decides how it is written
+
+Three shapes, and the return type picks between them before any media type does.
+
+| Return type | Written by |
+|---|---|
+| `byte[]`, `Stream` | The handler. The bytes go out unchanged under the declared media type |
+| `IAsyncEnumerable<T>` | The [streaming](/guide/streaming) filter, one item at a time |
+| anything else | A serializer, chosen by the declared media type |
+
+**Returning `byte[]` or `Stream` means the handler controls its own serialization.** No serializer
+is consulted, on any request, whatever `Accept` said. Those handlers must carry `[Produces]`: bytes
+have no media type anyone could infer, and a handler that declares none is build error
+[`HRDR011`](/reference/diagnostics).
+
+A `string` is not one of them. It has a JSON reading — a quoted string — and that is what a handler
+declaring nothing answers with. Declaring a media type is what sends it to the pass-through writer:
 
 ```csharp
 [Get("/hello")]
-public string Hello() => "Hello, World!";
+public string Hello() => "Hello, World!";                  // "Hello, World!"
+
+[Get("/hello.txt")]
+[Produces("text/plain")]
+public string HelloText() => "Hello, World!";              //  Hello, World!
 ```
 
-| Request | Body |
+## Declaring what an operation produces
+
+`[Produces]` takes one media type or several, and the count is the difference.
+
+**One is a declaration.** The operation returns that type and does not read `Accept` at all, which
+is what most JSON APIs do and what HTTP permits. A service that would rather refuse a client asking
+for something else opts into that with [`[ContentNegotiation]`](#asking-for-something-outside-that-set).
+
+**Several is a set, and negotiates.** The client's own preference order decides within it. The
+first value is what a client expressing no preference is answered with — `Accept: */*`, or no
+`Accept` at all — because the first representation a document lists is the one it leads with.
+
+It is the hand-written half of what a description states with the `content:` keys of its success
+response. Both reach the same model, so an application written in code and one generated from a
+document behave the same way.
+
+`[Produces]` is a statement about the response only. An operation that accepts JSON and returns CSV
+is ordinary, and the inbound `Content-Type` is read by a [different mechanism](#request-bodies).
+
+### Where a declaration comes from
+
+Four places, nearest to the handler first. Nothing is combined: the nearest declaration is the
+answer and the rest are fallbacks.
+
+| Rung | Written as |
 |---|---|
-| `Accept: text/plain` | `Hello, World!` |
-| `Accept: application/json` | `"Hello, World!"` |
-| `Accept: */*`, or no header | `"Hello, World!"` |
+| The operation | `[Produces("text/csv")]` on the method |
+| Its class | `[Produces("text/csv")]` on the controller |
+| The handler's assembly | `[assembly: Produces("text/csv")]` |
+| The application | `services.AddSingleton(new ResponseContentTypeDefault("text/csv"))` |
 
-The same handler answers a browser with a rendered page when a [view](/guide/templates) exists
-for its model, and a CSV client with CSV when a [serializer](#writing-a-serializer) for it is
-registered.
+The bottom rung is a registration rather than an attribute, which is how a serializer package makes
+itself the default for a whole service: it registers its `IResponseSerializer` and this together, and
+importing the module is the whole of the configuration.
 
-## How a serializer is chosen
+**The assembly beats the application's default.** A library writing `[assembly: Produces]` is saying
+something specific about its own handlers; a registered default is a blanket fallback for handlers
+that said nothing. Read the other way round, a host would silently change what a library declared.
 
-`ISerializationLocatorService` resolves every response in three tiers.
+## Aliases
 
-**A committed content type.** If `Response.ContentType` is already set by the time the response
-is serialized, the client does not get to overrule it. That is what
-[`[RawResponse]`](#forcing-a-content-type) does. If nothing registered can write the committed
-type, that is an error rather than a fallback.
+Two attributes are `[Produces]` under other names.
 
-**Negotiation.** Otherwise the `Accept` header is parsed into the media types the client will
-take, most preferred first, and each is offered to the serializers in turn:
+`[ServerSentEvents]` is `[Produces("text/event-stream")]`, and reads better on a stream. The framing
+follows the declared media type, so either spelling frames a stream as events.
 
-```
-for each media type the client asked for, in preference order
-    for each serializer, in Order
-        if it can produce that media type for this response, use it
-```
+`[RawResponse]` is deprecated. It stated two facts — the media type, and that the return value is
+already bytes — and the second is now the return type's job. `[RawResponse("text/csv")]` is
+`[Produces("text/csv")]`.
 
-The client's preferences are the outer loop, so the client's ranking decides. A request for
-`application/json,text/html;q=0.9` against a route that has a view is answered with JSON.
+## When negotiation still runs
 
-**The default.** If nothing can produce anything the client asked for, the serializer marked
-`IsDefaultSerializer` answers.
+An operation that declares two or more media types reads the `Accept` header, and so does one that
+declares a single type under `ContentNegotiationMode.Strict`, where a mismatch is a refusal rather
+than an answer.
 
-## What `Accept` means here
-
-The header is split on commas, and everything after a `;` is discarded, `q` included. Preference
-comes from the order media types are listed in, so `text/html;q=0.5, application/json;q=0.9`
-resolves to `text/html`.
+The client's preferences are the outer loop, so the client's ranking decides rather than the
+server's. The header is walked in place and nothing is allocated: it is split on commas, everything
+after a `;` is discarded, `q` included, and preference comes from the order media types are listed
+in — so `text/html;q=0.5, application/json;q=0.9` resolves to `text/html`.
 
 | `Accept` | Matches |
 |---|---|
@@ -55,45 +116,21 @@ resolves to `text/html`.
 | `*/*` | anything |
 | absent | anything |
 
-A missing header and `*/*` mean the same thing: every serializer qualifies and `Order` decides.
+A missing header and `*/*` mean the same thing: the client will take whatever the operation leads
+with.
 
-## Order
+## Two serializers, one media type
 
-`Order` breaks ties between serializers that all satisfy the same preference. Lower is asked
-first. The values are `ResponseSerializerOrder`, and `RequestDeserializerOrder` mirrors it:
+A serializer declares the media type it writes, and **the last registration under a media type is
+the one that answers**. A module the application imports is applied after the framework module it
+depends on, so importing a package that replaces JSON is enough to be sure it is used.
 
-| Value | Used by |
-|---|---|
-| `Template` (-1000) | Rendered [views](/guide/templates). Ahead of everything, because a response naming a view is asking for that view |
-| `Specialized` (-100) | A serializer for one specific media type |
-| `Normal` (0) | The JSON serializers |
-| `Deferred` (1000) | Raw string, byte and stream output |
+There used to be an `Order` as well. It existed because reverse-registration order within a module is
+decided by how implementation type names sort, which an application cannot steer. A declared media
+type makes the contest a lookup, so there is nothing left to adjudicate.
 
-The values are spaced so a serializer can be slotted between two of them without renumbering.
-`Order` decides who is asked first. `IsDefaultSerializer` decides who answers when nobody claims
-the response at all.
-
-## Declaring what an operation produces
-
-`[SupportedContentTypes]` states the media types one operation can produce, in preference order:
-
-```csharp
-[Get("/reports/shelf")]
-[SupportedContentTypes("text/plain", "text/csv")]
-public string Shelf() => ...;
-```
-
-This is the hand-written half of what a description states with the `content:` keys of its success
-response. Both reach the same model, so an application written in code and one generated from a
-document negotiate the same way.
-
-Order is the server's preference, and it decides what `Accept: */*` — or a request with no `Accept`
-at all — is answered with. A client that names types explicitly gets its own preference order
-honoured instead.
-
-It is not `[RawResponse]`, which is a different thing. That assigns the content type before the
-handler runs and takes the response out of negotiation entirely: "this *is* a PDF". This says what
-the operation is able to produce and lets the client choose among them.
+`IsDefaultSerializer` is a different question, and stays: it decides who writes a response no
+operation declared a media type for.
 
 ## Asking for something outside that set
 
@@ -127,33 +164,10 @@ consistently — the omission would be invisible.
 
 A description says the same thing with `x-hardened-content-negotiation` at its root.
 
-## Strings, bytes and streams
+## Choosing a content type per request
 
-A handler returning `string`, `byte[]` or `Stream` is written straight to the body rather than
-structured, but only when asked for. A bare string is offered as `text/plain`, not forced to it.
-`RawResponseSerializer` is ordered `Deferred`, behind JSON, so a client that expressed no
-preference gets JSON, as the table at the top shows.
-
-`byte[]` and `Stream` are not offered under negotiation at all. They need a committed content
-type.
-
-## Forcing a content type
-
-`[RawResponse]` commits the response, so the client cannot negotiate it away:
-
-```csharp
-[Get("/report.csv")]
-[RawResponse("text/csv")]
-public string Report() => _reports.Csv();
-```
-
-```csharp
-[Get("/invoices/{id}")]
-[RawResponse("application/pdf")]
-public Stream Invoice(string id) => _invoices.Render(id);
-```
-
-A handler can do the same per request by assigning `Response.ContentType` before returning:
+A handler can assign `Response.ContentType` before returning, which overrules whatever its pipeline
+resolved. That is the one decision the build cannot make for it:
 
 ```csharp
 public byte[] Export(IExecutionContext context, string format) {
@@ -173,24 +187,22 @@ using Hardened.Requests.Abstract.Serializer;
 public class CsvResponseSerializer : IResponseSerializer {
     public bool IsDefaultSerializer => false;
 
-    public int Order => (int)ResponseSerializerOrder.Specialized;
-
-    public bool CanProduce(string mediaType, IExecutionContext context) =>
-        MediaType.Matches(mediaType, "text/csv") &&
-        context.Response.ResponseValue is IEnumerable<object>;
+    public string ContentType => "text/csv";
 
     public Task SerializeResponse(IExecutionContext context) { /* … */ }
 }
 ```
 
-Two things to get right. Use `MediaType.Matches` rather than comparing the string, because that
-is where wildcard handling lives, so `*/*` and a missing header resolve correctly. And register
-with `Add`, never `Try`: `RegistrationType.Try` emits `TryAddSingleton`, which on an interface
-resolved as a set means "do not register if anyone else already did", so a serializer registered
-that way never enters the container.
+Three members, and the media type is the whole of how it is found. A handler carrying
+`[Produces("text/csv")]` is bound to it as its pipeline is composed.
 
-`CanProduce` answers two questions at once: does this serializer emit that media type, and can it
-handle this particular response value.
+Register with `Add`, never `Try`. `RegistrationType.Try` emits `TryAddSingleton`, which on an
+interface resolved as a set means "do not register if anyone else already did", so a serializer
+registered that way never enters the container.
+
+There is a `CanProduce` as well, defaulted in terms of `ContentType`, and most serializers should
+leave it alone. Override it only where the question is about the response value rather than the
+media type — `RawResponseSerializer` writes bytes it is handed and nothing else.
 
 ## Handlers that declare an output
 
@@ -211,6 +223,6 @@ The 415 is answered for a `Content-Encoding` nothing can decode.
 
 ## Next
 
-- [JSON serialization](/guide/json): the serializer at `Normal`
-- [Views](/guide/templates): the serializer at `Template`
+- [JSON serialization](/guide/json): the default serializer
+- [Views](/guide/templates): a handler that writes its own response
 - [Streaming responses](/guide/streaming): NDJSON and server-sent events

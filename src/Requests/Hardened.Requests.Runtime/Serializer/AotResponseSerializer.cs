@@ -41,20 +41,24 @@ public class AotResponseSerializer : IResponseSerializer {
     public bool IsDefaultSerializer => true;
 
     /// <summary>
-    /// Ahead of <see cref="SystemTextJsonResponseSerializer"/>, which is how an AOT application ends
-    /// up using its own serializer rather than the reflection-based one.
+    /// The same tag <see cref="SystemTextJsonResponseSerializer"/> declares, and this one wins by
+    /// registering after it.
     /// </summary>
     /// <remarks>
-    /// This used to be arranged by registration order and TryAddSingleton: AotSerializerModule
-    /// registered first and the reflection serializer's Try became a no-op. That worked only while
-    /// nothing else registered an IResponseSerializer first, which stopped being true the moment one
-    /// was added. Both are registered now and this one wins by order, which no third serializer can
-    /// disturb.
+    /// <para>
+    /// How an AOT application ends up using its own serializer rather than the reflection-based one.
+    /// <c>AotSerializerModule</c> is imported by the application, so its registration lands after
+    /// <c>HardenedRequestModule</c>'s and is the one the registry keeps for
+    /// <c>application/json</c>. <c>SerializerRegistrationOrderTests</c> pins the rule, because it is
+    /// the whole of the precedence now.
+    /// </para>
+    /// <para>
+    /// This was an <c>Order</c> before, and registration order with <c>TryAddSingleton</c> before
+    /// that. The Try switch keyed on the service type rather than on a class, so adding any third
+    /// serializer silently unregistered JSON everywhere.
+    /// </para>
     /// </remarks>
-    public int Order => (int)ResponseSerializerOrder.Specialized;
-
-    public bool CanProduce(string mediaType, IExecutionContext context) =>
-        MediaType.Matches(mediaType, KnownContentType.Json);
+    public string ContentType => KnownContentType.Json;
 
     public async Task SerializeResponse(IExecutionContext context) {
         context.Response.ContentType = "application/json";

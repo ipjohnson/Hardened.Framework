@@ -20,7 +20,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         int? validationErrorStatus = null,
         TimeoutPolicy? timeout = null,
         bool streamsResponse = false,
-        IReadOnlyDictionary<int, object>? declaredErrorBodies = null) {
+        IReadOnlyDictionary<int, object>? declaredErrorBodies = null,
+        bool writesRawBytes = false) {
         Path = path;
         Method = method;
         HandlerType = handlerType;
@@ -36,6 +37,7 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         Timeout = timeout ?? IExecutionRequestHandlerInfo.TimeoutFrom(Metadata);
         StreamsResponse = streamsResponse;
         DeclaredErrorBodies = declaredErrorBodies ?? EmptyDeclaredErrorBodies;
+        WritesRawBytes = writesRawBytes;
     }
 
     private static readonly IReadOnlyDictionary<int, object> EmptyDeclaredErrorBodies =
@@ -71,7 +73,8 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
         string? path,
         Requirement? requirement,
         TimeoutPolicy? timeout = null,
-        IReadOnlyList<object>? metadata = null)
+        IReadOnlyList<object>? metadata = null,
+        IReadOnlyList<string>? producedContentTypes = null)
         : this(
             path ?? source.Path,
             source.Method,
@@ -82,12 +85,13 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
             requirement ?? source.Requirement,
             source.SuccessStatus,
             source.NullResponseBody,
-            source.ProducedContentTypes,
+            producedContentTypes ?? source.ProducedContentTypes,
             source.BodyParameterName,
             source.ValidationErrorStatus,
             timeout ?? source.Timeout,
             source.StreamsResponse,
-            source.DeclaredErrorBodies) { }
+            source.DeclaredErrorBodies,
+            source.WritesRawBytes) { }
 
     public string Path { get; }
 
@@ -125,6 +129,9 @@ public class ExecutionRequestHandlerInfo : IExecutionRequestHandlerInfo {
 
     /// <inheritdoc />
     public bool StreamsResponse { get; }
+
+    /// <inheritdoc />
+    public bool WritesRawBytes { get; }
 
     /// <inheritdoc />
     public IReadOnlyDictionary<int, object> DeclaredErrorBodies { get; }
@@ -277,4 +284,29 @@ public static class ExecutionRequestHandlerInfoExtensions {
 
         return required == null ? wider : Requirement.AllOf([required, wider]);
     }
+
+    /// <summary>
+    /// The same handler, producing <paramref name="producedContentTypes"/>.
+    /// </summary>
+    /// <remarks>
+    /// How the rungs a handler cannot answer alone reach everything that reads it: an
+    /// <c>[assembly: Produces]</c> on the handler's own assembly, and the default a serializer
+    /// package registered. The generator resolves the operation and its class, because that is where
+    /// the syntax is; these two only exist once the container does.
+    ///
+    /// <para>
+    /// Returns the handler unchanged where the resolved set is the one it already carried, so a
+    /// handler that declared its own costs nothing.
+    /// </para>
+    /// </remarks>
+    public static IExecutionRequestHandlerInfo WithProducedContentTypes(
+        this IExecutionRequestHandlerInfo handlerInfo, IReadOnlyList<string> producedContentTypes) =>
+        ReferenceEquals(producedContentTypes, handlerInfo.ProducedContentTypes)
+            ? handlerInfo
+            : new ExecutionRequestHandlerInfo(
+                handlerInfo,
+                path: null,
+                requirement: null,
+                timeout: null,
+                producedContentTypes: producedContentTypes);
 }

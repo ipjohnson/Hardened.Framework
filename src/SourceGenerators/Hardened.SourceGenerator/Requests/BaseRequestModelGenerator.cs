@@ -761,22 +761,23 @@ public abstract class BaseRequestModelGenerator {
             returnType = TypeDefinition.Get(typeof(void));
         }
 
-        var rawResponse = "";
-        var varResponseAttribute = context.Node.GetAttribute("RawResponse");
-
-        if (varResponseAttribute != null) {
-            rawResponse =
-                varResponseAttribute.ArgumentList?.Arguments[0].ToString().Trim('"') ??
-                "text/plain";
-        }
+        var producedContentTypes = DeclaredContentTypes(context, methodDeclaration);
+        var writesRawBytes = WritesRawBytes(context, methodDeclaration);
 
         // Framing is named here and reported where a diagnostic can be - a syntax transform
         // cannot report one, so an attribute on a handler that streams nothing is carried forward
         // as a finding rather than rejected in place. The mismatch is decided here because this is
         // where the return type is known.
-        var framing = context.Node.GetAttribute("ServerSentEvents") != null
-            ? StreamFramingNames.ServerSentEvents
-            : null;
+        //
+        // Read off the declared media type rather than off [ServerSentEvents], which derives from
+        // [Produces] and declares exactly that type. The two spellings are one declaration, so
+        // [Produces("text/event-stream")] frames a stream as events without the second attribute.
+        var framing =
+            producedContentTypes != null &&
+            producedContentTypes.IndexOf(
+                Headers.EventStream, StringComparison.OrdinalIgnoreCase) >= 0
+                ? StreamFramingNames.ServerSentEvents
+                : null;
 
         var successStatus = DeclaredSuccessStatus(context);
 
@@ -797,11 +798,22 @@ public abstract class BaseRequestModelGenerator {
             AsyncEnumerableItemType = asyncEnumerableItemType,
             OutputType = output,
             ReturnType = returnType,
-            RawResponseContentType = rawResponse,
+            WritesRawBytes = writesRawBytes,
+
+            // Bytes with nothing to say what they are. An error: no default could be inferred and
+            // nothing downstream can supply one.
+            MissingContentTypeDiagnostic = writesRawBytes && producedContentTypes == null,
+
+            // A model declared as something no serializer here writes. A warning, because the host
+            // may register one - see ContentTypeDiagnostics.
+            UnproducibleContentTypeDiagnostic = UnproducibleContentTypes(
+                producedContentTypes, context, methodDeclaration, isAsyncEnumerable),
+            RawResponseContentType = CommittedContentType(
+                producedContentTypes, context, methodDeclaration, isAsyncEnumerable),
             // The type's status where it declares one, so a handler returning Created<T> publishes
             // 201 rather than the 200 nothing asked for.
             DefaultStatusCode = declaredCase.TypeName != null ? declaredCase.Status : successStatus,
-            ProducedContentTypes = DeclaredContentTypes(context),
+            ProducedContentTypes = producedContentTypes,
 
             // Structural, so this recognises Response<T1..Tn>, a generated response union and a
             // C# 15 union declaration through one check - and returns null for everything else,
@@ -848,34 +860,238 @@ public abstract class BaseRequestModelGenerator {
     }
 
     /// <summary>
-    /// <c>[SupportedContentTypes(...)]</c>, comma-joined, or null where the handler said nothing.
+    /// <c>[Produces(...)]</c>, comma-joined, or null where nothing in source said anything.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The hand-written half of a described operation's <c>content:</c> keys. Read from syntax
     /// rather than the semantic model, like everything else here.
+    /// </para>
+    /// <para>
+    /// <b>The operation beats its class, and nothing is combined.</b> Two declarations do not
+    /// compose into a third the way two authorization requirements do: the nearest one is the
+    /// answer. That is what lets a method on a <c>[Produces("text/csv")]</c> controller answer JSON
+    /// without the controller having to say so operation by operation. The assembly and the entry
+    /// point are the two rungs below these, and they are resolved as the pipeline is composed,
+    /// where an assembly's attributes can be read - see <c>ContentTypeResolver</c>.
+    /// </para>
+    /// <para>
+    /// <c>[RawResponse]</c> derives from <c>[Produces]</c> and is read here under its own name,
+    /// because this reads syntax and syntax does not know about a base class.
+    /// </para>
     /// </remarks>
-    private static string? DeclaredContentTypes(GeneratorSyntaxContext context) {
-        var attribute = context.Node.GetAttribute("SupportedContentTypes");
+    private static string? DeclaredContentTypes(
+        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
+        return DeclaredOn(methodDeclaration.AttributeLists) ??
+               DeclaredOn(methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>()
+                   .FirstOrDefault()?.AttributeLists);
+    }
 
-        if (attribute?.ArgumentList == null || attribute.ArgumentList.Arguments.Count == 0) {
+    private static string? DeclaredOn(SyntaxList<AttributeListSyntax>? attributeLists) {
+        if (attributeLists == null) {
             return null;
         }
 
-        var types = new List<string>();
+        foreach (var attributeList in attributeLists.Value) {
+            foreach (var attribute in attributeList.Attributes) {
+                var name = attribute.Name.ToString();
 
-        foreach (var argument in attribute.ArgumentList.Arguments) {
-            var literal = argument.Expression.ToString().Trim();
+                if (name is not ("Produces" or "ProducesAttribute" or
+                    "RawResponse" or "RawResponseAttribute" or
+                    "ServerSentEvents" or "ServerSentEventsAttribute")) {
+                    continue;
+                }
 
-            if (literal.Length > 1 && literal[0] == '"' && literal[literal.Length - 1] == '"') {
-                types.Add(literal.Substring(1, literal.Length - 2));
+                // The two aliases take no arguments and declare a fixed media type, which is the
+                // whole of what each of them is. Read from syntax, where a base class is invisible,
+                // so the literals are repeated here rather than derived.
+                if (name.StartsWith("ServerSentEvents")) {
+                    return Headers.EventStream;
+                }
+
+                // [RawResponse] with no argument is text/plain, which is the default its
+                // constructor states. Every other spelling names its types.
+                if (attribute.ArgumentList == null ||
+                    attribute.ArgumentList.Arguments.Count == 0) {
+                    return name.StartsWith("RawResponse") ? "text/plain" : null;
+                }
+
+                var types = new List<string>();
+
+                foreach (var argument in attribute.ArgumentList.Arguments) {
+                    var literal = argument.Expression.ToString().Trim();
+
+                    if (literal.Length > 1 && literal[0] == '"' && literal[literal.Length - 1] == '"') {
+                        types.Add(literal.Substring(1, literal.Length - 2));
+                    }
+                }
+
+                if (types.Count > 0) {
+                    return string.Join(",", types);
+                }
             }
         }
 
-        return types.Count == 0 ? null : string.Join(",", types);
+        return null;
+    }
+
+    /// <summary>
+    /// The content type to put on the response before the handler runs, or empty where nothing
+    /// should be.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only for a handler that writes its own bytes and declares exactly one media type. Committing
+    /// ahead of the handler is what makes a raw handler that throws answer under the type it
+    /// promised, and what lets a handler overwrite it to choose one per request.
+    /// </para>
+    /// <para>
+    /// <b>Not for a handler returning a model.</b> A committed content type takes the response out
+    /// of negotiation entirely, which is right for bytes and wrong for a model that a client may
+    /// legitimately ask for in another representation. This used to be read off
+    /// <c>[RawResponse]</c>, where the two could not be confused because the attribute only went on
+    /// raw handlers; <c>[Produces]</c> goes on both, so the return type is what separates them.
+    /// </para>
+    /// </remarks>
+    private static string CommittedContentType(
+        string? producedContentTypes,
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        bool isAsyncEnumerable) {
+        if (producedContentTypes == null ||
+            producedContentTypes.IndexOf(',') >= 0 ||
+            isAsyncEnumerable ||
+            !ReturnsBytesOrText(context, methodDeclaration)) {
+            return "";
+        }
+
+        return producedContentTypes;
+    }
+
+    /// <summary>
+    /// Whether the handler's return value is already what goes on the wire, so no serializer can
+    /// structure it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>byte[]</c> and <c>Stream</c>, unwrapped from a <c>Task</c> or <c>ValueTask</c>. Returning
+    /// either is the handler saying it controls its own serialization, so the pass-through writer is
+    /// bound when the pipeline is composed and the response never reaches a serializer whatever it
+    /// declares. Stage 4 reads this; the build diagnostic that requires a declaration on these
+    /// handlers reads it too.
+    /// </para>
+    /// <para>
+    /// <b>A <c>string</c> is not one of them.</b> It has a JSON reading as well, a quoted string,
+    /// and that is what a handler declaring nothing answers with. It takes the pass-through writer
+    /// by declaring a media type instead - see <see cref="ReturnsBytesOrText"/>.
+    /// </para>
+    /// <para>
+    /// Read through the semantic model rather than the type name, so a <c>Stream</c> subclass is one
+    /// however it is named and a model called <c>EventStream</c> is not.
+    /// </para>
+    /// </remarks>
+    private static bool WritesRawBytes(
+        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
+        var returnType = UnwrappedReturnType(context, methodDeclaration);
+
+        if (returnType is IArrayTypeSymbol array) {
+            return array.ElementType.SpecialType == SpecialType.System_Byte;
+        }
+
+        for (var current = returnType; current != null; current = current.BaseType) {
+            if (current.Name == "Stream" && current.ContainingNamespace?.ToDisplayString() == "System.IO") {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// <see cref="WritesRawBytes"/> and <c>string</c>, which is the set a content type is committed
+    /// ahead of the handler for.
+    /// </summary>
+    /// <remarks>
+    /// Exactly the return types <c>[RawResponse]</c> could be written on, which is what keeps the
+    /// committed-content-type behaviour identical for every handler that carried it. A handler
+    /// returning a model never commits: committing takes the response out of negotiation, which is
+    /// right for bytes and wrong for a model a client may legitimately ask for another way.
+    /// </remarks>
+    private static bool ReturnsBytesOrText(
+        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
+        return WritesRawBytes(context, methodDeclaration) ||
+               UnwrappedReturnType(context, methodDeclaration)?.SpecialType == SpecialType.System_String;
+    }
+
+    /// <summary>
+    /// The declared media types that nothing visible here can write, comma-joined, or null.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Decidable at build for exactly two reasons. A handler returning <c>string</c>,
+    /// <c>byte[]</c> or <c>Stream</c> writes its own bytes, so every media type it declares is
+    /// producible whatever is registered. And <c>application/json</c> is always producible, because
+    /// the framework registers a serializer for it and an application replacing that one replaces it
+    /// with another that declares the same media type.
+    /// </para>
+    /// <para>
+    /// Everything else is a model declared as something this compilation has no writer for. It may
+    /// still be right - the host registers the serializer - which is why it is a warning rather
+    /// than an error.
+    /// </para>
+    /// <para>
+    /// A streamed handler is skipped: its media types are the framing's, and the streaming writer
+    /// produces both of them.
+    /// </para>
+    /// </remarks>
+    private static string? UnproducibleContentTypes(
+        string? producedContentTypes,
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        bool isAsyncEnumerable) {
+        if (producedContentTypes == null ||
+            isAsyncEnumerable ||
+            ReturnsBytesOrText(context, methodDeclaration)) {
+            return null;
+        }
+
+        var unproducible = new List<string>();
+
+        foreach (var contentType in producedContentTypes.Split(',')) {
+            var trimmed = contentType.Trim();
+
+            if (trimmed.Length > 0 &&
+                !trimmed.Equals("application/json", StringComparison.OrdinalIgnoreCase)) {
+                unproducible.Add(trimmed);
+            }
+        }
+
+        return unproducible.Count == 0 ? null : string.Join(",", unproducible);
+    }
+
+    private static ITypeSymbol? UnwrappedReturnType(
+        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
+        var returnType = context.SemanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type;
+
+        if (returnType is INamedTypeSymbol { IsGenericType: true } generic &&
+            generic.Name is "Task" or "ValueTask" &&
+            generic.TypeArguments.Length == 1) {
+            return generic.TypeArguments[0];
+        }
+
+        return returnType;
     }
 
     private static readonly string[] RoutingVerbs =
         new[] { "Get", "Post", "Put", "Patch", "Delete" };
+
+    /// <summary>
+    /// Media type literals the transform compares against, spelled here because a generator cannot
+    /// reference the runtime assembly that declares them.
+    /// </summary>
+    private static class Headers {
+        public const string EventStream = "text/event-stream";
+    }
 
     protected virtual IReadOnlyList<AttributeModel> GetFilters(
         GeneratorSyntaxContext context,

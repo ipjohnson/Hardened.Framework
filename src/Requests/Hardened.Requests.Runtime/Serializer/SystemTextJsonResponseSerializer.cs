@@ -23,8 +23,9 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// serializer". Nothing about that is specific to the raw serializer; the next serializer added
 /// would have done the same.
 ///
-/// AOT precedence is now stated as an order instead - see <c>AotResponseSerializer.Order</c> - which
-/// does not depend on registration timing or on how two class names happen to sort.
+/// Both declare <c>application/json</c> now, and the registry keeps the last registration under a
+/// tag - see <c>AotResponseSerializer.ContentType</c>. That is registration timing again, but it is
+/// module import order rather than how two class names happen to sort, and it is pinned by a test.
 ///
 /// Annotated rather than fixed, because reflection is what this type is. It reads a model's shape
 /// at run time, which is what an application wants until it publishes trimmed or AOT — at which
@@ -64,8 +65,7 @@ public class SystemTextJsonResponseSerializer : IResponseSerializer {
 
     public bool IsDefaultSerializer => true;
 
-    public bool CanProduce(string mediaType, IExecutionContext context) =>
-        MediaType.Matches(mediaType, KnownContentType.Json);
+    public string ContentType => KnownContentType.Json;
 
     public async Task SerializeResponse(IExecutionContext context) {
         context.Response.ContentType = "application/json";

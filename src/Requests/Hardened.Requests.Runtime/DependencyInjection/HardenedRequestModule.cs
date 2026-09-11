@@ -26,6 +26,20 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         RegisterReflectionSerializers(services);
 
+        // Under its own type as well as the interface, and one instance for both. IOFilterProvider
+        // binds it to a handler that returns byte[] or Stream, which is a decision about the return
+        // type rather than about a media type - so it has to name the writer rather than look one
+        // up by tag, where an application could have registered something else under text/plain.
+        services.TryAddSingleton<RawResponseSerializer>();
+        services.AddSingleton<IResponseSerializer>(
+            provider => provider.GetRequiredService<RawResponseSerializer>());
+
+        // The same treatment, and for the same reason: a streamed handler is bound to this writer
+        // from its return type rather than by looking up the media type its framing committed.
+        services.TryAddSingleton<StreamingJsonResponseSerializer>();
+        services.AddSingleton<IResponseSerializer>(
+            provider => provider.GetRequiredService<StreamingJsonResponseSerializer>());
+
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(new IConfigurationValueProvider[] {
                 new NewConfigurationValueProvider<IResponseHeaderConfiguration, ResponseHeaderConfiguration>(null),

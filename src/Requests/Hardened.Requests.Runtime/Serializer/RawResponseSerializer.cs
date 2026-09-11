@@ -1,5 +1,4 @@
 using System.Text;
-using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 
@@ -19,15 +18,19 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// serializer it takes its turn like everything else, and both copies are gone.
 /// </para>
 /// <para>
-/// It answers two different questions depending on whether the response has already committed to a
-/// content type. Committed - <c>[RawResponse]</c>, or a handler that set one - it writes any of the
-/// three shapes as whatever was asked for, because the point of saying "this is a PDF" is that the
-/// bytes go out unchanged. Uncommitted, it volunteers only a string, and only for
-/// <c>text/plain</c>: a string is the one value with an obvious text reading, while a
-/// <c>byte[]</c> has no media type anyone could guess at.
+/// <b>It never volunteers.</b> The response has to have committed to a content type - through
+/// <c>[Produces]</c>, or a handler that set one - before this writes anything. It then writes any of
+/// the three shapes as whatever was asked for, because the point of saying "this is a PDF" is that
+/// the bytes go out unchanged.
+/// </para>
+/// <para>
+/// It used to volunteer a bare <c>string</c> as <c>text/plain</c> for a client that asked for it,
+/// sitting behind JSON so that a client expressing no preference still got JSON. That is what an
+/// operation declaring nothing now means outright: nothing declared is the service default, and the
+/// service default is JSON. A handler that wants text says <c>[Produces("text/plain")]</c>, which is
+/// also what takes it off the negotiated path entirely.
 /// </para>
 /// </remarks>
-[SingletonService(Using = RegistrationType.Add)]
 public class RawResponseSerializer : IResponseSerializer {
     /// <summary>What a bare string is, absent any other instruction.</summary>
     public const string DefaultContentType = "text/plain";
@@ -41,28 +44,44 @@ public class RawResponseSerializer : IResponseSerializer {
     public bool IsDefaultSerializer => false;
 
     /// <summary>
-    /// Behind JSON, so this answers only a client that asked for text and never one that expressed
-    /// no preference.
+    /// What an operation declaring nothing but a raw return type produces, and the tag this
+    /// registers under.
     /// </summary>
     /// <remarks>
-    /// Ordering matters in exactly one case - <c>*/*</c> or no <c>Accept</c> header, where both this
-    /// and JSON qualify for a string. Ahead of JSON, every handler returning a bare string would
-    /// start answering <c>text/plain</c> instead of a quoted JSON string. ASP.NET Core works that
-    /// way, and it was the first thing tried here, but it is not what this framework already does:
-    /// sixteen of the thirty-four tests in the hand-written web fixture changed, none of them about
-    /// content types - they are routing, verb and parameter-binding tests whose controllers happen
-    /// to return strings.
-    ///
-    /// Behind JSON, nothing about an indifferent client changes and a client that does ask for
-    /// text/plain still gets it, which is all TechEmpower's plaintext test needs. A handler that
-    /// wants text regardless says so with [RawResponse].
+    /// It writes any committed type, so the tag understates it. That is deliberate: a serializer is
+    /// located by tag for a declared type, and <c>text/plain</c> is the one type this can be asked
+    /// for by name. Every other type reaches it through the response value's shape - see
+    /// <see cref="CanProduce"/> - which is what <c>[Produces("application/pdf")]</c> on a method
+    /// returning <c>byte[]</c> resolves to.
     /// </remarks>
-    public int Order => (int)ResponseSerializerOrder.Deferred;
+    public string ContentType => DefaultContentType;
 
+    /// <summary>
+    /// Only for a response whose content type is already decided, and only when the value is already
+    /// bytes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Decided rather than requested, which is the question this answers.</b>
+    /// <see cref="MediaType.Matches"/> is true for <c>*/*</c> and for an absent <c>Accept</c>, so
+    /// asking it about <c>text/plain</c> alone would claim every indifferent request that returned a
+    /// string. That is what this did when it was ordered behind JSON to suppress exactly that.
+    /// </para>
+    /// <para>
+    /// Two things decide it, and they are the same statement made at different times. A committed
+    /// <c>Response.ContentType</c> is a handler, or the streaming filter, saying what this
+    /// particular response is. A declared <c>ProducedContentTypes</c> is the operation saying what
+    /// every response is, and it is not on the response yet because the locator writes it once it
+    /// knows something can produce it.
+    /// </para>
+    /// <para>
+    /// An operation that declares neither gets nothing from this serializer. That is what makes a
+    /// bare <c>string</c> answer JSON: nothing declared is the service default, and the service
+    /// default is JSON.
+    /// </para>
+    /// </remarks>
     public bool CanProduce(string mediaType, IExecutionContext context) {
-        var value = context.Response.ResponseValue;
-
-        if (value is not (string or byte[] or Stream)) {
+        if (context.Response.ResponseValue is not (string or byte[] or Stream)) {
             return false;
         }
 
@@ -72,17 +91,34 @@ public class RawResponseSerializer : IResponseSerializer {
             return MediaType.Matches(mediaType, committed);
         }
 
-        return value is string && MediaType.Matches(mediaType, DefaultContentType);
+        var declared = context.HandlerInfo?.ProducedContentTypes;
+
+        if (declared == null) {
+            return false;
+        }
+
+        for (var i = 0; i < declared.Count; i++) {
+            if (MediaType.Matches(mediaType, declared[i])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public async Task SerializeResponse(IExecutionContext context) {
+        var value = context.Response.ResponseValue;
+
         // Only when nothing has been committed. Checked for empty as well as null because the
         // ASP.NET Core host coerces a null assignment to "".
+        //
+        // Bytes are not text, so they do not fall back to text/plain. Reaching here at all means an
+        // operation returning byte[] or Stream declared no content type, which the build refuses -
+        // see HRDR001 - so this is what a handler assembled by hand answers with.
         if (string.IsNullOrEmpty(context.Response.ContentType)) {
-            context.Response.ContentType = DefaultContentType;
+            context.Response.ContentType =
+                value is string ? DefaultContentType : "application/octet-stream";
         }
-
-        var value = context.Response.ResponseValue;
 
         switch (value) {
             case string text:

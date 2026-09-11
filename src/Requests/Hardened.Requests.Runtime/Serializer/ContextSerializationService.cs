@@ -29,9 +29,13 @@ public class ContextSerializationService : IContextSerializationService {
         return _serializationLocatorService.FindRequestDeserializer(context).DeserializeRequestBody<T>(context);
     }
 
-    public Task SerializeResponse(IExecutionContext context) {
+    public Task SerializeResponse(IExecutionContext context) =>
+        SerializeResponse(context, null, null);
+
+    public Task SerializeResponse(
+        IExecutionContext context, IResponseSerializer? bound, string? declaredContentType) {
         try {
-            return SerializeAcceptedResponse(context);
+            return SerializeAcceptedResponse(context, bound, declaredContentType);
         }
         catch (NotAcceptableException notAcceptable) {
             // Thrown while locating the serializer, which is synchronous, so it is caught here
@@ -59,7 +63,8 @@ public class ContextSerializationService : IContextSerializationService {
         return _serializationLocatorService.FindResponseSerializer(context).SerializeResponse(context);
     }
 
-    private Task SerializeAcceptedResponse(IExecutionContext context) {
+    private Task SerializeAcceptedResponse(
+        IExecutionContext context, IResponseSerializer? bound, string? declaredContentType) {
         if (context.DefaultOutput != null) {
             return context.DefaultOutput(context);
         }
@@ -67,6 +72,10 @@ public class ContextSerializationService : IContextSerializationService {
         // Before the output, deliberately. A handler that threw has no model to render, and handing
         // an exception to a view typed for something else would replace a legible error response
         // with a cast failure inside the render.
+        // A failure negotiates on its own, whatever this handler was bound to. An error model is
+        // rarely writable as the operation's success representation - a handler returning bytes
+        // under image/png has nothing that writes an error as a PNG - and the answer is a JSON
+        // document under the refusal's status. See ExceptionResponseSerializer.
         if (context.Response.ExceptionValue != null) {
             return _exceptionResponseSerializer.Handle(context, context.Response.ExceptionValue);
         }
@@ -103,7 +112,44 @@ public class ContextSerializationService : IContextSerializationService {
             return Task.CompletedTask;
         }
 
-        return _serializationLocatorService.FindResponseSerializer(context).SerializeResponse(context);
+        // Bound when the handler's pipeline was composed, which is every operation that declares one
+        // media type or declares none. Only an operation genuinely offering a choice reaches the
+        // locator, and only then does a request cost an Accept walk.
+        var serializer = Honours(bound, declaredContentType, context)
+            ? bound!
+            : _serializationLocatorService.FindResponseSerializer(context);
+
+        return serializer.SerializeResponse(context);
+    }
+
+    /// <summary>
+    /// Whether the binding still describes this response.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// One comparison, and only where something was assigned. A handler can set
+    /// <c>Response.ContentType</c> to pick a content type per request, which is the one decision the
+    /// build cannot make for it, and a binding resolved for the declared type has to stand down when
+    /// it does. A raw handler's declared type is on the response before it runs, so the common case
+    /// compares equal rather than falling through.
+    /// </para>
+    /// <para>
+    /// A handler that declared nothing is bound to the default serializer and carries its media type
+    /// here, so assigning any other content type sends it to the locator - which is what makes
+    /// <c>Response.ContentType = "text/csv"</c> work from a handler that never declared anything.
+    /// </para>
+    /// </remarks>
+    private static bool Honours(
+        IResponseSerializer? bound, string? declaredContentType, IExecutionContext context) {
+        if (bound == null) {
+            return false;
+        }
+
+        var committed = context.Response.ContentType;
+
+        return string.IsNullOrEmpty(committed) ||
+               declaredContentType == null ||
+               MediaType.Matches(committed, declaredContentType);
     }
 
     /// <summary>

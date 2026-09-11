@@ -54,17 +54,15 @@ public static partial class ExecutionHelper {
         IEnumerable<IRequestFilterProvider> filterProviders) {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-        var ioFilter = ioFilterProvider.ProvideFilter(
-            handlerInfo,
-            _emptyDeserializeRequest
-        );
+        IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
+            ioFilterProvider.ProvideFilter(resolved, _emptyDeserializeRequest);
 
         var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
 
         var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
         
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -82,17 +80,15 @@ public static partial class ExecutionHelper {
         IEnumerable<IRequestFilterProvider> filterProviders) where TController : class {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-        var ioFilter = ioFilterProvider.ProvideFilter(
-            handlerInfo,
-            deserializeRequestFunc
-        );
+        IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
+            ioFilterProvider.ProvideFilter(resolved, deserializeRequestFunc);
 
         var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
 
         var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
         
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -109,17 +105,15 @@ public static partial class ExecutionHelper {
         IEnumerable<IRequestFilterProvider> filterProviders) where TController : class {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-        var ioFilter = ioFilterProvider.ProvideFilter(
-            handlerInfo,
-            _emptyDeserializeRequest
-        );
+        IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
+            ioFilterProvider.ProvideFilter(resolved, _emptyDeserializeRequest);
 
         var invokeFilter = new AsyncInvokeNoParametersFilter<TController>(invokeMethod);
         
         var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
 
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -139,17 +133,15 @@ AsyncStandardFilterWithParameters<TController, TParameter>(
             IEnumerable<IRequestFilterProvider> filterProviders) where TController : class where TParameter : class {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-        var ioFilter = ioFilterProvider.ProvideFilter(
-            handlerInfo,
-            deserializeRequestFunc
-        );
+        IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
+            ioFilterProvider.ProvideFilter(resolved, deserializeRequestFunc);
 
         var invokeFilter = new AsyncInvokeWithParametersFilter<TController, TParameter>(invokeMethod);
         
         var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
         
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -166,18 +158,15 @@ AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(
             IStreamFraming? framing = null) where TController : class {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-        var ioFilter = ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(
-            handlerInfo,
-            deserializeRequestFunc,
-            framing
-        );
+        IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
+            ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(resolved, deserializeRequestFunc, framing);
 
         var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
 
         var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
 
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -193,18 +182,15 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
             IStreamFraming? framing = null) {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
-        var ioFilter = ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(
-            handlerInfo,
-            _emptyDeserializeRequest,
-            framing
-        );
+        IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
+            ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(resolved, _emptyDeserializeRequest, framing);
 
         var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
 
         var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
 
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, ioFilter, invokeFilter, instanceFilter);
+        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
     }
 
     #endregion
@@ -228,7 +214,7 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
         IServiceProvider serviceProvider,
         IExecutionRequestHandlerInfo handlerInfo,
         IEnumerable<IRequestFilterProvider> filterProviders,
-        IExecutionFilter ioFilter,
+        Func<IExecutionRequestHandlerInfo, IExecutionFilter> ioFilterFactory,
         IExecutionFilter invokeFilter,
         IExecutionFilter instanceFilter) {
         // First, because everything below reads the handler: a convention reads its requirement,
@@ -239,6 +225,13 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
         handlerInfo = handlerInfo.WithWiderRungs(wider);
         handlerInfo = ApplyConventions(serviceProvider, handlerInfo);
         handlerInfo = handlerInfo.WithTimeout(TimeoutResolver.Resolve(serviceProvider, handlerInfo));
+        handlerInfo = handlerInfo.WithProducedContentTypes(
+            ContentTypeResolver.Resolve(serviceProvider, handlerInfo));
+
+        // Built here rather than by the caller, because it binds the serializer for whatever this
+        // handler ends up declaring - and the two rungs below the operation, its assembly and the
+        // application's registered default, are only resolved on the line above.
+        var ioFilter = ioFilterFactory(handlerInfo);
 
         var filterList =
             serviceProvider.GetRequiredService<IGlobalFilterRegistry>().GetFilters(handlerInfo);

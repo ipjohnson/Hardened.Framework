@@ -15,21 +15,23 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// It was not, until 2026-08-18. Neither Newtonsoft type stated an order, so
-/// <see cref="NewtonsoftSerializer"/> sat at <see cref="ResponseSerializerOrder.Normal"/> — exactly
-/// where <c>SystemTextJsonResponseSerializer</c> sits — and both return
-/// <c>IsDefaultSerializer</c>. Which one wrote a JSON response came down to which module registered
-/// last, and <c>SystemTextJsonResponseSerializer</c>'s own remarks say at length that registration
-/// order here is not something an application can steer. Displacing the built-in JSON serializer is
-/// the entire purpose of this package.
+/// It was not, until 2026-08-18. Neither Newtonsoft type stated an order, so both it and
+/// <c>SystemTextJsonResponseSerializer</c> claimed <c>application/json</c> and returned
+/// <c>IsDefaultSerializer</c>, and which one wrote a response came down to which module registered
+/// last. Displacing the built-in JSON serializer is the entire purpose of this package.
 /// </para>
 /// <para>
-/// The read half was worse: <see cref="IRequestDeserializer"/> had no <c>Order</c> at all, so
-/// nothing could be stated. It has one now.
+/// <b>The two halves no longer answer the same way, and that is deliberate.</b> A response
+/// serializer declares the media type it writes, and the last registration under a media type is
+/// the one that answers - so the response half is registration order again, stated as a rule rather
+/// than left to how two class names sort. A deserializer is chosen by a predicate over the whole
+/// request rather than by a tag, so there is nothing to key a registry on and it keeps its
+/// <see cref="IRequestDeserializer.Order"/>.
 /// </para>
 /// <para>
-/// <b>Both registration orders are tested.</b> One order alone proves nothing here — the whole
-/// defect was that the answer depended on it.
+/// What makes importing the package enough is that a module the application imports is applied
+/// after the framework module it depends on. <c>SerializerRegistrationOrderTests</c> pins that
+/// against a real container, because it is now the whole of response-side precedence.
 /// </para>
 /// </remarks>
 public class SerializerPrecedenceTests {
@@ -68,14 +70,20 @@ public class SerializerPrecedenceTests {
     }
 
     /// <summary>
-    /// The order that used to lose. Reverse-registration put System.Text.Json first, and nothing
-    /// outranked it.
+    /// Registered ahead of System.Text.Json, it loses - the last registration under a media type is
+    /// the one that answers.
     /// </summary>
+    /// <remarks>
+    /// The rule read the other way, and the reason this test states the losing case rather than
+    /// asserting symmetry: the two are interchangeable by registration order on purpose now. What
+    /// makes the package win in an application is that its module is applied after
+    /// <c>HardenedRequestModule</c>, not anything either class declares.
+    /// </remarks>
     [Fact]
-    public void NewtonsoftWritesTheResponseWhenItRegisteredFirst() {
+    public void SystemTextJsonWritesTheResponseWhenNewtonsoftRegisteredFirst() {
         var locator = Locator([], [Newtonsoft(), SystemTextJson()]);
 
-        Assert.IsType<NewtonsoftSerializer>(
+        Assert.IsType<SystemTextJsonResponseSerializer>(
             locator.FindResponseSerializer(Pipeline.Context()));
     }
 
@@ -140,23 +148,42 @@ public class SerializerPrecedenceTests {
             locator.FindResponseSerializer(Pipeline.Context()));
     }
 
-    #region behind the AOT serializers
+    #region the AOT serializers
 
     /// <summary>
-    /// An application importing <c>[AotSerializerModule]</c> keeps the source-generated serializers.
+    /// An application importing <c>[AotSerializerModule]</c> as well as this package gets whichever
+    /// it named last, on the response side.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The combination is contradictory — this package is reflection-based and the AOT module exists
-    /// because reflection is not there — but if anything resolves it, the generated one has to be
-    /// the answer. That is why Newtonsoft sits one step behind <c>Specialized</c> rather than at it.
+    /// because reflection is not there — and the rule resolves it the way the author wrote it. The
+    /// previous <c>Order</c> resolved it in the AOT serializer's favour whichever way round the two
+    /// were imported, which is a stronger guarantee than the tag rule can make and the one thing
+    /// removing <c>Order</c> gave up.
+    /// </para>
+    /// <para>
+    /// Both orders are asserted, because the point is that the answer follows registration.
+    /// </para>
     /// </remarks>
     [Fact]
-    public void TheAotResponseSerializerStillOutranksNewtonsoft() {
-        Assert.True(
-            new AotResponseSerializer(JsonConfiguration(), []).Order < Newtonsoft().Order,
-            "the AOT response serializer must stay ahead of Newtonsoft");
+    public void TheAotResponseSerializerAnswersWhenItRegisteredLast() {
+        var locator = Locator([], [Newtonsoft(), new AotResponseSerializer(JsonConfiguration(), [])]);
+
+        Assert.IsType<AotResponseSerializer>(locator.FindResponseSerializer(Pipeline.Context()));
     }
 
+    [Fact]
+    public void NewtonsoftAnswersWhenItRegisteredAfterTheAotSerializer() {
+        var locator = Locator([], [new AotResponseSerializer(JsonConfiguration(), []), Newtonsoft()]);
+
+        Assert.IsType<NewtonsoftSerializer>(locator.FindResponseSerializer(Pipeline.Context()));
+    }
+
+    /// <summary>
+    /// The request half keeps its order, so the AOT deserializer still outranks this one however the
+    /// two are registered.
+    /// </summary>
     [Fact]
     public void TheAotRequestDeserializerStillOutranksNewtonsoft() {
         var aot = new AotRequestDeserializer(
@@ -170,16 +197,21 @@ public class SerializerPrecedenceTests {
     #endregion
 
     /// <summary>
-    /// Newtonsoft outranks the built-in pair without being ahead of a serializer that claims one
-    /// specific media type.
+    /// It claims the media type it means to displace, which is what puts it in the same contest as
+    /// the built-in pair in the first place.
     /// </summary>
     [Fact]
-    public void NewtonsoftSitsBetweenSpecializedAndNormal() {
-        Assert.InRange(
-            Newtonsoft().Order,
-            (int)ResponseSerializerOrder.Specialized + 1,
-            (int)ResponseSerializerOrder.Normal - 1);
+    public void NewtonsoftClaimsApplicationJson() {
+        Assert.Equal("application/json", Newtonsoft().ContentType);
+        Assert.Equal(SystemTextJson().ContentType, Newtonsoft().ContentType);
+    }
 
+    /// <summary>
+    /// The read half sits between the two named values, so it outranks the built-in pair without
+    /// being ahead of a deserializer that claims one specific content type.
+    /// </summary>
+    [Fact]
+    public void TheNewtonsoftReaderSitsBetweenSpecializedAndNormal() {
         Assert.InRange(
             NewtonsoftReader().Order,
             (int)RequestDeserializerOrder.Specialized + 1,

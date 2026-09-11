@@ -19,30 +19,25 @@ public class NewtonsoftSerializer : IResponseSerializer {
     public bool IsDefaultSerializer => true;
 
     /// <summary>
-    /// Ahead of <c>SystemTextJsonResponseSerializer</c>, and behind the AOT serializers.
+    /// The same tag the built-in JSON serializers declare. Displacing them is the entire purpose of
+    /// this package, and it does that by registering after them.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Displacing the built-in JSON serializer is the entire purpose of this package, and until
-    /// 2026-08-18 it did not state a precedence at all. It sat at
-    /// <see cref="ResponseSerializerOrder.Normal"/> — exactly where
-    /// <c>SystemTextJsonResponseSerializer</c> sits — and both return
-    /// <see cref="IsDefaultSerializer"/>, so which one wrote a JSON response came down to which
-    /// module registered last. Installing the package was not enough to be sure it was used.
+    /// The registry keeps the last registration under a content type. This module is imported by
+    /// the application and <c>HardenedRequestModule</c> is a dependency, so importing the package is
+    /// what makes it the JSON serializer.
     /// </para>
     /// <para>
-    /// <b>Behind <see cref="ResponseSerializerOrder.Specialized"/> rather than at it</b>, so
-    /// <c>AotResponseSerializer</c> still wins in an application that imports
-    /// <c>[AotSerializerModule]</c>. That combination is contradictory — this serializer is
-    /// reflection-based and the AOT module exists because reflection is not there — and if anything
-    /// resolves it, the source-generated one is the answer. Slotting between two named values is
-    /// what the enum's spacing is for.
+    /// <b>An application importing this and <c>[AotSerializerModule]</c> gets whichever it named
+    /// last.</b> The combination is contradictory in the first place - this serializer is
+    /// reflection-based and the AOT module exists because reflection is not there - and the rule
+    /// resolves it the way the author wrote it rather than by a precedence they cannot see. The
+    /// previous <c>Order</c> always resolved it in the AOT serializer's favour, whichever order the
+    /// two were imported in.
     /// </para>
     /// </remarks>
-    public int Order => (int)ResponseSerializerOrder.Specialized + 1;
-
-    public bool CanProduce(string mediaType, IExecutionContext context) =>
-        MediaType.Matches(mediaType, KnownContentType.Json);
+    public string ContentType => KnownContentType.Json;
 
     public async Task SerializeResponse(IExecutionContext context) {
         using var outputBuffer = _memoryStreamPool.Get();

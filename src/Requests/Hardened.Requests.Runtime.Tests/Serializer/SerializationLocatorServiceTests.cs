@@ -16,14 +16,13 @@ public class SerializationLocatorServiceTests {
     /// <summary>
     /// A serializer that emits <paramref name="produces"/>, or nothing at all when it is null.
     /// </summary>
-    private static IResponseSerializer Response(
-        bool isDefault, string? produces = null, int order = 0) {
+    private static IResponseSerializer Response(bool isDefault, string? produces = null) {
         var serializer = Substitute.For<IResponseSerializer>();
 
+        serializer.ContentType.Returns(produces ?? "");
         serializer.CanProduce(Arg.Any<string>(), Arg.Any<IExecutionContext>())
             .Returns(call => produces != null && MediaType.Matches((string)call[0], produces));
         serializer.IsDefaultSerializer.Returns(isDefault);
-        serializer.Order.Returns(order);
 
         return serializer;
     }
@@ -69,13 +68,13 @@ public class SerializationLocatorServiceTests {
     /// benchmark routes.
     /// </para>
     /// <para>
-    /// The accept list is the outer loop, so <c>application/json</c> is asked about before
-    /// <c>text/html</c> is, and the html serializer's order never comes into it.
+    /// The accept header is the outer loop, so <c>application/json</c> is asked about before
+    /// <c>text/html</c> is, and where the html serializer was registered never comes into it.
     /// </para>
     /// </remarks>
     [Fact]
-    public void TheClientsFirstPreferenceWinsOverServerOrder() {
-        var html = Response(isDefault: false, produces: "text/html", order: -1000);
+    public void TheClientsFirstPreferenceWinsOverRegistrationOrder() {
+        var html = Response(isDefault: false, produces: "text/html");
         var json = Response(isDefault: true, produces: "application/json");
 
         var chosen = Locator(serializers: new[] { html, json })
@@ -88,7 +87,7 @@ public class SerializationLocatorServiceTests {
     /// <summary>And the same two serializers resolve the other way for a browser.</summary>
     [Fact]
     public void AClientPreferringHtmlGetsTheHtmlSerializer() {
-        var html = Response(isDefault: false, produces: "text/html", order: -1000);
+        var html = Response(isDefault: false, produces: "text/html");
         var json = Response(isDefault: true, produces: "application/json");
 
         var chosen = Locator(serializers: new[] { html, json })
@@ -99,19 +98,25 @@ public class SerializationLocatorServiceTests {
     }
 
     /// <summary>
-    /// Order decides among serializers that satisfy the same preference - which is the whole of what
-    /// it decides. A client sending <c>*/*</c> has expressed no preference, so the server's ranking
-    /// is the only thing left to go on.
+    /// The last registration decides among serializers that satisfy the same preference, which is
+    /// the whole of what registration order decides. A client sending <c>*/*</c> has expressed no
+    /// preference, so there is nothing else to go on.
     /// </summary>
+    /// <remarks>
+    /// This used to be <c>Order</c>. It was there because reverse-registration order within a module
+    /// is decided by how implementation type names sort, so an application could not steer it. An
+    /// application's own registration still beats the framework's, which is the case that mattered,
+    /// and an operation that declares what it produces never reaches this loop at all.
+    /// </remarks>
     [Fact]
-    public void ServerOrderDecidesWithinOneAcceptPosition() {
-        var normal = Response(isDefault: true, produces: "application/json");
-        var ahead = Response(isDefault: false, produces: "text/html", order: -1000);
+    public void TheLastRegistrationDecidesWithinOneAcceptPosition() {
+        var first = Response(isDefault: true, produces: "application/json");
+        var last = Response(isDefault: false, produces: "text/html");
 
-        var chosen = Locator(serializers: new[] { normal, ahead })
+        var chosen = Locator(serializers: new[] { first, last })
             .FindResponseSerializer(Pipeline.Context(accept: "*/*"));
 
-        Assert.Same(ahead, chosen);
+        Assert.Same(last, chosen);
     }
 
     /// <summary>

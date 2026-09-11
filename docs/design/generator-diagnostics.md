@@ -60,7 +60,7 @@ A `[Handler]` class or one of its methods carries a declaration the described pa
 it compiles, reads as a commitment, and changes nothing.
 
 ```
-'ReportServiceImpl.Export' carries [RawResponse], which is read from a handler's own syntax and a
+'ReportServiceImpl.Export' carries [Produces], which is read from a handler's own syntax and a
 described operation's signature is generated - so it compiles, reads as a commitment, and changes
 nothing. Remove it: the content type a described response commits to comes from the contract's
 media type.
@@ -70,7 +70,7 @@ Four today, on the two rungs a handler has:
 
 | Declaration | Where | The contract says it with |
 |---|---|---|
-| `[RawResponse]` | method | the response's media type |
+| `[Produces]` | method | the response's media type |
 | `[Throws<T>]` | method | the operation's `responses` |
 | `[Tag]` | class | the operation's `tags` |
 | `[Server]` | class | a `servers` block |
@@ -238,6 +238,52 @@ HRDR005 reports the parameter a route token displaced and HRDR007 the one that i
 is the remainder. A warning rather than an error, because a `GET` carrying a body is a thing some
 APIs deliberately do, and `<NoWarn>HRDR010</NoWarn>` is how they say so. `DELETE` is not treated
 as bodyless, for the reason HRDR005 gives.
+
+### HRDR011 — handler returns bytes and declares no content type
+
+A handler returning `byte[]` or `Stream` with no `[Produces]`.
+
+```
+'ReportController.Report' returns byte[] or Stream and carries no [Produces], so nothing says what
+the bytes are. Returning either means the handler writes its own response, and no serializer is
+consulted - declare the media type with [Produces("application/pdf")] or return a model.
+```
+
+Returning either shape is the handler saying it controls its own serialization: the pass-through
+writer is bound when the pipeline is composed and the response never reaches a serializer. Nothing
+downstream can supply a media type for bytes, and nothing could infer one, so an operation that
+declares none has no answer at all.
+
+An error rather than a warning, and the difference from HRDR012 is what the build can know. This
+fault is entirely inside the code that wrote it: no registration anywhere makes it correct. A
+`string` is not one of these shapes — it has a JSON reading, which is what a handler declaring
+nothing answers with.
+
+### HRDR012 — nothing in this compilation produces a declared content type
+
+An operation declaring a media type, returning a model, where nothing visible writes a model as
+that media type.
+
+```
+'ReportController.Report' declares [Produces("text/csv")] and returns a model, and nothing here
+writes a model as that media type. Register an IResponseSerializer declaring it, or return string,
+byte[] or Stream and write the bytes yourself. A host that registers one makes this correct, which
+is why it is a warning.
+```
+
+**A warning, deliberately.** A library declaring `text/csv` has no way to know whether its host will
+register a CSV serializer, and a library that cannot compile without its host is not a library. The
+entry point is the only place the full registration set exists, and that is where strictness could
+be raised later if it earns it. `ContentTypeNotProducibleException` still answers the case that
+reaches run time.
+
+Two things are always producible and are never reported. A handler returning `string`, `byte[]` or
+`Stream` writes its own bytes, so every media type it declares is producible whatever is registered.
+And `application/json` is, because the framework registers a serializer for it and an application
+replacing that one replaces it with another declaring the same media type.
+
+A streamed handler is skipped: its media types are its framing's, and the streaming writer produces
+both of them.
 
 ## Validation
 
@@ -730,9 +776,10 @@ multiple-`PublishUrl` `HSMT012`→`HSMT015`. The targets-layout `003`/`004`/`005
 Not a diagnostic, but the other thing a service states once rather than per operation.
 
 An operation says what it produces — the `content:` keys of its success response, or
-`[SupportedContentTypes("text/plain", "text/csv")]` on a hand-written handler. A request carrying no
-`Accept`, or `*/*`, is answered with the first of them; a request naming media types gets its own
-preference order honoured within the set.
+`[Produces("text/plain", "text/csv")]` on a hand-written handler. An operation naming one media type
+answers with it and does not read `Accept` at all. For an operation naming several, a request
+carrying no `Accept`, or `*/*`, is answered with the first of them, and a request naming media types
+gets its own preference order honoured within the set.
 
 What happens when a client's `Accept` shares nothing with that set is one answer for the whole
 service:

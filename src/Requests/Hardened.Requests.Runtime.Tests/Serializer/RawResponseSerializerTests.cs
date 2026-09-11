@@ -36,42 +36,40 @@ public class RawResponseSerializerTests {
         return await reader.ReadToEndAsync();
     }
 
-    // ── what it volunteers for ─────────────────────────────────────────
-
-    [Fact]
-    public void CanProduce_AStringIsOfferedAsTextPlain() {
-        Assert.True(new RawResponseSerializer().CanProduce("text/plain", ContextFor("hello")));
-    }
+    // ── it never volunteers ────────────────────────────────────────────
 
     /// <summary>
-    /// A client asking for JSON gets JSON, even from a handler returning a string. That is the
-    /// difference between offering a representation and forcing one.
+    /// Nothing is written for a response that committed to no content type, whatever its value and
+    /// whatever the client asked for.
     /// </summary>
-    [Fact]
-    public void CanProduce_AStringIsNotOfferedAsJson() {
-        Assert.False(new RawResponseSerializer().CanProduce("application/json", ContextFor("hello")));
-    }
-
-    /// <summary>
-    /// Bytes have no media type anyone could guess, so they are not volunteered at all. They are
-    /// still written when the response says what they are - see the committed cases below.
-    /// </summary>
+    /// <remarks>
+    /// A bare string used to be offered as <c>text/plain</c> here, with this serializer ordered
+    /// behind JSON so that a client expressing no preference still got JSON. An operation that
+    /// declares nothing now takes the service default outright, so there is nothing left to
+    /// volunteer into and nothing left for an order to separate. A handler that wants text says
+    /// <c>[Produces("text/plain")]</c>.
+    /// </remarks>
     [Theory]
-    [InlineData("*/*")]
     [InlineData("text/plain")]
-    [InlineData("application/octet-stream")]
-    public void CanProduce_BytesAreNotVolunteeredWithoutACommittedContentType(string mediaType) {
-        Assert.False(new RawResponseSerializer().CanProduce(mediaType, ContextFor(new byte[] { 1, 2 })));
+    [InlineData("application/json")]
+    [InlineData("*/*")]
+    public void CanProduce_NothingIsVolunteeredWithoutACommittedContentType(string mediaType) {
+        var serializer = new RawResponseSerializer();
+
+        Assert.False(serializer.CanProduce(mediaType, ContextFor("hello")));
+        Assert.False(serializer.CanProduce(mediaType, ContextFor(new byte[] { 1, 2 })));
+        Assert.False(serializer.CanProduce(mediaType, ContextFor(Stream.Null)));
     }
 
     [Fact]
     public void CanProduce_FalseForAValueThatIsNotAlreadyBytes() {
-        Assert.False(new RawResponseSerializer().CanProduce("text/plain", ContextFor(new { Name = "x" })));
+        Assert.False(
+            new RawResponseSerializer().CanProduce("text/csv", ContextFor(new { Name = "x" }, "text/csv")));
     }
 
     [Fact]
     public void CanProduce_FalseForANullResponseValue() {
-        Assert.False(new RawResponseSerializer().CanProduce("*/*", ContextFor(null)));
+        Assert.False(new RawResponseSerializer().CanProduce("*/*", ContextFor(null, "text/plain")));
     }
 
     // ── a committed content type ───────────────────────────────────────
@@ -154,15 +152,15 @@ public class RawResponseSerializerTests {
     // ── position in the set ────────────────────────────────────────────
 
     /// <summary>
-    /// Behind JSON, so a client that expressed no preference still gets JSON. Ahead of it, every
-    /// handler returning a bare string would change what it answers.
+    /// The tag it registers under, which is the one media type it can be asked for by name. It
+    /// writes any committed type, and reaches those through the response value's shape instead.
     /// </summary>
     [Fact]
-    public void Order_IsBehindTheJsonSerializers() {
+    public void ContentType_IsTextPlain() {
         IResponseSerializer raw = new RawResponseSerializer();
 
-        Assert.Equal((int)ResponseSerializerOrder.Deferred, raw.Order);
-        Assert.True(raw.Order > (int)ResponseSerializerOrder.Normal);
+        Assert.Equal("text/plain", raw.ContentType);
+        Assert.Equal(RawResponseSerializer.DefaultContentType, raw.ContentType);
     }
 
     [Fact]

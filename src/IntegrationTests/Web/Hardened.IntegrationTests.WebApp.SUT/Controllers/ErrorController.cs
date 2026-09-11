@@ -61,18 +61,18 @@ public class ErrorController {
             409, new ConflictBody("locked", "held by another writer"));
 
     /// <summary>
-    /// A committed content type plus a thrown declared status. The commitment happens before the
-    /// handler runs, so it is on the response when the error is serialized - and the raw writer
-    /// takes only strings, bytes and streams, never an error model.
+    /// A declared content type plus a thrown declared status. A single declaration on a handler
+    /// returning text commits before the handler runs, so it is on the response when the error is
+    /// serialized - and the raw writer takes only strings, bytes and streams, never an error model.
     /// </summary>
-    [RawResponse]
+    [Produces("text/plain")]
     [Get("/raw-declared-status")]
     public string RawDeclaredStatus() =>
         throw new Hardened.Requests.Abstract.Errors.StatusCodeException(
             409, new ConflictBody("locked", "held by another writer"));
 
     /// <summary>The same commitment against an unclassified fault.</summary>
-    [RawResponse("image/png")]
+    [Produces("image/png")]
     [Get("/raw-server-error")]
     public byte[] RawServerError() =>
         throw new InvalidOperationException("the image was not ready");

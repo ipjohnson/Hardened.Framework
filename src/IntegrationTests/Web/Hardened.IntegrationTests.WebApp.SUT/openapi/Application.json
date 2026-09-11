@@ -3035,7 +3035,7 @@
           "Error"
         ],
         "operationId": "rawDeclaredStatus",
-        "summary": "A committed content type plus a thrown declared status. The commitment happens before the handler runs, so it is on the response when the error is serialized - and the raw writer takes only strings, bytes and streams, never an error model.",
+        "summary": "A declared content type plus a thrown declared status. A single declaration on a handler returning text commits before the handler runs, so it is on the response when the error is serialized - and the raw writer takes only strings, bytes and streams, never an error model.",
         "responses": {
           "200": {
             "description": "OK",

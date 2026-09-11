@@ -117,7 +117,29 @@ public record ResponseInformationModel {
     /// </remarks>
     public string? ProducedContentTypes { get; set; }
 
+    /// <summary>
+    /// The content type put on the response before the handler runs, or empty for a handler that
+    /// negotiates.
+    /// </summary>
+    /// <remarks>
+    /// Set from <c>[Produces]</c> where the operation names exactly one media type and the handler
+    /// returns <c>byte[]</c>, <c>Stream</c> or <c>string</c> - the return types <c>[RawResponse]</c>
+    /// could be written on, which is what keeps this behaviour identical for every handler that
+    /// carried it.
+    /// </remarks>
     public string? RawResponseContentType { get; set; }
+
+    /// <summary>
+    /// Whether the handler returns <c>byte[]</c> or <c>Stream</c>, so nothing can serialize its
+    /// response.
+    /// </summary>
+    /// <remarks>
+    /// The return type is the declaration: returning either says the handler controls its own
+    /// serialization. The pass-through writer is bound when the pipeline is composed, and no
+    /// serializer is consulted on any request. A <c>string</c> is not one of these - it has a JSON
+    /// reading, and takes the writer by declaring a media type instead.
+    /// </remarks>
+    public bool WritesRawBytes { get; set; }
 
     /// <summary>
     /// The status the contract declares validation failures answer with, or null for the stock
@@ -183,6 +205,25 @@ public record ResponseInformationModel {
     public string? StreamFramingDiagnostic { get; set; }
 
     /// <summary>
+    /// Whether the handler returns bytes and declares no content type.
+    /// </summary>
+    /// <remarks>
+    /// Carried rather than reported where it is found, for the reason
+    /// <see cref="StreamFramingDiagnostic"/> is, and reported from the routing generator as
+    /// <c>HRDR011</c>.
+    /// </remarks>
+    public bool MissingContentTypeDiagnostic { get; set; }
+
+    /// <summary>
+    /// The declared media types nothing in this compilation writes, comma-joined, or null.
+    /// </summary>
+    /// <remarks>
+    /// Reported from the routing generator as <c>HRDR012</c>, a warning - see
+    /// <c>ContentTypeDiagnostics</c> for why it is not an error.
+    /// </remarks>
+    public string? UnproducibleContentTypeDiagnostic { get; set; }
+
+    /// <summary>
     /// How a streamed response is framed on the wire, or null for newline-delimited JSON.
     /// </summary>
     /// <remarks>
@@ -219,11 +260,13 @@ public record ResponseInformationModel {
     /// </para>
     /// </remarks>
     public override string ToString() {
-        return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{StreamFraming}:{ReturnType}" +
+        return $"{IsAsync}:{OutputType}:{RawResponseContentType}:{WritesRawBytes}" +
+               $":{StreamFraming}:{ReturnType}" +
                $":{DefaultStatusCode}:{NullResponseBodyExpression}:{DeclaredErrorBodiesExpression}" +
                $":{ProducedContentTypes}" +
                $":{UnionCases}:{DeclaredResponse}:{UnionDiagnostic}:{ThrowsDiagnostic}" +
                $":{ValidationErrorStatus}" +
-               $":{StreamFramingDiagnostic}";
+               $":{StreamFramingDiagnostic}" +
+               $":{MissingContentTypeDiagnostic}:{UnproducibleContentTypeDiagnostic}";
     }
 }

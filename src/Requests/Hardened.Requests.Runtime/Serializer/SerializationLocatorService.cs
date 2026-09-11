@@ -8,6 +8,8 @@ namespace Hardened.Requests.Runtime.Serializer;
 public class SerializationLocatorService : ISerializationLocatorService {
     private readonly IRequestDeserializer[] _requestDeserializers;
     private readonly IResponseSerializer[] _responseSerializers;
+    private readonly Dictionary<string, IResponseSerializer> _byContentType;
+    private readonly IResponseSerializer? _defaultSerializer;
     private readonly IContentNegotiationPolicy _negotiationPolicy;
 
     public SerializationLocatorService(
@@ -17,27 +19,59 @@ public class SerializationLocatorService : ISerializationLocatorService {
         _negotiationPolicy = negotiationPolicy ?? new ContentNegotiationPolicy();
 
         // Reversed so an application's own registrations are tested before the framework's, then
-        // ordered ahead of that for the reason given below. Same treatment as the response side,
-        // and for the same reason: two deserializers both claiming application/json - which is
-        // what installing Hardened.Requests.Serializers.Newtonsoft produces - were previously
-        // separated only by which module happened to register last.
+        // ordered ahead of that: within a module DependencyModules sorts by implementation type
+        // name, so which deserializer read a body came down to how two class names sorted. Two
+        // deserializers both claiming application/json is what installing
+        // Hardened.Requests.Serializers.Newtonsoft produces.
+        //
+        // The response side dropped its Order and this did not. A deserializer is chosen by a
+        // predicate over the whole request rather than by a tag, so there is nothing to key a
+        // registry on.
         _requestDeserializers = requestDeserializers
             .Reverse()
             .OrderBy(deserializer => deserializer.Order)
             .ToArray();
 
-        // Ordered ahead of that, because reverse-registration order alone is not something an
-        // application can steer: within a module DependencyModules sorts by implementation type
-        // name, so which serializer won a contested response came down to how two class names
-        // sorted. OrderBy is a stable sort, so serializers sharing an order keep the
-        // reverse-registration relationship and an application's own still beats the framework's.
+        // Reversed, so the last registration under a content type is the first one asked. That is
+        // the whole of response-side precedence now: a serializer declares the media type it writes
+        // and an application's own registration lands after the framework's, so importing a package
+        // that replaces JSON is enough to be sure it is used.
         //
-        // Sorted here rather than per request - this service is a singleton, so it happens once.
+        // There used to be an Order here as well, because reverse-registration order within a module
+        // is decided by how implementation type names sort. Selection no longer runs through this
+        // array for an operation that declares what it produces - the serializer is resolved once as
+        // the handler's pipeline is composed - so there is nothing left for an order to adjudicate.
+        //
+        // Reversed here rather than per request - this service is a singleton, so it happens once.
         _responseSerializers = responseSerializers
             .Reverse()
-            .OrderBy(serializer => serializer.Order)
             .ToArray();
+
+        // One entry per content type, first writer wins - and the array is already reversed, so the
+        // first is the last registration. Built here rather than per lookup: this service is a
+        // singleton, and the lookups happen as handlers are composed.
+        _byContentType = new Dictionary<string, IResponseSerializer>(StringComparer.OrdinalIgnoreCase);
+
+        for (var i = 0; i < _responseSerializers.Length; i++) {
+            var serializer = _responseSerializers[i];
+
+            if (!string.IsNullOrEmpty(serializer.ContentType) &&
+                !_byContentType.ContainsKey(serializer.ContentType)) {
+                _byContentType[serializer.ContentType] = serializer;
+            }
+
+            if (_defaultSerializer == null && serializer.IsDefaultSerializer) {
+                _defaultSerializer = serializer;
+            }
+        }
     }
+
+    /// <inheritdoc />
+    public IResponseSerializer? ProducerOf(string contentType) =>
+        _byContentType.TryGetValue(contentType, out var serializer) ? serializer : null;
+
+    /// <inheritdoc />
+    public IResponseSerializer? DefaultSerializer => _defaultSerializer;
 
     public IRequestDeserializer FindRequestDeserializer(IExecutionContext context) {
         IRequestDeserializer? defaultSerializer = null;
@@ -100,9 +134,7 @@ public class SerializationLocatorService : ISerializationLocatorService {
                 "serializer can produce it.");
         }
 
-        // Parsed once per response rather than once per serializer.
-        var accepted = AcceptedContentTypes.Parse(context.Request.Accept);
-        var mediaTypes = accepted.MediaTypes;
+        var accept = context.Request.Accept;
 
         // What the operation says it produces, when it says anything.
         //
@@ -114,14 +146,14 @@ public class SerializationLocatorService : ISerializationLocatorService {
         var declared = context.HandlerInfo?.ProducedContentTypes;
 
         if (declared is { Count: > 0 }) {
-            return FindDeclaredProducer(declared, mediaTypes, context);
+            return FindDeclaredProducer(declared, accept, context);
         }
 
         // Nothing declared, so every registered serializer is a candidate - which is what this did
         // for every response before an operation could say what it produces, and still does for a
         // handler that says nothing.
-        for (var i = 0; i < mediaTypes.Count; i++) {
-            var serializer = FindProducerOf(mediaTypes[i], context);
+        foreach (var requested in MediaType.Enumerate(accept)) {
+            var serializer = FindProducerOf(requested, context);
 
             if (serializer != null) {
                 return serializer;
@@ -156,12 +188,12 @@ public class SerializationLocatorService : ISerializationLocatorService {
     /// </remarks>
     private IResponseSerializer FindDeclaredProducer(
         IReadOnlyList<string> declared,
-        IReadOnlyList<string> accepted,
+        string? accept,
         IExecutionContext context) {
         // The client's preferences decide the order, the declared set decides what is on offer.
-        for (var i = 0; i < accepted.Count; i++) {
+        foreach (var requested in MediaType.Enumerate(accept)) {
             for (var j = 0; j < declared.Count; j++) {
-                if (!MediaType.Matches(accepted[i], declared[j])) {
+                if (!MediaType.Matches(requested, declared[j])) {
                     continue;
                 }
 
@@ -207,6 +239,29 @@ public class SerializationLocatorService : ISerializationLocatorService {
         for (var i = 0; i < _responseSerializers.Length; i++) {
             if (_responseSerializers[i].CanProduce(mediaType, context)) {
                 return _responseSerializers[i];
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// <see cref="FindProducerOf(string,IExecutionContext)"/> for one entry of an <c>Accept</c>
+    /// header, which is a span rather than a string.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="IResponseSerializer.CanProduce"/> takes a string, and the two serializers that
+    /// override it read the response rather than the media type, so the tag is compared here and
+    /// they are asked about their own. That is what lets the header stay a span all the way down:
+    /// the interface no longer reaches back up the call stack and demands a substring per candidate.
+    /// </remarks>
+    private IResponseSerializer? FindProducerOf(ReadOnlySpan<char> mediaType, IExecutionContext context) {
+        for (var i = 0; i < _responseSerializers.Length; i++) {
+            var serializer = _responseSerializers[i];
+
+            if (MediaType.Matches(mediaType, serializer.ContentType) &&
+                serializer.CanProduce(serializer.ContentType, context)) {
+                return serializer;
             }
         }
 

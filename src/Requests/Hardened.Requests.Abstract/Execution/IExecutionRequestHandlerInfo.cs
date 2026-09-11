@@ -173,6 +173,30 @@ public interface IExecutionRequestHandlerInfo {
     bool StreamsResponse => false;
 
     /// <summary>
+    /// Whether the handler returns <c>byte[]</c> or <c>Stream</c>, so nothing serializes its
+    /// response.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Returning either is the handler saying it controls its own serialization: the bytes go out
+    /// unchanged under the content type the operation declares. The pass-through writer is bound as
+    /// the handler's pipeline is composed and no serializer is consulted on any request.
+    /// </para>
+    /// <para>
+    /// Set by the generator from the return type, which is the only place the answer is known, and
+    /// the reason a declaration is required on these handlers: there is no default content type for
+    /// bytes that anyone could guess at. A <c>string</c> is deliberately not one of them - it has a
+    /// JSON reading, which is what a handler declaring nothing answers with.
+    /// </para>
+    /// <para>
+    /// A default rather than an abstract member, so an implementation compiled before it existed
+    /// keeps loading and reads as serialized, which is what every handler was before the return
+    /// type decided.
+    /// </para>
+    /// </remarks>
+    bool WritesRawBytes => false;
+
+    /// <summary>
     /// What this handler requires of its caller, or null if nothing does.
     /// </summary>
     /// <remarks>

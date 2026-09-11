@@ -69,6 +69,20 @@ namespace Hardened.Web.Runtime.Attributes;
 /// <c>HRDW004</c>: there is no stream to frame, and silently ignoring it would leave an author
 /// believing a buffered response was an event stream.
 /// </para>
+/// <para>
+/// <b>It is <c>[Produces(KnownContentType.EventStream)]</c> under a name that reads better on a
+/// stream</b>, and derives from it. The framing follows the declared media type rather than the
+/// attribute, so the two spellings are one declaration: a handler writing
+/// <c>[Produces("text/event-stream")]</c> is framed as events, and this one declares
+/// <c>text/event-stream</c> in the operation model and therefore in the document.
+/// </para>
+/// <para>
+/// Kept rather than deprecated, unlike <c>[RawResponse]</c>. That one stated a second fact - that
+/// the return value is already bytes - which the return type now states and the name still claims.
+/// This states one fact under a clearer name.
+/// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method)]
-public class ServerSentEventsAttribute : Attribute;
+public class ServerSentEventsAttribute()
+    : Hardened.Requests.Abstract.Attributes.ProducesAttribute(
+        Hardened.Requests.Abstract.Headers.KnownContentType.EventStream);

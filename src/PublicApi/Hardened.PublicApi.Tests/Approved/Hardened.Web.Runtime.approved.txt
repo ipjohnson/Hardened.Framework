@@ -96,7 +96,7 @@ namespace Hardened.Web.Runtime.Attributes
         public string Url { get; }
     }
     [System.AttributeUsage(System.AttributeTargets.Method)]
-    public class ServerSentEventsAttribute : System.Attribute
+    public class ServerSentEventsAttribute : Hardened.Requests.Abstract.Attributes.ProducesAttribute
     {
         public ServerSentEventsAttribute() { }
     }
