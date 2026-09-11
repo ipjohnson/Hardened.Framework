@@ -77,15 +77,15 @@ public static class CorrelationIdentifier {
     /// </para>
     /// <para>
     /// <b>Handed out in blocks, because one contended cache line costs more than everything else
-    /// here put together.</b> Taking each id with <c>Interlocked.Increment</c> measured 19M ids/s
-    /// across 11 threads, against 84M for the random id it replaces: the shared counter made it
-    /// slower than the thing it was meant to improve on. Taking 64 at a time and handing them out
-    /// from thread-local state measures 98M. A thread that dies mid-block abandons what is left of
-    /// it, which costs nothing but 63 counter values.
+    /// here put together.</b> Taking each id with <c>Interlocked.Increment</c> measured 18M ids/s
+    /// across 11 threads, against 74M for the random id it replaces: the shared counter made it
+    /// slower than the thing it was meant to improve on. Taking 128 at a time and handing them out
+    /// from thread-local state measures 89M. A thread that dies mid-block abandons what is left of
+    /// it, which costs nothing but 127 counter values.
     /// </para>
     /// <para>
     /// <b>One sequence for the process, rather than a seed per thread.</b> Seeding each thread
-    /// independently would drop the shared counter entirely, and measured 0.61ns against 0.64ns
+    /// independently would drop the shared counter entirely, and measured 0.61ns against 0.51ns
     /// for taking a block, so it saves nothing. What it costs is the guarantee: independent seeds
     /// put threads back on a birthday bound against each other, and the millisecond protects far
     /// less there than it does between processes, because the threads of one process are all
@@ -117,11 +117,8 @@ public static class CorrelationIdentifier {
     /// </para>
     /// </remarks>
     private static class Fallback {
-        /// <summary>
-        /// Ids a thread reserves at a time. A power of two, which is what lets the cursor's own low
-        /// bits say when a block is spent.
-        /// </summary>
-        private const int BlockSize = 64;
+        /// <summary>Ids a thread reserves at a time.</summary>
+        private const int BlockSize = 128;
 
         /// <summary>
         /// In ASCII order, which the base64 alphabets in the wild are not - theirs start at
@@ -140,26 +137,27 @@ public static class CorrelationIdentifier {
             DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             - Stopwatch.GetTimestamp() / TicksPerMillisecond;
 
-        /// <summary>
-        /// The next block to hand out. Seeded at random and aligned to <see cref="BlockSize"/>,
-        /// which <c>Interlocked.Add</c> then preserves for the life of the process.
-        /// </summary>
-        private static long _next =
-            BitConverter.ToInt64(RandomNumberGenerator.GetBytes(8)) & ~(BlockSize - 1L);
+        /// <summary>The next block to hand out, seeded at random.</summary>
+        private static long _next = BitConverter.ToInt64(RandomNumberGenerator.GetBytes(8));
+
+        /// <summary>This thread's cursor into the block it holds.</summary>
+        [ThreadStatic] private static ulong _threadNext;
 
         /// <summary>
-        /// This thread's cursor into the block it holds. Zero on a thread that has never asked for
-        /// one, which is aligned, so the first call takes a block like any other.
+        /// Where this thread's block ends. Both start at zero, so a thread that has never asked for
+        /// a block takes one on its first call without needing a flag of its own.
         /// </summary>
-        [ThreadStatic] private static ulong _threadNext;
+        [ThreadStatic] private static ulong _threadCap;
 
         public static string NextId() {
             var millisecond = (ulong)(OriginMillisecond + Stopwatch.GetTimestamp() / TicksPerMillisecond);
 
-            // Blocks are aligned, so a cursor sitting on a boundary is a spent block, and every
-            // other value is one this thread still owns. That is the whole refill test.
-            if ((_threadNext & (BlockSize - 1)) == 0) {
+            // Equality rather than >=, because the cursor and the cap wrap together. Once per
+            // counter cycle a block straddles ulong.MaxValue, and >= would take a fresh block on
+            // every call for the length of that one.
+            if (_threadNext == _threadCap) {
                 _threadNext = unchecked((ulong)(Interlocked.Add(ref _next, BlockSize) - BlockSize));
+                _threadCap = unchecked(_threadNext + BlockSize);
             }
 
             return Encode(millisecond, _threadNext++);
