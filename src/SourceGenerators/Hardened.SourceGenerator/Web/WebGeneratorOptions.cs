@@ -1,7 +1,7 @@
-namespace Hardened.SourceGenerator.Web;
+﻿namespace Hardened.SourceGenerator.Web;
 
 /// <summary>
-/// The MSBuild properties the web generator reads, as one cacheable value.
+/// The inputs the web generator reads that are not handlers, as one cacheable value.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,7 +22,14 @@ namespace Hardened.SourceGenerator.Web;
 /// <c>&lt;HardenedOpenApiVersion&gt;</c> - which version the emitted document declares, and which
 /// spellings it uses. Null takes the default.
 /// </param>
-public record WebGeneratorOptions(string? AmbiguousRoutes, string? OpenApiVersion) {
+/// <param name="WritableContentTypes">
+/// The media types a serializer in reach writes a model as, comma-joined - see
+/// <see cref="SerializerContentTypes"/>. Not an MSBuild property, and here anyway because it is the
+/// same shape of input: a string derived once, compared to decide whether the table re-runs. A
+/// provider of its own would have cost a fourth level on a tuple that is already three deep.
+/// </param>
+public record WebGeneratorOptions(
+    string? AmbiguousRoutes, string? OpenApiVersion, string WritableContentTypes = SerializerContentTypes.AlwaysWritable) {
 
     /// <summary>What a build that set nothing gets.</summary>
     public static readonly WebGeneratorOptions Default = new(null, null);

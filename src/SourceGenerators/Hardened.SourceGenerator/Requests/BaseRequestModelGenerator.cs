@@ -763,6 +763,7 @@ public abstract class BaseRequestModelGenerator {
 
         var producedContentTypes = DeclaredContentTypes(context, methodDeclaration);
         var writesRawBytes = WritesRawBytes(context, methodDeclaration);
+        var returnsBytesOrText = ReturnsBytesOrText(context, methodDeclaration);
 
         // Framing is named here and reported where a diagnostic can be - a syntax transform
         // cannot report one, so an attribute on a handler that streams nothing is carried forward
@@ -799,6 +800,7 @@ public abstract class BaseRequestModelGenerator {
             OutputType = output,
             ReturnType = returnType,
             WritesRawBytes = writesRawBytes,
+            ReturnsBytesOrText = returnsBytesOrText,
 
             // Bytes with nothing to say what they are. An error: no default could be inferred and
             // nothing downstream can supply one.
@@ -809,7 +811,7 @@ public abstract class BaseRequestModelGenerator {
             UnproducibleContentTypeDiagnostic = UnproducibleContentTypes(
                 producedContentTypes, context, methodDeclaration, isAsyncEnumerable),
             RawResponseContentType = CommittedContentType(
-                producedContentTypes, context, methodDeclaration, isAsyncEnumerable),
+                producedContentTypes, returnsBytesOrText, isAsyncEnumerable),
             // The type's status where it declares one, so a handler returning Created<T> publishes
             // 201 rather than the 200 nothing asked for.
             DefaultStatusCode = declaredCase.TypeName != null ? declaredCase.Status : successStatus,
@@ -882,12 +884,13 @@ public abstract class BaseRequestModelGenerator {
     /// </remarks>
     private static string? DeclaredContentTypes(
         GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
-        return DeclaredOn(methodDeclaration.AttributeLists) ??
-               DeclaredOn(methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>()
+        return DeclaredOn(context, methodDeclaration.AttributeLists) ??
+               DeclaredOn(context, methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>()
                    .FirstOrDefault()?.AttributeLists);
     }
 
-    private static string? DeclaredOn(SyntaxList<AttributeListSyntax>? attributeLists) {
+    private static string? DeclaredOn(
+        GeneratorSyntaxContext context, SyntaxList<AttributeListSyntax>? attributeLists) {
         if (attributeLists == null) {
             return null;
         }
@@ -923,6 +926,22 @@ public abstract class BaseRequestModelGenerator {
 
                     if (literal.Length > 1 && literal[0] == '"' && literal[literal.Length - 1] == '"') {
                         types.Add(literal.Substring(1, literal.Length - 2));
+
+                        continue;
+                    }
+
+                    // A named constant, which is how a serializer package lets an operation state
+                    // its media type without a string literal - MessagePackContentType.Value, or
+                    // KnownContentType.Json. Read from syntax like everything else here, this was
+                    // not a literal and the whole attribute came back empty: the operation declared
+                    // nothing, the document published application/json, and the handler answered
+                    // JSON. Silently, because an attribute that parses is an attribute that ran.
+                    //
+                    // The literal above stays the fast path. This costs a semantic model lookup,
+                    // and only for an operation that wrote something other than a literal.
+                    if (context.SemanticModel.GetConstantValue(argument.Expression) is
+                        { HasValue: true, Value: string constant } && constant.Length > 0) {
+                        types.Add(constant);
                     }
                 }
 
@@ -955,13 +974,12 @@ public abstract class BaseRequestModelGenerator {
     /// </remarks>
     private static string CommittedContentType(
         string? producedContentTypes,
-        GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration,
+        bool returnsBytesOrText,
         bool isAsyncEnumerable) {
         if (producedContentTypes == null ||
             producedContentTypes.IndexOf(',') >= 0 ||
             isAsyncEnumerable ||
-            !ReturnsBytesOrText(context, methodDeclaration)) {
+            !returnsBytesOrText) {
             return "";
         }
 
@@ -1024,7 +1042,8 @@ public abstract class BaseRequestModelGenerator {
     }
 
     /// <summary>
-    /// The declared media types that nothing visible here can write, comma-joined, or null.
+    /// The declared media types the return type alone does not rule producible, comma-joined, or
+    /// null.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -1035,9 +1054,11 @@ public abstract class BaseRequestModelGenerator {
     /// with another that declares the same media type.
     /// </para>
     /// <para>
-    /// Everything else is a model declared as something this compilation has no writer for. It may
-    /// still be right - the host registers the serializer - which is why it is a warning rather
-    /// than an error.
+    /// Everything else is a candidate, not a finding. Whether a serializer for it exists is a
+    /// question about the whole compilation, which a per-method syntax transform cannot ask without
+    /// taking the compilation as an input and rebuilding every handler on every keystroke.
+    /// <c>ContentTypeDiagnostics.Report</c> settles it against
+    /// <c>SerializerContentTypes</c> at the routing stage, where the answer is computed once.
     /// </para>
     /// <para>
     /// A streamed handler is skipped: its media types are the framing's, and the streaming writer

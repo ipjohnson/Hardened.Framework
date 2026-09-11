@@ -1,4 +1,4 @@
-using CSharpAuthor;
+﻿using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web;
@@ -198,7 +198,11 @@ public class ModelComparisonTests {
     /// status, header and body the type states, and a change to any of them has to be visible here.
     /// Whether the handler writes raw bytes is the sixth: it decides whether a serializer is bound
     /// at all, and it is read off the return type rather than any attribute. The two content-type
-    /// findings are the seventh and eighth, for the reason the framing finding is here.
+    /// findings are the seventh and eighth, for the reason the framing finding is here. Whether the
+    /// handler returns bytes or text is the ninth: it is wider than the raw-bytes flag by exactly
+    /// <c>string</c> and decides how error bodies are described. The success and error media types
+    /// are the tenth and eleventh: a described operation states both, and they are not the
+    /// negotiated set.
     /// </remarks>
     [Fact]
     public void AResponseModelDescribesAllOfItsResponseAnnotations() {
@@ -207,6 +211,7 @@ public class ModelComparisonTests {
             OutputType = Type("Fortunes"),
             RawResponseContentType = "text/csv",
             WritesRawBytes = true,
+            ReturnsBytesOrText = true,
             StreamFraming = "sse",
             ReturnType = Type("String"),
             DefaultStatusCode = 201,
@@ -214,6 +219,8 @@ public class ModelComparisonTests {
             DeclaredErrorBodiesExpression =
                 "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }",
             ProducedContentTypes = "text/plain,text/csv",
+            SuccessContentTypes = "text/plain",
+            ErrorContentTypes = "application/json",
             UnionCases = "global::App.Todo|201|01;global::App.NotFound|404|01",
             DeclaredResponse = "global::App.Created|201|111|global::App.Todo",
             ThrowsDiagnostic = "OutOfStock",
@@ -226,10 +233,10 @@ public class ModelComparisonTests {
         // Every field, because this string is what the incremental caches compare to decide
         // whether to rerun. A field left out of it is a change the generator does not notice.
         Assert.Equal(
-            "True:System.Fortunes:text/csv:True:sse:System.String:201:" +
+            "True:System.Fortunes:text/csv:True:True:sse:System.String:201:" +
             "Models.DefaultErrorBodies.NotFoundProblem:" +
             "new Dictionary<int, object> { { 401, Models.DefaultErrorBodies.UnauthorizedProblem } }:" +
-            "text/plain,text/csv:" +
+            "text/plain,text/csv:text/plain:application/json:" +
             "global::App.Todo|201|01;global::App.NotFound|404|01:" +
             "global::App.Created|201|111|global::App.Todo::OutOfStock:422:sse:True:text/csv",
             model.ToString());

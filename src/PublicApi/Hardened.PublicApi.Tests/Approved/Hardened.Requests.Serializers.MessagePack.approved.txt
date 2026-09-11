@@ -1,0 +1,66 @@
+[assembly: Hardened.Requests.Abstract.Attributes.WritesContentType(new string[] {
+        "application/x-msgpack"})]
+namespace Hardened.Requests.Serializers.MessagePack
+{
+    public interface IMessagePackSerializerConfiguration
+    {
+        System.Func<System.IServiceProvider, MessagePack.MessagePackSerializerOptions> OptionsProvider { get; }
+    }
+    public static class MessagePackContentType
+    {
+        public const string Value = "application/x-msgpack";
+    }
+    [Hardened.Shared.Runtime.Attributes.ConfigurationModel]
+    public class MessagePackSerializerConfiguration : Hardened.Requests.Serializers.MessagePack.IMessagePackSerializerConfiguration
+    {
+        public MessagePackSerializerConfiguration() { }
+        public System.Func<System.IServiceProvider, MessagePack.MessagePackSerializerOptions> OptionsProvider { get; set; }
+        public static MessagePack.IFormatterResolver[] AotResolvers { get; }
+    }
+    [DependencyModules.Runtime.Attributes.DependencyModule]
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public class MessagePackSerializerLibrary : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    {
+        public MessagePackSerializerLibrary() { }
+        public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
+    }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
+    public class MessagePackSerializerLibraryAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    {
+        public MessagePackSerializerLibraryAttribute() { }
+        public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
+    }
+}
+namespace Hardened.Requests.Serializers.MessagePack.Impl
+{
+    public interface ISharedMessagePackOptions
+    {
+        MessagePack.MessagePackSerializerOptions Options { get; }
+    }
+    [DependencyModules.Runtime.Attributes.TransientService]
+    public class MessagePackRequestDeserializer : Hardened.Requests.Abstract.Serializer.IRequestDeserializer
+    {
+        public MessagePackRequestDeserializer(Hardened.Requests.Serializers.MessagePack.Impl.ISharedMessagePackOptions options, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
+        public bool IsDefaultSerializer { get; }
+        public int Order { get; }
+        public bool CanProcessContext(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+        public System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    [DependencyModules.Runtime.Attributes.TransientService]
+    public class MessagePackResponseSerializer : Hardened.Requests.Abstract.Serializer.IResponseSerializer
+    {
+        public MessagePackResponseSerializer(Hardened.Requests.Serializers.MessagePack.Impl.ISharedMessagePackOptions options, Hardened.Shared.Runtime.Collections.IMemoryStreamPool memoryStreamPool) { }
+        public string ContentType { get; }
+        public bool IsDefaultSerializer { get; }
+        public System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
+    }
+    [DependencyModules.Runtime.Attributes.SingletonService]
+    public class SharedMessagePackOptions : Hardened.Requests.Serializers.MessagePack.Impl.ISharedMessagePackOptions
+    {
+        public SharedMessagePackOptions(System.IServiceProvider serviceProvider, Microsoft.Extensions.Options.IOptions<Hardened.Requests.Serializers.MessagePack.IMessagePackSerializerConfiguration> configuration, System.Collections.Generic.IEnumerable<MessagePack.IFormatterResolver> resolvers) { }
+        public MessagePack.MessagePackSerializerOptions Options { get; }
+    }
+}

@@ -1,4 +1,4 @@
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using DependencyModules.Runtime.Attributes;
 using DependencyModules.Runtime.Interfaces;
@@ -137,7 +137,17 @@ public partial class HardenedRequestModule : IServiceCollectionConfiguration {
             return;
         }
 
-        services.TryAddSingleton<IRequestDeserializer, SystemTextJsonRequestDeserializer>();
+        // Under its own class, then the interface pointing at it - not
+        // TryAddSingleton<IRequestDeserializer, SystemTextJsonRequestDeserializer>. That keyed the
+        // Try on the service type, so importing any package registering an IRequestDeserializer
+        // skipped this line and left the application with no JSON reader at all: every request with
+        // a JSON body answered 500 with "Could not find serializer". The response side had the same
+        // defect and the same fix; precedence here is RequestDeserializerOrder's, which the locator
+        // sorts on, so the Try was never carrying it.
+        services.TryAddSingleton<SystemTextJsonRequestDeserializer>();
+        services.AddSingleton<IRequestDeserializer>(
+            provider => provider.GetRequiredService<SystemTextJsonRequestDeserializer>());
+
         services.AddSingleton<IResponseSerializer, SystemTextJsonResponseSerializer>();
     }
 }

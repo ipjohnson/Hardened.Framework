@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
     <!--
       Every package version in the repository, in one list.
@@ -88,6 +88,7 @@
         <PackageVersion Include="Microsoft.Kiota.Http.HttpClientLibrary" Version="2.0.0" />
         <PackageVersion Include="Microsoft.OpenApi" Version="3.10.0" />
         <PackageVersion Include="Microsoft.OpenApi.YamlReader" Version="3.10.0" />
+        <PackageVersion Include="MessagePack" Version="3.1.8" />
         <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageVersion Include="RazorBlade" Version="1.0.0" />
         <PackageVersion Include="Refit" Version="8.0.0" />

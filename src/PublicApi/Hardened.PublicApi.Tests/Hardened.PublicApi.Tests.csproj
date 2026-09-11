@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -67,6 +67,7 @@
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Caching.Memory\Hardened.Requests.Caching.Memory.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\Requests\Hardened.Requests.Testing\Hardened.Requests.Testing.csproj"/>
+        <ProjectReference Include="..\..\Requests\Serializers\Hardened.Requests.Serializers.MessagePack\Hardened.Requests.Serializers.MessagePack.csproj"/>
         <ProjectReference Include="..\..\Requests\Serializers\Hardened.Requests.Serializers.Newtonsoft\Hardened.Requests.Serializers.Newtonsoft.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
         <ProjectReference Include="..\..\Shared\Hardened.Shared.Testing\Hardened.Shared.Testing.csproj"/>

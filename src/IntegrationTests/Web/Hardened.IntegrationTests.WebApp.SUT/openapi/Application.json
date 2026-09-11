@@ -51,6 +51,9 @@
       "name": "IntMath"
     },
     {
+      "name": "MessagePack"
+    },
+    {
       "name": "Registration"
     },
     {
@@ -3567,6 +3570,189 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/msgpack/negotiated/{id}": {
+      "get": {
+        "tags": [
+          "MessagePack"
+        ],
+        "operationId": "negotiated",
+        "summary": "Two representations of one response. The client's Accept decides, and a client expressing no preference gets the first.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reading"
+                }
+              },
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reading"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              },
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              },
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/msgpack/packed/{id}": {
+      "get": {
+        "tags": [
+          "MessagePack"
+        ],
+        "operationId": "packed",
+        "summary": "MessagePack alone, which is the shape that binds at composition rather than negotiating: one declared media type under the default negotiation mode resolves its serializer once.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reading"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request failed validation.",
+            "content": {
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequestValidationError"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/msgpack/round": {
+      "post": {
+        "tags": [
+          "MessagePack"
+        ],
+        "operationId": "round",
+        "summary": "A MessagePack request body. Nothing declares it: a deserializer is chosen by the inbound Content-Type, so this reads MessagePack from a client that sends it and JSON from one that does not.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Reading"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reading"
+                }
+              },
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reading"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              },
+              "application/x-msgpack": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/registration": {
       "post": {
         "tags": [
@@ -5752,6 +5938,7 @@
       },
       "Reading": {
         "type": "object",
+        "description": "A reading, annotated the way MessagePack requires.",
         "required": [
           "sensor",
           "value"

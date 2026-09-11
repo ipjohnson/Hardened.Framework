@@ -1,4 +1,4 @@
-name: release
+﻿name: release
 
 # Cutting a release:
 #   git tag v1.0.0 && git push origin v1.0.0
@@ -275,6 +275,7 @@ jobs:
             src/Requests/Hardened.Requests.Caching.Memory/Hardened.Requests.Caching.Memory.csproj \
             src/Requests/Hardened.Requests.Runtime/Hardened.Requests.Runtime.csproj \
             src/Requests/Hardened.Requests.Testing/Hardened.Requests.Testing.csproj \
+            src/Requests/Serializers/Hardened.Requests.Serializers.MessagePack/Hardened.Requests.Serializers.MessagePack.csproj \
             src/Requests/Serializers/Hardened.Requests.Serializers.Newtonsoft/Hardened.Requests.Serializers.Newtonsoft.csproj \
             src/Shared/Hardened.Shared.Runtime/Hardened.Shared.Runtime.csproj \
             src/Shared/Hardened.Shared.Testing/Hardened.Shared.Testing.csproj \
@@ -398,7 +399,8 @@ jobs:
           # adapters and the Hardened.Gcp.CloudRun meta package.
           # 65 with the rest of the Azure line: the HTTP, Timer, Event Hubs, Cosmos DB, Blobs and Event Grid
           # adapters and the Hardened.Azure.Functions meta package.
-          EXPECTED=65
+          # 66 with Hardened.Requests.Serializers.MessagePack.
+          EXPECTED=66
           ACTUAL=$(ls -1 ./artifacts/*.nupkg 2>/dev/null | wc -l | tr -d ' ')
 
           if [ "$ACTUAL" != "$EXPECTED" ]; then

@@ -104,7 +104,8 @@ public static class RoutingTableGenerator {
                 context,
                 name,
                 handler.ResponseInformation.MissingContentTypeDiagnostic,
-                handler.ResponseInformation.UnproducibleContentTypeDiagnostic);
+                handler.ResponseInformation.UnproducibleContentTypeDiagnostic,
+                options.WritableContentTypes);
         }
 
         // Per application, because the store is: [CacheResponse] on a handler and the module

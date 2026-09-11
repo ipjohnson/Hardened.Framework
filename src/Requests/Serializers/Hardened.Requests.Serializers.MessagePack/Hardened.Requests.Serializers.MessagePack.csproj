@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+
+        <!--
+          MessagePack generates its formatters at build with a Roslyn source generator, which is
+          what makes this claim true. Nothing here resolves a contract by reflection: the options
+          this package composes carry the resolvers registered with the container and the built-in
+          formatters, and never DynamicObjectResolver - see SharedMessagePackOptions.
+        -->
+        <IsAotCompatible>true</IsAotCompatible>
+        <Description>MessagePack request and response serializer for the Hardened execution pipeline.</Description>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PackageId>Hardened.Requests.Serializers.MessagePack</PackageId>
+        <IsPackable>true</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MessagePack"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Primitives"/>
+
+        <!--
+          The module attribute. [DependencyModule] on MessagePackSerializerLibrary is only a class
+          without this generator, and an application importing the package writes
+          [MessagePackSerializerLibrary] - which is the attribute it emits. The Newtonsoft package
+          omits it and its module attribute does not exist, which is why nothing imports that
+          package by name.
+        -->
+        <PackageReference Include="DependencyModules.SourceGenerator" OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
+        <ProjectReference Include="..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+        <ProjectReference Include="..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
+    </ItemGroup>
+</Project>

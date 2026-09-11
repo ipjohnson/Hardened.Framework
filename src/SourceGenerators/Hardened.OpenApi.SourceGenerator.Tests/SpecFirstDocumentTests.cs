@@ -1,4 +1,4 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -606,6 +606,113 @@ public class SpecFirstDocumentTests {
 
         Assert.True(statuses.Count > 2);
         Assert.Equal(statuses.OrderBy(status => status).ToList(), statuses);
+    }
+
+    #endregion
+
+    #region what a described operation produces
+
+    /// <summary>
+    /// A contract offering two representations of one response.
+    /// </summary>
+    private const string TwoMediaTypes =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets/{petId}:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              parameters:
+                - name: petId
+                  in: path
+                  required: true
+                  schema: { type: string }
+              responses:
+                '200':
+                  description: A pet
+                  content:
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+                    application/x-msgpack:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+        components:
+          schemas:
+            Pet:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+        """;
+
+    /// <summary>
+    /// A specification-first document is generated from the normalised model, not served verbatim,
+    /// so the writer's shortcuts are this front end's too. The parser collected both media types
+    /// and the writer published the first, which is the same defect code-first had and was easy to
+    /// mistake for a code-first-only one.
+    /// </summary>
+    [Fact]
+    public void BothDeclaredMediaTypesReachThePublishedDocument() {
+        var content = PublishedDocument(TwoMediaTypes)
+            .GetProperty("paths").GetProperty("/pets/{petId}").GetProperty("get")
+            .GetProperty("responses").GetProperty("200").GetProperty("content");
+
+        Assert.Equal(
+            ["application/json", "application/x-msgpack"],
+            content.EnumerateObject().Select(media => media.Name));
+    }
+
+    /// <summary>The same contract, leading with MessagePack.</summary>
+    private const string MsgpackFirst =
+        """
+        openapi: "3.0.0"
+        info: { title: Pets, version: "1.0" }
+        paths:
+          /pets/{petId}:
+            get:
+              tags: [Pet]
+              operationId: getPet
+              parameters:
+                - name: petId
+                  in: path
+                  required: true
+                  schema: { type: string }
+              responses:
+                '200':
+                  description: A pet
+                  content:
+                    application/x-msgpack:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+                    application/json:
+                      schema:
+                        $ref: '#/components/schemas/Pet'
+        components:
+          schemas:
+            Pet:
+              type: object
+              required: [id]
+              properties:
+                id: { type: string }
+        """;
+
+    /// <summary>
+    /// Which makes the document a round trip: <c>OpenApiSpecParser</c> reads these keys back into
+    /// <c>ProducedContentTypes</c> in document order, so a service generated from a published
+    /// document negotiates the set the original contract declared, in the order it declared it.
+    /// </summary>
+    [Fact]
+    public void TheKeysAreInTheOrderTheContractDeclaredThem() {
+        var content = PublishedDocument(MsgpackFirst)
+            .GetProperty("paths").GetProperty("/pets/{petId}").GetProperty("get")
+            .GetProperty("responses").GetProperty("200").GetProperty("content");
+
+        Assert.Equal(
+            ["application/x-msgpack", "application/json"],
+            content.EnumerateObject().Select(media => media.Name));
     }
 
     #endregion

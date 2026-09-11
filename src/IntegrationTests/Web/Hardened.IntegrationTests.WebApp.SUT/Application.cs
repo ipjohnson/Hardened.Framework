@@ -9,6 +9,7 @@ using Hardened.Web.Runtime.Handlers;
 using Hardened.Requests.Caching.Memory;
 using Hardened.Web.Runtime.Compression;
 using Hardened.Web.Runtime.OpenApi;
+using Hardened.Requests.Serializers.MessagePack;
 
 namespace Hardened.IntegrationTests.WebApp.SUT;
 
@@ -34,6 +35,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT;
 [HardenedOpenApiUi(Title = "Integration Tests")]
 [HardenedOpenApiUi(Path = "/docs/internal", Title = "Internal", DocumentPath = "/internal.json")]
 [HardenedMemoryResponseCache]
+[MessagePackSerializerLibrary]
 [AspNetCoreRuntime]
 public partial class Application : IServiceCollectionConfiguration {
 
