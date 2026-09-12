@@ -217,8 +217,8 @@ public abstract class BaseRequestModelGenerator {
             // under a member, which no client ever receives.
             var described = unionCase.BodyTypeName ?? unionCase.TypeName;
 
-            var symbol = context.SemanticModel.Compilation.GetTypeByMetadataName(
-                described.Replace("global::", ""));
+            var symbol = Resolve(
+                context.SemanticModel.Compilation, described.Replace("global::", ""));
 
             var model = new ResponseSchemaModel(
                 unionCase.Status,
@@ -299,7 +299,39 @@ public abstract class BaseRequestModelGenerator {
                    arity.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        return context.SemanticModel.Compilation.GetTypeByMetadataName(name);
+        return Resolve(context.SemanticModel.Compilation, name);
+    }
+
+    /// <summary>
+    /// The type a case's name names, a nested one included.
+    /// </summary>
+    /// <remarks>
+    /// A display string separates a nested type from the type it is declared in with a dot, and
+    /// metadata separates it with a plus, so <see cref="Compilation.GetTypeByMetadataName"/>
+    /// answers null for every type declared inside another - a model declared in its controller
+    /// among them. That reached the document as a status with no content: the case has a body, the
+    /// symbol it would be written from is null, and the response goes out describing nothing.
+    ///
+    /// Each dot is tried as the nesting point in turn, from the right, because the rightmost
+    /// segment is the innermost type and every dot to its left is either another nesting or the
+    /// end of the namespace.
+    /// </remarks>
+    private static INamedTypeSymbol? Resolve(Compilation compilation, string metadataName) {
+        var name = metadataName;
+
+        while (true) {
+            if (compilation.GetTypeByMetadataName(name) is { } symbol) {
+                return symbol;
+            }
+
+            var dot = name.LastIndexOf('.');
+
+            if (dot < 0) {
+                return null;
+            }
+
+            name = name.Substring(0, dot) + "+" + name.Substring(dot + 1);
+        }
     }
 
     /// <summary>

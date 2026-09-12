@@ -1,4 +1,4 @@
-using DependencyModules.Runtime.Interfaces;
+﻿using DependencyModules.Runtime.Interfaces;
 using DependencyModules.Runtime.Attributes;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
@@ -105,6 +105,39 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
     /// </remarks>
     public string? ScriptIntegrity { get; set; } = DefaultScriptIntegrity;
 
+    /// <summary>
+    /// Decode MessagePack response bodies in the page's request panel.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The document already describes a MessagePack representation and Scalar renders what it says.
+    /// What the page cannot do unaided is show a MessagePack body it fetched: send the request and
+    /// the response arrives as bytes. This installs Scalar's plugin for the two MessagePack media
+    /// types, so the panel shows decoded JSON. It is keyed on the media type, so JSON keeps Scalar's
+    /// own rendering on the same page.
+    /// </para>
+    /// <para>
+    /// <b>It changes how the page initialises.</b> A plugin is a function, so it cannot travel in
+    /// the <c>data-</c> attribute the standalone bundle reads - a page that installs one calls
+    /// <c>Scalar.createApiReference</c> from an inline script instead, and loads the decoder from
+    /// <see cref="MessagePackScriptUrl"/>. A page that installs none is unchanged. That is the whole
+    /// reason this is opt-in rather than always on: a <c>script-src</c> policy naming no
+    /// <c>'unsafe-inline'</c> would notice, and a service that never answers MessagePack should not
+    /// be made to find out.
+    /// </para>
+    /// </remarks>
+    public bool DecodeMessagePack { get; set; }
+
+    /// <summary>
+    /// Where <see cref="DecodeMessagePack"/> loads the decoder from.
+    /// </summary>
+    /// <remarks>
+    /// The UMD build, which installs a global the plugin reads - so the script tag above it has
+    /// already done the loading by the time the plugin runs. Pinned for the reason
+    /// <see cref="ScriptUrl"/> is, and overridable for the same reason.
+    /// </remarks>
+    public string? MessagePackScriptUrl { get; set; } = DefaultMessagePackScriptUrl;
+
     public const string DefaultPath = "/docs";
 
     public const string DefaultTitle = "API Reference";
@@ -113,6 +146,9 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
 
     public const string DefaultScriptUrl =
         "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.65.1/dist/browser/standalone.js";
+
+    public const string DefaultMessagePackScriptUrl =
+        "https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.1.3/dist.umd/msgpack.min.js";
 
     public const string DefaultScriptIntegrity =
         "sha384-G6dkutu2k5IYVyNESLoFIpgaHx38IJTZ/HhrwN0fecTle9te75y8Kru3rJEJ0ZJV";
@@ -187,7 +223,8 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
             Title ?? DefaultTitle,
             DocumentPath ?? DefaultDocumentPath,
             ScriptUrl ?? DefaultScriptUrl,
-            ScriptIntegrity);
+            ScriptIntegrity,
+            DecodeMessagePack ? MessagePackScriptUrl ?? DefaultMessagePackScriptUrl : null);
 
         services.AddSingleton<IWebExecutionRequestHandlerProvider>(
             serviceProvider => new OpenApiUiProvider(configuration, serviceProvider));

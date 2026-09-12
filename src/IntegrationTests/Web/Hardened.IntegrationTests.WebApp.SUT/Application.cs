@@ -27,6 +27,12 @@ namespace Hardened.IntegrationTests.WebApp.SUT;
 /// several specifications gets a page for each, and nothing but a second install proves the module
 /// loads more than once.
 /// </para>
+/// <para>
+/// A third carries <c>DecodeMessagePack</c>, which renders a different page - the plugin cannot
+/// travel in a <c>data-</c> attribute, so that page initialises in script. Its own install rather
+/// than a flag on one of the two above, so both forms are served by this fixture at once and the
+/// tests that pin the attribute form keep pinning it.
+/// </para>
 /// </remarks>
 [HardenedModule]
 [WebLibrary(Test = "test")]
@@ -34,6 +40,7 @@ namespace Hardened.IntegrationTests.WebApp.SUT;
 [Enable<ResponseCompression>]
 [HardenedOpenApiUi(Title = "Integration Tests")]
 [HardenedOpenApiUi(Path = "/docs/internal", Title = "Internal", DocumentPath = "/internal.json")]
+[HardenedOpenApiUi(Path = "/docs/msgpack", Title = "MessagePack", DecodeMessagePack = true)]
 [HardenedMemoryResponseCache]
 [MessagePackSerializerLibrary]
 [AspNetCoreRuntime]

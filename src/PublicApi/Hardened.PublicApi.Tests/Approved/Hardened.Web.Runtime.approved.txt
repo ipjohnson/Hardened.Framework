@@ -499,14 +499,17 @@ namespace Hardened.Web.Runtime.OpenApi
     public class HardenedOpenApiUi : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IEnvironmentServiceCollectionConfiguration
     {
         public const string DefaultDocumentPath = "/openapi.json";
+        public const string DefaultMessagePackScriptUrl = "https://cdn.jsdelivr.net/npm/@msgpack/msgpack@3.1.3/dist.umd/msgpack.min.js";
         public const string DefaultPath = "/docs";
         public const string DefaultScriptIntegrity = "sha384-G6dkutu2k5IYVyNESLoFIpgaHx38IJTZ/HhrwN0fecTle9te75y8Kru3rJEJ0ZJV";
         public const string DefaultScriptUrl = "https://cdn.jsdelivr.net/npm/@scalar/api-reference@1.65.1/dist/browser/standalone" +
             ".js";
         public const string DefaultTitle = "API Reference";
         public HardenedOpenApiUi() { }
+        public bool DecodeMessagePack { get; set; }
         public string? DocumentPath { get; set; }
         public string? Environments { get; set; }
+        public string? MessagePackScriptUrl { get; set; }
         public string? Path { get; set; }
         public string? ScriptIntegrity { get; set; }
         public string? ScriptUrl { get; set; }
@@ -521,8 +524,10 @@ namespace Hardened.Web.Runtime.OpenApi
     public class HardenedOpenApiUiAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
         public HardenedOpenApiUiAttribute() { }
+        public bool DecodeMessagePack { get; set; }
         public string DocumentPath { get; set; }
         public string Environments { get; set; }
+        public string MessagePackScriptUrl { get; set; }
         public string Path { get; set; }
         public string ScriptIntegrity { get; set; }
         public string ScriptUrl { get; set; }
@@ -532,6 +537,7 @@ namespace Hardened.Web.Runtime.OpenApi
     public interface IOpenApiUiConfiguration
     {
         string DocumentPath { get; }
+        string? MessagePackScriptUrl { get; }
         string Path { get; }
         string? ScriptIntegrity { get; }
         string ScriptUrl { get; }
@@ -561,8 +567,9 @@ namespace Hardened.Web.Runtime.OpenApi
     }
     public sealed class OpenApiUiConfiguration : Hardened.Web.Runtime.OpenApi.IOpenApiUiConfiguration
     {
-        public OpenApiUiConfiguration(string path, string title, string documentPath, string scriptUrl, string? scriptIntegrity) { }
+        public OpenApiUiConfiguration(string path, string title, string documentPath, string scriptUrl, string? scriptIntegrity, string? messagePackScriptUrl = null) { }
         public string DocumentPath { get; }
+        public string? MessagePackScriptUrl { get; }
         public string Path { get; }
         public string? ScriptIntegrity { get; }
         public string ScriptUrl { get; }
@@ -575,8 +582,9 @@ namespace Hardened.Web.Runtime.OpenApi
     }
     public sealed class OpenApiUiModel : System.IEquatable<Hardened.Web.Runtime.OpenApi.OpenApiUiModel>
     {
-        public OpenApiUiModel(string Title, string DocumentPath, string ScriptUrl, string? ScriptIntegrity) { }
+        public OpenApiUiModel(string Title, string DocumentPath, string ScriptUrl, string? ScriptIntegrity, string? MessagePackScriptUrl = null) { }
         public string DocumentPath { get; init; }
+        public string? MessagePackScriptUrl { get; init; }
         public string? ScriptIntegrity { get; init; }
         public string ScriptUrl { get; init; }
         public string Title { get; init; }

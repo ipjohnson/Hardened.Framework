@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
@@ -134,5 +134,34 @@ public class OpenApiUiTests {
 
         Assert.Contains("<title>Internal</title>", second);
         Assert.Contains("data-url=\"/internal.json\"", second);
+    }
+
+    /// <summary>
+    /// The page that installs the MessagePack plugin renders the other form, because a plugin is a
+    /// function and cannot travel in a <c>data-</c> attribute.
+    /// </summary>
+    [HardenedTest]
+    public async Task ThePluginPageInitialisesInScript(ITestWebApp testWebApp) {
+        var page = await (await testWebApp.Get("/docs/msgpack")).ReadTextAsync();
+
+        Assert.Contains("<title>MessagePack</title>", page);
+        Assert.Contains("Scalar.createApiReference('#app', {", page);
+        Assert.Contains("@msgpack/msgpack@", page);
+        Assert.Contains("mimeTypes: ['application/msgpack', 'application/x-msgpack']", page);
+    }
+
+    /// <summary>
+    /// And the pages beside it are unchanged, which is what makes the plugin opt-in rather than a
+    /// change to every reference page an application serves.
+    /// </summary>
+    [HardenedTest]
+    public async Task TheOtherPagesKeepTheAttributeForm(ITestWebApp testWebApp) {
+        foreach (var path in new[] { "/docs", "/docs/internal" }) {
+            var page = await (await testWebApp.Get(path)).ReadTextAsync();
+
+            Assert.Contains("<script id=\"api-reference\" data-url=\"", page);
+            Assert.DoesNotContain("createApiReference", page);
+            Assert.DoesNotContain("msgpack", page);
+        }
     }
 }

@@ -1,4 +1,4 @@
-namespace Hardened.Web.Runtime.OpenApi;
+﻿namespace Hardened.Web.Runtime.OpenApi;
 
 /// <summary>
 /// One reference page: where it is served, and what it renders.
@@ -26,17 +26,24 @@ public interface IOpenApiUiConfiguration {
     /// none to state.
     /// </summary>
     string? ScriptIntegrity { get; }
+
+    /// <summary>
+    /// Where the MessagePack decoder is loaded from, or null where the page installs no plugin.
+    /// </summary>
+    string? MessagePackScriptUrl { get; }
 }
 
 /// <inheritdoc />
 public sealed class OpenApiUiConfiguration : IOpenApiUiConfiguration {
     public OpenApiUiConfiguration(
-        string path, string title, string documentPath, string scriptUrl, string? scriptIntegrity) {
+        string path, string title, string documentPath, string scriptUrl, string? scriptIntegrity,
+        string? messagePackScriptUrl = null) {
         Path = path;
         Title = title;
         DocumentPath = documentPath;
         ScriptUrl = scriptUrl;
         ScriptIntegrity = scriptIntegrity;
+        MessagePackScriptUrl = messagePackScriptUrl;
     }
 
     public string Path { get; }
@@ -48,4 +55,6 @@ public sealed class OpenApiUiConfiguration : IOpenApiUiConfiguration {
     public string ScriptUrl { get; }
 
     public string? ScriptIntegrity { get; }
+
+    public string? MessagePackScriptUrl { get; }
 }
