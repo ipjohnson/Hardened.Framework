@@ -115,6 +115,11 @@
         "operationId": "derived",
         "summary": "An attribute of the application's own, deriving from [AuthorizeGrants].",
         "description": "The hand-authored form. It reaches the pipeline the same way the framework's own attributes do - recognised by the interface it inherits rather than by its name - and it is the case a name-matching build diagnostic used to warn about while the runtime guarded it correctly.",
+        "security": [
+          {
+            "PetsOAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -122,6 +127,24 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -188,6 +211,13 @@
           "Authorization"
         ],
         "operationId": "pets",
+        "security": [
+          {
+            "PetsOAuth": [
+              "pets:read"
+            ]
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -195,6 +225,24 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -230,6 +278,74 @@
         ],
         "operationId": "manage",
         "summary": "Both grants, which is what one requirement object in a specification means.",
+        "security": [
+          {
+            "PetsOAuth": [
+              "pets:read",
+              "pets:write"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller does not hold what this operation requires.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/authorization/pets-unstated": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "operationId": "unstated",
+        "summary": "The same grant with no scheme named, which is guarded and undescribable.",
         "responses": {
           "200": {
             "description": "OK",
@@ -273,6 +389,14 @@
         "operationId": "stacked",
         "summary": "Two attributes, which conjoin - so this needs everything both of them named.",
         "description": "Stacking narrows and never widens. Exercised end to end because the rule is only worth anything if it survives the whole path: the generator putting both attributes in metadata, the handler info conjoining them, and the filter refusing a caller holding one.",
+        "security": [
+          {
+            "PetsOAuth": [
+              "pets:read",
+              "admin:*"
+            ]
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -280,6 +404,24 @@
               "application/json": {
                 "schema": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "headers": {
+              "WWW-Authenticate": {
+                "description": "The challenge naming the scheme to authenticate with.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
                 }
               }
             }
@@ -486,6 +628,7 @@
             "name": "path",
             "in": "path",
             "required": true,
+            "x-hardened-catch-all": true,
             "schema": {
               "type": "string"
             }
@@ -1727,11 +1870,8 @@
             "content": {
               "application/octet-stream": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer",
-                    "format": "int32"
-                  }
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -1764,7 +1904,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Reading"
+                    "$ref": "#/components/schemas/Sample"
                   }
                 }
               }
@@ -1795,7 +1935,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Reading"
+                "$ref": "#/components/schemas/Sample"
               }
             }
           }
@@ -1806,7 +1946,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Reading"
+                  "$ref": "#/components/schemas/Sample"
                 }
               }
             }
@@ -1840,7 +1980,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Reading"
+                    "$ref": "#/components/schemas/Sample"
                   }
                 }
               }
@@ -1875,7 +2015,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Reading"
+                    "$ref": "#/components/schemas/Sample"
                   }
                 }
               }
@@ -1921,7 +2061,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Reading"
+                    "$ref": "#/components/schemas/Sample"
                   }
                 }
               }
@@ -2591,6 +2731,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "propertyNames": {
+                    "$ref": "#/components/schemas/Priority"
+                  },
                   "additionalProperties": {
                     "type": "integer",
                     "format": "int32"
@@ -2623,6 +2766,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "propertyNames": {
+                  "$ref": "#/components/schemas/Priority"
+                },
                 "additionalProperties": {
                   "type": "integer",
                   "format": "int32"
@@ -3077,11 +3223,8 @@
             "content": {
               "image/png": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "integer",
-                    "format": "int32"
-                  }
+                  "type": "string",
+                  "format": "binary"
                 }
               }
             }
@@ -5591,14 +5734,7 @@
         "summary": "A declared 204, which also means the body is not written.",
         "responses": {
           "204": {
-            "description": "No Content",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+            "description": "No Content"
           },
           "504": {
             "description": "The operation did not finish inside its budget.",
@@ -6090,7 +6226,14 @@
             "maximum": 120
           },
           "address": {
-            "$ref": "#/components/schemas/AddressModel"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AddressModel"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -6152,6 +6295,23 @@
           }
         }
       },
+      "Sample": {
+        "type": "object",
+        "description": "Named apart from MessagePackController.Reading deliberately. A component is named by the type's own name, so two Reading records in two controllers were published as one schema and the last one written described both. HRDOA005 reports that now.",
+        "required": [
+          "sensor",
+          "value"
+        ],
+        "properties": {
+          "sensor": {
+            "type": "string"
+          },
+          "value": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "Shipping": {
         "type": "string",
         "enum": [
@@ -6185,6 +6345,18 @@
             "type": "string"
           }
         }
+      }
+    },
+    "securitySchemes": {
+      "PetsOAuth": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://example.invalid/token",
+            "scopes": {}
+          }
+        },
+        "description": "The scheme the integration fixture's guarded operations name."
       }
     }
   }

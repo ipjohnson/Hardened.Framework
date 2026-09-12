@@ -109,6 +109,40 @@ internal static class RouteTemplate {
         return "";
     }
 
+    /// <summary>
+    /// Whether <paramref name="token"/> is declared in <paramref name="path"/> as a catch-all.
+    /// </summary>
+    /// <remarks>
+    /// The question the document writer asks so it can say the one thing a path template cannot.
+    /// <c>{*path}</c> and <c>{path}</c> reduce to the same expression, so a reader given the
+    /// template alone percent-encodes the separators in the value it sends and gets a 404 from a
+    /// route that was built to accept them.
+    /// </remarks>
+    public static bool IsCatchAll(string path, string token) {
+        var open = path.IndexOf('{');
+
+        while (open >= 0) {
+            var close = path.IndexOf('}', open);
+
+            if (close < 0) {
+                return false;
+            }
+
+            var start = TokenStart(path, open, close);
+            var colon = path.IndexOf(':', start);
+            var nameEnd = colon >= 0 && colon < close ? colon : close;
+
+            if (nameEnd - start == token.Length &&
+                string.CompareOrdinal(path, start, token, 0, token.Length) == 0) {
+                return start > open + 1;
+            }
+
+            open = path.IndexOf('{', close);
+        }
+
+        return false;
+    }
+
     /// <summary>Whether any token in <paramref name="path"/> carries a constraint.</summary>
     /// <remarks>
     /// The question the document writer asks before it says anything about a route constraint at

@@ -107,6 +107,14 @@ public static class JsonSchemaWriter {
         }
 
         if (type is IArrayTypeSymbol array) {
+            // byte[] is the payload itself, not a sequence of numbers. Every element type below
+            // maps through Primitive, and byte maps to an int32 - so the array branch described an
+            // octet-stream body as a JSON array of integers, which a generated client reads with
+            // the wrong type against a body that is not JSON at all.
+            if (array.ElementType.SpecialType == SpecialType.System_Byte) {
+                return BinaryPayload;
+            }
+
             return "{\"type\":\"array\",\"items\":" +
                    SchemaFor(array.ElementType, components, inProgress, enums, compilationAssembly) + "}";
         }
@@ -147,11 +155,45 @@ public static class JsonSchemaWriter {
         }
 
         if (name is "Dictionary" or "IDictionary" or "IReadOnlyDictionary") {
-            return "{\"type\":\"object\",\"additionalProperties\":" +
-                   SchemaFor(named.TypeArguments[1], components, inProgress, enums, compilationAssembly) + "}";
+            var values = SchemaFor(
+                named.TypeArguments[1], components, inProgress, enums, compilationAssembly);
+
+            return "{\"type\":\"object\"" + PropertyNames(
+                       named.TypeArguments[0], components, enums, compilationAssembly) +
+                   ",\"additionalProperties\":" + values + "}";
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// A binary body: the bytes themselves, which is what <c>byte[]</c> means on the wire.
+    /// </summary>
+    private const string BinaryPayload = "{\"type\":\"string\",\"format\":\"binary\"}";
+
+    /// <summary>
+    /// What a dictionary's keys may be, where the key type says something a string does not.
+    /// </summary>
+    /// <remarks>
+    /// A JSON object's keys are strings whatever the C# key type is, so <c>additionalProperties</c>
+    /// alone describes <c>Dictionary&lt;string, int&gt;</c> completely. An enum key is different:
+    /// it names a closed vocabulary the server will refuse anything outside of, and dropping it
+    /// published a map accepting any key at all. <c>propertyNames</c> is where JSON Schema puts
+    /// that, and it takes the same component the enum is already written as, so the vocabulary is
+    /// stated once.
+    /// <para>
+    /// Only enums. A key constrained some other way is constrained by code this cannot read, and
+    /// guessing a pattern for it would describe a rule the server does not enforce.
+    /// </para>
+    /// </remarks>
+    private static string PropertyNames(
+        ITypeSymbol key, Dictionary<string, string> components,
+        Dictionary<string, EnumVocabulary> enums, IAssemblySymbol? compilationAssembly) {
+        if (key is not INamedTypeSymbol { TypeKind: TypeKind.Enum } enumeration) {
+            return "";
+        }
+
+        return ",\"propertyNames\":" + EnumRef(enumeration, components, enums, compilationAssembly);
     }
 
     /// <summary>
@@ -631,6 +673,14 @@ public static class JsonSchemaWriter {
     private static string Nullable(string schema, ITypeSymbol type) {
         if (type.NullableAnnotation != NullableAnnotation.Annotated && !IsNullableValueType(type)) {
             return schema;
+        }
+
+        // A reference cannot carry a type of its own, so the null goes beside it rather than
+        // inside it. Without this a nullable member pointing at a component was published as
+        // though it were always present, while a nullable scalar beside it said ["string","null"] -
+        // the same annotation described two different ways in one schema.
+        if (schema.StartsWith("{\"$ref\"", System.StringComparison.Ordinal)) {
+            return "{\"anyOf\":[" + schema + ",{\"type\":\"null\"}]}";
         }
 
         const string prefix = "{\"type\":\"";

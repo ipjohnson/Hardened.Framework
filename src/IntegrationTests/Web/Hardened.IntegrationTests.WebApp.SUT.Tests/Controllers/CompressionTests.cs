@@ -58,7 +58,7 @@ public class CompressionTests {
         Assert.Equal("gzip", Coding(response));
         Assert.Contains("Accept-Encoding", response.Headers[KnownHeaders.Vary].ToString());
         Assert.True(LooksGzip(response));
-        Assert.Equal(20, response.Deserialize<List<CompressionController.Reading>>().Count);
+        Assert.Equal(20, response.Deserialize<List<CompressionController.Sample>>().Count);
     }
 
     [HardenedTest]
@@ -70,7 +70,7 @@ public class CompressionTests {
 
         Assert.Equal("", Coding(response));
         Assert.False(LooksGzip(response));
-        Assert.Equal(20, response.Deserialize<List<CompressionController.Reading>>().Count);
+        Assert.Equal(20, response.Deserialize<List<CompressionController.Sample>>().Count);
     }
 
     [HardenedTest]
@@ -81,7 +81,7 @@ public class CompressionTests {
         response.Assert.Ok();
 
         Assert.Equal("br", Coding(response));
-        Assert.Equal(20, response.Deserialize<List<CompressionController.Reading>>().Count);
+        Assert.Equal(20, response.Deserialize<List<CompressionController.Sample>>().Count);
     }
 
     [HardenedTest]
@@ -94,8 +94,8 @@ public class CompressionTests {
 
         Assert.Equal("", Coding(small));
         Assert.Equal("gzip", Coding(large));
-        Assert.Equal(2, small.Deserialize<List<CompressionController.Reading>>().Count);
-        Assert.Equal(5, large.Deserialize<List<CompressionController.Reading>>().Count);
+        Assert.Equal(2, small.Deserialize<List<CompressionController.Sample>>().Count);
+        Assert.Equal(5, large.Deserialize<List<CompressionController.Sample>>().Count);
     }
 
     [HardenedTest]
@@ -175,7 +175,7 @@ public class CompressionTests {
 
         response.Assert.Ok();
 
-        Assert.Equal(new CompressionController.Reading("north", 12), response.Deserialize<CompressionController.Reading>());
+        Assert.Equal(new CompressionController.Sample("north", 12), response.Deserialize<CompressionController.Sample>());
     }
 
     /// <summary>

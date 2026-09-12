@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
 using CSharpAuthor;
@@ -139,6 +139,7 @@ public static class RoutingTableGenerator {
         // the grounds that it cost one string, which understated it - see OpenApiDocumentSource -
         // and an application that does not serve one now does not carry one.
         OpenApiDocumentDiagnostics.ReportDuplicateOperationIds(context, routable);
+        OpenApiDocumentDiagnostics.ReportSchemaNameCollisions(context, routable);
 
         if (OpenApiDocumentFeature.Path(models.Left) is { } documentPath) {
             // An empty document is the one outcome that looks like success from every angle: the

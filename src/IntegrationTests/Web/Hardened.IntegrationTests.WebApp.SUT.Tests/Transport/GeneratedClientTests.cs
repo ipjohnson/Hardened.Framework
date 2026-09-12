@@ -107,10 +107,31 @@ public class GeneratedClientTests {
     /// A refusal the document does not declare has no type to be: Kiota's base exception, with the
     /// status on it.
     /// </summary>
+    /// <remarks>
+    /// <c>/authorization/pets-unstated</c> rather than <c>/pets</c>, which used to be the example.
+    /// A 401 is published from the operation's security requirement, and <c>/pets</c> names a
+    /// scheme now, so its 401 is typed - see
+    /// <see cref="AnAuthenticationRefusalIsTypedWhereTheOperationNamesAScheme"/>. This handler
+    /// requires a grant and names no scheme, which the generator cannot describe, so the status
+    /// the runtime answers is still undeclared and this is still what a client sees.
+    /// </remarks>
     [HardenedTest]
     public async Task AnUndeclaredRefusalIsABareApiException(WebAppClient client) {
         var refusal = await Assert.ThrowsAsync<ApiException>(() =>
-            client.Authorization.Pets.GetAsync(cancellationToken: TestContext.Current.CancellationToken));
+            client.Authorization.PetsUnstated.GetAsync(cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(401, refusal.ResponseStatusCode);
+    }
+
+    /// <summary>
+    /// The other side of it: an operation naming a scheme publishes the 401 enforcing it, so the
+    /// refusal arrives as the generated envelope rather than as a status with nothing on it.
+    /// </summary>
+    [HardenedTest]
+    public async Task AnAuthenticationRefusalIsTypedWhereTheOperationNamesAScheme(
+        [Anonymous] WebAppClient nobody) {
+        var refusal = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
+            nobody.Authorization.Pets.GetAsync(cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.Equal(401, refusal.ResponseStatusCode);
     }
@@ -126,11 +147,10 @@ public class GeneratedClientTests {
 
     /// <summary>Three parameters of the generated type with three credentials: three instances, three answers.</summary>
     /// <remarks>
-    /// The 403 arrives as the generated <c>ErrorModel</c> rather than as Kiota's base exception,
-    /// which is what publishing a declared filter's status buys: the document now says an
-    /// authorization attribute can answer 403 with that envelope, so the generator has a case for
-    /// it. The 401 is still bare here because this operation carries no security requirement for
-    /// the document to hang one on.
+    /// Both refusals arrive as the generated <c>ErrorModel</c> rather than as Kiota's base
+    /// exception, which is what publishing them buys: the document says an authorization attribute
+    /// can answer 403 with that envelope, and the operation's security requirement says it can
+    /// answer 401 with the same one. The 401 was bare until this operation named a scheme.
     /// </remarks>
     [HardenedTest]
     public async Task ThreeGeneratedClientsCarryThreeCredentials(
@@ -138,7 +158,8 @@ public class GeneratedClientTests {
         var token = TestContext.Current.CancellationToken;
 
         var pets = await reader.Authorization.Pets.GetAsync(cancellationToken: token);
-        var refused = await Assert.ThrowsAsync<ApiException>(() => nobody.Authorization.Pets.GetAsync(cancellationToken: token));
+        var refused = await Assert.ThrowsAsync<ClientModels.ErrorModel>(
+            () => nobody.Authorization.Pets.GetAsync(cancellationToken: token));
         var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(
             () => writer.Authorization.Pets.GetAsync(cancellationToken: token));
 

@@ -847,6 +847,232 @@ public class OpenApiDocumentEmissionTests {
 
     #endregion
 
+    #region shapes the document used to get wrong
+
+    /// <summary>
+    /// Every shape in this region, in one application, so the document is read once.
+    /// </summary>
+    private const string ShapeControllers = """
+        public enum Priority { Low, InProgress }
+
+        public sealed class Address { public string? City { get; set; } }
+
+        public class Registration {
+            public string? Name { get; set; }
+            public Address? Home { get; set; }
+        }
+
+        public class ShapeController {
+            [Get("/download")]
+            [Produces("application/octet-stream")]
+            public byte[] Download() => new byte[] { 1, 2, 3 };
+
+            [Delete("/item", SuccessStatus = 204)]
+            public string Remove() => "this body is not written";
+
+            [Post("/registrations")]
+            public string Register(Registration registration) => registration.Name ?? "";
+
+            [Get("/files/{*path}")]
+            public string File(string path) => path;
+
+            [Get("/item/{id}")]
+            public string Item(string id) => id;
+
+            [Get("/counts")]
+            public Dictionary<Priority, int> Counts() => new();
+        }
+        """;
+
+    private static JsonElement ShapeDocument() =>
+        JsonDocument.Parse(Extract(
+            RequestGeneratorHarness
+                .Generate(Application(ShapeControllers, Enable))
+                .AssertNoErrors()
+                .SourceContaining("OpenApiDocument"))).RootElement;
+
+    /// <summary>
+    /// A byte array is the payload, not a list of numbers.
+    /// </summary>
+    /// <remarks>
+    /// Every element type resolves through the primitive map and a byte maps to an int32, so the
+    /// array branch described an octet-stream body as a JSON array of integers. A generated client
+    /// built from that reads numbers off a body that is not JSON.
+    /// </remarks>
+    [Fact]
+    public void AByteArrayIsABinaryPayload() {
+        var schema = ShapeDocument()
+            .GetProperty("paths").GetProperty("/download").GetProperty("get")
+            .GetProperty("responses").GetProperty("200")
+            .GetProperty("content").GetProperty("application/octet-stream")
+            .GetProperty("schema");
+
+        Assert.Equal("string", schema.GetProperty("type").GetString());
+        Assert.Equal("binary", schema.GetProperty("format").GetString());
+    }
+
+    /// <summary>
+    /// A 204 describes no body, because there is not one to describe.
+    /// </summary>
+    /// <remarks>
+    /// The handler returns a string and declares 204, which means both things it says: the writer
+    /// does not send the value. The document said the response carried a JSON string, so a strict
+    /// client waited to read one off an empty body.
+    /// </remarks>
+    [Fact]
+    public void ADeclared204CarriesNoContent() {
+        var response = ShapeDocument()
+            .GetProperty("paths").GetProperty("/item").GetProperty("delete")
+            .GetProperty("responses").GetProperty("204");
+
+        Assert.False(response.TryGetProperty("content", out _));
+    }
+
+    /// <summary>
+    /// A nullable member pointing at a component says so, the way a nullable scalar does.
+    /// </summary>
+    /// <remarks>
+    /// A reference carries no type of its own, so the null goes beside it under <c>anyOf</c>. The
+    /// nullability was dropped entirely, which put two spellings of one annotation in one schema:
+    /// <c>["string","null"]</c> on a scalar and silence on a reference.
+    /// </remarks>
+    [Fact]
+    public void ANullableReferenceMemberDeclaresItsNull() {
+        var home = ShapeDocument()
+            .GetProperty("components").GetProperty("schemas").GetProperty("Registration")
+            .GetProperty("properties").GetProperty("home");
+
+        var branches = home.GetProperty("anyOf").EnumerateArray().ToList();
+
+        Assert.Equal(
+            "#/components/schemas/Address", branches[0].GetProperty("$ref").GetString());
+        Assert.Equal("null", branches[1].GetProperty("type").GetString());
+    }
+
+    /// <summary>
+    /// A catch-all token says it is one, since the template cannot.
+    /// </summary>
+    /// <remarks>
+    /// <c>{*path}</c> and <c>{path}</c> reduce to the same expression - a template expression is a
+    /// name and nothing else - so a reader given the template alone escapes the separators in the
+    /// value it sends and gets a 404 from a route built to accept them.
+    /// </remarks>
+    [Fact]
+    public void ACatchAllTokenIsMarked() {
+        var parameter = ShapeDocument()
+            .GetProperty("paths").GetProperty("/files/{path}").GetProperty("get")
+            .GetProperty("parameters").EnumerateArray().Single();
+
+        Assert.Equal("path", parameter.GetProperty("name").GetString());
+        Assert.True(parameter.GetProperty("x-hardened-catch-all").GetBoolean());
+    }
+
+    /// <summary>A single-segment token says nothing, which is the common case.</summary>
+    [Fact]
+    public void AnOrdinaryPathTokenIsNotMarked() {
+        var parameter = ShapeDocument()
+            .GetProperty("paths").GetProperty("/item/{id}").GetProperty("get")
+            .GetProperty("parameters").EnumerateArray().Single();
+
+        Assert.Equal("id", parameter.GetProperty("name").GetString());
+        Assert.False(parameter.TryGetProperty("x-hardened-catch-all", out _));
+    }
+
+    /// <summary>
+    /// An enum key names the vocabulary the map accepts.
+    /// </summary>
+    /// <remarks>
+    /// A JSON object's keys are strings whatever the C# key type is, so
+    /// <c>additionalProperties</c> alone describes a string-keyed map completely. An enum key is a
+    /// closed set the server refuses anything outside of, and dropping it published a map
+    /// accepting any key at all.
+    /// </remarks>
+    [Fact]
+    public void AnEnumDictionaryKeyPublishesItsVocabulary() {
+        var schema = ShapeDocument()
+            .GetProperty("paths").GetProperty("/counts").GetProperty("get")
+            .GetProperty("responses").GetProperty("200")
+            .GetProperty("content").GetProperty("application/json").GetProperty("schema");
+
+        Assert.Equal(
+            "#/components/schemas/Priority",
+            schema.GetProperty("propertyNames").GetProperty("$ref").GetString());
+        Assert.Equal(
+            "integer", schema.GetProperty("additionalProperties").GetProperty("type").GetString());
+    }
+
+    /// <summary>
+    /// Two types published under one component name are reported.
+    /// </summary>
+    /// <remarks>
+    /// A component is named by the type's own name, unqualified, which is the spelling client
+    /// generators produce. Two types with that name in different controllers therefore collide and
+    /// the merge keeps whichever arrived last, leaving one operation described with the other's
+    /// shape in a document that is still valid.
+    /// </remarks>
+    [Fact]
+    public void TwoTypesUnderOneComponentNameAreReported() {
+        var result = RequestGeneratorHarness.Generate(Application("""
+            public class FirstController {
+                public record Reading(string Sensor);
+
+                [Get("/first")]
+                public Reading Get() => new Reading("north");
+            }
+
+            public class SecondController {
+                public record Reading(int Value, bool Settled);
+
+                [Get("/second")]
+                public Reading Get() => new Reading(1, true);
+            }
+            """, Enable));
+
+        var diagnostic = Assert.Single(
+            result.GeneratorDiagnostics,
+            entry => entry.Id == Hardened.SourceGenerator.OpenApiDocument
+                .OpenApiDocumentDiagnostics.SchemaNameCollisionId);
+
+        var message = diagnostic.GetMessage();
+
+        Assert.Contains("\"Reading\"", message);
+        Assert.Contains("FirstController.Get", message);
+        Assert.Contains("SecondController.Get", message);
+    }
+
+    /// <summary>
+    /// Two types that write the same schema are not reported.
+    /// </summary>
+    /// <remarks>
+    /// The document is then correct whichever one the merge keeps, so reporting it would name a
+    /// defect no reader of the document can see.
+    /// </remarks>
+    [Fact]
+    public void TwoIdenticalTypesUnderOneNameAreNotReported() {
+        var result = RequestGeneratorHarness.Generate(Application("""
+            public class LeftController {
+                public record Reading(string Sensor);
+
+                [Get("/left")]
+                public Reading Get() => new Reading("north");
+            }
+
+            public class RightController {
+                public record Reading(string Sensor);
+
+                [Get("/right")]
+                public Reading Get() => new Reading("south");
+            }
+            """, Enable));
+
+        Assert.DoesNotContain(
+            result.GeneratorDiagnostics,
+            entry => entry.Id == Hardened.SourceGenerator.OpenApiDocument
+                .OpenApiDocumentDiagnostics.SchemaNameCollisionId);
+    }
+
+    #endregion
+
     #region prose with commas in it
 
     /// <summary>

@@ -66,7 +66,7 @@ public class AspNetCoreHostTests {
     public async Task ThreeParametersCarryThreeCredentialsOverTheWire(
         [Grants("pets:read")] WebAppClient reader, [Anonymous] WebAppClient nobody, [Grants("pets:write")] WebAppClient writer) {
         var pets = await reader.Authorization.Pets.GetAsync(cancellationToken: Token);
-        var refused = await Assert.ThrowsAsync<ApiException>(() => nobody.Authorization.Pets.GetAsync(cancellationToken: Token));
+        var refused = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() => nobody.Authorization.Pets.GetAsync(cancellationToken: Token));
         var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() => writer.Authorization.Pets.GetAsync(cancellationToken: Token));
 
         Assert.NotNull(pets);

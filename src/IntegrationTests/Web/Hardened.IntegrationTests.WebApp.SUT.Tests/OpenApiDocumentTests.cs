@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
@@ -351,4 +351,89 @@ public class OpenApiDocumentTests {
     }
 
     #endregion
+
+    /// <summary>
+    /// A scheme an operation names reaches <c>components.securitySchemes</c>, keyed by the type.
+    /// </summary>
+    /// <remarks>
+    /// Declaring a scheme is declaring the type and using it anywhere. Nothing in this application
+    /// registers <c>PetsOAuth</c> or lists it; the four operations naming it are the whole of what
+    /// puts it here.
+    /// </remarks>
+    [HardenedTest]
+    public async Task ASchemeAnOperationNamesIsPublished(ITestWebApp testWebApp) {
+        using var document = await Fetch(testWebApp);
+
+        var scheme = document.RootElement
+            .GetProperty("components").GetProperty("securitySchemes").GetProperty("PetsOAuth");
+
+        Assert.Equal("oauth2", scheme.GetProperty("type").GetString());
+        Assert.Equal(
+            "https://example.invalid/token",
+            scheme.GetProperty("flows").GetProperty("clientCredentials")
+                .GetProperty("tokenUrl").GetString());
+    }
+
+    /// <summary>
+    /// Grants required beside an OAuth2 scheme are the requirement's scopes.
+    /// </summary>
+    /// <remarks>
+    /// The kind of scheme decides. OAuth2 carries scopes, so <c>[AuthorizeGrants]</c> beside it
+    /// names them; under an HTTP scheme the same operation would publish the scheme and nothing
+    /// more, which is the rule the OpenAPI reader applies coming the other way.
+    /// </remarks>
+    [HardenedTest]
+    public async Task GrantsRequiredBesideAnOAuth2SchemeArePublishedAsScopes(ITestWebApp testWebApp) {
+        using var document = await Fetch(testWebApp);
+
+        var requirement = document.RootElement
+            .GetProperty("paths").GetProperty("/authorization/pets-manage").GetProperty("get")
+            .GetProperty("security").EnumerateArray().Single();
+
+        var scopes = requirement.GetProperty("PetsOAuth").EnumerateArray()
+            .Select(scope => scope.GetString()).ToList();
+
+        Assert.Equal(new[] { "pets:read", "pets:write" }, scopes);
+    }
+
+    /// <summary>
+    /// An operation with a security requirement publishes the 401 that enforcing it produces, and
+    /// the challenge that comes with it.
+    /// </summary>
+    /// <remarks>
+    /// The status is what the filter answers, not what the handler declares, so nothing on the
+    /// handler says 401 and the document has to derive it from the requirement.
+    /// <c>AuthorizationTests</c> asserts the same refusal on the wire.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AnOperationWithARequirementPublishesItsChallenge(ITestWebApp testWebApp) {
+        using var document = await Fetch(testWebApp);
+
+        var unauthorized = document.RootElement
+            .GetProperty("paths").GetProperty("/authorization/pets").GetProperty("get")
+            .GetProperty("responses").GetProperty("401");
+
+        Assert.Equal("Authentication required.", unauthorized.GetProperty("description").GetString());
+        Assert.True(unauthorized.GetProperty("headers").TryGetProperty("WWW-Authenticate", out _));
+    }
+
+    /// <summary>
+    /// A grant with no scheme beside it publishes nothing, so its 401 stays underived.
+    /// </summary>
+    /// <remarks>
+    /// A requirement has to reference a declared scheme, and the generator cannot invent one. The
+    /// operation is guarded at run time exactly as its neighbour is; what separates them in the
+    /// document is that one of them said which scheme establishes its caller.
+    /// </remarks>
+    [HardenedTest]
+    public async Task AGrantWithNoSchemePublishesNoRequirement(ITestWebApp testWebApp) {
+        using var document = await Fetch(testWebApp);
+
+        var operation = document.RootElement
+            .GetProperty("paths").GetProperty("/authorization/pets-unstated").GetProperty("get");
+
+        Assert.False(operation.TryGetProperty("security", out _));
+        Assert.False(operation.GetProperty("responses").TryGetProperty("401", out _));
+        Assert.True(operation.GetProperty("responses").TryGetProperty("403", out _));
+    }
 }

@@ -12,28 +12,33 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 [BasePath("/compression")]
 public class CompressionController {
 
-    public record Reading(string Sensor, int Value);
+    /// <summary>
+    /// Named apart from <c>MessagePackController.Reading</c> deliberately. A component is named by
+    /// the type's own name, so two <c>Reading</c> records in two controllers were published as one
+    /// schema and the last one written described both. HRDOA005 reports that now.
+    /// </summary>
+    public record Sample(string Sensor, int Value);
 
-    private static List<Reading> Readings(int count) =>
-        Enumerable.Range(0, count).Select(i => new Reading("sensor-" + i, i * 3)).ToList();
+    private static List<Sample> Readings(int count) =>
+        Enumerable.Range(0, count).Select(i => new Sample("sensor-" + i, i * 3)).ToList();
 
     /// <summary>Nothing declared, so the application-wide default applies.</summary>
     [Get("/readings")]
-    public List<Reading> Readings() => Readings(20);
+    public List<Sample> Readings() => Readings(20);
 
     /// <summary>Compressed only when the list is longer than three.</summary>
     [Get("/sized/{count}")]
     [Compress<ListLargerThan>(3)]
-    public List<Reading> Sized(int count) => Readings(count);
+    public List<Sample> Sized(int count) => Readings(count);
 
     [Get("/brotli")]
     [Compress(Favor = CompressionType.Br)]
-    public List<Reading> Brotli() => Readings(20);
+    public List<Sample> Brotli() => Readings(20);
 
     /// <summary>How an operation opts out of the application-wide default.</summary>
     [Get("/never")]
     [Compress<Never>]
-    public List<Reading> Never() => Readings(20);
+    public List<Sample> Never() => Readings(20);
 
     [Get("/text")]
     [Produces("text/plain")]
@@ -44,7 +49,7 @@ public class CompressionController {
     public byte[] Binary() => [1, 2, 3, 4, 5, 6, 7, 8];
 
     [Post("/echo")]
-    public Reading Echo([FromBody] Reading reading) => reading;
+    public Sample Echo([FromBody] Sample sample) => sample;
 }
 
 public sealed class ListLargerThan : ICompressionPredicate {
