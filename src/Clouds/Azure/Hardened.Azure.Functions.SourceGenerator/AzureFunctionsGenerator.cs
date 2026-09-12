@@ -278,7 +278,7 @@ public static class AzureFunctionsGenerator {
 
             // The HTTP family is declared by a web verb in this compilation, or by the module
             // written on the application: a host project whose routes live in a library names
-            // [HttpModule] the way a Lambda host names [ApiGatewayModule], because a generator
+            // [HttpModule] the way a Lambda host names [LambdaHttpModule], because a generator
             // sees only the compilation it runs in.
             var declared = family.Scheme == "HTTP"
                 ? usesWeb || settings.Written

@@ -308,7 +308,7 @@ public class ResponseCompressionFilterTests {
     }
 
     [Fact]
-    public async Task ACompressedResponseIsMarkedBinaryForTheApiGatewayHost() {
+    public async Task ACompressedResponseIsMarkedBinaryForTheLambdaHttpHost() {
         var compressed = Context();
         var plain = Context(acceptEncoding: null);
 

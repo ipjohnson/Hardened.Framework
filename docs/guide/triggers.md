@@ -40,7 +40,7 @@ write `[InvokeModule]` itself would name a cloud in the one file that must not.
 
 The web verbs are on the same mechanism. `[Get]`, `[Post]`, `[Put]`, `[Patch]` and `[Delete]` all
 bind `HardenedHttpModule`, so a controller with a GET and a POST registers one adapter. That is why
-a Lambda web host names `[ApiGatewayModule]` and a function host names nothing: the handlers are in
+a Lambda web host names `[LambdaHttpModule]` and a function host names nothing: the handlers are in
 the host's own compilation in one case and in a referenced library in the other, and a generator
 only sees the compilation it runs in.
 

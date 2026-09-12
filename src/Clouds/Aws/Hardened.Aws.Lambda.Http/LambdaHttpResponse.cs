@@ -4,11 +4,11 @@ using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Runtime.Headers;
 using Microsoft.Extensions.Primitives;
 
-namespace Hardened.Aws.Lambda.ApiGateway;
+namespace Hardened.Aws.Lambda.Http;
 
 /// <summary>
 /// The web-shaped response. Accumulates a status, headers, cookies and a body; the adapter turns
-/// that into the gateway's payload once the chain has finished.
+/// that into the payload format 2.0 response once the chain has finished.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -27,10 +27,10 @@ namespace Hardened.Aws.Lambda.ApiGateway;
 /// a field that has no null.
 /// </para>
 /// </remarks>
-public class ApiGatewayResponse : IExecutionResponse {
+public class LambdaHttpResponse : IExecutionResponse {
     private IHeaderCollection? _headerCollection;
 
-    public ApiGatewayResponse(Stream body) {
+    public LambdaHttpResponse(Stream body) {
         Body = body;
         Cookies = new CookieSetCollectionImpl();
     }
@@ -68,7 +68,7 @@ public class ApiGatewayResponse : IExecutionResponse {
     public object Clone() => Clone(null);
 
     public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
-        var clone = new ApiGatewayResponse(Body) {
+        var clone = new LambdaHttpResponse(Body) {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,

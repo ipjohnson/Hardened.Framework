@@ -8,17 +8,17 @@ using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Microsoft.Extensions.Primitives;
 
-namespace Hardened.Aws.Lambda.ApiGateway;
+namespace Hardened.Aws.Lambda.Http;
 
 /// <summary>
-/// The web-shaped request, from an API Gateway payload format 2.0 event.
+/// The web-shaped request, from a payload format 2.0 event.
 /// </summary>
 /// <remarks>
-/// Also a function URL and an ALB, which deliver the same shape. Payload format 1.0 is a different
-/// shape and gets its own adapter when one is written; it is not this class with a branch in it,
-/// which is what the design means by a payload format being a value rather than a fork.
+/// A function URL delivers the same shape, so both front doors bind this. Payload format 1.0 is a
+/// different shape and gets its own adapter when one is written; it is not this class with a branch
+/// in it, which is what the design means by a payload format being a value rather than a fork.
 /// </remarks>
-public class ApiGatewayRequest : IExecutionRequest {
+public class LambdaHttpRequest : IExecutionRequest {
     private readonly APIGatewayHttpApiV2ProxyRequest _proxyRequest;
     private readonly string _method;
     private IPathTokenCollection? _pathTokens;
@@ -27,11 +27,11 @@ public class ApiGatewayRequest : IExecutionRequest {
     private IReadOnlyList<string>? _cookies;
     private ITransportInfo? _transport;
 
-    public ApiGatewayRequest(APIGatewayHttpApiV2ProxyRequest request, Stream body)
+    public LambdaHttpRequest(APIGatewayHttpApiV2ProxyRequest request, Stream body)
         : this(request, body, null, null, null, null, null, null) {
     }
 
-    private ApiGatewayRequest(
+    private LambdaHttpRequest(
         APIGatewayHttpApiV2ProxyRequest request,
         Stream body,
         string? method,
@@ -67,7 +67,7 @@ public class ApiGatewayRequest : IExecutionRequest {
     public string Path { get; }
 
     /// <remarks>
-    /// Defaults to JSON when the gateway carried no header, which is the format the overwhelming
+    /// Defaults to JSON when the request carried no header, which is the format the overwhelming
     /// majority of callers send and what the binder would have to assume anyway.
     /// </remarks>
     public string? ContentType =>
@@ -86,11 +86,11 @@ public class ApiGatewayRequest : IExecutionRequest {
     IDictionary<string, StringValues> IExecutionRequest.Headers => Headers;
 
     /// <remarks>
-    /// API Gateway hands over <c>queryStringParameters</c> already percent-decoded, so nothing here
-    /// decodes a second time. That is the difference the conformance suite's decoding assertion
-    /// exists to hold: a timestamp's <c>+</c>, a base64 <c>=</c> and a space have to arrive as
-    /// themselves whatever the transport did to carry them, and a transport that parses its own
-    /// query string is where that goes wrong.
+    /// Payload format 2.0 hands over <c>queryStringParameters</c> already percent-decoded, so
+    /// nothing here decodes a second time. That is the difference the conformance suite's decoding
+    /// assertion exists to hold: a timestamp's <c>+</c>, a base64 <c>=</c> and a space have to
+    /// arrive as themselves whatever the transport did to carry them, and a transport that parses
+    /// its own query string is where that goes wrong.
     /// </remarks>
     public IQueryStringCollection QueryString => _queryStringCollection ??=
         new SimpleQueryStringCollection(_proxyRequest.QueryStringParameters);
@@ -104,7 +104,7 @@ public class ApiGatewayRequest : IExecutionRequest {
     /// Empty rather than null when the request carried no cookies.
     /// </summary>
     /// <remarks>
-    /// API Gateway omits the field entirely in that case, so
+    /// Payload format 2.0 omits the field entirely in that case, so
     /// <c>APIGatewayHttpApiV2ProxyRequest.Cookies</c> is null, and handing that back through a
     /// non-nullable <see cref="IReadOnlyList{T}"/> made every caller a null reference away from
     /// failing on the ordinary case of a request without cookies.
@@ -118,7 +118,7 @@ public class ApiGatewayRequest : IExecutionRequest {
     /// framework's own ASP.NET adapter getting this wrong.
     /// </summary>
     public ITransportInfo Transport =>
-        _transport ??= new ApiGatewayTransportInfo(_proxyRequest);
+        _transport ??= new LambdaHttpTransportInfo(_proxyRequest);
 
     /// <summary>
     /// Every argument is applied.
@@ -136,7 +136,7 @@ public class ApiGatewayRequest : IExecutionRequest {
         IDictionary<string, StringValues>? headers = null,
         IQueryStringCollection? queryString = null,
         IReadOnlyList<string>? cookies = null) {
-        return new ApiGatewayRequest(
+        return new LambdaHttpRequest(
             _proxyRequest,
             Body,
             method ?? _method,

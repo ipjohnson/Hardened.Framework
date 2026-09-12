@@ -5,7 +5,7 @@ using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
-using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.EventBridge;
 using Hardened.Aws.Lambda.Invoke;
 using Hardened.Aws.Lambda.Sns;
@@ -144,9 +144,9 @@ public class LambdaInvocationHandlerTests {
 
     [Fact]
     public async Task AWebAdapterAsksForTheFailureToBeAnswered() {
-        var (handler, executor) = Build(new ApiGatewayAdapter());
+        var (handler, executor) = Build(new LambdaHttpAdapter());
 
-        await handler.Invoke(Input(Payloads.ApiGatewayJson), Context());
+        await handler.Invoke(Input(Payloads.HttpJson), Context());
 
         Assert.Equal(HostFailurePolicy.Answer500, executor.Policy);
     }
@@ -168,7 +168,7 @@ public class LambdaInvocationHandlerTests {
     /// </summary>
     [Fact]
     public async Task TheAdapterWritesTheAnswer() {
-        var (handler, executor) = Build(new ApiGatewayAdapter());
+        var (handler, executor) = Build(new LambdaHttpAdapter());
 
         executor.Body = context => {
             context.Response.Status = 201;
@@ -176,7 +176,7 @@ public class LambdaInvocationHandlerTests {
             return Task.CompletedTask;
         };
 
-        var output = await handler.Invoke(Input(Payloads.ApiGatewayJson), Context());
+        var output = await handler.Invoke(Input(Payloads.HttpJson), Context());
 
         Assert.Contains("\"statusCode\":201", new StreamReader(output).ReadToEnd());
     }

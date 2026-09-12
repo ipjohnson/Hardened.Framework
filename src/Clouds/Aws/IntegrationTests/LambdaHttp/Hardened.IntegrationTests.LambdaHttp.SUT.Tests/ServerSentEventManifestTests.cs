@@ -3,7 +3,7 @@ using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Hardened.IntegrationTests.ApiGateway.SUT.Tests;
+namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 
 /// <summary>
 /// The whole chain the buffered-mode warning rests on, through a real application rather than a

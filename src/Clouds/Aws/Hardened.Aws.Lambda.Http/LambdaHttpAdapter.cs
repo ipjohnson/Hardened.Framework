@@ -8,10 +8,10 @@ using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Requests.Abstract.Execution;
 
-namespace Hardened.Aws.Lambda.ApiGateway;
+namespace Hardened.Aws.Lambda.Http;
 
 /// <summary>
-/// API Gateway payload format 2.0, which is also what a function URL and an ALB deliver.
+/// API Gateway payload format 2.0, which is also what a function URL delivers.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -22,7 +22,7 @@ namespace Hardened.Aws.Lambda.ApiGateway;
 /// <para>
 /// It brings its own <c>JsonTypeInfo</c>, per D3. That is what keeps ahead-of-time publishing
 /// honest: an adapter cannot reach a serializer the application did not declare, and the proxy
-/// request is declared in <see cref="ApiGatewaySerializerContext"/> rather than reflected over.
+/// request is declared in <see cref="LambdaHttpSerializerContext"/> rather than reflected over.
 /// Only the request needs one - the response is written field by field.
 /// </para>
 /// <para>
@@ -31,15 +31,22 @@ namespace Hardened.Aws.Lambda.ApiGateway;
 /// function does serve several sources and something has to choose.
 /// </para>
 /// </remarks>
-public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
+public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// <summary>
     /// The field that says this is payload format 2.0, and the whole of how it is told from 1.0.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Format 1.0 puts the method at <c>httpMethod</c> on the root and its <c>requestContext</c>
     /// carries no <c>http</c> object at all. That is not a hypothetical difference: selecting
     /// format 1.0 used to be accepted and ignored, the generator emitted a v2 handler anyway, and
     /// the function failed in production on a null <c>RequestContext.Http</c>.
+    /// </para>
+    /// <para>
+    /// An ALB is the same shape as 1.0 and so is not served here either: it puts the method on the
+    /// root and carries <c>requestContext.elb</c>, and it reads Set-Cookie out of
+    /// <c>multiValueHeaders</c> rather than the <c>cookies</c> array written below.
+    /// </para>
     /// </remarks>
     private const string RequestContext = "requestContext";
 
@@ -67,13 +74,13 @@ public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
     /// </remarks>
     public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
         var proxy = JsonSerializer.Deserialize(
-                        payload.Raw.Span, ApiGatewaySerializerContext.Default.APIGatewayHttpApiV2ProxyRequest)
+                        payload.Raw.Span, LambdaHttpSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest)
                     ?? throw new InvalidOperationException(
-                        "The API Gateway adapter was given a payload that deserialized to null. " +
+                        "The Lambda HTTP adapter was given a payload that deserialized to null. " +
                         "The peek identified it as payload format 2.0 by its requestContext.http " +
                         "object, so this is a malformed event rather than a different source.");
 
-        return new ApiGatewayRequest(proxy, RequestBody(proxy));
+        return new LambdaHttpRequest(proxy, RequestBody(proxy));
     }
 
     /// <summary>
@@ -82,7 +89,7 @@ public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
     /// </summary>
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Answer500;
 
-    public IExecutionResponse CreateResponse(Stream output) => new ApiGatewayResponse(output);
+    public IExecutionResponse CreateResponse(Stream output) => new LambdaHttpResponse(output);
 
     /// <summary>
     /// The same status, headers and cookies <see cref="WriteResponse"/> would have written, sent as
@@ -109,7 +116,7 @@ public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
             prelude.Headers[header.Key] = header.Value.ToString();
         }
 
-        foreach (var cookie in SetCookies((ApiGatewayResponse)response)) {
+        foreach (var cookie in SetCookies((LambdaHttpResponse)response)) {
             prelude.Cookies.Add(cookie);
         }
 
@@ -132,11 +139,11 @@ public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
     /// </para>
     /// </remarks>
     public async ValueTask WriteResponse(IExecutionContext context, Stream output) {
-        var response = (ApiGatewayResponse)context.Response;
+        var response = (LambdaHttpResponse)context.Response;
 
         var body = response.Body as MemoryStream
                    ?? throw new InvalidOperationException(
-                       "The API Gateway adapter buffers its response, so the body has to be a " +
+                       "The Lambda HTTP adapter buffers its response, so the body has to be a " +
                        "MemoryStream it can read back. Stream mode is a different response mode, " +
                        "not a different body type here.");
 
@@ -155,7 +162,7 @@ public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
     /// <see cref="ReadOnlySpan{T}"/> local, and reading the body without copying it is the point of
     /// writing the response by hand.
     /// </remarks>
-    private static void Write(Utf8JsonWriter writer, ApiGatewayResponse response, MemoryStream body) {
+    private static void Write(Utf8JsonWriter writer, LambdaHttpResponse response, MemoryStream body) {
         writer.WriteStartObject();
 
         // Null means "handled, no opinion" - nothing sets a status on an ordinary success path -
@@ -195,7 +202,7 @@ public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
         body.TryGetBuffer(out var buffer) ? buffer.AsSpan() : body.ToArray();
 
     /// <summary>
-    /// The request body as a stream, decoded from base64 when the gateway says so.
+    /// The request body as a stream, decoded from base64 when the event says so.
     /// </summary>
     private static Stream RequestBody(APIGatewayHttpApiV2ProxyRequest request) {
         if (string.IsNullOrEmpty(request.Body)) {
@@ -227,7 +234,7 @@ public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
     /// Set-Cookie strings, which payload format 2.0 carries in its own array rather than as
     /// repeated headers.
     /// </summary>
-    private static void WriteCookies(Utf8JsonWriter writer, ApiGatewayResponse response) {
+    private static void WriteCookies(Utf8JsonWriter writer, LambdaHttpResponse response) {
         writer.WriteStartArray("cookies");
 
         foreach (var cookie in SetCookies(response)) {
@@ -246,7 +253,7 @@ public sealed class ApiGatewayAdapter : IStreamingPayloadAdapter {
     /// <c>Append(object)</c> and emits its <c>ToString()</c>, which is how every Set-Cookie once
     /// read "name=(value, CookieSetOptions { Expires = , ... })".
     /// </remarks>
-    private static IEnumerable<string> SetCookies(ApiGatewayResponse response) {
+    private static IEnumerable<string> SetCookies(LambdaHttpResponse response) {
         var builder = new StringBuilder();
 
         foreach (var cookie in response.Cookies.Cookies) {

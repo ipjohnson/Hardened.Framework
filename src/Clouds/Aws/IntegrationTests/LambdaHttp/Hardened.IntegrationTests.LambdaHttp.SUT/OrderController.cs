@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using Hardened.Web.Runtime.Attributes;
 
-namespace Hardened.IntegrationTests.ApiGateway.SUT;
+namespace Hardened.IntegrationTests.LambdaHttp.SUT;
 
 public class Order {
     public string Id { get; set; } = "";

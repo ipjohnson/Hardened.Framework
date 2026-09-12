@@ -1,9 +1,9 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Hardened.Aws.Lambda.Runtime.Tests")]
-namespace Hardened.Aws.Lambda.ApiGateway
+namespace Hardened.Aws.Lambda.Http
 {
-    public sealed class ApiGatewayAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter, Hardened.Aws.Lambda.Runtime.Adapters.IStreamingPayloadAdapter
+    public sealed class LambdaHttpAdapter : Hardened.Aws.Lambda.Runtime.Adapters.IPayloadAdapter, Hardened.Aws.Lambda.Runtime.Adapters.IStreamingPayloadAdapter
     {
-        public ApiGatewayAdapter() { }
+        public LambdaHttpAdapter() { }
         public Hardened.Requests.Abstract.Execution.HostFailurePolicy FailurePolicy { get; }
         public Amazon.Lambda.Core.ResponseStreaming.HttpResponseStreamPrelude CreatePrelude(Hardened.Requests.Abstract.Execution.IExecutionResponse response) { }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest CreateRequest(Hardened.Aws.Lambda.Runtime.Execution.LambdaPayload payload, Amazon.Lambda.Core.ILambdaContext context) { }
@@ -14,23 +14,23 @@ namespace Hardened.Aws.Lambda.ApiGateway
     [DependencyModules.Runtime.Attributes.DependencyModule]
     [Hardened.Aws.Lambda.Runtime.Modules.LambdaRuntimeModule]
     [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-    public class ApiGatewayModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
+    public class LambdaHttpModule : DependencyModules.Runtime.Interfaces.IDependencyModule, DependencyModules.Runtime.Interfaces.IServiceCollectionConfiguration
     {
-        public ApiGatewayModule() { }
+        public LambdaHttpModule() { }
         public void ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
         public void PopulateServiceCollection(Microsoft.Extensions.DependencyInjection.IServiceCollection services) { }
     }
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method | System.AttributeTargets.Parameter, AllowMultiple=true)]
-    public class ApiGatewayModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
+    public class LambdaHttpModuleAttribute : System.Attribute, DependencyModules.Runtime.Interfaces.IDependencyModuleProvider
     {
-        public ApiGatewayModuleAttribute() { }
+        public LambdaHttpModuleAttribute() { }
         public DependencyModules.Runtime.Interfaces.IDependencyModule GetModule() { }
     }
-    public class ApiGatewayRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
+    public class LambdaHttpRequest : Hardened.Requests.Abstract.Execution.IExecutionRequest
     {
-        public ApiGatewayRequest(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request, System.IO.Stream body) { }
+        public LambdaHttpRequest(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request, System.IO.Stream body) { }
         public string? Accept { get; }
         public System.IO.Stream Body { get; set; }
         public string? ContentType { get; }
@@ -44,9 +44,9 @@ namespace Hardened.Aws.Lambda.ApiGateway
         public Hardened.Requests.Abstract.Execution.ITransportInfo Transport { get; }
         public Hardened.Requests.Abstract.Execution.IExecutionRequest Clone(string? method = null, string? path = null, System.Collections.Generic.IDictionary<string, Microsoft.Extensions.Primitives.StringValues>? headers = null, Hardened.Requests.Abstract.QueryString.IQueryStringCollection? queryString = null, System.Collections.Generic.IReadOnlyList<string>? cookies = null) { }
     }
-    public class ApiGatewayResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
+    public class LambdaHttpResponse : Hardened.Requests.Abstract.Execution.IExecutionResponse
     {
-        public ApiGatewayResponse(System.IO.Stream body) { }
+        public LambdaHttpResponse(System.IO.Stream body) { }
         public System.IO.Stream Body { get; set; }
         public string? ContentType { get; set; }
         public Hardened.Requests.Abstract.Headers.ICookieSetCollection Cookies { get; }
@@ -62,9 +62,9 @@ namespace Hardened.Aws.Lambda.ApiGateway
         public object Clone() { }
         public Hardened.Requests.Abstract.Execution.IExecutionResponse Clone(Hardened.Requests.Abstract.Headers.IHeaderCollection? headerCollection) { }
     }
-    public sealed class ApiGatewayTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
+    public sealed class LambdaHttpTransportInfo : Hardened.Requests.Abstract.Execution.ITransportInfo
     {
-        public ApiGatewayTransportInfo(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request) { }
+        public LambdaHttpTransportInfo(Amazon.Lambda.APIGatewayEvents.APIGatewayHttpApiV2ProxyRequest request) { }
         public System.Collections.Generic.IReadOnlyList<string> Keys { get; }
         public string? Get(string key) { }
     }

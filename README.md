@@ -124,7 +124,7 @@ The application names its runtime and the libraries it composes, and that is the
 
 ```csharp
 [HardenedModule]
-[KestrelRuntime]          // or [AspNetCoreRuntime], [ApiGatewayModule] for Lambda, [CloudRunRuntime] for Cloud Run, [HttpModule] for Azure Functions
+[KestrelRuntime]          // or [AspNetCoreRuntime], [LambdaHttpModule] for Lambda, [CloudRunRuntime] for Cloud Run, [HttpModule] for Azure Functions
 [TodosLibrary]
 public partial class Application;
 ```

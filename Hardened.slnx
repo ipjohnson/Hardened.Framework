@@ -14,9 +14,9 @@
   <Folder Name="/Clouds/Aws/IntegrationTests/Runtime/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Runtime/Hardened.IntegrationTests.LambdaRuntime.Tests/Hardened.IntegrationTests.LambdaRuntime.Tests.csproj" />
   </Folder>
-  <Folder Name="/Clouds/Aws/IntegrationTests/ApiGateway/">
-    <Project Path="src/Clouds/Aws/IntegrationTests/ApiGateway/Hardened.IntegrationTests.ApiGateway.SUT/Hardened.IntegrationTests.ApiGateway.SUT.csproj" />
-    <Project Path="src/Clouds/Aws/IntegrationTests/ApiGateway/Hardened.IntegrationTests.ApiGateway.SUT.Tests/Hardened.IntegrationTests.ApiGateway.SUT.Tests.csproj" />
+  <Folder Name="/Clouds/Aws/IntegrationTests/LambdaHttp/">
+    <Project Path="src/Clouds/Aws/IntegrationTests/LambdaHttp/Hardened.IntegrationTests.LambdaHttp.SUT/Hardened.IntegrationTests.LambdaHttp.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/LambdaHttp/Hardened.IntegrationTests.LambdaHttp.SUT.Tests/Hardened.IntegrationTests.LambdaHttp.SUT.Tests.csproj" />
   </Folder>
   <Folder Name="/Clouds/Aws/IntegrationTests/Invoke/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Invoke/Hardened.IntegrationTests.Invoke.SUT/Hardened.IntegrationTests.Invoke.SUT.csproj" />
@@ -40,9 +40,9 @@
   </Folder>
   <Folder Name="/Clouds/Aws/IntegrationTests/Rie/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.Rie.SUT/Hardened.IntegrationTests.Rie.SUT.csproj" />
-    <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.RieApiGateway.SUT/Hardened.IntegrationTests.RieApiGateway.SUT.csproj" />
     <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.RieEvents.SUT/Hardened.IntegrationTests.RieEvents.SUT.csproj" />
     <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.RieInvoke.SUT/Hardened.IntegrationTests.RieInvoke.SUT.csproj" />
+    <Project Path="src/Clouds/Aws/IntegrationTests/Rie/Hardened.IntegrationTests.RieLambdaHttp.SUT/Hardened.IntegrationTests.RieLambdaHttp.SUT.csproj" />
   </Folder>
   <Folder Name="/Clouds/Aws/IntegrationTests/Sqs/">
     <Project Path="src/Clouds/Aws/IntegrationTests/Sqs/Hardened.IntegrationTests.Sqs.SUT/Hardened.IntegrationTests.Sqs.SUT.csproj" />
@@ -149,9 +149,9 @@
   <Folder Name="/Clouds/Aws/">
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Runtime/Hardened.Aws.Lambda.Runtime.csproj" />
-    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.ApiGateway/Hardened.Aws.Lambda.ApiGateway.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.DynamoDb/Hardened.Aws.Lambda.DynamoDb.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.EventBridge/Hardened.Aws.Lambda.EventBridge.csproj" />
+    <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Http/Hardened.Aws.Lambda.Http.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Invoke/Hardened.Aws.Lambda.Invoke.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.Kinesis/Hardened.Aws.Lambda.Kinesis.csproj" />
     <Project Path="src/Clouds/Aws/Hardened.Aws.Lambda.S3/Hardened.Aws.Lambda.S3.csproj" />

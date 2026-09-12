@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <!--
-      The ApiGateway fixture's application as a deployable function, for the container tier: the
+      The LambdaHttp fixture's application as a deployable function, for the container tier: the
       Lambda bootstrap against whatever AWS_LAMBDA_RUNTIME_API names, which inside
       public.ecr.aws/lambda/dotnet:8 is the Runtime Interface Emulator. See
       Hardened.IntegrationTests.Rie.SUT for why this is an executable without an apphost.
@@ -16,7 +16,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\ApiGateway\Hardened.IntegrationTests.ApiGateway.SUT\Hardened.IntegrationTests.ApiGateway.SUT.csproj"/>
+        <ProjectReference Include="..\..\LambdaHttp\Hardened.IntegrationTests.LambdaHttp.SUT\Hardened.IntegrationTests.LambdaHttp.SUT.csproj"/>
         <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
     </ItemGroup>

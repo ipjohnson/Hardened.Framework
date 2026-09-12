@@ -33,7 +33,7 @@
     -->
     <ItemGroup>
         <ProjectReference Include="..\Hardened.Aws.Lambda.Runtime\Hardened.Aws.Lambda.Runtime.csproj"/>
-        <ProjectReference Include="..\Hardened.Aws.Lambda.ApiGateway\Hardened.Aws.Lambda.ApiGateway.csproj"/>
+        <ProjectReference Include="..\Hardened.Aws.Lambda.Http\Hardened.Aws.Lambda.Http.csproj"/>
         <ProjectReference Include="..\Hardened.Aws.Lambda.DynamoDb\Hardened.Aws.Lambda.DynamoDb.csproj"/>
         <ProjectReference Include="..\Hardened.Aws.Lambda.EventBridge\Hardened.Aws.Lambda.EventBridge.csproj"/>
         <ProjectReference Include="..\Hardened.Aws.Lambda.Invoke\Hardened.Aws.Lambda.Invoke.csproj"/>

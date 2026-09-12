@@ -128,8 +128,8 @@ services.AddHardenedEnvironment(environment);
 
 new Application().PopulateServiceCollection(services);
 
-// No server and no port. API Gateway is the server, and what this starts is the loop that reads
-// the requests it forwards.
+// No server and no port. The front door is the server, and what this starts is the loop that
+// reads the requests it forwards.
 await HardenedLambdaBootstrap.Run(services.BuildServiceProvider());
 #endif
 #if (cloudRun)

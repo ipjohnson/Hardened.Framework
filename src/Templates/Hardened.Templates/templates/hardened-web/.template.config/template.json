@@ -41,7 +41,7 @@
         },
         {
           "choice": "aws-lambda",
-          "description": "AWS Lambda behind API Gateway, with a harness that runs it locally over HTTP."
+          "description": "AWS Lambda behind an API Gateway HTTP API or a function URL, with a harness that runs it locally over HTTP."
         },
         {
           "choice": "cloud-run",

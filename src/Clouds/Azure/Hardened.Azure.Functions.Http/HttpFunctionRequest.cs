@@ -14,7 +14,7 @@ namespace Hardened.Azure.Functions.Http;
 /// The web-shaped request, from the worker's <see cref="HttpRequestData"/>.
 /// </summary>
 /// <remarks>
-/// The counterpart of <c>ApiGatewayRequest</c>, and simpler because the worker has already done
+/// The counterpart of <c>LambdaHttpRequest</c>, and simpler because the worker has already done
 /// the transport's work: the query is parsed and decoded, the headers are a collection, the
 /// cookies are objects and the body is a stream. What is left is naming each the way the pipeline
 /// asks for it.

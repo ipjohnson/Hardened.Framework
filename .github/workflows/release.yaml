@@ -322,7 +322,7 @@ jobs:
             src/Functions/Hardened.Functions.Testing/Hardened.Functions.Testing.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda/Hardened.Aws.Lambda.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Runtime/Hardened.Aws.Lambda.Runtime.csproj \
-            src/Clouds/Aws/Hardened.Aws.Lambda.ApiGateway/Hardened.Aws.Lambda.ApiGateway.csproj \
+            src/Clouds/Aws/Hardened.Aws.Lambda.Http/Hardened.Aws.Lambda.Http.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.DynamoDb/Hardened.Aws.Lambda.DynamoDb.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.EventBridge/Hardened.Aws.Lambda.EventBridge.csproj \
             src/Clouds/Aws/Hardened.Aws.Lambda.Invoke/Hardened.Aws.Lambda.Invoke.csproj \

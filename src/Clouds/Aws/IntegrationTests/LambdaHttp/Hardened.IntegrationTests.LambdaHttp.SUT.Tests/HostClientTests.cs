@@ -1,11 +1,11 @@
 using System.Net.Http.Json;
 using DependencyModules.Testing.Attributes;
-using Hardened.IntegrationTests.ApiGateway.SUT;
+using Hardened.IntegrationTests.LambdaHttp.SUT;
 using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
-namespace Hardened.IntegrationTests.ApiGateway.SUT.Tests;
+namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 
 /// <summary>
 /// An ordinary <c>HttpClient</c> against the Lambda web host.
@@ -15,7 +15,7 @@ namespace Hardened.IntegrationTests.ApiGateway.SUT.Tests;
 /// The suite drives <see cref="ITestWebApp"/> everywhere else, which reaches the host directly. A
 /// client goes the other way, through the message handler the host hands out, and that is a
 /// separate path with its own request translation - so a client that worked on the pipeline and not
-/// behind API Gateway would have gone unnoticed.
+/// on Lambda would have gone unnoticed.
 /// </para>
 /// <para>
 /// It also says the portability claim in a second voice. Nothing here mentions Lambda; the same
@@ -63,8 +63,8 @@ public class HostClientTests {
     }
 
     /// <summary>
-    /// The host says which deployment it stands for, and behind API Gateway that is one environment
-    /// per invocation.
+    /// The host says which deployment it stands for, and on Lambda that is one environment per
+    /// invocation.
     /// </summary>
     /// <remarks>
     /// Read by a person rather than by the harness, which is why it is asserted: a property nothing

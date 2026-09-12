@@ -280,7 +280,7 @@ with a 304, see [Conditional requests](/guide/conditional-requests).
 ## The web module
 
 Routing needs `[HardenedWebModule]`. `[KestrelRuntime]`, `[AspNetCoreRuntime]` and
-`[ApiGatewayModule]` each bring it, so an application names its runtime and nothing else. A
+`[LambdaHttpModule]` each bring it, so an application names its runtime and nothing else. A
 library that carries routes and is not the host imports `[HardenedWebModule]` itself. Declaring it
 twice is harmless.
 

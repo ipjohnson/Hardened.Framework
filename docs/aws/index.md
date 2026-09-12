@@ -32,7 +32,7 @@ stream models in its deployment bundle.
 | Package | Serves |
 |---|---|
 | `Hardened.Aws.Lambda.Runtime` | The host. The invocation loop, the bootstrap, logging and metrics. Every Lambda application references it |
-| `Hardened.Aws.Lambda.ApiGateway` | `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]` behind API Gateway |
+| `Hardened.Aws.Lambda.Http` | `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]`, behind an API Gateway HTTP API or a function URL |
 | `Hardened.Aws.Lambda.Invoke` | `[HardenedFunction]`, a direct invocation |
 | `Hardened.Aws.Lambda.Sqs` | `[Queue]` |
 | `Hardened.Aws.Lambda.Sns` | `[Topic]` |
@@ -83,7 +83,7 @@ The runtimes are compatible with trimming and Native AOT — every registration 
 
 | Area | Page | Source |
 |---|---|---|
-| HTTP behind API Gateway | [API Gateway](/aws/lambda-web) | [`Hardened.Aws.Lambda.ApiGateway`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Hardened.Aws.Lambda.ApiGateway) |
+| HTTP | [Web applications](/aws/lambda-web) | [`Hardened.Aws.Lambda.Http`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Hardened.Aws.Lambda.Http) |
 | The host, and direct invocation | [Lambda functions](/aws/lambda-function) | [`Hardened.Aws.Lambda.Runtime`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Hardened.Aws.Lambda.Runtime) |
 | Queues and topics | [Queues](/aws/sqs) | [`Hardened.Aws.Lambda.Sqs`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Hardened.Aws.Lambda.Sqs) |
 | Change feeds and streams | [Streams](/aws/ddb-streams) | [`Hardened.Aws.Lambda.DynamoDb`](https://github.com/ipjohnson/Hardened.Framework/tree/main/src/Clouds/Aws/Hardened.Aws.Lambda.DynamoDb) |

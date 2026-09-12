@@ -43,8 +43,8 @@ features:
   - title: The same application on Lambda
     details: >-
       A handler names the queue, topic, schedule or stream it serves, and never the cloud. Which
-      adapter delivers to it is a package reference, so the handlers you already wrote run behind
-      API Gateway or off an SQS batch unchanged.
+      adapter delivers to it is a package reference, so the handlers you already wrote run on a
+      Lambda front door or off an SQS batch unchanged.
     link: /aws/
     linkText: AWS runtimes
 

@@ -12,7 +12,7 @@ namespace Hardened.Azure.Functions.Http;
 /// </summary>
 /// <remarks>
 /// It holds no <c>HttpResponseData</c> while the chain runs, for the reason
-/// <c>ApiGatewayResponse</c> gives: the status has to be null until something sets it, so the
+/// <c>LambdaHttpResponse</c> gives: the status has to be null until something sets it, so the
 /// not-found handler can tell an unmatched route from an answered one, and the worker's status is
 /// an enum with no null.
 /// </remarks>

@@ -1,8 +1,4 @@
 {
-  "Hardened.Aws.Lambda.ApiGateway": {
-    "line": 83.6,
-    "branch": 67.1
-  },
   "Hardened.Aws.Lambda.DynamoDb": {
     "line": 83.8,
     "branch": 78.1
@@ -10,6 +6,10 @@
   "Hardened.Aws.Lambda.EventBridge": {
     "line": 93.6,
     "branch": 100.0
+  },
+  "Hardened.Aws.Lambda.Http": {
+    "line": 83.6,
+    "branch": 67.1
   },
   "Hardened.Aws.Lambda.Invoke": {
     "line": 91.6,

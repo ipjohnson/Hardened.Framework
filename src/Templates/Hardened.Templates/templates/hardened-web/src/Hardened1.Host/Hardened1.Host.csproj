@@ -32,7 +32,7 @@
       Program.cs rather than something emitted.
     -->
     <PackageReference Include="Hardened.Aws.Lambda.Runtime" />
-    <PackageReference Include="Hardened.Aws.Lambda.ApiGateway" />
+    <PackageReference Include="Hardened.Aws.Lambda.Http" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" />
 <!--#endif -->
 <!--#if (cloudRun) -->

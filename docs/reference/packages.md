@@ -133,7 +133,7 @@ reach.
 
 | Package | Serves | Module |
 |---|---|---|
-| `Hardened.Aws.Lambda.ApiGateway` | `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]` | `[ApiGatewayModule]` |
+| `Hardened.Aws.Lambda.Http` | `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]` | `[LambdaHttpModule]` |
 | `Hardened.Aws.Lambda.Invoke` | `[HardenedFunction]` | `[InvokeModule]` |
 | `Hardened.Aws.Lambda.Sqs` | `[Queue]` | `[SqsModule]` |
 | `Hardened.Aws.Lambda.Sns` | `[Topic]` | `[SnsModule]` |
@@ -143,7 +143,7 @@ reach.
 | `Hardened.Aws.Lambda.S3` | `[Blob]` | `[S3Module]` |
 
 An application does not normally write a module out. The trigger on a handler binds it, through a
-build property the adapter package declares. `[ApiGatewayModule]` is the exception, because a web
+build property the adapter package declares. `[LambdaHttpModule]` is the exception, because a web
 host's routes are in a library the generator cannot see; and any adapter is written out to set
 `ReportBatchItemFailures`, which is a fact about the deployment rather than the code.
 

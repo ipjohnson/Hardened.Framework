@@ -5,7 +5,7 @@ using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Xunit;
-using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.Http;
 
 namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 
@@ -13,8 +13,8 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 /// The two halves the conformance suite does not reach: what the peek recognises, and what comes
 /// out the far end.
 /// </summary>
-public class ApiGatewayAdapterTests {
-    private readonly ApiGatewayAdapter _adapter = new();
+public class LambdaHttpAdapterTests {
+    private readonly LambdaHttpAdapter _adapter = new();
 
     private bool Handles(string json) {
         using var payload = new LambdaPayload(Encoding.UTF8.GetBytes(json));
@@ -77,8 +77,8 @@ public class ApiGatewayAdapterTests {
     }
 
     /// <summary>
-    /// An "http" nested deeper inside the caller's own requestContext is not the gateway's. Only a
-    /// direct property of requestContext counts, which is what the depth check is for.
+    /// An "http" nested deeper inside the caller's own requestContext is not the front door's.
+    /// Only a direct property of requestContext counts, which is what the depth check is for.
     /// </summary>
     [Fact]
     public void DeclinesAnHttpBuriedDeeperInsideSomeoneElsesContext() {
@@ -206,8 +206,8 @@ public class ApiGatewayAdapterTests {
     }
 
     /// <summary>Runs the response half: build one, let the caller write to it, read the payload.</summary>
-    private async Task<APIGatewayHttpApiV2ProxyResponse> Answer(Action<ApiGatewayResponse> write) {
-        var response = (ApiGatewayResponse)_adapter.CreateResponse(new MemoryStream());
+    private async Task<APIGatewayHttpApiV2ProxyResponse> Answer(Action<LambdaHttpResponse> write) {
+        var response = (LambdaHttpResponse)_adapter.CreateResponse(new MemoryStream());
 
         write(response);
 

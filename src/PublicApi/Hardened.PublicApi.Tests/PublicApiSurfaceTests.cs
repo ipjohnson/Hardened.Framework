@@ -35,7 +35,7 @@ public class PublicApiSurfaceTests {
     private static readonly string[] Shipped = [
         "Hardened.Aws.DynamoDbClient",
         "Hardened.Aws.DynamoDbClient.Testing",
-        "Hardened.Aws.Lambda.ApiGateway",
+        "Hardened.Aws.Lambda.Http",
         "Hardened.Aws.Lambda.DynamoDb",
         "Hardened.Aws.Lambda.EventBridge",
         "Hardened.Aws.Lambda.Invoke",

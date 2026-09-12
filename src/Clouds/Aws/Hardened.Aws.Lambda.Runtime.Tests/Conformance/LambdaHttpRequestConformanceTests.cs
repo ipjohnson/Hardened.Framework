@@ -1,13 +1,13 @@
 using Amazon.Lambda.APIGatewayEvents;
 using Hardened.Aws.Lambda.Runtime.Execution;
-using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.Http;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Testing.Conformance;
 
 namespace Hardened.Aws.Lambda.Runtime.Tests.Conformance;
 
 /// <summary>
-/// The API Gateway request, held to the web-shaped profile: all twenty-six assertions.
+/// The Lambda HTTP request, held to the web-shaped profile: all twenty-six assertions.
 /// </summary>
 /// <remarks>
 /// The full profile rather than the payload subset, because this transport really does carry a
@@ -15,16 +15,16 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Conformance;
 /// split encodes - it is about what the transport carried, not about how much of the pipeline the
 /// adapter happens to use.
 /// </remarks>
-public class ApiGatewayRequestConformanceTests : ExecutionRequestConformanceTests {
-    protected override IExecutionRequestConformanceAdapter Adapter { get; } = new GatewayAdapter();
+public class LambdaHttpRequestConformanceTests : ExecutionRequestConformanceTests {
+    protected override IExecutionRequestConformanceAdapter Adapter { get; } = new HttpAdapter_();
 
     /// <summary>
-    /// Builds the proxy event the gateway would have sent and hands it to the real request, doing
+    /// Builds the proxy event the front door would have sent and hands it to the real request,
     /// nothing else. Anything the mapping gets wrong reaches the assertions rather than being
     /// smoothed over here.
     /// </summary>
-    private sealed class GatewayAdapter : IExecutionRequestConformanceAdapter {
-        public string TransportName => "API Gateway v2";
+    private sealed class HttpAdapter_ : IExecutionRequestConformanceAdapter {
+        public string TransportName => "Lambda HTTP";
 
         public IExecutionRequest CreateRequest(ConformanceRequestSpec spec) {
             var proxy = new APIGatewayHttpApiV2ProxyRequest {
@@ -42,7 +42,7 @@ public class ApiGatewayRequestConformanceTests : ExecutionRequestConformanceTest
                 }
             };
 
-            // The gateway sends queryStringParameters already percent-decoded, so the spec's values
+            // Payload format 2.0 carries queryStringParameters already percent-decoded, so they
             // go across as themselves. Encoding them here would be testing this file's encoder
             // rather than the request's decoding, and the suite asserts a "+" in a timestamp and a
             // trailing "=" in base64 survive - which they do because nothing decodes twice.
@@ -59,7 +59,7 @@ public class ApiGatewayRequestConformanceTests : ExecutionRequestConformanceTest
 
             var body = spec.Body == null ? Stream.Null : new MemoryStream(spec.Body);
 
-            return new ApiGatewayRequest(proxy, body);
+            return new LambdaHttpRequest(proxy, body);
         }
     }
 }

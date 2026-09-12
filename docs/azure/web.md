@@ -58,7 +58,7 @@ The template writes that `host.json`, so a route answers at the same path on eve
 
 The routes live in the library, the generator runs in the host project, and a generator sees
 only the compilation it runs in. The host project therefore names the adapter, the way a Lambda
-host writes `[ApiGatewayModule]`:
+host writes `[LambdaHttpModule]`:
 
 ```csharp
 [HardenedModule]

@@ -6,7 +6,7 @@ namespace Hardened.Web.Runtime.Links;
 /// <remarks>
 /// <para>
 /// <b>A static builder alone is wrong on this framework's primary host.</b>
-/// <c>ApiGatewayV2ExecutionRequest</c> does
+/// <c>LambdaHttpRequest</c> does
 /// </para>
 /// <code>
 /// Path = StripStagePath(request.RawPath, request.RequestContext?.Stage);

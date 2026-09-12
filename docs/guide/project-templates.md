@@ -67,12 +67,12 @@ authorization, or its hosting diagnostics. Instrumentation that subscribes to th
 `DiagnosticSource` names sees nothing under Kestrel. The [Kestrel host's README][kestrel] lists
 the trade-offs.
 
-`aws-lambda` puts the application behind API Gateway. The host project has a `Program.cs` like
-every other host, and the call to `LambdaEmulator.StartIfLocal` in it is what starts the AWS Lambda
-Test Tool beside the process when it is not the Lambda service running it. The application answers
-on 5080 through the tool's API Gateway emulator, so `dotnet run --project src/Todos.Host` and F5
-work the way they do on the other hosts; see
-[Running it locally](/aws/lambda-web#running-it-locally).
+`aws-lambda` puts the application on Lambda, behind an API Gateway HTTP API or a function URL. The
+host project has a `Program.cs` like every other host, and the call to
+`LambdaEmulator.StartIfLocal` in it is what starts the AWS Lambda Test Tool beside the process when
+it is not the Lambda service running it. The application answers on 5080 through the tool's API
+Gateway emulator, so `dotnet run --project src/Todos.Host` and F5 work the way they do on the other
+hosts; see [Running it locally](/aws/lambda-web#running-it-locally).
 
 `cloud-run` runs the application as a Google Cloud Run service: the Kestrel host in a container,
 listening on `PORT`, with `CloudRunHost.RunAsync` draining a request in flight when Cloud Run sends
