@@ -162,6 +162,40 @@ them into every class and property, so overriding them adds attributes and chang
 custom template directory overrides one file at a time and falls back to the embedded template for
 every name it does not find.
 
+**The attributes alone do not change the wire.** Refit picks its format from
+`RefitSettings.ContentSerializer`, and the default is System.Text.Json — so a generated client with
+every key in the right place still sends and receives JSON until it is given one:
+
+```csharp
+var client = RestService.For<ITodosClient>(
+    http, new RefitSettings { ContentSerializer = new MessagePackContentSerializer() });
+```
+
+The template writes that serializer into the client project — about fifty lines over `Refit` and
+`MessagePack`, and no Hardened package, because every body it reads is one of its own generated
+contracts. It is yours to edit: adding LZ4 compression, or a resolver for a type you wrote by hand,
+happens there. `tests/App.Tests/MessagePackClientTests.cs` drives it against the service, in both
+directions.
+
+**The order in the contract is the client's preference.** Refitter reads an operation's media types
+in document order and pins them on the interface as
+`[Headers("Accept: application/json, application/x-msgpack")]`. That header is on the request, and a
+header on the request wins over `HttpClient.DefaultRequestHeaders` — so a client cannot change its
+mind by setting a default, and overrides `Accept` per request through a `DelegatingHandler`.
+Whichever representation you want your clients to reach for by default, declare it first.
+
+### What Refit will not do
+
+**It cannot read a MessagePack error body.** `ApiException` carries the response content as a
+`string`, so the bytes are decoded and re-encoded before any content serializer is asked for them,
+and a binary body arrives full of replacement characters. That is upstream of anything Hardened
+does, and it is why the scaffolded client keeps its `Accept` on JSON and the MessagePack round trip
+is a test of its own rather than a switch on the whole interface.
+
+Request bodies and success bodies are unaffected: those reach the content serializer as real
+`HttpContent`. So a client that wants MessagePack throughout is one whose error handling reads the
+status and the headers rather than a typed body.
+
 Kiota is not supported and not for want of an extension point. Its models carry no serialization
 attributes at all — they implement `IParsable` with hand-written `Serialize` and
 `GetFieldDeserializers` — so an attribute would have nothing to act on. Supporting MessagePack

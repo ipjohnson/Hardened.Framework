@@ -430,7 +430,9 @@
           "comment": "The Liquid templates that put MessagePack attributes on the generated contracts. Refitter is the only generator that reads them - Kiota has no template directory, and its models carry no serialization attributes for one to act on - so a Kiota or opt-out project leaves them out, and so does a project that is not on MessagePack at all. Each mode ships its own pair and they reach the output under the names NJsonSchema looks for, by the same rename the Refit client project uses.",
           "condition": "(!refitClient || !messagePack)",
           "exclude": [
-            "src/Hardened1.Client/templates/**"
+            "src/Hardened1.Client/templates/**",
+            "src/Hardened1.Client/MessagePackContentSerializer.cs",
+            "tests/Hardened1.Tests/MessagePackClientTests.cs"
           ]
         },
         {
