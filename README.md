@@ -33,16 +33,49 @@ $ curl localhost:5080/todos/1
 Four routes. `GET /todos` has one answer. `GET /todos/{id}`, `POST /todos` and
 `DELETE /todos/{id}` each declare more than one. Every example below is from that application.
 
+## Templates
+
 Start from a template rather than from bare packages. The runtime packages carry no analyzers, so a
 project that references only them compiles to an application that answers 404 to everything. The
 templates wire the generators, pin every version in one place, and split the projects so the host
 can be swapped without touching the code.
 
-| Template | What you get |
-|---|---|
-| `hardened-web` | The todo API above: an implementation library, a host, and tests. `--host kestrel\|aspnet\|aws-lambda\|cloud-run\|azure-functions`, `--contract code\|openapi\|smithy`, `--response-model response\|throws\|union`, `--client kiota\|refit\|none`, `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
-| `hardened-function` | A serverless function and tests, on AWS Lambda, Google Cloud Run or Azure Functions. `--host aws\|gcp\|azure`, `--trigger invoke\|queue\|topic\|timer\|change\|stream\|blob`, `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
-| `hardened-library` | A reusable module an application picks up with one attribute, and tests. `--test-framework xunit\|nunit`, `--mocks nsubstitute\|moq\|fakeiteasy` |
+The first value of each option is its default, so the `dotnet new hardened-web -n Todos` above
+took all of them.
+
+### `hardened-web`
+
+The todo API above: an implementation library, a host, and tests.
+
+| Option | Values | What it decides |
+|---|---|---|
+| `--host` | `kestrel`, `aspnet`, `aws-lambda`, `cloud-run`, `azure-functions` | Where the application runs. Only the host project changes with it |
+| `--contract` | `code`, `openapi`, `smithy` | Whether C#, an OpenAPI document or a Smithy model is [the contract](#the-contract-is-yours-to-choose) |
+| `--response-model` | `response`, `throws`, `union` | How a handler declares [more than one status](#three-return-models) |
+| `--client` | `kiota`, `refit`, `none` | The generated client, and the test that drives it through the pipeline |
+| `--serializer` | `json`, `message-pack-named`, `message-pack-keyed` | What an operation can answer besides JSON |
+
+### `hardened-function`
+
+A function and tests, on AWS Lambda, Google Cloud Run or Azure Functions. There is no host
+project: the deployed artifact is the function's own assembly.
+
+| Option | Values | What it decides |
+|---|---|---|
+| `--trigger` | `invoke`, `queue`, `topic`, `timer`, `change`, `stream`, `blob` | What reaches the handler. The attribute names the source and never the cloud |
+| `--host` | `aws`, `gcp`, `azure` | Which cloud runs it. The handler is the same on all three |
+
+### `hardened-library`
+
+A reusable module an application picks up with one attribute, and tests. A library runs on neither
+a host nor a trigger, so the options below are all it takes.
+
+### Every template
+
+| Option | Values | What it decides |
+|---|---|---|
+| `--test-framework` | `xunit`, `nunit` | The runner the test project uses. `[HardenedTest]` reads the same on either |
+| `--mocks` | `nsubstitute`, `moq`, `fakeiteasy` | Where a `[Mock]` parameter's double comes from |
 
 See the [templates guide](https://ipjohnson.github.io/Hardened.Framework/guide/project-templates) for
 every option, and [getting started](https://ipjohnson.github.io/Hardened.Framework/guide/getting-started)
