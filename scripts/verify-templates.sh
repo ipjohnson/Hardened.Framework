@@ -258,7 +258,7 @@ check_serializer() {
         if grep -q "MessagePack" "$library" "$out/src/Sample/TemplateModuleNameLibrary.cs" \
                "$out/src/Sample/SampleLibrary.cs" 2>/dev/null || [ -d "$templates" ] || \
            [ -e "$out/src/Sample.Client/MessagePackContentSerializer.cs" ] || \
-           [ -e "$out/tests/Sample.Tests/MessagePackClientTests.cs" ]; then
+           [ -e "$out/tests/Sample.Tests/MessagePackClientFactory.cs" ]; then
             echo "   FAILED: --serializer json left MessagePack in the project"
             FAILED=1
         fi
@@ -319,7 +319,7 @@ check_serializer() {
         # above would still pass. The handler tests run over MessagePack because of them, which is
         # what run_tests below is then proving.
         for file in src/Sample.Client/MessagePackContentSerializer.cs \
-                    tests/Sample.Tests/MessagePackClientTests.cs; do
+                    tests/Sample.Tests/MessagePackClientFactory.cs; do
             [ -s "$out/$file" ] || {
                 echo "   FAILED: $file did not reach the output"
                 FAILED=1

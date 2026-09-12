@@ -171,6 +171,16 @@ internal static class SpecRoutingTableGenerator {
             statements.Add(new CodeOutputComponent(negotiation));
         }
 
+        // And what a failed request answers with, from the entry point or the same root.
+        var errorBodies = ErrorBodyRegistration.Statement(
+            appModel.AttributeModels,
+            ordered.FirstOrDefault(registration => registration.ErrorBodies.Length > 0)
+                ?.ErrorBodies ?? "");
+
+        if (errorBodies != null) {
+            statements.Add(new CodeOutputComponent(errorBodies));
+        }
+
         var declaredServiceNames = new HashSet<string>(handlers.Select(m => m.ControllerType.Name));
 
         foreach (var handlerInfo in handlerInfos) {

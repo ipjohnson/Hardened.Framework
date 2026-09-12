@@ -44,4 +44,9 @@ internal record SpecRegistration(
     /// <summary>
     /// <c>x-hardened-content-negotiation</c> from this description's root, or empty.
     /// </summary>
-    string ContentNegotiation);
+    string ContentNegotiation,
+
+    /// <summary>
+    /// <c>x-hardened-error-bodies</c> from this description's root, or empty.
+    /// </summary>
+    string ErrorBodies);

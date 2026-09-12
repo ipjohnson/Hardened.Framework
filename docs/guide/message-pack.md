@@ -174,8 +174,9 @@ var client = RestService.For<ITodosClient>(
 The template writes that serializer into the client project — about fifty lines over `Refit` and
 `MessagePack`, and no Hardened package, because every body it reads is one of its own generated
 contracts. It is yours to edit: adding LZ4 compression, or a resolver for a type you wrote by hand,
-happens there. `tests/App.Tests/MessagePackClientTests.cs` drives it against the service, in both
-directions.
+happens there. `tests/App.Tests/MessagePackClientFactory.cs` hands it to the client the tests drive, so every
+client test in a scaffolded project runs over MessagePack — the typed 404, 409 and 400 bodies
+included.
 
 **The order in the contract is the client's preference.** Refitter reads an operation's media types
 in document order and pins them on the interface as
@@ -184,17 +185,44 @@ header on the request wins over `HttpClient.DefaultRequestHeaders` — so a clie
 mind by setting a default, and overrides `Accept` per request through a `DelegatingHandler`.
 Whichever representation you want your clients to reach for by default, declare it first.
 
-### What Refit will not do
+### Refit cannot read a binary error body
 
-**It cannot read a MessagePack error body.** `ApiException` carries the response content as a
-`string`, so the bytes are decoded and re-encoded before any content serializer is asked for them,
-and a binary body arrives full of replacement characters. That is upstream of anything Hardened
-does, and it is why the scaffolded client keeps its `Accept` on JSON and the MessagePack round trip
-is a test of its own rather than a switch on the whole interface.
+`ApiException` carries the response content as a `string`. Refit reads an error response with
+`ReadAsStringAsync` and disposes the content, and `GetContentAsAsync<T>()` re-wraps that string for
+your serializer — so bytes that are not valid UTF-8 are U+FFFD before anything is asked to parse
+them. Request bodies and success bodies are unaffected; those reach the serializer as real
+`HttpContent`.
 
-Request bodies and success bodies are unaffected: those reach the content serializer as real
-`HttpContent`. So a client that wants MessagePack throughout is one whose error handling reads the
-status and the headers rather than a typed body.
+Nothing on the client can recover them, so the answer is on the service: send text.
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+[MessagePackSerializerLibrary]
+[JsonErrorBodies]
+public partial class AppLibrary;
+```
+
+Every failed request then answers JSON whatever it negotiated, and successes are untouched. A
+description says the same with `x-hardened-error-bodies: json` at its root.
+
+It is one answer for the whole service, for the reason `[ContentNegotiation]` is: a policy that has
+to be repeated is one that ends up applied unevenly. And the published document follows — an error
+response declares `application/json` and nothing else — so a generated client reads what it is
+actually sent.
+
+The client side is then one serializer that reads both, which is what a client facing a negotiating
+service should be anyway. The template's `MessagePackContentSerializer` dispatches on the payload:
+a body starting `{` or `[` is JSON, everything else is MessagePack. It sniffs rather than reading
+the content type because `GetContentAsAsync` throws that away, and it is safe for the bodies in
+play — a MessagePack map header is `0x80`–`0x8F`, `0xDE` or `0xDF`, and an array `0x90`–`0x9F`,
+`0xDC` or `0xDD`.
+
+Two more things Refitter decides for you. It pins the document's media types on the interface as
+`[Headers("Accept: ...", "Content-Type: ...")]`, in document order, and a header on the request
+wins over `HttpClient.DefaultRequestHeaders` — so a client preferring the other representation
+overrides both through a `DelegatingHandler`. Leave `Content-Type` alone and the service reads a
+MessagePack body as JSON and answers 400.
 
 Kiota is not supported and not for want of an extension point. Its models carry no serialization
 attributes at all — they implement `IParsable` with hand-written `Serialize` and

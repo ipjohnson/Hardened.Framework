@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text.Json;
 using MessagePack;
 using MessagePack.Resolvers;
 using Refit;
@@ -80,9 +81,49 @@ public sealed class MessagePackContentSerializer : IHttpContentSerializer {
         // rather than answering null. A 204 and a 404 with no body both arrive this way.
         var bytes = await content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
 
-        return bytes.Length == 0
-            ? default
+        if (bytes.Length == 0) {
+            return default;
+        }
+
+        return LooksLikeJson(bytes)
+            ? JsonSerializer.Deserialize<T>(bytes, Json)
             : MessagePackSerializer.Deserialize<T>(bytes, Options, cancellationToken);
+    }
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    /// <summary>
+    /// Whether the body is JSON rather than MessagePack.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A service on [ErrorBodies(ErrorBodyFormat.Json)] answers its failures as JSON while its
+    /// successes stay MessagePack, so one client reads both. That is the setting to reach for with
+    /// Refit: its ApiException carries the response content as a string, and a binary error body
+    /// does not survive being decoded and re-encoded.
+    /// </para>
+    /// <para>
+    /// Sniffed rather than read off the content type, and that is Refit's doing. GetContentAsAsync
+    /// wraps the string in a fresh StringContent before handing it here, so the real media type is
+    /// gone by then - it is still on ApiException.ContentHeaders, where a content serializer cannot
+    /// see it. On the success path the header is intact and this answers the same thing anyway.
+    /// </para>
+    /// <para>
+    /// Safe for the bodies in play, which are objects. A MessagePack map begins 0x80-0x8F, 0xDE or
+    /// 0xDF and an array 0x90-0x9F, 0xDC or 0xDD; none of them is '{' or '['. Leading whitespace is
+    /// skipped because a formatted body is still JSON.
+    /// </para>
+    /// </remarks>
+    private static bool LooksLikeJson(byte[] bytes) {
+        foreach (var b in bytes) {
+            if (b is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n') {
+                continue;
+            }
+
+            return b is (byte)'{' or (byte)'[';
+        }
+
+        return false;
     }
 
     /// <summary>

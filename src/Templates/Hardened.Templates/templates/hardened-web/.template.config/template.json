@@ -432,7 +432,7 @@
           "exclude": [
             "src/Hardened1.Client/templates/**",
             "src/Hardened1.Client/MessagePackContentSerializer.cs",
-            "tests/Hardened1.Tests/MessagePackClientTests.cs"
+            "tests/Hardened1.Tests/MessagePackClientFactory.cs"
           ]
         },
         {

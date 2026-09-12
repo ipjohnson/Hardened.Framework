@@ -316,14 +316,19 @@ var client = RestService.For<ITemplateModuleNameClient>(
     http, new RefitSettings { ContentSerializer = new MessagePackContentSerializer() });
 ```
 
-`tests/Hardened1.Tests/MessagePackClientTests.cs` drives that serializer and the generated
-contracts against this service, in both directions.
+`tests/Hardened1.Tests/MessagePackClientFactory.cs` hands it to the client the tests drive, so
+every client test in this project runs over MessagePack - the typed 404, 409 and 400 bodies
+included.
 
-The rest of the client tests stay on JSON, and that is Refit rather than a gap here. Its
-`ApiException` carries the response content as a `string`, so a binary error body is decoded and
-re-encoded before any content serializer sees it and arrives corrupt - and those tests assert typed
-404 and 409 bodies. Request bodies and success bodies reach the serializer as real `HttpContent`
-and are unaffected.
+Those error bodies arrive as JSON, because `TemplateModuleNameLibrary` asks for that with
+`[JsonErrorBodies]`. That is Refit's doing: its `ApiException` carries the response content as a
+`string`, so a binary error body is decoded and re-encoded before any content serializer sees it
+and arrives corrupt. Request bodies and success bodies reach the serializer as real `HttpContent`
+and are unaffected, so sending text for the error path is all it takes - and the published document
+says so, declaring `application/json` alone on every error response.
+
+Drop the attribute to answer refusals as MessagePack too, and the client's typed error assertions
+stop working.
 #endif
 #if (kiotaClient)
 

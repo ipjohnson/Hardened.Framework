@@ -145,6 +145,16 @@ public class ContextSerializationService : IContextSerializationService {
             return false;
         }
 
+        // A failure goes to the locator even on an operation that declares one media type, because
+        // that is the only place the error-body policy is read. Without this an operation
+        // declaring application/x-msgpack alone would bypass the check entirely - its serializer is
+        // resolved once when the pipeline is composed - and answer a binary error under
+        // [ErrorBodies(Json)]. The cost is an Accept walk on the failing request, which is not the
+        // one worth optimising.
+        if (context.Response.Status is { } status && status >= 400) {
+            return false;
+        }
+
         var committed = context.Response.ContentType;
 
         return string.IsNullOrEmpty(committed) ||

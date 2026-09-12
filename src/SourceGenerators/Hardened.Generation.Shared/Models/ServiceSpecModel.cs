@@ -94,6 +94,16 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
     public string ContentNegotiation { get; set; } = "";
 
     /// <summary>
+    /// <c>x-hardened-error-bodies</c> at the document root - "json", "negotiated", or empty.
+    /// </summary>
+    /// <remarks>
+    /// A whole-service answer, at the root, for the reason <see cref="ContentNegotiation"/> is one:
+    /// what an operation produces is per operation, and what a <em>failure</em> is written as is
+    /// not something one operation should differ from its neighbours on.
+    /// </remarks>
+    public string ErrorBodies { get; set; } = "";
+
+    /// <summary>
     /// How this spec's handlers declare their responses.
     /// </summary>
     /// <remarks>
@@ -176,6 +186,7 @@ internal class ServiceSpecModel : IEquatable<ServiceSpecModel> {
 
     public bool Equals(ServiceSpecModel? other) {
         if (other is not null && ContentNegotiation != other.ContentNegotiation) return false;
+        if (other is not null && ErrorBodies != other.ErrorBodies) return false;
         if (other is not null && ResponseModel != other.ResponseModel) return false;
         if (other is not null && Serializer != other.Serializer) return false;
         if (other is not null && BindCancellationToken != other.BindCancellationToken) return false;

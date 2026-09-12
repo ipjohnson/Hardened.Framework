@@ -346,6 +346,14 @@ public static class RoutingTableGenerator {
             diMethod.AddIndentedStatement(new CodeOutputComponent(negotiation));
         }
 
+        // And what a failed request answers with, from [ErrorBodies] in the same place.
+        var errorBodies = Routing.ErrorBodyRegistration.Statement(
+            applicationModel.AttributeModels, "");
+
+        if (errorBodies != null) {
+            diMethod.AddIndentedStatement(new CodeOutputComponent(errorBodies));
+        }
+
         if (options.RegisterControllerTypes) {
             var distinctControllers =
                 webEndPointModels.Select(model => model.ControllerType).Distinct();

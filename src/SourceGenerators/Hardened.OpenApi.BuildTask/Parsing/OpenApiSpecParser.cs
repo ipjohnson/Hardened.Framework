@@ -165,6 +165,15 @@ internal static class OpenApiSpecParser {
             model.ContentNegotiation = negotiationValue.GetValue<string>().Trim().ToLowerInvariant();
         }
 
+        // Beside it, and at the root for the same reason: what a failure is written as is one
+        // answer for the whole service rather than a thing one operation differs on.
+        if (document.Extensions != null &&
+            document.Extensions.TryGetValue("x-hardened-error-bodies", out var errorBodiesExt) &&
+            errorBodiesExt is JsonNodeExtension { Node: JsonValue errorBodiesValue } &&
+            errorBodiesValue.GetValueKind() == JsonValueKind.String) {
+            model.ErrorBodies = errorBodiesValue.GetValue<string>().Trim().ToLowerInvariant();
+        }
+
         if (document.Extensions != null &&
             document.Extensions.TryGetValue("x-filter-types", out var filterTypesExt) &&
             filterTypesExt is JsonNodeExtension { Node: JsonObject filterTypesObj }) {

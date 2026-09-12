@@ -1,5 +1,6 @@
 ﻿using DependencyModules.Runtime.Attributes;
 using Hardened.Requests.Abstract.Execution;
+using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
 
 namespace Hardened.Requests.Runtime.Serializer;
@@ -11,12 +12,15 @@ public class SerializationLocatorService : ISerializationLocatorService {
     private readonly Dictionary<string, IResponseSerializer> _byContentType;
     private readonly IResponseSerializer? _defaultSerializer;
     private readonly IContentNegotiationPolicy _negotiationPolicy;
+    private readonly IErrorBodyPolicy _errorBodyPolicy;
 
     public SerializationLocatorService(
         IEnumerable<IRequestDeserializer> requestDeserializers,
         IEnumerable<IResponseSerializer> responseSerializers,
-        IContentNegotiationPolicy? negotiationPolicy = null) {
+        IContentNegotiationPolicy? negotiationPolicy = null,
+        IErrorBodyPolicy? errorBodyPolicy = null) {
         _negotiationPolicy = negotiationPolicy ?? new ContentNegotiationPolicy();
+        _errorBodyPolicy = errorBodyPolicy ?? new ErrorBodyPolicy();
 
         // Reversed so an application's own registrations are tested before the framework's, then
         // ordered ahead of that: within a module DependencyModules sorts by implementation type
@@ -114,6 +118,14 @@ public class SerializationLocatorService : ISerializationLocatorService {
     /// </para>
     /// </remarks>
     public IResponseSerializer FindResponseSerializer(IExecutionContext context) {
+        // Before anything the request asked for, because that is the point of the setting: a
+        // service on [ErrorBodies(Json)] answers every failure as JSON whatever was negotiated.
+        // Ahead of the committed content type as well - a raw handler that committed image/png and
+        // then failed has no PNG to send, and its error model is not one either.
+        if (JsonErrorBody(context) is { } jsonErrors) {
+            return jsonErrors;
+        }
+
         // A response that already carries a content type has committed to it - [RawResponse], or a
         // handler that set it outright. The client does not get to overrule that; the point of
         // saying "this is a PDF" is that it is a PDF.
@@ -169,6 +181,32 @@ public class SerializationLocatorService : ISerializationLocatorService {
         throw new Exception("Could not locate response serializer for accept: " + context.Request.Accept);
     }
 
+
+    /// <summary>
+    /// The JSON serializer, for a failed request under <see cref="ErrorBodyFormat.Json"/>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Null under the default policy and for every successful response, so the ordinary path is one
+    /// enum comparison longer and nothing else.
+    /// </para>
+    /// <para>
+    /// The status rather than <c>ExceptionValue</c>, because the two paths to a failure do not
+    /// agree on that: a thrown refusal sets it and a declared 404 returned as a case does not, and
+    /// both are failures whose body this decides. Anything at 400 or above is one.
+    /// </para>
+    /// <para>
+    /// Falls through to the ordinary selection when nothing writes JSON, rather than refusing. An
+    /// application that replaced the JSON serializer with one under another tag has said something
+    /// about what it writes, and this setting is not the place to overrule it.
+    /// </para>
+    /// </remarks>
+    private IResponseSerializer? JsonErrorBody(IExecutionContext context) =>
+        _errorBodyPolicy.Format == ErrorBodyFormat.Json &&
+        context.Response.Status is { } status &&
+        status >= 400
+            ? ProducerOf(KnownContentType.Json)
+            : null;
 
     /// <summary>
     /// The serializer for a response whose operation declared what it produces.

@@ -42,6 +42,11 @@ namespace Hardened.Requests.Abstract.Attributes
         public JsonEnumNamingAttribute(Hardened.Requests.Abstract.Attributes.EnumNaming naming) { }
         public Hardened.Requests.Abstract.Attributes.EnumNaming Naming { get; }
     }
+    [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class, AllowMultiple=false)]
+    public class JsonErrorBodiesAttribute : System.Attribute
+    {
+        public JsonErrorBodiesAttribute() { }
+    }
     [System.AttributeUsage(System.AttributeTargets.Method, AllowMultiple=false, Inherited=false)]
     public sealed class OutputAttribute<TOutput> : System.Attribute
         where TOutput : Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput, new ()
@@ -947,6 +952,16 @@ namespace Hardened.Requests.Abstract.Serializer
         public T Convert<T>(string value) { }
         public delegate bool TryParse<TValue>(string value, out TValue parsed);
     }
+    public enum ErrorBodyFormat
+    {
+        Negotiated = 0,
+        Json = 1,
+    }
+    public sealed class ErrorBodyPolicy : Hardened.Requests.Abstract.Serializer.IErrorBodyPolicy
+    {
+        public ErrorBodyPolicy(Hardened.Requests.Abstract.Serializer.ErrorBodyFormat format = 0) { }
+        public Hardened.Requests.Abstract.Serializer.ErrorBodyFormat Format { get; }
+    }
     public interface IContentNegotiationPolicy
     {
         Hardened.Requests.Abstract.Serializer.ContentNegotiationMode Mode { get; }
@@ -956,6 +971,10 @@ namespace Hardened.Requests.Abstract.Serializer
         System.Threading.Tasks.ValueTask<T?> DeserializeRequestBody<T>(Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.Task SerializeResponse(Hardened.Requests.Abstract.Execution.IExecutionContext context, Hardened.Requests.Abstract.Serializer.IResponseSerializer? bound, string? declaredContentType);
+    }
+    public interface IErrorBodyPolicy
+    {
+        Hardened.Requests.Abstract.Serializer.ErrorBodyFormat Format { get; }
     }
     public interface IExceptionResponseSerializer
     {
