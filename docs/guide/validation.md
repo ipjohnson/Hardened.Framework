@@ -166,8 +166,8 @@ An unreadable body is reported under `body`:
 | a document that does not parse | `body` | `invalid` |
 | `{"weightKg":"heavy"}` | `body.weightKg` | `invalid` |
 
-`body` is the handler's own parameter identifier, so a handler taking `MemberRequest request` reports
-`request`. On the third row the path names where parsing stopped rather than the fault, so
+`body` is the handler's own parameter identifier, so a handler taking `MemberRequest request`
+reports `request`. On the third row the path names where parsing stopped rather than the fault, so
 `{"accountId":` is reported as `body.accountId`.
 
 ## What the document publishes
