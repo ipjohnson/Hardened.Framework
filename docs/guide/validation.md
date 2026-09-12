@@ -1,7 +1,7 @@
 # Validation
 
 Constraint attributes on a model become a generated validator. A request that fails one answers 400
-before the handler runs, with an entry per failed field.
+before the handler runs, in a validation envelope with an entry per failed field.
 
 ```csharp
 using ValidationModules.Constraints;
@@ -30,7 +30,8 @@ without referencing it compiles, enforces nothing, and reports `HRDV006`.
 ## Constraint attributes
 
 The attributes are in `ValidationModules.Constraints`. Bounded attributes take named `Min` and `Max`
-arguments, and `[Required]` on a non-nullable value type reports `HRDV003`.
+arguments, and every constraint takes `When` and `Unless`, each naming another member of the model
+that decides whether the constraint runs.
 
 | Attribute | Checks |
 |---|---|
@@ -45,15 +46,9 @@ arguments, and `[Required]` on a non-nullable value type reports `HRDV003`.
 ## Required members
 
 `System.Text.Json` ignores nullable reference annotations, so Hardened marks the members itself.
-`RequiredMemberPresence` sets `IsRequired` on the deserializer's metadata for every non-nullable
-reference member a constructor takes, which refuses `{}` against `record NewTodo(string Title)`
-before any constraint runs. One response names every member that was missing.
-
-```json
-{ "errors": [
-  { "field": "body.accountId", "code": "required", "message": "accountId is required." },
-  { "field": "body.weightKg",  "code": "required", "message": "weightKg is required." } ] }
-```
+`{}` against `record NewTodo(string Title)` is refused before any constraint runs, and one response
+names every member that was missing. `RequiredMemberPresence` sets `IsRequired` on the
+deserializer's metadata for every non-nullable reference member a constructor takes.
 
 | Member | Published as | Presence checked |
 |---|---|---|
@@ -61,12 +56,13 @@ before any constraint runs. One response names every member that was missing.
 | constructor parameter with a default value | optional | no |
 | property that is not a constructor parameter | required, unless it has an initializer | no |
 | any value type | required | no |
-| `[ResponseOnly]` | `readOnly` | no |
+| `[ResponseOnly]`, a member the server owns | `readOnly` | no |
 
 `[Required]`, `required` or `[JsonRequired]` adds a presence check to any row marked no, and a
-member that already declares one is left as it is. An AOT-published application has to use them:
-under a source-generated `JsonSerializerContext` the deserializer reads `IsRequired` from that
-generator rather than from reflection.
+member that already declares one is left as it is. `[Required]` on a value type reports `HRDV003`
+instead. An AOT-published application has to use one of the three: under a source-generated
+`JsonSerializerContext` the deserializer reads `IsRequired` from that generator rather than from
+reflection.
 
 ## Constraints on handler parameters
 
@@ -86,9 +82,7 @@ public int Precision([FromQueryString] [Range(Min = 2, Max = 8)] int precision) 
 public string Region([FromHeader("X-Region")] [StringLength(2, 2)] string region) => region;
 ```
 
-The response names the value the caller sent, `precision` or `X-Region`. `When` and `Unless` are the
-exception: each names another member of the model its constraint sits on, so either one on a handler
-parameter reports `HRDV005`.
+`When` or `Unless` on a handler parameter reports `HRDV005`.
 
 ## Nested models
 
@@ -103,7 +97,8 @@ public record NewJob(
 ```
 
 Without it the nested constraints compile, never run, and report `HRDV004`. The nested type must be
-sealed or declare a polymorphism mode, or ValidationModules reports `VM1503`.
+sealed, or `[ValidateNested]` must name a `Polymorphism` mode, or ValidationModules reports
+`VM1503`.
 
 ## Constraints from a contract
 
@@ -125,9 +120,9 @@ components:
         nicknames: { type: array, items: { type: string }, maxItems: 5 }
 ```
 
-The build task writes the matching attribute onto the generated model, and the validation generator
-reads it as it reads a hand-written one. A bound left out stays out, so `minimum: 1` with no
-`maximum` generates `[Range(Min = 1)]` and the message reads "at least 1".
+`Hardened.OpenApi.SourceGenerator` writes the matching attribute onto the generated model, and the
+validation generator reads it as it reads a hand-written one. `minimum: 1` with no `maximum`
+generates `[Range(Min = 1)]`, and the message reads "at least 1".
 
 | Keyword | Attribute |
 |---|---|
@@ -141,10 +136,11 @@ reads it as it reads a hand-written one. A bound left out stays out, so `minimum
 
 ## The 400 response
 
-The generated filter answers the envelope above. A value that does not parse as its declared type
-takes the same shape, so `?limit=abc` against an `int` parameter is reported under `limit`. A
-nested object carries its own path, so a member missing from one is reported as
-`body.lines[0].sku`.
+The generated validator answers the validation envelope. A value that does not parse as its declared
+type takes the same shape, so `?limit=abc` against an `int` parameter is reported under `limit`, and
+a nested object carries its own path, so a member missing from one is reported as
+`body.lines[0].sku`. A parameter is reported under the name the caller sent, `precision` or
+`X-Region`.
 
 An unreadable body is reported under `body`:
 
@@ -157,18 +153,18 @@ An unreadable body is reported under `body`:
 
 `body` is the handler's own parameter identifier, so a handler taking `MemberRequest request`
 reports `request`. On the third row the path names where parsing stopped rather than the fault, so
-`{"accountId":` is reported as `body.accountId`. A body that omits a required member and also breaks
-a constraint is answered about the omission alone, and the constraint comes back on the next
-request.
+`{"accountId":` is reported as `body.accountId`. When a body omits a required member and also breaks
+a constraint, the response names the omission only, and a later request that sends the member is
+answered about the constraint.
 
-## What the document publishes
+## The published document
 
-The document republishes every constraint as the keyword it came from, and an operation with a
-generated validator publishes the 400 alongside them, with its schema under
-`components.schemas.RequestValidationError`. A constraint on a path token is the exception. It is a
-[route constraint](/guide/routing#constraining-what-a-token-matches) tested before any filter runs,
-so the router answers it and the operation publishes no 400. See
-[The OpenAPI document](/guide/openapi-document).
+The [OpenAPI document](/guide/openapi-document) Hardened publishes republishes every constraint as
+the keyword it came from, and an operation with a generated validator publishes the 400 alongside
+them, with its schema under `components.schemas.RequestValidationError`. A constraint on a path
+token is the exception. It is a
+[route constraint](/guide/routing#constraining-what-a-token-matches) tested during routing, so the
+router answers it and the operation publishes no 400.
 
 | Declaration | Refused by | Published |
 |---|---|---|
@@ -177,12 +173,12 @@ so the router answers it and the operation publishes no 400. See
 | `required` on a path token | the router | 404, no body |
 | `pattern` on a query value or header | the validator | 400, the envelope |
 | `minimum` on a path token | the validator | 400, the envelope |
-| `{id:long}` binding an `int` parameter | the binder | 400, the envelope |
+| `{id:long}` binding an `int` parameter | the [binder](/guide/parameter-binding) | 400, the envelope |
 
 ## Custom rules
 
 Write a rule the attributes cannot express in the handler. Throwing `ValidationException` produces
-the same response a constraint does, from the immutable `ValidationResult` its factory builds:
+the same response a constraint does:
 
 ```csharp
 using Hardened.Requests.Runtime.Validation;
@@ -201,7 +197,7 @@ public async Task<Pet> CreatePet(CreatePetRequest body) {
 
 ## Refusing with another status
 
-A refusal that is not about a field takes its own status. Throw the response for that status and
+Give a refusal that is not about a field its own status. Throw the response for that status and
 declare it:
 
 ```csharp
