@@ -134,7 +134,7 @@ such as whether this caller owns this row.
 
 ::: tip An ownership check changes how the response may be cached
 A handler that filters by caller is `CacheScope.PerCaller`. See
-[who the answer is for](/guide/response-caching#say-who-the-answer-is-for).
+[cache scope](/guide/response-caching#cache-scope).
 :::
 
 ## What a principal carries

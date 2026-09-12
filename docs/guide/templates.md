@@ -158,7 +158,7 @@ A view built on a generated base has a `Links` property:
 
 RazorBlade copies `@` expressions verbatim and emits `#line` directives with exact spans, so
 renaming the route or its handler breaks the template at build time, reported at its own line
-and column. See [Links to your own routes](/guide/routing#links-to-your-own-routes).
+and column. See [Routes by name](/guide/routing#routes-by-name).
 
 ## What gets rendered
 
@@ -213,5 +213,5 @@ shipping services alongside a generated type is one attribute rather than two.
 ## Next
 
 - [Content negotiation](/guide/content-negotiation): serving JSON and HTML from one handler
-- [Routing](/guide/routing#links-to-your-own-routes): the generated links a view uses
+- [Routing](/guide/routing#routes-by-name): the generated links a view uses
 - [Sending requests](/guide/testing-web#the-response): reading a rendered page in a test

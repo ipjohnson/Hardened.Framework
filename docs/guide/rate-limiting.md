@@ -155,7 +155,7 @@ Ahead of `FilterOrder.Serialization`, the filter records the refusal on the resp
 `Next()` anyway. The filter that turns a failure into bytes sits behind it, so returning early
 would produce a 429 with an empty body. The serialization filter finds a request already decided,
 reads no body, invokes no handler, and writes the refusal on the way out. Authorization follows
-the same rule, and the [response cache](/guide/response-caching#what-is-not-cached) checks for a
+the same rule, and the [response cache](/guide/response-caching#handlers-that-are-not-cached) checks for a
 recorded failure rather than reading "still travelling" as "still permitted".
 
 ## Not built

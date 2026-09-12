@@ -110,7 +110,7 @@ hit and reads `1.10m` again.
 Registration attributes run after the application's modules, so a registration here replaces one
 there. They are valid on a method, a class or the assembly.
 [Writing a test attribute](/guide/testing-attributes) has the other interfaces, and
-[Testing a duration](/guide/response-caching#testing-a-duration) is the response cache's side of
+[The store clock](/guide/response-caching#the-store-clock) is the response cache's side of
 this example.
 
 ## Choosing a registration by environment

@@ -133,7 +133,7 @@ See [Authorization](/guide/authorization).
 | `[Operation(id)]` | Method | The [`operationId`](/guide/openapi-document) the handler publishes, which a generated client names its method after. Defaults to the method name in camelCase. Two handlers declaring one id is `HRDOA004` |
 | `[Server(url, description?)]` | Class | A base URL the generated document lists under `servers`. Read off the `[HardenedModule]` class in the compilation that writes the document. The assembly target compiles and publishes nothing, and a described contract's own `servers` block wins over it |
 | `[CaseInsensitiveRoutes]` | Class | Matches this module's routes [without regard to case](/guide/routing#case-and-trailing-slashes) |
-| `[RouteConstraint(name)]` | Method | Declares a [route constraint](/guide/routing#declaring-your-own-constraint). `static bool(ReadOnlySpan<char>)` |
+| `[RouteConstraint(name)]` | Method | Declares a [route constraint](/guide/routing#declaring-a-constraint). `static bool(ReadOnlySpan<char>)` |
 
 `Hardened.Web.Runtime.Compression`
 
@@ -175,7 +175,7 @@ feature on for handlers it only references.
 The verb attributes also declare `SuccessStatus`, the status a successful response answers with
 and the document publishes; unset means 200. The `NullReturnStatus`, `ValidationErrorStatus` and
 `ErrorStatus` properties they once carried are gone. See
-[Returning `null`](/guide/routing#returning-null) for what decides those statuses.
+[Status codes](/guide/routing#status-codes) for what decides those statuses.
 
 ## Templates
 

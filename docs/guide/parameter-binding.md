@@ -71,7 +71,7 @@ public int TypedQuery([FromQueryString] int page) => page + 1;
 ```
 
 The body is deserialized as JSON into the parameter type. A value that fails to parse as its type
-answers 400 with the [validation envelope](/guide/validation#the-400-envelope).
+answers 400 with the [validation envelope](/guide/validation#the-failure-response).
 
 ## Naming
 
