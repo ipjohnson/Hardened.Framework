@@ -64,7 +64,7 @@ public class HarnessUnderNUnitTests {
     public async Task TwoParametersCarryTwoCredentials(
         [Grants("pets:read")] WebAppClient reader, [Anonymous] WebAppClient nobody) {
         var pets = await reader.Authorization.Pets.GetAsync(cancellationToken: Token);
-        var refused = Assert.ThrowsAsync<ApiException>(() => nobody.Authorization.Pets.GetAsync(cancellationToken: Token));
+        var refused = Assert.ThrowsAsync<ClientModels.ErrorModel>(() => nobody.Authorization.Pets.GetAsync(cancellationToken: Token));
 
         Assert.That(pets, Is.Not.Null);
         Assert.That(refused!.ResponseStatusCode, Is.EqualTo(401));

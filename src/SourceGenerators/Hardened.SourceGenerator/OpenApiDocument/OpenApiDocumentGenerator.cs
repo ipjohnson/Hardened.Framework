@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using CSharpAuthor;
@@ -613,8 +613,16 @@ public static class OpenApiDocumentGenerator {
 
             WriteText(builder, "description", parameter.Description);
 
-            builder.Append("")
-                .Append(",\"schema\":").Append(ParameterSchema(parameter, version, enums))
+            // The one thing the template cannot carry. RouteTemplate reduces {*path} to {path}
+            // because a template expression is a name and nothing else, so without this the
+            // document describes a segment-bounded token and a generated client escapes the
+            // separators the route exists to accept.
+            if (parameter.BindingType == ParameterBindType.Path &&
+                RouteTemplate.IsCatchAll(handler.Name.Path, name)) {
+                builder.Append(",\"x-hardened-catch-all\":true");
+            }
+
+            builder.Append(",\"schema\":").Append(ParameterSchema(parameter, version, enums))
                 .Append('}');
         }
 
@@ -906,7 +914,7 @@ public static class OpenApiDocumentGenerator {
         if (handler.ResponseInformation.IsAsyncEnumerable) {
             WriteStreamedResponse(builder, handler, components, version);
         }
-        else if (handler.ResponseSchema != null) {
+        else if (handler.ResponseSchema != null && CarriesBody(successStatus)) {
             Merge(components, handler.ResponseSchema);
 
             WriteContentMap(builder, ContentTypes(handler), handler.ResponseSchema.Schema);
@@ -971,7 +979,7 @@ public static class OpenApiDocumentGenerator {
             if (group.Key == streamedStatus) {
                 WriteStreamedResponse(builder, handler, components, version);
             }
-            else if (bodies.Count > 0) {
+            else if (bodies.Count > 0 && CarriesBody(group.Key)) {
                 string schema;
 
                 if (bodies.Count == 1) {
@@ -1407,6 +1415,22 @@ public static class OpenApiDocumentGenerator {
     /// <c>ProducedContentTypes</c> - so sorting here would make a round trip through the document
     /// change which representation the operation leads with.
     /// </remarks>
+    /// <summary>
+    /// Whether a response with this status may describe a body.
+    /// </summary>
+    /// <remarks>
+    /// A handler returning a value and declaring 204 means both things it says: the value is what
+    /// the method hands back, and the status is what the caller is told - and the writer does not
+    /// send the body. The document said otherwise, describing <c>DELETE /verbs/emptied</c> as
+    /// answering 204 with a JSON string, so a strict client waited to read one off an empty body.
+    /// <para>
+    /// 204 and 304 are the two a handler can reach. RFC 9110 gives both no content, and the
+    /// OpenAPI description of a response with no content is the <c>content</c> key absent rather
+    /// than present and empty. 1xx never reaches a handler here.
+    /// </para>
+    /// </remarks>
+    private static bool CarriesBody(int status) => status != 204 && status != 304;
+
     private static void WriteContentMap(
         StringBuilder builder, IReadOnlyList<string> contentTypes, string schema) {
         builder.Append(",\"content\":{");

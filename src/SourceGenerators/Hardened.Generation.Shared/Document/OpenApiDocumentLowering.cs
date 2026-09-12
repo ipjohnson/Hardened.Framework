@@ -116,6 +116,8 @@ internal static class OpenApiDocumentLowering {
                 RewriteExclusiveBound(obj, "exclusiveMinimum", "minimum");
                 RewriteExclusiveBound(obj, "exclusiveMaximum", "maximum");
                 RewriteNullableTypeArray(obj);
+                RewriteNullableRef(obj);
+                obj.Remove("propertyNames");
 
                 foreach (var member in obj.Members) {
                     RewriteForThreeZero(member.Value);
@@ -145,6 +147,57 @@ internal static class OpenApiDocumentLowering {
 
             schema.Members[index] = new KeyValuePair<string, JsonNode>(boundKey, bound);
             schema.Members.Insert(index + 1, new KeyValuePair<string, JsonNode>(exclusiveKey, JsonBoolean.True));
+
+            return;
+        }
+    }
+
+    /// <summary>
+    /// <c>{"anyOf": [{"$ref": x}, {"type": "null"}]}</c> becomes
+    /// <c>{"allOf": [{"$ref": x}], "nullable": true}</c>.
+    /// </summary>
+    /// <remarks>
+    /// 3.0 has no null type, so a nullable reference cannot be spelled as a union. It also gives a
+    /// <c>$ref</c> no siblings, which is why the reference moves inside an <c>allOf</c> rather than
+    /// taking <c>nullable</c> beside it - the same wrapping <c>JsonSchemaWriter.Append</c> applies
+    /// for the same reason. Left alone, the lowered document carried a branch typed <c>null</c>
+    /// that a 3.0 reader has no rule for.
+    /// </remarks>
+    private static void RewriteNullableRef(JsonObject schema) {
+        for (var index = 0; index < schema.Members.Count; index++) {
+            var member = schema.Members[index];
+
+            if (!string.Equals(member.Key, "anyOf", StringComparison.Ordinal) ||
+                !(member.Value is JsonArray branches) || branches.Items.Count != 2) {
+                continue;
+            }
+
+            JsonNode? referenced = null;
+            var sawNull = false;
+
+            foreach (var branch in branches.Items) {
+                if (!(branch is JsonObject option)) {
+                    return;
+                }
+
+                if (option.Get("$ref") is { } _) {
+                    referenced = option;
+                }
+                else if (option.Get("type") is JsonString type && type.Value == "null") {
+                    sawNull = true;
+                }
+            }
+
+            if (!sawNull || referenced == null) {
+                return;
+            }
+
+            var wrapped = new JsonArray();
+
+            wrapped.Items.Add(referenced);
+
+            schema.Members[index] = new KeyValuePair<string, JsonNode>("allOf", wrapped);
+            schema.Members.Insert(index + 1, new KeyValuePair<string, JsonNode>("nullable", JsonBoolean.True));
 
             return;
         }
