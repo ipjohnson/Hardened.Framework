@@ -76,8 +76,8 @@ An AOT-published application declares presence with `required` or `[JsonRequired
 source-generated `JsonSerializerContext` the deserializer reads `IsRequired` from that generator
 rather than from reflection.
 
-A contract-first model does not need `RequiredMemberPresence`. A contract's `required` compiles to `[Required]` whatever
-the member's type.
+A contract-first model does not need `RequiredMemberPresence`. A contract's `required` compiles to
+`[Required]` whatever the member's type.
 
 ## Constraints on handler parameters
 
@@ -153,8 +153,9 @@ reads it as it reads a hand-written one.
 ## The 400 response
 
 The generated filter answers the envelope above. A value that does not parse as its declared type
-takes the same shape, so `?limit=abc` against an `int` parameter is reported under `limit`. A nested
-object carries its own path, so a member missing from one is reported as `body.lines[0].sku`.
+takes the same shape, so `?limit=abc` against an `int` parameter is reported under `limit`. A
+nested object carries its own path, so a member missing from one is reported as
+`body.lines[0].sku`.
 
 An unreadable body is reported under `body`:
 
@@ -173,7 +174,8 @@ An unreadable body is reported under `body`:
 
 The document republishes every constraint as the facet it came from. An operation with a generated
 validator also publishes the 400, with its schema under
-`components.schemas.RequestValidationError`. See [The OpenAPI document](/guide/openapi-document).
+`components.schemas.RequestValidationError`. See
+[The OpenAPI document](/guide/openapi-document).
 
 A constraint on a path token is a [route constraint](/guide/routing#constraining-what-a-token-matches),
 tested before any filter runs.
