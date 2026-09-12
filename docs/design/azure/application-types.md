@@ -32,7 +32,7 @@ meets.
 2. **Nothing on the application names the host.** A function app is whatever the Functions host
    starts, and the host is told what to start by the build. `[HttpModule]` is the one adapter a
    host project writes out, when its routes live in a library, for the reason a Lambda host writes
-   `[ApiGatewayModule]`: a generator sees only the compilation it runs in.
+   `[LambdaHttpModule]`: a generator sees only the compilation it runs in.
 3. **A trigger attribute is what pulls an adapter in.** `[Queue]` on a handler makes the generator
    read `HardenedQueueModule` from the referenced package's build properties, register
    `ServiceBusModule`, and write `Queue_orders`. An adapter is written out on the application

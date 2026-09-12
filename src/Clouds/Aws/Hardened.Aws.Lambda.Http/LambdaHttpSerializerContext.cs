@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using Amazon.Lambda.APIGatewayEvents;
 
-namespace Hardened.Aws.Lambda.ApiGateway;
+namespace Hardened.Aws.Lambda.Http;
 
 /// Case-insensitive rather than a camelCase policy, matching the other event contexts and AWS's
 // own serializer. A policy only reaches properties whose names differ from the wire, and getting
@@ -13,5 +13,5 @@ namespace Hardened.Aws.Lambda.ApiGateway;
 // APIGatewayHttpApiV2ProxyResponse.Body is a string and binding one would copy a six-megabyte
 // body through UTF-16 on its way back out to UTF-8.
 [JsonSerializable(typeof(APIGatewayHttpApiV2ProxyRequest))]
-internal partial class ApiGatewaySerializerContext : JsonSerializerContext {
+internal partial class LambdaHttpSerializerContext : JsonSerializerContext {
 }

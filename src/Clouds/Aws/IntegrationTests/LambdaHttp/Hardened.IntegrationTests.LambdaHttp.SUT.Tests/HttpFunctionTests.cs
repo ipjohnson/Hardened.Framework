@@ -2,7 +2,7 @@ using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
-namespace Hardened.IntegrationTests.ApiGateway.SUT.Tests;
+namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 
 /// <summary>
 /// A web application deployed as a Lambda: ordinary verbs on a controller, reached through an API

@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Hardened.IntegrationTests.ApiGateway.SUT\Hardened.IntegrationTests.ApiGateway.SUT.csproj"/>
+        <ProjectReference Include="..\Hardened.IntegrationTests.LambdaHttp.SUT\Hardened.IntegrationTests.LambdaHttp.SUT.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Testing\Hardened.Web.Testing.csproj"/>
         <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Testing\Hardened.Aws.Lambda.Testing.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Testing.xUnit\Hardened.Shared.Testing.xUnit.csproj"/>

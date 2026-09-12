@@ -2,12 +2,12 @@
 
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
-        <Description>Serves HTTP routes on AWS Lambda behind API Gateway: the proxy payload adapter for [Get], [Post] and the rest, in both v1 and v2 shapes.</Description>
+        <Description>Serves HTTP routes on AWS Lambda: the payload format 2.0 adapter for [Get], [Post] and the rest, behind an API Gateway HTTP API or a function URL.</Description>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>true</IsPackable>
-        <PackageId>Hardened.Aws.Lambda.ApiGateway</PackageId>
-        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;apigateway;http</PackageTags>
+        <PackageId>Hardened.Aws.Lambda.Http</PackageId>
+        <PackageTags>Hardened;Hardened.Framework;aws;lambda;serverless;http;apigateway;functionurl</PackageTags>
 
         <!--
           One adapter family, so a function that is not triggered this way never has these
@@ -43,7 +43,7 @@
       Package\ rather than build\ in the source tree, because .gitignore ignores build/.
     -->
     <ItemGroup>
-        <Content Include="Package\Hardened.Aws.Lambda.ApiGateway.targets">
+        <Content Include="Package\Hardened.Aws.Lambda.Http.targets">
             <Pack>true</Pack>
             <PackagePath>buildTransitive/</PackagePath>
             <PackageCopyToOutput>true</PackageCopyToOutput>

@@ -1,15 +1,15 @@
-# API Gateway
+# Web applications
 
-`[ApiGatewayModule]` runs the routes you already wrote behind API Gateway. The controllers, filters
-and binding are the same as [any web application](/guide/routing).
+`[LambdaHttpModule]` runs the routes you already wrote on Lambda. The controllers, filters and
+binding are the same as [any web application](/guide/routing).
 
 ```csharp
-using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.Http;
 using Hardened.Shared.Runtime.Attributes;
 using Hardened.Web.Runtime.Attributes;
 
 [HardenedModule]
-[ApiGatewayModule]
+[LambdaHttpModule]
 public partial class Application;
 
 public class ProductController {
@@ -33,8 +33,8 @@ way the Kestrel host does.
 
 ## The module
 
-`[ApiGatewayModule]` brings the API Gateway payload adapter and, through the runtime module it
-composes, the invocation loop and the web pipeline.
+`[LambdaHttpModule]` brings the HTTP payload adapter and, through the runtime module it composes,
+the invocation loop and the web pipeline.
 
 It is named here rather than inferred, which is the one place a Lambda application does name its
 cloud. A function whose handlers sit beside its entry point gets its adapter from their
@@ -43,8 +43,10 @@ other trigger. The templates put the handlers in a library project and the entry
 project, and a generator only sees the compilation it runs in, so the host says which adapter serves
 the routes it cannot see. The Kestrel and ASP.NET Core hosts name theirs for the same reason.
 
-The payload format is API Gateway HTTP API, version 2.0. There is no option for the REST API's
-payload format 1.0.
+The payload format is API Gateway HTTP API, version 2.0, which is also what a function URL
+delivers. The module is named for the shape it binds rather than for one sender, because both of
+those front doors send it. There is no option for the REST API's payload format 1.0, and an ALB
+sends a different shape again, which this does not serve.
 
 ## Configuration
 
@@ -57,7 +59,7 @@ using Hardened.Requests.Runtime.Configuration;
 using Hardened.Shared.Runtime.Configuration;
 
 [HardenedModule]
-[ApiGatewayModule]
+[LambdaHttpModule]
 public partial class Application : IServiceCollectionConfiguration {
     public void ConfigureServices(IServiceCollection services) {
         var config = new AppConfig();
@@ -175,9 +177,9 @@ Lambda involvement:
 [assembly: HardenedTestEntryPoint(typeof(Application))]
 ```
 
-That covers routing, binding, filters and serialization. It does not cover the API Gateway event
-conversion. `[LambdaWebTesting]` puts a real proxy event through the invocation loop instead; see
-[Testing AWS handlers](/aws/testing).
+That covers routing, binding, filters and serialization. It does not cover the payload format 2.0
+event conversion. `[LambdaWebTesting]` puts a real proxy event through the invocation loop instead;
+see [Testing AWS handlers](/aws/testing).
 
 ## Next
 

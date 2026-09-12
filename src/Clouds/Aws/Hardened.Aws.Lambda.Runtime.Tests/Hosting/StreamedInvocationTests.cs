@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text;
 using Amazon.Lambda.Core;
-using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Aws.Lambda.Runtime.Streaming;
@@ -36,11 +36,11 @@ public class StreamedInvocationTests {
     /// </summary>
     [Fact]
     public async Task StreamModeOpensAResponseStream() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new ApiGatewayAdapter());
+        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
 
         executor.Body = Writes("hello");
 
-        var output = await handler.Invoke(Input(Payloads.ApiGatewayJson), Context());
+        var output = await handler.Invoke(Input(Payloads.HttpJson), Context());
 
         Assert.Equal("hello", streams.Target.Text);
 
@@ -54,11 +54,11 @@ public class StreamedInvocationTests {
     /// </summary>
     [Fact]
     public async Task BufferedModeWritesTheEnvelopeAndOpensNoStream() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Buffered, new ApiGatewayAdapter());
+        var (handler, executor, streams) = Build(LambdaResponseMode.Buffered, new LambdaHttpAdapter());
 
         executor.Body = Writes("hello");
 
-        var output = await handler.Invoke(Input(Payloads.ApiGatewayJson), Context());
+        var output = await handler.Invoke(Input(Payloads.HttpJson), Context());
 
         Assert.Empty(streams.Preludes);
         Assert.Contains("\"body\":\"hello\"", await Text(output));
@@ -88,7 +88,7 @@ public class StreamedInvocationTests {
     /// </summary>
     [Fact]
     public async Task ThePreludeCarriesTheStatusHeadersAndCookies() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new ApiGatewayAdapter());
+        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
 
         executor.Body = async context => {
             context.Response.Status = 201;
@@ -98,7 +98,7 @@ public class StreamedInvocationTests {
             await context.Response.Body.WriteAsync("hi"u8.ToArray());
         };
 
-        await handler.Invoke(Input(Payloads.ApiGatewayJson), Context());
+        await handler.Invoke(Input(Payloads.HttpJson), Context());
 
         var prelude = streams.Prelude;
 
@@ -119,7 +119,7 @@ public class StreamedInvocationTests {
     /// </remarks>
     [Fact]
     public async Task AStatusSetBeforeTheFirstByteReachesThePrelude() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new ApiGatewayAdapter());
+        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
 
         executor.Body = async context => {
             await context.Response.Body.WriteAsync("first"u8.ToArray());
@@ -128,7 +128,7 @@ public class StreamedInvocationTests {
             context.Response.Status = 500;
         };
 
-        await handler.Invoke(Input(Payloads.ApiGatewayJson), Context());
+        await handler.Invoke(Input(Payloads.HttpJson), Context());
 
         Assert.Equal(HttpStatusCode.OK, streams.Prelude.StatusCode);
     }
@@ -144,9 +144,9 @@ public class StreamedInvocationTests {
     /// </remarks>
     [Fact]
     public async Task AnEmptyResponseStillOpensTheStream() {
-        var (handler, _, streams) = Build(LambdaResponseMode.Stream, new ApiGatewayAdapter());
+        var (handler, _, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
 
-        await handler.Invoke(Input(Payloads.ApiGatewayJson), Context());
+        await handler.Invoke(Input(Payloads.HttpJson), Context());
 
         Assert.Single(streams.Preludes);
         Assert.Equal("\n", streams.Target.Text);
@@ -162,7 +162,7 @@ public class StreamedInvocationTests {
     /// </remarks>
     [Fact]
     public async Task AThrowAfterTheFirstByteKeepsWhatWasWritten() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new ApiGatewayAdapter());
+        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
 
         executor.Body = async context => {
             await context.Response.Body.WriteAsync("partial"u8.ToArray());
@@ -171,7 +171,7 @@ public class StreamedInvocationTests {
         };
 
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.Invoke(Input(Payloads.ApiGatewayJson), Context()));
+            () => handler.Invoke(Input(Payloads.HttpJson), Context()));
 
         Assert.Equal("nothing more to stream", failure.Message);
         Assert.Equal("partial", streams.Target.Text);
@@ -183,12 +183,12 @@ public class StreamedInvocationTests {
     /// </summary>
     [Fact]
     public async Task AThrowBeforeTheFirstByteOpensNoStream() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new ApiGatewayAdapter());
+        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
 
         executor.Body = _ => throw new InvalidOperationException("nothing to stream");
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.Invoke(Input(Payloads.ApiGatewayJson), Context()));
+            () => handler.Invoke(Input(Payloads.HttpJson), Context()));
 
         Assert.Empty(streams.Preludes);
     }

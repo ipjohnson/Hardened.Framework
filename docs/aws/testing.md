@@ -184,7 +184,7 @@ Testcontainers needs a Docker daemon. On a machine without one, these tests fail
 startup rather than skipping.
 :::
 
-## Web handlers behind API Gateway
+## Web handlers on Lambda
 
 A Lambda web application's routes are ordinary routes, so
 [`ITestWebApp`](/guide/testing-web) drives them with no Lambda involvement:
@@ -209,9 +209,9 @@ it is visible in the test.
 That is what makes the portability claim checkable rather than asserted: the same test file runs on
 the pipeline, on Kestrel and here, and only an assembly attribute differs.
 
-One behaviour does differ, because the transport does. `[LambdaWebTesting]` is terminal: API Gateway
-has nothing behind it to hand an unmatched path to, so a path with no route is a 404 from the host
-rather than a fall-through.
+One behaviour does differ, because the transport does. `[LambdaWebTesting]` is terminal: a front
+door has nothing behind it to hand an unmatched path to, so a path with no route is a 404 from the
+host rather than a fall-through.
 
 ### Testing a streaming function
 

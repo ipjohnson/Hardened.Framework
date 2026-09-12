@@ -265,7 +265,7 @@ on a handler binds it. The exceptions are noted below.
 
 | Attribute | Namespace | Purpose |
 |---|---|---|
-| `[ApiGatewayModule]` | `Hardened.Aws.Lambda.ApiGateway` | API Gateway payload format 2.0 onto the web pipeline. Written out by a web host, whose routes live in a library the generator cannot see |
+| `[LambdaHttpModule]` | `Hardened.Aws.Lambda.Http` | Payload format 2.0 onto the web pipeline, from an API Gateway HTTP API or a function URL. Written out by a web host, whose routes live in a library the generator cannot see |
 | `[InvokeModule]` | `Hardened.Aws.Lambda.Invoke` | Direct invocation, for `[HardenedFunction]` |
 | `[SqsModule(ReportBatchItemFailures?)]` | `Hardened.Aws.Lambda.Sqs` | SQS, for `[Queue]`. Written out to turn on failure reporting, which has to match the event source mapping |
 | `[SnsModule]` | `Hardened.Aws.Lambda.Sns` | SNS, for `[Topic]` |
@@ -275,12 +275,16 @@ on a handler binds it. The exceptions are noted below.
 | `[S3Module]` | `Hardened.Aws.Lambda.S3` | S3, for `[Blob]` |
 | `[NewImage]` / `[OldImage]` | `Hardened.Aws.Lambda.DynamoDb` | Binds a change record's images as they arrived, type tags and all |
 | `[LambdaTesting]` | `Hardened.Aws.Lambda.Testing` | Assembly. Delivers through the real AWS envelope and the invocation loop rather than straight into the pipeline |
-| `[LambdaWebTesting]` | `Hardened.Aws.Lambda.Testing` | Assembly. API Gateway as a test host: a proxy event in, a proxy response out |
+| `[LambdaWebTesting]` | `Hardened.Aws.Lambda.Testing` | Assembly. The HTTP transport as a test host: a proxy event in, a proxy response out |
 | `[DynamoDbClientModule]` | `Hardened.Aws.DynamoDbClient` | Registers `IDynamoDbClientProvider`. A client, not an adapter — usable on any host |
 | `[LocalDynamoDb(Image?)]` | `Hardened.Aws.DynamoDbClient.Testing` | Points the client provider at DynamoDB Local in a container |
 
 Both were `[DynamoDbModule]` until 0.31.0, in two packages, so an application that read a table and
 handled its stream could not name either without qualifying it.
 
-A Lambda response is always buffered. There is no streaming mode and no environment variable that
-selects one; see [Response mode](/aws/lambda-web#response-mode).
+`[LambdaHttpModule]` was `[ApiGatewayModule]`, in `Hardened.Aws.Lambda.ApiGateway`, until 0.34.0.
+The adapter binds payload format 2.0, and a function URL sends that too, so the old name claimed a
+front door the module never required.
+
+A Lambda response is buffered or streamed, and `HARDENED_LAMBDA_RESPONSE_MODE` picks which; see
+[Response mode](/aws/lambda-web#response-mode).

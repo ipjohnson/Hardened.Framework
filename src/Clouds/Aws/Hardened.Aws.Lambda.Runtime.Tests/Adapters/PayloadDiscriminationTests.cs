@@ -1,7 +1,7 @@
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Xunit;
-using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.DynamoDb;
 using Hardened.Aws.Lambda.EventBridge;
 using Hardened.Aws.Lambda.Kinesis;
@@ -34,7 +34,7 @@ public class PayloadDiscriminationTests {
         ("kinesis", new KinesisAdapter()),
         ("s3", new S3Adapter()),
         ("eventbridge", new EventBridgeAdapter()),
-        ("apigateway", new ApiGatewayAdapter())
+        ("http", new LambdaHttpAdapter())
     ];
 
     public static TheoryData<string, string> Payloads() => new() {
@@ -45,7 +45,7 @@ public class PayloadDiscriminationTests {
         { "s3", Infrastructure.Payloads.S3Json },
         { "eventbridge", Infrastructure.Payloads.EventBridgeJson },
         { "eventbridge", Infrastructure.Payloads.ScheduledJson },
-        { "apigateway", Infrastructure.Payloads.ApiGatewayJson }
+        { "http", Infrastructure.Payloads.HttpJson }
     };
 
     [Theory]

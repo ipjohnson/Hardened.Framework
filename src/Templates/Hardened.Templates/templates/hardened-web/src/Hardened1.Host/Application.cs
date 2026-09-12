@@ -9,7 +9,7 @@ using Hardened.Web.Kestrel.Runtime;
 using Hardened.Web.AspNetCore.Runtime;
 #endif
 #if (lambda)
-using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.Http;
 #endif
 #if (cloudRun)
 using Hardened.Gcp.CloudRun.Runtime;
@@ -35,12 +35,12 @@ namespace Hardened1.Host;
 [AspNetCoreRuntime]
 #endif
 #if (lambda)
-// The API Gateway payload adapter, and through the runtime module it composes, the invocation loop
-// and the web pipeline. Named here rather than inferred: a function whose handlers sit beside its
-// entry point gets its adapter from their trigger attributes, but the handlers here are in the
+// The HTTP payload adapter for Lambda, and through the runtime module it composes, the invocation
+// loop and the web pipeline. Named here rather than inferred: a function whose handlers sit beside
+// its entry point gets its adapter from their trigger attributes, but the handlers here are in the
 // library project, and a generator only sees the compilation it runs in. The Kestrel and ASP.NET
 // hosts name theirs above for the same reason.
-[ApiGatewayModule]
+[LambdaHttpModule]
 #endif
 #if (cloudRun)
 // The host. A Cloud Run service is a container listening on a port, so this is named the way

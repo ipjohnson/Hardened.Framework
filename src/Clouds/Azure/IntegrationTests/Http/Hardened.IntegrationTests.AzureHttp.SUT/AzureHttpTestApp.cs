@@ -11,7 +11,7 @@ namespace Hardened.IntegrationTests.AzureHttp.SUT;
 /// for Kestrel. Nothing here names Azure: the verbs on the controller bind
 /// <c>HardenedHttpModule</c>, and which module that is comes from the runtime package this project
 /// references. Swapping that reference is the whole of moving these handlers to another host -
-/// <c>ApiGatewayTestApp</c> is this file with another name.
+/// <c>LambdaHttpTestApp</c> is this file with another name.
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]

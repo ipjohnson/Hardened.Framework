@@ -1,18 +1,18 @@
 using Hardened.Aws.Lambda.Runtime.Adapters;
-using Hardened.Aws.Lambda.ApiGateway;
+using Hardened.Aws.Lambda.Http;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Hardened.IntegrationTests.ApiGateway.SUT.Tests;
+namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 
 /// <summary>
 /// What the verbs on the controller registered.
 ///
 /// <para>
 /// The one thing in this suite that is deliberately about AWS. Everything else is written as a web
-/// test and would pass on any host; these two say that on this host the verbs bound the API Gateway
+/// test and would pass on any host; these two say that on this host the verbs bound the Lambda HTTP
 /// adapter and that it answers a failure rather than rethrowing - which is the difference between
 /// the HTTP family and every other one.
 /// </para>
@@ -20,11 +20,11 @@ namespace Hardened.IntegrationTests.ApiGateway.SUT.Tests;
 public class AdapterRegistrationTests {
 
     /// <summary>
-    /// Verbs bound the adapter. Nothing in the application mentions API Gateway, SQS or Lambda.
+    /// Verbs bound the adapter. Nothing in the application mentions a front door, SQS or Lambda.
     /// </summary>
     [HardenedTest]
-    public void TheVerbsRegisteredTheGatewayAdapter(IServiceProvider provider) {
-        Assert.IsType<ApiGatewayAdapter>(Assert.Single(provider.GetServices<IPayloadAdapter>()));
+    public void TheVerbsRegisteredTheHttpAdapter(IServiceProvider provider) {
+        Assert.IsType<LambdaHttpAdapter>(Assert.Single(provider.GetServices<IPayloadAdapter>()));
     }
 
     /// <summary>

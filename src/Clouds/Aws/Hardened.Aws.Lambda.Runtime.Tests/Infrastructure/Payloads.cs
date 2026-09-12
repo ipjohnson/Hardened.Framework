@@ -170,7 +170,7 @@ public static class Payloads {
          "region":"us-east-1","records":[{"recordId":"r1","data":"aGVsbG8="}]}
         """;
 
-    public const string ApiGatewayJson = """
+    public const string HttpJson = """
         {"version":"2.0","rawPath":"/orders","requestContext":{"http":{"method":"GET"}}}
         """;
 

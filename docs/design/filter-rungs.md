@@ -249,7 +249,7 @@ It is not replaced. It earns its place for two things a compile-time rung cannot
 
 `[Enable<ConditionalGet>]` on a **host** entry point can never publish into a **library's**
 document. They are separate compilations, and the template says as much twice: once about
-`[ApiGatewayModule]`, once about why `[Enable<OpenApiDocumentPublishing>]` belongs on the library
+`[LambdaHttpModule]`, once about why `[Enable<OpenApiDocumentPublishing>]` belongs on the library
 module and emits `"paths": {}` on the host. That is the argument for making the library-module and
 assembly rungs the ones an application reaches for, and leaving the host flag as the deployment
 switch it is.

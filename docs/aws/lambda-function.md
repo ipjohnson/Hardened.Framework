@@ -148,8 +148,9 @@ Started the AWS Lambda Test Tool on http://localhost:5050
 ```
 
 The tool's page on 5050 is where a payload is posted. A function that is not an HTTP API has no API
-Gateway emulator and nothing on 5080 — that is [API Gateway](/aws/lambda-web#running-it-locally),
-and it is the only shape that answers over HTTP locally.
+Gateway emulator and nothing on 5080 — that is a
+[web application](/aws/lambda-web#running-it-locally), and it is the only shape that answers over
+HTTP locally.
 
 The tool is a dotnet tool, pinned in the project's `.config/dotnet-tools.json` and restored during
 the build. A failed restore is a warning rather than a broken build, because the deployed artifact
@@ -162,4 +163,4 @@ with no AWS account and nothing to deploy; see [Testing AWS handlers](/aws/testi
 
 - [Triggers](/guide/triggers): the other seven sources a handler can name
 - [Testing AWS handlers](/aws/testing): the façades, and the two fidelity levels
-- [API Gateway](/aws/lambda-web): the same application behind HTTP
+- [Web applications](/aws/lambda-web): the same application behind HTTP

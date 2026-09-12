@@ -104,7 +104,7 @@
       with a generator from another.
     -->
     <PackageVersion Include="Hardened.Aws.Lambda.Runtime" Version="$(HardenedVersion)" />
-    <PackageVersion Include="Hardened.Aws.Lambda.ApiGateway" Version="$(HardenedVersion)" />
+    <PackageVersion Include="Hardened.Aws.Lambda.Http" Version="$(HardenedVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
     <!--
       The logging provider the Lambda entry point installs instead, on AWS's own line rather than

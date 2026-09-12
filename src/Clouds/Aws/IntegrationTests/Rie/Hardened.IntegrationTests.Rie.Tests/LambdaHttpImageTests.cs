@@ -5,14 +5,14 @@ using Xunit;
 namespace Hardened.IntegrationTests.Rie.Tests;
 
 /// <summary>
-/// The API Gateway fixture inside the Lambda base image. Web-shaped, so the proxy response the
+/// The HTTP fixture inside the Lambda base image. Web-shaped, so the proxy response the
 /// invocation returns is the whole observation.
 /// </summary>
 [Trait("Category", "Simulator")]
-public sealed class ApiGatewayImageTests : IClassFixture<ApiGatewayImageTests.Function> {
+public sealed class LambdaHttpImageTests : IClassFixture<LambdaHttpImageTests.Function> {
     private readonly Function _function;
 
-    public ApiGatewayImageTests(Function function) {
+    public LambdaHttpImageTests(Function function) {
         _function = function;
     }
 
@@ -68,8 +68,8 @@ public sealed class ApiGatewayImageTests : IClassFixture<ApiGatewayImageTests.Fu
 
     public sealed class Function : IAsyncLifetime {
         public LambdaRuntimeInterfaceEmulator Emulator { get; } = new(
-            ApplicationOutput.Of("Hardened.IntegrationTests.RieApiGateway.SUT"),
-            "Hardened.IntegrationTests.RieApiGateway.SUT");
+            ApplicationOutput.Of("Hardened.IntegrationTests.RieLambdaHttp.SUT"),
+            "Hardened.IntegrationTests.RieLambdaHttp.SUT");
 
         public async ValueTask InitializeAsync() => await Emulator.StartAsync(TestContext.Current.CancellationToken);
 

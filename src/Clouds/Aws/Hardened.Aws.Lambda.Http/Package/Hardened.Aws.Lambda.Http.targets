@@ -15,6 +15,6 @@
             <HardenedHttpModule>MyCompany.SomeOtherModule</HardenedHttpModule>
     -->
     <PropertyGroup>
-        <HardenedHttpModule Condition="'$(HardenedHttpModule)' == ''">Hardened.Aws.Lambda.ApiGateway.ApiGatewayModule</HardenedHttpModule>
+        <HardenedHttpModule Condition="'$(HardenedHttpModule)' == ''">Hardened.Aws.Lambda.Http.LambdaHttpModule</HardenedHttpModule>
     </PropertyGroup>
 </Project>

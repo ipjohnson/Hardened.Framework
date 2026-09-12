@@ -93,7 +93,7 @@ const guide = [
     text: 'AWS',
     items: [
       { text: 'Overview', link: '/aws/' },
-      { text: 'API Gateway', link: '/aws/lambda-web' },
+      { text: 'Web applications', link: '/aws/lambda-web' },
       { text: 'Lambda functions', link: '/aws/lambda-function' },
       { text: 'Queues and topics', link: '/aws/sqs' },
       { text: 'Streams and change feeds', link: '/aws/ddb-streams' },

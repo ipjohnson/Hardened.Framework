@@ -80,7 +80,7 @@ public sealed class HttpAdapter : ITriggerAdapter {
         }
 
         foreach (var cookie in response.Cookies.Cookies) {
-            // Item1 is the value and Item2 the options; see ApiGatewayAdapter for the tuple's history.
+            // Item1 is the value and Item2 the options; see LambdaHttpAdapter for the tuple's history.
             data.Cookies.Append(Cookie(cookie.Key, cookie.Value.Item1, cookie.Value.Item2));
         }
 

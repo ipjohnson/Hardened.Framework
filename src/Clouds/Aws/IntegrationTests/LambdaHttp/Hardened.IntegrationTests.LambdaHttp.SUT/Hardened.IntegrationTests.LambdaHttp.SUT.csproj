@@ -5,21 +5,21 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>Hardened.IntegrationTests.ApiGateway.SUT</RootNamespace>
+        <RootNamespace>Hardened.IntegrationTests.LambdaHttp.SUT</RootNamespace>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     </PropertyGroup>
 
     <!--
       An HTTP function: web verbs on a controller and nothing that names AWS. The same handlers
-      compile against Kestrel and inside ASP.NET Core, and the only thing that makes them run behind
-      API Gateway is which runtime package this project references - which is the portability claim
+      compile against Kestrel and inside ASP.NET Core, and the only thing that makes them run on
+      Lambda is which runtime package this project references - which is the portability claim
       the whole adapter map exists for, and this is the fixture that holds it.
     -->
     <ItemGroup>
         <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Abstract\Hardened.Requests.Abstract.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Requests\Hardened.Requests.Runtime\Hardened.Requests.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\..\..\Shared\Hardened.Shared.Runtime\Hardened.Shared.Runtime.csproj"/>
-        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.ApiGateway\Hardened.Aws.Lambda.ApiGateway.csproj"/>
+        <ProjectReference Include="..\..\..\Hardened.Aws.Lambda.Http\Hardened.Aws.Lambda.Http.csproj"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Library.SourceGenerator\Hardened.Library.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
         <ProjectReference Include="..\..\..\..\..\Web\Hardened.Web.Runtime\Hardened.Web.Runtime.csproj"/>
         <ProjectReference Include="..\..\..\..\..\SourceGenerators\Hardened.Web.SourceGenerator\Hardened.Web.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
@@ -42,6 +42,6 @@
       attribute rather than living in one place.
     -->
     <Import Project="..\..\..\..\..\Web\Hardened.Web.Runtime\Package\Hardened.Web.Runtime.targets"/>
-    <Import Project="..\..\..\Hardened.Aws.Lambda.ApiGateway\Package\Hardened.Aws.Lambda.ApiGateway.targets"/>
+    <Import Project="..\..\..\Hardened.Aws.Lambda.Http\Package\Hardened.Aws.Lambda.Http.targets"/>
 
 </Project>

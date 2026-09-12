@@ -7,7 +7,7 @@ using Hardened.Shared.Testing.Attributes;
 using Hardened.Web.Testing;
 using Xunit;
 
-namespace Hardened.IntegrationTests.ApiGateway.SUT.Tests;
+namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 
 /// <summary>
 /// An event stream handler through the mode it has to be deployed in.

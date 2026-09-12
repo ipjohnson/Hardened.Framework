@@ -12,7 +12,7 @@
     </PropertyGroup>
 
     <!--
-      No reference to Hardened.Web.Runtime, the same arrangement as Hardened.Aws.Lambda.ApiGateway:
+      No reference to Hardened.Web.Runtime, the same arrangement as Hardened.Aws.Lambda.Http:
       the adapter produces a web-shaped IExecutionRequest and the pipeline routes it through the
       table [HardenedWebModule] registered on the application. The invocation handler selects that
       table per invocation because the shim says it is the web function; nothing here names it.
