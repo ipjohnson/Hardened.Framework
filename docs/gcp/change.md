@@ -20,8 +20,8 @@ way the DynamoDB adapter unwraps a type-tagged item, so nothing in the handler k
 ## Packages
 
 ```xml
-<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.33.0-rc1000" />
-<PackageReference Include="Hardened.Gcp.CloudRun.Firestore" Version="0.33.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.34.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Firestore" Version="0.34.0-rc1000" />
 ```
 
 This is the one adapter in the line with a Google dependency. Firestore events are

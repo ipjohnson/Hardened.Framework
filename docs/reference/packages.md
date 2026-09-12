@@ -261,7 +261,7 @@ Everything releases on one version line, from a `v*` tag:
 | Every package on this page | `{line}-rc1000` | `{line}-preview{build}` on every push to main |
 | `Hardened.Amz.*`, retired | `0.22.0-rc1000`, its last | none |
 
-The current line is **`0.33.0-rc1000`**. Releases go to nuget.org; the continuous feed is
+The current line is **`0.34.0-rc1000`**. Releases go to nuget.org; the continuous feed is
 [GitHub Packages](https://nuget.pkg.github.com/ipjohnson/index.json). Under one line, `preview`
 sorts below `rc`, so a preview never shadows the release it precedes.
 
