@@ -16,9 +16,9 @@ public class TelemetryHandlers {
 
 ```xml
 <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
-<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.33.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.EventHubs" Version="0.33.0-rc1000" />
-<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.33.0-rc1000" PrivateAssets="all" />
+<PackageReference Include="Hardened.Azure.Functions.Runtime" Version="0.34.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.EventHubs" Version="0.34.0-rc1000" />
+<PackageReference Include="Hardened.Azure.Functions.SourceGenerator" Version="0.34.0-rc1000" PrivateAssets="all" />
 ```
 
 `dotnet new hardened-function --host azure --trigger stream` writes this shape with tests.
