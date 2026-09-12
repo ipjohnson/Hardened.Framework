@@ -22,7 +22,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         GeneratorSyntaxContext context, CancellationToken cancellationToken) {
         var model = base.GenerateRequestModel(context, cancellationToken);
 
-        var controller = context.Node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+        var controller = context.Node.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
 
         model.Tag = GetTagFromController(context, controller, cancellationToken);
         model.OperationId = GetOperationId(context, context.Node as MethodDeclarationSyntax);
@@ -97,7 +97,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
     private static string? GetTagFromController(
         GeneratorSyntaxContext context,
-        ClassDeclarationSyntax? classDeclaration,
+        TypeDeclarationSyntax? classDeclaration,
         CancellationToken cancellationToken) {
         if (classDeclaration == null) {
             return null;
@@ -148,7 +148,7 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
             }
         }
 
-        var classDeclarationSyntaxes = generatorSyntaxContext.Node.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault();
+        var classDeclarationSyntaxes = generatorSyntaxContext.Node.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
 
         
         if (classDeclarationSyntaxes != null) {
@@ -171,12 +171,12 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
         CancellationToken cancellation) {
-        var classDeclarationSyntax =
-            methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
+        var typeDeclarationSyntax =
+            methodDeclaration.Ancestors().OfType<TypeDeclarationSyntax>().First();
 
-        var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
+        var namespaceSyntax = typeDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
 
-        var className = classDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text;
+        var className = typeDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text;
 
         if (methodDeclaration.ParameterList.Parameters.Count > 0) {
             var parameterString = "";
@@ -308,10 +308,42 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         }
     }
 
+    /// <summary>
+    /// Every method carrying a verb attribute, written somewhere a handler can be called from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The container test is not a refinement. A verb attribute on an interface member used to be
+    /// selected, reach <see cref="BaseRequestModelGenerator.GetControllerType"/>, find no class
+    /// above it and throw out of the syntax transform - a <c>CS8785</c>, which costs the whole
+    /// assembly its generated code rather than the one declaration that caused it. That is the
+    /// failure <c>UnresolvedHandler</c> exists to prevent for a parameter that does not resolve,
+    /// and it was reachable again through the declaration site.
+    /// </para>
+    /// <para>
+    /// Syntactic, because a predicate has no semantic model. It also cannot tell Hardened's
+    /// <c>[Get]</c> from another library's of the same name, which is why it only decides whether
+    /// to build a handler. Whether the declaration deserves a diagnostic is
+    /// <see cref="Routing.InterfaceRouteDiagnostics"/>, which resolves the attribute first.
+    /// </para>
+    /// </remarks>
     public bool SelectWebRequestMethods(SyntaxNode arg1, CancellationToken arg2) {
         return arg1 is MethodDeclarationSyntax methodDeclarationSyntax &&
+               IsCallable(methodDeclarationSyntax) &&
                GetWebAttribute(methodDeclarationSyntax, arg2) != null;
     }
+
+    /// <summary>
+    /// Whether the method has an implementation the pipeline could invoke.
+    /// </summary>
+    /// <remarks>
+    /// An interface member has none, and neither does a method with no type declaration above it
+    /// at all. A record is callable and is selected, which is the other half of what widening
+    /// <see cref="BaseRequestModelGenerator.GetControllerType"/> to a type declaration bought.
+    /// </remarks>
+    private static bool IsCallable(MethodDeclarationSyntax method) =>
+        method.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()
+            is not (null or InterfaceDeclarationSyntax);
 
     private static AttributeSyntax? GetWebAttribute(MethodDeclarationSyntax node, CancellationToken cancellationToken) {
         var attributeNames =

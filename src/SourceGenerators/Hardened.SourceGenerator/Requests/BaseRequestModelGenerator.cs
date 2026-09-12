@@ -727,15 +727,25 @@ public abstract class BaseRequestModelGenerator {
         return methodDeclaration.Identifier.Text;
     }
 
+    /// <summary>
+    /// The type declaring the handler, whatever kind of type declaration it was written in.
+    /// </summary>
+    /// <remarks>
+    /// <c>TypeDeclarationSyntax</c> rather than <c>ClassDeclarationSyntax</c>, because a record is
+    /// not one. A handler on a record reached <c>First()</c> on an empty sequence and threw out of
+    /// the syntax transform, which is a <c>CS8785</c> and costs the whole assembly its generated
+    /// code. The selector is what keeps a declaration that cannot be called from arriving here at
+    /// all - see <c>WebRequestHandlerModelGenerator.SelectWebRequestMethods</c>.
+    /// </remarks>
     protected virtual ITypeDefinition GetControllerType(SyntaxNode contextNode) {
-        var classDeclarationSyntax =
-            contextNode.Ancestors().OfType<ClassDeclarationSyntax>().First();
+        var typeDeclarationSyntax =
+            contextNode.Ancestors().OfType<TypeDeclarationSyntax>().First();
 
-        var namespaceSyntax = classDeclarationSyntax.Ancestors()
+        var namespaceSyntax = typeDeclarationSyntax.Ancestors()
             .OfType<BaseNamespaceDeclarationSyntax>().First();
 
         return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd(),
-            classDeclarationSyntax.Identifier.Text);
+            typeDeclarationSyntax.Identifier.Text);
     }
 
     protected virtual ResponseInformationModel GetResponseInformation(
@@ -885,7 +895,7 @@ public abstract class BaseRequestModelGenerator {
     private static string? DeclaredContentTypes(
         GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
         return DeclaredOn(context, methodDeclaration.AttributeLists) ??
-               DeclaredOn(context, methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>()
+               DeclaredOn(context, methodDeclaration.Ancestors().OfType<TypeDeclarationSyntax>()
                    .FirstOrDefault()?.AttributeLists);
     }
 
@@ -1123,7 +1133,7 @@ public abstract class BaseRequestModelGenerator {
         filterList.AddRange(
             GetFiltersForMethod(context, methodDeclarationSyntax, cancellationToken));
         filterList.AddRange(GetFiltersForClass(context,
-            methodDeclarationSyntax.Ancestors().OfType<ClassDeclarationSyntax>().FirstOrDefault(),
+            methodDeclarationSyntax.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault(),
             cancellationToken));
 
         return filterList;
@@ -1131,7 +1141,7 @@ public abstract class BaseRequestModelGenerator {
 
     protected virtual IEnumerable<AttributeModel> GetFiltersForClass(
         GeneratorSyntaxContext context,
-        ClassDeclarationSyntax? parent,
+        TypeDeclarationSyntax? parent,
         CancellationToken cancellationToken) {
         if (parent == null) {
             return Enumerable.Empty<AttributeModel>();
