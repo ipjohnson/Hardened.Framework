@@ -73,7 +73,34 @@ is not negotiated", "Rules the vocabulary cannot express".
 
 **2.12 One idea per sentence, result first.** The detail goes after the result, in its own sentence.
 
-## 3. Page shape
+**2.13 No unexplained term of art.** Use the names the reader has in front of them. A contract
+declares `minLength`, `maximum` and `pattern`; calling those "facets" introduces JSON Schema
+vocabulary the page never defines.
+
+## 3. Paragraphs
+
+The rules above are about sentences. A page can pass every one of them and still read as a list of
+facts in the order someone thought of them. These are about what a paragraph is for.
+
+**3.1 A paragraph has a topic and develops it.** The first sentence says what the paragraph is about
+and the rest adds to that. A paragraph that states one fact and stops is a table row, or it belongs
+in the paragraph beside it.
+
+**3.2 Facts that share a topic go in one paragraph.** Three ways to declare a member present is one
+paragraph, not three. Two sentences about what a response contains is one paragraph, wherever the
+two mechanisms live.
+
+**3.3 No run of single-sentence paragraphs.** Two in a row is the limit, and only where each states a
+separate rule. A section of five is the symptom this rule exists for.
+
+**3.4 A fact belongs to the section whose subject it serves.** What a response contains goes in the
+section about the response, not in the section where the mechanism was introduced. A contract's
+behaviour goes in the contract section.
+
+**3.5 A section is a lead paragraph, its table or code, and at most one paragraph after it.** Six
+paragraphs in a section means the facts were never grouped.
+
+## 4. Page shape
 
 1. An H1 naming the feature.
 2. One paragraph: what it does, and what the reader writes to get it. No preamble.
@@ -87,7 +114,7 @@ A table is the default for anything enumerable: options and their values, attrib
 check, facets and what they generate, inputs and their status codes. Prose around a table repeats the
 table.
 
-## 4. Code blocks
+## 5. Code blocks
 
 Complete enough to compile. The first block on a page carries its `using` lines, and a later block
 adds one only for a namespace the page has not shown yet. Repeating the same `using` in every block
@@ -95,7 +122,10 @@ is the padding this guide exists to remove.
 
 A comment in a block states the result, not the intent: `// {} is a 400`, not `// this is required`.
 
-## 5. What the editor returns
+## 6. What the editor returns
 
 A list. Each entry is the rule number, the sentence quoted, and what it should be instead or that it
 should be cut. No rewritten page, no praise, and no findings outside these rules.
+
+Section 3 is reported per section rather than per sentence: name the section, the number of
+paragraphs in it, and which ones should merge or move.

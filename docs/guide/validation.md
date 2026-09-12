@@ -30,7 +30,7 @@ without referencing it compiles, enforces nothing, and reports `HRDV006`.
 ## Constraint attributes
 
 The attributes are in `ValidationModules.Constraints`. Bounded attributes take named `Min` and `Max`
-arguments.
+arguments, and `[Required]` on a non-nullable value type reports `HRDV003`.
 
 | Attribute | Checks |
 |---|---|
@@ -42,22 +42,18 @@ arguments.
 | `[MultipleOf]` | divisibility |
 | `[AllowedValues]` | membership of a set |
 
-`[Required]` on a non-nullable value type reports `HRDV003`.
-
 ## Required members
 
-`System.Text.Json` ignores nullable reference annotations. `RequiredMemberPresence` marks a
-non-nullable reference member required on the deserializer's metadata instead, so `{}` against
-`record NewTodo(string Title)` is refused before any constraint runs. One response names every
-missing member.
+`System.Text.Json` ignores nullable reference annotations, so Hardened marks the members itself.
+`RequiredMemberPresence` sets `IsRequired` on the deserializer's metadata for every non-nullable
+reference member a constructor takes, which refuses `{}` against `record NewTodo(string Title)`
+before any constraint runs. One response names every member that was missing.
 
 ```json
 { "errors": [
   { "field": "body.accountId", "code": "required", "message": "accountId is required." },
   { "field": "body.weightKg",  "code": "required", "message": "weightKg is required." } ] }
 ```
-
-A member the model already declares `required` or `[JsonRequired]` is left as it is.
 
 | Member | Published as | Presence checked |
 |---|---|---|
@@ -67,17 +63,10 @@ A member the model already declares `required` or `[JsonRequired]` is left as it
 | any value type | required | no |
 | `[ResponseOnly]` | `readOnly` | no |
 
-`[Required]`, `required` or `[JsonRequired]` adds a presence check to any row marked no.
-
-When a body omits a required member and also breaks a constraint, the response names the omission
-alone and the constraint comes back on the next request.
-
-An AOT-published application declares presence with `required` or `[JsonRequired]`. Under a
-source-generated `JsonSerializerContext` the deserializer reads `IsRequired` from that generator
-rather than from reflection.
-
-A contract-first model does not need `RequiredMemberPresence`. A contract's `required` compiles to
-`[Required]` whatever the member's type.
+`[Required]`, `required` or `[JsonRequired]` adds a presence check to any row marked no, and a
+member that already declares one is left as it is. An AOT-published application has to use them:
+under a source-generated `JsonSerializerContext` the deserializer reads `IsRequired` from that
+generator rather than from reflection.
 
 ## Constraints on handler parameters
 
@@ -97,9 +86,8 @@ public int Precision([FromQueryString] [Range(Min = 2, Max = 8)] int precision) 
 public string Region([FromHeader("X-Region")] [StringLength(2, 2)] string region) => region;
 ```
 
-The response names the value the caller sent, `precision` or `X-Region`.
-
-`When` or `Unless` names another member of the model the constraint sits on. Either one on a handler
+The response names the value the caller sent, `precision` or `X-Region`. `When` and `Unless` are the
+exception: each names another member of the model its constraint sits on, so either one on a handler
 parameter reports `HRDV005`.
 
 ## Nested models
@@ -119,8 +107,10 @@ sealed or declare a polymorphism mode, or ValidationModules reports `VM1503`.
 
 ## Constraints from a contract
 
-A contract declares constraints as OpenAPI facets on schema properties and parameters. A Smithy
-model uses `@length`, `@range` and `@pattern`.
+A contract declares constraints with the JSON Schema keywords on a schema property or a parameter,
+and a Smithy model with `@length`, `@range` and `@pattern`. A contract's `required` compiles to
+`[Required]` whatever the member's type, so a contract-first model does not need
+`RequiredMemberPresence`.
 
 ```yaml
 components:
@@ -136,9 +126,10 @@ components:
 ```
 
 The build task writes the matching attribute onto the generated model, and the validation generator
-reads it as it reads a hand-written one.
+reads it as it reads a hand-written one. A bound left out stays out, so `minimum: 1` with no
+`maximum` generates `[Range(Min = 1)]` and the message reads "at least 1".
 
-| Facet | Attribute |
+| Keyword | Attribute |
 |---|---|
 | `minLength` / `maxLength` | `[StringLength]` |
 | `minimum` / `maximum` | `[Range]` |
@@ -147,8 +138,6 @@ reads it as it reads a hand-written one.
 | `enum` | `[AllowedValues]`, or the generated enum type |
 | `minItems` / `maxItems` | `[ItemCount]` |
 | `required` | `[Required]` |
-
-`minimum: 1` with no `maximum` generates `[Range(Min = 1)]`, and the message reads "at least 1".
 
 ## The 400 response
 
@@ -168,17 +157,18 @@ An unreadable body is reported under `body`:
 
 `body` is the handler's own parameter identifier, so a handler taking `MemberRequest request`
 reports `request`. On the third row the path names where parsing stopped rather than the fault, so
-`{"accountId":` is reported as `body.accountId`.
+`{"accountId":` is reported as `body.accountId`. A body that omits a required member and also breaks
+a constraint is answered about the omission alone, and the constraint comes back on the next
+request.
 
 ## What the document publishes
 
-The document republishes every constraint as the facet it came from. An operation with a generated
-validator also publishes the 400, with its schema under
-`components.schemas.RequestValidationError`. See
+The document republishes every constraint as the keyword it came from, and an operation with a
+generated validator publishes the 400 alongside them, with its schema under
+`components.schemas.RequestValidationError`. A constraint on a path token is the exception. It is a
+[route constraint](/guide/routing#constraining-what-a-token-matches) tested before any filter runs,
+so the router answers it and the operation publishes no 400. See
 [The OpenAPI document](/guide/openapi-document).
-
-A constraint on a path token is a [route constraint](/guide/routing#constraining-what-a-token-matches),
-tested before any filter runs.
 
 | Declaration | Refused by | Published |
 |---|---|---|
@@ -192,7 +182,7 @@ tested before any filter runs.
 ## Custom rules
 
 Write a rule the attributes cannot express in the handler. Throwing `ValidationException` produces
-the same response a constraint does:
+the same response a constraint does, from the immutable `ValidationResult` its factory builds:
 
 ```csharp
 using Hardened.Requests.Runtime.Validation;
@@ -208,8 +198,6 @@ public async Task<Pet> CreatePet(CreatePetRequest body) {
     ...
 }
 ```
-
-`ValidationResult` is immutable.
 
 ## Refusing with another status
 
@@ -229,7 +217,7 @@ public async Task<Pet> CreatePet(CreatePetRequest body) {
 }
 ```
 
-Without `[Throws<T>]` the throw answers 409. The document then describes only the 200. See
+Without `[Throws<T>]` the throw still answers 409, and the document then describes only the 200. See
 [Declaring what a handler throws](/guide/responses#declaring-what-a-handler-throws).
 
 ## Replacing the status and body
