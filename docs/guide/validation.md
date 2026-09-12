@@ -24,13 +24,13 @@ public record CreatePetRequest(
 }
 ```
 
-The validator is written by `Hardened.Validation.SourceGenerator`. A project that declares
-constraints without referencing it compiles, enforces nothing, and reports `HRDV006`.
+`Hardened.Validation.SourceGenerator` writes the validator. A project that declares constraints
+without referencing it compiles, enforces nothing, and reports `HRDV006`.
 
 ## Constraint attributes
 
 The attributes are in `ValidationModules.Constraints`. Bounded attributes take named `Min` and `Max`
-arguments, so a single bound is one argument.
+arguments.
 
 | Attribute | Checks |
 |---|---|
@@ -42,14 +42,14 @@ arguments, so a single bound is one argument.
 | `[MultipleOf]` | divisibility |
 | `[AllowedValues]` | membership of a set |
 
-`[Required]` on a non-nullable value type reports `HRDV003`. There is no absent `int`.
+`[Required]` on a non-nullable value type reports `HRDV003`.
 
 ## Required members
 
-`System.Text.Json` does not enforce nullable reference annotations, so `{}` deserializes into
-`record NewTodo(string Title)` with `Title` null. `RequiredMemberPresence` marks those members
-required on the deserializer's metadata instead, which refuses the body before any constraint runs
-and names every missing member in one response.
+`System.Text.Json` ignores nullable reference annotations. `RequiredMemberPresence` marks a
+non-nullable reference member required on the deserializer's metadata instead, so `{}` against
+`record NewTodo(string Title)` is refused before any constraint runs. One response names every
+missing member.
 
 ```json
 { "errors": [
@@ -57,10 +57,7 @@ and names every missing member in one response.
   { "field": "body.weightKg",  "code": "required", "message": "weightKg is required." } ] }
 ```
 
-A member is marked when it matches a constructor parameter by name, that parameter has no default
-value, it is a reference type whose annotation says not-null, and it does not carry
-`[ResponseOnly]`. A member the model already declares `required` or `[JsonRequired]` is left as it
-is.
+A member the model already declares `required` or `[JsonRequired]` is left as it is.
 
 | Member | Published as | Presence checked |
 |---|---|---|
@@ -70,16 +67,16 @@ is.
 | any value type | required | no |
 | `[ResponseOnly]` | `readOnly` | no |
 
-`[Required]`, `required` or `[JsonRequired]` demands one of the unchecked rows.
+`[Required]`, `required` or `[JsonRequired]` adds a presence check to any row marked no.
 
-A body that omits a required member and also breaks a constraint is answered about the omission
-alone. The constraint is reported on the next request.
+When a body omits a required member and also breaks a constraint, the response names the omission
+alone and the constraint comes back on the next request.
 
-Under a source-generated `JsonSerializerContext` the deserializer reads `IsRequired` from that
-generator rather than from reflection, so an AOT-published application declares presence with
-`required` or `[JsonRequired]`.
+An AOT-published application declares presence with `required` or `[JsonRequired]`. Under a
+source-generated `JsonSerializerContext` the deserializer reads `IsRequired` from that generator
+rather than from reflection.
 
-A contract-first model needs none of this. A contract's `required` compiles to `[Required]` whatever
+A contract-first model does not need `RequiredMemberPresence`. A contract's `required` compiles to `[Required]` whatever
 the member's type.
 
 ## Constraints on handler parameters
@@ -88,6 +85,8 @@ The same attributes go on a handler's parameters, for a value bound from the que
 or the path:
 
 ```csharp
+using Hardened.Web.Runtime.Attributes;
+
 [Get("/rates/{count:int}")]
 public int Page([Range(Min = 1, Max = 100)] int count) => count;
 
@@ -98,10 +97,10 @@ public int Precision([FromQueryString] [Range(Min = 2, Max = 8)] int precision) 
 public string Region([FromHeader("X-Region")] [StringLength(2, 2)] string region) => region;
 ```
 
-A failure is reported under the name the caller sent, `precision` or `X-Region`.
+The response names the value the caller sent, `precision` or `X-Region`.
 
-`When` and `Unless` name another member of the model the constraint sits on. A parameter sits on no
-model, and either reports `HRDV005`.
+`When` or `Unless` names another member of the model the constraint sits on. Either one on a handler
+parameter reports `HRDV005`.
 
 ## Nested models
 
@@ -153,12 +152,11 @@ reads it as it reads a hand-written one.
 
 ## The 400 response
 
-The generated filter answers the envelope above, with an entry per failed field. A value that does
-not parse as its declared type takes the same shape, so `?limit=abc` against an `int` parameter is
-reported under `limit`. A member missing from a nested object is reported under that object:
-`body.lines[0].sku`.
+The generated filter answers the envelope above. A value that does not parse as its declared type
+takes the same shape, so `?limit=abc` against an `int` parameter is reported under `limit`. A nested
+object carries its own path, so a member missing from one is reported as `body.lines[0].sku`.
 
-A body that cannot be read at all is reported against the body itself:
+An unreadable body is reported under `body`:
 
 | Sent | Field | Code |
 |---|---|---|
@@ -173,12 +171,12 @@ A body that cannot be read at all is reported against the body itself:
 
 ## What the document publishes
 
-The document republishes every constraint as the facet it came from, and an operation with a
-generated validator publishes the 400 with its schema under
+The document republishes every constraint as the facet it came from. An operation with a generated
+validator also publishes the 400, with its schema under
 `components.schemas.RequestValidationError`. See [The OpenAPI document](/guide/openapi-document).
 
-A constraint on a path token is a [route constraint](/guide/routing#constraining-what-a-token-matches)
-and is tested before any filter runs, so the operation publishes no 400.
+A constraint on a path token is a [route constraint](/guide/routing#constraining-what-a-token-matches),
+tested before any filter runs.
 
 | Declaration | Refused by | Published |
 |---|---|---|
@@ -191,8 +189,8 @@ and is tested before any filter runs, so the operation publishes no 400.
 
 ## Custom rules
 
-A rule the attributes cannot express is handler code. Throwing `ValidationException` produces the
-same response a constraint does:
+Write a rule the attributes cannot express in the handler. Throwing `ValidationException` produces
+the same response a constraint does:
 
 ```csharp
 using Hardened.Requests.Runtime.Validation;
@@ -209,12 +207,12 @@ public async Task<Pet> CreatePet(CreatePetRequest body) {
 }
 ```
 
-`ValidationResult` is immutable. Build it with `ValidationResult.FromErrors`.
+`ValidationResult` is immutable.
 
 ## Refusing with another status
 
-A well-formed request refused for its own reason usually wants its own status. Throw the response
-for that status and declare it:
+A refusal that is not about a field takes its own status. Throw the response for that status and
+declare it:
 
 ```csharp
 [Post("/pets")]
@@ -229,13 +227,12 @@ public async Task<Pet> CreatePet(CreatePetRequest body) {
 }
 ```
 
-Without `[Throws<T>]` the throw answers 409 and the document describes only the 200, so a generated
-client has no case for it. See
+Without `[Throws<T>]` the throw answers 409. The document then describes only the 200. See
 [Declaring what a handler throws](/guide/responses#declaring-what-a-handler-throws).
 
 ## Replacing the status and body
 
-`ExceptionResponseSerializer` asks `IExceptionToModelConverter` for the status and body of every
+`ExceptionResponseSerializer` calls `IExceptionToModelConverter` for the status and body of every
 failure. The stock converter registers with `RegistrationType.Try`, so an application's own
 registration replaces it.
 
@@ -269,9 +266,12 @@ public class UnprocessableContentConverter : IExceptionToModelConverter {
 ```
 
 Delegating to the stock converter keeps thrown declared statuses, the binding 400 and the 500. Two
-validation exception types reach it: Hardened's `ValidationException`, thrown by the generated
-filters and the binder, and ValidationModules' own, thrown by code that calls a generated validator
-directly.
+validation exception types reach it, and the stock converter maps both.
+
+| Exception | Thrown by |
+|---|---|
+| `Hardened.Requests.Runtime.Validation.ValidationException` | the generated filters and the binder |
+| `ValidationModules.ValidationException` | code that calls a generated validator directly |
 
 ## Next
 

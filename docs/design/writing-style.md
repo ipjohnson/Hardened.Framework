@@ -89,8 +89,11 @@ table.
 
 ## 4. Code blocks
 
-Complete enough to compile, with the `using` lines a reader would have to grep for. A comment in a
-block states the result, not the intent: `// {} is a 400`, not `// this is required`.
+Complete enough to compile. The first block on a page carries its `using` lines, and a later block
+adds one only for a namespace the page has not shown yet. Repeating the same `using` in every block
+is the padding this guide exists to remove.
+
+A comment in a block states the result, not the intent: `// {} is a 400`, not `// this is required`.
 
 ## 5. What the editor returns
 
