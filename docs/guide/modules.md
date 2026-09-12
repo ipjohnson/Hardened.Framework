@@ -58,7 +58,7 @@ by equality.
 
 A library module in another assembly carries its own handlers, services and route prefix.
 `[BasePath]` on it prefixes every route in that assembly, so the application lists none of the
-library's routes. See [Prefixing with BasePath](/guide/routing#prefixing-with-basepath).
+library's routes. See [The route attributes](/guide/routing#the-route-attributes).
 
 ## Registering by hand
 

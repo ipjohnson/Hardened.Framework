@@ -212,4 +212,4 @@ verdict.
 
 - [Authentication](/guide/authentication): the scheme and the principal source
 - [Credentials](/guide/testing-credentials): sending a test as a caller holding grants
-- [Response caching](/guide/response-caching#say-who-the-answer-is-for): what a guarded handler may cache
+- [Response caching](/guide/response-caching#cache-scope): what a guarded handler may cache

@@ -73,7 +73,7 @@ front end only leaves a gap in the other.
 
 | Id | | Meaning |
 |---|---|---|
-| `HRDV001` | retired | Retired. It warned that a constraint on a handler parameter was not compiled; [they are compiled now](/guide/validation#declaring-constraints-in-code) |
+| `HRDV001` | retired | Retired. It warned that a constraint on a handler parameter was not compiled; [they are compiled now](/guide/validation#constraints-on-handler-parameters) |
 | `HRDV002` | warning | Two validators claimed the same generated file |
 | `HRDV003` | warning | A required member of a value type cannot be found missing, so `[Required]` there does nothing |
 | `HRDV004` | warning | Nested constraints are never reached |
