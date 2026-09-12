@@ -241,6 +241,87 @@ run_tests() {
     fi
 }
 
+# What the served document says about the two constraints the templates declare, which is the half
+# the wire probes cannot see. A service is free to enforce a bound and describe none, and the
+# consumer that generated its client from the document is the one that breaks - so the constraint
+# and its published facet are asserted as one thing, the way the runtime and the document halves of
+# the serializer option are.
+#
+# Read from the served document rather than from src/Sample/openapi/Sample.json, because the --client
+# none rows write no file and still publish a document, and because what a consumer fetches is the
+# claim being made.
+#
+# $1 the document this row served.
+check_constraint_document() {
+    python3 - "$1" <<'PY' || FAILED=1
+import json, sys
+
+try:
+    doc = json.load(open(sys.argv[1]))
+except Exception as error:
+    print("   FAILED: the served document did not parse: " + str(error))
+    sys.exit(1)
+
+paths = doc.get("paths") or {}
+wrong = []
+
+
+def operation(path, method):
+    return (paths.get(path) or {}).get(method) or {}
+
+
+# The bound on the path token, on both operations that take one. Asserted on each rather than on
+# either, because they are separate handlers carrying separate copies of the attribute and a
+# generator that read one signature and not the other would publish a document that is half right.
+for path, method in (("/todos/{id}", "get"), ("/todos/{id}", "delete")):
+    where = method.upper() + " " + path
+    found = operation(path, method)
+
+    if not found:
+        wrong.append(where + " is not in the document")
+        continue
+
+    declared = [
+        parameter for parameter in found.get("parameters") or []
+        if parameter.get("name") == "id" and parameter.get("in") == "path"
+    ]
+
+    if not declared:
+        wrong.append(where + " declares no id path parameter")
+    elif (declared[0].get("schema") or {}).get("minimum") != 1:
+        wrong.append(where + " does not publish minimum 1 on id")
+
+# The length on the title, reached by resolving the request body's $ref rather than by naming the
+# schema: the name is the contract's to choose, and only the operation says which schema it sends.
+create = operation("/todos", "post")
+body = (((create.get("requestBody") or {}).get("content") or {})
+        .get("application/json") or {}).get("schema") or {}
+schema = ((doc.get("components") or {}).get("schemas") or {}).get(
+    (body.get("$ref") or "").rsplit("/", 1)[-1]) or {}
+title = (schema.get("properties") or {}).get("title") or {}
+
+if title.get("minLength") != 1 or title.get("maxLength") != 64:
+    wrong.append("the request body schema does not publish minLength 1 and maxLength 64 on title")
+
+# The status those constraints answer with. Synthesized rather than echoed - no contract in the
+# templates declares a 400 anywhere, and todos.yaml names 200, 404, 204, 201 and 409 - so this is
+# what the generator decided rather than what the input said.
+for path, method in (("/todos/{id}", "get"), ("/todos/{id}", "delete"), ("/todos", "post")):
+    if "400" not in (operation(path, method).get("responses") or {}):
+        wrong.append(method.upper() + " " + path + " publishes no 400")
+
+# And the negative half, because a writer that put a 400 on every operation would pass all of the
+# above. This one takes no parameters and has nothing to refuse.
+if "400" in (operation("/todos", "get").get("responses") or {}):
+    wrong.append("GET /todos publishes a 400 and has nothing to validate")
+
+for line in wrong:
+    print("   FAILED: " + line)
+
+sys.exit(1 if wrong else 0)
+PY
+}
+
 # The serializer option, on the files rather than on the build. Every piece of it builds clean
 # when it is missing: a document with no x-message-pack-index, a client with no attributes and a
 # service answering JSON to an Accept it said it honoured all compile and all pass the handler
@@ -629,6 +710,28 @@ for COMBO in "${COMBOS[@]}"; do
         echo "$code"
     }
 
+    # A request and what the validation envelope said about it: the status, then every field error
+    # as field:code, comma-joined. Both halves, because a status alone does not say which constraint
+    # refused - and a 400 from the binder failing to read the value looks exactly like a 400 from the
+    # bound it was checked against, which is the thing these checks are here to tell apart.
+    #
+    # The codes are ValidationModules' constants, so they are the wire contract rather than prose:
+    # "range", "string_length". A body error's field is pathed under the handler's own parameter
+    # name, which the two front ends are free to name differently, so callers match the leaf.
+    refusal() {
+        local body="$WORK/refusal-body" status fields
+
+        status=$(curl -s --max-time 5 -o "$body" -w '%{http_code}' "$@" || echo 000)
+
+        fields=$(python3 -c 'import json,sys
+try: doc = json.load(open(sys.argv[1]))
+except Exception: sys.exit(0)
+print(",".join(str(e.get("field","")) + ":" + str(e.get("code","")) for e in doc.get("errors") or []))' \
+            "$body" 2>/dev/null || true)
+
+        echo "$status ${fields:-no-envelope}"
+    }
+
     PORT=$((5300 + RANDOM % 200))
     CODE=000
     BODY=""
@@ -654,14 +757,18 @@ for COMBO in "${COMBOS[@]}"; do
         # --compressed because the document is stored and served gzipped; without it this parses the
         # gzip magic number.
         #
-        # Code-first only. A spec-first document is the contract file itself, served verbatim, and
-        # cannot be empty without the input being empty.
-        DOC_OPS=-1
-        if [ "$CONTRACT" = "code" ]; then
-            DOC_OPS=$(curl -s --compressed --max-time 5 "http://localhost:$PORT/openapi.json" \
-                | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("paths") or {}))' \
-                2>/dev/null || echo 0)
-        fi
+        # Every contract, not code-first only. This was gated on code-first because a spec-first
+        # document was taken to be the contract file served back, which it is not: PublishUrl serves
+        # the document generated from the model and SourceUrl serves the file, so /openapi.json is
+        # generated in all three directions and is the one a consumer generates a client from.
+        #
+        # Fetched to a file rather than piped, because the constraint checks below read the same
+        # document and asking twice is two documents.
+        DOC="$OUT/served-openapi.json"
+        curl -s --compressed --max-time 5 -o "$DOC" "http://localhost:$PORT/openapi.json" || true
+
+        DOC_OPS=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1])).get("paths") or {}))' \
+            "$DOC" 2>/dev/null || echo 0)
 
         # The declared error paths, over a real socket. A response model exercised only at 200 is
         # indistinguishable from having no declared set at all, which is the thing worth proving
@@ -696,6 +803,57 @@ for COMBO in "${COMBOS[@]}"; do
             EXPECT_CREATED=200
         else
             EXPECT_CREATED=201
+        fi
+
+        # The constraints the templates declare, over a socket. There are exactly two of them - a
+        # bound on the id path token and a length on the title - and all three contract directions
+        # declare the same pair: [Range(Min = 1)] and [StringLength(1, 64)] code-first, minimum and
+        # minLength/maxLength in todos.yaml, @range and @length in todos.smithy. So one expectation
+        # holds for every row and none of this forks on the contract.
+        #
+        # Worth its own block because nothing else here sends a value that should be refused. The
+        # template's own comment beside the title says the build turns the constraint into a filter
+        # in front of the generated handler, and until now a build that emitted no filter at all
+        # passed every check in this script.
+        BELOW_RANGE=$(refusal "http://localhost:$PORT/todos/0")
+
+        # The companion to it, and the reason the two are asserted together: both are 400 and only
+        # the code tells them apart. "abc" never becomes an integer, so no constraint on it was
+        # evaluated and the binder reports invalid; "0" reads as one and fails the bound, which
+        # reports range. A filter that had stopped running would answer 200 to the second and still
+        # answer 400 to this one, because binding refuses it before any constraint is consulted.
+        #
+        # A 400 rather than the 404 a route constraint would give: the template routes /{id} with no
+        # :int on the token, so every token matches and the refusal happens after the route.
+        UNREADABLE_ID=$(refusal "http://localhost:$PORT/todos/abc")
+
+        # Both ends of the length, because a filter is free to enforce one and not the other.
+        TOO_LONG=$(refusal -X POST -H 'Content-Type: application/json' \
+            -d "{\"title\":\"$(printf 'x%.0s' $(seq 1 65))\"}" \
+            "http://localhost:$PORT/todos")
+
+        TOO_SHORT=$(refusal -X POST -H 'Content-Type: application/json' \
+            -d '{"title":""}' "http://localhost:$PORT/todos")
+
+        # The other half of the contract. A filter that refused everything would pass all three
+        # above, and 64 characters is the value the bound admits rather than an arbitrary valid one.
+        AT_THE_BOUND=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
+            -X POST -H 'Content-Type: application/json' \
+            -d "{\"title\":\"$(printf 'y%.0s' $(seq 1 64))\"}" \
+            "http://localhost:$PORT/todos" || true)
+
+        # What a refusal answers when the caller asked for MessagePack. Every probe above sends and
+        # accepts JSON, so the negotiated path was exercised by nothing here - and the template
+        # carries [JsonErrorBodies], which says successes stay negotiated while failures answer JSON.
+        # Both halves, because a service that answered JSON to everything would satisfy the second.
+        NEGOTIATED_OK=""
+        NEGOTIATED_REFUSAL=""
+        if [ "${SERIALIZER#message-pack}" != "$SERIALIZER" ]; then
+            NEGOTIATED_OK=$(curl -s -o /dev/null -w '%{content_type}' --max-time 5 \
+                -H 'Accept: application/x-msgpack' "http://localhost:$PORT/todos/1" || true)
+
+            NEGOTIATED_REFUSAL=$(curl -s -o /dev/null -w '%{http_code} %{content_type}' --max-time 5 \
+                -H 'Accept: application/x-msgpack' "http://localhost:$PORT/todos/0" || true)
         fi
     fi
 
@@ -736,14 +894,93 @@ for COMBO in "${COMBOS[@]}"; do
             FAILED=1
         fi
 
-        if [ "$DOC_OPS" != "-1" ]; then
-            echo "   /openapi.json describes $DOC_OPS path(s)"
+        echo "   /openapi.json describes $DOC_OPS path(s)"
 
-            if [ "$DOC_OPS" -lt 1 ] 2>/dev/null; then
-                echo "   FAILED: the published document describes no operations"
-                FAILED=1
-            fi
+        if [ "$DOC_OPS" -lt 1 ] 2>/dev/null; then
+            echo "   FAILED: the published document describes no operations"
+            FAILED=1
         fi
+
+        echo "   constraints: /todos/0=$BELOW_RANGE  /todos/abc=$UNREADABLE_ID"
+        echo "   title: 65 chars=$TOO_LONG  empty=$TOO_SHORT  64 chars=$AT_THE_BOUND"
+
+        # The status and the code, not the status alone. A 400 says the request was refused; the code
+        # says the bound is what refused it, and a binder that failed to read "0" as an integer would
+        # answer the same status with "invalid".
+        case "$BELOW_RANGE" in
+            "400 id:range") ;;
+            *)
+                echo "   FAILED: GET /todos/0 should be refused 400 id:range, got '$BELOW_RANGE'"
+                FAILED=1
+                ;;
+        esac
+
+        case "$UNREADABLE_ID" in
+            "400 id:invalid") ;;
+            *)
+                echo "   FAILED: GET /todos/abc should be refused 400 id:invalid, got '$UNREADABLE_ID'"
+                FAILED=1
+                ;;
+        esac
+
+        # The leaf rather than the whole path: a body error is pathed under the handler's own
+        # parameter name, which is "request" code-first and "body" through the generated interface,
+        # and neither is a claim this script is making.
+        check_title_refusal() {
+            case "$2" in
+                "400 "*"title:$3") ;;
+                *)
+                    echo "   FAILED: $1 should be refused 400 title:$3, got '$2'"
+                    FAILED=1
+                    ;;
+            esac
+        }
+
+        check_title_refusal "a 65-character title" "$TOO_LONG" string_length
+
+        # An empty title is refused by every direction and named differently by them. Code-first
+        # reads it as the length bound it failed. Both specification-first front ends map the
+        # contract's required: [title] onto a Required constraint, which does not admit an empty
+        # string, and that constraint answers first.
+        #
+        # Pinned per direction rather than accepting either, because the code is the wire contract a
+        # client switches on: one contract written three ways refusing the same value with two codes
+        # is worth noticing if it changes, in either direction.
+        if [ "$CONTRACT" = "code" ]; then
+            check_title_refusal "an empty title" "$TOO_SHORT" string_length
+        else
+            check_title_refusal "an empty title" "$TOO_SHORT" required
+        fi
+
+        if [ "$AT_THE_BOUND" != "$EXPECT_CREATED" ]; then
+            echo "   FAILED: a 64-character title is inside the bound and should create at $EXPECT_CREATED, got $AT_THE_BOUND"
+            FAILED=1
+        fi
+
+        if [ -n "$NEGOTIATED_OK" ]; then
+            echo "   negotiated: success=$NEGOTIATED_OK  refusal=$NEGOTIATED_REFUSAL"
+
+            case "$NEGOTIATED_OK" in
+                application/x-msgpack*) ;;
+                *)
+                    echo "   FAILED: a success asked for as MessagePack answered '$NEGOTIATED_OK'"
+                    FAILED=1
+                    ;;
+            esac
+
+            case "$NEGOTIATED_REFUSAL" in
+                "400 application/json"*) ;;
+                *)
+                    echo "   FAILED: [JsonErrorBodies] should answer a refusal 400 application/json, got '$NEGOTIATED_REFUSAL'"
+                    FAILED=1
+                    ;;
+            esac
+        fi
+
+        # The same two constraints in the document the client is generated from, which is the half a
+        # wire probe cannot see: a service can enforce a bound and describe none, and the consumer
+        # that trusts the document is the one that breaks.
+        check_constraint_document "$DOC"
 
         # Something on the console. A generated application that starts, serves and prints nothing
         # gives whoever just ran it no reason to believe it is working - and no logging provider is
