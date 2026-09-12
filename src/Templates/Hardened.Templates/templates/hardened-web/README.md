@@ -241,12 +241,18 @@ Every route answers two representations of its body, and the client's `Accept` d
 
 ```
 GET /todos
-Accept: application/x-msgpack
+Accept: application/json
 ```
 
-JSON is declared first, so a client expressing no preference still gets JSON. Nothing else changed:
-the handlers return the same values, and `Hardened.Requests.Serializers.MessagePack` registers a
-writer under that media type and is asked only where an operation names it.
+MessagePack is declared first, so a caller expressing no preference gets MessagePack and the line
+above is how you ask for JSON. Nothing else changed: the handlers return the same values, and
+`Hardened.Requests.Serializers.MessagePack` registers a writer under that media type and is asked
+only where an operation names it.
+
+That order is worth knowing about. A generated client inherits it — Refitter pins the document's
+media types on each operation as `[Headers("Accept: ...")]`, in the document's order — so it is
+what makes the scaffolded client ask for MessagePack. Lead with JSON instead if a browsable default
+matters more than a binary client.
 
 The 404 and the 409 come back as MessagePack too. `NotFound` and `Conflict` are framework types
 that cannot carry the attribute themselves, so the package ships formatters for them - and for the
@@ -300,12 +306,36 @@ Nothing has to be stated in the contract: the names are already there.
 `src/Hardened1.Client/templates` holds the two Liquid files that put the same attributes on the
 generated client. NJsonSchema ships both empty and renders them into every class and property, so
 they add attributes and change nothing else about what Refitter writes.
+
+The attributes alone do not change the wire. Refit picks its format from
+`RefitSettings.ContentSerializer`, and the default is System.Text.Json - so
+`src/Hardened1.Client/MessagePackContentSerializer.cs` is what makes them load-bearing:
+
+```csharp
+var client = RestService.For<ITemplateModuleNameClient>(
+    http, new RefitSettings { ContentSerializer = new MessagePackContentSerializer() });
+```
+
+`tests/Hardened1.Tests/MessagePackClientFactory.cs` hands it to the client the tests drive, so
+every client test in this project runs over MessagePack - the typed 404, 409 and 400 bodies
+included.
+
+Those error bodies arrive as JSON, because `TemplateModuleNameLibrary` asks for that with
+`[JsonErrorBodies]`. That is Refit's doing: its `ApiException` carries the response content as a
+`string`, so a binary error body is decoded and re-encoded before any content serializer sees it
+and arrives corrupt. Request bodies and success bodies reach the serializer as real `HttpContent`
+and are unaffected, so sending text for the error path is all it takes - and the published document
+says so, declaring `application/json` alone on every error response.
+
+Drop the attribute to answer refusals as MessagePack too, and the client's typed error assertions
+stop working.
 #endif
 #if (kiotaClient)
 
 The Kiota client talks JSON. Its models carry no serialization attributes at all - they implement
 `IParsable` with hand-written `Serialize` and `GetFieldDeserializers` - so there is nothing for a
-MessagePack attribute to act on. Scaffold with `--client refit` for a client that speaks both.
+MessagePack attribute to act on, and no template hook to put one through. Scaffold with
+`--client refit` for a client that speaks MessagePack.
 #endif
 
 #endif

@@ -837,7 +837,7 @@ namespace Hardened.Requests.Runtime.Serializer
     [DependencyModules.Runtime.Attributes.SingletonService(Using=DependencyModules.Runtime.Attributes.RegistrationType.Try)]
     public class SerializationLocatorService : Hardened.Requests.Abstract.Serializer.ISerializationLocatorService
     {
-        public SerializationLocatorService(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IRequestDeserializer> requestDeserializers, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IResponseSerializer> responseSerializers, Hardened.Requests.Abstract.Serializer.IContentNegotiationPolicy? negotiationPolicy = null) { }
+        public SerializationLocatorService(System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IRequestDeserializer> requestDeserializers, System.Collections.Generic.IEnumerable<Hardened.Requests.Abstract.Serializer.IResponseSerializer> responseSerializers, Hardened.Requests.Abstract.Serializer.IContentNegotiationPolicy? negotiationPolicy = null, Hardened.Requests.Abstract.Serializer.IErrorBodyPolicy? errorBodyPolicy = null) { }
         public Hardened.Requests.Abstract.Serializer.IResponseSerializer? DefaultSerializer { get; }
         public Hardened.Requests.Abstract.Serializer.IRequestDeserializer FindRequestDeserializer(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public Hardened.Requests.Abstract.Serializer.IResponseSerializer FindResponseSerializer(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }

@@ -256,7 +256,9 @@ check_serializer() {
     if [ "$serializer" = default ] || [ "$serializer" = json ]; then
         # The opt-out, checked the way --client none is: no package, no attribute, no templates.
         if grep -q "MessagePack" "$library" "$out/src/Sample/TemplateModuleNameLibrary.cs" \
-               "$out/src/Sample/SampleLibrary.cs" 2>/dev/null || [ -d "$templates" ]; then
+               "$out/src/Sample/SampleLibrary.cs" 2>/dev/null || [ -d "$templates" ] || \
+           [ -e "$out/src/Sample.Client/MessagePackContentSerializer.cs" ] || \
+           [ -e "$out/tests/Sample.Tests/MessagePackClientFactory.cs" ]; then
             echo "   FAILED: --serializer json left MessagePack in the project"
             FAILED=1
         fi
@@ -310,6 +312,19 @@ check_serializer() {
             echo "   FAILED: .refitter does not point at the template directory"
             FAILED=1
         }
+
+        # What makes the attributes load-bearing. Refit reads its format from
+        # RefitSettings.ContentSerializer and defaults to System.Text.Json, so a client with every
+        # key in the right place still talks JSON without these two files - and every assertion
+        # above would still pass. The handler tests run over MessagePack because of them, which is
+        # what run_tests below is then proving.
+        for file in src/Sample.Client/MessagePackContentSerializer.cs \
+                    tests/Sample.Tests/MessagePackClientFactory.cs; do
+            [ -s "$out/$file" ] || {
+                echo "   FAILED: $file did not reach the output"
+                FAILED=1
+            }
+        done
 
         # The attributes in the generated client, which is the only proof the templates were read.
         # Refitter falls back to the embedded template for a directory it cannot find and says
@@ -535,7 +550,10 @@ for COMBO in "${COMBOS[@]}"; do
                 FAILED=1
             fi
         fi
-        if [ -n "$(find "$OUT/src/Sample.Client" -maxdepth 1 -name '*.cs')" ]; then
+        # MessagePackContentSerializer.cs is hand-written and belongs beside the csproj; everything
+        # else in this folder is Refitter's or Kiota's and belongs under obj/.
+        if [ -n "$(find "$OUT/src/Sample.Client" -maxdepth 1 -name '*.cs' \
+                        -not -name 'MessagePackContentSerializer.cs')" ]; then
             echo "   FAILED: generated code landed beside the client csproj rather than under obj/"
             FAILED=1
         fi

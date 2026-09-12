@@ -47,6 +47,12 @@ public static class OpenApiDocumentGenerator {
         // its module declares on the same terms an attribute-routed one does.
         handlers = WithEntryPointRung(appModel, handlers);
 
+        // And [ErrorBodies(Json)] narrows every refusal, before any of them is written. Here rather
+        // than inside ErrorContentTypes because the rule is about the service and the handlers are
+        // already rewritten once at this point - threading a flag down to two call sites would put
+        // a whole-service answer in a per-handler argument.
+        handlers = WithJsonErrorBodies(appModel, handlers);
+
         // Identity, in preference order: the contract's own (specification-first), an
         // [OpenApiInfo] on the entry point (code-first), then the fallbacks every application got
         // before either existed - the entry point's class name and "1.0.0". The fallbacks renamed
@@ -231,6 +237,52 @@ public static class OpenApiDocumentGenerator {
         }
 
         return merged;
+    }
+
+    /// <summary>
+    /// Every handler's refusals narrowed to JSON, where the entry point asked for that.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The document has to say it or it is not true of the service: an operation declaring
+    /// <c>application/x-msgpack</c> under this setting still answers its 404 as JSON, and a client
+    /// generated from a document claiming otherwise reads the wrong thing.
+    /// </para>
+    /// <para>
+    /// A description says the same with <c>x-hardened-error-bodies</c> at its root, and that
+    /// arrives already applied - <c>SpecHandlerModelBuilder</c> writes it onto each operation's
+    /// error content types, where a contract's own per-status media types are written too.
+    /// </para>
+    /// </remarks>
+    private static IReadOnlyList<RequestHandlerModel> WithJsonErrorBodies(
+        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers) {
+        if (!DeclaresJsonErrorBodies(appModel)) {
+            return handlers;
+        }
+
+        var narrowed = new List<RequestHandlerModel>(handlers.Count);
+
+        foreach (var handler in handlers) {
+            // A copy of both, because a handler model is shared with the rest of the pipeline and
+            // its response information is a record whose members are settable - mutating either in
+            // place would change what every other reader of it sees.
+            narrowed.Add(handler.WithFilters(
+                handler.Filters,
+                handler.ResponseInformation with { ErrorContentTypes = Json }));
+        }
+
+        return narrowed;
+    }
+
+    /// <summary>Whether the entry point carries <c>[JsonErrorBodies]</c>.</summary>
+    private static bool DeclaresJsonErrorBodies(EntryPointSelector.Model appModel) {
+        foreach (var attribute in appModel.AttributeModels) {
+            if (attribute.TypeDefinition.Name.StartsWith("JsonErrorBodies", StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static RequestHandlerModel Merged(

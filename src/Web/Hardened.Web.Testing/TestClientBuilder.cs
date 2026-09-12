@@ -80,9 +80,15 @@ internal static class TestClientBuilder {
 
         if (factoryType != null) {
             var factory = Activator.CreateInstance(factoryType)!;
-            var create = typeof(ITestClientFactory<>).MakeGenericType(clientType).GetMethod("Create")!;
 
-            return create.Invoke(factory, new object[] { context.Http })!;
+            // The context overload, which defaults to the HttpClient one - so a factory that
+            // implements only Create(HttpClient) is reached through the default, and one that needs
+            // a handler in front of the pipeline overrides this instead. Resolved by signature,
+            // because there are two Create methods now.
+            var create = typeof(ITestClientFactory<>).MakeGenericType(clientType)
+                .GetMethod("Create", new[] { typeof(TestClientContext) })!;
+
+            return create.Invoke(factory, new object[] { context })!;
         }
 
         if (RouteFor(clientType, testAssembly) is { } route) {

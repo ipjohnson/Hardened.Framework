@@ -23,4 +23,29 @@ public interface ITestClientFactory<out TClient> where TClient : class {
 
     /// <summary>Builds the client over <paramref name="http"/>, which already carries the test's credential.</summary>
     TClient Create(HttpClient http);
+
+    /// <summary>
+    /// The same, for a client that needs more than the <see cref="HttpClient"/> the harness built.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>A handler of its own in front of the pipeline</b> is the case this exists for, and it was
+    /// named as a reason to declare a factory before a factory could do it. The harness's client is
+    /// built over a handler this package owns, that handler is not reachable from the client, and
+    /// wrapping the client instead does not work: <c>HttpClient</c> marks a request as sent before
+    /// the outer handler sees it, so forwarding the same message to a second client throws.
+    /// <see cref="TestClientContext.CreateHttpClient"/> composes one properly, and this is what
+    /// hands the context to a factory that needs it.
+    /// </para>
+    /// <para>
+    /// Defaulted to <see cref="Create(HttpClient)"/>, so a factory that needs nothing more says
+    /// nothing more and every existing one keeps working. Implement this one as well where the two
+    /// differ - the harness calls this one.
+    /// </para>
+    /// </remarks>
+    TClient Create(TestClientContext context) {
+        ArgumentNullException.ThrowIfNull(context);
+
+        return Create(context.Http);
+    }
 }

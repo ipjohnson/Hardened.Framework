@@ -83,6 +83,7 @@ internal static class SpecModelSerializer {
         spec.Add("FileName", model.FileName);
         spec.Add("JsonTypeInfoResolverName", model.JsonTypeInfoResolverName);
         spec.Add("ContentNegotiation", model.ContentNegotiation);
+        spec.Add("ErrorBodies", model.ErrorBodies);
         spec.Add("ResponseModel", model.ResponseModel.ToString());
         spec.Add("Serializer", model.Serializer.ToString());
         spec.Add("BindCancellationToken", model.BindCancellationToken);
@@ -173,6 +174,7 @@ internal static class SpecModelSerializer {
                     model.FileName = record.String("FileName") ?? "";
                     model.JsonTypeInfoResolverName = record.String("JsonTypeInfoResolverName") ?? "";
                     model.ContentNegotiation = record.String("ContentNegotiation") ?? "";
+                    model.ErrorBodies = record.String("ErrorBodies") ?? "";
                     model.ResponseModel = ParseResponseModel(record.String("ResponseModel"));
                     model.Serializer = ParseSerializer(record.String("Serializer"));
                     model.BindCancellationToken = record.Bool("BindCancellationToken");

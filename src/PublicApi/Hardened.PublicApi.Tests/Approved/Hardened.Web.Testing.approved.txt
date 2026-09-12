@@ -30,6 +30,7 @@ namespace Hardened.Web.Testing
     public interface ITestClientFactory<out TClient>
         where out TClient :  class
     {
+        TClient Create(Hardened.Web.Testing.TestClientContext context);
         TClient Create(System.Net.Http.HttpClient http);
     }
     public interface ITestClientReader

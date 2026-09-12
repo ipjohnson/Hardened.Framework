@@ -493,6 +493,8 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
             model.ResponseModel = SelectedResponseModel();
             model.BindCancellationToken = BindCancellationToken;
 
+            NarrowErrorBodies(model);
+
             if (!Published(spec, path, model)) {
                 continue;
             }
@@ -528,6 +530,34 @@ public abstract class ExtractSpecTask : Microsoft.Build.Utilities.Task {
     private string Emit(ServiceSpecModel model, string document, string specPath) =>
         SpecFileEmitter.Emit(
             model, Namespace, ExcludeFromCoverage, document, specPath, SelectedResponseModel());
+
+    /// <summary>
+    /// Every operation's error responses narrowed to JSON, where the description asked for that.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <c>x-hardened-error-bodies: json</c> at the root. Applied to the model rather than read at
+    /// each of the places that consume it, so the generated document, the generated dispatch and
+    /// anything else downstream all see one answer - and so a front end that cannot state it in its
+    /// own language is simply one where this does nothing.
+    /// </para>
+    /// <para>
+    /// The entry-point attribute says the same thing and is applied where it is read, on the
+    /// document generator's own copy of the handlers. Both end up narrowing the same field.
+    /// </para>
+    /// </remarks>
+    private static void NarrowErrorBodies(ServiceSpecModel model) {
+        if (!string.Equals(model.ErrorBodies, "json", System.StringComparison.Ordinal)) {
+            return;
+        }
+
+        foreach (var service in model.Services) {
+            foreach (var operation in service.Operations) {
+                operation.ErrorContentTypes.Clear();
+                operation.ErrorContentTypes.Add("application/json");
+            }
+        }
+    }
 
     /// <summary>
     /// The mode <c>$(HardenedSerializer)</c> names, defaulting to Json.

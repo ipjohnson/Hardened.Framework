@@ -148,7 +148,9 @@ protocol trait, and there is no MessagePack protocol to state, so the contract h
 the media type and nowhere to state an index. Refused at instantiation the way the union
 combinations are, with `HTPL008` as the build's backstop.
 
-[MessagePack](/guide/message-pack) covers the rest, including what it does not cover.
+Both modes also add `[JsonErrorBodies]`, so failures answer JSON while successes stay MessagePack.
+That is what lets the scaffolded Refit client run its whole test suite over MessagePack: Refit
+cannot read a binary error body. [MessagePack](/guide/message-pack) covers why, and the rest.
 
 ### The reference page
 

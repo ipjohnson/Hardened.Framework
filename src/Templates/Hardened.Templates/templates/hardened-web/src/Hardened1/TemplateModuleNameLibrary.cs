@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 #endif
 using Hardened.Web.Runtime.DependencyInjection;
 #if (messagePack)
+using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Serializers.MessagePack;
 #endif
 
@@ -27,6 +28,16 @@ namespace Hardened1;
 // the serializer registers under application/x-msgpack and is asked only where an operation
 // declares that media type, which the handlers below do with [Produces].
 [MessagePackSerializerLibrary]
+// And failures answer JSON, whatever the request negotiated. One answer for the whole service.
+//
+// This exists for the client. Refit carries an error response's content as a string, so a binary
+// error body is decoded and re-encoded before its deserializer is asked for it and arrives as
+// replacement characters - a Refit client of a MessagePack service can read every success body and
+// no error body. Sending text is the only thing a service can do about that.
+//
+// Drop the line to answer refusals as MessagePack too. The published document follows either way:
+// with it, an error response declares application/json and nothing else.
+[JsonErrorBodies]
 #endif
 #if (codeFirst)
 // This assembly's URL space. Every route below it is relative to this.
