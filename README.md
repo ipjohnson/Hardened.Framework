@@ -358,27 +358,6 @@ To see what a handler's chain was composed into, enable `Debug` for the `Hardene
 log category. It writes one line per handler as the chain is built, naming each filter and its
 order in the order they run, and costs nothing per request whether it is on or off.
 
-## What else the build writes
-
-The same generate-don't-reflect treatment runs through the rest of the framework:
-
-- **[Parameter binding](https://ipjohnson.github.io/Hardened.Framework/guide/parameter-binding)** —
-  path, query, header, body and injected services bind through code emitted for each handler's
-  exact signature; a binding that cannot work is a build error.
-- **[Configuration](https://ipjohnson.github.io/Hardened.Framework/guide/configuration)** — a
-  configuration model is a partial class of private fields; the generator writes the interface,
-  the implementation and the environment-variable reads.
-- **[Authorization](https://ipjohnson.github.io/Hardened.Framework/guide/authorization)** — a handler
-  says what it needs; the pipeline decides whether the caller has it.
-- **[Streaming responses](https://ipjohnson.github.io/Hardened.Framework/guide/streaming)** — return
-  `IAsyncEnumerable<T>` and the response streams.
-- **[Content negotiation](https://ipjohnson.github.io/Hardened.Framework/guide/content-negotiation)**
-  and **[System.Text.Json configuration](https://ipjohnson.github.io/Hardened.Framework/guide/json)**
-  follow the same shape.
-
-Everything lands as readable source: `EmitCompilerGeneratedFiles` is on in the templates, so the
-routing table, the handlers and the binding sit under `obj/<configuration>/<tfm>/generated/`.
-
 ## Testing
 
 A test method declares what it needs as parameters. The framework boots the real application around
@@ -439,14 +418,97 @@ See [testing](https://ipjohnson.github.io/Hardened.Framework/guide/testing),
 [testing web apps](https://ipjohnson.github.io/Hardened.Framework/guide/testing-web) and
 [clients](https://ipjohnson.github.io/Hardened.Framework/guide/clients).
 
+## Rendering HTML from a `.cshtml` view
+
+A handler returns a model and a view turns it into HTML. `[Output<T>]` names the view, and it names
+a type rather than a string, so a view that does not exist is a build error rather than a 500.
+
+```csharp
+[Get("/orders")]
+[Output<Views.Orders>]
+public OrderListModel List() => _orders.Recent();
+```
+
+```razor
+@* Views/Orders.cshtml *@
+@using Contoso.Orders.Models
+@inherits Contoso.Orders.ApplicationRazorTemplates<OrderListModel>
+
+<table>
+@foreach (var order in Model.Orders)
+{
+    <tr><td>@order.Reference</td><td>@order.Total.ToString("###.00")</td></tr>
+}
+</table>
+```
+
+Rendering is [RazorBlade](https://github.com/ltrzesniewski/RazorBlade), which compiles `.cshtml`
+into C# at build time. A property the model does not have is a compiler error rather than a blank in
+the page. A compiled view carries no ASP.NET Core dependency, so the same views render under
+Kestrel, ASP.NET Core and Lambda.
+
+Two package references and one attribute turn it on. Reference `RazorBlade` as well as
+`Hardened.Templates.RazorBlade`. RazorBlade ships no `buildTransitive/` folder and MSBuild props do
+not flow transitively, so referencing only the Hardened package leaves out the `.props` that globs
+`**/*.cshtml`. The views then compile to nothing, with no error.
+
+```csharp
+[HardenedModule]
+[HardenedWebModule]
+[KestrelRuntime]
+[Enable<RazorTemplates>]
+public partial class Application { }
+```
+
+`[Enable<RazorTemplates>]` generates `ApplicationRazorTemplates<TModel>`, named from the entry point
+plus the marker, and that is what a view inherits. There is nothing to register: the generated
+handler puts a factory on the response and the view renders itself. A handler or a filter can
+replace that factory to choose a different view per request.
+
+A view built on a generated base has the same `Links` property the rest of the application uses, so
+a link in a template is checked the same way a link in C# is:
+
+```razor
+<a href="@Links.Order.ById(order.Id)">@order.Reference</a>
+```
+
+RazorBlade copies `@` expressions verbatim and emits `#line` directives with exact spans, so
+renaming that route or its handler breaks the build at the template's own line and column.
+
+Declaring an output takes the response out of negotiation. `Accept: text/html`, `*/*` or no header
+gets the rendered view, and `Accept: application/json` gets a 406 with no body. A view usually
+renders a subset of what its model holds, so falling back to JSON would put the rest of the model on
+the wire from a route whose author wrote nothing but a view. To serve both representations, declare
+no output and return the model.
+
+There is no engine interface to implement. An output writes the response itself, so another engine
+ships a marker and a base and needs no change here. See
+[views](https://ipjohnson.github.io/Hardened.Framework/guide/templates).
+
+## What else the build writes
+
+The same generate-don't-reflect treatment runs through the rest of the framework:
+
+- **[Parameter binding](https://ipjohnson.github.io/Hardened.Framework/guide/parameter-binding)** —
+  path, query, header, body and injected services bind through code emitted for each handler's
+  exact signature; a binding that cannot work is a build error.
+- **[Configuration](https://ipjohnson.github.io/Hardened.Framework/guide/configuration)** — a
+  configuration model is a partial class of private fields; the generator writes the interface,
+  the implementation and the environment-variable reads.
+- **[Authorization](https://ipjohnson.github.io/Hardened.Framework/guide/authorization)** — a handler
+  says what it needs; the pipeline decides whether the caller has it.
+- **[Streaming responses](https://ipjohnson.github.io/Hardened.Framework/guide/streaming)** — return
+  `IAsyncEnumerable<T>` and the response streams.
+- **[Content negotiation](https://ipjohnson.github.io/Hardened.Framework/guide/content-negotiation)**
+  and **[System.Text.Json configuration](https://ipjohnson.github.io/Hardened.Framework/guide/json)**
+  follow the same shape.
+
+Everything lands as readable source: `EmitCompilerGeneratedFiles` is on in the templates, so the
+routing table, the handlers and the binding sit under `obj/<configuration>/<tfm>/generated/`.
+
 ## Packages
 
 Everything ships to nuget.org as `Hardened.*`, and the templates reference the right set for each
 project shape. Assembling by hand, the source generators are not optional and do not flow
 transitively: the project that owns the application references them directly. The full list is in
 the [package reference](https://ipjohnson.github.io/Hardened.Framework/reference/packages).
-
-## Related repositories
-
-- [Hardened.Amz](https://github.com/ipjohnson/Hardened.Amz) — the retired AWS line, last released at `0.22.0-rc1000`. Replaced by the `Hardened.Aws.Lambda.*` packages in [`src/Clouds/Aws`](src/Clouds/Aws), not renamed
-- [`docs/`](docs) — the documentation site, published from this repository

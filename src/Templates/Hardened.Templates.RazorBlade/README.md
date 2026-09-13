@@ -22,7 +22,7 @@ That generates `ApplicationRazorTemplates<TModel>` — the entry point's name pl
 views to inherit:
 
 ```razor
-@inherits Application.ApplicationRazorTemplates<FortunePage>
+@inherits ApplicationRazorTemplates<FortunePage>
 <table>@foreach (var fortune in Model.Fortunes) { <tr><td>@fortune.Message</td></tr> }</table>
 ```
 
