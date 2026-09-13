@@ -1,7 +1,6 @@
 using System.Text;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Outputs;
-using Hardened.Requests.Abstract.Serializer;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -61,11 +60,11 @@ public abstract class HardenedHtmlTemplate<TModel>
     protected IExecutionContext Context { get; private set; } = default!;
 
     /// <summary>What this view produces. Overridden by the generated base, from its marker.</summary>
+    /// <remarks>
+    /// Written onto the response rather than matched against <c>Accept</c>. A view answers this and
+    /// nothing else, whatever the client asked for - see <see cref="IHardenedResponseOutput"/>.
+    /// </remarks>
     public virtual string ContentType => "text/html; charset=utf-8";
-
-    /// <inheritdoc />
-    public bool SupportsContentType(string? accept, IExecutionContext context) =>
-        MediaType.Accepts(accept, ContentType);
 
     /// <inheritdoc />
     /// <remarks>

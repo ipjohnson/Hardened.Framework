@@ -5,7 +5,6 @@ using System.Text.Json;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Outputs;
-using Hardened.Requests.Abstract.Serializer;
 
 namespace Hardened.Web.Runtime.OpenApi;
 
@@ -37,10 +36,6 @@ public sealed class OpenApiUiPage : IHardenedResponseOutput<OpenApiUiModel>
     /// response body ahead of the markup.
     /// </summary>
     private static readonly UTF8Encoding Utf8NoBom = new(false);
-
-    /// <inheritdoc />
-    public bool SupportsContentType(string? accept, IExecutionContext context) =>
-        MediaType.Accepts(accept, ContentTypeValue);
 
     /// <inheritdoc />
     public async Task WriteOutput(IExecutionContext context)

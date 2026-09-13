@@ -67,8 +67,6 @@ public class EnabledFeatureTests
 
                     public virtual string ContentType => "text/html";
 
-                    public bool SupportsContentType(string? accept, IExecutionContext context) => true;
-
                     public Task WriteOutput(IExecutionContext context) => Task.CompletedTask;
                 }
 
@@ -76,8 +74,6 @@ public class EnabledFeatureTests
                     protected IExecutionContext Context { get; private set; } = default!;
 
                     public virtual string ContentType => "text/plain";
-
-                    public bool SupportsContentType(string? accept, IExecutionContext context) => true;
 
                     public Task WriteOutput(IExecutionContext context) => Task.CompletedTask;
                 }

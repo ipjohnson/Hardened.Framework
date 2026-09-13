@@ -57,8 +57,6 @@ public class OutputFactoryGeneratorTests
 
             protected IExecutionContext Context { get; private set; } = default!;
 
-            public bool SupportsContentType(string? accept, IExecutionContext context) => true;
-
             public Task WriteOutput(IExecutionContext context) {
                 Model = (TModel)context.Response.ResponseValue!;
                 Context = context;

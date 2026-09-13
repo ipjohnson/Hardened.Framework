@@ -206,11 +206,14 @@ media type — `RawResponseSerializer` writes bytes it is handed and nothing els
 
 ## Handlers that declare an output
 
-None of this applies to a handler carrying [`[Output<T>]`](/guide/templates). The output either
-answers what the client asked for, or the request gets `406 Not Acceptable`. No serializer is
-consulted and there is no fallback, so adding `[Output<T>]` to a handler can never widen what it
-discloses. To serve both representations from one handler, do not declare an output: return the
-model and let negotiation choose.
+None of this applies to a handler carrying [`[Output<T>]`](/guide/templates). The output writes
+the response whatever the client asked for. No serializer is consulted and there is no fallback,
+so adding `[Output<T>]` to a handler can never widen what it discloses. To serve both
+representations from one handler, do not declare an output: return the model and let negotiation
+choose.
+
+The published document says so. The operation declares the media type the output writes, and a
+body of `type: string`, rather than `application/json` and a schema of the model.
 
 ## Request bodies
 

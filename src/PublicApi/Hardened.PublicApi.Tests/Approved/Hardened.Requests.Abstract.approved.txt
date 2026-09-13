@@ -679,7 +679,6 @@ namespace Hardened.Requests.Abstract.Outputs
 {
     public interface IHardenedResponseOutput
     {
-        bool SupportsContentType(string? accept, Hardened.Requests.Abstract.Execution.IExecutionContext context);
         System.Threading.Tasks.Task WriteOutput(Hardened.Requests.Abstract.Execution.IExecutionContext context);
     }
     public interface IHardenedResponseOutput<in TModel> : Hardened.Requests.Abstract.Outputs.IHardenedResponseOutput { }

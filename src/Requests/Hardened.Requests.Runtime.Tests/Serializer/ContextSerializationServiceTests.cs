@@ -15,26 +15,10 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// </summary>
 public class ContextSerializationServiceTests
 {
-    /// <summary>An output that records what it was asked and what it wrote.</summary>
+    /// <summary>An output that records what it wrote.</summary>
     private class RecordingOutput : IHardenedResponseOutput
     {
-        private readonly bool _supports;
-
-        public RecordingOutput(bool supports = true)
-        {
-            _supports = supports;
-        }
-
-        public string? AskedAbout { get; private set; }
-
         public int Writes { get; private set; }
-
-        public bool SupportsContentType(string? accept, IExecutionContext context)
-        {
-            AskedAbout = accept;
-
-            return _supports;
-        }
 
         public Task WriteOutput(IExecutionContext context)
         {
@@ -66,48 +50,44 @@ public class ContextSerializationServiceTests
     }
 
     /// <summary>
-    /// An output the client will not take is a 406, never the model serialized instead.
+    /// The output writes whatever the client asked for, including a type it does not produce.
     /// </summary>
     /// <remarks>
-    /// This is a data-leak fix rather than a status-code preference. A view usually renders a subset
-    /// of what its model holds - a page showing a customer's name, from a model carrying their
-    /// address and every internal identifier attached to them. Falling back to JSON because the
-    /// client asked for it would put all of it on the wire, from a route whose author wrote nothing
-    /// but a view.
+    /// <para>
+    /// This is the call a generated client makes. A document generator reads the operation and pins
+    /// <c>Accept: application/json</c> on every method it writes, so refusing that header meant
+    /// refusing every generated-client call to a view route with a <c>406</c> - the whole client,
+    /// on the routes whose authors had written a page rather than a model.
+    /// </para>
+    /// <para>
+    /// Serializing the model instead is the thing this must not do, and does not: the locator is
+    /// never reached. A view usually renders a subset of what its model holds - a page showing a
+    /// customer's name, from a model carrying their address and every internal identifier attached
+    /// to them - so a fallback to JSON would put all of it on the wire.
+    /// </para>
     /// </remarks>
-    [Fact]
-    public async Task AnOutputTheClientWillNotTakeIs406AndNothingElse()
+    [Theory]
+    [InlineData("application/json")]
+    [InlineData("application/x-msgpack")]
+    [InlineData("text/html")]
+    [InlineData("*/*")]
+    [InlineData(null)]
+    public async Task TheOutputWritesWhateverTheClientAskedFor(string? accept)
     {
         var fixture = new Fixture();
-        var context = Pipeline.Context(accept: "application/json");
-        var output = new RecordingOutput(supports: false);
+        var context = Pipeline.Context(accept: accept);
+        var output = new RecordingOutput();
 
         context.Response.ResponseValue = new { Secret = "value" };
         context.Response.OutputFactory = _ => output;
 
         await fixture.Service.SerializeResponse(context);
 
-        Assert.Equal(406, context.Response.Status);
-        Assert.Equal(0, output.Writes);
-        Assert.False(context.Response.ShouldSerialize);
+        Assert.Equal(1, output.Writes);
+        Assert.NotEqual(406, context.Response.Status);
         await fixture
             .ResponseSerializer.DidNotReceive()
             .SerializeResponse(Arg.Any<IExecutionContext>());
-    }
-
-    /// <summary>The output is asked about the request's own Accept header.</summary>
-    [Fact]
-    public async Task TheOutputIsAskedAboutTheRequestsAcceptHeader()
-    {
-        var fixture = new Fixture();
-        var context = Pipeline.Context(accept: "text/html, */*");
-        var output = new RecordingOutput();
-
-        context.Response.OutputFactory = _ => output;
-
-        await fixture.Service.SerializeResponse(context);
-
-        Assert.Equal("text/html, */*", output.AskedAbout);
     }
 
     /// <summary>

@@ -127,17 +127,22 @@ public class OpenApiUiPageTests
     }
 
     /// <summary>
-    /// The page answers HTML and only HTML: an output declares what the response <em>is</em>, and a
-    /// client that will not take it gets 406 rather than the model as JSON.
+    /// The page goes out as HTML whatever the client asked for, <c>application/json</c> included.
     /// </summary>
+    /// <remarks>
+    /// An output declares what the response <em>is</em> and does not negotiate. Refusing an
+    /// <c>Accept</c> it does not answer meant a <c>curl -H "Accept: application/json"</c> at the
+    /// reference page got a <c>406</c> - and, on an application's own view routes, that every call
+    /// from a generated client was refused.
+    /// </remarks>
     [Theory]
-    [InlineData("text/html", true)]
-    [InlineData("text/html,application/xhtml+xml", true)]
-    [InlineData("*/*", true)]
-    [InlineData(null, true)]
-    [InlineData("application/json", false)]
-    [InlineData("text/plain", false)]
-    public void SupportsContentType_AnswersOnlyForHtml(string? accept, bool expected)
+    [InlineData("text/html")]
+    [InlineData("text/html,application/xhtml+xml")]
+    [InlineData("*/*")]
+    [InlineData(null)]
+    [InlineData("application/json")]
+    [InlineData("text/plain")]
+    public async Task ThePageIsWrittenWhateverWasAskedFor(string? accept)
     {
         var request = new TestExecutionRequest(
             "GET",
@@ -147,17 +152,23 @@ public class OpenApiUiPageTests
         );
 
         var services = new ServiceCollection().BuildServiceProvider();
+        var body = new MemoryStream();
 
         var context = new TestExecutionContext(
             services,
             services,
             Substitute.For<IKnownServices>(),
             request,
-            new TestExecutionResponse(new MemoryStream()),
+            new TestExecutionResponse(body),
             CancellationToken.None
         );
 
-        Assert.Equal(expected, new OpenApiUiPage().SupportsContentType(accept, context));
+        context.Response.ResponseValue = Model;
+
+        await new OpenApiUiPage().WriteOutput(context);
+
+        Assert.Equal("text/html; charset=utf-8", context.Response.ContentType);
+        Assert.Contains("<!doctype html>", Encoding.UTF8.GetString(body.ToArray()));
     }
 
     /// <summary>
