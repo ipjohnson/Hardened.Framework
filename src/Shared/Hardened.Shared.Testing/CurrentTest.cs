@@ -26,8 +26,8 @@ namespace Hardened.Shared.Testing;
 /// calls the provider's <c>Install()</c> itself.
 /// </para>
 /// </remarks>
-public static class CurrentTest {
-
+public static class CurrentTest
+{
     /// <summary>The installed provider, or null when no runner package has loaded.</summary>
     public static ICurrentTestProvider? Provider { get; set; }
 
@@ -47,8 +47,8 @@ public static class CurrentTest {
 /// <summary>
 /// What a runner package supplies to <see cref="CurrentTest"/>.
 /// </summary>
-public interface ICurrentTestProvider {
-
+public interface ICurrentTestProvider
+{
     /// <summary>See <see cref="CurrentTest.Key"/>.</summary>
     object? Key { get; }
 

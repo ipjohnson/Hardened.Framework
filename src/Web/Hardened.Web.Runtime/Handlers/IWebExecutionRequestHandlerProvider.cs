@@ -30,8 +30,11 @@ namespace Hardened.Web.Runtime.Handlers;
 /// </para>
 /// </remarks>
 public record RequestHandlerInfo(
-    IExecutionRequestHandler? Handler, PathTokenCollection PathTokens, string? Allow = null) {
-
+    IExecutionRequestHandler? Handler,
+    PathTokenCollection PathTokens,
+    string? Allow = null
+)
+{
     /// <summary>
     /// A path that matched under other verbs. Built once per distinct verb set by the generated
     /// table, since it carries nothing per request.
@@ -40,6 +43,7 @@ public record RequestHandlerInfo(
         new(null, PathTokenCollection.Empty, allow);
 }
 
-public interface IWebExecutionRequestHandlerProvider {
+public interface IWebExecutionRequestHandlerProvider
+{
     RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context);
 }

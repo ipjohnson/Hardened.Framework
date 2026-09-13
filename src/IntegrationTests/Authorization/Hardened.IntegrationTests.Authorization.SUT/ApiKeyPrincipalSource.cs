@@ -24,7 +24,8 @@ public class ApiKeyScheme : IAuthenticationScheme;
 /// </para>
 /// </remarks>
 [SingletonService]
-public class ApiKeyPrincipalSource : IPrincipalSource<ApiKeyScheme> {
+public class ApiKeyPrincipalSource : IPrincipalSource<ApiKeyScheme>
+{
     public const string KeyHeader = "X-Api-Key";
 
     /// <summary>The one key this fixture knows, and the grant it carries.</summary>
@@ -32,13 +33,18 @@ public class ApiKeyPrincipalSource : IPrincipalSource<ApiKeyScheme> {
 
     public const string KeyGrant = "pets:read";
 
-    public ValueTask<ICallerPrincipal?> Authenticate(IExecutionContext context) {
-        if (!context.Request.Headers.TryGetValue(KeyHeader, out var header) ||
-            header.ToString() != KnownKey) {
+    public ValueTask<ICallerPrincipal?> Authenticate(IExecutionContext context)
+    {
+        if (
+            !context.Request.Headers.TryGetValue(KeyHeader, out var header)
+            || header.ToString() != KnownKey
+        )
+        {
             return new ValueTask<ICallerPrincipal?>((ICallerPrincipal?)null);
         }
 
         return new ValueTask<ICallerPrincipal?>(
-            new CallerPrincipal("api-key", [KeyGrant], subject: "api-key-caller"));
+            new CallerPrincipal("api-key", [KeyGrant], subject: "api-key-caller")
+        );
     }
 }

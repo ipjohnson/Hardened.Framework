@@ -19,12 +19,13 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// <em>absent</em> - and a typed object has no way to leave one out.
 /// </para>
 /// </remarks>
-public class RequiredAndNestedValidationTests {
-
+public class RequiredAndNestedValidationTests
+{
     private const string Valid =
         """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":2}]}""";
 
-    private static async Task<RequestValidationError> Rejected(ITestWebApp app, string body) {
+    private static async Task<RequestValidationError> Rejected(ITestWebApp app, string body)
+    {
         var response = await app.Post(body, "/orders");
 
         response.Assert.BadRequest();
@@ -43,7 +44,8 @@ public class RequiredAndNestedValidationTests {
     /// rather than because the route never worked.
     /// </summary>
     [HardenedTest]
-    public async Task AWellFormedOrderIsAccepted(ITestWebApp testWebApp) {
+    public async Task AWellFormedOrderIsAccepted(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(Valid, "/orders");
 
         response.Assert.Ok();
@@ -56,9 +58,12 @@ public class RequiredAndNestedValidationTests {
     /// <c>species</c> was stored as <c>dog</c> and answered 200.
     /// </summary>
     [HardenedTest]
-    public async Task AMissingRequiredEnumIsRejected(ITestWebApp testWebApp) {
+    public async Task AMissingRequiredEnumIsRejected(ITestWebApp testWebApp)
+    {
         var error = await Rejected(
-            testWebApp, """{"weightGrams":3000,"lines":[{"sku":"TLS-0001"}]}""");
+            testWebApp,
+            """{"weightGrams":3000,"lines":[{"sku":"TLS-0001"}]}"""
+        );
 
         var field = Assert.Single(error.Errors!, e => e.Field == "body.species");
 
@@ -71,9 +76,12 @@ public class RequiredAndNestedValidationTests {
     /// is how this stayed hidden on fields that happened to have one.
     /// </summary>
     [HardenedTest]
-    public async Task AMissingRequiredIntegerIsRejected(ITestWebApp testWebApp) {
+    public async Task AMissingRequiredIntegerIsRejected(ITestWebApp testWebApp)
+    {
         var error = await Rejected(
-            testWebApp, """{"species":"cat","lines":[{"sku":"TLS-0001"}]}""");
+            testWebApp,
+            """{"species":"cat","lines":[{"sku":"TLS-0001"}]}"""
+        );
 
         var field = Assert.Single(error.Errors!, e => e.Field == "body.weightGrams");
 
@@ -85,7 +93,8 @@ public class RequiredAndNestedValidationTests {
     /// per field.
     /// </summary>
     [HardenedTest]
-    public async Task EveryMissingRequiredMemberIsNamedAtOnce(ITestWebApp testWebApp) {
+    public async Task EveryMissingRequiredMemberIsNamedAtOnce(ITestWebApp testWebApp)
+    {
         var error = await Rejected(testWebApp, """{"lines":[{"sku":"TLS-0001"}]}""");
 
         Assert.Contains(error.Errors!, e => e.Field == "body.species");
@@ -97,10 +106,12 @@ public class RequiredAndNestedValidationTests {
     /// <c>minimum: 1</c> and a zero was accepted and the order placed.
     /// </summary>
     [HardenedTest]
-    public async Task AConstraintOnAnArrayItemIsEnforced(ITestWebApp testWebApp) {
+    public async Task AConstraintOnAnArrayItemIsEnforced(ITestWebApp testWebApp)
+    {
         var error = await Rejected(
             testWebApp,
-            """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":0}]}""");
+            """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":0}]}"""
+        );
 
         Assert.Contains(error.Errors!, e => e.Field.Contains("quantity"));
     }
@@ -112,10 +123,12 @@ public class RequiredAndNestedValidationTests {
     /// 7.92281625142643E+28, an upper bound nobody declared.
     /// </summary>
     [HardenedTest]
-    public async Task ASingleBoundNamesNoInventedExtreme(ITestWebApp testWebApp) {
+    public async Task ASingleBoundNamesNoInventedExtreme(ITestWebApp testWebApp)
+    {
         var error = await Rejected(
             testWebApp,
-            """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":0}]}""");
+            """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":0}]}"""
+        );
 
         var quantity = Assert.Single(error.Errors!, e => e.Field.Contains("quantity"));
 
@@ -128,14 +141,16 @@ public class RequiredAndNestedValidationTests {
     /// tells a caller with fifty lines nothing.
     /// </summary>
     [HardenedTest]
-    public async Task TheFailingArrayElementIsIdentifiedByItsIndex(ITestWebApp testWebApp) {
+    public async Task TheFailingArrayElementIsIdentifiedByItsIndex(ITestWebApp testWebApp)
+    {
         var error = await Rejected(
             testWebApp,
             """
             {"species":"cat","weightGrams":3000,"lines":[
                 {"sku":"TLS-0001","quantity":2},
                 {"sku":"TLS-0002","quantity":0}]}
-            """);
+            """
+        );
 
         Assert.Contains(error.Errors!, e => e.Field.Contains("[1]"));
         Assert.DoesNotContain(error.Errors!, e => e.Field.Contains("[0]"));
@@ -148,10 +163,12 @@ public class RequiredAndNestedValidationTests {
     /// above.
     /// </summary>
     [HardenedTest]
-    public async Task ARequiredMemberOfAnArrayItemIsEnforced(ITestWebApp testWebApp) {
+    public async Task ARequiredMemberOfAnArrayItemIsEnforced(ITestWebApp testWebApp)
+    {
         var error = await Rejected(
             testWebApp,
-            """{"species":"cat","weightGrams":3000,"lines":[{"quantity":2}]}""");
+            """{"species":"cat","weightGrams":3000,"lines":[{"quantity":2}]}"""
+        );
 
         var field = Assert.Single(error.Errors!, e => e.Field == "body.lines[0].sku");
 
@@ -168,7 +185,8 @@ public class RequiredAndNestedValidationTests {
     /// body is required, which makes this the one refusal the document had already promised.
     /// </remarks>
     [HardenedTest]
-    public async Task ANullBodyIsRefusedRatherThanDereferenced(ITestWebApp testWebApp) {
+    public async Task ANullBodyIsRefusedRatherThanDereferenced(ITestWebApp testWebApp)
+    {
         var error = await Rejected(testWebApp, "null");
 
         var field = Assert.Single(error.Errors!);
@@ -187,7 +205,8 @@ public class RequiredAndNestedValidationTests {
     /// later. The reader aggregates missing members, so asking it once answers both.
     /// </remarks>
     [HardenedTest]
-    public async Task AMissingValueMemberDoesNotHideAMissingReferenceMember(ITestWebApp testWebApp) {
+    public async Task AMissingValueMemberDoesNotHideAMissingReferenceMember(ITestWebApp testWebApp)
+    {
         var error = await Rejected(testWebApp, """{"species":"cat"}""");
 
         Assert.Contains(error.Errors!, e => e.Field == "body.weightGrams");

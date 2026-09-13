@@ -46,7 +46,8 @@ namespace Hardened.Azure.Functions.CosmosDb;
 /// function to one container, so the function's identity is the route.
 /// </para>
 /// </remarks>
-public sealed class CosmosDbAdapter : ITriggerAdapter {
+public sealed class CosmosDbAdapter : ITriggerAdapter
+{
     /// <summary>The scheme a change feed routes under, which <c>[Change]</c> declares.</summary>
     public const string ChangeScheme = "CHANGE";
 
@@ -57,7 +58,8 @@ public sealed class CosmosDbAdapter : ITriggerAdapter {
     public bool Handles(FunctionsTrigger trigger) =>
         trigger.Scheme == ChangeScheme && trigger.Data is string;
 
-    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context) {
+    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context)
+    {
         var documents = Split((string)trigger.Data);
 
         return new CosmosDbRequest(
@@ -65,7 +67,8 @@ public sealed class CosmosDbAdapter : ITriggerAdapter {
             trigger.Path,
             Stream.Null,
             new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
-            documents);
+            documents
+        );
     }
 
     /// <summary>
@@ -78,50 +81,56 @@ public sealed class CosmosDbAdapter : ITriggerAdapter {
     /// memory and the forks outlive the parse. Copied, not re-serialized: a writer would escape
     /// the document differently from the feed, and the body is the document as it arrived.
     /// </remarks>
-    internal static IReadOnlyList<CosmosDbDocument> Split(string feed) {
+    internal static IReadOnlyList<CosmosDbDocument> Split(string feed)
+    {
         var documents = new List<CosmosDbDocument>();
 
-        if (string.IsNullOrWhiteSpace(feed)) {
+        if (string.IsNullOrWhiteSpace(feed))
+        {
             return documents;
         }
 
         using var parsed = JsonDocument.Parse(feed);
 
-        if (parsed.RootElement.ValueKind != JsonValueKind.Array) {
+        if (parsed.RootElement.ValueKind != JsonValueKind.Array)
+        {
             // One document rather than a batch, which the host does not send but a test might.
             documents.Add(Document(parsed.RootElement));
 
             return documents;
         }
 
-        foreach (var element in parsed.RootElement.EnumerateArray()) {
+        foreach (var element in parsed.RootElement.EnumerateArray())
+        {
             documents.Add(Document(element));
         }
 
         return documents;
     }
 
-    private static CosmosDbDocument Document(JsonElement element) {
+    private static CosmosDbDocument Document(JsonElement element)
+    {
         return new CosmosDbDocument(
             Encoding.UTF8.GetBytes(element.GetRawText()),
             String(element, "id"),
             Number(element, "_lsn"),
             Number(element, "_ts"),
-            String(element, "_etag"));
+            String(element, "_etag")
+        );
     }
 
     private static string? String(JsonElement element, string name) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(name, out var value) &&
-        value.ValueKind == JsonValueKind.String
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
     /// <remarks>As its text, so a large sequence number is not narrowed on the way to a header.</remarks>
     private static string? Number(JsonElement element, string name) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(name, out var value) &&
-        value.ValueKind == JsonValueKind.Number
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.Number
             ? value.GetRawText()
             : null;
 
@@ -134,8 +143,10 @@ public sealed class CosmosDbAdapter : ITriggerAdapter {
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
 
     /// <summary>Nothing. The extension checkpoints the lease after the call and reads no response.</summary>
-    public ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext) =>
-        new((object?)null);
+    public ValueTask<object?> WriteResponse(
+        IExecutionContext context,
+        FunctionContext functionContext
+    ) => new((object?)null);
 }
 
 /// <summary>
@@ -153,4 +164,5 @@ public sealed record CosmosDbDocument(
     string? Id,
     string? Lsn,
     string? Timestamp,
-    string? ETag);
+    string? ETag
+);

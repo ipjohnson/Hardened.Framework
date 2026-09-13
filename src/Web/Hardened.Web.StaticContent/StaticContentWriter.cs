@@ -5,9 +5,9 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Web.Runtime.CacheControl;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.StaticContent;
 
@@ -19,8 +19,8 @@ namespace Hardened.Web.StaticContent;
 /// every source shares it. Where the bytes came from - a directory, a manifest, a file re-read
 /// because it changed - decides nothing about what the wire sees.
 /// </remarks>
-public static class StaticContentWriter {
-
+public static class StaticContentWriter
+{
     /// <summary>
     /// What a compressed representation's response depends on. One instance: it never varies.
     /// </summary>
@@ -53,7 +53,9 @@ public static class StaticContentWriter {
         StaticContentEntry entry,
         IStaticContentConfiguration configuration,
         IMemoryStreamPool memoryStreamPool,
-        string? cacheControl) {
+        string? cacheControl
+    )
+    {
         var response = context.Response;
         var headers = response.Headers;
 
@@ -62,11 +64,14 @@ public static class StaticContentWriter {
         response.ShouldSerialize = false;
 
         var sendEncoded =
-            entry.IsEncoded &&
-            AcceptEncodingHeader.Accepts(
-                RequestHeader(context, KnownHeaders.AcceptEncoding), entry.ContentEncoding!);
+            entry.IsEncoded
+            && AcceptEncodingHeader.Accepts(
+                RequestHeader(context, KnownHeaders.AcceptEncoding),
+                entry.ContentEncoding!
+            );
 
-        if (cacheControl != null) {
+        if (cacheControl != null)
+        {
             headers[KnownHeaders.CacheControl] = new StringValues(cacheControl);
         }
 
@@ -74,23 +79,29 @@ public static class StaticContentWriter {
         // is served the same bytes to every client and does not vary; one stored compressed is
         // served two different bodies at one URL, and a shared cache that did not know would hand a
         // client that cannot inflate them the ones that need it.
-        if (entry.IsEncoded) {
+        if (entry.IsEncoded)
+        {
             headers[KnownHeaders.Vary] = VaryOnAcceptEncoding;
         }
 
-        if (entry.LastModifiedHeader != null) {
+        if (entry.LastModifiedHeader != null)
+        {
             headers[KnownHeaders.LastModified] = new StringValues(entry.LastModifiedHeader);
         }
 
         var etag = configuration.EnableETag
-            ? sendEncoded ? entry.EncodedETag : entry.ETag
+            ? sendEncoded
+                ? entry.EncodedETag
+                : entry.ETag
             : null;
 
-        if (etag != null) {
+        if (etag != null)
+        {
             headers[KnownHeaders.ETag] = new StringValues(etag);
         }
 
-        if (NotModified(context, entry, etag)) {
+        if (NotModified(context, entry, etag))
+        {
             response.Status = (int)HttpStatusCode.NotModified;
 
             configuration.OnPrepareResponse?.Invoke(context);
@@ -103,17 +114,24 @@ public static class StaticContentWriter {
         // file the client asked for, and there is no way to say which one a Content-Range meant.
         var rangeable = !entry.IsEncoded && configuration.EnableRangeRequests;
 
-        if (rangeable) {
+        if (rangeable)
+        {
             headers[KnownHeaders.AcceptRanges] = RangeHeader.AcceptsBytes;
         }
 
-        if (rangeable && RangeApplies(context, entry, etag)) {
+        if (rangeable && RangeApplies(context, entry, etag))
+        {
             var result = RangeHeader.Resolve(
-                RequestHeader(context, KnownHeaders.Range), entry.Content.Length, out var range);
+                RequestHeader(context, KnownHeaders.Range),
+                entry.Content.Length,
+                out var range
+            );
 
-            if (result == RangeResult.Unsatisfiable) {
-                headers[KnownHeaders.ContentRange] =
-                    new StringValues(ByteRange.Unsatisfied(entry.Content.Length));
+            if (result == RangeResult.Unsatisfiable)
+            {
+                headers[KnownHeaders.ContentRange] = new StringValues(
+                    ByteRange.Unsatisfied(entry.Content.Length)
+                );
 
                 response.Status = (int)HttpStatusCode.RequestedRangeNotSatisfiable;
 
@@ -122,12 +140,14 @@ public static class StaticContentWriter {
                 return Task.CompletedTask;
             }
 
-            if (result == RangeResult.Satisfiable) {
+            if (result == RangeResult.Satisfiable)
+            {
                 response.Status = (int)HttpStatusCode.PartialContent;
                 response.ContentType = entry.ContentType;
 
-                headers[KnownHeaders.ContentRange] =
-                    new StringValues(range.ContentRange(entry.Content.Length));
+                headers[KnownHeaders.ContentRange] = new StringValues(
+                    range.ContentRange(entry.Content.Length)
+                );
 
                 configuration.OnPrepareResponse?.Invoke(context);
 
@@ -140,7 +160,8 @@ public static class StaticContentWriter {
 
         configuration.OnPrepareResponse?.Invoke(context);
 
-        if (sendEncoded) {
+        if (sendEncoded)
+        {
             return WriteStored(context, entry);
         }
 
@@ -155,12 +176,16 @@ public static class StaticContentWriter {
     /// <c>[ConditionalGet]</c> judges a handler's response by.
     /// </summary>
     private static bool NotModified(
-        IExecutionContext context, StaticContentEntry entry, string? etag) =>
+        IExecutionContext context,
+        StaticContentEntry entry,
+        string? etag
+    ) =>
         Precondition.NotModified(
             RequestHeader(context, KnownHeaders.IfNoneMatch),
             RequestHeader(context, KnownHeaders.IfModifiedSince),
             etag,
-            entry.LastModified);
+            entry.LastModified
+        );
 
     /// <summary>
     /// Whether a <c>Range</c> is to be honoured, given what <c>If-Range</c> says.
@@ -172,41 +197,52 @@ public static class StaticContentWriter {
     /// the resource either way and has just learned its copy is stale.
     /// </remarks>
     private static bool RangeApplies(
-        IExecutionContext context, StaticContentEntry entry, string? etag) {
-        if (RequestHeader(context, KnownHeaders.Range).Count == 0) {
+        IExecutionContext context,
+        StaticContentEntry entry,
+        string? etag
+    )
+    {
+        if (RequestHeader(context, KnownHeaders.Range).Count == 0)
+        {
             return false;
         }
 
         var ifRange = RequestHeader(context, KnownHeaders.IfRange);
 
-        if (ifRange.Count == 0) {
+        if (ifRange.Count == 0)
+        {
             return true;
         }
 
         var value = ifRange.ToString();
 
-        if (string.IsNullOrWhiteSpace(value)) {
+        if (string.IsNullOrWhiteSpace(value))
+        {
             return true;
         }
 
         // An entity-tag or a date, told apart by the shape rather than by trying both: a validator
         // is quoted or weak, and nothing else is.
-        if (value.StartsWith("\"", StringComparison.Ordinal) ||
-            value.StartsWith("W/", StringComparison.Ordinal)) {
+        if (
+            value.StartsWith("\"", StringComparison.Ordinal)
+            || value.StartsWith("W/", StringComparison.Ordinal)
+        )
+        {
             // Strong comparison here, unlike If-None-Match. A weak validator says two
             // representations are equivalent, not identical, and identical is exactly what
             // splicing bytes into a half-downloaded file requires.
-            return etag != null &&
-                   !value.StartsWith("W/", StringComparison.Ordinal) &&
-                   string.Equals(value.Trim(), etag, StringComparison.Ordinal);
+            return etag != null
+                && !value.StartsWith("W/", StringComparison.Ordinal)
+                && string.Equals(value.Trim(), etag, StringComparison.Ordinal);
         }
 
-        return entry.LastModified != null &&
-               HttpDate.TryParse(ifRange, out var asOf) &&
-               entry.LastModified == asOf;
+        return entry.LastModified != null
+            && HttpDate.TryParse(ifRange, out var asOf)
+            && entry.LastModified == asOf;
     }
 
-    private static async Task WriteAsRead(IExecutionContext context, StaticContentEntry entry) {
+    private static async Task WriteAsRead(IExecutionContext context, StaticContentEntry entry)
+    {
         context.Response.IsBinary = entry.IsBinary;
         context.Response.Headers[KnownHeaders.ContentLength] = entry.ContentLength;
 
@@ -215,10 +251,15 @@ public static class StaticContentWriter {
 
     /// <summary>The requested slice, and the length of the slice rather than of the resource.</summary>
     private static async Task WritePartial(
-        IExecutionContext context, StaticContentEntry entry, ByteRange range) {
+        IExecutionContext context,
+        StaticContentEntry entry,
+        ByteRange range
+    )
+    {
         context.Response.IsBinary = entry.IsBinary;
-        context.Response.Headers[KnownHeaders.ContentLength] =
-            range.Length.ToString(CultureInfo.InvariantCulture);
+        context.Response.Headers[KnownHeaders.ContentLength] = range.Length.ToString(
+            CultureInfo.InvariantCulture
+        );
 
         await context.Response.Body.WriteAsync(entry.Content, (int)range.From, (int)range.Length);
     }
@@ -230,7 +271,8 @@ public static class StaticContentWriter {
     /// The coding named is the one actually stored. It used to be <c>gzip</c> whatever the entry
     /// held, so a client offering <c>br</c> was handed Brotli bytes under a gzip label.
     /// </remarks>
-    private static async Task WriteStored(IExecutionContext context, StaticContentEntry entry) {
+    private static async Task WriteStored(IExecutionContext context, StaticContentEntry entry)
+    {
         context.Response.IsBinary = true;
         context.Response.Headers[KnownHeaders.ContentEncoding] = entry.ContentEncodingHeader;
         context.Response.Headers[KnownHeaders.ContentLength] = entry.ContentLength;
@@ -246,18 +288,33 @@ public static class StaticContentWriter {
     /// what this branch has always produced.
     /// </remarks>
     private static async Task WriteInflated(
-        IExecutionContext context, StaticContentEntry entry, IMemoryStreamPool memoryStreamPool) {
+        IExecutionContext context,
+        StaticContentEntry entry,
+        IMemoryStreamPool memoryStreamPool
+    )
+    {
         using var memoryStream = memoryStreamPool.Get();
 
         await memoryStream.Item.WriteAsync(entry.Content, 0, entry.Content.Length);
 
         memoryStream.Item.Position = 0;
 
-        Stream outputStream = entry.ContentEncoding switch {
-            KnownEncoding.GZip => new GZipStream(memoryStream.Item, CompressionMode.Decompress, true),
-            KnownEncoding.Br => new BrotliStream(memoryStream.Item, CompressionMode.Decompress, true),
+        Stream outputStream = entry.ContentEncoding switch
+        {
+            KnownEncoding.GZip => new GZipStream(
+                memoryStream.Item,
+                CompressionMode.Decompress,
+                true
+            ),
+            KnownEncoding.Br => new BrotliStream(
+                memoryStream.Item,
+                CompressionMode.Decompress,
+                true
+            ),
             _ => throw new InvalidOperationException(
-                "A coding was stored that nothing here knows how to inflate: " + entry.ContentEncoding)
+                "A coding was stored that nothing here knows how to inflate: "
+                    + entry.ContentEncoding
+            ),
         };
 
         context.Response.IsBinary = entry.IsBinary;
@@ -285,7 +342,8 @@ public static class StaticContentWriter {
     /// than an empty one.
     /// </para>
     /// </remarks>
-    public static string? CacheControlFor(IStaticContentConfiguration configuration) {
+    public static string? CacheControlFor(IStaticContentConfiguration configuration)
+    {
         // No max age means the mount says nothing about caching at all, which is the contract that
         // shipped and the one worth keeping: rendering the rest of the directives would put
         // "public" on a response whose author configured no caching, and "public" with no freshness
@@ -293,11 +351,15 @@ public static class StaticContentWriter {
         //
         // The cost is that no-store alone needs a max age set beside it. That is a smaller gap than
         // the one this closes, which was every directive but max-age being unreachable.
-        if (!configuration.CacheMaxAge.HasValue) {
+        if (!configuration.CacheMaxAge.HasValue)
+        {
             return null;
         }
 
         return CacheControlHeader.Format(
-            configuration.CacheControlType, configuration.CacheMaxAge.Value, configuration.Immutable);
+            configuration.CacheControlType,
+            configuration.CacheMaxAge.Value,
+            configuration.Immutable
+        );
     }
 }

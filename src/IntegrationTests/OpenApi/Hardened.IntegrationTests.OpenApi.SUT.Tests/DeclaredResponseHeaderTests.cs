@@ -20,13 +20,16 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// correctly, and still send nothing.
 /// </para>
 /// </remarks>
-public class DeclaredResponseHeaderTests {
-
+public class DeclaredResponseHeaderTests
+{
     [HardenedTest]
-    public async Task CreatePet_SendsTheLocationTheDescriptionDeclares(ITestWebApp testWebApp) {
+    public async Task CreatePet_SendsTheLocationTheDescriptionDeclares(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            "{\"name\":\"Rex\"}", "/pets",
-            request => request.Headers["Content-Type"] = "application/json");
+            "{\"name\":\"Rex\"}",
+            "/pets",
+            request => request.Headers["Content-Type"] = "application/json"
+        );
 
         Assert.Equal(201, response.StatusCode);
         Assert.Equal("/pets/3", response.Headers["Location"].ToString());
@@ -42,7 +45,8 @@ public class DeclaredResponseHeaderTests {
     /// none is left as the bare payload it always was.
     /// </remarks>
     [HardenedTest]
-    public async Task GetPet_SendsNoLocation(ITestWebApp testWebApp) {
+    public async Task GetPet_SendsNoLocation(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/1");
 
         Assert.Equal(200, response.StatusCode);

@@ -5,12 +5,18 @@ namespace Hardened.Shared.Runtime.Diagnostics;
 /// <summary>
 /// Timestamp that uses the machine ticks, it is only valid on the local machine.
 /// </summary>
-public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, IComparable<MachineTimestamp> {
-    public static readonly double SecondsToTicksRatio = TimeSpan.TicksPerSecond / (double)Stopwatch.Frequency;
-    public static readonly double MillisecondsToTicksRatio = 1 / (double)TimeSpan.TicksPerMillisecond;
+public readonly struct MachineTimestamp
+    : IEquatable<MachineTimestamp>,
+        IComparable<MachineTimestamp>
+{
+    public static readonly double SecondsToTicksRatio =
+        TimeSpan.TicksPerSecond / (double)Stopwatch.Frequency;
+    public static readonly double MillisecondsToTicksRatio =
+        1 / (double)TimeSpan.TicksPerMillisecond;
     private readonly long _timestamp;
 
-    private MachineTimestamp(long timestamp) {
+    private MachineTimestamp(long timestamp)
+    {
         _timestamp = timestamp;
     }
 
@@ -19,7 +25,8 @@ public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, ICompara
     /// </summary>
     /// <param name="ticks"></param>
     /// <returns></returns>
-    public static MachineTimestamp FromTicks(long ticks) {
+    public static MachineTimestamp FromTicks(long ticks)
+    {
         return new MachineTimestamp(ticks);
     }
 
@@ -32,7 +39,8 @@ public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, ICompara
     /// Get the elapsed milliseconds from now to the timestamp
     /// </summary>
     /// <returns></returns>
-    public double GetElapsedMilliseconds() {
+    public double GetElapsedMilliseconds()
+    {
         var totalElapsedTime = Stopwatch.GetTimestamp() - TimestampOrThrow();
 
         return (totalElapsedTime * SecondsToTicksRatio) * MillisecondsToTicksRatio;
@@ -43,7 +51,8 @@ public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, ICompara
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public TimeSpan GetElapsedTime() {
+    public TimeSpan GetElapsedTime()
+    {
         var totalElapsedTime = Stopwatch.GetTimestamp() - TimestampOrThrow();
 
         return new TimeSpan((long)(totalElapsedTime * SecondsToTicksRatio));
@@ -56,7 +65,8 @@ public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, ICompara
     /// <param name="milliseconds"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public MachineTimestamp AddMs(double milliseconds) {
+    public MachineTimestamp AddMs(double milliseconds)
+    {
         var machineTicks = (milliseconds / 1000) * Stopwatch.Frequency;
 
         return new MachineTimestamp(TimestampOrThrow() + (long)machineTicks);
@@ -86,7 +96,8 @@ public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, ICompara
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public double GetRemainingMilliseconds() {
+    public double GetRemainingMilliseconds()
+    {
         return (GetRemainingTicks() * SecondsToTicksRatio) * MillisecondsToTicksRatio;
     }
 
@@ -95,7 +106,8 @@ public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, ICompara
     /// </summary>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public double GetRemainingSeconds() {
+    public double GetRemainingSeconds()
+    {
         return (GetRemainingTicks() * SecondsToTicksRatio) / TimeSpan.TicksPerSecond;
     }
 
@@ -106,7 +118,8 @@ public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, ICompara
     /// <param name="right"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public static TimeSpan operator -(MachineTimestamp left, MachineTimestamp right) {
+    public static TimeSpan operator -(MachineTimestamp left, MachineTimestamp right)
+    {
         var totalTime = left.TimestampOrThrow() - right.TimestampOrThrow();
 
         return new TimeSpan((long)(totalTime * SecondsToTicksRatio));
@@ -118,7 +131,8 @@ public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, ICompara
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    public int CompareTo(MachineTimestamp other) {
+    public int CompareTo(MachineTimestamp other)
+    {
         return _timestamp.CompareTo(other._timestamp);
     }
 
@@ -127,50 +141,62 @@ public readonly struct MachineTimestamp : IEquatable<MachineTimestamp>, ICompara
     /// </summary>
     /// <param name="other"></param>
     /// <returns></returns>
-    public bool Equals(MachineTimestamp other) {
+    public bool Equals(MachineTimestamp other)
+    {
         return _timestamp == other._timestamp;
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) {
+    public override bool Equals(object? obj)
+    {
         return obj is MachineTimestamp other && Equals(other);
     }
 
     /// <inheritdoc />
-    public override int GetHashCode() {
+    public override int GetHashCode()
+    {
         return _timestamp.GetHashCode();
     }
 
-    public static bool operator ==(MachineTimestamp left, MachineTimestamp right) {
+    public static bool operator ==(MachineTimestamp left, MachineTimestamp right)
+    {
         return left._timestamp == right._timestamp;
     }
 
-    public static bool operator !=(MachineTimestamp left, MachineTimestamp right) {
+    public static bool operator !=(MachineTimestamp left, MachineTimestamp right)
+    {
         return left._timestamp != right._timestamp;
     }
 
-    public static bool operator <(MachineTimestamp left, MachineTimestamp right) {
+    public static bool operator <(MachineTimestamp left, MachineTimestamp right)
+    {
         return left._timestamp < right._timestamp;
     }
 
-    public static bool operator >(MachineTimestamp left, MachineTimestamp right) {
+    public static bool operator >(MachineTimestamp left, MachineTimestamp right)
+    {
         return left._timestamp > right._timestamp;
     }
 
-    public static bool operator <=(MachineTimestamp left, MachineTimestamp right) {
+    public static bool operator <=(MachineTimestamp left, MachineTimestamp right)
+    {
         return left._timestamp <= right._timestamp;
     }
 
-    public static bool operator >=(MachineTimestamp left, MachineTimestamp right) {
+    public static bool operator >=(MachineTimestamp left, MachineTimestamp right)
+    {
         return left._timestamp >= right._timestamp;
     }
 
-    private long GetRemainingTicks() {
+    private long GetRemainingTicks()
+    {
         return TimestampOrThrow() - Stopwatch.GetTimestamp();
     }
 
-    private long TimestampOrThrow() {
-        if (_timestamp == 0) {
+    private long TimestampOrThrow()
+    {
+        if (_timestamp == 0)
+        {
             throw new Exception("MachineTimestamp was not initialized, can't be used here");
         }
 

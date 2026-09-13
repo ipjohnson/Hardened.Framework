@@ -1,12 +1,12 @@
 using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
+using ValidationModules.Constraints;
 #if (messagePack)
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Serializers.MessagePack;
 #endif
-using Hardened.Web.Runtime.Attributes;
-using Hardened.Web.Runtime.Responses;
-using ValidationModules.Constraints;
 
 namespace Hardened1;
 
@@ -28,8 +28,8 @@ public union TodoResult(Todo, NotFound);
 public union NewTodoResult(Created<Todo>, Conflict);
 
 public union RemovedTodoResult(NoContent, NotFound);
-
 #endif
+
 /// <summary>
 /// A plain class. No base type, no interface, no registration - the generator finds the route
 /// attribute at build time and emits a handler bound to this method's exact signature.
@@ -41,8 +41,8 @@ public union RemovedTodoResult(NoContent, NotFound);
 /// Every handler awaits the store and returns its answer directly. The generator reads a return
 /// type through Task&lt;T&gt;, so an async handler declares the same thing a synchronous one would.
 /// </remarks>
-public class TodoController {
-
+public class TodoController
+{
     /// <summary>Every todo.</summary>
     /// <remarks>
     /// The one route here with a single outcome, so it reads the same under every response model -
@@ -80,10 +80,12 @@ public class TodoController {
 #if (messagePack)
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
 #endif
-    public async Task<Todo> ById(ITodoStore store, [Range(Min = 1)] int id) {
+    public async Task<Todo> ById(ITodoStore store, [Range(Min = 1)] int id)
+    {
         var todo = await store.Find(id);
 
-        if (todo is null) {
+        if (todo is null)
+        {
             throw new NotFound("todo", $"No todo has id {id}.").AsException();
         }
 
@@ -103,8 +105,10 @@ public class TodoController {
 #if (messagePack)
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
 #endif
-    public async Task<Todo> Create(ITodoStore store, NewTodo request) {
-        if (await store.TitleExists(request.Title)) {
+    public async Task<Todo> Create(ITodoStore store, NewTodo request)
+    {
+        if (await store.TitleExists(request.Title))
+        {
             throw new Conflict($"A todo titled '{request.Title}' already exists.").AsException();
         }
 
@@ -118,10 +122,12 @@ public class TodoController {
 #if (messagePack)
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
 #endif
-    public async Task<Todo> Remove(ITodoStore store, [Range(Min = 1)] int id) {
+    public async Task<Todo> Remove(ITodoStore store, [Range(Min = 1)] int id)
+    {
         var todo = await store.Find(id);
 
-        if (todo is null || !await store.Remove(id)) {
+        if (todo is null || !await store.Remove(id))
+        {
             throw new NotFound("todo", $"No todo has id {id}.").AsException();
         }
 
@@ -141,10 +147,12 @@ public class TodoController {
 #if (messagePack)
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
 #endif
-    public async Task<Response<Todo, NotFound>> ById(ITodoStore store, [Range(Min = 1)] int id) {
+    public async Task<Response<Todo, NotFound>> ById(ITodoStore store, [Range(Min = 1)] int id)
+    {
         var todo = await store.Find(id);
 
-        if (todo is null) {
+        if (todo is null)
+        {
             return new NotFound("todo", $"No todo has id {id}.");
         }
 
@@ -161,8 +169,10 @@ public class TodoController {
 #if (messagePack)
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
 #endif
-    public async Task<Response<Created<Todo>, Conflict>> Create(ITodoStore store, NewTodo request) {
-        if (await store.TitleExists(request.Title)) {
+    public async Task<Response<Created<Todo>, Conflict>> Create(ITodoStore store, NewTodo request)
+    {
+        if (await store.TitleExists(request.Title))
+        {
             return new Conflict($"A todo titled '{request.Title}' already exists.");
         }
 
@@ -181,8 +191,13 @@ public class TodoController {
 #if (messagePack)
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
 #endif
-    public async Task<Response<NoContent, NotFound>> Remove(ITodoStore store, [Range(Min = 1)] int id) {
-        if (await store.Find(id) is null || !await store.Remove(id)) {
+    public async Task<Response<NoContent, NotFound>> Remove(
+        ITodoStore store,
+        [Range(Min = 1)] int id
+    )
+    {
+        if (await store.Find(id) is null || !await store.Remove(id))
+        {
             return new NotFound("todo", $"No todo has id {id}.");
         }
 
@@ -201,10 +216,12 @@ public class TodoController {
 #if (messagePack)
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
 #endif
-    public async Task<TodoResult> ById(ITodoStore store, [Range(Min = 1)] int id) {
+    public async Task<TodoResult> ById(ITodoStore store, [Range(Min = 1)] int id)
+    {
         var todo = await store.Find(id);
 
-        if (todo is null) {
+        if (todo is null)
+        {
             return new NotFound("todo", $"No todo has id {id}.");
         }
 
@@ -217,8 +234,10 @@ public class TodoController {
 #if (messagePack)
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
 #endif
-    public async Task<NewTodoResult> Create(ITodoStore store, NewTodo request) {
-        if (await store.TitleExists(request.Title)) {
+    public async Task<NewTodoResult> Create(ITodoStore store, NewTodo request)
+    {
+        if (await store.TitleExists(request.Title))
+        {
             return new Conflict($"A todo titled '{request.Title}' already exists.");
         }
 
@@ -233,8 +252,10 @@ public class TodoController {
 #if (messagePack)
     [Produces(KnownContentType.Json, MessagePackContentType.Value)]
 #endif
-    public async Task<RemovedTodoResult> Remove(ITodoStore store, [Range(Min = 1)] int id) {
-        if (await store.Find(id) is null || !await store.Remove(id)) {
+    public async Task<RemovedTodoResult> Remove(ITodoStore store, [Range(Min = 1)] int id)
+    {
+        if (await store.Find(id) is null || !await store.Remove(id))
+        {
             return new NotFound("todo", $"No todo has id {id}.");
         }
 

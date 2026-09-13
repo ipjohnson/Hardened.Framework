@@ -11,7 +11,8 @@ namespace Hardened.Generation.Models;
 /// <c>securitySchemes</c> at all, so a generated client sent unauthenticated requests to every
 /// write operation.
 /// </remarks>
-internal class SecuritySchemeModel : IEquatable<SecuritySchemeModel> {
+internal class SecuritySchemeModel : IEquatable<SecuritySchemeModel>
+{
     public string Name { get; set; } = "";
 
     /// <summary>The scheme object, as a complete OpenAPI JSON value.</summary>
@@ -22,8 +23,10 @@ internal class SecuritySchemeModel : IEquatable<SecuritySchemeModel> {
 
     public override bool Equals(object? obj) => Equals(obj as SecuritySchemeModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             return (Name.GetHashCode() * 397) ^ Json.GetHashCode();
         }
     }

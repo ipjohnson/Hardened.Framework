@@ -1,4 +1,5 @@
 using Hardened.Shared.Runtime.Attributes;
+using Hardened.Web.Runtime.DependencyInjection;
 #if (codeFirst)
 using System.Text.Json.Serialization.Metadata;
 using DependencyModules.Runtime.Interfaces;
@@ -6,7 +7,7 @@ using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 #endif
-using Hardened.Web.Runtime.DependencyInjection;
+
 #if (messagePack)
 using Hardened.Requests.Abstract.Attributes;
 using Hardened.Requests.Serializers.MessagePack;
@@ -56,8 +57,8 @@ namespace Hardened1;
 // Spec-first applications do not use this at all: their document is a build input, published by
 // PublishUrl on the spec item instead.
 [Enable<OpenApiDocumentPublishing>]
-public partial class TemplateModuleNameLibrary : IServiceCollectionConfiguration {
-
+public partial class TemplateModuleNameLibrary : IServiceCollectionConfiguration
+{
     /// <summary>
     /// Says how this application's types are written, ahead of reflection.
     /// </summary>
@@ -71,7 +72,8 @@ public partial class TemplateModuleNameLibrary : IServiceCollectionConfiguration
     /// nothing reports that - so this line is the difference between a configured context and a
     /// decorative one.
     /// </remarks>
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IJsonTypeInfoResolver>(TemplateModuleNameJsonContext.Default);
     }
 }

@@ -32,16 +32,21 @@ namespace Hardened.Aws.Lambda.Testing;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method)]
-public class LambdaTestingAttribute : Attribute, ITestServiceSetupAttribute {
+public class LambdaTestingAttribute : Attribute, ITestServiceSetupAttribute
+{
     public void SetupServiceCollection(
-        ITestMethodContext testMethod, IServiceCollection serviceCollection) {
+        ITestMethodContext testMethod,
+        IServiceCollection serviceCollection
+    )
+    {
         serviceCollection.AddTriggerTesting();
 
         serviceCollection.RemoveAll<ITriggerDelivery>();
 
         // Over the container source rather than over a handler resolved once, so every invocation
         // gets the environment a deployed function is not promised to keep.
-        serviceCollection.AddSingleton<ITriggerDelivery>(provider =>
-            new LambdaEnvelopeDelivery(provider.GetRequiredService<ITestContainerSource>()));
+        serviceCollection.AddSingleton<ITriggerDelivery>(provider => new LambdaEnvelopeDelivery(
+            provider.GetRequiredService<ITestContainerSource>()
+        ));
     }
 }

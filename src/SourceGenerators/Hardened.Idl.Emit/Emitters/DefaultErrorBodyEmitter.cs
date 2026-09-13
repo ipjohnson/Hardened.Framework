@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.Idl;
-using Hardened.Generation;
 
 namespace Hardened.Idl.Emitters;
 
@@ -16,8 +16,8 @@ namespace Hardened.Idl.Emitters;
 /// these fields runs in a different process and never sees this file, so both have to reach the same
 /// answer from the specification model rather than from each other.
 /// </remarks>
-internal static class DefaultErrorBodyEmitter {
-
+internal static class DefaultErrorBodyEmitter
+{
     /// <summary>
     /// Emits one field per distinct (schema, status) pair that can be filled.
     /// </summary>
@@ -26,8 +26,11 @@ internal static class DefaultErrorBodyEmitter {
         IReadOnlyList<SchemaModel> schemas,
         IReadOnlyCollection<(string SchemaName, int StatusCode)> wanted,
         string modelsNamespace,
-        string specFileName) {
-        if (wanted.Count == 0) {
+        string specFileName
+    )
+    {
+        if (wanted.Count == 0)
+        {
             return;
         }
 
@@ -35,18 +38,23 @@ internal static class DefaultErrorBodyEmitter {
 
         // Ordered, so the emitted file is byte-stable between builds whatever order the operations
         // were walked in.
-        foreach (var pair in wanted
-                     .OrderBy(candidate => candidate.SchemaName, System.StringComparer.Ordinal)
-                     .ThenBy(candidate => candidate.StatusCode)) {
+        foreach (
+            var pair in wanted
+                .OrderBy(candidate => candidate.SchemaName, System.StringComparer.Ordinal)
+                .ThenBy(candidate => candidate.StatusCode)
+        )
+        {
             var arguments = DefaultErrorBody.Arguments(schemas, pair.SchemaName, pair.StatusCode);
 
-            if (arguments == null) {
+            if (arguments == null)
+            {
                 continue;
             }
 
             var schema = DefaultErrorBody.Find(schemas, pair.SchemaName);
 
-            if (schema == null) {
+            if (schema == null)
+            {
                 continue;
             }
 
@@ -56,28 +64,34 @@ internal static class DefaultErrorBodyEmitter {
 
             var field = holder.AddField(
                 TypeDefinition.Get(modelsNamespace, typeName),
-                DefaultErrorBody.FieldName(schema.Name, pair.StatusCode));
+                DefaultErrorBody.FieldName(schema.Name, pair.StatusCode)
+            );
 
             field.Modifiers =
                 ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
             field.InitializeValue = new CodeOutputComponent(
-                $"new global::{modelsNamespace}.{typeName}({string.Join(", ", arguments)})") {
-                Indented = false
+                $"new global::{modelsNamespace}.{typeName}({string.Join(", ", arguments)})"
+            )
+            {
+                Indented = false,
             };
             field.Comment = DocComment.Format(
-                $"The body a null return or a refusal writes for {pair.StatusCode}. Holds the " +
-                "status and its reason phrase; nothing about the request that produced it.");
+                $"The body a null return or a refusal writes for {pair.StatusCode}. Holds the "
+                    + "status and its reason phrase; nothing about the request that produced it."
+            );
         }
     }
 
-    private static ClassDefinition CreateHolder(IConstructContainer container, string specFileName) {
+    private static ClassDefinition CreateHolder(IConstructContainer container, string specFileName)
+    {
         var holder = container.AddClass(DefaultErrorBody.HolderTypeName(specFileName));
 
         holder.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         holder.Comment = DocComment.Format(
-            "Bodies a handler's null return and the pipeline's own refusals write, one per " +
-            "declared status. Allocated once for the life of the process, and serialized through " +
-            "the generated resolver like any other response.");
+            "Bodies a handler's null return and the pipeline's own refusals write, one per "
+                + "declared status. Allocated once for the life of the process, and serialized through "
+                + "the generated resolver like any other response."
+        );
 
         return holder;
     }

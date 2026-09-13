@@ -31,7 +31,8 @@ namespace Hardened.Aws.Lambda.Http;
 /// function does serve several sources and something has to choose.
 /// </para>
 /// </remarks>
-public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
+public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter
+{
     /// <summary>
     /// The field that says this is payload format 2.0, and the whole of how it is told from 1.0.
     /// </summary>
@@ -59,11 +60,11 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// hand to say the same thing, and got it wrong.
     /// </remarks>
     public bool Handles(JsonElement payload) =>
-        payload.ValueKind == JsonValueKind.Object &&
-        payload.TryGetProperty(RequestContext, out var context) &&
-        context.ValueKind == JsonValueKind.Object &&
-        context.TryGetProperty(Http, out var http) &&
-        http.ValueKind == JsonValueKind.Object;
+        payload.ValueKind == JsonValueKind.Object
+        && payload.TryGetProperty(RequestContext, out var context)
+        && context.ValueKind == JsonValueKind.Object
+        && context.TryGetProperty(Http, out var http)
+        && http.ValueKind == JsonValueKind.Object;
 
     /// <remarks>
     /// From <see cref="LambdaPayload.Raw"/> rather than from the element the peek read.
@@ -72,13 +73,18 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// It also leaves the proxy request owning its own strings, so nothing here outlives the
     /// document.
     /// </remarks>
-    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
-        var proxy = JsonSerializer.Deserialize(
-                        payload.Raw.Span, LambdaHttpSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest)
-                    ?? throw new InvalidOperationException(
-                        "The Lambda HTTP adapter was given a payload that deserialized to null. " +
-                        "The peek identified it as payload format 2.0 by its requestContext.http " +
-                        "object, so this is a malformed event rather than a different source.");
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context)
+    {
+        var proxy =
+            JsonSerializer.Deserialize(
+                payload.Raw.Span,
+                LambdaHttpSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest
+            )
+            ?? throw new InvalidOperationException(
+                "The Lambda HTTP adapter was given a payload that deserialized to null. "
+                    + "The peek identified it as payload format 2.0 by its requestContext.http "
+                    + "object, so this is a malformed event rather than a different source."
+            );
 
         return new LambdaHttpRequest(proxy, RequestBody(proxy));
     }
@@ -107,16 +113,22 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// opinion", and zero is not a status a handler can have meant.
     /// </para>
     /// </remarks>
-    public HttpResponseStreamPrelude CreatePrelude(IExecutionResponse response) {
-        var prelude = new HttpResponseStreamPrelude {
-            StatusCode = (HttpStatusCode)(response.Status is null or 0 ? 200 : response.Status.Value)
+    public HttpResponseStreamPrelude CreatePrelude(IExecutionResponse response)
+    {
+        var prelude = new HttpResponseStreamPrelude
+        {
+            StatusCode = (HttpStatusCode)(
+                response.Status is null or 0 ? 200 : response.Status.Value
+            ),
         };
 
-        foreach (var header in response.Headers) {
+        foreach (var header in response.Headers)
+        {
             prelude.Headers[header.Key] = header.Value.ToString();
         }
 
-        foreach (var cookie in SetCookies((LambdaHttpResponse)response)) {
+        foreach (var cookie in SetCookies((LambdaHttpResponse)response))
+        {
             prelude.Cookies.Add(cookie);
         }
 
@@ -138,14 +150,17 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// round trip.
     /// </para>
     /// </remarks>
-    public async ValueTask WriteResponse(IExecutionContext context, Stream output) {
+    public async ValueTask WriteResponse(IExecutionContext context, Stream output)
+    {
         var response = (LambdaHttpResponse)context.Response;
 
-        var body = response.Body as MemoryStream
-                   ?? throw new InvalidOperationException(
-                       "The Lambda HTTP adapter buffers its response, so the body has to be a " +
-                       "MemoryStream it can read back. Stream mode is a different response mode, " +
-                       "not a different body type here.");
+        var body =
+            response.Body as MemoryStream
+            ?? throw new InvalidOperationException(
+                "The Lambda HTTP adapter buffers its response, so the body has to be a "
+                    + "MemoryStream it can read back. Stream mode is a different response mode, "
+                    + "not a different body type here."
+            );
 
         await using var writer = new Utf8JsonWriter(output);
 
@@ -162,7 +177,8 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// <see cref="ReadOnlySpan{T}"/> local, and reading the body without copying it is the point of
     /// writing the response by hand.
     /// </remarks>
-    private static void Write(Utf8JsonWriter writer, LambdaHttpResponse response, MemoryStream body) {
+    private static void Write(Utf8JsonWriter writer, LambdaHttpResponse response, MemoryStream body)
+    {
         writer.WriteStartObject();
 
         // Null means "handled, no opinion" - nothing sets a status on an ordinary success path -
@@ -178,10 +194,12 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
 
         var bytes = Written(body);
 
-        if (response.IsBinary) {
+        if (response.IsBinary)
+        {
             writer.WriteBase64String("body", bytes);
         }
-        else {
+        else
+        {
             // Already UTF-8, and the writer wants UTF-8, so this escapes in place.
             writer.WriteString("body", bytes);
         }
@@ -204,8 +222,10 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// <summary>
     /// The request body as a stream, decoded from base64 when the event says so.
     /// </summary>
-    private static Stream RequestBody(APIGatewayHttpApiV2ProxyRequest request) {
-        if (string.IsNullOrEmpty(request.Body)) {
+    private static Stream RequestBody(APIGatewayHttpApiV2ProxyRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Body))
+        {
             return Stream.Null;
         }
 
@@ -220,10 +240,12 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// <c>ToString()</c> rather than the implicit <c>StringValues</c> conversion, which is nullable
     /// and would put a JSON null in the map. A multi-valued header joins on "," either way.
     /// </remarks>
-    private static void WriteHeaders(Utf8JsonWriter writer, IExecutionResponse response) {
+    private static void WriteHeaders(Utf8JsonWriter writer, IExecutionResponse response)
+    {
         writer.WriteStartObject("headers");
 
-        foreach (var header in response.Headers) {
+        foreach (var header in response.Headers)
+        {
             writer.WriteString(header.Key, header.Value.ToString());
         }
 
@@ -234,10 +256,12 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// Set-Cookie strings, which payload format 2.0 carries in its own array rather than as
     /// repeated headers.
     /// </summary>
-    private static void WriteCookies(Utf8JsonWriter writer, LambdaHttpResponse response) {
+    private static void WriteCookies(Utf8JsonWriter writer, LambdaHttpResponse response)
+    {
         writer.WriteStartArray("cookies");
 
-        foreach (var cookie in SetCookies(response)) {
+        foreach (var cookie in SetCookies(response))
+        {
             writer.WriteStringValue(cookie);
         }
 
@@ -253,10 +277,12 @@ public sealed class LambdaHttpAdapter : IStreamingPayloadAdapter {
     /// <c>Append(object)</c> and emits its <c>ToString()</c>, which is how every Set-Cookie once
     /// read "name=(value, CookieSetOptions { Expires = , ... })".
     /// </remarks>
-    private static IEnumerable<string> SetCookies(LambdaHttpResponse response) {
+    private static IEnumerable<string> SetCookies(LambdaHttpResponse response)
+    {
         var builder = new StringBuilder();
 
-        foreach (var cookie in response.Cookies.Cookies) {
+        foreach (var cookie in response.Cookies.Cookies)
+        {
             builder.Append(cookie.Key);
             builder.Append('=');
             builder.Append(cookie.Value.Item1);

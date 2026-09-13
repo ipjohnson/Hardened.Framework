@@ -26,13 +26,14 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// why a stand-in declared in the test source is enough.
 /// </para>
 /// </remarks>
-public class ResponseCacheStoreDiagnosticTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),                        // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),                   // Hardened.Requests.Abstract
-        typeof(CacheResponseAttribute<>),            // Hardened.Requests.Runtime
-        typeof(HardenedMemoryResponseCacheAttribute) // Hardened.Requests.Caching.Memory
+public class ResponseCacheStoreDiagnosticTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
+        typeof(CacheResponseAttribute<>), // Hardened.Requests.Runtime
+        typeof(HardenedMemoryResponseCacheAttribute), // Hardened.Requests.Caching.Memory
     ];
 
     private static GeneratorResult Generate(string moduleAttributes, string handlers) =>
@@ -57,11 +58,13 @@ public class ResponseCacheStoreDiagnosticTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
     private static IEnumerable<Diagnostic> Reported(GeneratorResult result) =>
-        result.GeneratorDiagnostics.Where(
-            diagnostic => diagnostic.Id == ResponseCacheStoreDiagnostics.DiagnosticId);
+        result.GeneratorDiagnostics.Where(diagnostic =>
+            diagnostic.Id == ResponseCacheStoreDiagnostics.DiagnosticId
+        );
 
     private const string CachedHandler = """
             [Get("/catalog")]
@@ -70,7 +73,8 @@ public class ResponseCacheStoreDiagnosticTests {
         """;
 
     [Fact]
-    public void CachingWithNoStoreIsHRDW005() {
+    public void CachingWithNoStoreIsHRDW005()
+    {
         var diagnostic = Assert.Single(Reported(Generate("", CachedHandler)));
 
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
@@ -82,23 +86,34 @@ public class ResponseCacheStoreDiagnosticTests {
     /// registered by hand in ConfigureServices is invisible to it.
     /// </summary>
     [Fact]
-    public void TheReportIsAWarning() {
+    public void TheReportIsAWarning()
+    {
         Assert.All(
             Reported(Generate("", CachedHandler)),
-            diagnostic => Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity));
+            diagnostic => Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity)
+        );
     }
 
     [Fact]
-    public void CachingWithTheStoreModuleReportsNothing() {
+    public void CachingWithTheStoreModuleReportsNothing()
+    {
         Assert.Empty(Reported(Generate("[HardenedMemoryResponseCache]", CachedHandler)));
     }
 
     [Fact]
-    public void AnApplicationDeclaringNoCachingReportsNothing() {
-        Assert.Empty(Reported(Generate("", """
-                [Get("/catalog")]
-                public string Catalog() => "catalog";
-            """)));
+    public void AnApplicationDeclaringNoCachingReportsNothing()
+    {
+        Assert.Empty(
+            Reported(
+                Generate(
+                    "",
+                    """
+                        [Get("/catalog")]
+                        public string Catalog() => "catalog";
+                    """
+                )
+            )
+        );
     }
 
     /// <summary>
@@ -106,16 +121,24 @@ public class ResponseCacheStoreDiagnosticTests {
     /// many handlers depend on it, and a report each would say the same thing several times.
     /// </summary>
     [Fact]
-    public void SeveralCachedHandlersAreOneReportNamingThemAll() {
-        var diagnostic = Assert.Single(Reported(Generate("", """
-                [Get("/catalog")]
-                [CacheResponse<VaryByRoute>(Duration = 60)]
-                public string Catalog() => "catalog";
+    public void SeveralCachedHandlersAreOneReportNamingThemAll()
+    {
+        var diagnostic = Assert.Single(
+            Reported(
+                Generate(
+                    "",
+                    """
+                        [Get("/catalog")]
+                        [CacheResponse<VaryByRoute>(Duration = 60)]
+                        public string Catalog() => "catalog";
 
-                [Get("/offers")]
-                [CacheResponse<VaryByRoute>(Duration = 60)]
-                public string Offers() => "offers";
-            """)));
+                        [Get("/offers")]
+                        [CacheResponse<VaryByRoute>(Duration = 60)]
+                        public string Offers() => "offers";
+                    """
+                )
+            )
+        );
 
         Assert.Contains("CatalogController.Catalog", diagnostic.GetMessage());
         Assert.Contains("CatalogController.Offers", diagnostic.GetMessage());
@@ -123,7 +146,8 @@ public class ResponseCacheStoreDiagnosticTests {
 
     /// <summary>The declaration on the class rather than the method reaches the same metadata.</summary>
     [Fact]
-    public void ADeclarationOnTheControllerIsReportedToo() {
+    public void ADeclarationOnTheControllerIsReportedToo()
+    {
         var result = GeneratorTestHarness.Run(
             """
             using Hardened.Requests.Runtime.Caching;
@@ -145,14 +169,16 @@ public class ResponseCacheStoreDiagnosticTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
         Assert.Single(Reported(result));
     }
 
     /// <summary>The message says how to fix it, which is the whole point of a build-time report.</summary>
     [Fact]
-    public void TheMessageNamesThePackageAndTheModuleAttribute() {
+    public void TheMessageNamesThePackageAndTheModuleAttribute()
+    {
         var message = Assert.Single(Reported(Generate("", CachedHandler))).GetMessage();
 
         Assert.Contains("Hardened.Requests.Caching.Memory", message);
@@ -196,34 +222,46 @@ public class ResponseCacheStoreDiagnosticTests {
         }
         """;
 
-    private static GeneratorResult Host(string moduleAttributes, bool libraryCarriesTheStore = false) {
+    private static GeneratorResult Host(
+        string moduleAttributes,
+        bool libraryCarriesTheStore = false
+    )
+    {
         var library = libraryCarriesTheStore
-            ? Library.Replace("[HardenedWebModule]", "[HardenedWebModule]\n        [Hardened.Requests.Caching.Memory.HardenedMemoryResponseCache]")
+            ? Library.Replace(
+                "[HardenedWebModule]",
+                "[HardenedWebModule]\n        [Hardened.Requests.Caching.Memory.HardenedMemoryResponseCache]"
+            )
             : Library;
 
         var (reference, _) = GeneratorTestHarness.CompileLibrary(
-            library, libraryCarriesTheStore ? "CatalogWithStore" : "Catalog", Anchors);
+            library,
+            libraryCarriesTheStore ? "CatalogWithStore" : "Catalog",
+            Anchors
+        );
 
         return GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Host.cs"] = $$"""
-                    using Catalog;
-                    using Hardened.Requests.Caching.Memory;
-                    using Hardened.Shared.Runtime.Attributes;
+                using Catalog;
+                using Hardened.Requests.Caching.Memory;
+                using Hardened.Shared.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    {{moduleAttributes}}
-                    [CatalogLibrary]
-                    public partial class Application { }
+                [HardenedModule]
+                {{moduleAttributes}}
+                [CatalogLibrary]
+                public partial class Application { }
 
-                    public class KestrelRuntimeAttribute : System.Attribute { }
-                    """
+                public class KestrelRuntimeAttribute : System.Attribute { }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
             Anchors,
-            additionalReferences: [reference]);
+            additionalReferences: [reference]
+        );
     }
 
     /// <summary>
@@ -231,7 +269,8 @@ public class ResponseCacheStoreDiagnosticTests {
     /// library's compilation applies no runtime, so it is not the application and says nothing.
     /// </summary>
     [Fact]
-    public void ALibraryModuleReportsNothingWhateverItCaches() {
+    public void ALibraryModuleReportsNothingWhateverItCaches()
+    {
         var result = GeneratorTestHarness.Run(
             """
             using Hardened.Requests.Runtime.Caching;
@@ -253,7 +292,8 @@ public class ResponseCacheStoreDiagnosticTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
         Assert.Empty(Reported(result));
     }
@@ -263,7 +303,8 @@ public class ResponseCacheStoreDiagnosticTests {
     /// library's metadata, since the host's compilation holds none of its syntax.
     /// </summary>
     [Fact]
-    public void AHostImportingACachingLibraryWithNoStoreIsToldWhichHandlersFail() {
+    public void AHostImportingACachingLibraryWithNoStoreIsToldWhichHandlersFail()
+    {
         var diagnostic = Assert.Single(Reported(Host("[KestrelRuntime]")));
 
         Assert.Contains("CatalogController.Catalog", diagnostic.GetMessage());
@@ -273,7 +314,8 @@ public class ResponseCacheStoreDiagnosticTests {
     }
 
     [Fact]
-    public void AHostImportingACachingLibraryWithTheStoreReportsNothing() {
+    public void AHostImportingACachingLibraryWithTheStoreReportsNothing()
+    {
         Assert.Empty(Reported(Host("[KestrelRuntime] [HardenedMemoryResponseCache]")));
     }
 
@@ -283,7 +325,8 @@ public class ResponseCacheStoreDiagnosticTests {
     /// it the store, so it has nothing to be told.
     /// </summary>
     [Fact]
-    public void AHostImportingALibraryThatCarriesTheStoreReportsNothing() {
+    public void AHostImportingALibraryThatCarriesTheStoreReportsNothing()
+    {
         Assert.Empty(Reported(Host("[KestrelRuntime]", libraryCarriesTheStore: true)));
     }
 }

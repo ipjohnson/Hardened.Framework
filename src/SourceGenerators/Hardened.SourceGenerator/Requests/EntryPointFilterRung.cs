@@ -31,8 +31,8 @@ namespace Hardened.SourceGenerator.Shared;
 /// reaches is decided per handler, where the verb and the response shape are known.
 /// </para>
 /// </remarks>
-public static partial class EntryPointSelector {
-
+public static partial class EntryPointSelector
+{
     private const string FilterProvider = "IRequestFilterProvider";
 
     private const string FilterProviderNamespace = "Hardened.Requests.Abstract.RequestFilter";
@@ -41,34 +41,45 @@ public static partial class EntryPointSelector {
         GeneratorSyntaxContext context,
         ClassDeclarationSyntax entryPoint,
         Model model,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         List<AttributeSyntax>? declarations = null;
 
-        foreach (var list in entryPoint.AttributeLists) {
-            foreach (var attribute in list.Attributes) {
+        foreach (var list in entryPoint.AttributeLists)
+        {
+            foreach (var attribute in list.Attributes)
+            {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if (IsFilterProvider(context, attribute)) {
+                if (IsFilterProvider(context, attribute))
+                {
                     (declarations ??= new List<AttributeSyntax>()).Add(attribute);
                 }
             }
         }
 
-        if (declarations == null) {
+        if (declarations == null)
+        {
             return;
         }
 
         var models = new List<AttributeModel>(declarations.Count);
 
-        foreach (var declaration in declarations) {
-            if (AttributeModelHelper.GetAttribute(context, declaration) is { } attributeModel) {
+        foreach (var declaration in declarations)
+        {
+            if (AttributeModelHelper.GetAttribute(context, declaration) is { } attributeModel)
+            {
                 models.Add(attributeModel);
             }
         }
 
         model.FilterDeclarations = models;
-        model.FilterFacts =
-            FilterResponseSelector.ReadDeclarations(context, declarations, cancellationToken);
+        model.FilterFacts = FilterResponseSelector.ReadDeclarations(
+            context,
+            declarations,
+            cancellationToken
+        );
     }
 
     /// <summary>
@@ -79,14 +90,20 @@ public static partial class EntryPointSelector {
     /// the entry point on the same terms as one this framework ships. Matched on the interface's
     /// namespace as well as its name, because a name alone is something any assembly can spell.
     /// </remarks>
-    private static bool IsFilterProvider(GeneratorSyntaxContext context, AttributeSyntax attribute) {
-        if (context.SemanticModel.GetSymbolInfo(attribute).Symbol?.ContainingType is not { } type) {
+    private static bool IsFilterProvider(GeneratorSyntaxContext context, AttributeSyntax attribute)
+    {
+        if (context.SemanticModel.GetSymbolInfo(attribute).Symbol?.ContainingType is not { } type)
+        {
             return false;
         }
 
-        foreach (var contract in type.AllInterfaces) {
-            if (contract.Name == FilterProvider &&
-                contract.ContainingNamespace?.ToDisplayString() == FilterProviderNamespace) {
+        foreach (var contract in type.AllInterfaces)
+        {
+            if (
+                contract.Name == FilterProvider
+                && contract.ContainingNamespace?.ToDisplayString() == FilterProviderNamespace
+            )
+            {
                 return true;
             }
         }

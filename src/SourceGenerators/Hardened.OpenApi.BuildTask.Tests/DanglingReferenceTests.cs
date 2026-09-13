@@ -1,8 +1,8 @@
 using System.Linq;
 using System.Threading;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 
@@ -26,25 +26,26 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// different shape.
 /// </para>
 /// </remarks>
-public class DanglingReferenceTests {
-
-    private static string Document(string responseSchema, string components) => $$"""
-        openapi: 3.0.0
-        info: { title: Depot, version: '1.0' }
-        paths:
-          /products:
-            get:
-              operationId: listProducts
-              responses:
-                '200':
-                  description: ok
-                  content:
-                    application/json:
-                      schema: {{responseSchema}}
-        components:
-          schemas:
-        {{components}}
-        """;
+public class DanglingReferenceTests
+{
+    private static string Document(string responseSchema, string components) =>
+        $$"""
+            openapi: 3.0.0
+            info: { title: Depot, version: '1.0' }
+            paths:
+              /products:
+                get:
+                  operationId: listProducts
+                  responses:
+                    '200':
+                      description: ok
+                      content:
+                        application/json:
+                          schema: {{responseSchema}}
+            components:
+              schemas:
+            {{components}}
+            """;
 
     private const string Product = """
             Product:
@@ -53,7 +54,8 @@ public class DanglingReferenceTests {
                 sku: { type: string }
         """;
 
-    private static ServiceSpecModel Parse(string yaml) {
+    private static ServiceSpecModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "depot", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -66,7 +68,8 @@ public class DanglingReferenceTests {
 
     /// <summary>The exact repro.</summary>
     [Fact]
-    public void AReferenceToAnUndeclaredSchemaIsRecorded() {
+    public void AReferenceToAnUndeclaredSchemaIsRecorded()
+    {
         var model = Parse(Document("{ $ref: '#/components/schemas/DoesNotExist' }", Product));
 
         var dangling = Assert.Single(model.DanglingReferences);
@@ -75,7 +78,8 @@ public class DanglingReferenceTests {
     }
 
     [Fact]
-    public void ItStopsTheBuild() {
+    public void ItStopsTheBuild()
+    {
         var model = Parse(Document("{ $ref: '#/components/schemas/DoesNotExist' }", Product));
 
         var problem = Assert.Single(Problems(model), p => p.Code == "HOAT027");
@@ -88,7 +92,8 @@ public class DanglingReferenceTests {
     /// dropped schema usually does so from several places and each is a separate edit.
     /// </summary>
     [Fact]
-    public void TheMessageNamesTheReferenceAndWhereItWasMade() {
+    public void TheMessageNamesTheReferenceAndWhereItWasMade()
+    {
         var model = Parse(Document("{ $ref: '#/components/schemas/DoesNotExist' }", Product));
 
         var message = Assert.Single(Problems(model), p => p.Code == "HOAT027").Message;
@@ -103,8 +108,10 @@ public class DanglingReferenceTests {
     /// A request body reference names the operation it was made from.
     /// </summary>
     [Fact]
-    public void ARequestBodyReferenceNamesTheOperation() {
-        var model = Parse("""
+    public void ARequestBodyReferenceNamesTheOperation()
+    {
+        var model = Parse(
+            """
             openapi: 3.0.0
             info: { title: Depot, version: '1.0' }
             paths:
@@ -123,7 +130,8 @@ public class DanglingReferenceTests {
                   type: object
                   properties:
                     sku: { type: string }
-            """);
+            """
+        );
 
         var dangling = Assert.Single(model.DanglingReferences);
 
@@ -143,13 +151,19 @@ public class DanglingReferenceTests {
     /// piece of work.
     /// </remarks>
     [Fact]
-    public void APropertyReferenceTheReaderDiscardsIsNotCaught() {
-        var model = Parse(Document("{ $ref: '#/components/schemas/Product' }", """
-            Product:
-              type: object
-              properties:
-                supplier: { $ref: '#/components/schemas/Missing' }
-        """));
+    public void APropertyReferenceTheReaderDiscardsIsNotCaught()
+    {
+        var model = Parse(
+            Document(
+                "{ $ref: '#/components/schemas/Product' }",
+                """
+                    Product:
+                      type: object
+                      properties:
+                        supplier: { $ref: '#/components/schemas/Missing' }
+                """
+            )
+        );
 
         var property = Assert.Single(Assert.Single(model.Schemas).Properties);
 
@@ -164,16 +178,22 @@ public class DanglingReferenceTests {
     /// failing.
     /// </summary>
     [Fact]
-    public void AnArrayAliasIsNotDangling() {
-        var model = Parse(Document("{ $ref: '#/components/schemas/ProductList' }", """
-            ProductList:
-              type: array
-              items: { $ref: '#/components/schemas/Product' }
-            Product:
-              type: object
-              properties:
-                sku: { type: string }
-        """));
+    public void AnArrayAliasIsNotDangling()
+    {
+        var model = Parse(
+            Document(
+                "{ $ref: '#/components/schemas/ProductList' }",
+                """
+                    ProductList:
+                      type: array
+                      items: { $ref: '#/components/schemas/Product' }
+                    Product:
+                      type: object
+                      properties:
+                        sku: { type: string }
+                """
+            )
+        );
 
         Assert.Empty(model.DanglingReferences);
         Assert.DoesNotContain(Problems(model), p => p.Code == "HOAT027");
@@ -181,7 +201,8 @@ public class DanglingReferenceTests {
 
     /// <summary>A document that declares what it references says nothing at all.</summary>
     [Fact]
-    public void ADocumentThatResolvesIsSilent() {
+    public void ADocumentThatResolvesIsSilent()
+    {
         var model = Parse(Document("{ $ref: '#/components/schemas/Product' }", Product));
 
         Assert.Empty(model.DanglingReferences);
@@ -193,8 +214,10 @@ public class DanglingReferenceTests {
     /// are two edits.
     /// </summary>
     [Fact]
-    public void EveryReferenceToTheMissingSchemaIsReported() {
-        var model = Parse("""
+    public void EveryReferenceToTheMissingSchemaIsReported()
+    {
+        var model = Parse(
+            """
             openapi: 3.0.0
             info: { title: Depot, version: '1.0' }
             paths:
@@ -222,7 +245,8 @@ public class DanglingReferenceTests {
                   type: object
                   properties:
                     sku: { type: string }
-            """);
+            """
+        );
 
         Assert.Equal(2, model.DanglingReferences.Count);
         Assert.Equal(2, Problems(model).Count(p => p.Code == "HOAT027"));
@@ -234,7 +258,8 @@ public class DanglingReferenceTests {
     /// for a build that generates identical code.
     /// </summary>
     [Fact]
-    public void ItDoesNotTravelInTheModelFile() {
+    public void ItDoesNotTravelInTheModelFile()
+    {
         var model = Parse(Document("{ $ref: '#/components/schemas/DoesNotExist' }", Product));
 
         var restored = SpecModelSerializer.Read(SpecModelSerializer.Write(model));

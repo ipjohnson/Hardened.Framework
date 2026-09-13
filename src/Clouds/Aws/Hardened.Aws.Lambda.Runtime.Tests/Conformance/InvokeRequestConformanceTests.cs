@@ -1,8 +1,8 @@
+using Hardened.Aws.Lambda.Invoke;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
-using Hardened.Aws.Lambda.Invoke;
-using Hardened.Requests.Abstract.Execution;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Testing.Conformance;
 
 namespace Hardened.Aws.Lambda.Runtime.Tests.Conformance;
@@ -23,7 +23,8 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Conformance;
 /// value, and no adapter for this shape can make them true.
 /// </para>
 /// </remarks>
-public class InvokeRequestConformanceTests : PayloadExecutionRequestConformanceTests {
+public class InvokeRequestConformanceTests : PayloadExecutionRequestConformanceTests
+{
     protected override IExecutionRequestConformanceAdapter Adapter { get; } = new InvokeAdapter_();
 
     /// <summary>
@@ -31,12 +32,14 @@ public class InvokeRequestConformanceTests : PayloadExecutionRequestConformanceT
     /// adapter, so anything the adapter gets wrong reaches the assertions rather than being
     /// smoothed over here.
     /// </summary>
-    private sealed class InvokeAdapter_ : IExecutionRequestConformanceAdapter {
+    private sealed class InvokeAdapter_ : IExecutionRequestConformanceAdapter
+    {
         private readonly InvokeAdapter _adapter = new();
 
         public string TransportName => "Lambda direct invoke";
 
-        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec) {
+        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec)
+        {
             // The client context's custom values are the only header-like channel a direct
             // invocation has, so that is where the spec's headers go. A caller using the SDK sets
             // them; an event source sets none.
@@ -57,5 +60,4 @@ public class InvokeRequestConformanceTests : PayloadExecutionRequestConformanceT
             return request.Clone(method: spec.Method, path: spec.Path);
         }
     }
-
 }

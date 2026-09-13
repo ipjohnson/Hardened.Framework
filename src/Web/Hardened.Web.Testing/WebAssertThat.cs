@@ -1,20 +1,25 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.Web.Testing;
 
-public class WebAssertThat : IWebAssertThat {
+public class WebAssertThat : IWebAssertThat
+{
     private readonly TestWebResponse _response;
 
-    public WebAssertThat(TestWebResponse response) {
+    public WebAssertThat(TestWebResponse response)
+    {
         _response = response;
     }
 
     /// <summary>
     /// Assert status is 200 - 299
     /// </summary>
-    public void Ok() {
+    public void Ok()
+    {
         var status = _response.StatusCode;
 
-        if (status is < 200 or > 299) {
+        if (status is < 200 or > 299)
+        {
             throw new WebAssertionException($"Expected a 2xx status, the response was {status}.");
         }
     }
@@ -39,9 +44,13 @@ public class WebAssertThat : IWebAssertThat {
     /// </summary>
     public void Forbidden() => Expect(403);
 
-    private void Expect(int status) {
-        if (_response.StatusCode != status) {
-            throw new WebAssertionException($"Expected status {status}, the response was {_response.StatusCode}.");
+    private void Expect(int status)
+    {
+        if (_response.StatusCode != status)
+        {
+            throw new WebAssertionException(
+                $"Expected status {status}, the response was {_response.StatusCode}."
+            );
         }
     }
 }

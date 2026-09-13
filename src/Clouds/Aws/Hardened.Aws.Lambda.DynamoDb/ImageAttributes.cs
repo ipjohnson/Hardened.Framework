@@ -20,9 +20,12 @@ namespace Hardened.Aws.Lambda.DynamoDb;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Parameter)]
-public class NewImageAttribute : Attribute, ICustomBindingAttribute {
-    public ValueTask<T> BindValue<T>(IExecutionContext context, IExecutionRequestParameter parameter) =>
-        Image.Bind<T>(context, change => change.NewImage, "NewImage");
+public class NewImageAttribute : Attribute, ICustomBindingAttribute
+{
+    public ValueTask<T> BindValue<T>(
+        IExecutionContext context,
+        IExecutionRequestParameter parameter
+    ) => Image.Bind<T>(context, change => change.NewImage, "NewImage");
 }
 
 /// <summary>
@@ -34,9 +37,12 @@ public class NewImageAttribute : Attribute, ICustomBindingAttribute {
 /// the previous row should treat null as "not configured for this" rather than "no previous row".
 /// </remarks>
 [AttributeUsage(AttributeTargets.Parameter)]
-public class OldImageAttribute : Attribute, ICustomBindingAttribute {
-    public ValueTask<T> BindValue<T>(IExecutionContext context, IExecutionRequestParameter parameter) =>
-        Image.Bind<T>(context, change => change.OldImage, "OldImage");
+public class OldImageAttribute : Attribute, ICustomBindingAttribute
+{
+    public ValueTask<T> BindValue<T>(
+        IExecutionContext context,
+        IExecutionRequestParameter parameter
+    ) => Image.Bind<T>(context, change => change.OldImage, "OldImage");
 }
 
 /// <summary>
@@ -47,30 +53,38 @@ public class OldImageAttribute : Attribute, ICustomBindingAttribute {
 /// holding "the record being handled". <c>Hardened.Amz</c> did the latter, and it is correct only
 /// while exactly one record is in flight.
 /// </remarks>
-internal static class Image {
+internal static class Image
+{
     public static ValueTask<T> Bind<T>(
         IExecutionContext context,
         Func<DynamoDbChange, IDictionary<string, DynamoDBEvent.AttributeValue>?> select,
-        string name) {
-        if (context.Request is not DynamoDbChange change) {
+        string name
+    )
+    {
+        if (context.Request is not DynamoDbChange change)
+        {
             throw new InvalidOperationException(
-                $"[{name}] was bound on a handler that is not serving a DynamoDB change. It reads " +
-                "the stream record off the request, so it only works under [Change].");
+                $"[{name}] was bound on a handler that is not serving a DynamoDB change. It reads "
+                    + "the stream record off the request, so it only works under [Change]."
+            );
         }
 
-        if (select(change) is T value) {
+        if (select(change) is T value)
+        {
             return new ValueTask<T>(value);
         }
 
         // Null is a legitimate answer - no new image on a REMOVE, no old image on an INSERT - so a
         // nullable target gets it rather than an exception. A non-nullable one asked for something
         // this record does not have.
-        if (default(T) is null) {
+        if (default(T) is null)
+        {
             return new ValueTask<T>(default(T)!);
         }
 
         throw new InvalidCastException(
-            $"[{name}] binds IDictionary<string, DynamoDBEvent.AttributeValue>, and this parameter is " +
-            $"{typeof(T).Name}.");
+            $"[{name}] binds IDictionary<string, DynamoDBEvent.AttributeValue>, and this parameter is "
+                + $"{typeof(T).Name}."
+        );
     }
 }

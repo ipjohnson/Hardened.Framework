@@ -1,9 +1,9 @@
 using System.Reflection;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.SourceGenerator.Tests.Infrastructure;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.CodeAnalysis;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 
@@ -24,8 +24,8 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// lookup by name, the count and cloning for every handler in an application at once.
 /// </para>
 /// </summary>
-public class GeneratedParametersTests {
-
+public class GeneratedParametersTests
+{
     // Both parameters are types the harness can already resolve. Naming an undeclared type here
     // does not produce a diagnostic - it crashes the generator with a NullReferenceException,
     // which is the same unresolvable-type behaviour recorded in TESTING-PLAN.md section 12.
@@ -34,7 +34,8 @@ public class GeneratedParametersTests {
         public string Save(string id, string name) => id + name;
         """;
 
-    private static Type ParametersType() {
+    private static Type ParametersType()
+    {
         var result = RequestGeneratorHarness
             .Generate(RequestGeneratorHarness.Controller(TwoParameterController))
             .AssertNoErrors();
@@ -43,19 +44,29 @@ public class GeneratedParametersTests {
 
         var emit = result.Compilation.Emit(stream);
 
-        Assert.True(emit.Success,
-            "The generated code compiled but could not be emitted:" + Environment.NewLine +
-            string.Join(Environment.NewLine, emit.Diagnostics
-                .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)));
+        Assert.True(
+            emit.Success,
+            "The generated code compiled but could not be emitted:"
+                + Environment.NewLine
+                + string.Join(
+                    Environment.NewLine,
+                    emit.Diagnostics.Where(diagnostic =>
+                        diagnostic.Severity == DiagnosticSeverity.Error
+                    )
+                )
+        );
 
         var assembly = Assembly.Load(stream.ToArray());
 
-        var parameters = assembly.GetTypes()
+        var parameters = assembly
+            .GetTypes()
             .FirstOrDefault(type => type.Name == "Parameters" && type.DeclaringType != null);
 
-        Assert.True(parameters != null,
-            "No generated Parameters type. Types: " +
-            string.Join(", ", assembly.GetTypes().Select(type => type.FullName)));
+        Assert.True(
+            parameters != null,
+            "No generated Parameters type. Types: "
+                + string.Join(", ", assembly.GetTypes().Select(type => type.FullName))
+        );
 
         return parameters!;
     }
@@ -69,7 +80,8 @@ public class GeneratedParametersTests {
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
-    public void SettingAValidIndexStoresTheValue(int index) {
+    public void SettingAValidIndexStoresTheValue(int index)
+    {
         var parameters = New();
 
         parameters[index] = "a value";
@@ -78,7 +90,8 @@ public class GeneratedParametersTests {
     }
 
     [Fact]
-    public void EachIndexKeepsItsOwnValue() {
+    public void EachIndexKeepsItsOwnValue()
+    {
         var parameters = New();
 
         parameters[0] = "an id";
@@ -89,7 +102,8 @@ public class GeneratedParametersTests {
     }
 
     [Fact]
-    public void AnIndexPastTheEndStillThrows() {
+    public void AnIndexPastTheEndStillThrows()
+    {
         var parameters = New();
 
         Assert.Throws<IndexOutOfRangeException>(() => parameters[2] = "past the end");
@@ -97,12 +111,14 @@ public class GeneratedParametersTests {
     }
 
     [Fact]
-    public void ParameterCountMatchesWhatTheHandlerDeclares() {
+    public void ParameterCountMatchesWhatTheHandlerDeclares()
+    {
         Assert.Equal(2, New().ParameterCount);
     }
 
     [Fact]
-    public void InfoNamesTheParametersInDeclarationOrder() {
+    public void InfoNamesTheParametersInDeclarationOrder()
+    {
         var info = New().Info;
 
         Assert.Equal(2, info.Count);
@@ -113,7 +129,8 @@ public class GeneratedParametersTests {
     }
 
     [Fact]
-    public void AParameterIsReachableByTheNameItWasDeclaredWith() {
+    public void AParameterIsReachableByTheNameItWasDeclaredWith()
+    {
         var parameters = New();
 
         Assert.True(parameters.TrySetParameter("id", "an id"));
@@ -122,7 +139,8 @@ public class GeneratedParametersTests {
     }
 
     [Fact]
-    public void AnUnknownNameIsRefusedRatherThanThrowing() {
+    public void AnUnknownNameIsRefusedRatherThanThrowing()
+    {
         var parameters = New();
 
         Assert.False(parameters.TrySetParameter("absent", "ignored"));
@@ -136,7 +154,8 @@ public class GeneratedParametersTests {
     /// shape <c>MemberwiseClone</c> can actually detach.
     /// </summary>
     [Fact]
-    public void CloningABagDetachesItFromTheOriginal() {
+    public void CloningABagDetachesItFromTheOriginal()
+    {
         var parameters = New();
 
         parameters[0] = "original";

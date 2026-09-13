@@ -15,27 +15,32 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// on a payload type that cannot carry them. All three were found by building the same
 /// specification three ways and comparing what shipped.
 /// </remarks>
-public class SmithyPayloadTests {
-
+public class SmithyPayloadTests
+{
     private static string Model(string outputShapes, string extraShapes = "") =>
         $$"""
-          { "smithy": "2.0", "shapes": {
-              "com.example#Svc": {
-                "type": "service", "version": "1",
-                "operations": [ { "target": "com.example#Op" } ] },
-              "com.example#Op": {
-                "type": "operation",
-                "traits": { "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 } },
-                "output": { "target": "com.example#Out" } },
-              "com.example#Out": {
-                "type": "structure",
-                "members": { {{outputShapes}} } }
-              {{extraShapes}} } }
-          """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Op" } ] },
+                "com.example#Op": {
+                  "type": "operation",
+                  "traits": { "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 } },
+                  "output": { "target": "com.example#Out" } },
+                "com.example#Out": {
+                  "type": "structure",
+                  "members": { {{outputShapes}} } }
+                {{extraShapes}} } }
+            """;
 
-    private static OperationModel Parse(string outputMembers, string extraShapes = "") {
+    private static OperationModel Parse(string outputMembers, string extraShapes = "")
+    {
         var diagnostics = new List<string>();
-        var model = SmithySpecParser.Parse(Model(outputMembers, extraShapes), "payload", diagnostics);
+        var model = SmithySpecParser.Parse(
+            Model(outputMembers, extraShapes),
+            "payload",
+            diagnostics
+        );
 
         Assert.NotNull(model);
 
@@ -47,12 +52,14 @@ public class SmithyPayloadTests {
     /// <c>Models.String</c>, a reference to a type nothing declares - CS0234 in generated code.
     /// </summary>
     [Fact]
-    public void APreludeScalarPayloadIsTheResponseType() {
+    public void APreludeScalarPayloadIsTheResponseType()
+    {
         var operation = Parse(
             """
             "label": { "target": "smithy.api#String",
                        "traits": { "smithy.api#httpPayload": {} } }
-            """);
+            """
+        );
 
         Assert.Null(operation.ResponseRef);
         Assert.Equal("string", operation.ResponseType);
@@ -63,7 +70,8 @@ public class SmithyPayloadTests {
     /// clean, and the endpoint answered <c>{}</c>.
     /// </summary>
     [Fact]
-    public void ANamedListPayloadIsAnArrayResponse() {
+    public void ANamedListPayloadIsAnArrayResponse()
+    {
         var operation = Parse(
             """
             "names": { "target": "com.example#Names",
@@ -72,7 +80,8 @@ public class SmithyPayloadTests {
             """
             , "com.example#Names": {
                 "type": "list", "member": { "target": "smithy.api#String" } }
-            """);
+            """
+        );
 
         Assert.True(operation.ResponseIsArray);
         Assert.Equal("string", operation.ResponseArrayItemsType);
@@ -83,7 +92,8 @@ public class SmithyPayloadTests {
     /// the trait table and never read, so a Smithy service could answer nothing but JSON.
     /// </summary>
     [Fact]
-    public void AMediaTypeOnThePayloadTargetIsTheContentType() {
+    public void AMediaTypeOnThePayloadTargetIsTheContentType()
+    {
         var operation = Parse(
             """
             "label": { "target": "com.example#LabelText",
@@ -93,7 +103,8 @@ public class SmithyPayloadTests {
             , "com.example#LabelText": {
                 "type": "string",
                 "traits": { "smithy.api#mediaType": "text/plain" } }
-            """);
+            """
+        );
 
         Assert.Equal("text/plain", operation.ResponseContentType);
         Assert.Equal("string", operation.ResponseType);
@@ -106,7 +117,8 @@ public class SmithyPayloadTests {
     /// call against a type that never had one.
     /// </summary>
     [Fact]
-    public void APayloadBesideAHeaderKeepsTheHeadersOffThePayload() {
+    public void APayloadBesideAHeaderKeepsTheHeadersOffThePayload()
+    {
         var operation = Parse(
             """
             "body": { "target": "com.example#Pet",
@@ -118,7 +130,8 @@ public class SmithyPayloadTests {
             , "com.example#Pet": {
                 "type": "structure",
                 "members": { "id": { "target": "smithy.api#String" } } }
-            """);
+            """
+        );
 
         var success = Assert.Single(operation.SuccessResponses);
 
@@ -131,13 +144,15 @@ public class SmithyPayloadTests {
     /// type that carries them - which is the arrangement the fix above must not disturb.
     /// </summary>
     [Fact]
-    public void AWholeOutputWithAHeaderKeepsItOnThePayload() {
+    public void AWholeOutputWithAHeaderKeepsItOnThePayload()
+    {
         var operation = Parse(
             """
             "id": { "target": "smithy.api#String" },
             "etag": { "target": "smithy.api#String",
                       "traits": { "smithy.api#httpHeader": "ETag" } }
-            """);
+            """
+        );
 
         var success = Assert.Single(operation.SuccessResponses);
 
@@ -150,7 +165,8 @@ public class SmithyPayloadTests {
     /// it and the document declares it. It decided nullability and was otherwise dropped.
     /// </summary>
     [Fact]
-    public void ADefaultTraitValueReachesTheParameter() {
+    public void ADefaultTraitValueReachesTheParameter()
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(
             """
@@ -169,7 +185,9 @@ public class SmithyPayloadTests {
                                "traits": { "smithy.api#httpQuery": "limit",
                                            "smithy.api#default": 20 } } } } } }
             """,
-            "defaults", diagnostics);
+            "defaults",
+            diagnostics
+        );
 
         Assert.NotNull(model);
 

@@ -17,7 +17,8 @@ namespace Hardened.Web.Runtime.Compression;
 /// <c>services.ConfigureCompression</c>.
 /// </para>
 /// </remarks>
-public interface ICompressionConfiguration {
+public interface ICompressionConfiguration
+{
     /// <summary>
     /// The content codings the server offers, in preference order.
     /// </summary>

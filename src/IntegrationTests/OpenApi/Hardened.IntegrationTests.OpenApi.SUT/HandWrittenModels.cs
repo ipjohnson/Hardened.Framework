@@ -1,4 +1,3 @@
-
 namespace Hardened.IntegrationTests.OpenApi.SUT;
 
 /// <summary>
@@ -10,7 +9,8 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// <c>Hardened.Validation.SourceGenerator</c>. It scans the compilation for constraint attributes;
 /// nothing about these types is special, and nothing had to be wired for them.
 /// </remarks>
-public class HandWrittenOrder {
+public class HandWrittenOrder
+{
     [ValidationModules.Constraints.Required]
     [ValidationModules.Constraints.StringLength(Min = 3, Max = 20)]
     public string Reference { get; init; } = "";
@@ -28,7 +28,8 @@ public class HandWrittenOrder {
 /// one, because the interesting question is whether DataAnnotations alone is enough to produce a
 /// validator - not whether it works when something else already triggered one.
 /// </remarks>
-public class DataAnnotatedOrder {
+public class DataAnnotatedOrder
+{
     [System.ComponentModel.DataAnnotations.Required]
     [System.ComponentModel.DataAnnotations.StringLength(20, MinimumLength = 3)]
     public string Reference { get; init; } = "";

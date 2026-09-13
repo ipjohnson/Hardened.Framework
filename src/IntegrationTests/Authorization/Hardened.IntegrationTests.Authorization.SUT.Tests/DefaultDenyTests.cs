@@ -15,8 +15,8 @@ namespace Hardened.IntegrationTests.Authorization.SUT.Tests;
 /// handler refuse a real request over a real host.
 /// </para>
 /// </summary>
-public class DefaultDenyTests {
-
+public class DefaultDenyTests
+{
     private static Action<TestWebRequest> Holding(string grants) =>
         request => request.Headers[TestGrantsPrincipalSource.GrantsHeader] = grants;
 
@@ -31,14 +31,16 @@ public class DefaultDenyTests {
     /// for it specifically, and it still refuses - which is the whole of what "default deny" means.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerThatSaysNothingRefusesAnAnonymousCaller(ITestWebApp testWebApp) {
+    public async Task AHandlerThatSaysNothingRefusesAnAnonymousCaller(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/implicit");
 
         response.Assert.Unauthorized();
     }
 
     [HardenedTest]
-    public async Task TheBackstopRefusalCarriesAChallenge(ITestWebApp testWebApp) {
+    public async Task TheBackstopRefusalCarriesAChallenge(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/implicit");
 
         Assert.True(response.Headers.TryGetValue("WWW-Authenticate", out var challenge));
@@ -50,7 +52,8 @@ public class DefaultDenyTests {
     /// gets through without holding any particular grant, because no handler declared one.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerThatSaysNothingAdmitsAnyAuthenticatedCaller(ITestWebApp testWebApp) {
+    public async Task AHandlerThatSaysNothingAdmitsAnyAuthenticatedCaller(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/implicit", Authenticated());
 
         response.Assert.Ok();
@@ -61,7 +64,8 @@ public class DefaultDenyTests {
     #region opting back out
 
     [HardenedTest]
-    public async Task AllowAnonymousIsReachableWithoutACredential(ITestWebApp testWebApp) {
+    public async Task AllowAnonymousIsReachableWithoutACredential(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/open");
 
         response.Assert.Ok();
@@ -72,7 +76,8 @@ public class DefaultDenyTests {
     /// diagnostic uses, so the two cannot disagree about which handlers are public.
     /// </summary>
     [HardenedTest]
-    public async Task AControllerLevelOptOutCoversEveryRouteInIt(ITestWebApp testWebApp) {
+    public async Task AControllerLevelOptOutCoversEveryRouteInIt(ITestWebApp testWebApp)
+    {
         var health = await testWebApp.Get("/public/health");
         var version = await testWebApp.Get("/public/version");
 
@@ -90,14 +95,16 @@ public class DefaultDenyTests {
     /// weaker default.
     /// </summary>
     [HardenedTest]
-    public async Task ADeclaredGrantStillAppliesUnderTheBackstop(ITestWebApp testWebApp) {
+    public async Task ADeclaredGrantStillAppliesUnderTheBackstop(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/pets", Authenticated());
 
         response.Assert.Forbidden();
     }
 
     [HardenedTest]
-    public async Task ACallerHoldingTheGrantIsAdmitted(ITestWebApp testWebApp) {
+    public async Task ACallerHoldingTheGrantIsAdmitted(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/pets", Holding("pets:read"));
 
         response.Assert.Ok();
@@ -108,14 +115,16 @@ public class DefaultDenyTests {
     /// caller has not failed a permission check, it has not identified itself.
     /// </summary>
     [HardenedTest]
-    public async Task ADeclaredGrantRefusesAnAnonymousCallerWith401(ITestWebApp testWebApp) {
+    public async Task ADeclaredGrantRefusesAnAnonymousCallerWith401(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/pets");
 
         response.Assert.Unauthorized();
     }
 
     [HardenedTest]
-    public async Task ShortOfOneGrantIsForbiddenAndSaysWhichOne(ITestWebApp testWebApp) {
+    public async Task ShortOfOneGrantIsForbiddenAndSaysWhichOne(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/pets-manage", Holding("pets:read"));
 
         response.Assert.Forbidden();
@@ -126,9 +135,12 @@ public class DefaultDenyTests {
     }
 
     [HardenedTest]
-    public async Task HoldingBothGrantsIsAdmitted(ITestWebApp testWebApp) {
+    public async Task HoldingBothGrantsIsAdmitted(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/guarded/pets-manage", Holding("pets:read pets:write"));
+            "/guarded/pets-manage",
+            Holding("pets:read pets:write")
+        );
 
         response.Assert.Ok();
     }
@@ -145,7 +157,8 @@ public class DefaultDenyTests {
     /// it was registered, resolvable, and never asked.
     /// </summary>
     [HardenedTest]
-    public async Task ATypedSourceAuthenticatesARealRequest(ITestWebApp testWebApp) {
+    public async Task ATypedSourceAuthenticatesARealRequest(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/implicit", WithApiKey());
 
         response.Assert.Ok();
@@ -155,7 +168,8 @@ public class DefaultDenyTests {
     /// And the principal it built is the one authorization judges, grants included.
     /// </summary>
     [HardenedTest]
-    public async Task ATypedSourcesGrantsAreTheOnesJudged(ITestWebApp testWebApp) {
+    public async Task ATypedSourcesGrantsAreTheOnesJudged(ITestWebApp testWebApp)
+    {
         var admitted = await testWebApp.Get("/guarded/pets", WithApiKey());
         var refused = await testWebApp.Get("/guarded/pets-manage", WithApiKey());
 
@@ -168,14 +182,16 @@ public class DefaultDenyTests {
     /// plain source registered beside it, rather than ending it.
     /// </summary>
     [HardenedTest]
-    public async Task ATypedSourceDecliningFallsThroughToThePlainOne(ITestWebApp testWebApp) {
+    public async Task ATypedSourceDecliningFallsThroughToThePlainOne(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/guarded/implicit", Authenticated());
 
         response.Assert.Ok();
     }
 
     private static Action<TestWebRequest> WithApiKey() =>
-        request => request.Headers[ApiKeyPrincipalSource.KeyHeader] = ApiKeyPrincipalSource.KnownKey;
+        request =>
+            request.Headers[ApiKeyPrincipalSource.KeyHeader] = ApiKeyPrincipalSource.KnownKey;
 
     #endregion
 }

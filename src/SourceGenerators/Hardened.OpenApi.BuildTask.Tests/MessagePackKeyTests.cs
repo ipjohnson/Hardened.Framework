@@ -1,9 +1,9 @@
 using System.Linq;
 using System.Threading;
+using Hardened.Generation.Models;
 using Hardened.Idl;
 using Hardened.Idl.Emitters;
 using Hardened.Idl.Validation;
-using Hardened.Generation.Models;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 
@@ -20,8 +20,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// stop the build rather than be given one - see <c>SpecDiagnostics</c>.
 /// </para>
 /// </remarks>
-public class MessagePackKeyTests {
-
+public class MessagePackKeyTests
+{
     private const string Keyed = """
         openapi: 3.0.0
         info: { title: Depot, version: '1.0' }
@@ -51,7 +51,8 @@ public class MessagePackKeyTests {
                   type: string
         """;
 
-    private static ServiceSpecModel Parse(string yaml) {
+    private static ServiceSpecModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "depot", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -60,11 +61,13 @@ public class MessagePackKeyTests {
     }
 
     private static PropertyModel Property(ServiceSpecModel model, string name) =>
-        model.Schemas.Single(schema => schema.Name == "Reading").Properties
-            .Single(property => property.Name == name);
+        model
+            .Schemas.Single(schema => schema.Name == "Reading")
+            .Properties.Single(property => property.Name == name);
 
     [Fact]
-    public void TheIndexTheContractStatesReachesTheModel() {
+    public void TheIndexTheContractStatesReachesTheModel()
+    {
         var model = Parse(Keyed);
 
         Assert.Equal(0, Property(model, "sensor").MessagePackIndex);
@@ -76,7 +79,8 @@ public class MessagePackKeyTests {
     /// move the next time a property was added above it.
     /// </summary>
     [Fact]
-    public void APropertyWithNoIndexGetsNone() {
+    public void APropertyWithNoIndexGetsNone()
+    {
         Assert.Null(Property(Parse(Keyed), "note").MessagePackIndex);
     }
 
@@ -85,7 +89,8 @@ public class MessagePackKeyTests {
     /// the property that has to change rather than into a generated file.
     /// </summary>
     [Fact]
-    public void ANegativeIndexIsReadAsAbsent() {
+    public void ANegativeIndexIsReadAsAbsent()
+    {
         var model = Parse(Keyed.Replace("x-message-pack-index: 7", "x-message-pack-index: -1"));
 
         Assert.Null(Property(model, "value").MessagePackIndex);
@@ -97,15 +102,18 @@ public class MessagePackKeyTests {
     /// a project that is not using them.
     /// </summary>
     [Fact]
-    public void TheIndexIsReadWithoutTheKeyedMode() {
+    public void TheIndexIsReadWithoutTheKeyedMode()
+    {
         Assert.Equal(SpecSerializer.Json, Parse(Keyed).Serializer);
         Assert.Equal(0, Property(Parse(Keyed), "sensor").MessagePackIndex);
     }
 
-    private static string Emit(SpecSerializer serializer, params PropertyModel[] properties) {
+    private static string Emit(SpecSerializer serializer, params PropertyModel[] properties)
+    {
         var schema = new SchemaModel { Name = "Reading", Kind = SchemaKind.Object };
 
-        foreach (var property in properties) {
+        foreach (var property in properties)
+        {
             schema.Properties.Add(property);
         }
 
@@ -113,14 +121,29 @@ public class MessagePackKeyTests {
 
         return EmitterHarness.Write(ns =>
             SchemaEmitter.Emit(
-                ns, schema, EmitterHarness.ModelsNamespace, patterns, null, null, serializer));
+                ns,
+                schema,
+                EmitterHarness.ModelsNamespace,
+                patterns,
+                null,
+                null,
+                serializer
+            )
+        );
     }
 
     private static PropertyModel At(string name, int? index) =>
-        new() { Name = name, Type = "string", IsRequired = true, MessagePackIndex = index };
+        new()
+        {
+            Name = name,
+            Type = "string",
+            IsRequired = true,
+            MessagePackIndex = index,
+        };
 
     [Fact]
-    public void TheKeyedModeEmitsTheObjectAttributeAndEveryKey() {
+    public void TheKeyedModeEmitsTheObjectAttributeAndEveryKey()
+    {
         var emitted = Emit(SpecSerializer.MessagePackKeyed, At("sensor", 0), At("value", 7));
 
         Assert.Contains("MessagePackObject]", emitted);
@@ -134,7 +157,8 @@ public class MessagePackKeyTests {
     /// properties.
     /// </summary>
     [Fact]
-    public void TheKeyTargetsTheProperty() {
+    public void TheKeyTargetsTheProperty()
+    {
         Assert.Contains("[property: ", Emit(SpecSerializer.MessagePackKeyed, At("sensor", 0)));
         Assert.Contains("Key(0)]", Emit(SpecSerializer.MessagePackKeyed, At("sensor", 0)));
     }
@@ -149,7 +173,8 @@ public class MessagePackKeyTests {
     /// ignored here whatever the contract states: under this mode the name is the identity.
     /// </remarks>
     [Fact]
-    public void TheNamedModeKeysByTheWireName() {
+    public void TheNamedModeKeysByTheWireName()
+    {
         var emitted = Emit(SpecSerializer.MessagePackNamed, At("unit_price", 0), At("value", 7));
 
         Assert.Contains("MessagePackObject(true)]", emitted);
@@ -162,7 +187,8 @@ public class MessagePackKeyTests {
     /// contract states. The package is not referenced, so an attribute here would not compile.
     /// </summary>
     [Fact]
-    public void TheJsonModeEmitsNeither() {
+    public void TheJsonModeEmitsNeither()
+    {
         var emitted = Emit(SpecSerializer.Json, At("sensor", 0));
 
         Assert.DoesNotContain("MessagePack", emitted);
@@ -174,37 +200,57 @@ public class MessagePackKeyTests {
     /// would be a member of a keyed object with no key, which MessagePack refuses.
     /// </summary>
     [Fact]
-    public void AHeaderBoundMemberIsIgnoredRatherThanKeyed() {
+    public void AHeaderBoundMemberIsIgnoredRatherThanKeyed()
+    {
         var emitted = Emit(
             SpecSerializer.MessagePackKeyed,
             At("sensor", 0),
-            new PropertyModel {
-                Name = "etag", Type = "string", IsRequired = true, HeaderName = "ETag"
-            });
+            new PropertyModel
+            {
+                Name = "etag",
+                Type = "string",
+                IsRequired = true,
+                HeaderName = "ETag",
+            }
+        );
 
         Assert.Contains("IgnoreMember]", emitted);
     }
 
     [Fact]
-    public void AHeaderBoundMemberIsIgnoredUnderTheNamedModeToo() {
+    public void AHeaderBoundMemberIsIgnoredUnderTheNamedModeToo()
+    {
         var emitted = Emit(
             SpecSerializer.MessagePackNamed,
-            new PropertyModel {
-                Name = "etag", Type = "string", IsRequired = true, HeaderName = "ETag"
-            });
+            new PropertyModel
+            {
+                Name = "etag",
+                Type = "string",
+                IsRequired = true,
+                HeaderName = "ETag",
+            }
+        );
 
         Assert.Contains("IgnoreMember]", emitted);
     }
 
-    private static ServiceSpecModel Spec(SpecSerializer serializer, params PropertyModel[] properties) {
+    private static ServiceSpecModel Spec(
+        SpecSerializer serializer,
+        params PropertyModel[] properties
+    )
+    {
         var schema = new SchemaModel { Name = "Reading", Kind = SchemaKind.Object };
 
-        foreach (var property in properties) {
+        foreach (var property in properties)
+        {
             schema.Properties.Add(property);
         }
 
-        return new ServiceSpecModel {
-            FileName = "spec", Serializer = serializer, Schemas = { schema }
+        return new ServiceSpecModel
+        {
+            FileName = "spec",
+            Serializer = serializer,
+            Schemas = { schema },
         };
     }
 
@@ -217,9 +263,11 @@ public class MessagePackKeyTests {
     /// worse than one that refuses to build.
     /// </summary>
     [Fact]
-    public void AnUnkeyedPropertyStopsTheBuild() {
+    public void AnUnkeyedPropertyStopsTheBuild()
+    {
         var problem = Assert.Single(
-            Findings(Spec(SpecSerializer.MessagePackKeyed, At("sensor", 0), At("note", null))));
+            Findings(Spec(SpecSerializer.MessagePackKeyed, At("sensor", 0), At("note", null)))
+        );
 
         Assert.True(problem.Fatal);
         Assert.Contains("note", problem.Message);
@@ -230,10 +278,18 @@ public class MessagePackKeyTests {
     /// and every number already in the schema is one they must not choose.
     /// </summary>
     [Fact]
-    public void TheFindingNamesTheNextFreeIndex() {
+    public void TheFindingNamesTheNextFreeIndex()
+    {
         var problem = Assert.Single(
-            Findings(Spec(SpecSerializer.MessagePackKeyed, At("sensor", 0), At("value", 7),
-                At("note", null))));
+            Findings(
+                Spec(
+                    SpecSerializer.MessagePackKeyed,
+                    At("sensor", 0),
+                    At("value", 7),
+                    At("note", null)
+                )
+            )
+        );
 
         Assert.Contains("x-message-pack-index: 8", problem.Message);
     }
@@ -243,10 +299,16 @@ public class MessagePackKeyTests {
     /// builds rather than one that collides.
     /// </summary>
     [Fact]
-    public void TwoUnkeyedPropertiesAreSuggestedDifferentIndices() {
+    public void TwoUnkeyedPropertiesAreSuggestedDifferentIndices()
+    {
         var problems = Findings(
-            Spec(SpecSerializer.MessagePackKeyed, At("sensor", 3), At("note", null),
-                At("unit", null)));
+            Spec(
+                SpecSerializer.MessagePackKeyed,
+                At("sensor", 3),
+                At("note", null),
+                At("unit", null)
+            )
+        );
 
         Assert.Equal(2, problems.Length);
         Assert.Contains("x-message-pack-index: 4", problems[0].Message);
@@ -258,9 +320,11 @@ public class MessagePackKeyTests {
     /// which reports against generated code rather than against the contract that caused it.
     /// </summary>
     [Fact]
-    public void TwoPropertiesAtOneIndexAreReported() {
+    public void TwoPropertiesAtOneIndexAreReported()
+    {
         var problem = Assert.Single(
-            Findings(Spec(SpecSerializer.MessagePackKeyed, At("sensor", 2), At("value", 2))));
+            Findings(Spec(SpecSerializer.MessagePackKeyed, At("sensor", 2), At("value", 2)))
+        );
 
         Assert.Contains("sensor", problem.Message);
         Assert.Contains("value", problem.Message);
@@ -271,11 +335,22 @@ public class MessagePackKeyTests {
     /// report - it is excluded from the object rather than given an index.
     /// </summary>
     [Fact]
-    public void AHeaderBoundMemberNeedsNoIndex() {
-        Assert.Empty(Findings(Spec(
-            SpecSerializer.MessagePackKeyed,
-            At("sensor", 0),
-            new PropertyModel { Name = "etag", Type = "string", HeaderName = "ETag" })));
+    public void AHeaderBoundMemberNeedsNoIndex()
+    {
+        Assert.Empty(
+            Findings(
+                Spec(
+                    SpecSerializer.MessagePackKeyed,
+                    At("sensor", 0),
+                    new PropertyModel
+                    {
+                        Name = "etag",
+                        Type = "string",
+                        HeaderName = "ETag",
+                    }
+                )
+            )
+        );
     }
 
     /// <summary>
@@ -285,15 +360,20 @@ public class MessagePackKeyTests {
     [Theory]
     [InlineData(SpecSerializer.Json)]
     [InlineData(SpecSerializer.MessagePackNamed)]
-    public void TheOtherModesDemandNothing(SpecSerializer serializer) {
+    public void TheOtherModesDemandNothing(SpecSerializer serializer)
+    {
         Assert.Empty(Findings(Spec(serializer, At("sensor", null), At("note", null))));
     }
 
     private static ServiceSpecModel WithChoice(SpecSerializer serializer) =>
-        new() {
+        new()
+        {
             FileName = "spec",
             Serializer = serializer,
-            Schemas = { new SchemaModel { Name = "Payload", Kind = SchemaKind.OneOf } }
+            Schemas =
+            {
+                new SchemaModel { Name = "Payload", Kind = SchemaKind.OneOf },
+            },
         };
 
     private static SpecDiagnostics.Problem[] Choices(ServiceSpecModel model) =>
@@ -308,7 +388,8 @@ public class MessagePackKeyTests {
     [Theory]
     [InlineData(SpecSerializer.MessagePackNamed)]
     [InlineData(SpecSerializer.MessagePackKeyed)]
-    public void AChoiceUnderMessagePackIsReported(SpecSerializer serializer) {
+    public void AChoiceUnderMessagePackIsReported(SpecSerializer serializer)
+    {
         var problem = Assert.Single(Choices(WithChoice(serializer)));
 
         Assert.Contains("Payload", problem.Message);

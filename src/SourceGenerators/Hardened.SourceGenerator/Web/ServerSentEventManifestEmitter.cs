@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
-using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Requests;
+using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
 
 namespace Hardened.SourceGenerator.Web;
@@ -30,8 +30,8 @@ namespace Hardened.SourceGenerator.Web;
 /// they are given and never ask.
 /// </para>
 /// </remarks>
-internal static class ServerSentEventManifestEmitter {
-
+internal static class ServerSentEventManifestEmitter
+{
     public const string ContainerName = "ServerSentEvents";
 
     private const string HandlersField = "_handlers";
@@ -54,14 +54,19 @@ internal static class ServerSentEventManifestEmitter {
     public static IReadOnlyList<string> Collect(IReadOnlyList<RequestHandlerModel> handlers) =>
         handlers
             .Where(handler =>
-                handler.ResponseInformation.StreamFraming == StreamFramingNames.ServerSentEvents)
-            .Select(handler => handler.Name.Method + " " + RouteTemplate.NamesOnly(handler.Name.Path))
+                handler.ResponseInformation.StreamFraming == StreamFramingNames.ServerSentEvents
+            )
+            .Select(handler =>
+                handler.Name.Method + " " + RouteTemplate.NamesOnly(handler.Name.Path)
+            )
             .Distinct()
             .OrderBy(name => name, System.StringComparer.Ordinal)
             .ToList();
 
-    public static void Emit(ClassDefinition appClass, IReadOnlyList<string> handlers) {
-        if (handlers.Count == 0) {
+    public static void Emit(ClassDefinition appClass, IReadOnlyList<string> handlers)
+    {
+        if (handlers.Count == 0)
+        {
             return;
         }
 
@@ -70,23 +75,29 @@ internal static class ServerSentEventManifestEmitter {
         container.Modifiers |= ComponentModifier.Private | ComponentModifier.Sealed;
         container.AddBaseType(KnownTypes.Requests.IServerSentEventManifest);
         container.Comment =
-            "The handlers this application answers as text/event-stream. Read by a host whose " +
-            "framing depends on its deployment; see IServerSentEventManifest.";
+            "The handlers this application answers as text/event-stream. Read by a host whose "
+            + "framing depends on its deployment; see IServerSentEventManifest.";
 
         var field = container.AddField(typeof(string[]), HandlersField);
 
         field.Modifiers |=
             ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
         field.InitializeValue = new CodeOutputComponent(
-            "new string[] { " + string.Join(", ", handlers.Select(Quoted)) + " }") { Indented = false };
+            "new string[] { " + string.Join(", ", handlers.Select(Quoted)) + " }"
+        )
+        {
+            Indented = false,
+        };
 
         var property = container.AddProperty(
             new GenericTypeDefinition(
                 TypeDefinitionEnum.InterfaceDefinition,
                 "System.Collections.Generic",
                 "IReadOnlyList",
-                new[] { TypeDefinition.Get(typeof(string)) }),
-            "Handlers");
+                new[] { TypeDefinition.Get(typeof(string)) }
+            ),
+            "Handlers"
+        );
 
         property.Modifiers |= ComponentModifier.Public;
         property.Set = null;

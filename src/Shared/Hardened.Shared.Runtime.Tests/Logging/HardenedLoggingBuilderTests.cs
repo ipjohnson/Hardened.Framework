@@ -15,10 +15,11 @@ namespace Hardened.Shared.Runtime.Tests.Logging;
 /// and registers into <see cref="ILoggingBuilder.Services"/>. Handing back a different collection
 /// than the one the application is being built into would make those calls silently no-ops.
 /// </remarks>
-public class HardenedLoggingBuilderTests {
-
+public class HardenedLoggingBuilderTests
+{
     [Fact]
-    public void ServicesIsTheCollectionItWasGiven() {
+    public void ServicesIsTheCollectionItWasGiven()
+    {
         var services = new ServiceCollection();
 
         Assert.Same(services, new HardenedLoggingBuilder(services).Services);
@@ -28,7 +29,8 @@ public class HardenedLoggingBuilderTests {
     /// A standard logging extension registers into the application's own collection.
     /// </summary>
     [Fact]
-    public void AStandardLoggingExtensionRegistersIntoTheApplicationsCollection() {
+    public void AStandardLoggingExtensionRegistersIntoTheApplicationsCollection()
+    {
         var services = new ServiceCollection();
 
         ((ILoggingBuilder)new HardenedLoggingBuilder(services)).AddFilter("Test", LogLevel.Warning);

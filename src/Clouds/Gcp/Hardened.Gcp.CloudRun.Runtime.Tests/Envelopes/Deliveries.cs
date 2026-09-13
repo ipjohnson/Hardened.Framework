@@ -11,18 +11,32 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Envelopes;
 /// The requests the envelope tests hand an envelope: a delivery as Kestrel would have built it,
 /// and the buffered body the front door would have handed on.
 /// </summary>
-internal static class Deliveries {
+internal static class Deliveries
+{
     public static TestExecutionRequest Request(
-        string method, string path, string? contentType, params (string Name, string Value)[] headers) {
-        var request = new TestExecutionRequest(method, path, null, EmptyQueryStringCollection.Instance) {
-            Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        string method,
+        string path,
+        string? contentType,
+        params (string Name, string Value)[] headers
+    )
+    {
+        var request = new TestExecutionRequest(
+            method,
+            path,
+            null,
+            EmptyQueryStringCollection.Instance
+        )
+        {
+            Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
         };
 
-        if (contentType != null) {
+        if (contentType != null)
+        {
             request.Headers["Content-Type"] = contentType;
         }
 
-        foreach (var (name, value) in headers) {
+        foreach (var (name, value) in headers)
+        {
             request.Headers[name] = value;
         }
 
@@ -30,19 +44,32 @@ internal static class Deliveries {
     }
 
     /// <summary>A POST with a JSON content type, the shape most envelopes look for.</summary>
-    public static TestExecutionRequest Post(string path = "/", params (string Name, string Value)[] headers) =>
-        Request("POST", path, "application/json", headers);
+    public static TestExecutionRequest Post(
+        string path = "/",
+        params (string Name, string Value)[] headers
+    ) => Request("POST", path, "application/json", headers);
 
     /// <summary>The binary-mode headers of one CloudEvent on a POST.</summary>
     public static TestExecutionRequest CloudEvent(
-        string type, string source, string? subject = null, string contentType = "application/json",
-        string id = "evt-1", params (string Name, string Value)[] more) {
-        var headers = new List<(string, string)> {
-            ("ce-specversion", "1.0"), ("ce-id", id), ("ce-source", source), ("ce-type", type),
-            ("ce-time", "2026-09-07T10:00:00Z")
+        string type,
+        string source,
+        string? subject = null,
+        string contentType = "application/json",
+        string id = "evt-1",
+        params (string Name, string Value)[] more
+    )
+    {
+        var headers = new List<(string, string)>
+        {
+            ("ce-specversion", "1.0"),
+            ("ce-id", id),
+            ("ce-source", source),
+            ("ce-type", type),
+            ("ce-time", "2026-09-07T10:00:00Z"),
         };
 
-        if (subject != null) {
+        if (subject != null)
+        {
             headers.Add(("ce-subject", subject));
         }
 
@@ -52,10 +79,18 @@ internal static class Deliveries {
     }
 
     /// <summary>Runs <paramref name="envelope"/> over <paramref name="body"/>, the way the front door does.</summary>
-    public static CloudRunTriggerRequest? Unwrap(ITriggerEnvelope envelope, TestExecutionRequest request, string body) =>
-        Unwrap(envelope, request, Encoding.UTF8.GetBytes(body));
+    public static CloudRunTriggerRequest? Unwrap(
+        ITriggerEnvelope envelope,
+        TestExecutionRequest request,
+        string body
+    ) => Unwrap(envelope, request, Encoding.UTF8.GetBytes(body));
 
-    public static CloudRunTriggerRequest? Unwrap(ITriggerEnvelope envelope, TestExecutionRequest request, byte[] body) {
+    public static CloudRunTriggerRequest? Unwrap(
+        ITriggerEnvelope envelope,
+        TestExecutionRequest request,
+        byte[] body
+    )
+    {
         request.Body = new MemoryStream(body, writable: false);
 
         using var payload = new TriggerPayload(body);
@@ -63,7 +98,8 @@ internal static class Deliveries {
         return envelope.Unwrap(request, payload);
     }
 
-    public static string Text(Stream body) {
+    public static string Text(Stream body)
+    {
         body.Position = 0;
 
         using var reader = new StreamReader(body, Encoding.UTF8, leaveOpen: true);
@@ -71,5 +107,6 @@ internal static class Deliveries {
         return reader.ReadToEnd();
     }
 
-    public static string Base64(string text) => Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
+    public static string Base64(string text) =>
+        Convert.ToBase64String(Encoding.UTF8.GetBytes(text));
 }

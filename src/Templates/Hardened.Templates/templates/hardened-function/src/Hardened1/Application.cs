@@ -1,3 +1,4 @@
+using Hardened.Shared.Runtime.Attributes;
 #if (gcp)
 using Hardened.Gcp.CloudRun.Runtime;
 #endif
@@ -7,7 +8,6 @@ using Hardened.Azure.Functions.ServiceBus;
 #if (azure && change)
 using Hardened.Azure.Functions.CosmosDb;
 #endif
-using Hardened.Shared.Runtime.Attributes;
 
 namespace Hardened1;
 

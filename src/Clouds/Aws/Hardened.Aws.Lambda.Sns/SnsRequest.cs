@@ -23,13 +23,16 @@ namespace Hardened.Aws.Lambda.Sns;
 /// family and not an adapter.
 /// </para>
 /// </remarks>
-public class SnsRequest : LambdaPayloadRequest, IBatchRequest {
+public class SnsRequest : LambdaPayloadRequest, IBatchRequest
+{
     public SnsRequest(
         string topicName,
         Stream body,
         IDictionary<string, StringValues> headers,
-        IReadOnlyList<SNSEvent.SNSRecord> records)
-        : base(TopicScheme, "/" + topicName, body, headers) {
+        IReadOnlyList<SNSEvent.SNSRecord> records
+    )
+        : base(TopicScheme, "/" + topicName, body, headers)
+    {
         Records = records;
     }
 
@@ -74,8 +77,9 @@ public class SnsRequest : LambdaPayloadRequest, IBatchRequest {
     /// </summary>
     public void RecordFailure(int index, Exception failure) =>
         throw new NotSupportedException(
-            "SNS has no per-notification failure report. A failed notification fails the " +
-            "invocation, which is what makes SNS redeliver it.");
+            "SNS has no per-notification failure report. A failed notification fails the "
+                + "invocation, which is what makes SNS redeliver it."
+        );
 
     /// <summary>
     /// The request for one notification.
@@ -85,15 +89,21 @@ public class SnsRequest : LambdaPayloadRequest, IBatchRequest {
     /// publisher sent and the rest is envelope. A handler binding its own type gets what was
     /// published, not what SNS wrapped it in.
     /// </remarks>
-    public IExecutionRequest ForRecord(SNSEvent.SNSRecord record) {
+    public IExecutionRequest ForRecord(SNSEvent.SNSRecord record)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
         var message = record.Sns;
 
-        if (message?.MessageAttributes != null) {
-            foreach (var attribute in message.MessageAttributes) {
+        if (message?.MessageAttributes != null)
+        {
+            foreach (var attribute in message.MessageAttributes)
+            {
                 // String attributes only, as with SQS: a Binary attribute is not a header.
-                if (attribute.Value?.Value is { } value &&
-                    string.Equals(attribute.Value.Type, "String", StringComparison.Ordinal)) {
+                if (
+                    attribute.Value?.Value is { } value
+                    && string.Equals(attribute.Value.Type, "String", StringComparison.Ordinal)
+                )
+                {
                     headers[attribute.Key] = value;
                 }
             }
@@ -106,8 +116,10 @@ public class SnsRequest : LambdaPayloadRequest, IBatchRequest {
         return new LambdaPayloadRequest(Method, Path, BodyStream(message?.Message), headers);
     }
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

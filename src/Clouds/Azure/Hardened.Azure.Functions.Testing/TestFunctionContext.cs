@@ -21,12 +21,15 @@ namespace Hardened.Azure.Functions.Testing;
 /// has bound it.
 /// </para>
 /// </remarks>
-public sealed class TestFunctionContext : FunctionContext {
+public sealed class TestFunctionContext : FunctionContext
+{
     public TestFunctionContext(
         string functionName,
         IReadOnlyDictionary<string, object?> bindingData,
         IServiceProvider services,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default
+    )
+    {
         FunctionDefinition = new Definition(functionName);
         BindingContext = new Bindings(bindingData);
         InstanceServices = services;
@@ -47,20 +50,24 @@ public sealed class TestFunctionContext : FunctionContext {
 
     public override FunctionDefinition FunctionDefinition { get; }
 
-    public override IDictionary<object, object> Items { get; set; } = new Dictionary<object, object>();
+    public override IDictionary<object, object> Items { get; set; } =
+        new Dictionary<object, object>();
 
     public override IInvocationFeatures Features { get; } = new FeatureCollection();
 
     public override CancellationToken CancellationToken { get; }
 
-    private sealed class Definition : FunctionDefinition {
-        public Definition(string name) {
+    private sealed class Definition : FunctionDefinition
+    {
+        public Definition(string name)
+        {
             Name = name;
             EntryPoint = name;
             Id = name;
         }
 
-        public override ImmutableArray<FunctionParameter> Parameters => ImmutableArray<FunctionParameter>.Empty;
+        public override ImmutableArray<FunctionParameter> Parameters =>
+            ImmutableArray<FunctionParameter>.Empty;
 
         public override string PathToAssembly => "";
 
@@ -77,36 +84,44 @@ public sealed class TestFunctionContext : FunctionContext {
             ImmutableDictionary<string, BindingMetadata>.Empty;
     }
 
-    private sealed class Bindings : BindingContext {
-        public Bindings(IReadOnlyDictionary<string, object?> data) {
+    private sealed class Bindings : BindingContext
+    {
+        public Bindings(IReadOnlyDictionary<string, object?> data)
+        {
             BindingData = data;
         }
 
         public override IReadOnlyDictionary<string, object?> BindingData { get; }
     }
 
-    private sealed class Trace : TraceContext {
+    private sealed class Trace : TraceContext
+    {
         public override string TraceParent => "";
 
         public override string TraceState => "";
     }
 
-    private sealed class Retry : RetryContext {
+    private sealed class Retry : RetryContext
+    {
         public override int RetryCount => 0;
 
         public override int MaxRetryCount => 0;
     }
 
-    private sealed class FeatureCollection : IInvocationFeatures {
+    private sealed class FeatureCollection : IInvocationFeatures
+    {
         private readonly Dictionary<Type, object> _features = new();
 
-        public void Set<T>(T instance) {
-            if (instance != null) {
+        public void Set<T>(T instance)
+        {
+            if (instance != null)
+            {
                 _features[typeof(T)] = instance;
             }
         }
 
-        public T? Get<T>() => _features.TryGetValue(typeof(T), out var feature) ? (T)feature : default;
+        public T? Get<T>() =>
+            _features.TryGetValue(typeof(T), out var feature) ? (T)feature : default;
 
         public IEnumerator<KeyValuePair<Type, object>> GetEnumerator() => _features.GetEnumerator();
 

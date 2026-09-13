@@ -27,12 +27,14 @@ namespace Hardened.Aws.DynamoDbClient.Testing;
 /// per call means the answer cannot depend on what ran first.
 /// </para>
 /// </summary>
-public static class LocalDynamoDb {
+public static class LocalDynamoDb
+{
     /// <summary>What <see cref="Endpoint"/> starts when no image is named.</summary>
     public const string DefaultImage = "amazon/dynamodb-local:latest";
 
-    private static readonly ConcurrentDictionary<string, Lazy<DynamoDbContainer>> Containers =
-        new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, Lazy<DynamoDbContainer>> Containers = new(
+        StringComparer.Ordinal
+    );
 
     /// <summary>Starts <see cref="DefaultImage"/> on first call and returns its endpoint.</summary>
     public static string Endpoint => EndpointFor(DefaultImage);
@@ -54,7 +56,8 @@ public static class LocalDynamoDb {
     public static IAmazonDynamoDB CreateClient(string image = DefaultImage) =>
         new AmazonDynamoDBClient(
             new BasicAWSCredentials("local", "local"),
-            new AmazonDynamoDBConfig { ServiceURL = EndpointFor(image) });
+            new AmazonDynamoDBConfig { ServiceURL = EndpointFor(image) }
+        );
 
     /// <summary>
     /// Stops every container started here, and forgets them — a later call starts a fresh one.
@@ -66,11 +69,14 @@ public static class LocalDynamoDb {
     /// memory before the process finishes.
     /// </para>
     /// </summary>
-    public static void StopAll() {
-        foreach (var container in Containers.Values) {
+    public static void StopAll()
+    {
+        foreach (var container in Containers.Values)
+        {
             // A container whose Lazy has not run has nothing to stop. One being started right now
             // is a suite tearing down while it is still working, which is its own problem.
-            if (container.IsValueCreated) {
+            if (container.IsValueCreated)
+            {
                 container.Value.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
         }
@@ -79,11 +85,18 @@ public static class LocalDynamoDb {
     }
 
     private static DynamoDbContainer ContainerFor(string image) =>
-        Containers.GetOrAdd(image,
-            key => new Lazy<DynamoDbContainer>(() => Start(key), LazyThreadSafetyMode.ExecutionAndPublication))
+        Containers
+            .GetOrAdd(
+                image,
+                key => new Lazy<DynamoDbContainer>(
+                    () => Start(key),
+                    LazyThreadSafetyMode.ExecutionAndPublication
+                )
+            )
             .Value;
 
-    private static DynamoDbContainer Start(string image) {
+    private static DynamoDbContainer Start(string image)
+    {
         var container = new DynamoDbBuilder(image).Build();
 
         // Blocking is deliberate — callers are synchronous DI registration paths, and this happens

@@ -8,21 +8,29 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Streaming;
 /// The body of a response in stream mode: a pipe the pipeline writes into, opened onto the Lambda
 /// response stream at the first byte and pumped until completion.
 /// </summary>
-public class ResponseStreamTests {
-
+public class ResponseStreamTests
+{
     /// <summary>
     /// A memory stream that says when it has been written to, so a test waits for the pump rather
     /// than sleeping, and that can be told to refuse every write.
     /// </summary>
-    private sealed class Target : MemoryStream {
-        private readonly TaskCompletionSource _firstWrite = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private sealed class Target : MemoryStream
+    {
+        private readonly TaskCompletionSource _firstWrite = new(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
 
         public Task FirstWrite => _firstWrite.Task;
 
         public Exception? FailWith { get; init; }
 
-        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) {
-            if (FailWith != null) {
+        public override ValueTask WriteAsync(
+            ReadOnlyMemory<byte> buffer,
+            CancellationToken cancellationToken = default
+        )
+        {
+            if (FailWith != null)
+            {
                 throw FailWith;
             }
 
@@ -35,12 +43,14 @@ public class ResponseStreamTests {
         public string Text => Encoding.UTF8.GetString(ToArray());
     }
 
-    private sealed class Opener {
+    private sealed class Opener
+    {
         public Target Target { get; init; } = new();
 
         public int Opened { get; private set; }
 
-        public Stream Open() {
+        public Stream Open()
+        {
             Opened++;
 
             return Target;
@@ -50,7 +60,8 @@ public class ResponseStreamTests {
     private static byte[] Bytes(string text) => Encoding.UTF8.GetBytes(text);
 
     [Fact]
-    public void TheStreamIsWriteOnly() {
+    public void TheStreamIsWriteOnly()
+    {
         var stream = new ResponseStream(new Opener().Open);
 
         Assert.True(stream.CanWrite);
@@ -59,7 +70,8 @@ public class ResponseStreamTests {
     }
 
     [Fact]
-    public void ANewStreamHasWrittenNothingAndOpenedNothing() {
+    public void ANewStreamHasWrittenNothingAndOpenedNothing()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
 
@@ -74,7 +86,8 @@ public class ResponseStreamTests {
     /// prelude before the pipeline had finished deciding the status and headers.
     /// </summary>
     [Fact]
-    public async Task TheFirstWriteOpensTheLambdaStream() {
+    public async Task TheFirstWriteOpensTheLambdaStream()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
 
@@ -89,7 +102,8 @@ public class ResponseStreamTests {
     /// writes and flushes follow, the opener runs once.
     /// </summary>
     [Fact]
-    public async Task TheLambdaStreamOpensOnce() {
+    public async Task TheLambdaStreamOpensOnce()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
 
@@ -109,12 +123,16 @@ public class ResponseStreamTests {
     /// 100 ms clock.
     /// </summary>
     [Fact]
-    public async Task AnAsyncWriteReachesTheLambdaStreamWithoutWaitingForCompletion() {
+    public async Task AnAsyncWriteReachesTheLambdaStreamWithoutWaitingForCompletion()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
 
         await stream.WriteAsync(Bytes("first item"), TestContext.Current.CancellationToken);
-        await opener.Target.FirstWrite.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        await opener.Target.FirstWrite.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("first item", opener.Target.Text);
     }
@@ -124,7 +142,8 @@ public class ResponseStreamTests {
     /// a serializer that never does.
     /// </summary>
     [Fact]
-    public async Task SynchronousWritesReachTheLambdaStreamAtCompletion() {
+    public async Task SynchronousWritesReachTheLambdaStreamAtCompletion()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
 
@@ -140,13 +159,17 @@ public class ResponseStreamTests {
     }
 
     [Fact]
-    public async Task AnAsynchronousFlushSendsWhatSynchronousWritesLeftInThePipe() {
+    public async Task AnAsynchronousFlushSendsWhatSynchronousWritesLeftInThePipe()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
 
         stream.Write(Bytes("sync"), 0, 4);
         await stream.FlushAsync(TestContext.Current.CancellationToken);
-        await opener.Target.FirstWrite.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+        await opener.Target.FirstWrite.WaitAsync(
+            TimeSpan.FromSeconds(5),
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("sync", opener.Target.Text);
     }
@@ -156,7 +179,8 @@ public class ResponseStreamTests {
     /// headers ahead of a slow body.
     /// </summary>
     [Fact]
-    public async Task AFlushWithNothingWrittenOpensTheLambdaStream() {
+    public async Task AFlushWithNothingWrittenOpensTheLambdaStream()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
 
@@ -171,7 +195,8 @@ public class ResponseStreamTests {
     /// so it does nothing - and in particular does not open the stream.
     /// </summary>
     [Fact]
-    public void TheSynchronousFlushDoesNothing() {
+    public void TheSynchronousFlushDoesNothing()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
 
@@ -186,7 +211,8 @@ public class ResponseStreamTests {
     /// buffered function would stream an empty body on every invocation.
     /// </summary>
     [Fact]
-    public async Task CompletingAStreamThatNeverStartedOpensNothing() {
+    public async Task CompletingAStreamThatNeverStartedOpensNothing()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
 
@@ -202,7 +228,8 @@ public class ResponseStreamTests {
     /// pipe at that point would corrupt the chunked body.
     /// </summary>
     [Fact]
-    public async Task CompletionWaitsForEveryByte() {
+    public async Task CompletionWaitsForEveryByte()
+    {
         var opener = new Opener();
         var stream = new ResponseStream(opener.Open);
         var large = new byte[1_000_000];
@@ -218,7 +245,8 @@ public class ResponseStreamTests {
     }
 
     [Fact]
-    public async Task SuccessiveWritesAccumulateInTheLength() {
+    public async Task SuccessiveWritesAccumulateInTheLength()
+    {
         var stream = new ResponseStream(new Opener().Open);
 
         await stream.WriteAsync(new byte[10], TestContext.Current.CancellationToken);
@@ -234,8 +262,12 @@ public class ResponseStreamTests {
     /// invocation's failure, surfaced where the host waits for the bytes.
     /// </summary>
     [Fact]
-    public async Task AWriteTheLambdaStreamRefusesSurfacesFromCompletion() {
-        var opener = new Opener { Target = new Target { FailWith = new IOException("connection reset") } };
+    public async Task AWriteTheLambdaStreamRefusesSurfacesFromCompletion()
+    {
+        var opener = new Opener
+        {
+            Target = new Target { FailWith = new IOException("connection reset") },
+        };
         var stream = new ResponseStream(opener.Open);
 
         await stream.WriteAsync(Bytes("x"), TestContext.Current.CancellationToken);
@@ -249,7 +281,8 @@ public class ResponseStreamTests {
     /// Position is how many bytes have gone out, not a cursor. Bytes already sent cannot be unsent.
     /// </summary>
     [Fact]
-    public void ThePositionCannotBeMoved() {
+    public void ThePositionCannotBeMoved()
+    {
         var stream = new ResponseStream(new Opener().Open);
 
         Assert.Throws<NotSupportedException>(() => stream.Position = 10);
@@ -258,7 +291,10 @@ public class ResponseStreamTests {
     }
 
     [Fact]
-    public void ReadingIsNotSupported() {
-        Assert.Throws<NotSupportedException>(() => new ResponseStream(new Opener().Open).Read(new byte[1], 0, 1));
+    public void ReadingIsNotSupported()
+    {
+        Assert.Throws<NotSupportedException>(() =>
+            new ResponseStream(new Opener().Open).Read(new byte[1], 0, 1)
+        );
     }
 }

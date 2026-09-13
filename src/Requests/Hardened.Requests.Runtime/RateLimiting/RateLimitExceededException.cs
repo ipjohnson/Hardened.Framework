@@ -23,15 +23,18 @@ namespace Hardened.Requests.Runtime.RateLimiting;
 /// invokes no handler, and writes the refusal on its way out.
 /// </para>
 /// </remarks>
-public class RateLimitExceededException : StatusCodeException {
+public class RateLimitExceededException : StatusCodeException
+{
     private readonly RateLimitDecision _decision;
 
     public RateLimitExceededException(RateLimitDecision decision)
-        : base(429, value: null, message: "Rate limit exceeded.") {
+        : base(429, value: null, message: "Rate limit exceeded.")
+    {
         _decision = decision;
     }
 
-    public override void ApplyHeaders(IDictionary<string, StringValues> headers) {
+    public override void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
         // Seconds, rounded up: rounding down would invite the caller back a moment before the
         // allowance exists and produce a second 429.
         //
@@ -50,7 +53,11 @@ public class RateLimitExceededException : StatusCodeException {
     /// limit by hitting it.
     /// </summary>
     internal static void ApplyRateLimitHeaders(
-        IDictionary<string, StringValues> headers, RateLimitDecision decision, int resetSeconds) {
+        IDictionary<string, StringValues> headers,
+        RateLimitDecision decision,
+        int resetSeconds
+    )
+    {
         headers["RateLimit-Limit"] = decision.Limit.ToString(CultureInfo.InvariantCulture);
         headers["RateLimit-Remaining"] = decision.Remaining.ToString(CultureInfo.InvariantCulture);
         headers["RateLimit-Reset"] = resetSeconds.ToString(CultureInfo.InvariantCulture);

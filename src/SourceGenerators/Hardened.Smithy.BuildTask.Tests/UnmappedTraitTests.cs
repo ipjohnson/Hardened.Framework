@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.Smithy.BuildTask.Parsing;
 using Xunit;
 
@@ -27,8 +27,8 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// <c>@http</c> binding, and an input structure.
 /// </para>
 /// </remarks>
-public class UnmappedTraitTests {
-
+public class UnmappedTraitTests
+{
     /// <summary>
     /// <c>tags</c> carries <c>@uniqueItems</c> and <c>labels</c> carries <c>@sparse</c>;
     /// <c>name</c> carries <c>@length</c>, which the parser does map, so it is the control.
@@ -75,7 +75,8 @@ public class UnmappedTraitTests {
         }
         """;
 
-    private static ServiceSpecModel Parse(string ast) {
+    private static ServiceSpecModel Parse(string ast)
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(ast, "depot", diagnostics);
 
@@ -85,12 +86,14 @@ public class UnmappedTraitTests {
     }
 
     [Fact]
-    public void UniqueItemsOnAMemberIsRecordedAsUnmapped() {
+    public void UniqueItemsOnAMemberIsRecordedAsUnmapped()
+    {
         Assert.Contains(Parse(Ast).UnmappedKeywords, u => u.Keyword == "@uniqueItems");
     }
 
     [Fact]
-    public void SparseOnAMemberIsRecordedAsUnmapped() {
+    public void SparseOnAMemberIsRecordedAsUnmapped()
+    {
         Assert.Contains(Parse(Ast).UnmappedKeywords, u => u.Keyword == "@sparse");
     }
 
@@ -99,16 +102,19 @@ public class UnmappedTraitTests {
     /// reader searching their own file is looking for the form with the at-sign.
     /// </summary>
     [Fact]
-    public void TheTraitIsNamedAsSmithySpellsIt() {
+    public void TheTraitIsNamedAsSmithySpellsIt()
+    {
         Assert.All(
             Parse(Ast).UnmappedKeywords,
-            unmapped => Assert.StartsWith("@", unmapped.Keyword));
+            unmapped => Assert.StartsWith("@", unmapped.Keyword)
+        );
     }
 
     [Fact]
-    public void TheLocationNamesTheDeclaringMember() {
-        var locations = Parse(Ast).UnmappedKeywords
-            .Where(u => u.Keyword == "@uniqueItems")
+    public void TheLocationNamesTheDeclaringMember()
+    {
+        var locations = Parse(Ast)
+            .UnmappedKeywords.Where(u => u.Keyword == "@uniqueItems")
             .Select(u => u.Location)
             .Distinct();
 
@@ -121,8 +127,10 @@ public class UnmappedTraitTests {
     /// for the request body's properties. The raw notes carry the repeat; the message must not.
     /// </summary>
     [Fact]
-    public void AMemberMetTwiceIsCountedOnce() {
-        var problem = SpecDiagnostics.Find(Parse(Ast), "HSMT")
+    public void AMemberMetTwiceIsCountedOnce()
+    {
+        var problem = SpecDiagnostics
+            .Find(Parse(Ast), "HSMT")
             .First(p => p.Code == "HSMT024" && p.Message.Contains("@uniqueItems"));
 
         Assert.Contains("at tags", problem.Message);
@@ -134,7 +142,8 @@ public class UnmappedTraitTests {
     /// model that constrains anything.
     /// </summary>
     [Fact]
-    public void AMappedTraitIsNotReported() {
+    public void AMappedTraitIsNotReported()
+    {
         Assert.DoesNotContain(Parse(Ast).UnmappedKeywords, u => u.Keyword.Contains("length"));
     }
 
@@ -143,8 +152,12 @@ public class UnmappedTraitTests {
     /// the note on the model rather than in either parser.
     /// </summary>
     [Fact]
-    public void ItReachesTheSharedDiagnosticsPass() {
-        var problems = SpecDiagnostics.Find(Parse(Ast), "HSMT").Where(p => p.Code == "HSMT024").ToList();
+    public void ItReachesTheSharedDiagnosticsPass()
+    {
+        var problems = SpecDiagnostics
+            .Find(Parse(Ast), "HSMT")
+            .Where(p => p.Code == "HSMT024")
+            .ToList();
 
         Assert.Equal(2, problems.Count);
         Assert.All(problems, problem => Assert.False(problem.Fatal));
@@ -156,11 +169,13 @@ public class UnmappedTraitTests {
     /// with nothing enforcing it. The model builds and the weakening is said out loud.
     /// </summary>
     [Fact]
-    public void PaginatedIsReportedAsADegrade() {
+    public void PaginatedIsReportedAsADegrade()
+    {
         var ast = Ast.Replace(
             "\"smithy.api#http\": { \"method\": \"POST\", \"uri\": \"/products\", \"code\": 201 }",
-            "\"smithy.api#http\": { \"method\": \"POST\", \"uri\": \"/products\", \"code\": 201 },\n" +
-            "                \"smithy.api#paginated\": { \"inputToken\": \"nextToken\", \"outputToken\": \"nextToken\" }");
+            "\"smithy.api#http\": { \"method\": \"POST\", \"uri\": \"/products\", \"code\": 201 },\n"
+                + "                \"smithy.api#paginated\": { \"inputToken\": \"nextToken\", \"outputToken\": \"nextToken\" }"
+        );
 
         // The replacement has to have happened, or this asserts nothing.
         Assert.Contains("paginated", ast);
@@ -169,8 +184,10 @@ public class UnmappedTraitTests {
         var model = SmithySpecParser.Parse(ast, "depot", diagnostics);
 
         Assert.NotNull(model);
-        Assert.Contains(diagnostics,
-            d => d.Contains("smithy.api#paginated") && d.Contains("no equivalent"));
+        Assert.Contains(
+            diagnostics,
+            d => d.Contains("smithy.api#paginated") && d.Contains("no equivalent")
+        );
     }
 
     /// <summary>
@@ -178,9 +195,9 @@ public class UnmappedTraitTests {
     /// firing unconditionally.
     /// </summary>
     [Fact]
-    public void AModelDeclaringNeitherIsSilent() {
-        var clean = Ast
-            .Replace("\"smithy.api#uniqueItems\": {}", "\"smithy.api#required\": {}")
+    public void AModelDeclaringNeitherIsSilent()
+    {
+        var clean = Ast.Replace("\"smithy.api#uniqueItems\": {}", "\"smithy.api#required\": {}")
             .Replace("\"smithy.api#sparse\": {}", "\"smithy.api#required\": {}");
 
         // The replacements have to have happened, or this asserts nothing.

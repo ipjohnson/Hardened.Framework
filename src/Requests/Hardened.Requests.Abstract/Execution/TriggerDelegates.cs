@@ -34,4 +34,8 @@ public delegate Task TriggerSend(object messages, string scheme, string path);
 /// for a handler that returns nothing; how a harness produces it differs by how it delivered.
 /// </remarks>
 public delegate Task<object?> TriggerCall(
-    object message, string scheme, string path, Type? responseType);
+    object message,
+    string scheme,
+    string path,
+    Type? responseType
+);

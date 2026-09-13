@@ -3,7 +3,8 @@ using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Kestrel.SUT;
 
-public class EchoModel {
+public class EchoModel
+{
     public int Id { get; set; }
 
     public string? Label { get; set; }
@@ -11,7 +12,8 @@ public class EchoModel {
     public List<int>? Values { get; set; }
 }
 
-public class EchoResult {
+public class EchoResult
+{
     public string Method { get; set; } = "";
 
     public string Id { get; set; } = "";
@@ -31,8 +33,8 @@ public class EchoResult {
 /// rather than as a subtly wrong value.
 /// </summary>
 [BasePath("/echo")]
-public class EchoController {
-
+public class EchoController
+{
     [Get("/plain")]
     public EchoResult Plain() => new() { Method = "GET" };
 
@@ -51,16 +53,25 @@ public class EchoController {
     public EchoResult Mixed(
         string id,
         [FromQueryString] string filter,
-        [FromHeader("X-Tenant")] string tenant) =>
-        new() { Method = "GET", Id = id, Filter = filter, Tenant = tenant };
+        [FromHeader("X-Tenant")] string tenant
+    ) =>
+        new()
+        {
+            Method = "GET",
+            Id = id,
+            Filter = filter,
+            Tenant = tenant,
+        };
 
     [Post("/body")]
-    public EchoResult FromBody(EchoModel model) => new() {
-        Method = "POST",
-        Id = model.Id.ToString(),
-        Label = model.Label ?? "",
-        Sum = model.Values?.Sum() ?? 0
-    };
+    public EchoResult FromBody(EchoModel model) =>
+        new()
+        {
+            Method = "POST",
+            Id = model.Id.ToString(),
+            Label = model.Label ?? "",
+            Sum = model.Values?.Sum() ?? 0,
+        };
 
     /// <summary>Exercises the top-level exception guard in <c>HardenedHttpApplication</c>.</summary>
     [Get("/throw")]

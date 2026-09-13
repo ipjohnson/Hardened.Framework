@@ -13,11 +13,13 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// the case a test is actually needed for.
 /// </para>
 /// </summary>
-public class BasePathRoutingTests {
-
+public class BasePathRoutingTests
+{
     [Fact]
-    public void ARouteWithNoBasePathIsReachableAtItsOwnPath() {
-        var routing = GeneratedRoutingTable.For("""
+    public void ARouteWithNoBasePathIsReachableAtItsOwnPath()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -30,14 +32,17 @@ public class BasePathRoutingTests {
                 [Get("/orders")]
                 public string List() => "orders";
             }
-            """);
+            """
+        );
 
         Assert.Equal("List", routing.Handler("GET", "/orders").InvokeMethod);
     }
 
     [Fact]
-    public void ABasePathOnTheControllerPrefixesEveryRouteOnIt() {
-        var routing = GeneratedRoutingTable.For("""
+    public void ABasePathOnTheControllerPrefixesEveryRouteOnIt()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -54,7 +59,8 @@ public class BasePathRoutingTests {
                 [Delete("/orders/{id}")]
                 public string Remove(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Equal("List", routing.Handler("GET", "/api/orders").InvokeMethod);
         Assert.Equal("Remove", routing.Handler("DELETE", "/api/orders/7").InvokeMethod);
@@ -70,8 +76,10 @@ public class BasePathRoutingTests {
     /// <c>[BasePath("/web-library")]</c> exactly this way.
     /// </summary>
     [Fact]
-    public void ABasePathOnTheModuleEntryPointPrefixesEveryRouteInTheAssembly() {
-        var routing = GeneratedRoutingTable.For("""
+    public void ABasePathOnTheModuleEntryPointPrefixesEveryRouteInTheAssembly()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -90,10 +98,14 @@ public class BasePathRoutingTests {
                 [Get("/customers")]
                 public string List() => "customers";
             }
-            """);
+            """
+        );
 
         Assert.Equal("OrderController", routing.Handler("GET", "/module/orders").HandlerType.Name);
-        Assert.Equal("CustomerController", routing.Handler("GET", "/module/customers").HandlerType.Name);
+        Assert.Equal(
+            "CustomerController",
+            routing.Handler("GET", "/module/customers").HandlerType.Name
+        );
 
         Assert.Null(routing.Route("GET", "/orders"));
         Assert.Null(routing.Route("GET", "/customers"));
@@ -104,8 +116,10 @@ public class BasePathRoutingTests {
     /// and a request at either of the two partial prefixes finds nothing.
     /// </summary>
     [Fact]
-    public void ModuleAndControllerBasePathsCompose() {
-        var routing = GeneratedRoutingTable.For("""
+    public void ModuleAndControllerBasePathsCompose()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -120,7 +134,8 @@ public class BasePathRoutingTests {
                 [Get("/orders/{id}")]
                 public string GetOrder(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Equal("GetOrder", routing.Handler("GET", "/module/api/orders/7").InvokeMethod);
 
@@ -133,8 +148,10 @@ public class BasePathRoutingTests {
     /// prefix they would be one route declared twice, which the generator has no way to reconcile.
     /// </summary>
     [Fact]
-    public void TheSameRouteUnderTwoBasePathsReachesTwoHandlers() {
-        var routing = GeneratedRoutingTable.For("""
+    public void TheSameRouteUnderTwoBasePathsReachesTwoHandlers()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -154,7 +171,8 @@ public class BasePathRoutingTests {
                 [Get("/items")]
                 public string List() => "v2";
             }
-            """);
+            """
+        );
 
         Assert.Equal("V1Controller", routing.Handler("GET", "/v1/items").HandlerType.Name);
         Assert.Equal("V2Controller", routing.Handler("GET", "/v2/items").HandlerType.Name);
@@ -165,8 +183,10 @@ public class BasePathRoutingTests {
     /// <c>IExecutionRequestHandlerInfo.Path</c> sees.
     /// </summary>
     [Fact]
-    public void AControllerBasePathIsPartOfTheHandlersDeclaredPath() {
-        var routing = GeneratedRoutingTable.For("""
+    public void AControllerBasePathIsPartOfTheHandlersDeclaredPath()
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -180,7 +200,8 @@ public class BasePathRoutingTests {
                 [Get("/orders/{id}")]
                 public string GetOrder(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Equal("/api/orders/{id}", routing.Handler("GET", "/api/orders/7").Path);
     }

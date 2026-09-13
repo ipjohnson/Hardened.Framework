@@ -14,47 +14,55 @@ namespace Hardened.Benchmarks.AspNetSut.Controllers;
 /// </summary>
 [ApiController]
 [Route("bench")]
-public class BenchmarkMvcController : ControllerBase {
-
+public class BenchmarkMvcController : ControllerBase
+{
     [HttpGet("item")]
-    public ItemResponse Item() {
-        return new ItemResponse {
+    public ItemResponse Item()
+    {
+        return new ItemResponse
+        {
             Id = 1,
             Name = "benchmark",
             Active = true,
-            Score = 99.5
+            Score = 99.5,
         };
     }
 
     [HttpGet("item/{id:int}")]
-    public ItemResponse ItemById(int id) {
-        return new ItemResponse {
+    public ItemResponse ItemById(int id)
+    {
+        return new ItemResponse
+        {
             Id = id,
             Name = "benchmark",
             Active = true,
-            Score = 99.5
+            Score = 99.5,
         };
     }
 
     [HttpGet("query")]
-    public ItemResponse Query([FromQuery] int page, [FromQuery] int size) {
-        return new ItemResponse {
+    public ItemResponse Query([FromQuery] int page, [FromQuery] int size)
+    {
+        return new ItemResponse
+        {
             Id = page * size,
             Name = "benchmark",
             Active = true,
-            Score = 99.5
+            Score = 99.5,
         };
     }
 
     [HttpPost("sum")]
-    public SumResponse Sum([FromServices] ISumService sumService, [FromBody] SumRequest request) {
+    public SumResponse Sum([FromServices] ISumService sumService, [FromBody] SumRequest request)
+    {
         var values = request.Values ?? new List<int>();
 
-        return new SumResponse {
+        return new SumResponse
+        {
             Id = request.Id,
             Label = request.Label,
             Sum = sumService.Sum(values),
-            Count = values.Count
+            Count = values.Count,
         };
     }
 
@@ -62,11 +70,14 @@ public class BenchmarkMvcController : ControllerBase {
     public BindingResponse Binding(
         string id,
         [FromQuery] string filter,
-        [FromHeader(Name = "X-Tenant")] string tenant) {
-        return new BindingResponse {
+        [FromHeader(Name = "X-Tenant")] string tenant
+    )
+    {
+        return new BindingResponse
+        {
             Id = id,
             Filter = filter,
-            Tenant = tenant
+            Tenant = tenant,
         };
     }
 }

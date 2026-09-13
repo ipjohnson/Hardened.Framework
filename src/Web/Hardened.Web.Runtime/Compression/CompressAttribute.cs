@@ -25,8 +25,8 @@ namespace Hardened.Web.Runtime.Compression;
 /// </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
-public class CompressAttribute : Attribute, IRequestFilterProvider {
-
+public class CompressAttribute : Attribute, IRequestFilterProvider
+{
     /// <summary>
     /// The coding to try first when the client accepts more than one.
     /// </summary>
@@ -36,7 +36,10 @@ public class CompressAttribute : Attribute, IRequestFilterProvider {
     /// </remarks>
     public CompressionType Favor { get; set; }
 
-    public virtual IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
+    public virtual IEnumerable<RequestFilterInfo> GetFilters(
+        IExecutionRequestHandlerInfo handlerInfo
+    )
+    {
         yield return Filter(new ResponseCompressionFilter(predicate: null, Favor));
     }
 
@@ -44,9 +47,12 @@ public class CompressAttribute : Attribute, IRequestFilterProvider {
     /// Whether the handler declares compression itself, in either form, on the method or on its
     /// class. What the application-wide default checks before standing down.
     /// </summary>
-    public static bool Declares(IExecutionRequestHandlerInfo handlerInfo) {
-        foreach (var item in handlerInfo.Metadata) {
-            if (item is CompressAttribute) {
+    public static bool Declares(IExecutionRequestHandlerInfo handlerInfo)
+    {
+        foreach (var item in handlerInfo.Metadata)
+        {
+            if (item is CompressAttribute)
+            {
                 return true;
             }
         }
@@ -59,7 +65,11 @@ public class CompressAttribute : Attribute, IRequestFilterProvider {
     /// take. The configuration is read from the application's services on the first request.
     /// </summary>
     protected static RequestFilterInfo Filter(ResponseCompressionFilter filter) =>
-        new(_ => filter, FilterOrder.Before + FilterOrder.ResponseCache, nameof(ResponseCompressionFilter));
+        new(
+            _ => filter,
+            FilterOrder.Before + FilterOrder.ResponseCache,
+            nameof(ResponseCompressionFilter)
+        );
 }
 
 /// <summary>
@@ -89,9 +99,10 @@ public class CompressAttribute : Attribute, IRequestFilterProvider {
 /// arguments it cannot use fails there, naming the handler, rather than on a request.
 /// </typeparam>
 public sealed class CompressAttribute<TPredicate> : CompressAttribute
-    where TPredicate : ICompressionPredicate {
-
-    public CompressAttribute(params object[] args) {
+    where TPredicate : ICompressionPredicate
+{
+    public CompressAttribute(params object[] args)
+    {
         Args = args;
     }
 
@@ -100,17 +111,23 @@ public sealed class CompressAttribute<TPredicate> : CompressAttribute
     /// </summary>
     public object[] Args { get; }
 
-    public override IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
+    public override IEnumerable<RequestFilterInfo> GetFilters(
+        IExecutionRequestHandlerInfo handlerInfo
+    )
+    {
         ICompressionPredicate predicate;
 
-        try {
+        try
+        {
             predicate = TPredicate.Create(Args);
         }
-        catch (Exception exception) {
+        catch (Exception exception)
+        {
             throw new InvalidOperationException(
-                $"[Compress<{typeof(TPredicate).Name}>] on {handlerInfo.Method} {handlerInfo.Path} " +
-                $"could not build its predicate: {exception.Message}",
-                exception);
+                $"[Compress<{typeof(TPredicate).Name}>] on {handlerInfo.Method} {handlerInfo.Path} "
+                    + $"could not build its predicate: {exception.Message}",
+                exception
+            );
         }
 
         yield return Filter(new ResponseCompressionFilter(predicate, Favor));

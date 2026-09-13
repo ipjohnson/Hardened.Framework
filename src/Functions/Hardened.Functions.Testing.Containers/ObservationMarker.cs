@@ -16,6 +16,7 @@ namespace Hardened.Functions.Testing.Containers;
 /// this project depends on Testcontainers, and a published function must not.
 /// </para>
 /// </remarks>
-public static class ObservationMarker {
+public static class ObservationMarker
+{
     public const string Prefix = "HARDENED-OBSERVED ";
 }

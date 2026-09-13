@@ -22,13 +22,14 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// generators' output together with the source.
 /// </para>
 /// </remarks>
-public class ValidationAttachmentTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),                    // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),               // Hardened.Requests.Abstract
-        typeof(ValidationFilterProvider<object>),// Hardened.Requests.Runtime
-        typeof(IValidatorFor<object>)            // ValidationModules.Runtime
+public class ValidationAttachmentTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
+        typeof(ValidationFilterProvider<object>), // Hardened.Requests.Runtime
+        typeof(IValidatorFor<object>), // ValidationModules.Runtime
     ];
 
     /// <summary>
@@ -38,14 +39,19 @@ public class ValidationAttachmentTests {
     /// Both files are named after the handler, so a substring match on the hint name finds two.
     /// The validator is the one that says so.
     /// </remarks>
-    private static string Handler(GeneratorResult result, string name) {
-        var matches = result.GeneratedSources
-            .Where(pair => pair.Key.Contains(name) && !pair.Key.Contains("ParametersValidator"))
+    private static string Handler(GeneratorResult result, string name)
+    {
+        var matches = result
+            .GeneratedSources.Where(pair =>
+                pair.Key.Contains(name) && !pair.Key.Contains("ParametersValidator")
+            )
             .ToArray();
 
-        Assert.True(matches.Length == 1,
-            $"Expected exactly one handler file for '{name}', found {matches.Length}: " +
-            string.Join(", ", matches.Select(pair => pair.Key)));
+        Assert.True(
+            matches.Length == 1,
+            $"Expected exactly one handler file for '{name}', found {matches.Length}: "
+                + string.Join(", ", matches.Select(pair => pair.Key))
+        );
 
         return matches[0].Value;
     }
@@ -53,10 +59,13 @@ public class ValidationAttachmentTests {
     private static GeneratorResult Generate(string source) =>
         GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = source },
-            new IIncrementalGenerator[] {
-                new WebLibrarySourceGenerator(), new HardenedValidationGenerator()
+            new IIncrementalGenerator[]
+            {
+                new WebLibrarySourceGenerator(),
+                new HardenedValidationGenerator(),
             },
-            Anchors);
+            Anchors
+        );
 
     private const string ConstrainedModel = """
         using System.Threading.Tasks;
@@ -78,13 +87,18 @@ public class ValidationAttachmentTests {
     /// up carrying a filter that runs the model's constraints.
     /// </summary>
     [Fact]
-    public void AConstrainedBodyModelAttachesAFilter() {
-        var result = Generate(ConstrainedModel + """
-            public class OrderController {
-                [Post("/orders")]
-                public string Create(Order order) => order.Reference ?? "";
-            }
-            """).AssertNoErrors();
+    public void AConstrainedBodyModelAttachesAFilter()
+    {
+        var result = Generate(
+                ConstrainedModel
+                    + """
+                    public class OrderController {
+                        [Post("/orders")]
+                        public string Create(Order order) => order.Reference ?? "";
+                    }
+                    """
+            )
+            .AssertNoErrors();
 
         // Fully qualified from CSharpAuthor 2.0 on: the nested Parameters class is named by its
         // full name, because a bare name would be qualified to global:: and resolve nothing.
@@ -99,13 +113,18 @@ public class ValidationAttachmentTests {
     /// on the model, and its validator is the one that evaluates them.
     /// </summary>
     [Fact]
-    public void TheParametersValidatorDelegatesToTheModelValidator() {
-        var result = Generate(ConstrainedModel + """
-            public class OrderController {
-                [Post("/orders")]
-                public string Create(Order order) => order.Reference ?? "";
-            }
-            """).AssertNoErrors();
+    public void TheParametersValidatorDelegatesToTheModelValidator()
+    {
+        var result = Generate(
+                ConstrainedModel
+                    + """
+                    public class OrderController {
+                        [Post("/orders")]
+                        public string Create(Order order) => order.Reference ?? "";
+                    }
+                    """
+            )
+            .AssertNoErrors();
 
         var validator = result.SourceContaining("ParametersValidator");
 
@@ -118,21 +137,28 @@ public class ValidationAttachmentTests {
     /// cost on requests with nothing to check, and would make the case above unfalsifiable.
     /// </summary>
     [Fact]
-    public void AnUnconstrainedHandlerGetsNoFilter() {
-        var result = Generate("""
-            using Hardened.Web.Runtime.Attributes;
+    public void AnUnconstrainedHandlerGetsNoFilter()
+    {
+        var result = Generate(
+                """
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class Plain { public string? Name { get; set; } }
+                public class Plain { public string? Name { get; set; } }
 
-            public class PlainController {
-                [Post("/plain")]
-                public string Create(Plain plain) => plain.Name ?? "";
-            }
-            """).AssertNoErrors();
+                public class PlainController {
+                    [Post("/plain")]
+                    public string Create(Plain plain) => plain.Name ?? "";
+                }
+                """
+            )
+            .AssertNoErrors();
 
-        Assert.DoesNotContain("ValidationFilterProvider", Handler(result, "PlainController_Create"));
+        Assert.DoesNotContain(
+            "ValidationFilterProvider",
+            Handler(result, "PlainController_Create")
+        );
     }
 
     /// <summary>
@@ -145,18 +171,26 @@ public class ValidationAttachmentTests {
     /// the shape of a consumer who references it and not the other.
     /// </remarks>
     [Fact]
-    public void WithoutTheValidationGeneratorNothingIsAttached() {
-        var result = GeneratorTestHarness.Run(
-            ConstrainedModel + """
-            public class OrderController {
-                [Post("/orders")]
-                public string Create(Order order) => order.Reference ?? "";
-            }
-            """,
-            new WebLibrarySourceGenerator(),
-            Anchors).AssertNoErrors();
+    public void WithoutTheValidationGeneratorNothingIsAttached()
+    {
+        var result = GeneratorTestHarness
+            .Run(
+                ConstrainedModel
+                    + """
+                    public class OrderController {
+                        [Post("/orders")]
+                        public string Create(Order order) => order.Reference ?? "";
+                    }
+                    """,
+                new WebLibrarySourceGenerator(),
+                Anchors
+            )
+            .AssertNoErrors();
 
-        Assert.DoesNotContain("ValidationFilterProvider", Handler(result, "OrderController_Create"));
+        Assert.DoesNotContain(
+            "ValidationFilterProvider",
+            Handler(result, "OrderController_Create")
+        );
     }
 
     /// <summary>
@@ -166,21 +200,31 @@ public class ValidationAttachmentTests {
     /// through the same two entry points, so there is nothing left to warn about.
     /// </summary>
     [Fact]
-    public void AConstraintOnAPathParameterIsCompiledIntoTheParametersValidator() {
-        var result = Generate("""
-            using ValidationModules.Constraints;
-            using Hardened.Web.Runtime.Attributes;
+    public void AConstraintOnAPathParameterIsCompiledIntoTheParametersValidator()
+    {
+        var result = Generate(
+                """
+                using ValidationModules.Constraints;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class ItemController {
-                [Get("/items/{id}")]
-                public string ItemById([StringLength(3, 3)] string id) => id;
-            }
-            """).AssertNoErrors();
+                public class ItemController {
+                    [Get("/items/{id}")]
+                    public string ItemById([StringLength(3, 3)] string id) => id;
+                }
+                """
+            )
+            .AssertNoErrors();
 
-        Assert.DoesNotContain(result.GeneratorDiagnostics, diagnostic => diagnostic.Id == "HRDV001");
-        Assert.Contains("ValidationFilterProvider<global::", Handler(result, "ItemController_ItemById"));
+        Assert.DoesNotContain(
+            result.GeneratorDiagnostics,
+            diagnostic => diagnostic.Id == "HRDV001"
+        );
+        Assert.Contains(
+            "ValidationFilterProvider<global::",
+            Handler(result, "ItemController_ItemById")
+        );
 
         var validator = result.SourceContaining("ParametersValidator");
 
@@ -192,20 +236,24 @@ public class ValidationAttachmentTests {
     /// way a binding failure already is.
     /// </summary>
     [Fact]
-    public void AConstraintOnAQueryOrHeaderParameterIsPathedByItsBindingName() {
-        var result = Generate("""
-            using ValidationModules.Constraints;
-            using Hardened.Web.Runtime.Attributes;
+    public void AConstraintOnAQueryOrHeaderParameterIsPathedByItsBindingName()
+    {
+        var result = Generate(
+                """
+                using ValidationModules.Constraints;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class RateController {
-                [Get("/rates")]
-                public string Read(
-                    [FromQueryString("p")] [Range(Min = 2, Max = 8)] int precision,
-                    [FromHeader("X-Region")] [StringLength(2, 2)] string region) => region;
-            }
-            """).AssertNoErrors();
+                public class RateController {
+                    [Get("/rates")]
+                    public string Read(
+                        [FromQueryString("p")] [Range(Min = 2, Max = 8)] int precision,
+                        [FromHeader("X-Region")] [StringLength(2, 2)] string region) => region;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var validator = result.SourceContaining("ParametersValidator");
 
@@ -219,13 +267,18 @@ public class ValidationAttachmentTests {
     /// validator: the parameter is checked where it is, and the body is descended into.
     /// </summary>
     [Fact]
-    public void AParameterConstraintAndAConstrainedBodyCompileTogether() {
-        var result = Generate(ConstrainedModel + """
-            public class OrderController {
-                [Post("/orders/{id}")]
-                public string Replace([StringLength(3, 3)] string id, Order order) => id;
-            }
-            """).AssertNoErrors();
+    public void AParameterConstraintAndAConstrainedBodyCompileTogether()
+    {
+        var result = Generate(
+                ConstrainedModel
+                    + """
+                    public class OrderController {
+                        [Post("/orders/{id}")]
+                        public string Replace([StringLength(3, 3)] string id, Order order) => id;
+                    }
+                    """
+            )
+            .AssertNoErrors();
 
         var validator = result.SourceContaining("ParametersValidator");
 
@@ -239,8 +292,10 @@ public class ValidationAttachmentTests {
     /// so.
     /// </summary>
     [Fact]
-    public void AConstraintThatDoesNotFitTheParameterTypeIsReportedByValidationModules() {
-        var result = Generate("""
+    public void AConstraintThatDoesNotFitTheParameterTypeIsReportedByValidationModules()
+    {
+        var result = Generate(
+            """
             using ValidationModules.Constraints;
             using Hardened.Web.Runtime.Attributes;
 
@@ -250,10 +305,13 @@ public class ValidationAttachmentTests {
                 [Get("/items/{id}")]
                 public string ItemById([Range(Min = 1, Max = 5)] string id) => id;
             }
-            """);
+            """
+        );
 
-        Assert.Contains(result.GeneratorDiagnostics, diagnostic =>
-            diagnostic.Id.StartsWith("VM") && diagnostic.GetMessage().Contains("id"));
+        Assert.Contains(
+            result.GeneratorDiagnostics,
+            diagnostic => diagnostic.Id.StartsWith("VM") && diagnostic.GetMessage().Contains("id")
+        );
     }
 
     /// <summary>
@@ -261,8 +319,10 @@ public class ValidationAttachmentTests {
     /// constraint sits on, and a parameter sits on no model.
     /// </summary>
     [Fact]
-    public void AConditionOnAParameterConstraintIsAnError() {
-        var result = Generate("""
+    public void AConditionOnAParameterConstraintIsAnError()
+    {
+        var result = Generate(
+            """
             using ValidationModules.Constraints;
             using Hardened.Web.Runtime.Attributes;
 
@@ -272,7 +332,8 @@ public class ValidationAttachmentTests {
                 [Get("/items/{id}")]
                 public string ItemById([StringLength(3, 3, When = "IsStrict")] string id) => id;
             }
-            """);
+            """
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics, d => d.Id == "HRDV005");
 
@@ -287,18 +348,22 @@ public class ValidationAttachmentTests {
     /// handler bound <c>id</c> from a <c>StringLength</c> attribute rather than from the route.
     /// </summary>
     [Fact]
-    public void AConstraintOnAParameterDoesNotChangeHowItBinds() {
-        var result = Generate("""
-            using ValidationModules.Constraints;
-            using Hardened.Web.Runtime.Attributes;
+    public void AConstraintOnAParameterDoesNotChangeHowItBinds()
+    {
+        var result = Generate(
+                """
+                using ValidationModules.Constraints;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class ItemController {
-                [Get("/items/{id}")]
-                public string ItemById([StringLength(3, 3)] string id) => id;
-            }
-            """).AssertNoErrors();
+                public class ItemController {
+                    [Get("/items/{id}")]
+                    public string ItemById([StringLength(3, 3)] string id) => id;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var handler = Handler(result, "ItemController_ItemById");
 

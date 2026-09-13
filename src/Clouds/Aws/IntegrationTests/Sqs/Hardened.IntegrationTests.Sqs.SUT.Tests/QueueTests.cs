@@ -1,6 +1,6 @@
+using DependencyModules.Testing.Attributes;
 using Hardened.IntegrationTests.Sqs.SUT;
 using Hardened.Shared.Testing.Attributes;
-using DependencyModules.Testing.Attributes;
 using NSubstitute;
 using Xunit;
 
@@ -17,15 +17,18 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// like and what these used to lack.
 /// </para>
 /// </summary>
-public class QueueTests {
-
+public class QueueTests
+{
     /// <summary>
     /// The claim the whole design rests on: a handler that names a queue and nothing else is
     /// reached by a message from that queue.
     /// </summary>
     [HardenedTest]
     public async Task AQueueMessageReachesTheHandler(
-        SqsTestApp.Queues queues, [Mock] IOrderStore store) {
+        SqsTestApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
         await queues.OrdersNew(new Order { Id = "a-1", Quantity = 2 });
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "a-1" && order.Quantity == 2));
@@ -37,9 +40,15 @@ public class QueueTests {
     /// </summary>
     [HardenedTest]
     public async Task EveryMessageInABatchIsHandledSeparately(
-        SqsTestApp.Queues queues, [Mock] IOrderStore store) {
+        SqsTestApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
         await queues.OrdersNew(
-            new Order { Id = "a-1" }, new Order { Id = "a-2" }, new Order { Id = "a-3" });
+            new Order { Id = "a-1" },
+            new Order { Id = "a-2" },
+            new Order { Id = "a-3" }
+        );
 
         store.Received(3).Place(Arg.Any<Order>());
         store.Received().Place(Arg.Is<Order>(order => order.Id == "a-2"));
@@ -50,10 +59,12 @@ public class QueueTests {
     /// batch it arrived in.
     /// </summary>
     [HardenedTest]
-    public async Task EachMessageBindsItsOwnBody(
-        SqsTestApp.Queues queues, [Mock] IOrderStore store) {
+    public async Task EachMessageBindsItsOwnBody(SqsTestApp.Queues queues, [Mock] IOrderStore store)
+    {
         await queues.OrdersNew(
-            new Order { Id = "a-1", Quantity = 10 }, new Order { Id = "a-2", Quantity = 20 });
+            new Order { Id = "a-1", Quantity = 10 },
+            new Order { Id = "a-2", Quantity = 20 }
+        );
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "a-1" && order.Quantity == 10));
         store.Received().Place(Arg.Is<Order>(order => order.Id == "a-2" && order.Quantity == 20));
@@ -66,11 +77,16 @@ public class QueueTests {
     /// </summary>
     [HardenedTest]
     public async Task AFailedMessageFailsTheInvocation(
-        SqsTestApp.Queues queues, [Mock] IOrderStore store) {
-        store.When(one => one.Place(Arg.Is<Order>(order => order.Id == "a-2")))
+        SqsTestApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
+        store
+            .When(one => one.Place(Arg.Is<Order>(order => order.Id == "a-2")))
             .Do(_ => throw new InvalidOperationException("refused"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => queues.OrdersNew(new Order { Id = "a-1" }, new Order { Id = "a-2" }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            queues.OrdersNew(new Order { Id = "a-1" }, new Order { Id = "a-2" })
+        );
     }
 }

@@ -18,11 +18,12 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// for its own sake: this suite is what says the generator an application actually loads produces
 /// the converters.
 /// </remarks>
-public class EnumWireVocabularyTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),          // Hardened.Web.Runtime
-        typeof(FromBodyAttribute)      // Hardened.Requests.Abstract
+public class EnumWireVocabularyTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
     ];
 
     private static GeneratorResult Generate(string source) =>
@@ -55,16 +56,22 @@ public class EnumWireVocabularyTests {
         """;
 
     [Fact]
-    public void TheGeneratedConvertersCarryTheResolvedVocabulary() {
-        var routing = Generate(Application).AssertNoErrors().SourceContaining("Application.Routing");
+    public void TheGeneratedConvertersCarryTheResolvedVocabulary()
+    {
+        var routing = Generate(Application)
+            .AssertNoErrors()
+            .SourceContaining("Application.Routing");
 
         Assert.Contains("=> \"inProgress\"", routing);
         Assert.Contains("=> \"next-day\"", routing);
     }
 
     [Fact]
-    public void TheResolverAndStringConvertersAreRegistered() {
-        var routing = Generate(Application).AssertNoErrors().SourceContaining("Application.Routing");
+    public void TheResolverAndStringConvertersAreRegistered()
+    {
+        var routing = Generate(Application)
+            .AssertNoErrors()
+            .SourceContaining("Application.Routing");
 
         Assert.Contains("JsonEnums.Resolver.Instance", routing);
         Assert.Contains("JsonEnums.StringConverters", routing);
@@ -76,32 +83,37 @@ public class EnumWireVocabularyTests {
     /// can honour.
     /// </summary>
     [Fact]
-    public void TheDocumentDeclaresTheSameValues() {
-        var result = Generate($$"""
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Shared.Runtime.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+    public void TheDocumentDeclaresTheSameValues()
+    {
+        var result = Generate(
+                $$"""
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            {{GeneratedOpenApiDocument.EnableAttribute}}
-            public partial class Application { }
+                [HardenedModule]
+                {{GeneratedOpenApiDocument.EnableAttribute}}
+                public partial class Application { }
 
-            public enum Priority { Low, InProgress }
+                public enum Priority { Low, InProgress }
 
-            public record Ticket(Priority Priority);
+                public record Ticket(Priority Priority);
 
-            public class TicketController {
-                [Get("/tickets")]
-                public Ticket Get() => new(Priority.Low);
-            }
-            """).AssertNoErrors();
+                public class TicketController {
+                    [Get("/tickets")]
+                    public Ticket Get() => new(Priority.Low);
+                }
+                """
+            )
+            .AssertNoErrors();
 
         // Selected by hint name, as the other document tests do. Several generated files mention
         // OpenApiDocument; exactly one carries it.
-        var source = result.GeneratedSources
-            .Single(pair => pair.Key.Contains("OpenApiDocument")).Value;
+        var source = result
+            .GeneratedSources.Single(pair => pair.Key.Contains("OpenApiDocument"))
+            .Value;
 
         using var document = JsonDocument.Parse(GeneratedOpenApiDocument.Extract(source));
 
@@ -111,11 +123,20 @@ public class EnumWireVocabularyTests {
         // type per server enum rather than one per property.
         Assert.Equal(
             "#/components/schemas/Priority",
-            schemas.GetProperty("Ticket").GetProperty("properties").GetProperty("priority")
-                .GetProperty("$ref").GetString());
+            schemas
+                .GetProperty("Ticket")
+                .GetProperty("properties")
+                .GetProperty("priority")
+                .GetProperty("$ref")
+                .GetString()
+        );
 
-        var values = schemas.GetProperty("Priority").GetProperty("enum")
-            .EnumerateArray().Select(value => value.GetString()).ToArray();
+        var values = schemas
+            .GetProperty("Priority")
+            .GetProperty("enum")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ToArray();
 
         Assert.Equal(new[] { "low", "inProgress" }, values);
     }

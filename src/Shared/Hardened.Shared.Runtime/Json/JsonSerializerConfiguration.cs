@@ -1,21 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace Hardened.Shared.Runtime.Json;
 
-public interface IJsonSerializerConfiguration {
+public interface IJsonSerializerConfiguration
+{
     JsonSerializerOptions Options { get; }
 }
 
-public class JsonSerializerConfiguration : IJsonSerializerConfiguration {
+public class JsonSerializerConfiguration : IJsonSerializerConfiguration
+{
     public JsonSerializerOptions Options { get; set; } = DefaultConfiguration();
 
     // The IsDynamicCodeSupported guard below is what makes this correct, and ILC honours it - it
@@ -23,13 +25,18 @@ public class JsonSerializerConfiguration : IJsonSerializerConfiguration {
     // the converter. The Roslyn analyzer shipped for net8.0 does not recognise that guard yet, so
     // it reports the call anyway. Suppressed rather than annotated: annotating would push a
     // RequiresDynamicCode onto every caller of a method that is, in fact, AOT-safe.
-    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "Guarded by RuntimeFeature.IsDynamicCodeSupported; ILC removes the branch.")]
-    private static JsonSerializerOptions DefaultConfiguration() {
-        var options = new JsonSerializerOptions {
+    [UnconditionalSuppressMessage(
+        "AOT",
+        "IL3050:RequiresDynamicCode",
+        Justification = "Guarded by RuntimeFeature.IsDynamicCodeSupported; ILC removes the branch."
+    )]
+    private static JsonSerializerOptions DefaultConfiguration()
+    {
+        var options = new JsonSerializerOptions
+        {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false,
-            AllowTrailingCommas = true
+            AllowTrailingCommas = true,
         };
 
         // Enums as names rather than numbers, where that is possible.
@@ -45,7 +52,8 @@ public class JsonSerializerConfiguration : IJsonSerializerConfiguration {
         //
         // An AOT application that wants named enums says so where it can be compiled:
         // [JsonSourceGenerationOptions(UseStringEnumConverter = true)] on its JsonSerializerContext.
-        if (RuntimeFeature.IsDynamicCodeSupported) {
+        if (RuntimeFeature.IsDynamicCodeSupported)
+        {
             options.Converters.Add(new DeclaredEnumsFirstConverter());
         }
 
@@ -86,8 +94,8 @@ public class JsonSerializerConfiguration : IJsonSerializerConfiguration {
 /// alone.
 /// </para>
 /// </remarks>
-internal sealed class DeclaredEnumsFirstConverter : JsonConverterFactory {
-
+internal sealed class DeclaredEnumsFirstConverter : JsonConverterFactory
+{
     /// <summary>
     /// An enum that has not already said how it is written.
     /// </summary>
@@ -105,15 +113,22 @@ internal sealed class DeclaredEnumsFirstConverter : JsonConverterFactory {
     /// </para>
     /// </remarks>
     public override bool CanConvert(Type typeToConvert) =>
-        typeToConvert.IsEnum &&
-        !typeToConvert.IsDefined(typeof(JsonConverterAttribute), inherit: false);
+        typeToConvert.IsEnum
+        && !typeToConvert.IsDefined(typeof(JsonConverterAttribute), inherit: false);
 
-    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "Only reached from DefaultConfiguration, which guards on " +
-                        "RuntimeFeature.IsDynamicCodeSupported; ILC removes that branch.")]
-    [UnconditionalSuppressMessage("Trimming", "IL2026:RequiresUnreferencedCode",
-        Justification = "Same guard: an AOT publish never reaches this factory.")]
-    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options) =>
-        new JsonStringEnumConverter().CreateConverter(typeToConvert, options);
-
+    [UnconditionalSuppressMessage(
+        "AOT",
+        "IL3050:RequiresDynamicCode",
+        Justification = "Only reached from DefaultConfiguration, which guards on "
+            + "RuntimeFeature.IsDynamicCodeSupported; ILC removes that branch."
+    )]
+    [UnconditionalSuppressMessage(
+        "Trimming",
+        "IL2026:RequiresUnreferencedCode",
+        Justification = "Same guard: an AOT publish never reaches this factory."
+    )]
+    public override JsonConverter? CreateConverter(
+        Type typeToConvert,
+        JsonSerializerOptions options
+    ) => new JsonStringEnumConverter().CreateConverter(typeToConvert, options);
 }

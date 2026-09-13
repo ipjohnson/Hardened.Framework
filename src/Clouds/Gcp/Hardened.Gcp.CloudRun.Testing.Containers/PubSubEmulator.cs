@@ -22,7 +22,8 @@ namespace Hardened.Gcp.CloudRun.Testing.Containers;
 /// this tier and wrong anywhere else.
 /// </para>
 /// </remarks>
-public sealed class PubSubEmulator : IAsyncDisposable {
+public sealed class PubSubEmulator : IAsyncDisposable
+{
     public const string Alias = "pubsub";
 
     /// <summary>
@@ -37,49 +38,70 @@ public sealed class PubSubEmulator : IAsyncDisposable {
 
     private readonly PubSubContainer _container;
 
-    public PubSubEmulator(INetwork network) {
+    public PubSubEmulator(INetwork network)
+    {
         _container = new PubSubBuilder(Image)
             .WithNetwork(network)
             .WithNetworkAliases(Alias)
             .Build();
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken = default) {
+    public async Task StartAsync(CancellationToken cancellationToken = default)
+    {
         await _container.StartAsync(cancellationToken);
 
         Environment.SetEnvironmentVariable(
-            "PUBSUB_EMULATOR_HOST", new Uri(_container.GetEmulatorEndpoint()).Authority);
+            "PUBSUB_EMULATOR_HOST",
+            new Uri(_container.GetEmulatorEndpoint()).Authority
+        );
     }
 
     /// <summary>
     /// A topic with one push subscription delivering to <paramref name="pushEndpoint"/>.
     /// </summary>
     public async Task<TopicName> CreateTopicWithPushSubscription(
-        string topic, string subscription, string pushEndpoint, CancellationToken cancellationToken = default) {
+        string topic,
+        string subscription,
+        string pushEndpoint,
+        CancellationToken cancellationToken = default
+    )
+    {
         var topicName = TopicName.FromProjectTopic(ProjectId, topic);
 
         await Publisher().CreateTopicAsync(topicName, cancellationToken);
 
-        await Subscriber().CreateSubscriptionAsync(
-            new Subscription {
-                SubscriptionName = SubscriptionName.FromProjectSubscription(ProjectId, subscription),
-                TopicAsTopicName = topicName,
-                PushConfig = new PushConfig { PushEndpoint = pushEndpoint },
-                AckDeadlineSeconds = 10
-            },
-            cancellationToken);
+        await Subscriber()
+            .CreateSubscriptionAsync(
+                new Subscription
+                {
+                    SubscriptionName = SubscriptionName.FromProjectSubscription(
+                        ProjectId,
+                        subscription
+                    ),
+                    TopicAsTopicName = topicName,
+                    PushConfig = new PushConfig { PushEndpoint = pushEndpoint },
+                    AckDeadlineSeconds = 10,
+                },
+                cancellationToken
+            );
 
         return topicName;
     }
 
     /// <summary>Publishes one message with <paramref name="json"/> as its data and <paramref name="attributes"/> on it.</summary>
     public Task PublishAsync(
-        TopicName topic, string json, IReadOnlyDictionary<string, string>? attributes = null,
-        CancellationToken cancellationToken = default) {
+        TopicName topic,
+        string json,
+        IReadOnlyDictionary<string, string>? attributes = null,
+        CancellationToken cancellationToken = default
+    )
+    {
         var message = new PubsubMessage { Data = ByteString.CopyFromUtf8(json) };
 
-        if (attributes != null) {
-            foreach (var attribute in attributes) {
+        if (attributes != null)
+        {
+            foreach (var attribute in attributes)
+            {
                 message.Attributes[attribute.Key] = attribute.Value;
             }
         }
@@ -88,10 +110,16 @@ public sealed class PubSubEmulator : IAsyncDisposable {
     }
 
     private static PublisherServiceApiClient Publisher() =>
-        new PublisherServiceApiClientBuilder { EmulatorDetection = EmulatorDetection.EmulatorOrProduction }.Build();
+        new PublisherServiceApiClientBuilder
+        {
+            EmulatorDetection = EmulatorDetection.EmulatorOrProduction,
+        }.Build();
 
     private static SubscriberServiceApiClient Subscriber() =>
-        new SubscriberServiceApiClientBuilder { EmulatorDetection = EmulatorDetection.EmulatorOrProduction }.Build();
+        new SubscriberServiceApiClientBuilder
+        {
+            EmulatorDetection = EmulatorDetection.EmulatorOrProduction,
+        }.Build();
 
     public ValueTask DisposeAsync() => _container.DisposeAsync();
 }

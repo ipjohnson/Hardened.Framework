@@ -16,11 +16,12 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// single interface, so the pipeline never has to know which form it came from.
 /// </para>
 /// </summary>
-public class AuthorizeAttributeTests {
-
+public class AuthorizeAttributeTests
+{
     private static readonly IExecutionContext Context = Substitute.For<IExecutionContext>();
 
-    private class CanManagePets : AuthorizationPolicy {
+    private class CanManagePets : AuthorizationPolicy
+    {
         protected override Requirement Define() =>
             (Grant("pets:read") & Grant("pets:write")) | Grant("admin:*");
     }
@@ -39,7 +40,8 @@ public class AuthorizeAttributeTests {
     /// caller" - the spelling that had none before the slot was re-meant.
     /// </summary>
     [Fact]
-    public void AuthorizeScheme_RequiresAnAuthenticatedCaller() {
+    public void AuthorizeScheme_RequiresAnAuthenticatedCaller()
+    {
         var requirement = new AuthorizeAttribute<BearerAuth>().Requirement;
 
         Assert.True(requirement.IsSatisfiedBy(Holding(), Context));
@@ -51,7 +53,8 @@ public class AuthorizeAttributeTests {
     /// context-only policy cannot admit an anonymous caller by accident.
     /// </summary>
     [Fact]
-    public void AuthorizeSchemeAndPolicy_YieldsThePolicysRequirement() {
+    public void AuthorizeSchemeAndPolicy_YieldsThePolicysRequirement()
+    {
         var requirement = new AuthorizeAttribute<BearerAuth, CanManagePets>().Requirement;
 
         Assert.True(requirement.IsSatisfiedBy(Holding("pets:read", "pets:write"), Context));
@@ -65,10 +68,12 @@ public class AuthorizeAttributeTests {
     /// <c>[Authorize&lt;BearerAuth, CanManagePets&gt;]</c> on a hundred handlers costs one tree.
     /// </summary>
     [Fact]
-    public void Authorize_SharesOneRequirementAcrossEveryInstance() {
+    public void Authorize_SharesOneRequirementAcrossEveryInstance()
+    {
         Assert.Same(
             new AuthorizeAttribute<BearerAuth, CanManagePets>().Requirement,
-            new AuthorizeAttribute<BearerAuth, CanManagePets>().Requirement);
+            new AuthorizeAttribute<BearerAuth, CanManagePets>().Requirement
+        );
     }
 
     #endregion
@@ -79,7 +84,8 @@ public class AuthorizeAttributeTests {
     /// Grants within one attribute are AND, which is what a single OpenAPI requirement object means.
     /// </summary>
     [Fact]
-    public void AuthorizeGrants_RequiresAllTheGrantsInOneAttribute() {
+    public void AuthorizeGrants_RequiresAllTheGrantsInOneAttribute()
+    {
         var requirement = new AuthorizeGrantsAttribute("pets:read", "pets:write").Requirement;
 
         Assert.True(requirement.IsSatisfiedBy(Holding("pets:read", "pets:write"), Context));
@@ -87,7 +93,8 @@ public class AuthorizeAttributeTests {
     }
 
     [Fact]
-    public void AuthorizeGrants_WithOneGrantRequiresThatGrant() {
+    public void AuthorizeGrants_WithOneGrantRequiresThatGrant()
+    {
         var requirement = new AuthorizeGrantsAttribute("admin:*").Requirement;
 
         Assert.True(requirement.IsSatisfiedBy(Holding("admin:*"), Context));
@@ -101,7 +108,8 @@ public class AuthorizeAttributeTests {
     /// in the repetition rather than in the arguments.
     /// </summary>
     [Fact]
-    public void AuthorizeGrants_MayBeRepeatedToExpressAnAlternative() {
+    public void AuthorizeGrants_MayBeRepeatedToExpressAnAlternative()
+    {
         var usage = typeof(AuthorizeGrantsAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
 
         Assert.True(usage.AllowMultiple);
@@ -113,15 +121,18 @@ public class AuthorizeAttributeTests {
     /// silently admitting every caller.
     /// </summary>
     [Fact]
-    public void AuthorizeGrants_WithNoGrantsThrows() {
+    public void AuthorizeGrants_WithNoGrantsThrows()
+    {
         Assert.Throws<ArgumentException>(() => new AuthorizeGrantsAttribute());
     }
 
     [Fact]
-    public void AuthorizeGrants_KeepsTheGrantsItWasGiven() {
+    public void AuthorizeGrants_KeepsTheGrantsItWasGiven()
+    {
         Assert.Equal(
             ["pets:read", "pets:write"],
-            new AuthorizeGrantsAttribute("pets:read", "pets:write").Grants);
+            new AuthorizeGrantsAttribute("pets:read", "pets:write").Grants
+        );
     }
 
     #endregion
@@ -135,15 +146,20 @@ public class AuthorizeAttributeTests {
     /// trimming.
     /// </summary>
     [Fact]
-    public void BothFormsAreFoundThroughOneInterface() {
-        object[] metadata = [
+    public void BothFormsAreFoundThroughOneInterface()
+    {
+        object[] metadata =
+        [
             new AuthorizeAttribute<BearerAuth>(),
             new AuthorizeAttribute<BearerAuth, CanManagePets>(),
             new AuthorizeGrantsAttribute("pets:read"),
             "something else entirely",
         ];
 
-        var requirements = metadata.OfType<IAuthorizeAttribute>().Select(a => a.Requirement).ToArray();
+        var requirements = metadata
+            .OfType<IAuthorizeAttribute>()
+            .Select(a => a.Requirement)
+            .ToArray();
 
         Assert.Equal(3, requirements.Length);
         Assert.All(requirements, Assert.NotNull);
@@ -155,7 +171,8 @@ public class AuthorizeAttributeTests {
     /// should do when someone writes both by mistake.
     /// </summary>
     [Fact]
-    public void AllowAnonymousCarriesNoRequirement() {
+    public void AllowAnonymousCarriesNoRequirement()
+    {
         Assert.False(typeof(IAuthorizeAttribute).IsAssignableFrom(typeof(AllowAnonymousAttribute)));
     }
 
@@ -164,7 +181,8 @@ public class AuthorizeAttributeTests {
     [InlineData(typeof(AuthorizeAttribute<BearerAuth, CanManagePets>))]
     [InlineData(typeof(AuthorizeGrantsAttribute))]
     [InlineData(typeof(AllowAnonymousAttribute))]
-    public void EveryFormAppliesToAMethodOrAClass(Type attributeType) {
+    public void EveryFormAppliesToAMethodOrAClass(Type attributeType)
+    {
         var usage = attributeType.GetCustomAttribute<AttributeUsageAttribute>()!;
 
         Assert.Equal(AttributeTargets.Class | AttributeTargets.Method, usage.ValidOn);

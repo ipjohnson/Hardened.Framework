@@ -23,7 +23,8 @@ namespace Hardened.IntegrationTests.CloudRunQueue.Simulator.Tests;
 /// </para>
 /// </remarks>
 [Trait("Category", "Simulator")]
-public sealed class ShutdownTests {
+public sealed class ShutdownTests
+{
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     /// <summary>
@@ -32,7 +33,8 @@ public sealed class ShutdownTests {
     /// than being killed.
     /// </summary>
     [Fact]
-    public async Task SigtermLetsAnInFlightRequestFinish() {
+    public async Task SigtermLetsAnInFlightRequestFinish()
+    {
         await using var network = new NetworkBuilder().Build();
 
         await network.CreateAsync(Token);
@@ -40,14 +42,22 @@ public sealed class ShutdownTests {
         await using var service = new CloudRunService(
             network,
             ApplicationOutput.Of("Hardened.IntegrationTests.CloudRunQueue.SUT"),
-            "Hardened.IntegrationTests.CloudRunQueue.SUT");
+            "Hardened.IntegrationTests.CloudRunQueue.SUT"
+        );
 
         await service.StartAsync(Token);
 
-        using var client = new HttpClient { BaseAddress = service.HostAddress, Timeout = TimeSpan.FromSeconds(60) };
+        using var client = new HttpClient
+        {
+            BaseAddress = service.HostAddress,
+            Timeout = TimeSpan.FromSeconds(60),
+        };
 
         var inFlight = client.PostAsync(
-            "/", new StringContent(Push("slow-1"), Encoding.UTF8, "application/json"), Token);
+            "/",
+            new StringContent(Push("slow-1"), Encoding.UTF8, "application/json"),
+            Token
+        );
 
         await Task.Delay(TimeSpan.FromMilliseconds(500), Token);
 
@@ -66,8 +76,11 @@ public sealed class ShutdownTests {
     }
 
     /// <summary>The push Pub/Sub would send for an order with <paramref name="id"/>.</summary>
-    private static string Push(string id) {
-        var data = Convert.ToBase64String(Encoding.UTF8.GetBytes($$"""{"id":"{{id}}","quantity":1}"""));
+    private static string Push(string id)
+    {
+        var data = Convert.ToBase64String(
+            Encoding.UTF8.GetBytes($$"""{"id":"{{id}}","quantity":1}""")
+        );
 
         return $$"""
             {"message":{"data":"{{data}}","messageId":"{{id}}","message_id":"{{id}}",

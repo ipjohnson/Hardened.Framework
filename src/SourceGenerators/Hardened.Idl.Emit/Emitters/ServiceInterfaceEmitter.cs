@@ -1,25 +1,32 @@
 using System.Collections.Generic;
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.Idl;
-using Hardened.Generation;
 
 namespace Hardened.Idl.Emitters;
 
 /// <summary>
 /// One service tag, as the interface a handler implements.
 /// </summary>
-internal static class ServiceInterfaceEmitter {
-
+internal static class ServiceInterfaceEmitter
+{
     public static InterfaceDefinition Emit(
-        IConstructContainer container, ServiceModel service, string modelsNamespace,
+        IConstructContainer container,
+        ServiceModel service,
+        string modelsNamespace,
         SpecResponseModel responseModel = SpecResponseModel.Throws,
-        bool bindCancellationToken = false) {
-        var interfaceDefinition = container.AddInterface(NamingHelper.ToInterfaceName(service.TypeBaseName));
+        bool bindCancellationToken = false
+    )
+    {
+        var interfaceDefinition = container.AddInterface(
+            NamingHelper.ToInterfaceName(service.TypeBaseName)
+        );
 
         interfaceDefinition.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
 
-        foreach (var operation in service.Operations) {
+        foreach (var operation in service.Operations)
+        {
             var method = interfaceDefinition.AddMethod(operation.MethodName);
 
             // The route line first, so it stays where a reader and the existing tests expect it,
@@ -33,17 +40,19 @@ internal static class ServiceInterfaceEmitter {
             var description = DocComment.Format(
                 string.IsNullOrWhiteSpace(operation.Summary)
                     ? operation.Description
-                    : operation.Summary);
+                    : operation.Summary
+            );
 
             // A literal arrow, not the &rarr; entity: CSharpAuthor 2.0 escapes comment text at the
             // boundary, so an entity written here would render as the text "&rarr;". The character
             // is XML-safe and reads the same everywhere the entity did.
             method.Comment =
-                $"{operation.HttpMethod} {operation.Path} → {operation.SuccessStatusCode}" +
-                (description == null ? "" : "\n\n" + description) +
-                ThrowsLine(operation, responseModel);
+                $"{operation.HttpMethod} {operation.Path} → {operation.SuccessStatusCode}"
+                + (description == null ? "" : "\n\n" + description)
+                + ThrowsLine(operation, responseModel);
 
-            if (operation.IsDeprecated) {
+            if (operation.IsDeprecated)
+            {
                 Deprecation.Apply(method);
             }
 
@@ -79,18 +88,24 @@ internal static class ServiceInterfaceEmitter {
     /// every case in its return type already, where the compiler checks it.
     /// </para>
     /// </remarks>
-    private static string ThrowsLine(OperationModel operation, SpecResponseModel responseModel) {
-        if (operation.ErrorResponses.Count == 0 ||
-            ResponseSetPlan.RequiresResponseSet(operation, responseModel)) {
+    private static string ThrowsLine(OperationModel operation, SpecResponseModel responseModel)
+    {
+        if (
+            operation.ErrorResponses.Count == 0
+            || ResponseSetPlan.RequiresResponseSet(operation, responseModel)
+        )
+        {
             return "";
         }
 
         var thrown = new List<string>();
 
-        foreach (var error in operation.ErrorResponses) {
+        foreach (var error in operation.ErrorResponses)
+        {
             var name = ThrownTypeName(error);
 
-            if (!thrown.Contains(name)) {
+            if (!thrown.Contains(name))
+            {
                 thrown.Add(name);
             }
         }
@@ -105,20 +120,22 @@ internal static class ServiceInterfaceEmitter {
     /// deciding a second time - a doc comment naming a type the emitter did not write is worse than
     /// no doc comment.
     /// </remarks>
-    private static string ThrownTypeName(ErrorResponseModel error) {
+    private static string ThrownTypeName(ErrorResponseModel error)
+    {
         var binding = ShippedResponses.For(error);
 
-        if (binding == null) {
+        if (binding == null)
+        {
             return error.ExceptionTypeName ?? ShippedResponses.GeneratedName(error) + "Exception";
         }
 
-        var payload = error.Ref == null
-            ? null
-            : NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref));
+        var payload =
+            error.Ref == null ? null : NamingHelper.ToPascalCase(TypeMapper.GetRefName(error.Ref));
 
         var shipped = binding.Value;
 
-        if (shipped.Marker != null) {
+        if (shipped.Marker != null)
+        {
             var marker = ShippedResponses.MarkerHolderName + "." + shipped.Marker;
 
             return shipped.TakesBody && payload != null
@@ -132,8 +149,11 @@ internal static class ServiceInterfaceEmitter {
     }
 
     internal static ITypeDefinition GetReturnType(
-        OperationModel operation, string modelsNamespace,
-        SpecResponseModel responseModel = SpecResponseModel.Throws) {
+        OperationModel operation,
+        string modelsNamespace,
+        SpecResponseModel responseModel = SpecResponseModel.Throws
+    )
+    {
         // Ahead of everything below, because a declared response set replaces the question the rest
         // of this method answers. The two overrides that follow are still checked first inside
         // UnionResponseEmitter's own success branch: a streamed body is many responses rather than
@@ -142,15 +162,18 @@ internal static class ServiceInterfaceEmitter {
         // More than one declared success forces a response set, whatever the module asked for -
         // see ResponseSetPlan.RequiresResponseSet, which is the one definition of the rule and
         // is also what decides whether the type this names gets emitted at all.
-        if (ResponseSetPlan.RequiresResponseSet(operation, responseModel)) {
-            return Task(TypeDefinition.Get(
-                modelsNamespace, ResponseSetPlan.ContainerName(operation)));
+        if (ResponseSetPlan.RequiresResponseSet(operation, responseModel))
+        {
+            return Task(
+                TypeDefinition.Get(modelsNamespace, ResponseSetPlan.ContainerName(operation))
+            );
         }
 
         // Ahead of the schema, because it is a deliberate override of it. x-hardened-raw-bytes says
         // the application holds this payload already encoded, which the schema has no way to say -
         // type: string describes the wire, not what the handler is holding.
-        if (operation.RawBytesResponse) {
+        if (operation.RawBytesResponse)
+        {
             return Task(TypeDefinition.Get(typeof(byte[])));
         }
 
@@ -158,7 +181,8 @@ internal static class ServiceInterfaceEmitter {
         // alone would say. itemSchema means the body is many of these one after another, which is
         // IAsyncEnumerable<T> and not Task<T> - and a Task<T> here would generate a client that
         // reads one item and stops.
-        if (operation.ItemSchemaRef != null) {
+        if (operation.ItemSchemaRef != null)
+        {
             // By name rather than typeof(IAsyncEnumerable<>). This assembly targets netstandard2.0
             // and declares no package references at all, which is the property that keeps the IDL
             // layer unable to reference an OpenAPI reader - IAsyncEnumerable<> would need
@@ -168,10 +192,12 @@ internal static class ServiceInterfaceEmitter {
                 TypeDefinitionEnum.InterfaceDefinition,
                 "System.Collections.Generic",
                 "IAsyncEnumerable",
-                new[] { Model(operation.ItemSchemaRef, modelsNamespace) });
+                new[] { Model(operation.ItemSchemaRef, modelsNamespace) }
+            );
         }
 
-        if (operation.ResponseRef != null) {
+        if (operation.ResponseRef != null)
+        {
             // Nullable exactly when the operation declares a 404, so the signature states what the
             // handler is allowed to do. Returning null answers 404 with the body the document
             // declared for it; without a declared 404 the `?` is absent and the compiler says so.
@@ -182,31 +208,48 @@ internal static class ServiceInterfaceEmitter {
             return Task(Model(operation.ResponseRef, modelsNamespace, DeclaresNotFound(operation)));
         }
 
-        if (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null) {
-            return Task(new GenericTypeDefinition(
-                typeof(List<>), new[] { Model(operation.ResponseArrayItemsRef, modelsNamespace) }));
+        if (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null)
+        {
+            return Task(
+                new GenericTypeDefinition(
+                    typeof(List<>),
+                    new[] { Model(operation.ResponseArrayItemsRef, modelsNamespace) }
+                )
+            );
         }
 
         // An array of primitives - List<string> rather than JsonElement. Only the $ref branch above
         // existed, so `items: {type: string}` had nothing to name and fell through to the untyped
         // response at the bottom of this method.
-        if (operation.ResponseIsArray && operation.ResponseArrayItemsType != null) {
+        if (operation.ResponseIsArray && operation.ResponseArrayItemsType != null)
+        {
             var itemType = TypeMapper.MapToCSharpType(
-                operation.ResponseArrayItemsType, operation.ResponseArrayItemsFormat);
+                operation.ResponseArrayItemsType,
+                operation.ResponseArrayItemsFormat
+            );
 
-            if (itemType != "object") {
-                return Task(new GenericTypeDefinition(
-                    typeof(List<>),
-                    new[] { TypeMapper.GetTypeDefinition(modelsNamespace, itemType, false) }));
+            if (itemType != "object")
+            {
+                return Task(
+                    new GenericTypeDefinition(
+                        typeof(List<>),
+                        new[] { TypeMapper.GetTypeDefinition(modelsNamespace, itemType, false) }
+                    )
+                );
             }
         }
 
-        if (operation.ResponseType != null) {
-            var csType = TypeMapper.MapToCSharpType(operation.ResponseType, operation.ResponseFormat);
+        if (operation.ResponseType != null)
+        {
+            var csType = TypeMapper.MapToCSharpType(
+                operation.ResponseType,
+                operation.ResponseFormat
+            );
 
             // "object" means the spec declared a body with no usable shape, which is a Task with no
             // result rather than a Task<object> nobody can do anything with.
-            if (csType != "object") {
+            if (csType != "object")
+            {
                 return Task(TypeMapper.GetTypeDefinition(modelsNamespace, csType, false));
             }
         }
@@ -232,46 +275,70 @@ internal static class ServiceInterfaceEmitter {
     /// </para>
     /// </remarks>
     private static void AddParameters(
-        MethodDefinition method, OperationModel operation, string modelsNamespace,
-        bool bindCancellationToken = false) {
-        foreach (var parameter in operation.Parameters) {
+        MethodDefinition method,
+        OperationModel operation,
+        string modelsNamespace,
+        bool bindCancellationToken = false
+    )
+    {
+        foreach (var parameter in operation.Parameters)
+        {
             var csType = TypeMapper.MapParameterToCSharpType(parameter);
 
             var emitted = method.AddParameter(
                 TypeMapper.GetTypeDefinition(modelsNamespace, csType, parameter.IsCSharpNullable),
-                parameter.MemberName);
+                parameter.MemberName
+            );
 
             emitted.Comment = DocComment.Format(parameter.Description);
         }
 
-        if (operation.RequestBodyRef != null) {
+        if (operation.RequestBodyRef != null)
+        {
             method.AddParameter(Model(operation.RequestBodyRef, modelsNamespace), "body");
-        } else if (operation.RequestBodyType != null) {
+        }
+        else if (operation.RequestBodyType != null)
+        {
             // With the format, which the response side has always passed: a blob is
             // ("string", "byte") and maps to byte[], and dropping the format put a string in the
             // signature of a handler whose body is bytes.
             var csType = TypeMapper.MapToCSharpType(
-                operation.RequestBodyType, operation.RequestBodyFormat);
+                operation.RequestBodyType,
+                operation.RequestBodyFormat
+            );
 
-            method.AddParameter(TypeMapper.GetTypeDefinition(modelsNamespace, csType, false), "body");
+            method.AddParameter(
+                TypeMapper.GetTypeDefinition(modelsNamespace, csType, false),
+                "body"
+            );
         }
 
-        if (bindCancellationToken) {
+        if (bindCancellationToken)
+        {
             // By name rather than typeof(CancellationToken), for the reason IAsyncEnumerable above
             // is named that way: this assembly targets netstandard2.0 and declares no package
             // references, and naming the type keeps it that way.
             var token = method.AddParameter(
-                TypeDefinition.Get("System.Threading", "CancellationToken"), "cancellationToken");
+                TypeDefinition.Get("System.Threading", "CancellationToken"),
+                "cancellationToken"
+            );
 
             token.Comment = DocComment.Format(
-                "Cancelled when the request's budget runs out or its caller hangs up.");
+                "Cancelled when the request's budget runs out or its caller hangs up."
+            );
         }
     }
 
     private static ITypeDefinition Model(
-        string reference, string modelsNamespace, bool nullable = false) =>
+        string reference,
+        string modelsNamespace,
+        bool nullable = false
+    ) =>
         TypeMapper.GetTypeDefinition(
-            modelsNamespace, NamingHelper.ToPascalCase(TypeMapper.GetRefName(reference)), nullable);
+            modelsNamespace,
+            NamingHelper.ToPascalCase(TypeMapper.GetRefName(reference)),
+            nullable
+        );
 
     /// <summary>
     /// Whether a null return is a declared answer for this operation.
@@ -282,10 +349,14 @@ internal static class ServiceInterfaceEmitter {
     /// <c>NullValueResponseHandler</c> and <c>DefaultErrorBody</c>, which is where that rule lives.
     /// </remarks>
     private static bool DeclaresNotFound(OperationModel operation) =>
-        (operation.HttpMethod == "GET" || operation.HttpMethod == "PUT") &&
-        operation.ErrorResponses.Any(error => error.StatusCode == 404);
+        (operation.HttpMethod == "GET" || operation.HttpMethod == "PUT")
+        && operation.ErrorResponses.Any(error => error.StatusCode == 404);
 
     private static ITypeDefinition Task(ITypeDefinition result) =>
         new GenericTypeDefinition(
-            TypeDefinitionEnum.ClassDefinition, "System.Threading.Tasks", "Task", new[] { result });
+            TypeDefinitionEnum.ClassDefinition,
+            "System.Threading.Tasks",
+            "Task",
+            new[] { result }
+        );
 }

@@ -11,14 +11,21 @@ namespace Hardened.Azure.Functions.Runtime.Tests;
 /// <summary>
 /// What a Service Bus message becomes on its way to a handler.
 /// </summary>
-public class ServiceBusRequestTests {
-
-    private static ServiceBusRequest Batch(params ServiceBusReceivedMessage[] messages) {
+public class ServiceBusRequestTests
+{
+    private static ServiceBusRequest Batch(params ServiceBusReceivedMessage[] messages)
+    {
         var context = new TestFunctionContext(
-            "Queue_orders", new Dictionary<string, object?>(), new ServiceCollection().BuildServiceProvider());
+            "Queue_orders",
+            new Dictionary<string, object?>(),
+            new ServiceCollection().BuildServiceProvider()
+        );
 
-        return (ServiceBusRequest)new ServiceBusAdapter().CreateRequest(
-            new FunctionsTrigger("QUEUE", "/orders", messages), context);
+        return (ServiceBusRequest)
+            new ServiceBusAdapter().CreateRequest(
+                new FunctionsTrigger("QUEUE", "/orders", messages),
+                context
+            );
     }
 
     private static ServiceBusReceivedMessage Message(
@@ -26,16 +33,19 @@ public class ServiceBusRequestTests {
         string messageId = "m-1",
         int deliveryCount = 1,
         IDictionary<string, object>? properties = null,
-        string? contentType = null) =>
+        string? contentType = null
+    ) =>
         ServiceBusModelFactory.ServiceBusReceivedMessage(
             body: BinaryData.FromString(body),
             messageId: messageId,
             deliveryCount: deliveryCount,
             properties: properties,
-            contentType: contentType);
+            contentType: contentType
+        );
 
     [Fact]
-    public void TheBatchRoutesUnderTheQueueSchemeAndTheShimsPath() {
+    public void TheBatchRoutesUnderTheQueueSchemeAndTheShimsPath()
+    {
         var batch = Batch(Message());
 
         Assert.Equal("QUEUE", batch.Method);
@@ -43,7 +53,8 @@ public class ServiceBusRequestTests {
     }
 
     [Fact]
-    public void OneForkPerMessageInDeliveryOrder() {
+    public void OneForkPerMessageInDeliveryOrder()
+    {
         var batch = Batch(Message(messageId: "m-1"), Message(messageId: "m-2"));
 
         Assert.Equal(2, batch.Count);
@@ -56,19 +67,27 @@ public class ServiceBusRequestTests {
     /// the abandon-the-batch policy makes worth carrying.
     /// </summary>
     [Fact]
-    public void TheDeliveryCountIsAHeader() {
+    public void TheDeliveryCountIsAHeader()
+    {
         var fork = Batch(Message(deliveryCount: 3)).ForItem(0);
 
         Assert.Equal("3", fork.Headers[ServiceBusRequest.DeliveryCountHeader].ToString());
     }
 
     [Fact]
-    public void ApplicationPropertiesBecomeHeadersUnderTheirOwnNames() {
-        var fork = Batch(Message(properties: new Dictionary<string, object> {
-            ["trace"] = "abc-123",
-            ["attempt"] = 7,
-            ["raw"] = new byte[] { 1, 2 }
-        })).ForItem(0);
+    public void ApplicationPropertiesBecomeHeadersUnderTheirOwnNames()
+    {
+        var fork = Batch(
+                Message(
+                    properties: new Dictionary<string, object>
+                    {
+                        ["trace"] = "abc-123",
+                        ["attempt"] = 7,
+                        ["raw"] = new byte[] { 1, 2 },
+                    }
+                )
+            )
+            .ForItem(0);
 
         Assert.Equal("abc-123", fork.Headers["trace"].ToString());
         Assert.Equal("7", fork.Headers["attempt"].ToString());
@@ -83,23 +102,33 @@ public class ServiceBusRequestTests {
     /// under prefixed names.
     /// </summary>
     [Fact]
-    public void ThePrefixedHeadersWinOverAPropertyOfTheSameSpelling() {
-        var fork = Batch(Message(messageId: "real", properties: new Dictionary<string, object> {
-            [ServiceBusRequest.MessageIdHeader] = "forged"
-        })).ForItem(0);
+    public void ThePrefixedHeadersWinOverAPropertyOfTheSameSpelling()
+    {
+        var fork = Batch(
+                Message(
+                    messageId: "real",
+                    properties: new Dictionary<string, object>
+                    {
+                        [ServiceBusRequest.MessageIdHeader] = "forged",
+                    }
+                )
+            )
+            .ForItem(0);
 
         Assert.Equal("real", fork.Headers[ServiceBusRequest.MessageIdHeader].ToString());
     }
 
     [Fact]
-    public void TheContentTypeTravelsWhenThePublisherSetOne() {
+    public void TheContentTypeTravelsWhenThePublisherSetOne()
+    {
         var fork = Batch(Message(contentType: "application/json")).ForItem(0);
 
         Assert.Equal("application/json", fork.ContentType);
     }
 
     [Fact]
-    public void EachForkCarriesItsOwnBody() {
+    public void EachForkCarriesItsOwnBody()
+    {
         var batch = Batch(Message(body: "{\"id\":\"a\"}"), Message(body: "{\"id\":\"b\"}"));
 
         Assert.Equal("{\"id\":\"a\"}", new StreamReader(batch.ForItem(0).Body).ReadToEnd());
@@ -107,7 +136,8 @@ public class ServiceBusRequestTests {
     }
 
     [Fact]
-    public void AnEmptyMessageHasAnEmptyBodyRatherThanNone() {
+    public void AnEmptyMessageHasAnEmptyBodyRatherThanNone()
+    {
         var fork = Batch(Message(body: "")).ForItem(0);
 
         Assert.Equal(0, fork.Body.Length);
@@ -118,7 +148,8 @@ public class ServiceBusRequestTests {
     /// outcome, so the filter has to fail the invocation to get a message redelivered.
     /// </summary>
     [Fact]
-    public void ItemFailuresAreNotReportedYet() {
+    public void ItemFailuresAreNotReportedYet()
+    {
         var batch = Batch(Message());
 
         Assert.False(batch.ReportsItemFailures);

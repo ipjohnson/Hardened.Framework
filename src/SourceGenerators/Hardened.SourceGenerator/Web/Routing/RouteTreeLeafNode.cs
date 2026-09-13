@@ -1,7 +1,9 @@
 namespace Hardened.SourceGenerator.Web.Routing;
 
-public class RouteTreeLeafNode<T> {
-    public RouteTreeLeafNode(string method, T value, IReadOnlyList<string> wildCardTokens) {
+public class RouteTreeLeafNode<T>
+{
+    public RouteTreeLeafNode(string method, T value, IReadOnlyList<string> wildCardTokens)
+    {
         Method = method;
         Value = value;
         WildCardTokens = wildCardTokens;

@@ -7,7 +7,8 @@ namespace Hardened.Requests.Runtime.Streaming;
 /// Registered by the request module with its defaults, so every application has a heartbeat
 /// without asking for one. Amend it with <c>services.ConfigureStreaming</c>.
 /// </remarks>
-public interface IStreamingConfiguration {
+public interface IStreamingConfiguration
+{
     /// <summary>
     /// How long a stream may be silent before a heartbeat is written, or <see cref="TimeSpan.Zero"/>
     /// for never.

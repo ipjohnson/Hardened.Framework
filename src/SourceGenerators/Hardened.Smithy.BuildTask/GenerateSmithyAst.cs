@@ -27,8 +27,8 @@ namespace Hardened.Smithy.BuildTask;
 /// standard error reaches the log.
 /// </para>
 /// </remarks>
-public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
-
+public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task
+{
     /// <summary>The <c>.smithy</c> files, or directories holding them, that form one model.</summary>
     /// <remarks>
     /// All of them, in one invocation, producing one AST. A Smithy model is routinely several files
@@ -76,19 +76,31 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
     [Output]
     public ITaskItem? AstFile { get; set; }
 
-    public override bool Execute() {
+    public override bool Execute()
+    {
         var tool = ResolveTool();
 
-        if (tool == null) {
-            Log.LogError(null, "HSMT010", null, FirstModel(), 0, 0, 0, 0,
-                "The Smithy CLI was not found. Install it and put it on PATH, or set " +
-                "$(HardenedSmithyCliPath) to its location. A project can also skip the CLI " +
-                "entirely by committing the AST and pointing @(HardenedSmithyAst) at it.");
+        if (tool == null)
+        {
+            Log.LogError(
+                null,
+                "HSMT010",
+                null,
+                FirstModel(),
+                0,
+                0,
+                0,
+                0,
+                "The Smithy CLI was not found. Install it and put it on PATH, or set "
+                    + "$(HardenedSmithyCliPath) to its location. A project can also skip the CLI "
+                    + "entirely by committing the AST and pointing @(HardenedSmithyAst) at it."
+            );
 
             return false;
         }
 
-        if (!CheckVersion(tool)) {
+        if (!CheckVersion(tool))
+        {
             return false;
         }
 
@@ -104,33 +116,43 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
     /// <c>smithy.bat</c>, so handing the launcher a bare "smithy" finds nothing on the one platform
     /// where the extension matters.
     /// </remarks>
-    private string? ResolveTool() {
-        if (!string.IsNullOrWhiteSpace(ToolPath)) {
+    private string? ResolveTool()
+    {
+        if (!string.IsNullOrWhiteSpace(ToolPath))
+        {
             return File.Exists(ToolPath) ? ToolPath : null;
         }
 
-        var names = Path.DirectorySeparatorChar == '\\'
-            ? new[] { "smithy.bat", "smithy.cmd", "smithy.exe", "smithy" }
-            : new[] { "smithy" };
+        var names =
+            Path.DirectorySeparatorChar == '\\'
+                ? new[] { "smithy.bat", "smithy.cmd", "smithy.exe", "smithy" }
+                : new[] { "smithy" };
 
         var path = Environment.GetEnvironmentVariable("PATH") ?? "";
 
-        foreach (var directory in path.Split(Path.PathSeparator)) {
-            if (string.IsNullOrWhiteSpace(directory)) {
+        foreach (var directory in path.Split(Path.PathSeparator))
+        {
+            if (string.IsNullOrWhiteSpace(directory))
+            {
                 continue;
             }
 
-            foreach (var name in names) {
+            foreach (var name in names)
+            {
                 string candidate;
 
-                try {
+                try
+                {
                     candidate = Path.Combine(directory.Trim(), name);
-                } catch (ArgumentException) {
+                }
+                catch (ArgumentException)
+                {
                     // A malformed PATH entry is not worth failing the build over.
                     continue;
                 }
 
-                if (File.Exists(candidate)) {
+                if (File.Exists(candidate))
+                {
                     return candidate;
                 }
             }
@@ -139,40 +161,79 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
         return null;
     }
 
-    private bool CheckVersion(string tool) {
-        if (string.IsNullOrWhiteSpace(ExpectedVersion)) {
+    private bool CheckVersion(string tool)
+    {
+        if (string.IsNullOrWhiteSpace(ExpectedVersion))
+        {
             return true;
         }
 
         var result = Run(tool, new[] { "--version" }, null);
 
-        if (result.ExitCode != 0) {
-            Log.LogError(null, "HSMT011", null, FirstModel(), 0, 0, 0, 0,
+        if (result.ExitCode != 0)
+        {
+            Log.LogError(
+                null,
+                "HSMT011",
+                null,
+                FirstModel(),
+                0,
+                0,
+                0,
+                0,
                 "'{0} --version' failed with exit code {1}. {2}",
-                tool, result.ExitCode, result.StandardError.Trim());
+                tool,
+                result.ExitCode,
+                result.StandardError.Trim()
+            );
 
             return false;
         }
 
         var actual = result.StandardOutput.Trim();
 
-        if (!string.Equals(actual, ExpectedVersion.Trim(), StringComparison.Ordinal)) {
+        if (!string.Equals(actual, ExpectedVersion.Trim(), StringComparison.Ordinal))
+        {
             const string message =
-                "The Smithy CLI at '{0}' is version {1}, but this build is pinned to {2}. The AST a " +
-                "different version produces can differ, so the generated code would differ with it.";
+                "The Smithy CLI at '{0}' is version {1}, but this build is pinned to {2}. The AST a "
+                + "different version produces can differ, so the generated code would differ with it.";
 
-            if (PinVersion) {
-                Log.LogError(null, "HSMT011", null, FirstModel(), 0, 0, 0, 0,
+            if (PinVersion)
+            {
+                Log.LogError(
+                    null,
+                    "HSMT011",
+                    null,
+                    FirstModel(),
+                    0,
+                    0,
+                    0,
+                    0,
                     message + " Install {2}, or change $(HardenedSmithyCliVersion) deliberately.",
-                    tool, actual, ExpectedVersion.Trim());
+                    tool,
+                    actual,
+                    ExpectedVersion.Trim()
+                );
 
                 return false;
             }
 
-            Log.LogWarning(null, "HSMT011", null, FirstModel(), 0, 0, 0, 0,
-                message + " Building anyway, because the pin is enforced on the build that publishes " +
-                "rather than on yours. Set $(HardenedSmithyPinCliVersion) to make this an error here too.",
-                tool, actual, ExpectedVersion.Trim());
+            Log.LogWarning(
+                null,
+                "HSMT011",
+                null,
+                FirstModel(),
+                0,
+                0,
+                0,
+                0,
+                message
+                    + " Building anyway, because the pin is enforced on the build that publishes "
+                    + "rather than on yours. Set $(HardenedSmithyPinCliVersion) to make this an error here too.",
+                tool,
+                actual,
+                ExpectedVersion.Trim()
+            );
         }
 
         Log.LogMessage(MessageImportance.Low, "Smithy CLI {0} at {1}.", actual, tool);
@@ -180,10 +241,12 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
         return true;
     }
 
-    private bool Generate(string tool) {
+    private bool Generate(string tool)
+    {
         var arguments = new List<string> { "ast", "--flatten" };
 
-        foreach (var model in Models) {
+        foreach (var model in Models)
+        {
             arguments.Add(model.GetMetadata("FullPath"));
         }
 
@@ -194,7 +257,8 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
         var staging = OutputPath + ".tmp";
         var result = Run(tool, arguments, staging);
 
-        if (result.ExitCode != 0) {
+        if (result.ExitCode != 0)
+        {
             Delete(staging);
             ReportRefusal(result);
 
@@ -205,18 +269,29 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
         // Treated as a failure rather than parsed, because an empty AST reaches the reader as an
         // unhelpful error about position zero. Its own code, not HSMT012: that one means the CLI
         // refused the model, and the fix for this one is not in any .smithy file.
-        if (!File.Exists(staging) || new FileInfo(staging).Length == 0) {
+        if (!File.Exists(staging) || new FileInfo(staging).Length == 0)
+        {
             Delete(staging);
 
-            Log.LogError(null, "HSMT014", null, FirstModel(), 0, 0, 0, 0,
+            Log.LogError(
+                null,
+                "HSMT014",
+                null,
+                FirstModel(),
+                0,
+                0,
+                0,
+                0,
                 "The Smithy CLI exited successfully but wrote no AST.{0}",
-                result.StandardError.Length > 0 ? "\n" + result.StandardError.TrimEnd() : "");
+                result.StandardError.Length > 0 ? "\n" + result.StandardError.TrimEnd() : ""
+            );
 
             return false;
         }
 
         // Anything the CLI said on a successful run is a warning it got away with, not an error.
-        if (result.StandardError.Trim().Length > 0) {
+        if (result.StandardError.Trim().Length > 0)
+        {
             ReportChatter(result.StandardError);
         }
 
@@ -238,28 +313,62 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
     /// HSMT013 warnings, and a report that does not parse - a crash, a format this pin has never
     /// printed - still fails the build with the text passed through whole.
     /// </remarks>
-    private void ReportRefusal(ProcessResult result) {
+    private void ReportRefusal(ProcessResult result)
+    {
         var findings = SmithyValidationReport.Parse(result.StandardError);
         var failed = false;
 
-        foreach (var finding in findings) {
-            if (finding.FailedValidation) {
+        foreach (var finding in findings)
+        {
+            if (finding.FailedValidation)
+            {
                 failed = true;
 
-                Log.LogError(null, "HSMT012", null,
-                    Attribute(finding.File), finding.Line, finding.Column, 0, 0,
-                    "{0}", Describe(finding));
-            } else {
-                Log.LogWarning(null, "HSMT013", null,
-                    Attribute(finding.File), finding.Line, finding.Column, 0, 0,
-                    "{0}", Describe(finding));
+                Log.LogError(
+                    null,
+                    "HSMT012",
+                    null,
+                    Attribute(finding.File),
+                    finding.Line,
+                    finding.Column,
+                    0,
+                    0,
+                    "{0}",
+                    Describe(finding)
+                );
+            }
+            else
+            {
+                Log.LogWarning(
+                    null,
+                    "HSMT013",
+                    null,
+                    Attribute(finding.File),
+                    finding.Line,
+                    finding.Column,
+                    0,
+                    0,
+                    "{0}",
+                    Describe(finding)
+                );
             }
         }
 
-        if (!failed) {
-            Log.LogError(null, "HSMT012", null, FirstModel(), 0, 0, 0, 0,
+        if (!failed)
+        {
+            Log.LogError(
+                null,
+                "HSMT012",
+                null,
+                FirstModel(),
+                0,
+                0,
+                0,
+                0,
                 "The Smithy CLI could not read the model (exit code {0}).\n{1}",
-                result.ExitCode, result.StandardError.TrimEnd());
+                result.ExitCode,
+                result.StandardError.TrimEnd()
+            );
         }
     }
 
@@ -267,20 +376,42 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
     /// What the CLI said on a run it exited cleanly from - per finding when the text is its
     /// validation report, whole when it is something else.
     /// </summary>
-    private void ReportChatter(string standardError) {
+    private void ReportChatter(string standardError)
+    {
         var findings = SmithyValidationReport.Parse(standardError);
 
-        if (findings.Count == 0) {
-            Log.LogWarning(null, "HSMT013", null, FirstModel(), 0, 0, 0, 0,
-                "{0}", standardError.Trim());
+        if (findings.Count == 0)
+        {
+            Log.LogWarning(
+                null,
+                "HSMT013",
+                null,
+                FirstModel(),
+                0,
+                0,
+                0,
+                0,
+                "{0}",
+                standardError.Trim()
+            );
 
             return;
         }
 
-        foreach (var finding in findings) {
-            Log.LogWarning(null, "HSMT013", null,
-                Attribute(finding.File), finding.Line, finding.Column, 0, 0,
-                "{0}", Describe(finding));
+        foreach (var finding in findings)
+        {
+            Log.LogWarning(
+                null,
+                "HSMT013",
+                null,
+                Attribute(finding.File),
+                finding.Line,
+                finding.Column,
+                0,
+                0,
+                "{0}",
+                Describe(finding)
+            );
         }
     }
 
@@ -292,25 +423,36 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
     /// it absolute. The child inherited this process's directory, so resolving against it inverts
     /// that exactly.
     /// </remarks>
-    private string Attribute(string file) {
-        if (file.Length == 0) {
+    private string Attribute(string file)
+    {
+        if (file.Length == 0)
+        {
             return FirstModel();
         }
 
-        try {
+        try
+        {
             return Path.GetFullPath(file);
-        } catch (ArgumentException) {
+        }
+        catch (ArgumentException)
+        {
             return file;
-        } catch (NotSupportedException) {
+        }
+        catch (NotSupportedException)
+        {
             return file;
-        } catch (PathTooLongException) {
+        }
+        catch (PathTooLongException)
+        {
             return file;
         }
     }
 
     /// <summary>The CLI's own event id and shape, ahead of its message.</summary>
-    private static string Describe(SmithyValidationReport.Finding finding) {
-        if (finding.Id.Length == 0) {
+    private static string Describe(SmithyValidationReport.Finding finding)
+    {
+        if (finding.Id.Length == 0)
+        {
             return finding.Message;
         }
 
@@ -328,27 +470,34 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
     /// <c>.smithy</c> file would otherwise regenerate every model, every record and the whole
     /// compilation.
     /// </remarks>
-    private static void MoveIfChanged(string staging, string destination) {
-        if (File.Exists(destination) &&
-            File.ReadAllText(destination) == File.ReadAllText(staging)) {
+    private static void MoveIfChanged(string staging, string destination)
+    {
+        if (File.Exists(destination) && File.ReadAllText(destination) == File.ReadAllText(staging))
+        {
             Delete(staging);
 
             return;
         }
 
-        if (File.Exists(destination)) {
+        if (File.Exists(destination))
+        {
             File.Delete(destination);
         }
 
         File.Move(staging, destination);
     }
 
-    private static void Delete(string path) {
-        try {
-            if (File.Exists(path)) {
+    private static void Delete(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
                 File.Delete(path);
             }
-        } catch (IOException) {
+        }
+        catch (IOException)
+        {
             // A leftover temp file is not worth failing a build over.
         }
     }
@@ -359,13 +508,19 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
     /// <summary>
     /// Runs the tool, sending standard output to a file when one is named.
     /// </summary>
-    private static ProcessResult Run(string tool, IReadOnlyList<string> arguments, string? stdoutPath) {
-        var startInfo = new ProcessStartInfo {
+    private static ProcessResult Run(
+        string tool,
+        IReadOnlyList<string> arguments,
+        string? stdoutPath
+    )
+    {
+        var startInfo = new ProcessStartInfo
+        {
             FileName = tool,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            CreateNoWindow = true
+            CreateNoWindow = true,
         };
 
 #if NETFRAMEWORK
@@ -374,7 +529,8 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
         // a space in it is the ordinary case this protects.
         startInfo.Arguments = string.Join(" ", arguments.Select(Quote));
 #else
-        foreach (var argument in arguments) {
+        foreach (var argument in arguments)
+        {
             startInfo.ArgumentList.Add(argument);
         }
 #endif
@@ -383,8 +539,10 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
 
         using var process = new Process { StartInfo = startInfo };
 
-        process.ErrorDataReceived += (_, e) => {
-            if (e.Data != null) {
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data != null)
+            {
                 error.AppendLine(e.Data);
             }
         };
@@ -394,9 +552,12 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
 
         var output = new StringBuilder();
 
-        if (stdoutPath == null) {
+        if (stdoutPath == null)
+        {
             output.Append(process.StandardOutput.ReadToEnd());
-        } else {
+        }
+        else
+        {
             // Straight from the pipe to the file. The AST is megabytes for a large model and there
             // is no reason for any of it to exist as a string.
             using var file = new FileStream(stdoutPath, FileMode.Create, FileAccess.Write);
@@ -417,8 +578,10 @@ public sealed class GenerateSmithyAst : Microsoft.Build.Utilities.Task {
             : "\"" + argument.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 #endif
 
-    private readonly struct ProcessResult {
-        public ProcessResult(int exitCode, string standardOutput, string standardError) {
+    private readonly struct ProcessResult
+    {
+        public ProcessResult(int exitCode, string standardOutput, string standardError)
+        {
             ExitCode = exitCode;
             StandardOutput = standardOutput;
             StandardError = standardError;

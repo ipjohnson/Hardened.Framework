@@ -10,7 +10,8 @@ namespace Hardened.Requests.Testing.Conformance;
 /// point of the suite is to test the adapter, so anything the adapter gets wrong should
 /// reach the assertions rather than being smoothed over here.
 /// </summary>
-public interface IExecutionRequestConformanceAdapter {
+public interface IExecutionRequestConformanceAdapter
+{
     /// <summary>
     /// Name used in assertion messages so a failure identifies the transport.
     /// </summary>

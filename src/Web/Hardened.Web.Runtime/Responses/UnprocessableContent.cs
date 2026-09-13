@@ -22,13 +22,16 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(422)]
 public sealed record UnprocessableContent(string? Detail = null)
-    : IHttpStatusResponse, IDeclaresStatus {
-
+    : IHttpStatusResponse,
+        IDeclaresStatus
+{
     /// <summary>
     /// The UnprocessableContent with a generic message, for a handler with nothing more to say than the status.
     /// Shared, so returning it allocates nothing.
     /// </summary>
-    public static readonly UnprocessableContent Default = new("The request could not be processed.");
+    public static readonly UnprocessableContent Default = new(
+        "The request could not be processed."
+    );
 
     public string Type => ProblemTypes.UnprocessableContent;
 

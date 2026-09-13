@@ -14,12 +14,16 @@ namespace Hardened.Azure.Functions.SourceGenerator;
 /// needs; see <see cref="AzureFunctionsGenerator"/>.
 /// </remarks>
 [Generator]
-public class AzureFunctionsSourceGenerator : IIncrementalGenerator {
-    public void Initialize(IncrementalGeneratorInitializationContext context) {
-        var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-            EntryPointSelector.UsingAttribute(),
-            EntryPointSelector.TransformModel(false)
-        ).WithComparer(new EntryPointSelector.Comparer());
+public class AzureFunctionsSourceGenerator : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        var applicationModel = context
+            .SyntaxProvider.CreateSyntaxProvider(
+                EntryPointSelector.UsingAttribute(),
+                EntryPointSelector.TransformModel(false)
+            )
+            .WithComparer(new EntryPointSelector.Comparer());
 
         AzureFunctionsGenerator.Setup(context, applicationModel);
     }

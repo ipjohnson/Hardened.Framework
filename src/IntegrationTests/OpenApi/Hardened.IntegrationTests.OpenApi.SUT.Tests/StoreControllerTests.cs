@@ -1,7 +1,7 @@
-using Hardened.Requests.Abstract.Execution;
 using Hardened.IntegrationTests.OpenApi.SUT.Services;
-using Microsoft.Extensions.DependencyInjection;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
@@ -10,9 +10,11 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// deliberate - do not simplify it away. C# requires the base class to come first in the base list,
 /// which is the exact shape the handler selector used to mis-read.
 /// </summary>
-public class StoreControllerTests {
+public class StoreControllerTests
+{
     [HardenedTest]
-    public async Task ListStores_ReturnsListOfStores(ITestWebApp testWebApp) {
+    public async Task ListStores_ReturnsListOfStores(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/stores");
 
         response.Assert.Ok();
@@ -34,7 +36,10 @@ public class StoreControllerTests {
     /// a missing service - which is a long way from the cause. This says the cause.
     /// </remarks>
     [HardenedTest]
-    public void TheHandlerIsRegisteredAgainstItsServiceInterfaceNotItsBaseClass(ITestWebApp testWebApp) {
+    public void TheHandlerIsRegisteredAgainstItsServiceInterfaceNotItsBaseClass(
+        ITestWebApp testWebApp
+    )
+    {
         var service = testWebApp.RootServiceProvider.GetService<IStoreService>();
 
         Assert.NotNull(service);

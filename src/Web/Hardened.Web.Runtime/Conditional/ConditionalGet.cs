@@ -42,13 +42,15 @@ namespace Hardened.Web.Runtime.Conditional;
 /// the generator turns into <c>AddModule(new ConditionalGet())</c> and needs no attribute for.
 /// </remarks>
 [DependencyModule(GenerateAttribute = false)]
-public partial class ConditionalGet : IServiceCollectionConfiguration {
-
-    public void ConfigureServices(IServiceCollection services) {
+public partial class ConditionalGet : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddGlobalFilter(
             new ConditionalGetAttribute(),
             when: handlerInfo =>
-                !ConditionalGetAttribute.Declares(handlerInfo) && !handlerInfo.StreamsResponse);
+                !ConditionalGetAttribute.Declares(handlerInfo) && !handlerInfo.StreamsResponse
+        );
     }
 
     /// <summary>

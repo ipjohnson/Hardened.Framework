@@ -24,15 +24,16 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// output (<see cref="GeneratorResult.AssertNoErrors"/>) and then drives it.
 /// </para>
 /// </summary>
-internal sealed class GeneratedRoutingTable {
-
+internal sealed class GeneratedRoutingTable
+{
     /// <summary>
     /// The assemblies a generated web application binds against. <c>typeof</c> rather than a name
     /// so the assembly is loaded by the time references are collected.
     /// </summary>
-    internal static readonly Type[] Anchors = [
-        typeof(GetAttribute),               // Hardened.Web.Runtime
-        typeof(FromBodyAttribute)           // Hardened.Requests.Abstract
+    internal static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
     ];
 
     /// <summary>
@@ -45,10 +46,8 @@ internal sealed class GeneratedRoutingTable {
     private readonly object _routingTable;
     private readonly MethodInfo _getExecutionRequestHandler;
 
-    private GeneratedRoutingTable(
-        GeneratorResult result,
-        object routingTable,
-        MethodInfo method) {
+    private GeneratedRoutingTable(GeneratorResult result, object routingTable, MethodInfo method)
+    {
         Result = result;
         _routingTable = routingTable;
         _getExecutionRequestHandler = method;
@@ -62,14 +61,19 @@ internal sealed class GeneratedRoutingTable {
     /// The source must declare a <c>[HardenedModule]</c> partial class — that is what the generator
     /// treats as the application entry point, and without one it emits handlers but no route table.
     /// </summary>
-    public static GeneratedRoutingTable For(string source, string entryPointType = "TestApp.TestApplication") {
+    public static GeneratedRoutingTable For(
+        string source,
+        string entryPointType = "TestApp.TestApplication"
+    )
+    {
         var assemblyName = "WebRoutingTest" + Interlocked.Increment(ref _assemblyCounter);
 
         var result = GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = source },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
             Anchors,
-            assemblyName: assemblyName);
+            assemblyName: assemblyName
+        );
 
         result.AssertNoErrors();
 
@@ -77,41 +81,59 @@ internal sealed class GeneratedRoutingTable {
 
         var emitResult = result.Compilation.Emit(stream);
 
-        Assert.True(emitResult.Success,
-            "The generated code compiled but could not be emitted:" + Environment.NewLine +
-            string.Join(Environment.NewLine, emitResult.Diagnostics
-                .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)));
+        Assert.True(
+            emitResult.Success,
+            "The generated code compiled but could not be emitted:"
+                + Environment.NewLine
+                + string.Join(
+                    Environment.NewLine,
+                    emitResult.Diagnostics.Where(diagnostic =>
+                        diagnostic.Severity == DiagnosticSeverity.Error
+                    )
+                )
+        );
 
         var assembly = Assembly.Load(stream.ToArray());
 
         var applicationType = assembly.GetType(entryPointType);
 
-        Assert.True(applicationType != null,
-            $"The compiled test assembly has no type '{entryPointType}'. " +
-            $"Types: {string.Join(", ", assembly.GetTypes().Select(type => type.FullName))}");
+        Assert.True(
+            applicationType != null,
+            $"The compiled test assembly has no type '{entryPointType}'. "
+                + $"Types: {string.Join(", ", assembly.GetTypes().Select(type => type.FullName))}"
+        );
 
         // The routing table is a private nested class, so a consumer never names it. Reflection is
         // the only way in, and is also how the DI registration the generator emits reaches it.
-        var routingTableType = applicationType!.GetNestedType("RoutingTable",
-            BindingFlags.Public | BindingFlags.NonPublic);
+        var routingTableType = applicationType!.GetNestedType(
+            "RoutingTable",
+            BindingFlags.Public | BindingFlags.NonPublic
+        );
 
-        Assert.True(routingTableType != null,
-            $"'{entryPointType}' has no nested RoutingTable — the generator emitted handlers but no " +
-            "route table. That happens when the source has no [HardenedModule] entry point. " +
-            $"Generated: {string.Join(", ", result.GeneratedSources.Keys)}");
+        Assert.True(
+            routingTableType != null,
+            $"'{entryPointType}' has no nested RoutingTable — the generator emitted handlers but no "
+                + "route table. That happens when the source has no [HardenedModule] entry point. "
+                + $"Generated: {string.Join(", ", result.GeneratedSources.Keys)}"
+        );
 
         var instance = Activator.CreateInstance(
             routingTableType!,
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             binder: null,
             args: [HandlerServiceProvider()],
-            culture: null);
+            culture: null
+        );
 
         var method = routingTableType!.GetMethod(
             "GetExecutionRequestHandler",
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+        );
 
-        Assert.True(method != null, "The generated RoutingTable has no GetExecutionRequestHandler method.");
+        Assert.True(
+            method != null,
+            "The generated RoutingTable has no GetExecutionRequestHandler method."
+        );
 
         return new GeneratedRoutingTable(result, instance!, method!);
     }
@@ -120,7 +142,8 @@ internal sealed class GeneratedRoutingTable {
     /// Routes one request. Returns null when nothing matched, which is what the web handler service
     /// treats as "fall through to static content, then 404".
     /// </summary>
-    public RequestHandlerInfo? Route(string method, string path) {
+    public RequestHandlerInfo? Route(string method, string path)
+    {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
 
@@ -139,28 +162,35 @@ internal sealed class GeneratedRoutingTable {
     /// case - and is a failure here rather than a match, because a test asking for the handler
     /// wanted one.
     /// </remarks>
-    public IExecutionRequestHandlerInfo Handler(string method, string path) {
+    public IExecutionRequestHandlerInfo Handler(string method, string path)
+    {
         var handler = Route(method, path);
 
         Assert.True(handler != null, $"{method} {path} did not match any route.");
-        Assert.True(handler!.Handler != null,
-            $"{method} {path} matched the path but no handler answers that verb. " +
-            $"Allowed: {handler.Allow}");
+        Assert.True(
+            handler!.Handler != null,
+            $"{method} {path} matched the path but no handler answers that verb. "
+                + $"Allowed: {handler.Allow}"
+        );
 
         return handler.Handler!.HandlerInfo;
     }
 
     /// <summary>The path token values bound by the route that matched, keyed by token name.</summary>
-    public IReadOnlyDictionary<string, string?> PathTokens(string method, string path) {
+    public IReadOnlyDictionary<string, string?> PathTokens(string method, string path)
+    {
         var handler = Route(method, path);
 
         Assert.True(handler != null, $"{method} {path} did not match any route.");
-        Assert.True(handler!.Handler != null,
-            $"{method} {path} matched the path but no handler answers that verb.");
+        Assert.True(
+            handler!.Handler != null,
+            $"{method} {path} matched the path but no handler answers that verb."
+        );
 
         var tokens = new Dictionary<string, string?>();
 
-        for (var i = 0; i < handler.PathTokens.Count; i++) {
+        for (var i = 0; i < handler.PathTokens.Count; i++)
+        {
             var token = handler.PathTokens.Get(i);
 
             tokens[token.TokenName] = token.TokenValue;
@@ -174,20 +204,27 @@ internal sealed class GeneratedRoutingTable {
     /// instance and global filter services, so routing to a handler for the first time fails
     /// without them even though nothing here executes a request.
     /// </summary>
-    private static IServiceProvider HandlerServiceProvider() {
+    private static IServiceProvider HandlerServiceProvider()
+    {
         var globalFilters = Substitute.For<IGlobalFilterRegistry>();
 
         // Returns a fresh mutable list per call: ExecutionHelper adds to what it is handed.
-        globalFilters.GetFilters(Arg.Any<IExecutionRequestHandlerInfo>())
+        globalFilters
+            .GetFilters(Arg.Any<IExecutionRequestHandlerInfo>())
             .Returns(_ => new List<RequestFilterInfo>());
 
         var serviceProvider = Substitute.For<IServiceProvider>();
 
         serviceProvider.GetService(typeof(IGlobalFilterRegistry)).Returns(globalFilters);
-        serviceProvider.GetService(typeof(IIOFilterProvider)).Returns(Substitute.For<IIOFilterProvider>());
-        serviceProvider.GetService(typeof(IInstanceFilterProvider))
+        serviceProvider
+            .GetService(typeof(IIOFilterProvider))
+            .Returns(Substitute.For<IIOFilterProvider>());
+        serviceProvider
+            .GetService(typeof(IInstanceFilterProvider))
             .Returns(Substitute.For<IInstanceFilterProvider>());
-        serviceProvider.GetService(typeof(IStringBuilderPool)).Returns(Substitute.For<IStringBuilderPool>());
+        serviceProvider
+            .GetService(typeof(IStringBuilderPool))
+            .Returns(Substitute.For<IStringBuilderPool>());
 
         return serviceProvider;
     }

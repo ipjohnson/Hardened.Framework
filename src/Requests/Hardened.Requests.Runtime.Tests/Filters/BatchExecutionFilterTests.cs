@@ -20,19 +20,27 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// is what is under test, not a transport.
 /// </para>
 /// </summary>
-public class BatchExecutionFilterTests {
-
+public class BatchExecutionFilterTests
+{
     /// <summary>
     /// A delivery of <c>n</c> items, each of which becomes a request carrying its own body.
     /// </summary>
-    private sealed class Delivery : TestExecutionRequest, IBatchRequest {
+    private sealed class Delivery : TestExecutionRequest, IBatchRequest
+    {
         private readonly List<int> _failed = [];
 
         public Delivery(
             int count,
             bool reportsItemFailures = true,
-            BatchFailureMode failureMode = BatchFailureMode.PerItem)
-            : base("QUEUE", "/orders", "application/json", new SimpleQueryStringCollection((IDictionary<string, string>?)null)) {
+            BatchFailureMode failureMode = BatchFailureMode.PerItem
+        )
+            : base(
+                "QUEUE",
+                "/orders",
+                "application/json",
+                new SimpleQueryStringCollection((IDictionary<string, string>?)null)
+            )
+        {
             Count = count;
             ReportsItemFailures = reportsItemFailures;
             FailureMode = failureMode;
@@ -50,8 +58,13 @@ public class BatchExecutionFilterTests {
 
         public IExecutionRequest ForItem(int index) =>
             new TestExecutionRequest(
-                "QUEUE", "/orders", "application/json", new SimpleQueryStringCollection((IDictionary<string, string>?)null)) {
-                Body = new MemoryStream(Encoding.UTF8.GetBytes($"item-{index}"))
+                "QUEUE",
+                "/orders",
+                "application/json",
+                new SimpleQueryStringCollection((IDictionary<string, string>?)null)
+            )
+            {
+                Body = new MemoryStream(Encoding.UTF8.GetBytes($"item-{index}")),
             };
     }
 
@@ -60,18 +73,21 @@ public class BatchExecutionFilterTests {
     /// and record it on the response rather than letting it propagate. A filter that only caught
     /// exceptions would see every failed item as handled and report nothing.
     /// </summary>
-    private sealed class Handler : IExecutionFilter {
+    private sealed class Handler : IExecutionFilter
+    {
         private readonly Func<string, Exception?> _outcome;
         private readonly bool _throws;
 
         public readonly List<string> Saw = [];
 
-        public Handler(Func<string, Exception?>? outcome = null, bool throws = false) {
+        public Handler(Func<string, Exception?>? outcome = null, bool throws = false)
+        {
             _outcome = outcome ?? (_ => null);
             _throws = throws;
         }
 
-        public Task Execute(IExecutionChain chain) {
+        public Task Execute(IExecutionChain chain)
+        {
             var body = chain.Context.Request.Body;
 
             body.Position = 0;
@@ -82,11 +98,13 @@ public class BatchExecutionFilterTests {
 
             var failure = _outcome(text);
 
-            if (failure == null) {
+            if (failure == null)
+            {
                 return Task.CompletedTask;
             }
 
-            if (_throws) {
+            if (_throws)
+            {
                 throw failure;
             }
 
@@ -97,7 +115,11 @@ public class BatchExecutionFilterTests {
     }
 
     private static async Task<Handler> Run(
-        IExecutionRequest request, Handler handler, params IExecutionFilter[] before) {
+        IExecutionRequest request,
+        Handler handler,
+        params IExecutionFilter[] before
+    )
+    {
         var context = Pipeline.Context().Clone(request: request);
 
         var filters = before.Append(handler).Prepend(new BatchExecutionFilter()).ToArray();
@@ -108,7 +130,8 @@ public class BatchExecutionFilterTests {
     }
 
     [Fact]
-    public async Task EveryItemRunsTheRestOfTheChain() {
+    public async Task EveryItemRunsTheRestOfTheChain()
+    {
         var handler = await Run(new Delivery(3), new Handler());
 
         Assert.Equal(["item-0", "item-1", "item-2"], handler.Saw);
@@ -119,10 +142,16 @@ public class BatchExecutionFilterTests {
     /// not a batch has to pass straight through.
     /// </summary>
     [Fact]
-    public async Task ARequestThatIsNotABatchRunsTheChainOnce() {
+    public async Task ARequestThatIsNotABatchRunsTheChainOnce()
+    {
         var request = new TestExecutionRequest(
-            "GET", "/orders", "application/json", new SimpleQueryStringCollection((IDictionary<string, string>?)null)) {
-            Body = new MemoryStream("plain"u8.ToArray())
+            "GET",
+            "/orders",
+            "application/json",
+            new SimpleQueryStringCollection((IDictionary<string, string>?)null)
+        )
+        {
+            Body = new MemoryStream("plain"u8.ToArray()),
         };
 
         var handler = await Run(request, new Handler());
@@ -134,7 +163,8 @@ public class BatchExecutionFilterTests {
     /// Not an error. Nothing was delivered, so nothing is handled and nothing is reported.
     /// </summary>
     [Fact]
-    public async Task AnEmptyDeliveryRunsTheChainOnceAndReportsNothing() {
+    public async Task AnEmptyDeliveryRunsTheChainOnceAndReportsNothing()
+    {
         var delivery = new Delivery(0);
 
         await Run(delivery, new Handler());
@@ -148,21 +178,30 @@ public class BatchExecutionFilterTests {
     /// would collect an empty list and SQS would mark every failed message handled.
     /// </summary>
     [Fact]
-    public async Task AFailureRecordedOnTheResponseIsCollected() {
+    public async Task AFailureRecordedOnTheResponseIsCollected()
+    {
         var delivery = new Delivery(3);
 
-        await Run(delivery, new Handler(text =>
-            text == "item-1" ? new InvalidOperationException("no") : null));
+        await Run(
+            delivery,
+            new Handler(text => text == "item-1" ? new InvalidOperationException("no") : null)
+        );
 
         Assert.Equal([1], delivery.FailedItems);
     }
 
     [Fact]
-    public async Task AFailureThrownIsCollected() {
+    public async Task AFailureThrownIsCollected()
+    {
         var delivery = new Delivery(3);
 
-        await Run(delivery, new Handler(
-            text => text == "item-2" ? new InvalidOperationException("no") : null, throws: true));
+        await Run(
+            delivery,
+            new Handler(
+                text => text == "item-2" ? new InvalidOperationException("no") : null,
+                throws: true
+            )
+        );
 
         Assert.Equal([2], delivery.FailedItems);
     }
@@ -172,11 +211,14 @@ public class BatchExecutionFilterTests {
     /// transport would treat them as delivered and drop them.
     /// </summary>
     [Fact]
-    public async Task EveryItemIsAttemptedAfterOneFails() {
+    public async Task EveryItemIsAttemptedAfterOneFails()
+    {
         var delivery = new Delivery(4);
 
-        var handler = await Run(delivery, new Handler(text =>
-            text == "item-0" ? new InvalidOperationException("no") : null));
+        var handler = await Run(
+            delivery,
+            new Handler(text => text == "item-0" ? new InvalidOperationException("no") : null)
+        );
 
         Assert.Equal(["item-0", "item-1", "item-2", "item-3"], handler.Saw);
         Assert.Equal([0], delivery.FailedItems);
@@ -193,11 +235,14 @@ public class BatchExecutionFilterTests {
     /// idempotent, and it applies item 3 before the replay of item 0.
     /// </remarks>
     [Fact]
-    public async Task ACheckpointDeliveryStopsAtTheFirstFailure() {
+    public async Task ACheckpointDeliveryStopsAtTheFirstFailure()
+    {
         var delivery = new Delivery(4, failureMode: BatchFailureMode.Checkpoint);
 
-        var handler = await Run(delivery, new Handler(text =>
-            text == "item-0" ? new InvalidOperationException("no") : null));
+        var handler = await Run(
+            delivery,
+            new Handler(text => text == "item-0" ? new InvalidOperationException("no") : null)
+        );
 
         Assert.Equal(["item-0"], handler.Saw);
         Assert.Equal([0], delivery.FailedItems);
@@ -211,11 +256,14 @@ public class BatchExecutionFilterTests {
     /// successful, which advances the shard past the item that failed and loses it.
     /// </remarks>
     [Fact]
-    public async Task ACheckpointDeliveryRunsUpToTheFailureAndReportsIt() {
+    public async Task ACheckpointDeliveryRunsUpToTheFailureAndReportsIt()
+    {
         var delivery = new Delivery(5, failureMode: BatchFailureMode.Checkpoint);
 
-        var handler = await Run(delivery, new Handler(text =>
-            text == "item-2" ? new InvalidOperationException("no") : null));
+        var handler = await Run(
+            delivery,
+            new Handler(text => text == "item-2" ? new InvalidOperationException("no") : null)
+        );
 
         Assert.Equal(["item-0", "item-1", "item-2"], handler.Saw);
         Assert.Equal([2], delivery.FailedItems);
@@ -225,7 +273,8 @@ public class BatchExecutionFilterTests {
     /// A checkpoint delivery that fails nothing is not stopped early.
     /// </summary>
     [Fact]
-    public async Task ACheckpointDeliveryRunsEveryItemWhenNoneFail() {
+    public async Task ACheckpointDeliveryRunsEveryItemWhenNoneFail()
+    {
         var delivery = new Delivery(3, failureMode: BatchFailureMode.Checkpoint);
 
         var handler = await Run(delivery, new Handler(_ => null));
@@ -239,12 +288,20 @@ public class BatchExecutionFilterTests {
     /// stop for: the first failure fails the invocation and the whole batch is redelivered.
     /// </summary>
     [Fact]
-    public async Task ACheckpointDeliveryStillRethrowsWhenItCannotReportItemFailures() {
-        var delivery = new Delivery(4, reportsItemFailures: false,
-                                    failureMode: BatchFailureMode.Checkpoint);
+    public async Task ACheckpointDeliveryStillRethrowsWhenItCannotReportItemFailures()
+    {
+        var delivery = new Delivery(
+            4,
+            reportsItemFailures: false,
+            failureMode: BatchFailureMode.Checkpoint
+        );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Run(delivery, new Handler(text =>
-            text == "item-1" ? new InvalidOperationException("no") : null)));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Run(
+                delivery,
+                new Handler(text => text == "item-1" ? new InvalidOperationException("no") : null)
+            )
+        );
 
         Assert.Empty(delivery.FailedItems);
     }
@@ -254,12 +311,16 @@ public class BatchExecutionFilterTests {
     /// thing that makes it redeliver. Recording the failure and returning would lose the message.
     /// </summary>
     [Fact]
-    public async Task AFailureIsRethrownWhenTheTransportCannotReportItemFailures() {
+    public async Task AFailureIsRethrownWhenTheTransportCannotReportItemFailures()
+    {
         var delivery = new Delivery(3, reportsItemFailures: false);
 
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            Run(delivery, new Handler(text =>
-                text == "item-1" ? new InvalidOperationException("no") : null)));
+            Run(
+                delivery,
+                new Handler(text => text == "item-1" ? new InvalidOperationException("no") : null)
+            )
+        );
 
         Assert.Equal("no", failure.Message);
         Assert.Empty(delivery.FailedItems);
@@ -270,7 +331,8 @@ public class BatchExecutionFilterTests {
     /// response rather than sharing the delivery's.
     /// </summary>
     [Fact]
-    public async Task AnItemDoesNotSeeTheFailureOfTheItemBeforeIt() {
+    public async Task AnItemDoesNotSeeTheFailureOfTheItemBeforeIt()
+    {
         var seen = new List<Exception?>();
 
         var delivery = new Delivery(3);
@@ -278,11 +340,13 @@ public class BatchExecutionFilterTests {
         await Run(
             delivery,
             new Handler(text => text == "item-0" ? new InvalidOperationException("no") : null),
-            new Pipeline.Inline(chain => {
+            new Pipeline.Inline(chain =>
+            {
                 seen.Add(chain.Context.Response.ExceptionValue);
 
                 return chain.Next();
-            }));
+            })
+        );
 
         Assert.Equal([null, null, null], seen);
     }
@@ -294,7 +358,8 @@ public class BatchExecutionFilterTests {
     /// fan out again.
     /// </summary>
     [Fact]
-    public async Task ASecondCopyOfTheFilterDoesNotFanOutTwice() {
+    public async Task ASecondCopyOfTheFilterDoesNotFanOutTwice()
+    {
         var handler = await Run(new Delivery(2), new Handler(), new BatchExecutionFilter());
 
         Assert.Equal(["item-0", "item-1"], handler.Saw);

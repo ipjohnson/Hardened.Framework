@@ -36,20 +36,23 @@ namespace Hardened.SourceGenerator.Shared;
 /// where <c>/</c> alone is the absence of one.
 /// </para>
 /// </remarks>
-public static class RoutePath {
-
-    public static string Combine(string? basePath, string? template) {
+public static class RoutePath
+{
+    public static string Combine(string? basePath, string? template)
+    {
         var start = basePath ?? "";
         var rest = template ?? "";
 
         // The base is the whole answer: no template, or one that only names the base's own root.
-        if (rest.Length == 0 || rest == "/") {
+        if (rest.Length == 0 || rest == "/")
+        {
             var root = start.TrimEnd('/');
 
             return root.Length == 0 ? "/" : root;
         }
 
-        if (start.Length == 0) {
+        if (start.Length == 0)
+        {
             return rest[0] == '/' ? rest : "/" + rest;
         }
 

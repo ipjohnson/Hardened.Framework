@@ -21,44 +21,52 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// nothing declares, which <c>RouteConstraintTests</c> covers.
 /// </para>
 /// </summary>
-public class RouteTokenSyntaxTests {
+public class RouteTokenSyntaxTests
+{
     private const string DiagnosticId = "HRDR002";
 
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),       // Hardened.Web.Runtime
-        typeof(FromBodyAttribute)   // Hardened.Requests.Abstract
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
     ];
 
     private static GeneratorResult Generate(string route) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-                    public class ItemController {
-                        [Get("{{route}}")]
-                        public string ItemById(string id) => id;
-                    }
-                    """
+                public class ItemController {
+                    [Get("{{route}}")]
+                    public string ItemById(string id) => id;
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
-    private static Diagnostic Reported(string route) {
+    private static Diagnostic Reported(string route)
+    {
         var result = Generate(route);
 
-        var diagnostic = result.GeneratorDiagnostics
-            .SingleOrDefault(reported => reported.Id == DiagnosticId);
+        var diagnostic = result.GeneratorDiagnostics.SingleOrDefault(reported =>
+            reported.Id == DiagnosticId
+        );
 
-        Assert.True(diagnostic != null,
-            $"'{route}' reported no {DiagnosticId}. Reported: " +
-            string.Join(", ", result.GeneratorDiagnostics.Select(reported => reported.Id)));
+        Assert.True(
+            diagnostic != null,
+            $"'{route}' reported no {DiagnosticId}. Reported: "
+                + string.Join(", ", result.GeneratorDiagnostics.Select(reported => reported.Id))
+        );
 
         return diagnostic!;
     }
@@ -70,7 +78,8 @@ public class RouteTokenSyntaxTests {
     [InlineData("/items/}")]
     [InlineData("/items/{}")]
     [InlineData("/items/{id}/parts/{id}")]
-    public void AnUnsupportedTokenFormIsAnError(string route) {
+    public void AnUnsupportedTokenFormIsAnError(string route)
+    {
         Assert.Equal(DiagnosticSeverity.Error, Reported(route).Severity);
     }
 
@@ -83,7 +92,8 @@ public class RouteTokenSyntaxTests {
     [InlineData("/items/{id=5}", "{id=5}")]
     [InlineData("/items/{id", "{id")]
     [InlineData("/items/{}", "{}")]
-    public void TheMessageNamesTheTokenAsWritten(string route, string token) {
+    public void TheMessageNamesTheTokenAsWritten(string route, string token)
+    {
         Assert.Contains(token, Reported(route).GetMessage());
     }
 
@@ -93,7 +103,8 @@ public class RouteTokenSyntaxTests {
     /// for equality to decide whether to regenerate.
     /// </summary>
     [Fact]
-    public void TheMessageNamesTheRouteAndHandler() {
+    public void TheMessageNamesTheRouteAndHandler()
+    {
         var message = Reported("/items/{id?}").GetMessage();
 
         Assert.Contains("/items/{id?}", message);
@@ -107,10 +118,12 @@ public class RouteTokenSyntaxTests {
     [InlineData("/items/{id:int}")]
     [InlineData("/items/{id}/parts/{partId}")]
     [InlineData("/items")]
-    public void SupportedFormsAreNotReported(string route) {
+    public void SupportedFormsAreNotReported(string route)
+    {
         Assert.DoesNotContain(
             Generate(route).GeneratorDiagnostics,
-            reported => reported.Id == DiagnosticId);
+            reported => reported.Id == DiagnosticId
+        );
     }
 
     /// <summary>
@@ -118,9 +131,10 @@ public class RouteTokenSyntaxTests {
     /// discover the second.
     /// </summary>
     [Fact]
-    public void EveryUnsupportedTokenInARouteIsReported() {
-        var reported = Generate("/items/{id?}/parts/{partId=5}").GeneratorDiagnostics
-            .Where(diagnostic => diagnostic.Id == DiagnosticId)
+    public void EveryUnsupportedTokenInARouteIsReported()
+    {
+        var reported = Generate("/items/{id?}/parts/{partId=5}")
+            .GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == DiagnosticId)
             .ToArray();
 
         Assert.Equal(2, reported.Length);
@@ -133,10 +147,14 @@ public class RouteTokenSyntaxTests {
     /// CS0246s.
     /// </summary>
     [Fact]
-    public void TheHandlerIsStillEmitted() {
+    public void TheHandlerIsStillEmitted()
+    {
         var result = Generate("/items/{id?}");
 
-        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("ItemController_ItemById"));
+        Assert.Contains(
+            result.GeneratedSources.Keys,
+            key => key.Contains("ItemController_ItemById")
+        );
     }
 
     #region a template that is not well formed
@@ -147,7 +165,8 @@ public class RouteTokenSyntaxTests {
     /// to bind was read from the request body instead.
     /// </summary>
     [Fact]
-    public void AnUnclosedTokenSaysWhatItCostsAndHowToFixIt() {
+    public void AnUnclosedTokenSaysWhatItCostsAndHowToFixIt()
+    {
         var message = Reported("/items/{id").GetMessage();
 
         Assert.Contains("no partner", message);
@@ -158,7 +177,8 @@ public class RouteTokenSyntaxTests {
     /// A closing brace with no opening one is the same mistake seen from the other end.
     /// </summary>
     [Fact]
-    public void AStrayClosingBraceIsReported() {
+    public void AStrayClosingBraceIsReported()
+    {
         Assert.Equal(DiagnosticSeverity.Error, Reported("/items/}").Severity);
     }
 
@@ -168,7 +188,8 @@ public class RouteTokenSyntaxTests {
     [Theory]
     [InlineData("/items/{}")]
     [InlineData("/items/{:int}")]
-    public void AnUnnamedTokenIsReported(string route) {
+    public void AnUnnamedTokenIsReported(string route)
+    {
         Assert.Contains("binds nothing", Reported(route).GetMessage());
     }
 
@@ -177,7 +198,8 @@ public class RouteTokenSyntaxTests {
     /// request sends ever reaches it.
     /// </summary>
     [Fact]
-    public void ANameDeclaredTwiceIsReported() {
+    public void ANameDeclaredTwiceIsReported()
+    {
         var message = Reported("/items/{id}/parts/{id}").GetMessage();
 
         Assert.Contains("declared twice", message);
@@ -188,10 +210,12 @@ public class RouteTokenSyntaxTests {
     /// Two tokens that differ are not a duplicate, which is the ordinary shape of a nested route.
     /// </summary>
     [Fact]
-    public void TwoDistinctTokensAreNotADuplicate() {
+    public void TwoDistinctTokensAreNotADuplicate()
+    {
         Assert.DoesNotContain(
             Generate("/items/{id}/parts/{partId}").GeneratorDiagnostics,
-            reported => reported.Id == DiagnosticId);
+            reported => reported.Id == DiagnosticId
+        );
     }
 
     #endregion

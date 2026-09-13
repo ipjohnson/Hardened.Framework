@@ -1,6 +1,6 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
-using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -8,13 +8,18 @@ using Newtonsoft.Json;
 namespace Hardened.Requests.Serializers.Newtonsoft.Impl;
 
 [TransientService]
-public class NewtonsoftDeserializer : IRequestDeserializer {
+public class NewtonsoftDeserializer : IRequestDeserializer
+{
     private readonly IMemoryStreamPool _memoryStreamPool;
     private readonly ISharedSerializer _sharedSerializer;
     private readonly ILogger<NewtonsoftDeserializer> _logger;
 
-    public NewtonsoftDeserializer(IMemoryStreamPool memoryStreamPool, ISharedSerializer sharedSerializer,
-        ILogger<NewtonsoftDeserializer> logger) {
+    public NewtonsoftDeserializer(
+        IMemoryStreamPool memoryStreamPool,
+        ISharedSerializer sharedSerializer,
+        ILogger<NewtonsoftDeserializer> logger
+    )
+    {
         _memoryStreamPool = memoryStreamPool;
         _sharedSerializer = sharedSerializer;
         _logger = logger;
@@ -33,7 +38,8 @@ public class NewtonsoftDeserializer : IRequestDeserializer {
     /// </remarks>
     public int Order => (int)RequestDeserializerOrder.Specialized + 1;
 
-    public bool CanProcessContext(IExecutionContext context) {
+    public bool CanProcessContext(IExecutionContext context)
+    {
         return context.Request.ContentType?.Contains("application/json") ?? false;
     }
 
@@ -66,8 +72,10 @@ public class NewtonsoftDeserializer : IRequestDeserializer {
     /// carried until 2026-08-12.
     /// </para>
     /// </remarks>
-    public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) {
-        try {
+    public async ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context)
+    {
+        try
+        {
             using var buffer = _memoryStreamPool.Get();
 
             await context.Request.Body.CopyToAsync(buffer.Item);
@@ -79,7 +87,8 @@ public class NewtonsoftDeserializer : IRequestDeserializer {
 
             return _sharedSerializer.Serializer.Deserialize<T>(jsonReader);
         }
-        catch (Exception exp) {
+        catch (Exception exp)
+        {
             _logger.LogError(exp, "Newtonsoft deserializer threw {Message}", exp.Message);
 
             throw;

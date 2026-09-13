@@ -1,7 +1,7 @@
 using Hardened.Generation.Models;
 using Hardened.SourceGeneration.Testing;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -13,9 +13,10 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// in detail and the generated code contained no trace of either — there was no way to produce the
 /// response the document promised.
 /// </remarks>
-public class DeclaredErrorTests {
-
-    private static OperationModel Operation() {
+public class DeclaredErrorTests
+{
+    private static OperationModel Operation()
+    {
         var model = OpenApiSpecParser.Parse(Specs.DeclaredErrors, "test", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -24,14 +25,16 @@ public class DeclaredErrorTests {
     }
 
     [Fact]
-    public void EveryDeclaredErrorResponseIsParsed() {
+    public void EveryDeclaredErrorResponseIsParsed()
+    {
         var errors = Operation().ErrorResponses;
 
         Assert.Equal(new[] { 404, 409, 503 }, errors.Select(e => e.StatusCode).ToArray());
     }
 
     [Fact]
-    public void AnErrorResponseKeepsItsPayloadAndDescription() {
+    public void AnErrorResponseKeepsItsPayloadAndDescription()
+    {
         var notFound = Operation().ErrorResponses.First(e => e.StatusCode == 404);
 
         Assert.Equal("#/components/schemas/ApiError", notFound.Ref);
@@ -40,7 +43,8 @@ public class DeclaredErrorTests {
 
     /// <summary>The success response is untouched by any of this.</summary>
     [Fact]
-    public void TheSuccessResponseIsUnchanged() {
+    public void TheSuccessResponseIsUnchanged()
+    {
         var operation = Operation();
 
         Assert.Equal(200, operation.SuccessStatusCode);
@@ -58,8 +62,11 @@ public class DeclaredErrorTests {
     /// type's identity, so the whole of what they were was an integer and a payload type.
     /// </remarks>
     [Fact]
-    public void AnUnnamedDeclaredErrorGeneratesNothing() {
-        var generated = OpenApiGenerator.Run(Specs.DeclaredErrors).AssertNoErrors()
+    public void AnUnnamedDeclaredErrorGeneratesNothing()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.DeclaredErrors)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         Assert.DoesNotContain("Exception", generated);
@@ -75,13 +82,17 @@ public class DeclaredErrorTests {
     /// consumer's assembly.
     /// </remarks>
     [Fact]
-    public void TheInterfaceSaysWhatTheOperationThrows() {
-        var generated = OpenApiGenerator.Run(Specs.DeclaredErrors).AssertNoErrors()
+    public void TheInterfaceSaysWhatTheOperationThrows()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.DeclaredErrors)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         Assert.Contains(
             "Throws NotFound&lt;ApiError&gt;, Conflict&lt;ApiError&gt;, ServiceUnavailable.",
-            generated);
+            generated
+        );
     }
 
     /// <summary>
@@ -94,8 +105,11 @@ public class DeclaredErrorTests {
     /// under two names, which is the defect this whole change is about.
     /// </remarks>
     [Fact]
-    public void ANamedErrorGetsOneTypeForEveryOperationThatDeclaresIt() {
-        var generated = OpenApiGenerator.Run(Specs.NamedErrorResponses).AssertNoErrors()
+    public void ANamedErrorGetsOneTypeForEveryOperationThatDeclaresIt()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.NamedErrorResponses)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         Assert.Contains("public partial class PetMissingException", generated);
@@ -112,14 +126,21 @@ public class DeclaredErrorTests {
     /// the other direction.
     /// </summary>
     [Fact]
-    public void TwoNamedErrorsSharingASchemaAreTwoTypes() {
-        var generated = OpenApiGenerator.Run(Specs.NamedErrorResponses).AssertNoErrors()
+    public void TwoNamedErrorsSharingASchemaAreTwoTypes()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.NamedErrorResponses)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         Assert.Contains(
-            "public PetMissingException(global::TestNamespace.Models.ApiError value)", generated);
+            "public PetMissingException(global::TestNamespace.Models.ApiError value)",
+            generated
+        );
         Assert.Contains(
-            "public PetLockedException(global::TestNamespace.Models.ApiError value)", generated);
+            "public PetLockedException(global::TestNamespace.Models.ApiError value)",
+            generated
+        );
     }
 
     /// <summary>
@@ -139,8 +160,11 @@ public class DeclaredErrorTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void ADeclaredNotFoundMakesTheSuccessTypeNullable() {
-        var generated = OpenApiGenerator.Run(Specs.DeclaredErrors).AssertNoErrors()
+    public void ADeclaredNotFoundMakesTheSuccessTypeNullable()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.DeclaredErrors)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
         Assert.Contains("Task<global::TestNamespace.Models.Pet?> GetPet(string petId);", generated);
@@ -155,8 +179,10 @@ public class DeclaredErrorTests {
     /// the declared error needed no generated type to be answerable.
     /// </remarks>
     [Fact]
-    public void AHandlerCanThrowTheDeclaredError() {
-        OpenApiGenerator.Run(
+    public void AHandlerCanThrowTheDeclaredError()
+    {
+        OpenApiGenerator
+            .Run(
                 Specs.DeclaredErrors,
                 OpenApiGenerator.EntryPointWithHandler(
                     """
@@ -171,7 +197,9 @@ public class DeclaredErrorTests {
                             throw new ServiceUnavailable().AsException();
                         }
                     }
-                    """))
+                    """
+                )
+            )
             .AssertNoErrors();
     }
 
@@ -179,8 +207,10 @@ public class DeclaredErrorTests {
     /// And a handler throwing a named one, which is the type that is still generated.
     /// </summary>
     [Fact]
-    public void AHandlerCanThrowANamedError() {
-        OpenApiGenerator.Run(
+    public void AHandlerCanThrowANamedError()
+    {
+        OpenApiGenerator
+            .Run(
                 Specs.NamedErrorResponses,
                 OpenApiGenerator.EntryPointWithHandler(
                     """
@@ -198,7 +228,9 @@ public class DeclaredErrorTests {
                             throw new PetMissingException(new ApiError("not_found", "no such pet"));
                         }
                     }
-                    """))
+                    """
+                )
+            )
             .AssertNoErrors();
     }
 
@@ -212,7 +244,8 @@ public class DeclaredErrorTests {
     /// and there is no single exception an <c>ApiError</c> means - those two stay written out.
     /// </remarks>
     [Fact]
-    public void ANamedErrorsBodyCanThrowItself() {
+    public void ANamedErrorsBodyCanThrowItself()
+    {
         var result = OpenApiGenerator.Run(
             Specs.NamedErrorResponses,
             OpenApiGenerator.EntryPointWithHandler(
@@ -225,7 +258,9 @@ public class DeclaredErrorTests {
                     public Task<string> GetPetLabel(string petId) =>
                         throw new PetMissingException(new ApiError("not_found", "no such pet"));
                 }
-                """));
+                """
+            )
+        );
 
         result.AssertNoErrors();
 
@@ -238,17 +273,28 @@ public class DeclaredErrorTests {
 
     /// <summary>A response with no declared body takes no payload argument.</summary>
     [Fact]
-    public void AnErrorWithNoPayloadTakesNoArgument() {
-        var generated = OpenApiGenerator.Run(Specs.NamedErrorResponses).AssertNoErrors()
+    public void AnErrorWithNoPayloadTakesNoArgument()
+    {
+        var generated = OpenApiGenerator
+            .Run(Specs.NamedErrorResponses)
+            .AssertNoErrors()
             .SourceContaining("petstore.g.cs");
 
-        var undented = string.Join("\n",
-            generated.Replace("\r\n", "\n").Split('\n').Select(line => line.Trim()));
+        var undented = string.Join(
+            "\n",
+            generated.Replace("\r\n", "\n").Split('\n').Select(line => line.Trim())
+        );
 
         Assert.Contains("public DrainingException()\n: base(503)", undented);
 
         // The ones that do declare a body get typed access to it.
-        Assert.Contains("public PetMissingException(global::TestNamespace.Models.ApiError value)\n: base(404, value)", undented);
-        Assert.Contains("public global::TestNamespace.Models.ApiError Body => (global::TestNamespace.Models.ApiError)Value!;", undented);
+        Assert.Contains(
+            "public PetMissingException(global::TestNamespace.Models.ApiError value)\n: base(404, value)",
+            undented
+        );
+        Assert.Contains(
+            "public global::TestNamespace.Models.ApiError Body => (global::TestNamespace.Models.ApiError)Value!;",
+            undented
+        );
     }
 }

@@ -18,9 +18,10 @@ namespace Hardened.Generation.Document;
 /// written as itself. A reviewer reading the file sees <c>café</c>, not <c>café</c>.
 /// </para>
 /// </remarks>
-internal static class JsonTreeWriter {
-
-    public static string WriteIndented(JsonNode node) {
+internal static class JsonTreeWriter
+{
+    public static string WriteIndented(JsonNode node)
+    {
         var builder = new StringBuilder();
 
         Write(builder, node, 0);
@@ -30,8 +31,10 @@ internal static class JsonTreeWriter {
         return builder.ToString();
     }
 
-    private static void Write(StringBuilder builder, JsonNode node, int depth) {
-        switch (node) {
+    private static void Write(StringBuilder builder, JsonNode node, int depth)
+    {
+        switch (node)
+        {
             case JsonObject obj:
                 WriteObject(builder, obj, depth);
                 break;
@@ -53,8 +56,10 @@ internal static class JsonTreeWriter {
         }
     }
 
-    private static void WriteObject(StringBuilder builder, JsonObject obj, int depth) {
-        if (obj.Members.Count == 0) {
+    private static void WriteObject(StringBuilder builder, JsonObject obj, int depth)
+    {
+        if (obj.Members.Count == 0)
+        {
             builder.Append("{}");
 
             return;
@@ -62,7 +67,8 @@ internal static class JsonTreeWriter {
 
         builder.Append('{');
 
-        for (var index = 0; index < obj.Members.Count; index++) {
+        for (var index = 0; index < obj.Members.Count; index++)
+        {
             builder.Append(index == 0 ? "\n" : ",\n");
             Indent(builder, depth + 1);
             WriteString(builder, obj.Members[index].Key);
@@ -75,8 +81,10 @@ internal static class JsonTreeWriter {
         builder.Append('}');
     }
 
-    private static void WriteArray(StringBuilder builder, JsonArray array, int depth) {
-        if (array.Items.Count == 0) {
+    private static void WriteArray(StringBuilder builder, JsonArray array, int depth)
+    {
+        if (array.Items.Count == 0)
+        {
             builder.Append("[]");
 
             return;
@@ -84,7 +92,8 @@ internal static class JsonTreeWriter {
 
         builder.Append('[');
 
-        for (var index = 0; index < array.Items.Count; index++) {
+        for (var index = 0; index < array.Items.Count; index++)
+        {
             builder.Append(index == 0 ? "\n" : ",\n");
             Indent(builder, depth + 1);
             Write(builder, array.Items[index], depth + 1);
@@ -95,7 +104,8 @@ internal static class JsonTreeWriter {
         builder.Append(']');
     }
 
-    private static void Indent(StringBuilder builder, int depth) {
+    private static void Indent(StringBuilder builder, int depth)
+    {
         builder.Append(' ', depth * 2);
     }
 
@@ -103,23 +113,44 @@ internal static class JsonTreeWriter {
     /// The JSON escaping of <paramref name="value"/>, quotes included. Shared with the YAML writer,
     /// whose double-quoted scalar takes the same escapes.
     /// </summary>
-    public static void WriteString(StringBuilder builder, string value) {
+    public static void WriteString(StringBuilder builder, string value)
+    {
         builder.Append('"');
 
-        foreach (var ch in value) {
-            switch (ch) {
-                case '"': builder.Append("\\\""); break;
-                case '\\': builder.Append("\\\\"); break;
-                case '\n': builder.Append("\\n"); break;
-                case '\r': builder.Append("\\r"); break;
-                case '\t': builder.Append("\\t"); break;
-                case '\b': builder.Append("\\b"); break;
-                case '\f': builder.Append("\\f"); break;
+        foreach (var ch in value)
+        {
+            switch (ch)
+            {
+                case '"':
+                    builder.Append("\\\"");
+                    break;
+                case '\\':
+                    builder.Append("\\\\");
+                    break;
+                case '\n':
+                    builder.Append("\\n");
+                    break;
+                case '\r':
+                    builder.Append("\\r");
+                    break;
+                case '\t':
+                    builder.Append("\\t");
+                    break;
+                case '\b':
+                    builder.Append("\\b");
+                    break;
+                case '\f':
+                    builder.Append("\\f");
+                    break;
                 default:
-                    if (ch < ' ') {
-                        builder.Append("\\u").Append(((int)ch).ToString("x4", CultureInfo.InvariantCulture));
+                    if (ch < ' ')
+                    {
+                        builder
+                            .Append("\\u")
+                            .Append(((int)ch).ToString("x4", CultureInfo.InvariantCulture));
                     }
-                    else {
+                    else
+                    {
                         builder.Append(ch);
                     }
 

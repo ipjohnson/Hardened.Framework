@@ -13,13 +13,19 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// second implementation, not that this one is patched to match.
 /// </para>
 /// </summary>
-public class SpecRouteCorrectnessTests {
-    private static string Generate(string scenario) {
+public class SpecRouteCorrectnessTests
+{
+    private static string Generate(string scenario)
+    {
         var (appModel, handlers) = SpecRouteCorpus.Build(scenario);
 
         return SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            appModel,
+            handlers,
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
     }
 
     /// <summary>
@@ -28,7 +34,8 @@ public class SpecRouteCorrectnessTests {
     /// <c>/files/{*path}</c> — it is matched as though the token were an ordinary single segment.
     /// </summary>
     [Fact]
-    public void CatchAll_DoesNotRejectARemainderContainingASeparator() {
+    public void CatchAll_DoesNotRejectARemainderContainingASeparator()
+    {
         var result = Generate("catch-all");
 
         Assert.DoesNotContain("IndexOf('/') >= 0", result);
@@ -39,7 +46,8 @@ public class SpecRouteCorrectnessTests {
     /// the name gives the handler a parameter named <c>*path</c>, which nothing declares.
     /// </summary>
     [Fact]
-    public void CatchAll_BindsTheTokenWithoutTheMarker() {
+    public void CatchAll_BindsTheTokenWithoutTheMarker()
+    {
         var result = Generate("catch-all");
 
         Assert.DoesNotContain("\"*path\"", result);
@@ -52,7 +60,8 @@ public class SpecRouteCorrectnessTests {
     /// match allocates on every request instead — which a behavioural test cannot see.
     /// </summary>
     [Fact]
-    public void Tokens_AreWrittenIntoAStaticNamesArray() {
+    public void Tokens_AreWrittenIntoAStaticNamesArray()
+    {
         var result = Generate("single-token");
 
         Assert.Contains("_pathTokenNames", result);

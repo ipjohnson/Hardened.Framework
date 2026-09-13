@@ -33,8 +33,8 @@ namespace Hardened.Generation.Models;
 /// override is item metadata away if one is ever wanted.
 /// </para>
 /// </remarks>
-public enum SpecResponseModel {
-
+public enum SpecResponseModel
+{
     /// <summary>
     /// <c>Task&lt;Pet&gt;</c>, with declared errors thrown. What an unset
     /// <c>$(HardenedResponseModel)</c> still means, so a project scaffolded before the property
@@ -52,5 +52,5 @@ public enum SpecResponseModel {
     /// <summary>
     /// The same, with the container declared as a C# 15 language union.
     /// </summary>
-    Union
+    Union,
 }

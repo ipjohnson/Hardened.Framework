@@ -3,8 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Streaming;
 
-public static class StreamingServiceCollectionExtensions {
-
+public static class StreamingServiceCollectionExtensions
+{
     /// <summary>
     /// Amends the streaming configuration.
     /// </summary>
@@ -22,18 +22,26 @@ public static class StreamingServiceCollectionExtensions {
     /// module registers - the same shape as <c>ConfigureCompression</c>.
     /// </remarks>
     public static IServiceCollection ConfigureStreaming(
-        this IServiceCollection services, Action<StreamingConfiguration> configure) {
+        this IServiceCollection services,
+        Action<StreamingConfiguration> configure
+    )
+    {
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
                 Array.Empty<IConfigurationValueProvider>(),
-                new IConfigurationValueAmender[] {
+                new IConfigurationValueAmender[]
+                {
                     new SimpleConfigurationValueAmender<StreamingConfiguration>(
-                        (_, configuration) => {
+                        (_, configuration) =>
+                        {
                             configure(configuration);
 
                             return configuration;
-                        })
-                }));
+                        }
+                    ),
+                }
+            )
+        );
 
         return services;
     }

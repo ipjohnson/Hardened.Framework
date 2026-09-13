@@ -20,15 +20,16 @@ namespace Hardened.Library.SourceGenerator;
 /// <c>Models/Request</c>.
 /// </para>
 /// </remarks>
-internal static class MissingRoutingGenerator {
-
+internal static class MissingRoutingGenerator
+{
     /// <summary>The attributes a hand-written route is declared with.</summary>
-    public static readonly string[] VerbAttributes = {
+    public static readonly string[] VerbAttributes =
+    {
         "Hardened.Web.Runtime.Attributes.GetAttribute",
         "Hardened.Web.Runtime.Attributes.PostAttribute",
         "Hardened.Web.Runtime.Attributes.PutAttribute",
         "Hardened.Web.Runtime.Attributes.PatchAttribute",
-        "Hardened.Web.Runtime.Attributes.DeleteAttribute"
+        "Hardened.Web.Runtime.Attributes.DeleteAttribute",
     };
 
     /// <summary>
@@ -41,16 +42,17 @@ internal static class MissingRoutingGenerator {
     /// Built per call rather than held in a static field: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "No routing generator is compiling this assembly's routes",
-        messageFormat:
-        "'{0}' declares routes and nothing in this project turns them into a routing table, so " +
-        "every one of them answers 404 at run time. Reference Hardened.Web.SourceGenerator as an " +
-        "analyzer, or drop the route attributes if this assembly is not meant to serve them.",
-        category: "Hardened.Routing",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "No routing generator is compiling this assembly's routes",
+            messageFormat: "'{0}' declares routes and nothing in this project turns them into a routing table, so "
+                + "every one of them answers 404 at run time. Reference Hardened.Web.SourceGenerator as an "
+                + "analyzer, or drop the route attributes if this assembly is not meant to serve them.",
+            category: "Hardened.Routing",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// Reports the absence, having been handed the route declarations the compilation carries.
@@ -61,17 +63,22 @@ internal static class MissingRoutingGenerator {
     /// forty routes would otherwise produce forty copies of it.
     /// </param>
     public static void Report(
-        SourceProductionContext context, Compilation compilation,
-        IReadOnlyList<string> declaringTypes) {
-        if (declaringTypes.Count == 0 ||
-            compilation.GetTypeByMetadataName(RoutingGeneratorMarker.TypeName) is not null) {
+        SourceProductionContext context,
+        Compilation compilation,
+        IReadOnlyList<string> declaringTypes
+    )
+    {
+        if (
+            declaringTypes.Count == 0
+            || compilation.GetTypeByMetadataName(RoutingGeneratorMarker.TypeName) is not null
+        )
+        {
             return;
         }
 
         // Location.None, as everywhere else models are reported from: a syntax location would
         // travel through the incremental caches, which compare for equality to decide whether to
         // regenerate. The message carries the type instead.
-        context.ReportDiagnostic(Diagnostic.Create(
-            Descriptor(), Location.None, declaringTypes[0]));
+        context.ReportDiagnostic(Diagnostic.Create(Descriptor(), Location.None, declaringTypes[0]));
     }
 }

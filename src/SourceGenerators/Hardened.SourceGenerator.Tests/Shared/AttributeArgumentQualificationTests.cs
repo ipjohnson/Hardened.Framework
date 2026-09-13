@@ -20,8 +20,8 @@ namespace Hardened.SourceGenerator.Tests.Shared;
 /// position. <see cref="AStringContainingAnEqualsStaysPositional"/> is the sharpest of those.
 /// </para>
 /// </summary>
-public class AttributeArgumentQualificationTests {
-
+public class AttributeArgumentQualificationTests
+{
     private const string Attributes = """
         using System;
         using Hardened.Web.Runtime.Attributes;
@@ -60,20 +60,28 @@ public class AttributeArgumentQualificationTests {
         Attributes + Environment.NewLine + controller;
 
     private static string GenerateHandler(string attribute) =>
-        RequestGeneratorHarness.Generate(WithAttributes($$"""
-            public class OrderController {
-                [Get("/orders")]
-                {{attribute}}
-                public string All() => "x";
-            }
-            """)).AssertNoErrors().SourceContaining("All");
+        RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    $$"""
+                    public class OrderController {
+                        [Get("/orders")]
+                        {{attribute}}
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("All");
 
     /// <summary>
     /// The case the rewriter exists for: <c>AuditLevel.Warning</c> resolves in the consumer's file
     /// through its usings and resolves nowhere at all in the generated one.
     /// </summary>
     [Fact]
-    public void AnEnumMemberIsQualified() {
+    public void AnEnumMemberIsQualified()
+    {
         var source = GenerateHandler("[Audit(Level = AuditLevel.Warning)]");
 
         Assert.Contains("global::TestApp.AuditLevel.Warning", source);
@@ -85,7 +93,8 @@ public class AttributeArgumentQualificationTests {
     /// assign back to the property and reads as nothing.
     /// </summary>
     [Fact]
-    public void AFlagCombinationKeepsBothMemberNames() {
+    public void AFlagCombinationKeepsBothMemberNames()
+    {
         var source = GenerateHandler("[Audit(Level = AuditLevel.Warning | AuditLevel.Error)]");
 
         Assert.Contains("global::TestApp.AuditLevel.Warning", source);
@@ -93,7 +102,8 @@ public class AttributeArgumentQualificationTests {
     }
 
     [Fact]
-    public void AConstIsQualified() {
+    public void AConstIsQualified()
+    {
         var source = GenerateHandler("[Audit(Name = AuditDefaults.Source)]");
 
         Assert.Contains("global::TestApp.AuditDefaults.Source", source);
@@ -108,7 +118,8 @@ public class AttributeArgumentQualificationTests {
     /// rather than a diagnostic.
     /// </summary>
     [Fact]
-    public void ATypeOfArgumentDoesNotCrashTheGenerator() {
+    public void ATypeOfArgumentDoesNotCrashTheGenerator()
+    {
         var source = GenerateHandler("[Audit(Target = typeof(AuditAttribute))]");
 
         Assert.Contains("typeof(global::TestApp.AuditAttribute)", source);
@@ -119,7 +130,8 @@ public class AttributeArgumentQualificationTests {
     /// changes the result to nothing and only makes the output harder to read.
     /// </summary>
     [Fact]
-    public void NameofIsLeftAlone() {
+    public void NameofIsLeftAlone()
+    {
         var source = GenerateHandler("[Audit(Name = nameof(AuditAttribute))]");
 
         Assert.Contains("nameof(AuditAttribute)", source);
@@ -130,7 +142,8 @@ public class AttributeArgumentQualificationTests {
     /// would produce <c>A.global::A.B</c>.
     /// </summary>
     [Fact]
-    public void AQualifiedNameIsNotQualifiedTwice() {
+    public void AQualifiedNameIsNotQualifiedTwice()
+    {
         var source = GenerateHandler("[Audit(Level = AuditLevel.Warning)]");
 
         Assert.DoesNotContain("global::TestApp.global::", source);
@@ -144,22 +157,28 @@ public class AttributeArgumentQualificationTests {
     /// initializer the attribute does not have.
     /// </summary>
     [Fact]
-    public void AStringContainingAnEqualsStaysPositional() {
+    public void AStringContainingAnEqualsStaysPositional()
+    {
         var source = GenerateHandler("""[Audit("a=b")]""");
 
         Assert.Contains("""new global::TestApp.AuditAttribute("a=b")""", source);
     }
 
     [Fact]
-    public void APositionalEnumArgumentIsQualified() {
+    public void APositionalEnumArgumentIsQualified()
+    {
         var source = GenerateHandler("[Audit(AuditLevel.Error)]");
 
-        Assert.Contains("new global::TestApp.AuditAttribute(global::TestApp.AuditLevel.Error)", source);
+        Assert.Contains(
+            "new global::TestApp.AuditAttribute(global::TestApp.AuditLevel.Error)",
+            source
+        );
     }
 
     /// <summary>Named-argument syntax — <c>parameter: value</c> — keeps its label.</summary>
     [Fact]
-    public void ANamedArgumentKeepsItsLabel() {
+    public void ANamedArgumentKeepsItsLabel()
+    {
         var source = GenerateHandler("[Audit(level: AuditLevel.Error)]");
 
         Assert.Contains("level: global::TestApp.AuditLevel.Error", source);
@@ -170,7 +189,8 @@ public class AttributeArgumentQualificationTests {
     /// through rather than drop it.
     /// </summary>
     [Fact]
-    public void ALiteralIsCopiedThrough() {
+    public void ALiteralIsCopiedThrough()
+    {
         var source = GenerateHandler("""[Audit("plain")]""");
 
         Assert.Contains("""new global::TestApp.AuditAttribute("plain")""", source);
@@ -181,7 +201,8 @@ public class AttributeArgumentQualificationTests {
     /// either in the other's position compiles to something wrong rather than failing.
     /// </summary>
     [Fact]
-    public void AConstructorArgumentAndAPropertyAreEmittedSeparately() {
+    public void AConstructorArgumentAndAPropertyAreEmittedSeparately()
+    {
         var source = GenerateHandler("""[Audit("ctor", Level = AuditLevel.Error)]""");
 
         Assert.Contains("""new global::TestApp.AuditAttribute("ctor")""", source);

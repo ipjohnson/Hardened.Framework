@@ -16,31 +16,38 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// carry it. It is the same extension the document writer emits, so a code-first service's
 /// contract round-trips back into a service bounded the way it was.
 /// </remarks>
-public class TimeoutExtensionTests {
+public class TimeoutExtensionTests
+{
+    private static string Document(string operationExtras) =>
+        $$"""
+            openapi: 3.0.3
+            info: { title: Rates, version: '1.0' }
+            paths:
+              /rates:
+                get:
+                  operationId: readRates
+                  tags: [rates]
+            {{operationExtras}}
+                  responses:
+                    '200':
+                      description: OK
+                      content:
+                        application/json:
+                          schema: { type: string }
+            """;
 
-    private static string Document(string operationExtras) => $$"""
-        openapi: 3.0.3
-        info: { title: Rates, version: '1.0' }
-        paths:
-          /rates:
-            get:
-              operationId: readRates
-              tags: [rates]
-        {{operationExtras}}
-              responses:
-                '200':
-                  description: OK
-                  content:
-                    application/json:
-                      schema: { type: string }
-        """;
-
-    private static OperationModel Operation(string operationExtras) {
-        var model = OpenApiSpecParser.Parse(Document(operationExtras), "rates", CancellationToken.None);
+    private static OperationModel Operation(string operationExtras)
+    {
+        var model = OpenApiSpecParser.Parse(
+            Document(operationExtras),
+            "rates",
+            CancellationToken.None
+        );
 
         Assert.NotNull(model);
 
-        return model!.Services.SelectMany(service => service.Operations)
+        return model!
+            .Services.SelectMany(service => service.Operations)
             .Single(operation => operation.OperationId == "readRates");
     }
 
@@ -49,7 +56,8 @@ public class TimeoutExtensionTests {
     /// object with one member.
     /// </summary>
     [Fact]
-    public void ANumberIsTheBudgetOnItsOwn() {
+    public void ANumberIsTheBudgetOnItsOwn()
+    {
         var operation = Operation("      x-hardened-timeout: 2000");
 
         Assert.NotNull(operation.Timeout);
@@ -61,7 +69,8 @@ public class TimeoutExtensionTests {
     /// two front ends state the same thing.
     /// </summary>
     [Fact]
-    public void ABudgetStatingNoStatusAnswers504() {
+    public void ABudgetStatingNoStatusAnswers504()
+    {
         Assert.Equal(504, Operation("      x-hardened-timeout: 2000").Timeout!.Status);
         Assert.Equal(0, Operation("      x-hardened-timeout: 2000").Timeout!.RetryAfterSeconds);
     }
@@ -71,13 +80,16 @@ public class TimeoutExtensionTests {
     /// the only case with anything else to say.
     /// </summary>
     [Fact]
-    public void AnObjectCarriesTheStatusAndTheRetryAfter() {
-        var operation = Operation("""
+    public void AnObjectCarriesTheStatusAndTheRetryAfter()
+    {
+        var operation = Operation(
+            """
                   x-hardened-timeout:
                     milliseconds: 500
                     status: 503
                     retryAfterSeconds: 30
-            """);
+            """
+        );
 
         Assert.Equal(500, operation.Timeout!.Milliseconds);
         Assert.Equal(503, operation.Timeout.Status);
@@ -85,7 +97,8 @@ public class TimeoutExtensionTests {
     }
 
     [Fact]
-    public void AnOperationDeclaringNoDeadlineCarriesNone() {
+    public void AnOperationDeclaringNoDeadlineCarriesNone()
+    {
         Assert.Null(Operation("").Timeout);
     }
 
@@ -96,9 +109,11 @@ public class TimeoutExtensionTests {
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void ABudgetThatCannotMeanAnythingIsRefusedNamingTheOperation(int milliseconds) {
-        var failure = Assert.Throws<InvalidOperationException>(
-            () => Operation($"      x-hardened-timeout: {milliseconds}"));
+    public void ABudgetThatCannotMeanAnythingIsRefusedNamingTheOperation(int milliseconds)
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            Operation($"      x-hardened-timeout: {milliseconds}")
+        );
 
         Assert.Contains("readRates", failure.Message);
     }

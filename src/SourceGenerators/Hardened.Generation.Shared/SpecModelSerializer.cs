@@ -28,8 +28,8 @@ namespace Hardened.Generation;
 /// different C#, and collapsing them was the failure this format is shaped to avoid.
 /// </para>
 /// </remarks>
-internal static class SpecModelSerializer {
-
+internal static class SpecModelSerializer
+{
     /// <summary>
     /// Bumped when the format changes shape. The reader rejects anything else rather than guessing,
     /// because a half-understood model produces wrong code instead of an error.
@@ -75,7 +75,8 @@ internal static class SpecModelSerializer {
 
     private const char FieldSeparator = '\t';
 
-    public static string Write(ServiceSpecModel model) {
+    public static string Write(ServiceSpecModel model)
+    {
         var builder = new StringBuilder();
         builder.Append(Header).Append('\n');
 
@@ -96,7 +97,8 @@ internal static class SpecModelSerializer {
         spec.Add("InfoDescription", model.InfoDescription);
         spec.WriteTo(builder);
 
-        foreach (var scheme in model.SecuritySchemes) {
+        foreach (var scheme in model.SecuritySchemes)
+        {
             var record = new Record("secscheme");
             record.Add("Name", scheme.Name);
             record.Add("Json", scheme.Json);
@@ -106,26 +108,31 @@ internal static class SpecModelSerializer {
         // In the order the contract wrote them. A document's servers list is ordered - a reader
         // and a generated client take the first as the default - so sorting these the way the
         // schemes are sorted would choose a different default than the author did.
-        foreach (var server in model.Servers) {
+        foreach (var server in model.Servers)
+        {
             var record = new Record("server");
             record.Add("Url", server.Url);
             record.Add("Description", server.Description);
             record.WriteTo(builder);
         }
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             WriteSchema(builder, schema);
         }
 
-        foreach (var service in model.Services) {
+        foreach (var service in model.Services)
+        {
             WriteService(builder, service);
         }
 
-        foreach (var filterType in model.FilterTypes) {
+        foreach (var filterType in model.FilterTypes)
+        {
             WriteFilterType(builder, filterType);
         }
 
-        foreach (var validated in model.ValidatedOperations) {
+        foreach (var validated in model.ValidatedOperations)
+        {
             var record = new Record("validated");
             record.Add("OperationId", validated.OperationId);
             record.Add("InterfaceName", validated.InterfaceName);
@@ -135,7 +142,8 @@ internal static class SpecModelSerializer {
         return builder.ToString();
     }
 
-    public static ServiceSpecModel Read(string text) {
+    public static ServiceSpecModel Read(string text)
+    {
         var model = new ServiceSpecModel();
 
         SchemaModel? schema = null;
@@ -150,17 +158,22 @@ internal static class SpecModelSerializer {
 
         var sawHeader = false;
 
-        foreach (var rawLine in text.Split('\n')) {
+        foreach (var rawLine in text.Split('\n'))
+        {
             var line = rawLine.TrimEnd('\r');
 
-            if (line.Length == 0) {
+            if (line.Length == 0)
+            {
                 continue;
             }
 
-            if (!sawHeader) {
-                if (line != Header) {
+            if (!sawHeader)
+            {
+                if (line != Header)
+                {
                     throw new FormatException(
-                        $"Unrecognised spec model format. Expected '{Header}', found '{line}'.");
+                        $"Unrecognised spec model format. Expected '{Header}', found '{line}'."
+                    );
                 }
 
                 sawHeader = true;
@@ -169,10 +182,12 @@ internal static class SpecModelSerializer {
 
             var record = Record.Parse(line);
 
-            switch (record.Tag) {
+            switch (record.Tag)
+            {
                 case "spec":
                     model.FileName = record.String("FileName") ?? "";
-                    model.JsonTypeInfoResolverName = record.String("JsonTypeInfoResolverName") ?? "";
+                    model.JsonTypeInfoResolverName =
+                        record.String("JsonTypeInfoResolverName") ?? "";
                     model.ContentNegotiation = record.String("ContentNegotiation") ?? "";
                     model.ErrorBodies = record.String("ErrorBodies") ?? "";
                     model.ResponseModel = ParseResponseModel(record.String("ResponseModel"));
@@ -188,17 +203,23 @@ internal static class SpecModelSerializer {
                     break;
 
                 case "secscheme":
-                    model.SecuritySchemes.Add(new SecuritySchemeModel {
-                        Name = record.String("Name") ?? "",
-                        Json = record.String("Json") ?? ""
-                    });
+                    model.SecuritySchemes.Add(
+                        new SecuritySchemeModel
+                        {
+                            Name = record.String("Name") ?? "",
+                            Json = record.String("Json") ?? "",
+                        }
+                    );
                     break;
 
                 case "server":
-                    model.Servers.Add(new ServerModel {
-                        Url = record.String("Url") ?? "",
-                        Description = record.String("Description")
-                    });
+                    model.Servers.Add(
+                        new ServerModel
+                        {
+                            Url = record.String("Url") ?? "",
+                            Description = record.String("Description"),
+                        }
+                    );
                     break;
 
                 case "schema":
@@ -212,7 +233,8 @@ internal static class SpecModelSerializer {
                     // Only when it was written. An absent member name means the allocator did not
                     // run, and the model derives one - filling it with the wire value here would
                     // put "available" where "Available" belongs.
-                    if (record.String("Member") is { } enumMember) {
+                    if (record.String("Member") is { } enumMember)
+                    {
                         schema?.EnumMemberNames.Add(enumMember);
                     }
 
@@ -227,18 +249,22 @@ internal static class SpecModelSerializer {
                     break;
 
                 case "discriminator":
-                    schema?.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
-                        Value = record.String("Value") ?? "",
-                        Ref = record.String("Ref") ?? ""
-                    });
+                    schema?.DiscriminatorMapping.Add(
+                        new DiscriminatorMappingModel
+                        {
+                            Value = record.String("Value") ?? "",
+                            Ref = record.String("Ref") ?? "",
+                        }
+                    );
                     break;
 
                 case "service":
-                    service = new ServiceModel {
+                    service = new ServiceModel
+                    {
                         Tag = record.String("Tag") ?? "",
                         TagDescription = record.String("TagDescription"),
                         TypeBaseName = record.String("TypeBaseName") ?? "",
-                        DispatchHeader = record.String("DispatchHeader")
+                        DispatchHeader = record.String("DispatchHeader"),
                     };
                     model.Services.Add(service);
                     break;
@@ -255,47 +281,63 @@ internal static class SpecModelSerializer {
 
                 case "successresponse":
                     lastResponseHeaders = null;
-                    operation?.SuccessResponses.Add(new SuccessResponseModel {
-                        StatusCode = record.Int("StatusCode") ?? 0,
-                        Ref = record.String("Ref"),
-                        Type = record.String("Type"),
-                        Format = record.String("Format"),
-                        IsArray = record.Bool("IsArray"),
-                        ArrayItemsRef = record.String("ArrayItemsRef"),
-                        ArrayItemsType = record.String("ArrayItemsType"),
-                        ContentType = record.String("ContentType"),
-                        Description = record.String("Description"),
-                        HeadersOnPayload = record.Bool("HeadersOnPayload"),
-                    });
-                    lastResponseHeaders = operation?.SuccessResponses[operation.SuccessResponses.Count - 1].Headers;
+                    operation?.SuccessResponses.Add(
+                        new SuccessResponseModel
+                        {
+                            StatusCode = record.Int("StatusCode") ?? 0,
+                            Ref = record.String("Ref"),
+                            Type = record.String("Type"),
+                            Format = record.String("Format"),
+                            IsArray = record.Bool("IsArray"),
+                            ArrayItemsRef = record.String("ArrayItemsRef"),
+                            ArrayItemsType = record.String("ArrayItemsType"),
+                            ContentType = record.String("ContentType"),
+                            Description = record.String("Description"),
+                            HeadersOnPayload = record.Bool("HeadersOnPayload"),
+                        }
+                    );
+                    lastResponseHeaders = operation
+                        ?.SuccessResponses[operation.SuccessResponses.Count - 1]
+                        .Headers;
                     break;
 
                 case "errorresponse":
                     lastResponseHeaders = null;
-                    operation?.ErrorResponses.Add(new ErrorResponseModel {
-                        StatusCode = record.Int("StatusCode") ?? 0,
-                        Ref = record.String("Ref"),
-                        Description = record.String("Description"),
-                        Name = record.String("Name"),
-                        TypeName = record.String("TypeName"),
-                        ExceptionTypeName = record.String("ExceptionTypeName"),
-                    });
-                    lastResponseHeaders = operation?.ErrorResponses[operation.ErrorResponses.Count - 1].Headers;
+                    operation?.ErrorResponses.Add(
+                        new ErrorResponseModel
+                        {
+                            StatusCode = record.Int("StatusCode") ?? 0,
+                            Ref = record.String("Ref"),
+                            Description = record.String("Description"),
+                            Name = record.String("Name"),
+                            TypeName = record.String("TypeName"),
+                            ExceptionTypeName = record.String("ExceptionTypeName"),
+                        }
+                    );
+                    lastResponseHeaders = operation
+                        ?.ErrorResponses[operation.ErrorResponses.Count - 1]
+                        .Headers;
                     break;
 
                 // Belongs to the response above it rather than to the operation, so it is written
                 // immediately after its parent and read against a cursor. A respheader with no
                 // response before it is a corrupt file, not a header on nothing.
                 case "respheader":
-                    if (lastResponseHeaders == null) {
-                        throw new FormatException("A 'respheader' record appeared before any response.");
+                    if (lastResponseHeaders == null)
+                    {
+                        throw new FormatException(
+                            "A 'respheader' record appeared before any response."
+                        );
                     }
 
-                    lastResponseHeaders.Add(new ResponseHeaderModel {
-                        Name = record.String("Name") ?? "",
-                        ParameterName = record.String("ParameterName") ?? "",
-                        Description = record.String("Description"),
-                    });
+                    lastResponseHeaders.Add(
+                        new ResponseHeaderModel
+                        {
+                            Name = record.String("Name") ?? "",
+                            ParameterName = record.String("ParameterName") ?? "",
+                            Description = record.String("Description"),
+                        }
+                    );
                     break;
 
                 case "bodyprop":
@@ -311,35 +353,45 @@ internal static class SpecModelSerializer {
                 // a space rather than as one record each, which keeps a document declaring the same
                 // requirement on 200 operations from doubling the file.
                 case "authbranch":
-                    operation?.AuthorizationBranches.Add(new AuthorizationBranchModel {
-                        RequiresAuthentication = record.Bool("Authenticated"),
-                        Grants = Split(record.String("Grants")),
-                    });
+                    operation?.AuthorizationBranches.Add(
+                        new AuthorizationBranchModel
+                        {
+                            RequiresAuthentication = record.Bool("Authenticated"),
+                            Grants = Split(record.String("Grants")),
+                        }
+                    );
                     break;
 
                 case "filterinstance":
-                    filterInstance = new FilterInstanceModel {
+                    filterInstance = new FilterInstanceModel
+                    {
                         FilterTypeName = record.String("FilterTypeName") ?? "",
                     };
                     operation?.FilterInstances.Add(filterInstance);
                     break;
 
                 case "filtervalue":
-                    if (filterInstance is not null) {
-                        filterInstance.PropertyValues[record.String("Key") ?? ""] = record.String("Value") ?? "";
+                    if (filterInstance is not null)
+                    {
+                        filterInstance.PropertyValues[record.String("Key") ?? ""] =
+                            record.String("Value") ?? "";
                     }
 
                     break;
 
                 case "validated":
-                    model.ValidatedOperations.Add(new ValidatedOperationModel {
-                        OperationId = record.String("OperationId") ?? "",
-                        InterfaceName = record.String("InterfaceName") ?? "",
-                    });
+                    model.ValidatedOperations.Add(
+                        new ValidatedOperationModel
+                        {
+                            OperationId = record.String("OperationId") ?? "",
+                            InterfaceName = record.String("InterfaceName") ?? "",
+                        }
+                    );
                     break;
 
                 case "filtertype":
-                    filterType = new FilterTypeModel {
+                    filterType = new FilterTypeModel
+                    {
                         Name = record.String("Name") ?? "",
                         Namespace = record.String("Namespace") ?? "",
                         Generate = record.Bool("Generate"),
@@ -348,13 +400,16 @@ internal static class SpecModelSerializer {
                     break;
 
                 case "filterprop":
-                    filterType?.Properties.Add(new FilterTypePropertyModel {
-                        Name = record.String("Name") ?? "",
-                        CSharpType = record.String("CSharpType") ?? "string",
-                        Default = record.String("Default"),
-                        EnumType = record.String("EnumType"),
-                        EnumValues = record.Strings("EnumValues"),
-                    });
+                    filterType?.Properties.Add(
+                        new FilterTypePropertyModel
+                        {
+                            Name = record.String("Name") ?? "",
+                            CSharpType = record.String("CSharpType") ?? "string",
+                            Default = record.String("Default"),
+                            EnumType = record.String("EnumType"),
+                            EnumValues = record.Strings("EnumValues"),
+                        }
+                    );
                     break;
 
                 default:
@@ -362,14 +417,16 @@ internal static class SpecModelSerializer {
             }
         }
 
-        if (!sawHeader) {
+        if (!sawHeader)
+        {
             throw new FormatException("Spec model is empty; expected a format header.");
         }
 
         return model;
     }
 
-    private static void WriteSchema(StringBuilder builder, SchemaModel schema) {
+    private static void WriteSchema(StringBuilder builder, SchemaModel schema)
+    {
         var record = new Record("schema");
         record.Add("Name", schema.Name);
         record.Add("Kind", schema.Kind.ToString());
@@ -396,32 +453,38 @@ internal static class SpecModelSerializer {
         record.Add("OneOf", Encode(schema.OneOf));
         record.WriteTo(builder);
 
-        for (var i = 0; i < schema.EnumValues.Count; i++) {
+        for (var i = 0; i < schema.EnumValues.Count; i++)
+        {
             var enumValue = new Record("enumvalue");
             enumValue.Add("Value", schema.EnumValues[i]);
 
             // The allocated member name travels with the wire value; the generator side reads this
             // file and must not re-derive it.
-            enumValue.Add("Member",
-                i < schema.EnumMemberNames.Count ? schema.EnumMemberNames[i] : null);
+            enumValue.Add(
+                "Member",
+                i < schema.EnumMemberNames.Count ? schema.EnumMemberNames[i] : null
+            );
 
             enumValue.WriteTo(builder);
         }
 
-        foreach (var value in schema.Required) {
+        foreach (var value in schema.Required)
+        {
             var required = new Record("required");
             required.Add("Value", value);
             required.WriteTo(builder);
         }
 
-        foreach (var mapping in schema.DiscriminatorMapping) {
+        foreach (var mapping in schema.DiscriminatorMapping)
+        {
             var record2 = new Record("discriminator");
             record2.Add("Value", mapping.Value);
             record2.Add("Ref", mapping.Ref);
             record2.WriteTo(builder);
         }
 
-        foreach (var property in schema.Properties) {
+        foreach (var property in schema.Properties)
+        {
             WriteProperty(builder, "prop", property);
         }
     }
@@ -442,16 +505,24 @@ internal static class SpecModelSerializer {
             ? new List<string>()
             : new List<string>(value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
 
-    private static SchemaKind ReadSchemaKind(string? value) {
-        switch (value) {
-            case nameof(SchemaKind.Enum): return SchemaKind.Enum;
-            case nameof(SchemaKind.Array): return SchemaKind.Array;
-            case nameof(SchemaKind.Primitive): return SchemaKind.Primitive;
-            case nameof(SchemaKind.Dictionary): return SchemaKind.Dictionary;
+    private static SchemaKind ReadSchemaKind(string? value)
+    {
+        switch (value)
+        {
+            case nameof(SchemaKind.Enum):
+                return SchemaKind.Enum;
+            case nameof(SchemaKind.Array):
+                return SchemaKind.Array;
+            case nameof(SchemaKind.Primitive):
+                return SchemaKind.Primitive;
+            case nameof(SchemaKind.Dictionary):
+                return SchemaKind.Dictionary;
             // Read as an object before, which is what a union's branches not crossing the file
             // looked like from this side: a kind with nothing to hold.
-            case nameof(SchemaKind.OneOf): return SchemaKind.OneOf;
-            default: return SchemaKind.Object;
+            case nameof(SchemaKind.OneOf):
+                return SchemaKind.OneOf;
+            default:
+                return SchemaKind.Object;
         }
     }
 
@@ -459,8 +530,12 @@ internal static class SpecModelSerializer {
     /// A response's declared headers, written immediately after the response they belong to.
     /// </summary>
     private static void WriteResponseHeaders(
-        StringBuilder builder, List<ResponseHeaderModel> headers) {
-        foreach (var header in headers) {
+        StringBuilder builder,
+        List<ResponseHeaderModel> headers
+    )
+    {
+        foreach (var header in headers)
+        {
             var record = new Record("respheader");
             record.AddAlways("Name", header.Name);
             record.AddAlways("ParameterName", header.ParameterName);
@@ -469,29 +544,32 @@ internal static class SpecModelSerializer {
         }
     }
 
-    private static SchemaModel ReadSchema(Record record) => new() {
-        Name = record.String("Name") ?? "",
-        Kind = ReadSchemaKind(record.String("Kind")),
-        Description = record.String("Description"),
-        IsDeprecated = record.Bool("IsDeprecated"),
-        IsErrorShape = record.Bool("IsErrorShape"),
-        EnumMemberNamesAreDeclared = record.Bool("EnumMemberNamesAreDeclared"),
-        DiscriminatorPropertyName = record.String("DiscriminatorPropertyName"),
-        OneOf = Decode(record.Strings("OneOf")),
-        BaseRef = record.String("BaseRef"),
-        Type = record.String("Type"),
-        Format = record.String("Format"),
-        ArrayItemsRef = record.String("ArrayItemsRef"),
-        ArrayItemsType = record.String("ArrayItemsType"),
-        ArrayItemsFormat = record.String("ArrayItemsFormat"),
-        MinItems = record.Int("MinItems"),
-        MaxItems = record.Int("MaxItems"),
-        DictionaryValueType = record.String("DictionaryValueType"),
-        DictionaryValueRef = record.String("DictionaryValueRef"),
-        DictionaryValueFormat = record.String("DictionaryValueFormat"),
-    };
+    private static SchemaModel ReadSchema(Record record) =>
+        new()
+        {
+            Name = record.String("Name") ?? "",
+            Kind = ReadSchemaKind(record.String("Kind")),
+            Description = record.String("Description"),
+            IsDeprecated = record.Bool("IsDeprecated"),
+            IsErrorShape = record.Bool("IsErrorShape"),
+            EnumMemberNamesAreDeclared = record.Bool("EnumMemberNamesAreDeclared"),
+            DiscriminatorPropertyName = record.String("DiscriminatorPropertyName"),
+            OneOf = Decode(record.Strings("OneOf")),
+            BaseRef = record.String("BaseRef"),
+            Type = record.String("Type"),
+            Format = record.String("Format"),
+            ArrayItemsRef = record.String("ArrayItemsRef"),
+            ArrayItemsType = record.String("ArrayItemsType"),
+            ArrayItemsFormat = record.String("ArrayItemsFormat"),
+            MinItems = record.Int("MinItems"),
+            MaxItems = record.Int("MaxItems"),
+            DictionaryValueType = record.String("DictionaryValueType"),
+            DictionaryValueRef = record.String("DictionaryValueRef"),
+            DictionaryValueFormat = record.String("DictionaryValueFormat"),
+        };
 
-    private static void WriteProperty(StringBuilder builder, string tag, PropertyModel property) {
+    private static void WriteProperty(StringBuilder builder, string tag, PropertyModel property)
+    {
         var record = new Record(tag);
         record.Add("Name", property.Name);
         record.Add("HeaderName", property.HeaderName);
@@ -527,65 +605,73 @@ internal static class SpecModelSerializer {
         record.WriteTo(builder);
     }
 
-    private static List<string> Encode(List<ChoiceBranchModel> branches) {
+    private static List<string> Encode(List<ChoiceBranchModel> branches)
+    {
         var encoded = new List<string>(branches.Count);
 
-        foreach (var branch in branches) {
+        foreach (var branch in branches)
+        {
             encoded.Add(branch.Encoded);
         }
 
         return encoded;
     }
 
-    private static List<ChoiceBranchModel> Decode(List<string>? encoded) {
+    private static List<ChoiceBranchModel> Decode(List<string>? encoded)
+    {
         var branches = new List<ChoiceBranchModel>();
 
-        if (encoded == null) {
+        if (encoded == null)
+        {
             return branches;
         }
 
-        foreach (var value in encoded) {
+        foreach (var value in encoded)
+        {
             branches.Add(ChoiceBranchModel.Decode(value));
         }
 
         return branches;
     }
 
-    private static PropertyModel ReadProperty(Record record) => new() {
-        Name = record.String("Name") ?? "",
-        HeaderName = record.String("HeaderName"),
-        Description = record.String("Description"),
-        Type = record.String("Type"),
-        Format = record.String("Format"),
-        Ref = record.String("Ref"),
-        IsArray = record.Bool("IsArray"),
-        ArrayItemsRef = record.String("ArrayItemsRef"),
-        ArrayItemsType = record.String("ArrayItemsType"),
-        ArrayItemsFormat = record.String("ArrayItemsFormat"),
-        IsRequired = record.Bool("IsRequired"),
-        IsNullable = record.Bool("IsNullable"),
-        IsReadOnly = record.Bool("IsReadOnly"),
-        IsWriteOnly = record.Bool("IsWriteOnly"),
-        Default = record.String("Default"),
-        IsDictionary = record.Bool("IsDictionary"),
-        DictionaryValueType = record.String("DictionaryValueType"),
-        DictionaryValueRef = record.String("DictionaryValueRef"),
-        DictionaryValueFormat = record.String("DictionaryValueFormat"),
-        EnumValues = record.Strings("EnumValues"),
-        OneOf = Decode(record.Strings("OneOf")),
-        MinLength = record.Int("MinLength"),
-        MaxLength = record.Int("MaxLength"),
-        Minimum = record.Decimal("Minimum"),
-        Maximum = record.Decimal("Maximum"),
-        ExclusiveMinimum = record.Bool("ExclusiveMinimum"),
-        ExclusiveMaximum = record.Bool("ExclusiveMaximum"),
-        Pattern = record.String("Pattern"),
-        MinItems = record.Int("MinItems"),
-        MaxItems = record.Int("MaxItems"),
-        MessagePackIndex = record.Int("MessagePackIndex"),
-    };
+    private static PropertyModel ReadProperty(Record record) =>
+        new()
+        {
+            Name = record.String("Name") ?? "",
+            HeaderName = record.String("HeaderName"),
+            Description = record.String("Description"),
+            Type = record.String("Type"),
+            Format = record.String("Format"),
+            Ref = record.String("Ref"),
+            IsArray = record.Bool("IsArray"),
+            ArrayItemsRef = record.String("ArrayItemsRef"),
+            ArrayItemsType = record.String("ArrayItemsType"),
+            ArrayItemsFormat = record.String("ArrayItemsFormat"),
+            IsRequired = record.Bool("IsRequired"),
+            IsNullable = record.Bool("IsNullable"),
+            IsReadOnly = record.Bool("IsReadOnly"),
+            IsWriteOnly = record.Bool("IsWriteOnly"),
+            Default = record.String("Default"),
+            IsDictionary = record.Bool("IsDictionary"),
+            DictionaryValueType = record.String("DictionaryValueType"),
+            DictionaryValueRef = record.String("DictionaryValueRef"),
+            DictionaryValueFormat = record.String("DictionaryValueFormat"),
+            EnumValues = record.Strings("EnumValues"),
+            OneOf = Decode(record.Strings("OneOf")),
+            MinLength = record.Int("MinLength"),
+            MaxLength = record.Int("MaxLength"),
+            Minimum = record.Decimal("Minimum"),
+            Maximum = record.Decimal("Maximum"),
+            ExclusiveMinimum = record.Bool("ExclusiveMinimum"),
+            ExclusiveMaximum = record.Bool("ExclusiveMaximum"),
+            Pattern = record.String("Pattern"),
+            MinItems = record.Int("MinItems"),
+            MaxItems = record.Int("MaxItems"),
+            MessagePackIndex = record.Int("MessagePackIndex"),
+        };
 
-    private static void WriteService(StringBuilder builder, ServiceModel service) {
+    private static void WriteService(StringBuilder builder, ServiceModel service)
+    {
         var record = new Record("service");
         record.Add("Tag", service.Tag);
         record.Add("TagDescription", service.TagDescription);
@@ -593,12 +679,14 @@ internal static class SpecModelSerializer {
         record.Add("DispatchHeader", service.DispatchHeader);
         record.WriteTo(builder);
 
-        foreach (var operation in service.Operations) {
+        foreach (var operation in service.Operations)
+        {
             WriteOperation(builder, operation);
         }
     }
 
-    private static void WriteOperation(StringBuilder builder, OperationModel operation) {
+    private static void WriteOperation(StringBuilder builder, OperationModel operation)
+    {
         var record = new Record("op");
         record.Add("OperationId", operation.OperationId);
         record.Add("Summary", operation.Summary);
@@ -649,9 +737,13 @@ internal static class SpecModelSerializer {
         // declares them and the primary stays first. Written even when there is one, because a
         // reader that has to infer the list from the flat fields is a second definition of the
         // set that can disagree with the first.
-        foreach (var successResponse in operation.SuccessResponses) {
+        foreach (var successResponse in operation.SuccessResponses)
+        {
             var successRecord = new Record("successresponse");
-            successRecord.AddAlways("StatusCode", successResponse.StatusCode.ToString(CultureInfo.InvariantCulture));
+            successRecord.AddAlways(
+                "StatusCode",
+                successResponse.StatusCode.ToString(CultureInfo.InvariantCulture)
+            );
             successRecord.Add("Ref", successResponse.Ref);
             successRecord.Add("Type", successResponse.Type);
             successRecord.Add("Format", successResponse.Format);
@@ -666,9 +758,13 @@ internal static class SpecModelSerializer {
             WriteResponseHeaders(builder, successResponse.Headers);
         }
 
-        foreach (var errorResponse in operation.ErrorResponses) {
+        foreach (var errorResponse in operation.ErrorResponses)
+        {
             var record2 = new Record("errorresponse");
-            record2.AddAlways("StatusCode", errorResponse.StatusCode.ToString(CultureInfo.InvariantCulture));
+            record2.AddAlways(
+                "StatusCode",
+                errorResponse.StatusCode.ToString(CultureInfo.InvariantCulture)
+            );
             record2.Add("Ref", errorResponse.Ref);
             record2.Add("Description", errorResponse.Description);
             record2.Add("Name", errorResponse.Name);
@@ -683,35 +779,43 @@ internal static class SpecModelSerializer {
             WriteResponseHeaders(builder, errorResponse.Headers);
         }
 
-        foreach (var parameter in operation.Parameters) {
+        foreach (var parameter in operation.Parameters)
+        {
             WriteParameter(builder, parameter);
         }
 
-        foreach (var property in operation.RequestBodyProperties) {
+        foreach (var property in operation.RequestBodyProperties)
+        {
             WriteProperty(builder, "bodyprop", property);
         }
 
-        foreach (var value in operation.RequestBodyRequired) {
+        foreach (var value in operation.RequestBodyRequired)
+        {
             var required = new Record("bodyrequired");
             required.Add("Value", value);
             required.WriteTo(builder);
         }
 
-        foreach (var branch in operation.AuthorizationBranches) {
+        foreach (var branch in operation.AuthorizationBranches)
+        {
             var authBranch = new Record("authbranch");
             authBranch.Add("Authenticated", branch.RequiresAuthentication);
             authBranch.Add("Grants", string.Join(" ", branch.Grants));
             authBranch.WriteTo(builder);
         }
 
-        foreach (var instance in operation.FilterInstances) {
+        foreach (var instance in operation.FilterInstances)
+        {
             var filterInstance = new Record("filterinstance");
             filterInstance.Add("FilterTypeName", instance.FilterTypeName);
             filterInstance.WriteTo(builder);
 
             // Ordered so the file does not reshuffle between builds, which would defeat the
             // Inputs/Outputs check on the target and make every build look dirty.
-            foreach (var pair in instance.PropertyValues.OrderBy(p => p.Key, StringComparer.Ordinal)) {
+            foreach (
+                var pair in instance.PropertyValues.OrderBy(p => p.Key, StringComparer.Ordinal)
+            )
+            {
                 var value = new Record("filtervalue");
                 value.Add("Key", pair.Key);
                 value.Add("Value", pair.Value);
@@ -720,47 +824,51 @@ internal static class SpecModelSerializer {
         }
     }
 
-    private static OperationModel ReadOperation(Record record) => new() {
-        MethodName = record.String("MethodName") ?? "",
-        ResponseContainerName = record.String("ResponseContainerName") ?? "",
-        OperationId = record.String("OperationId") ?? "",
-        Path = record.String("Path") ?? "",
-        HttpMethod = record.String("HttpMethod") ?? "",
-        DispatchKey = record.String("DispatchKey"),
-        Tag = record.String("Tag"),
-        Tags = record.Strings("Tags") ?? new List<string>(),
-        Summary = record.String("Summary"),
-        Description = record.String("Description"),
-        IsDeprecated = record.Bool("IsDeprecated"),
-        SecurityRequirements = record.Strings("SecurityRequirements") ?? new List<string>(),
-        RequestBodyContentType = record.String("RequestBodyContentType"),
-        RequestBodyFormat = record.String("RequestBodyFormat"),
-        RequestBodyRef = record.String("RequestBodyRef"),
-        RequestBodyType = record.String("RequestBodyType"),
-        ResponseContentType = record.String("ResponseContentType"),
-        ItemSchemaRef = record.String("ItemSchemaRef"),
-        RawBytesResponse = record.Bool("RawBytesResponse"),
-        ResponseRef = record.String("ResponseRef"),
-        ResponseType = record.String("ResponseType"),
-        ResponseFormat = record.String("ResponseFormat"),
-        ResponseIsArray = record.Bool("ResponseIsArray"),
-        ProducedContentTypes = record.Strings("ProducedContentTypes") ?? new List<string>(),
-        SuccessContentTypes = record.Strings("SuccessContentTypes") ?? new List<string>(),
-        ErrorContentTypes = record.Strings("ErrorContentTypes") ?? new List<string>(),
-        ResponseArrayItemsRef = record.String("ResponseArrayItemsRef"),
-        ResponseArrayItemsType = record.String("ResponseArrayItemsType"),
-        ResponseArrayItemsFormat = record.String("ResponseArrayItemsFormat"),
-        SuccessStatusCode = record.Int("SuccessStatusCode") ?? 200,
-        Timeout = record.Int("TimeoutMilliseconds") is { } milliseconds
-            ? new TimeoutModel {
-                Milliseconds = milliseconds,
-                Status = record.Int("TimeoutStatus") ?? 504,
-                RetryAfterSeconds = record.Int("TimeoutRetryAfterSeconds") ?? 0
-            }
-            : null,
-    };
+    private static OperationModel ReadOperation(Record record) =>
+        new()
+        {
+            MethodName = record.String("MethodName") ?? "",
+            ResponseContainerName = record.String("ResponseContainerName") ?? "",
+            OperationId = record.String("OperationId") ?? "",
+            Path = record.String("Path") ?? "",
+            HttpMethod = record.String("HttpMethod") ?? "",
+            DispatchKey = record.String("DispatchKey"),
+            Tag = record.String("Tag"),
+            Tags = record.Strings("Tags") ?? new List<string>(),
+            Summary = record.String("Summary"),
+            Description = record.String("Description"),
+            IsDeprecated = record.Bool("IsDeprecated"),
+            SecurityRequirements = record.Strings("SecurityRequirements") ?? new List<string>(),
+            RequestBodyContentType = record.String("RequestBodyContentType"),
+            RequestBodyFormat = record.String("RequestBodyFormat"),
+            RequestBodyRef = record.String("RequestBodyRef"),
+            RequestBodyType = record.String("RequestBodyType"),
+            ResponseContentType = record.String("ResponseContentType"),
+            ItemSchemaRef = record.String("ItemSchemaRef"),
+            RawBytesResponse = record.Bool("RawBytesResponse"),
+            ResponseRef = record.String("ResponseRef"),
+            ResponseType = record.String("ResponseType"),
+            ResponseFormat = record.String("ResponseFormat"),
+            ResponseIsArray = record.Bool("ResponseIsArray"),
+            ProducedContentTypes = record.Strings("ProducedContentTypes") ?? new List<string>(),
+            SuccessContentTypes = record.Strings("SuccessContentTypes") ?? new List<string>(),
+            ErrorContentTypes = record.Strings("ErrorContentTypes") ?? new List<string>(),
+            ResponseArrayItemsRef = record.String("ResponseArrayItemsRef"),
+            ResponseArrayItemsType = record.String("ResponseArrayItemsType"),
+            ResponseArrayItemsFormat = record.String("ResponseArrayItemsFormat"),
+            SuccessStatusCode = record.Int("SuccessStatusCode") ?? 200,
+            Timeout = record.Int("TimeoutMilliseconds") is { } milliseconds
+                ? new TimeoutModel
+                {
+                    Milliseconds = milliseconds,
+                    Status = record.Int("TimeoutStatus") ?? 504,
+                    RetryAfterSeconds = record.Int("TimeoutRetryAfterSeconds") ?? 0,
+                }
+                : null,
+        };
 
-    private static void WriteParameter(StringBuilder builder, ParameterModel parameter) {
+    private static void WriteParameter(StringBuilder builder, ParameterModel parameter)
+    {
         var record = new Record("param");
         record.Add("Name", parameter.Name);
         record.Add("MemberNameOverride", parameter.MemberNameOverride);
@@ -790,35 +898,38 @@ internal static class SpecModelSerializer {
         record.WriteTo(builder);
     }
 
-    private static ParameterModel ReadParameter(Record record) => new() {
-        MemberNameOverride = record.String("MemberNameOverride"),
-        Name = record.String("Name") ?? "",
-        In = record.String("In") ?? "",
-        Description = record.String("Description"),
-        IsRequired = record.Bool("IsRequired"),
-        IsNullable = record.Bool("IsNullable"),
-        Default = record.String("Default"),
-        Type = record.String("Type"),
-        Format = record.String("Format"),
-        Ref = record.String("Ref"),
-        IsArray = record.Bool("IsArray"),
-        ArrayItemsType = record.String("ArrayItemsType"),
-        ArrayItemsRef = record.String("ArrayItemsRef"),
-        ArrayItemsFormat = record.String("ArrayItemsFormat"),
-        EnumValues = record.Strings("EnumValues"),
-        MinLength = record.Int("MinLength"),
-        MaxLength = record.Int("MaxLength"),
-        Minimum = record.Decimal("Minimum"),
-        Maximum = record.Decimal("Maximum"),
-        ExclusiveMinimum = record.Bool("ExclusiveMinimum"),
-        ExclusiveMaximum = record.Bool("ExclusiveMaximum"),
-        Pattern = record.String("Pattern"),
-        RouteConstraint = record.String("RouteConstraint"),
-        MinItems = record.Int("MinItems"),
-        MaxItems = record.Int("MaxItems"),
-    };
+    private static ParameterModel ReadParameter(Record record) =>
+        new()
+        {
+            MemberNameOverride = record.String("MemberNameOverride"),
+            Name = record.String("Name") ?? "",
+            In = record.String("In") ?? "",
+            Description = record.String("Description"),
+            IsRequired = record.Bool("IsRequired"),
+            IsNullable = record.Bool("IsNullable"),
+            Default = record.String("Default"),
+            Type = record.String("Type"),
+            Format = record.String("Format"),
+            Ref = record.String("Ref"),
+            IsArray = record.Bool("IsArray"),
+            ArrayItemsType = record.String("ArrayItemsType"),
+            ArrayItemsRef = record.String("ArrayItemsRef"),
+            ArrayItemsFormat = record.String("ArrayItemsFormat"),
+            EnumValues = record.Strings("EnumValues"),
+            MinLength = record.Int("MinLength"),
+            MaxLength = record.Int("MaxLength"),
+            Minimum = record.Decimal("Minimum"),
+            Maximum = record.Decimal("Maximum"),
+            ExclusiveMinimum = record.Bool("ExclusiveMinimum"),
+            ExclusiveMaximum = record.Bool("ExclusiveMaximum"),
+            Pattern = record.String("Pattern"),
+            RouteConstraint = record.String("RouteConstraint"),
+            MinItems = record.Int("MinItems"),
+            MaxItems = record.Int("MaxItems"),
+        };
 
-    private static void WriteFilterType(StringBuilder builder, FilterTypeModel filterType) {
+    private static void WriteFilterType(StringBuilder builder, FilterTypeModel filterType)
+    {
         var record = new Record("filtertype");
         record.Add("Name", filterType.Name);
         record.Add("Namespace", filterType.Namespace);
@@ -828,7 +939,8 @@ internal static class SpecModelSerializer {
         record.AddAlways("Generate", filterType.Generate ? "true" : "false");
         record.WriteTo(builder);
 
-        foreach (var property in filterType.Properties) {
+        foreach (var property in filterType.Properties)
+        {
             var propertyRecord = new Record("filterprop");
             propertyRecord.Add("Name", property.Name);
             propertyRecord.Add("CSharpType", property.CSharpType);
@@ -843,44 +955,55 @@ internal static class SpecModelSerializer {
     /// One line. Values are escaped on the way in and unescaped on the way out; a null value is
     /// simply not written, which is how null and empty stay distinguishable.
     /// </summary>
-    private sealed class Record {
+    private sealed class Record
+    {
         private readonly List<string> _fields = new();
         private readonly Dictionary<string, string> _values;
 
-        public Record(string tag) {
+        public Record(string tag)
+        {
             Tag = tag;
             _values = new Dictionary<string, string>(StringComparer.Ordinal);
         }
 
-        private Record(string tag, Dictionary<string, string> values) {
+        private Record(string tag, Dictionary<string, string> values)
+        {
             Tag = tag;
             _values = values;
         }
 
         public string Tag { get; }
 
-        public void Add(string key, string? value) {
-            if (value is not null) {
+        public void Add(string key, string? value)
+        {
+            if (value is not null)
+            {
                 _fields.Add(key + "=" + Escape(value));
             }
         }
 
         public void AddAlways(string key, string value) => _fields.Add(key + "=" + Escape(value));
 
-        public void Add(string key, bool value) {
-            if (value) {
+        public void Add(string key, bool value)
+        {
+            if (value)
+            {
                 _fields.Add(key + "=true");
             }
         }
 
-        public void Add(string key, int? value) {
-            if (value.HasValue) {
+        public void Add(string key, int? value)
+        {
+            if (value.HasValue)
+            {
                 _fields.Add(key + "=" + value.Value.ToString(CultureInfo.InvariantCulture));
             }
         }
 
-        public void Add(string key, decimal? value) {
-            if (value.HasValue) {
+        public void Add(string key, decimal? value)
+        {
+            if (value.HasValue)
+            {
                 _fields.Add(key + "=" + value.Value.ToString(CultureInfo.InvariantCulture));
             }
         }
@@ -889,31 +1012,40 @@ internal static class SpecModelSerializer {
         /// An empty list is written as an empty value, so a schema that declares no enum values and
         /// one that has none stay distinguishable - the first is null, the second is an empty list.
         /// </summary>
-        public void Add(string key, List<string>? values) {
-            if (values is not null) {
+        public void Add(string key, List<string>? values)
+        {
+            if (values is not null)
+            {
                 _fields.Add(key + "=" + string.Join("", values.Select(Escape)));
             }
         }
 
-        public void WriteTo(StringBuilder builder) {
+        public void WriteTo(StringBuilder builder)
+        {
             builder.Append(Tag);
 
-            foreach (var field in _fields) {
+            foreach (var field in _fields)
+            {
                 builder.Append(FieldSeparator).Append(field);
             }
 
             builder.Append('\n');
         }
 
-        public static Record Parse(string line) {
+        public static Record Parse(string line)
+        {
             var parts = line.Split(FieldSeparator);
             var values = new Dictionary<string, string>(StringComparer.Ordinal);
 
-            for (var i = 1; i < parts.Length; i++) {
+            for (var i = 1; i < parts.Length; i++)
+            {
                 var separator = parts[i].IndexOf('=');
 
-                if (separator < 0) {
-                    throw new FormatException($"Malformed field '{parts[i]}' in spec model record '{parts[0]}'.");
+                if (separator < 0)
+                {
+                    throw new FormatException(
+                        $"Malformed field '{parts[i]}' in spec model record '{parts[0]}'."
+                    );
                 }
 
                 values[parts[i].Substring(0, separator)] = parts[i].Substring(separator + 1);
@@ -922,22 +1054,37 @@ internal static class SpecModelSerializer {
             return new Record(parts[0], values);
         }
 
-        public string? String(string key) => _values.TryGetValue(key, out var value) ? Unescape(value) : null;
+        public string? String(string key) =>
+            _values.TryGetValue(key, out var value) ? Unescape(value) : null;
 
         public bool Bool(string key) => _values.TryGetValue(key, out var value) && value == "true";
 
         public int? Int(string key) =>
-            _values.TryGetValue(key, out var value) && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+            _values.TryGetValue(key, out var value)
+            && int.TryParse(
+                value,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out var parsed
+            )
                 ? parsed
                 : null;
 
         public decimal? Decimal(string key) =>
-            _values.TryGetValue(key, out var value) && decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed)
+            _values.TryGetValue(key, out var value)
+            && decimal.TryParse(
+                value,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var parsed
+            )
                 ? parsed
                 : null;
 
-        public List<string>? Strings(string key) {
-            if (!_values.TryGetValue(key, out var value)) {
+        public List<string>? Strings(string key)
+        {
+            if (!_values.TryGetValue(key, out var value))
+            {
                 return null;
             }
 
@@ -946,35 +1093,43 @@ internal static class SpecModelSerializer {
                 : value.Split('').Select(Unescape).ToList();
         }
 
-        private static string Escape(string value) => value
-            .Replace("\\", "\\\\")
-            .Replace("\t", "\\t")
-            .Replace("\n", "\\n")
-            .Replace("\r", "\\r")
-            .Replace("", "\\u");
+        private static string Escape(string value) =>
+            value
+                .Replace("\\", "\\\\")
+                .Replace("\t", "\\t")
+                .Replace("\n", "\\n")
+                .Replace("\r", "\\r")
+                .Replace("", "\\u");
 
-        private static string Unescape(string value) {
-            if (value.IndexOf('\\') < 0) {
+        private static string Unescape(string value)
+        {
+            if (value.IndexOf('\\') < 0)
+            {
                 return value;
             }
 
             var builder = new StringBuilder(value.Length);
 
-            for (var i = 0; i < value.Length; i++) {
-                if (value[i] != '\\' || i + 1 >= value.Length) {
+            for (var i = 0; i < value.Length; i++)
+            {
+                if (value[i] != '\\' || i + 1 >= value.Length)
+                {
                     builder.Append(value[i]);
                     continue;
                 }
 
                 i++;
 
-                builder.Append(value[i] switch {
-                    't' => '\t',
-                    'n' => '\n',
-                    'r' => '\r',
-                    'u' => '',
-                    _ => value[i],
-                });
+                builder.Append(
+                    value[i] switch
+                    {
+                        't' => '\t',
+                        'n' => '\n',
+                        'r' => '\r',
+                        'u' => '',
+                        _ => value[i],
+                    }
+                );
             }
 
             return builder.ToString();
@@ -991,12 +1146,24 @@ internal static class SpecModelSerializer {
     /// record written before the 0.19.0 rename, whose "Standard" parses to the value it always
     /// meant.
     /// </remarks>
-    private static SpecResponseModel ParseResponseModel(string? value) {
-        if (string.Equals(value, nameof(SpecResponseModel.Response), StringComparison.OrdinalIgnoreCase)) {
+    private static SpecResponseModel ParseResponseModel(string? value)
+    {
+        if (
+            string.Equals(
+                value,
+                nameof(SpecResponseModel.Response),
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
             return SpecResponseModel.Response;
         }
 
-        return string.Equals(value, nameof(SpecResponseModel.Union), StringComparison.OrdinalIgnoreCase)
+        return string.Equals(
+            value,
+            nameof(SpecResponseModel.Union),
+            StringComparison.OrdinalIgnoreCase
+        )
             ? SpecResponseModel.Union
             : SpecResponseModel.Throws;
     }
@@ -1009,12 +1176,24 @@ internal static class SpecModelSerializer {
     /// is also what a record written before this field existed parses to - which is the shape every
     /// project that never asked for MessagePack already has.
     /// </remarks>
-    private static SpecSerializer ParseSerializer(string? value) {
-        if (string.Equals(value, nameof(SpecSerializer.MessagePackKeyed), StringComparison.OrdinalIgnoreCase)) {
+    private static SpecSerializer ParseSerializer(string? value)
+    {
+        if (
+            string.Equals(
+                value,
+                nameof(SpecSerializer.MessagePackKeyed),
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
             return SpecSerializer.MessagePackKeyed;
         }
 
-        return string.Equals(value, nameof(SpecSerializer.MessagePackNamed), StringComparison.OrdinalIgnoreCase)
+        return string.Equals(
+            value,
+            nameof(SpecSerializer.MessagePackNamed),
+            StringComparison.OrdinalIgnoreCase
+        )
             ? SpecSerializer.MessagePackNamed
             : SpecSerializer.Json;
     }

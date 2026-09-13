@@ -28,8 +28,8 @@ namespace Hardened.Requests.Abstract.Caching;
 /// guesses.
 /// </para>
 /// </remarks>
-public enum CacheScope {
-
+public enum CacheScope
+{
     /// <summary>
     /// The declaration did not say.
     /// </summary>
@@ -67,5 +67,5 @@ public enum CacheScope {
     /// that would result is the shared one this exists to avoid.
     /// </para>
     /// </remarks>
-    PerCaller
+    PerCaller,
 }

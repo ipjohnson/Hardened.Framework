@@ -25,8 +25,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// reaching for one is what <c>EnabledFeatureSelector</c>'s own remarks warn costs incrementality.
 /// </para>
 /// </remarks>
-public static class ResponseModelSelector {
-
+public static class ResponseModelSelector
+{
     /// <summary>The attribute's name, without the <c>Attribute</c> suffix a user may or may not write.</summary>
     private const string AttributeName = "ResponseModel";
 
@@ -48,15 +48,19 @@ public static class ResponseModelSelector {
     /// alias of <c>Throws</c>: the compiler tells the author about the rename, so nothing here
     /// has to.
     /// </remarks>
-    public static ResponseModelValue Read(EntryPointSelector.Model appModel) {
-        if (appModel.AttributeModels == null) {
+    public static ResponseModelValue Read(EntryPointSelector.Model appModel)
+    {
+        if (appModel.AttributeModels == null)
+        {
             return Default;
         }
 
         var attribute = appModel.AttributeModels.FirstOrDefault(model =>
-            model.TypeDefinition.Name.StartsWith(AttributeName, StringComparison.Ordinal));
+            model.TypeDefinition.Name.StartsWith(AttributeName, StringComparison.Ordinal)
+        );
 
-        if (attribute == null) {
+        if (attribute == null)
+        {
             return Default;
         }
 
@@ -73,9 +77,10 @@ public static class ResponseModelSelector {
     /// separate so a later mode-mismatch diagnostic can tell them apart without re-reading.
     /// </remarks>
     public static bool IsDeclared(EntryPointSelector.Model appModel) =>
-        appModel.AttributeModels != null &&
-        appModel.AttributeModels.Any(model =>
-            model.TypeDefinition.Name.StartsWith(AttributeName, StringComparison.Ordinal));
+        appModel.AttributeModels != null
+        && appModel.AttributeModels.Any(model =>
+            model.TypeDefinition.Name.StartsWith(AttributeName, StringComparison.Ordinal)
+        );
 
     /// <summary>
     /// The enum member named by the attribute's argument text.
@@ -87,15 +92,18 @@ public static class ResponseModelSelector {
     /// Taking the last dotted segment covers all three without the generator having to resolve a
     /// symbol for something the compiler has already type-checked.
     /// </remarks>
-    private static ResponseModelValue Parse(string arguments) {
-        if (string.IsNullOrEmpty(arguments)) {
+    private static ResponseModelValue Parse(string arguments)
+    {
+        if (string.IsNullOrEmpty(arguments))
+        {
             return Default;
         }
 
         var first = arguments.Split(',')[0].Trim();
         var member = first.Substring(first.LastIndexOf('.') + 1).Trim();
 
-        switch (member) {
+        switch (member)
+        {
             case nameof(ResponseModelValue.Response):
                 return ResponseModelValue.Response;
             case nameof(ResponseModelValue.Union):
@@ -115,8 +123,9 @@ public static class ResponseModelSelector {
 /// declares it. The names must agree with the public enum, which
 /// <c>ResponseModelSelectorTests</c> asserts rather than assumes.
 /// </remarks>
-public enum ResponseModelValue {
+public enum ResponseModelValue
+{
     Throws,
     Response,
-    Union
+    Union,
 }

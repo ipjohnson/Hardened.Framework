@@ -22,37 +22,49 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// without the other compiles and installs nothing.
 /// </para>
 /// </remarks>
-public class ApplicationFilterEmitterTests {
-
+public class ApplicationFilterEmitterTests
+{
     private static AttributeModel Declaration(
-        string @namespace, string name, string arguments = "", string properties = "") =>
-        new(TypeDefinition.Get(@namespace, name), arguments, properties);
+        string @namespace,
+        string name,
+        string arguments = "",
+        string properties = ""
+    ) => new(TypeDefinition.Get(@namespace, name), arguments, properties);
 
     private static EntryPointSelector.Model App(params AttributeModel[] filters) =>
-        new() {
+        new()
+        {
             EntryPointType = TypeDefinition.Get("Test.Api", "TestApp"),
             AttributeModels = Array.Empty<AttributeModel>(),
             RootEntryPoint = true,
             MethodDefinitions = Array.Empty<HardenedMethodDefinition>(),
-            FilterDeclarations = filters
+            FilterDeclarations = filters,
         };
 
     private static RequestHandlerModel Handler() =>
-        new(new RequestHandlerNameModel("/books", "GET"),
+        new(
+            new RequestHandlerNameModel("/books", "GET"),
             TypeDefinition.Get("Test.Api.Services", "IBookService"),
             "List",
             TypeDefinition.Get("Test.Api.Generated", "BookController_List"),
             Array.Empty<RequestParameterInformation>(),
             new ResponseInformationModel { IsAsync = true },
-            Array.Empty<AttributeModel>());
+            Array.Empty<AttributeModel>()
+        );
 
     private static string Emit(params AttributeModel[] filters) =>
         RoutingTableGenerator.GenerateCSharpRouteFile(
-            App(filters), [Handler()], CancellationToken.None);
+            App(filters),
+            [Handler()],
+            CancellationToken.None
+        );
 
     [Fact]
-    public void ADeclaredFilterIsConstructedOnceAndRegistered() {
-        var generated = Emit(Declaration("Hardened.Web.Runtime.Conditional", "ConditionalGetAttribute"));
+    public void ADeclaredFilterIsConstructedOnceAndRegistered()
+    {
+        var generated = Emit(
+            Declaration("Hardened.Web.Runtime.Conditional", "ConditionalGetAttribute")
+        );
 
         Assert.Contains("class ApplicationFilters", generated);
         Assert.Contains("new ConditionalGetAttribute()", generated);
@@ -65,9 +77,11 @@ public class ApplicationFilterEmitterTests {
     /// declaration's arguments are spelled.
     /// </summary>
     [Fact]
-    public void TheArgumentsAndInitializersAreEmittedWithIt() {
+    public void TheArgumentsAndInitializersAreEmittedWithIt()
+    {
         var generated = Emit(
-            Declaration("Test.Api.Filters", "AuditAttribute", "\"quotes\"", "Level = 2"));
+            Declaration("Test.Api.Filters", "AuditAttribute", "\"quotes\"", "Level = 2")
+        );
 
         Assert.Contains("new AuditAttribute(\"quotes\"){ Level = 2 }", generated);
     }
@@ -77,15 +91,18 @@ public class ApplicationFilterEmitterTests {
     /// into a handler's metadata and therefore the order they break ties in.
     /// </summary>
     [Fact]
-    public void SeveralDeclarationsKeepTheOrderTheyWereWrittenIn() {
+    public void SeveralDeclarationsKeepTheOrderTheyWereWrittenIn()
+    {
         var generated = Emit(
             Declaration("Hardened.Requests.Runtime.Filters", "RetryAttribute"),
-            Declaration("Hardened.Web.Runtime.Conditional", "ConditionalGetAttribute"));
+            Declaration("Hardened.Web.Runtime.Conditional", "ConditionalGetAttribute")
+        );
 
         Assert.True(
-            generated.IndexOf("new RetryAttribute()", StringComparison.Ordinal) <
-            generated.IndexOf("new ConditionalGetAttribute()", StringComparison.Ordinal),
-            "The emitted array should read in declaration order.");
+            generated.IndexOf("new RetryAttribute()", StringComparison.Ordinal)
+                < generated.IndexOf("new ConditionalGetAttribute()", StringComparison.Ordinal),
+            "The emitted array should read in declaration order."
+        );
     }
 
     /// <summary>
@@ -94,7 +111,8 @@ public class ApplicationFilterEmitterTests {
     /// keeps the checked-in routing fixtures unmoved.
     /// </summary>
     [Fact]
-    public void AnEntryPointDeclaringNoFilterEmitsNothing() {
+    public void AnEntryPointDeclaringNoFilterEmitsNothing()
+    {
         var generated = Emit();
 
         Assert.DoesNotContain("ApplicationFilters", generated);

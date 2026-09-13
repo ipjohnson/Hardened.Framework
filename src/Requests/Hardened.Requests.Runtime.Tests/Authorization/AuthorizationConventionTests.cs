@@ -21,16 +21,18 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// a test that folded them itself would pass whatever the ordering.
 /// </para>
 /// </summary>
-public class AuthorizationConventionTests {
-
+public class AuthorizationConventionTests
+{
     private class Controller;
 
     /// <summary>Requires a grant of everything below a path prefix.</summary>
-    private sealed class PrefixConvention : IAuthorizationConvention {
+    private sealed class PrefixConvention : IAuthorizationConvention
+    {
         private readonly string _prefix;
         private readonly string _grant;
 
-        public PrefixConvention(string prefix, string grant) {
+        public PrefixConvention(string prefix, string grant)
+        {
             _prefix = prefix;
             _grant = grant;
         }
@@ -45,7 +47,8 @@ public class AuthorizationConventionTests {
     /// A handler that declared nothing is guarded by the convention alone.
     /// </summary>
     [Fact]
-    public async Task AConventionGuardsAnUnannotatedHandler() {
+    public async Task AConventionGuardsAnUnannotatedHandler()
+    {
         var conventions = new[] { new PrefixConvention("/admin", "admin:access") };
 
         Assert.True(await Admits("/admin/users", conventions, [], "admin:access"));
@@ -56,7 +59,8 @@ public class AuthorizationConventionTests {
     /// And says nothing about a handler it does not match, which stays public.
     /// </summary>
     [Fact]
-    public async Task AConventionLeavesHandlersItDoesNotMatchAlone() {
+    public async Task AConventionLeavesHandlersItDoesNotMatchAlone()
+    {
         var conventions = new[] { new PrefixConvention("/admin", "admin:access") };
 
         Assert.True(await Admits("/pets", conventions, []));
@@ -72,11 +76,14 @@ public class AuthorizationConventionTests {
     /// thing while being guarded by another.
     /// </remarks>
     [Fact]
-    public async Task AConventionNarrowsAHandlerThatDeclaredItsOwnRequirement() {
+    public async Task AConventionNarrowsAHandlerThatDeclaredItsOwnRequirement()
+    {
         var conventions = new[] { new PrefixConvention("/admin", "admin:access") };
         object[] metadata = [new AuthorizeGrantsAttribute("pets:write")];
 
-        Assert.True(await Admits("/admin/pets", conventions, metadata, "admin:access", "pets:write"));
+        Assert.True(
+            await Admits("/admin/pets", conventions, metadata, "admin:access", "pets:write")
+        );
 
         Assert.False(await Admits("/admin/pets", conventions, metadata, "admin:access"));
         Assert.False(await Admits("/admin/pets", conventions, metadata, "pets:write"));
@@ -86,13 +93,17 @@ public class AuthorizationConventionTests {
     /// Several conventions all apply, for the same reason several attributes do.
     /// </summary>
     [Fact]
-    public async Task EveryConventionThatMatchesApplies() {
-        var conventions = new[] {
+    public async Task EveryConventionThatMatchesApplies()
+    {
+        var conventions = new[]
+        {
             new PrefixConvention("/admin", "admin:access"),
             new PrefixConvention("/admin/billing", "billing:read"),
         };
 
-        Assert.True(await Admits("/admin/billing", conventions, [], "admin:access", "billing:read"));
+        Assert.True(
+            await Admits("/admin/billing", conventions, [], "admin:access", "billing:read")
+        );
         Assert.False(await Admits("/admin/billing", conventions, [], "admin:access"));
     }
 
@@ -105,7 +116,8 @@ public class AuthorizationConventionTests {
     /// refusing in production because of a rule written somewhere else.
     /// </remarks>
     [Fact]
-    public async Task AllowAnonymousWinsOverAConvention() {
+    public async Task AllowAnonymousWinsOverAConvention()
+    {
         var conventions = new[] { new PrefixConvention("/admin", "admin:access") };
 
         Assert.True(await Admits("/admin/health", conventions, [new AllowAnonymousAttribute()]));
@@ -126,10 +138,16 @@ public class AuthorizationConventionTests {
     /// different application from the one running.
     /// </remarks>
     [Fact]
-    public void TheHandlerCarriesTheAmendedRequirement() {
+    public void TheHandlerCarriesTheAmendedRequirement()
+    {
         var declared = new ExecutionRequestHandlerInfo(
-            "/admin/users", "GET", typeof(Controller), "List", null,
-            [new AuthorizeGrantsAttribute("users:read")]);
+            "/admin/users",
+            "GET",
+            typeof(Controller),
+            "List",
+            null,
+            [new AuthorizeGrantsAttribute("users:read")]
+        );
 
         var setup = Setup(declared, [new PrefixConvention("/admin", "admin:access")]);
 
@@ -143,9 +161,9 @@ public class AuthorizationConventionTests {
     /// A handler no convention spoke about keeps the instance the generator built.
     /// </summary>
     [Fact]
-    public void AHandlerNoConventionMatchesIsNotRebuilt() {
-        var declared = new ExecutionRequestHandlerInfo(
-            "/pets", "GET", typeof(Controller), "List");
+    public void AHandlerNoConventionMatchesIsNotRebuilt()
+    {
+        var declared = new ExecutionRequestHandlerInfo("/pets", "GET", typeof(Controller), "List");
 
         var setup = Setup(declared, [new PrefixConvention("/admin", "admin:access")]);
 
@@ -162,7 +180,8 @@ public class AuthorizationConventionTests {
     /// into a failure to construct any handler at all.
     /// </remarks>
     [Fact]
-    public void NoConventionsRegisteredIsNotAnError() {
+    public void NoConventionsRegisteredIsNotAnError()
+    {
         var declared = new ExecutionRequestHandlerInfo("/pets", "GET", typeof(Controller), "List");
 
         Assert.Same(declared, Setup(declared, []).HandlerInfo);
@@ -185,15 +204,20 @@ public class AuthorizationConventionTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void AnAmendedHandlerKeepsWhatTheConventionDidNotTouch() {
+    public void AnAmendedHandlerKeepsWhatTheConventionDidNotTouch()
+    {
         var declared = new ExecutionRequestHandlerInfo(
-            "/admin/users", "POST", typeof(Controller), "Create",
+            "/admin/users",
+            "POST",
+            typeof(Controller),
+            "Create",
             parameters: null,
             metadata: [new AuthorizeGrantsAttribute("users:write")],
             requirement: null,
             successStatus: 201,
             nullResponseBody: EmptyBody,
-            producedContentTypes: new[] { "application/json" });
+            producedContentTypes: new[] { "application/json" }
+        );
 
         var amended = Setup(declared, [new PrefixConvention("/admin", "admin:access")]).HandlerInfo;
 
@@ -224,18 +248,24 @@ public class AuthorizationConventionTests {
     /// Builds a handler's chain the way a generated handler does, through the real helper.
     /// </summary>
     private static ExecutionHandlerSetup Setup(
-        IExecutionRequestHandlerInfo declared, IAuthorizationConvention[] conventions) {
-        var context = Pipeline.Context(configureServices: services => {
+        IExecutionRequestHandlerInfo declared,
+        IAuthorizationConvention[] conventions
+    )
+    {
+        var context = Pipeline.Context(configureServices: services =>
+        {
             Register(services, conventions);
             services.AddSingleton<IGlobalFilterRegistry>(
-                new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>()));
+                new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>())
+            );
         });
 
         return ExecutionHelper.StandardFilterEmptyParameters<Controller>(
             context.RequestServices,
             declared,
             (_, _) => { },
-            Array.Empty<IRequestFilterProvider>());
+            Array.Empty<IRequestFilterProvider>()
+        );
     }
 
     /// <summary>
@@ -248,15 +278,21 @@ public class AuthorizationConventionTests {
     /// type.
     /// </remarks>
     private static void Register(
-        IServiceCollection services, IAuthorizationConvention[] conventions) {
+        IServiceCollection services,
+        IAuthorizationConvention[] conventions
+    )
+    {
         var ioProvider = Substitute.For<IIOFilterProvider>();
-        ioProvider.ProvideFilter(
+        ioProvider
+            .ProvideFilter(
                 Arg.Any<IExecutionRequestHandlerInfo>(),
-                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>())
+                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>()
+            )
             .Returns(new Pipeline.Recording([], "io"));
 
         var instanceProvider = Substitute.For<IInstanceFilterProvider>();
-        instanceProvider.ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
+        instanceProvider
+            .ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
             .Returns(new Pipeline.Recording([], "instance"));
 
         services.AddSingleton(ioProvider);
@@ -264,7 +300,8 @@ public class AuthorizationConventionTests {
         services.AddSingleton<IActivityAuthorizationService, ActivityAuthorizationService>();
         services.AddSingleton<IActivityAuthorizationHandler, PrincipalGrantAuthorizationHandler>();
 
-        foreach (var convention in conventions) {
+        foreach (var convention in conventions)
+        {
             services.AddSingleton<IAuthorizationConvention>(convention);
         }
     }
@@ -281,14 +318,22 @@ public class AuthorizationConventionTests {
         string path,
         IAuthorizationConvention[] conventions,
         object[] metadata,
-        params string[] grants) {
+        params string[] grants
+    )
+    {
         var registry = new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>());
-        registry.RegisterFilter(new AuthorizationFilterProvider(requireAuthorization: false).GetFilter);
+        registry.RegisterFilter(
+            new AuthorizationFilterProvider(requireAuthorization: false).GetFilter
+        );
 
-        var context = Pipeline.Context(path: path, configureServices: services => {
-            Register(services, conventions);
-            services.AddSingleton<IGlobalFilterRegistry>(registry);
-        });
+        var context = Pipeline.Context(
+            path: path,
+            configureServices: services =>
+            {
+                Register(services, conventions);
+                services.AddSingleton<IGlobalFilterRegistry>(registry);
+            }
+        );
 
         context.CallerPrincipal = new CallerPrincipal("bearer", grants);
 
@@ -297,11 +342,20 @@ public class AuthorizationConventionTests {
         context.HandlerInstance = new Controller();
 
         var declared = new ExecutionRequestHandlerInfo(
-            path, "GET", typeof(Controller), "Invoke", null, metadata);
+            path,
+            "GET",
+            typeof(Controller),
+            "Invoke",
+            null,
+            metadata
+        );
 
         var setup = ExecutionHelper.StandardFilterEmptyParameters<Controller>(
-            context.RequestServices, declared, (_, _) => { },
-            Array.Empty<IRequestFilterProvider>());
+            context.RequestServices,
+            declared,
+            (_, _) => { },
+            Array.Empty<IRequestFilterProvider>()
+        );
 
         await new ExecutionChain(setup.Filters, context).Next();
 

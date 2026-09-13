@@ -3,7 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Shared.Runtime.Application;
 
-public class ApplicationLogic {
+public class ApplicationLogic
+{
     /// <summary>
     /// Execute startup logic followed by application delegate logic
     /// </summary>
@@ -14,14 +15,18 @@ public class ApplicationLogic {
     public static async Task<int> RunApplication(
         IHardenedEnvironment environment,
         IServiceProvider serviceProvider,
-        Func<IServiceProvider, Task<bool>>? startupTask) {
+        Func<IServiceProvider, Task<bool>>? startupTask
+    )
+    {
         var delegateProvider = serviceProvider.GetRequiredService<IApplicationDelegateProvider>();
         var delegateResult = await delegateProvider.ProvideDelegate(environment, serviceProvider);
 
-        if (delegateResult.ShouldStartApp) {
+        if (delegateResult.ShouldStartApp)
+        {
             var result = await Start(serviceProvider, startupTask);
 
-            if (result != 0) {
+            if (result != 0)
+            {
                 return result;
             }
         }
@@ -46,29 +51,40 @@ public class ApplicationLogic {
     /// <param name="serviceProvider"></param>
     /// <param name="startupTask"></param>
     /// <returns></returns>
-    public static async Task<int> Start(IServiceProvider serviceProvider,
-        Func<IServiceProvider, Task<bool>>? startupTask) {
+    public static async Task<int> Start(
+        IServiceProvider serviceProvider,
+        Func<IServiceProvider, Task<bool>>? startupTask
+    )
+    {
         var startupTasks = new List<Task<bool>>();
 
-        if (StartedProviders.TryAdd(serviceProvider, StartedProviders)) {
-            foreach (var startupService in serviceProvider.GetServices<IStartupService>()) {
+        if (StartedProviders.TryAdd(serviceProvider, StartedProviders))
+        {
+            foreach (var startupService in serviceProvider.GetServices<IStartupService>())
+            {
                 startupTasks.Add(startupService.Startup(serviceProvider));
             }
         }
 
-        if (startupTask != null) {
+        if (startupTask != null)
+        {
             startupTasks.Add(startupTask(serviceProvider));
         }
 
-        if (startupTasks.Count > 0) {
+        if (startupTasks.Count > 0)
+        {
             await Task.WhenAll(startupTasks);
         }
 
         return startupTasks.All(t => t.Result) ? 0 : 1;
     }
 
-    public static void StartWithWait(IServiceProvider serviceProvider, Func<IServiceProvider, Task<bool>>? startup,
-        int timeoutInSeconds) {
+    public static void StartWithWait(
+        IServiceProvider serviceProvider,
+        Func<IServiceProvider, Task<bool>>? startup,
+        int timeoutInSeconds
+    )
+    {
         Start(serviceProvider, startup).Wait(timeoutInSeconds * 1000);
     }
 }

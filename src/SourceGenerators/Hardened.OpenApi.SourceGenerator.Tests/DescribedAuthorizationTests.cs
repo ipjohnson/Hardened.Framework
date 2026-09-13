@@ -1,7 +1,7 @@
 using System.Threading;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
@@ -20,10 +20,9 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// describes, which is why they are pinned individually rather than through one round-trip.
 /// </para>
 /// </remarks>
-public class DescribedAuthorizationTests {
-
-    private const string Schemes =
-        """
+public class DescribedAuthorizationTests
+{
+    private const string Schemes = """
         components:
           securitySchemes:
             oauth:
@@ -46,33 +45,42 @@ public class DescribedAuthorizationTests {
         """;
 
     private static OperationModel Operation(
-        string operationSecurity, string documentSecurity = "",
-        ICollection<string>? diagnostics = null) =>
+        string operationSecurity,
+        string documentSecurity = "",
+        ICollection<string>? diagnostics = null
+    ) =>
         Assert.Single(
-            Assert.Single(
-                OpenApiSpecParser.Parse(
-                    $$"""
-                     openapi: "3.0.0"
-                     info: { title: Pets, version: "1.0" }
-                     {{documentSecurity}}
-                     paths:
-                       /pets:
-                         get:
-                           tags: [Pet]
-                           operationId: listPets
-                     {{operationSecurity}}
-                           responses:
-                             '200':
-                               description: A pet
-                               content:
-                                 application/json:
-                                   schema:
-                                     $ref: '#/components/schemas/Pet'
-                     {{Schemes}}
-                     """,
-                    "test",
-                    CancellationToken.None,
-                    diagnostics: diagnostics)!.Services).Operations);
+            Assert
+                .Single(
+                    OpenApiSpecParser
+                        .Parse(
+                            $$"""
+                            openapi: "3.0.0"
+                            info: { title: Pets, version: "1.0" }
+                            {{documentSecurity}}
+                            paths:
+                              /pets:
+                                get:
+                                  tags: [Pet]
+                                  operationId: listPets
+                            {{operationSecurity}}
+                                  responses:
+                                    '200':
+                                      description: A pet
+                                      content:
+                                        application/json:
+                                          schema:
+                                            $ref: '#/components/schemas/Pet'
+                            {{Schemes}}
+                            """,
+                            "test",
+                            CancellationToken.None,
+                            diagnostics: diagnostics
+                        )!
+                        .Services
+                )
+                .Operations
+        );
 
     private static AuthorizationBranchModel Only(OperationModel operation) =>
         Assert.Single(operation.AuthorizationBranches);
@@ -81,7 +89,8 @@ public class DescribedAuthorizationTests {
     /// The common shape: one scheme, one scope. Becomes one grant.
     /// </summary>
     [Fact]
-    public void AScopeBecomesAGrant() {
+    public void AScopeBecomesAGrant()
+    {
         var branch = Only(Operation("""      security: [{ oauth: ["pets:read"] }]"""));
 
         Assert.Equal(new[] { "pets:read" }, branch.Grants);
@@ -92,8 +101,11 @@ public class DescribedAuthorizationTests {
     /// Several scopes on one scheme are conjoined - the token needs all of them, not any.
     /// </summary>
     [Fact]
-    public void SeveralScopesOnOneSchemeAreAllRequired() {
-        var branch = Only(Operation("""      security: [{ oauth: ["pets:read", "pets:write"] }]"""));
+    public void SeveralScopesOnOneSchemeAreAllRequired()
+    {
+        var branch = Only(
+            Operation("""      security: [{ oauth: ["pets:read", "pets:write"] }]""")
+        );
 
         Assert.Equal(new[] { "pets:read", "pets:write" }, branch.Grants);
     }
@@ -108,7 +120,8 @@ public class DescribedAuthorizationTests {
     /// requirement weaker than declaring none at all.
     /// </remarks>
     [Fact]
-    public void AnUnscopedSchemeRequiresAuthenticationRatherThanNothing() {
+    public void AnUnscopedSchemeRequiresAuthenticationRatherThanNothing()
+    {
         var branch = Only(Operation("""      security: [{ key: [] }]"""));
 
         Assert.Empty(branch.Grants);
@@ -119,27 +132,31 @@ public class DescribedAuthorizationTests {
     /// The array is an OR, and a scoped alternative beside an unscoped one keeps both.
     /// </summary>
     [Fact]
-    public void SeparateEntriesAreAlternatives() {
-        var operation = Operation(
-            """      security: [{ oauth: ["pets:read"] }, { key: [] }]""");
+    public void SeparateEntriesAreAlternatives()
+    {
+        var operation = Operation("""      security: [{ oauth: ["pets:read"] }, { key: [] }]""");
 
         Assert.Collection(
             operation.AuthorizationBranches,
-            first => {
+            first =>
+            {
                 Assert.Equal(new[] { "pets:read" }, first.Grants);
                 Assert.False(first.RequiresAuthentication);
             },
-            second => {
+            second =>
+            {
                 Assert.Empty(second.Grants);
                 Assert.True(second.RequiresAuthentication);
-            });
+            }
+        );
     }
 
     /// <summary>
     /// Two schemes inside one entry are conjoined, so the branch carries both what they require.
     /// </summary>
     [Fact]
-    public void SchemesWithinOneEntryAreConjoined() {
+    public void SchemesWithinOneEntryAreConjoined()
+    {
         var branch = Only(Operation("""      security: [{ oauth: ["pets:write"], key: [] }]"""));
 
         Assert.Equal(new[] { "pets:write" }, branch.Grants);
@@ -151,7 +168,8 @@ public class DescribedAuthorizationTests {
     /// documents express this - once at the top, overridden per operation.
     /// </summary>
     [Fact]
-    public void ADocumentLevelDefaultIsInherited() {
+    public void ADocumentLevelDefaultIsInherited()
+    {
         var branch = Only(Operation("", """security: [{ oauth: ["pets:read"] }]"""));
 
         Assert.Equal(new[] { "pets:read" }, branch.Grants);
@@ -161,10 +179,14 @@ public class DescribedAuthorizationTests {
     /// An operation's own security replaces the document's rather than merging with it.
     /// </summary>
     [Fact]
-    public void AnOperationsOwnSecurityReplacesTheDocumentDefault() {
-        var branch = Only(Operation(
-            """      security: [{ oauth: ["pets:write"] }]""",
-            """security: [{ oauth: ["pets:read"] }]"""));
+    public void AnOperationsOwnSecurityReplacesTheDocumentDefault()
+    {
+        var branch = Only(
+            Operation(
+                """      security: [{ oauth: ["pets:write"] }]""",
+                """security: [{ oauth: ["pets:read"] }]"""
+            )
+        );
 
         Assert.Equal(new[] { "pets:write" }, branch.Grants);
     }
@@ -180,17 +202,22 @@ public class DescribedAuthorizationTests {
     /// the implementation. An author who wants the route anonymous says so in code.
     /// </remarks>
     [Fact]
-    public void AnEmptySecurityArrayDerivesNothing() {
+    public void AnEmptySecurityArrayDerivesNothing()
+    {
         Assert.Empty(
-            Operation("""      security: []""", """security: [{ oauth: ["pets:read"] }]""")
-                .AuthorizationBranches);
+            Operation(
+                """      security: []""",
+                """security: [{ oauth: ["pets:read"] }]"""
+            ).AuthorizationBranches
+        );
     }
 
     /// <summary>
     /// A document declaring none anywhere derives nothing.
     /// </summary>
     [Fact]
-    public void NoSecurityAnywhereDerivesNothing() {
+    public void NoSecurityAnywhereDerivesNothing()
+    {
         Assert.Empty(Operation("").AuthorizationBranches);
     }
 
@@ -203,7 +230,8 @@ public class DescribedAuthorizationTests {
     /// refused and was not.
     /// </remarks>
     [Fact]
-    public void AnUndeclaredSchemeIsReported() {
+    public void AnUndeclaredSchemeIsReported()
+    {
         var diagnostics = new List<string>();
 
         Operation("""      security: [{ ghost: ["pets:read"] }]""", diagnostics: diagnostics);
@@ -220,7 +248,8 @@ public class DescribedAuthorizationTests {
     /// requiring a permission is the safe reading of a broken document.
     /// </remarks>
     [Fact]
-    public void AnUndeclaredSchemeContributesAuthenticationOnly() {
+    public void AnUndeclaredSchemeContributesAuthenticationOnly()
+    {
         var branch = Only(Operation("""      security: [{ ghost: ["pets:read"] }]"""));
 
         Assert.Empty(branch.Grants);

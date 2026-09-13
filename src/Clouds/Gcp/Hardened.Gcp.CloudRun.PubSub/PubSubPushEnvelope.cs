@@ -40,7 +40,8 @@ namespace Hardened.Gcp.CloudRun.PubSub;
 /// and the message is redelivered.
 /// </para>
 /// </remarks>
-public sealed class PubSubPushEnvelope : IFallbackTriggerEnvelope {
+public sealed class PubSubPushEnvelope : IFallbackTriggerEnvelope
+{
     /// <summary>The scheme a push routes under.</summary>
     public const string QueueScheme = "QUEUE";
 
@@ -61,12 +62,17 @@ public sealed class PubSubPushEnvelope : IFallbackTriggerEnvelope {
 
     /// <summary>A JSON POST that is not a CloudEvent. Everything else on the service is not a push.</summary>
     public bool Recognises(IExecutionRequest request) =>
-        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase) &&
-        IsJson(request.ContentType) &&
-        !CloudEventReader.IsBinary(request.Headers);
+        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase)
+        && IsJson(request.ContentType)
+        && !CloudEventReader.IsBinary(request.Headers);
 
-    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) {
-        if (payload.Json is not { } root || !PubSubPushBody.TryRead(root, out var message, out var subscription)) {
+    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload)
+    {
+        if (
+            payload.Json is not { } root
+            || !PubSubPushBody.TryRead(root, out var message, out var subscription)
+        )
+        {
             return null;
         }
 
@@ -74,13 +80,19 @@ public sealed class PubSubPushEnvelope : IFallbackTriggerEnvelope {
         var body = PubSubPushBody.Read(message, subscription, root, headers);
 
         return new CloudRunTriggerRequest(
-            QueueScheme, "/" + PubSubPushBody.SubscriptionName(subscription), body, headers, request);
+            QueueScheme,
+            "/" + PubSubPushBody.SubscriptionName(subscription),
+            body,
+            headers,
+            request
+        );
     }
 
     /// <summary>The subscription's own name, off the end of the resource name.</summary>
-    internal static string SubscriptionName(string subscription) => PubSubPushBody.SubscriptionName(subscription);
+    internal static string SubscriptionName(string subscription) =>
+        PubSubPushBody.SubscriptionName(subscription);
 
     internal static bool IsJson(string? contentType) =>
-        contentType != null &&
-        contentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase);
+        contentType != null
+        && contentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase);
 }

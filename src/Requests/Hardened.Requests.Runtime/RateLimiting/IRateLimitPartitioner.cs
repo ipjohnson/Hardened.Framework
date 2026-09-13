@@ -10,8 +10,8 @@ namespace Hardened.Requests.Runtime.RateLimiting;
 /// Swapped the same way <see cref="IRateLimitStore"/> is - implement it and register with
 /// <c>[SingletonService(Using = RegistrationType.Replace)]</c>.
 /// </remarks>
-public interface IRateLimitPartitioner {
-
+public interface IRateLimitPartitioner
+{
     /// <summary>
     /// A key identifying the caller. Never null: a request that cannot be attributed to anyone
     /// still has to count against something.
@@ -38,8 +38,8 @@ public interface IRateLimitPartitioner {
 /// </para>
 /// </remarks>
 [SingletonService(Using = RegistrationType.Try)]
-public class DefaultRateLimitPartitioner : IRateLimitPartitioner {
-
+public class DefaultRateLimitPartitioner : IRateLimitPartitioner
+{
     /// <summary>
     /// Where every request that cannot be attributed to a caller counts.
     /// </summary>
@@ -47,24 +47,31 @@ public class DefaultRateLimitPartitioner : IRateLimitPartitioner {
 
     private readonly RateLimitConfiguration _configuration;
 
-    public DefaultRateLimitPartitioner(RateLimitConfiguration configuration) {
+    public DefaultRateLimitPartitioner(RateLimitConfiguration configuration)
+    {
         _configuration = configuration;
     }
 
-    public string Partition(IExecutionContext context) {
+    public string Partition(IExecutionContext context)
+    {
         var principal = context.CallerPrincipal;
 
-        if (principal.IsAuthenticated && !string.IsNullOrEmpty(principal.Subject)) {
+        if (principal.IsAuthenticated && !string.IsNullOrEmpty(principal.Subject))
+        {
             return "sub:" + principal.Subject;
         }
 
         var header = _configuration.PartitionHeader;
 
-        if (!string.IsNullOrEmpty(header) &&
-            context.Request.Headers.TryGetValue(header, out var value)) {
+        if (
+            !string.IsNullOrEmpty(header)
+            && context.Request.Headers.TryGetValue(header, out var value)
+        )
+        {
             var key = value.ToString();
 
-            if (!string.IsNullOrEmpty(key)) {
+            if (!string.IsNullOrEmpty(key))
+            {
                 return header + ":" + key;
             }
         }

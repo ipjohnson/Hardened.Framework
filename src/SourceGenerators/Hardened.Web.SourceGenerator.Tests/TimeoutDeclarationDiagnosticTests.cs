@@ -17,12 +17,13 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// <c>x-hardened-timeout: 0</c> from the 0.20 trial's probe. <c>HRDW006</c> is the build saying
 /// so.
 /// </remarks>
-public class TimeoutDeclarationDiagnosticTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),       // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),  // Hardened.Requests.Abstract
-        typeof(TimeoutAttribute)    // Hardened.Requests.Runtime
+public class TimeoutDeclarationDiagnosticTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
+        typeof(TimeoutAttribute), // Hardened.Requests.Runtime
     ];
 
     private static GeneratorResult Generate(string classAttributes, string handlerAttributes) =>
@@ -45,7 +46,8 @@ public class TimeoutDeclarationDiagnosticTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
     private static IEnumerable<Diagnostic> Reported(GeneratorResult result) =>
         result.GeneratorDiagnostics.Where(d => d.Id == TimeoutDeclarationDiagnostics.DiagnosticId);
@@ -53,7 +55,8 @@ public class TimeoutDeclarationDiagnosticTests {
     [Theory]
     [InlineData("[Timeout(Milliseconds = 0)]")]
     [InlineData("[Timeout(Milliseconds = -5)]")]
-    public void AZeroOrNegativeBudgetOnTheOperationIsHRDW006(string attribute) {
+    public void AZeroOrNegativeBudgetOnTheOperationIsHRDW006(string attribute)
+    {
         var diagnostic = Assert.Single(Reported(Generate("", attribute)));
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
@@ -62,19 +65,22 @@ public class TimeoutDeclarationDiagnosticTests {
     }
 
     [Fact]
-    public void AZeroBudgetOnTheClassIsReportedForItsOperations() {
+    public void AZeroBudgetOnTheClassIsReportedForItsOperations()
+    {
         Assert.Single(Reported(Generate("[Timeout(Milliseconds = 0)]", "")));
     }
 
     [Fact]
-    public void ABudgetReportsNothing() {
+    public void ABudgetReportsNothing()
+    {
         var result = Generate("", "[Timeout(Milliseconds = 2000)]").AssertNoErrors();
 
         Assert.Empty(Reported(result));
     }
 
     [Fact]
-    public void NoDeclarationReportsNothing() {
+    public void NoDeclarationReportsNothing()
+    {
         var result = Generate("", "").AssertNoErrors();
 
         Assert.Empty(Reported(result));

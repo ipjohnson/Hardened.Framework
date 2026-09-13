@@ -22,8 +22,8 @@ namespace Hardened.Generation.Models;
 /// identity is invisible.
 /// </para>
 /// </remarks>
-public enum SpecSerializer {
-
+public enum SpecSerializer
+{
     /// <summary>
     /// No MessagePack attributes. What an unset property means, so a project generated before this
     /// existed keeps generating the models it had.
@@ -40,5 +40,5 @@ public enum SpecSerializer {
     /// <c>[MessagePackObject]</c> on the type and <c>[Key(n)]</c> on each member, with every
     /// <c>n</c> taken from the contract. A member the contract does not key is a build error.
     /// </summary>
-    MessagePackKeyed
+    MessagePackKeyed,
 }

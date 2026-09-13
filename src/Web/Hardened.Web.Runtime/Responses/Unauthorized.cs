@@ -1,7 +1,6 @@
 using Hardened.Requests.Abstract.Authorization;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -26,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(401)]
 public sealed record Unauthorized(string? Detail = null, AuthorizationChallenge? Challenge = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders, IDeclaresStatus {
-
+    : IHttpStatusResponse,
+        IProvidesResponseHeaders,
+        IDeclaresStatus
+{
     /// <summary>
     /// The Unauthorized with a generic message, for a handler with nothing more to say than the status.
     /// Shared, so returning it allocates nothing.
@@ -42,7 +43,8 @@ public sealed record Unauthorized(string? Detail = null, AuthorizationChallenge?
 
     public int Status => StatusCode;
 
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
         var challenge = Challenge ?? AuthorizationChallenge.AuthenticationRequired();
 
         headers[AuthorizationChallenge.HeaderName] = challenge.HeaderValue;

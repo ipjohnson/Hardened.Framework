@@ -17,8 +17,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// </para>
 /// </remarks>
 [BasePath("/collection")]
-public class CollectionRootController {
-
+public class CollectionRootController
+{
     [Get("/")]
     public string List() => "collection";
 

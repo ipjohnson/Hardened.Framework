@@ -17,8 +17,8 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// reason <c>RetryFilterTests</c> gives: a substituted chain has a re-runnable <c>Next</c> and the
 /// real one advances an index.
 /// </remarks>
-public class TimeoutFilterTests {
-
+public class TimeoutFilterTests
+{
     /// <summary>A budget short enough to expire during a test, but not so short it races.</summary>
     private const int ShortBudget = 30;
 
@@ -26,21 +26,26 @@ public class TimeoutFilterTests {
     private const int LongBudget = 60_000;
 
     [Fact]
-    public async Task TheChainRunsOnADeadlineTokenRatherThanTheTransports() {
+    public async Task TheChainRunsOnADeadlineTokenRatherThanTheTransports()
+    {
         using var transport = new CancellationTokenSource();
 
         var context = Pipeline.Cancellable(transport.Token);
 
         CancellationToken observed = default;
 
-        await Pipeline.Chain(
-            context,
-            new TimeoutFilter(LongBudget),
-            new Pipeline.Inline(chain => {
-                observed = chain.Context.CancellationToken;
+        await Pipeline
+            .Chain(
+                context,
+                new TimeoutFilter(LongBudget),
+                new Pipeline.Inline(chain =>
+                {
+                    observed = chain.Context.CancellationToken;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.NotEqual(transport.Token, observed);
         Assert.True(observed.CanBeCanceled);
@@ -52,14 +57,17 @@ public class TimeoutFilterTests {
     /// is why the filter has to sit ahead of serialization.
     /// </summary>
     [Fact]
-    public async Task WorkThatOutlivesTheBudgetIsCancelled() {
+    public async Task WorkThatOutlivesTheBudgetIsCancelled()
+    {
         var context = Pipeline.Context();
 
         var chain = Pipeline.Chain(
             context,
             new TimeoutFilter(ShortBudget),
             new Pipeline.Inline(inner =>
-                Task.Delay(Timeout.Infinite, inner.Context.CancellationToken)));
+                Task.Delay(Timeout.Infinite, inner.Context.CancellationToken)
+            )
+        );
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => chain.Next());
     }
@@ -71,7 +79,8 @@ public class TimeoutFilterTests {
     /// cancelled token behind for them.
     /// </summary>
     [Fact]
-    public async Task TheTransportTokenIsBackWhenTheFilterReturns() {
+    public async Task TheTransportTokenIsBackWhenTheFilterReturns()
+    {
         using var transport = new CancellationTokenSource();
 
         var context = Pipeline.Cancellable(transport.Token);
@@ -82,7 +91,8 @@ public class TimeoutFilterTests {
     }
 
     [Fact]
-    public async Task TheTransportTokenIsBackAfterTheDeadlineFired() {
+    public async Task TheTransportTokenIsBackAfterTheDeadlineFired()
+    {
         using var transport = new CancellationTokenSource();
 
         var context = Pipeline.Cancellable(transport.Token);
@@ -91,7 +101,9 @@ public class TimeoutFilterTests {
             context,
             new TimeoutFilter(ShortBudget),
             new Pipeline.Inline(inner =>
-                Task.Delay(Timeout.Infinite, inner.Context.CancellationToken)));
+                Task.Delay(Timeout.Infinite, inner.Context.CancellationToken)
+            )
+        );
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => chain.Next());
 
@@ -100,7 +112,8 @@ public class TimeoutFilterTests {
     }
 
     [Fact]
-    public async Task TheTransportTokenIsBackAfterTheChainThrew() {
+    public async Task TheTransportTokenIsBackAfterTheChainThrew()
+    {
         using var transport = new CancellationTokenSource();
 
         var context = Pipeline.Cancellable(transport.Token);
@@ -108,7 +121,8 @@ public class TimeoutFilterTests {
         var chain = Pipeline.Chain(
             context,
             new TimeoutFilter(LongBudget),
-            new Pipeline.Inline(_ => throw new InvalidOperationException("the handler failed")));
+            new Pipeline.Inline(_ => throw new InvalidOperationException("the handler failed"))
+        );
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => chain.Next());
 
@@ -121,7 +135,8 @@ public class TimeoutFilterTests {
     /// exactly the operations that declared a budget.
     /// </summary>
     [Fact]
-    public async Task TheTransportsOwnCancellationStillReachesTheChain() {
+    public async Task TheTransportsOwnCancellationStillReachesTheChain()
+    {
         using var transport = new CancellationTokenSource();
 
         var context = Pipeline.Cancellable(transport.Token);
@@ -129,17 +144,20 @@ public class TimeoutFilterTests {
         var chain = Pipeline.Chain(
             context,
             new TimeoutFilter(LongBudget),
-            new Pipeline.Inline(async inner => {
+            new Pipeline.Inline(async inner =>
+            {
                 await transport.CancelAsync();
 
                 await Task.Delay(Timeout.Infinite, inner.Context.CancellationToken);
-            }));
+            })
+        );
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => chain.Next());
     }
 
     [Fact]
-    public async Task ADeadlineThatFiredIsCounted() {
+    public async Task ADeadlineThatFiredIsCounted()
+    {
         var metrics = Substitute.For<IMetricLogger>();
         var context = Pipeline.Context(metrics: metrics);
 
@@ -147,7 +165,9 @@ public class TimeoutFilterTests {
             context,
             new TimeoutFilter(ShortBudget),
             new Pipeline.Inline(inner =>
-                Task.Delay(Timeout.Infinite, inner.Context.CancellationToken)));
+                Task.Delay(Timeout.Infinite, inner.Context.CancellationToken)
+            )
+        );
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => chain.Next());
 
@@ -160,7 +180,8 @@ public class TimeoutFilterTests {
     /// away.
     /// </summary>
     [Fact]
-    public async Task AClientDisconnectIsNotCountedAsATimeout() {
+    public async Task AClientDisconnectIsNotCountedAsATimeout()
+    {
         using var transport = new CancellationTokenSource();
 
         var metrics = Substitute.For<IMetricLogger>();
@@ -169,11 +190,13 @@ public class TimeoutFilterTests {
         var chain = Pipeline.Chain(
             context,
             new TimeoutFilter(LongBudget),
-            new Pipeline.Inline(async inner => {
+            new Pipeline.Inline(async inner =>
+            {
                 await transport.CancelAsync();
 
                 await Task.Delay(Timeout.Infinite, inner.Context.CancellationToken);
-            }));
+            })
+        );
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => chain.Next());
 
@@ -181,7 +204,8 @@ public class TimeoutFilterTests {
     }
 
     [Fact]
-    public async Task ARequestThatFinishedInTimeRecordsNothing() {
+    public async Task ARequestThatFinishedInTimeRecordsNothing()
+    {
         var metrics = Substitute.For<IMetricLogger>();
         var context = Pipeline.Context(metrics: metrics);
 

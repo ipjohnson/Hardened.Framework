@@ -1,8 +1,8 @@
 using System.IO.Compression;
 using System.Text;
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.StaticContent.SUT.Tests;
 
@@ -24,19 +24,22 @@ namespace Hardened.IntegrationTests.StaticContent.SUT.Tests;
 /// here against what the server put on the wire.
 /// </para>
 /// </summary>
-public class StaticContentTests {
-
+public class StaticContentTests
+{
     private static string Header(TestWebResponse response, string name) =>
         response.Headers.TryGetValue(name, out var value) ? value.ToString() : "";
 
     private static Action<TestWebRequest> With(params (string Name, string Value)[] headers) =>
-        request => {
-            foreach (var (name, value) in headers) {
+        request =>
+        {
+            foreach (var (name, value) in headers)
+            {
                 request.Headers[name] = value;
             }
         };
 
-    private static async Task<byte[]> BytesOf(TestWebResponse response) {
+    private static async Task<byte[]> BytesOf(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
         using var buffer = new MemoryStream();
@@ -49,7 +52,8 @@ public class StaticContentTests {
     #region serving at all
 
     [HardenedTest]
-    public async Task AFileIsServed(ITestWebApp app) {
+    public async Task AFileIsServed(ITestWebApp app)
+    {
         var response = await app.Get("/index.html");
 
         response.Assert.Ok();
@@ -65,7 +69,8 @@ public class StaticContentTests {
     [InlineData("/")]
     [InlineData("/assets")]
     [InlineData("/assets/")]
-    public async Task ADirectoryAnswersWithItsIndex(string path, ITestWebApp app) {
+    public async Task ADirectoryAnswersWithItsIndex(string path, ITestWebApp app)
+    {
         var response = await app.Get(path);
 
         response.Assert.Ok();
@@ -79,7 +84,8 @@ public class StaticContentTests {
     [HardenedTest]
     [InlineData("/app/deep/route")]
     [InlineData("/some-other-spa-path")]
-    public async Task AnUnknownPathServesTheShell(string path, ITestWebApp app) {
+    public async Task AnUnknownPathServesTheShell(string path, ITestWebApp app)
+    {
         var response = await app.Get(path);
 
         response.Assert.Ok();
@@ -93,7 +99,8 @@ public class StaticContentTests {
     /// application listed its modules in.
     /// </summary>
     [HardenedTest]
-    public async Task ADeclaredRouteWinsOverAFileAtTheSamePath(ITestWebApp app) {
+    public async Task ADeclaredRouteWinsOverAFileAtTheSamePath(ITestWebApp app)
+    {
         var response = await app.Get("/app.js");
 
         response.Assert.Ok();
@@ -114,7 +121,8 @@ public class StaticContentTests {
     /// the comparison was - and no unit test that supplies its own tag can see that.
     /// </summary>
     [HardenedTest]
-    public async Task AServedFileCarriesAQuotedETag(ITestWebApp app) {
+    public async Task AServedFileCarriesAQuotedETag(ITestWebApp app)
+    {
         var etag = Header(await app.Get("/index.html"), KnownHeaders.ETag);
 
         Assert.StartsWith("\"", etag);
@@ -128,12 +136,12 @@ public class StaticContentTests {
     /// the tag themselves.
     /// </summary>
     [HardenedTest]
-    public async Task TheValidatorTheServerSentComesBackAsA304(ITestWebApp app) {
+    public async Task TheValidatorTheServerSentComesBackAsA304(ITestWebApp app)
+    {
         var first = await app.Get("/index.html");
         var etag = Header(first, KnownHeaders.ETag);
 
-        var second = await app.Get(
-            "/index.html", With((KnownHeaders.IfNoneMatch, etag)));
+        var second = await app.Get("/index.html", With((KnownHeaders.IfNoneMatch, etag)));
 
         Assert.Equal(304, second.StatusCode);
         Assert.Empty(await BytesOf(second));
@@ -144,7 +152,8 @@ public class StaticContentTests {
     /// revalidated on every request after the first, whatever its max age said.
     /// </summary>
     [HardenedTest]
-    public async Task A304RepeatsTheCacheHeaders(ITestWebApp app) {
+    public async Task A304RepeatsTheCacheHeaders(ITestWebApp app)
+    {
         var first = await app.Get("/index.html");
         var etag = Header(first, KnownHeaders.ETag);
 
@@ -153,7 +162,9 @@ public class StaticContentTests {
         Assert.Equal(304, second.StatusCode);
         Assert.Equal(etag, Header(second, KnownHeaders.ETag));
         Assert.Equal(
-            Header(first, KnownHeaders.CacheControl), Header(second, KnownHeaders.CacheControl));
+            Header(first, KnownHeaders.CacheControl),
+            Header(second, KnownHeaders.CacheControl)
+        );
     }
 
     /// <summary>
@@ -161,13 +172,16 @@ public class StaticContentTests {
     /// with no entity-tag had nothing to revalidate against.
     /// </summary>
     [HardenedTest]
-    public async Task TheLastModifiedTheServerSentComesBackAsA304(ITestWebApp app) {
+    public async Task TheLastModifiedTheServerSentComesBackAsA304(ITestWebApp app)
+    {
         var lastModified = Header(await app.Get("/index.html"), KnownHeaders.LastModified);
 
         Assert.EndsWith("GMT", lastModified);
 
         var second = await app.Get(
-            "/index.html", With((KnownHeaders.IfModifiedSince, lastModified)));
+            "/index.html",
+            With((KnownHeaders.IfModifiedSince, lastModified))
+        );
 
         Assert.Equal(304, second.StatusCode);
     }
@@ -178,7 +192,8 @@ public class StaticContentTests {
     /// <c>public</c> invites a shared cache to keep it - was unreachable.
     /// </summary>
     [HardenedTest]
-    public async Task TheConfiguredCacheControlReachesTheWire(ITestWebApp app) {
+    public async Task TheConfiguredCacheControlReachesTheWire(ITestWebApp app)
+    {
         var response = await app.Get("/index.html");
 
         Assert.Equal("private, max-age=3600", Header(response, KnownHeaders.CacheControl));
@@ -194,9 +209,12 @@ public class StaticContentTests {
     /// received a pre-compressed asset, and every one took the inflate-per-request path instead.
     /// </summary>
     [HardenedTest]
-    public async Task ABrowserGetsThePreCompressedAsset(ITestWebApp app) {
+    public async Task ABrowserGetsThePreCompressedAsset(ITestWebApp app)
+    {
         var response = await app.Get(
-            "/vendor.js", With((KnownHeaders.AcceptEncoding, "gzip, deflate, br, zstd")));
+            "/vendor.js",
+            With((KnownHeaders.AcceptEncoding, "gzip, deflate, br, zstd"))
+        );
 
         response.Assert.Ok();
 
@@ -225,9 +243,14 @@ public class StaticContentTests {
     [InlineData("identity")]
     [InlineData("br")]
     public async Task AClientThatDoesNotTakeTheStoredCodingGetsItInflated(
-        string acceptEncoding, ITestWebApp app) {
+        string acceptEncoding,
+        ITestWebApp app
+    )
+    {
         var response = await app.Get(
-            "/vendor.js", With((KnownHeaders.AcceptEncoding, acceptEncoding)));
+            "/vendor.js",
+            With((KnownHeaders.AcceptEncoding, acceptEncoding))
+        );
 
         response.Assert.Ok();
 
@@ -240,9 +263,12 @@ public class StaticContentTests {
     /// CDN store a copy per coding of a file that is byte-identical for all of them.
     /// </summary>
     [HardenedTest]
-    public async Task AnUncompressedResourceDoesNotSayItVaries(ITestWebApp app) {
+    public async Task AnUncompressedResourceDoesNotSayItVaries(ITestWebApp app)
+    {
         var response = await app.Get(
-            "/clip.bin", With((KnownHeaders.AcceptEncoding, "gzip, deflate, br")));
+            "/clip.bin",
+            With((KnownHeaders.AcceptEncoding, "gzip, deflate, br"))
+        );
 
         response.Assert.Ok();
         Assert.Equal("", Header(response, KnownHeaders.Vary));
@@ -253,7 +279,8 @@ public class StaticContentTests {
     #region ranges
 
     [HardenedTest]
-    public async Task AServedFileAdvertisesThatRangesWork(ITestWebApp app) {
+    public async Task AServedFileAdvertisesThatRangesWork(ITestWebApp app)
+    {
         Assert.Equal("bytes", Header(await app.Get("/clip.bin"), KnownHeaders.AcceptRanges));
     }
 
@@ -263,7 +290,8 @@ public class StaticContentTests {
     /// assume seeking was unavailable.
     /// </summary>
     [HardenedTest]
-    public async Task ARangeIsAnsweredWith206AndOnlyThoseBytes(ITestWebApp app) {
+    public async Task ARangeIsAnsweredWith206AndOnlyThoseBytes(ITestWebApp app)
+    {
         var response = await app.Get("/clip.bin", With((KnownHeaders.Range, "bytes=0-9")));
 
         Assert.Equal(206, response.StatusCode);
@@ -272,7 +300,8 @@ public class StaticContentTests {
     }
 
     [HardenedTest]
-    public async Task ARangePastTheEndIs416WithTheLength(ITestWebApp app) {
+    public async Task ARangePastTheEndIs416WithTheLength(ITestWebApp app)
+    {
         var response = await app.Get("/clip.bin", With((KnownHeaders.Range, "bytes=500-600")));
 
         Assert.Equal(416, response.StatusCode);
@@ -288,7 +317,8 @@ public class StaticContentTests {
     /// <c>Dispatch</c>, which is what drops the body, because it was not a handler.
     /// </summary>
     [HardenedTest]
-    public async Task AHeadCarriesTheHeadersOfItsGetAndNoBody(ITestWebApp app) {
+    public async Task AHeadCarriesTheHeadersOfItsGetAndNoBody(ITestWebApp app)
+    {
         var get = await app.Get("/index.html");
         var head = await app.Request("HEAD", null, "/index.html");
 
@@ -297,7 +327,9 @@ public class StaticContentTests {
 
         Assert.Equal(Header(get, KnownHeaders.ETag), Header(head, KnownHeaders.ETag));
         Assert.Equal(
-            Header(get, KnownHeaders.CacheControl), Header(head, KnownHeaders.CacheControl));
+            Header(get, KnownHeaders.CacheControl),
+            Header(head, KnownHeaders.CacheControl)
+        );
     }
 
     /// <summary>
@@ -308,7 +340,8 @@ public class StaticContentTests {
     [InlineData("POST")]
     [InlineData("PUT")]
     [InlineData("DELETE")]
-    public async Task AWriteToAFileIsMethodNotAllowed(string method, ITestWebApp app) {
+    public async Task AWriteToAFileIsMethodNotAllowed(string method, ITestWebApp app)
+    {
         var response = await app.Request(method, null, "/index.html");
 
         Assert.Equal(405, response.StatusCode);
@@ -321,7 +354,8 @@ public class StaticContentTests {
     /// something.
     /// </summary>
     [HardenedTest]
-    public async Task AWriteToAPathOnlyTheFallbackAnswersIsNotFound(ITestWebApp app) {
+    public async Task AWriteToAPathOnlyTheFallbackAnswersIsNotFound(ITestWebApp app)
+    {
         var response = await app.Request("POST", null, "/api/typo");
 
         response.Assert.NotFound();
@@ -336,7 +370,8 @@ public class StaticContentTests {
     /// because the common case is a build step that copied a directory wholesale and nobody looked.
     /// </summary>
     [HardenedTest]
-    public async Task AHiddenFileIsNotServed(ITestWebApp app) {
+    public async Task AHiddenFileIsNotServed(ITestWebApp app)
+    {
         var response = await app.Get("/.env");
 
         // The fall back answers instead, which is what an unknown path does here - the point is
@@ -349,7 +384,8 @@ public class StaticContentTests {
     /// refusing every hidden path without it breaks certificate renewal.
     /// </summary>
     [HardenedTest]
-    public async Task WellKnownIsServedDespiteBeingHidden(ITestWebApp app) {
+    public async Task WellKnownIsServedDespiteBeingHidden(ITestWebApp app)
+    {
         var response = await app.Get("/.well-known/security.txt");
 
         response.Assert.Ok();
@@ -363,7 +399,8 @@ public class StaticContentTests {
     [HardenedTest]
     [InlineData("/../Application.cs")]
     [InlineData("/assets/../../Program.cs")]
-    public async Task ATraversalDoesNotEscapeTheRoot(string path, ITestWebApp app) {
+    public async Task ATraversalDoesNotEscapeTheRoot(string path, ITestWebApp app)
+    {
         var body = await (await app.Get(path)).ReadTextAsync();
 
         Assert.DoesNotContain("namespace Hardened.IntegrationTests", body);

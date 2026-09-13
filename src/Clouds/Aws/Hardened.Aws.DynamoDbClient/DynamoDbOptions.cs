@@ -14,8 +14,8 @@ namespace Hardened.Aws.DynamoDbClient;
 /// </para>
 /// </summary>
 [ConfigurationModel]
-public partial class DynamoDbOptions {
-
+public partial class DynamoDbOptions
+{
     /// <summary>
     /// Overrides the default client's endpoint. This is what points a process at DynamoDB Local, and
     /// it should never be set in a deployed environment.

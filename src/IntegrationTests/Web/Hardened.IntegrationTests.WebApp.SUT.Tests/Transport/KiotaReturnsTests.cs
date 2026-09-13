@@ -1,7 +1,7 @@
 using Hardened.IntegrationTests.WebApp.SUT.Client;
 using Hardened.Requests.Abstract.Responses;
-using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
 using Hardened.Web.Runtime.Responses;
+using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 
@@ -16,8 +16,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// <see cref="GeneratedClientTests"/>, so a disagreement between the two is a defect in the
 /// package rather than in the application.
 /// </remarks>
-public class KiotaReturnsTests {
-
+public class KiotaReturnsTests
+{
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     /// <summary>
@@ -25,9 +25,13 @@ public class KiotaReturnsTests {
     /// Location, and both come back on the response type.
     /// </summary>
     [HardenedTest]
-    public async Task ACreatedResponseCarriesItsBodyAndItsLocation(WebAppClient client) {
-        var created = await client.Verbs.Located
-            .PostAsync(new ClientModels.MathAddModel { Values = [1, 2, 3] }, cancellationToken: Token)
+    public async Task ACreatedResponseCarriesItsBodyAndItsLocation(WebAppClient client)
+    {
+        var created = await client
+            .Verbs.Located.PostAsync(
+                new ClientModels.MathAddModel { Values = [1, 2, 3] },
+                cancellationToken: Token
+            )
             .Returns<Created<ClientModels.MathAddModel>>();
 
         Assert.Equal(3, created.Value.Values!.Count);
@@ -39,20 +43,29 @@ public class KiotaReturnsTests {
     /// document declares and Kiota types; the status alone is what this asserts.
     /// </summary>
     [HardenedTest]
-    public async Task TheOtherCaseOfTheSetAnswersItsStatus(WebAppClient client) {
-        await client.Verbs.Located
-            .PostAsync(new ClientModels.MathAddModel { Values = [] }, cancellationToken: Token)
+    public async Task TheOtherCaseOfTheSetAnswersItsStatus(WebAppClient client)
+    {
+        await client
+            .Verbs.Located.PostAsync(
+                new ClientModels.MathAddModel { Values = [] },
+                cancellationToken: Token
+            )
             .ReturnsStatus<BadRequest>();
     }
 
     [HardenedTest]
-    public async Task ADeclared204IsNoContent(WebAppClient client) {
+    public async Task ADeclared204IsNoContent(WebAppClient client)
+    {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token).Returns<NoContent>();
     }
 
     [HardenedTest]
-    public async Task ATwoHundredCarriesTheBodyAndEveryHeader(WebAppClient client) {
-        var answer = await client.Verbs.Item["42"].GetAsync(cancellationToken: Token).Returns<Ok<string>>();
+    public async Task ATwoHundredCarriesTheBodyAndEveryHeader(WebAppClient client)
+    {
+        var answer = await client
+            .Verbs.Item["42"]
+            .GetAsync(cancellationToken: Token)
+            .Returns<Ok<string>>();
 
         Assert.Equal("got:42", answer.Value);
         Assert.StartsWith("application/json", answer.Headers!["Content-Type"]);
@@ -60,18 +73,27 @@ public class KiotaReturnsTests {
 
     /// <summary>A declared refusal is the model Kiota threw, at the status the case declares.</summary>
     [HardenedTest]
-    public async Task ADeclaredRefusalIsTheTypedModelAtItsStatus(WebAppClient client) {
-        var refused = await client.Registration.Declared422
-            .PostAsync(new ClientModels.RegistrationModel { Name = "too young", Age = 5 }, cancellationToken: Token)
+    public async Task ADeclaredRefusalIsTheTypedModelAtItsStatus(WebAppClient client)
+    {
+        var refused = await client
+            .Registration.Declared422.PostAsync(
+                new ClientModels.RegistrationModel { Name = "too young", Age = 5 },
+                cancellationToken: Token
+            )
             .Returns<UnprocessableContent<ClientModels.RequestValidationError>>();
 
-        Assert.Contains(refused.Body.Errors!, error => error.Field!.EndsWith("age", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(
+            refused.Body.Errors!,
+            error => error.Field!.EndsWith("age", StringComparison.OrdinalIgnoreCase)
+        );
     }
 
     [HardenedTest]
     [Grants("pets:write")]
-    public async Task AGuardsRefusalIsTheErrorModelAt403(WebAppClient client) {
-        var forbidden = await client.Authorization.Pets.GetAsync(cancellationToken: Token)
+    public async Task AGuardsRefusalIsTheErrorModelAt403(WebAppClient client)
+    {
+        var forbidden = await client
+            .Authorization.Pets.GetAsync(cancellationToken: Token)
             .Returns<Forbidden<ClientModels.ErrorModel>>();
 
         Assert.Equal("This request is not permitted.", forbidden.Body.Message);
@@ -79,15 +101,20 @@ public class KiotaReturnsTests {
 
     /// <summary>An undeclared refusal has no body type to be, so only its status can be named.</summary>
     [HardenedTest]
-    public async Task AnUndeclaredRefusalAnswersItsStatus(WebAppClient client) {
-        await client.Authorization.Pets.GetAsync(cancellationToken: Token).ReturnsStatus<Unauthorized>();
+    public async Task AnUndeclaredRefusalAnswersItsStatus(WebAppClient client)
+    {
+        await client
+            .Authorization.Pets.GetAsync(cancellationToken: Token)
+            .ReturnsStatus<Unauthorized>();
     }
 
     /// <summary>The wrong expectation fails naming both statuses in the contract's words.</summary>
     [HardenedTest]
-    public async Task TheWrongExpectationNamesBothStatuses(WebAppClient client) {
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => client.Verbs.Item["1"].GetAsync(cancellationToken: Token).Returns<NoContent>());
+    public async Task TheWrongExpectationNamesBothStatuses(WebAppClient client)
+    {
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            client.Verbs.Item["1"].GetAsync(cancellationToken: Token).Returns<NoContent>()
+        );
 
         Assert.Contains("Expected 204 (NoContent)", failure.Message);
         Assert.Contains("answered 200", failure.Message);
@@ -96,10 +123,17 @@ public class KiotaReturnsTests {
     /// <summary>Two clients with two credentials in one test, each asserted on its own answer.</summary>
     [HardenedTest]
     public async Task TwoClientsInOneTestEachAnswerForTheirOwnCall(
-        [Grants("pets:read")] WebAppClient reader, [Anonymous] WebAppClient nobody) {
-        var pets = await reader.Authorization.Pets.GetAsync(cancellationToken: Token).Returns<Ok<string>>();
+        [Grants("pets:read")] WebAppClient reader,
+        [Anonymous] WebAppClient nobody
+    )
+    {
+        var pets = await reader
+            .Authorization.Pets.GetAsync(cancellationToken: Token)
+            .Returns<Ok<string>>();
 
-        await nobody.Authorization.Pets.GetAsync(cancellationToken: Token).ReturnsStatus<Unauthorized>();
+        await nobody
+            .Authorization.Pets.GetAsync(cancellationToken: Token)
+            .ReturnsStatus<Unauthorized>();
 
         Assert.Equal("pets", pets.Value);
     }
@@ -109,10 +143,13 @@ public class KiotaReturnsTests {
     /// is the same construction as a parameter.
     /// </summary>
     [HardenedTest]
-    public async Task AClientCreatedInsideTheTestIsBuiltByTheSameRoute(ITestWebApp app) {
+    public async Task AClientCreatedInsideTheTestIsBuiltByTheSameRoute(ITestWebApp app)
+    {
         var client = app.CreateClient<WebAppClient>(new TestCredential(["pets:read"]));
 
-        var pets = await client.Authorization.Pets.GetAsync(cancellationToken: Token).Returns<Ok<string>>();
+        var pets = await client
+            .Authorization.Pets.GetAsync(cancellationToken: Token)
+            .Returns<Ok<string>>();
 
         Assert.Equal("pets", pets.Value);
     }

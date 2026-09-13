@@ -19,7 +19,8 @@ namespace Hardened.Azure.Functions.Testing;
 /// picks it up for every Service Bus batch it builds.
 /// </para>
 /// </remarks>
-public sealed class RecordingMessageActions : ServiceBusMessageActions {
+public sealed class RecordingMessageActions : ServiceBusMessageActions
+{
     private readonly List<string> _completed = new();
     private readonly List<string> _abandoned = new();
     private readonly List<string> _deadLettered = new();
@@ -36,7 +37,10 @@ public sealed class RecordingMessageActions : ServiceBusMessageActions {
     public IReadOnlyList<string> Deferred => _deferred;
 
     public override Task CompleteMessageAsync(
-        ServiceBusReceivedMessage message, CancellationToken cancellationToken = default) {
+        ServiceBusReceivedMessage message,
+        CancellationToken cancellationToken = default
+    )
+    {
         _completed.Add(message.MessageId);
 
         return Task.CompletedTask;
@@ -45,7 +49,9 @@ public sealed class RecordingMessageActions : ServiceBusMessageActions {
     public override Task AbandonMessageAsync(
         ServiceBusReceivedMessage message,
         IDictionary<string, object>? propertiesToModify = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default
+    )
+    {
         _abandoned.Add(message.MessageId);
 
         return Task.CompletedTask;
@@ -56,7 +62,9 @@ public sealed class RecordingMessageActions : ServiceBusMessageActions {
         Dictionary<string, object>? propertiesToModify = null,
         string? deadLetterReason = null,
         string? deadLetterErrorDescription = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default
+    )
+    {
         _deadLettered.Add(message.MessageId);
 
         return Task.CompletedTask;
@@ -65,7 +73,9 @@ public sealed class RecordingMessageActions : ServiceBusMessageActions {
     public override Task DeferMessageAsync(
         ServiceBusReceivedMessage message,
         IDictionary<string, object>? propertiesToModify = null,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default
+    )
+    {
         _deferred.Add(message.MessageId);
 
         return Task.CompletedTask;

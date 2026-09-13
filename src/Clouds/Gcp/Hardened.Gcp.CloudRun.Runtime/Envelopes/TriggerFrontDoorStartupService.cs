@@ -20,11 +20,14 @@ namespace Hardened.Gcp.CloudRun.Runtime.Envelopes;
 /// application on Cloud Run pays nothing per request for a feature it did not ask for.
 /// </para>
 /// </remarks>
-internal sealed class TriggerFrontDoorStartupService : IStartupService {
-    public Task<bool> Startup(IServiceProvider rootProvider) {
+internal sealed class TriggerFrontDoorStartupService : IStartupService
+{
+    public Task<bool> Startup(IServiceProvider rootProvider)
+    {
         var envelopes = rootProvider.GetServices<ITriggerEnvelope>().ToArray();
 
-        if (envelopes.Length > 0) {
+        if (envelopes.Length > 0)
+        {
             var frontDoor = new TriggerFrontDoor(envelopes);
 
             rootProvider.GetRequiredService<IMiddlewareService>().Use(_ => frontDoor);

@@ -16,44 +16,47 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// operation per verb. Landed with constraints rather than after them, because constraints are
 /// what make the pair writable.
 /// </remarks>
-public class AmbiguousRouteTests {
+public class AmbiguousRouteTests
+{
     private const string DiagnosticId = "HRDR001";
 
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),
-        typeof(FromBodyAttribute)
-    ];
+    private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(FromBodyAttribute)];
 
     private static GeneratorResult Generate(
-        string controllerBody, IReadOnlyDictionary<string, string>? properties = null) =>
+        string controllerBody,
+        IReadOnlyDictionary<string, string>? properties = null
+    ) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-                    public class UserController {
-                    {{controllerBody}}
-                    }
-                    """
+                public class UserController {
+                {{controllerBody}}
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
             Anchors,
             additionalTexts: null,
-            buildProperties: properties);
+            buildProperties: properties
+        );
 
     private static Diagnostic? Reported(
-        string controllerBody, IReadOnlyDictionary<string, string>? properties = null) =>
-        Generate(controllerBody, properties).GeneratorDiagnostics
-            .FirstOrDefault(diagnostic => diagnostic.Id == DiagnosticId);
+        string controllerBody,
+        IReadOnlyDictionary<string, string>? properties = null
+    ) =>
+        Generate(controllerBody, properties)
+            .GeneratorDiagnostics.FirstOrDefault(diagnostic => diagnostic.Id == DiagnosticId);
 
-    private const string ConstrainedPair =
-        """
+    private const string ConstrainedPair = """
             [Get("/users/{id:int}")]
             public string ById(string id) => id;
 
@@ -62,13 +65,15 @@ public class AmbiguousRouteTests {
         """;
 
     [Fact]
-    public void AConstrainedRouteBesideAnUnconstrainedOneIsReported() {
+    public void AConstrainedRouteBesideAnUnconstrainedOneIsReported()
+    {
         Assert.NotNull(Reported(ConstrainedPair));
     }
 
     /// <summary>The message names both routes, because either one could be the one to move.</summary>
     [Fact]
-    public void TheMessageNamesBothRoutes() {
+    public void TheMessageNamesBothRoutes()
+    {
         var message = Reported(ConstrainedPair)!.GetMessage();
 
         Assert.Contains("/users/{id:int}", message);
@@ -80,14 +85,19 @@ public class AmbiguousRouteTests {
     /// path the token takes, so which one answers depends on the value.
     /// </summary>
     [Fact]
-    public void ATokenBesideACatchAllIsReported() {
-        Assert.NotNull(Reported("""
-                [Get("/files/{path}")]
-                public string One(string path) => path;
+    public void ATokenBesideACatchAllIsReported()
+    {
+        Assert.NotNull(
+            Reported(
+                """
+                    [Get("/files/{path}")]
+                    public string One(string path) => path;
 
-                [Get("/files/{*path}")]
-                public string Many(string path) => path;
-            """));
+                    [Get("/files/{*path}")]
+                    public string Many(string path) => path;
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -95,7 +105,8 @@ public class AmbiguousRouteTests {
     /// unreachable for some values - so nothing else would make it visible.
     /// </summary>
     [Fact]
-    public void ItIsAnErrorByDefault() {
+    public void ItIsAnErrorByDefault()
+    {
         Assert.Equal(DiagnosticSeverity.Error, Reported(ConstrainedPair)!.Severity);
     }
 
@@ -105,10 +116,12 @@ public class AmbiguousRouteTests {
     /// drifted, and CI runs TreatWarningsAsErrors, so an opt-in still forces a deliberate decision.
     /// </summary>
     [Fact]
-    public void TheProjectCanLowerItToAWarning() {
+    public void TheProjectCanLowerItToAWarning()
+    {
         var reported = Reported(
             ConstrainedPair,
-            new Dictionary<string, string> { ["HardenedAmbiguousRoutes"] = "warning" });
+            new Dictionary<string, string> { ["HardenedAmbiguousRoutes"] = "warning" }
+        );
 
         Assert.Equal(DiagnosticSeverity.Warning, reported!.Severity);
     }
@@ -118,14 +131,19 @@ public class AmbiguousRouteTests {
     /// thing to write, the literal wins, and a document describes both.
     /// </summary>
     [Fact]
-    public void ALiteralBesideATokenIsNotReported() {
-        Assert.Null(Reported("""
-                [Get("/users/me")]
-                public string Me() => "me";
+    public void ALiteralBesideATokenIsNotReported()
+    {
+        Assert.Null(
+            Reported(
+                """
+                    [Get("/users/me")]
+                    public string Me() => "me";
 
-                [Get("/users/{id}")]
-                public string ById(string id) => id;
-            """));
+                    [Get("/users/{id}")]
+                    public string ById(string id) => id;
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -133,14 +151,19 @@ public class AmbiguousRouteTests {
     /// so nothing is ambiguous.
     /// </summary>
     [Fact]
-    public void TwoRoutesWithDifferentShapesAreNotReported() {
-        Assert.Null(Reported("""
-                [Get("/users/{id:int}")]
-                public string ById(string id) => id;
+    public void TwoRoutesWithDifferentShapesAreNotReported()
+    {
+        Assert.Null(
+            Reported(
+                """
+                    [Get("/users/{id:int}")]
+                    public string ById(string id) => id;
 
-                [Get("/users/{id:int}/posts")]
-                public string Posts(string id) => id;
-            """));
+                    [Get("/users/{id:int}/posts")]
+                    public string Posts(string id) => id;
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -148,13 +171,18 @@ public class AmbiguousRouteTests {
     /// the rule is about.
     /// </summary>
     [Fact]
-    public void TheSameShapeUnderDifferentVerbsIsNotReported() {
-        Assert.Null(Reported("""
-                [Get("/users/{id:int}")]
-                public string ById(string id) => id;
+    public void TheSameShapeUnderDifferentVerbsIsNotReported()
+    {
+        Assert.Null(
+            Reported(
+                """
+                    [Get("/users/{id:int}")]
+                    public string ById(string id) => id;
 
-                [Post("/users/{name}")]
-                public string Create(string name) => name;
-            """));
+                    [Post("/users/{name}")]
+                    public string Create(string name) => name;
+                """
+            )
+        );
     }
 }

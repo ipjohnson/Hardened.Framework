@@ -14,14 +14,15 @@ namespace Hardened.Requests.Abstract.Tests.RequestFilter;
 /// reaches production intact, so the relationships are asserted rather than the values.
 /// </para>
 /// </summary>
-public class FilterOrderTests {
-
+public class FilterOrderTests
+{
     /// <summary>
     /// The reason authentication is early: a request presenting no credential must not cause a
     /// 10 MB body to be read before it is rejected.
     /// </summary>
     [Fact]
-    public void AuthenticationRunsBeforeAnythingIsDeserialized() {
+    public void AuthenticationRunsBeforeAnythingIsDeserialized()
+    {
         Assert.True(FilterOrder.Authentication < FilterOrder.BeforeSerialization);
         Assert.True(FilterOrder.Authentication < FilterOrder.Serialization);
     }
@@ -35,7 +36,8 @@ public class FilterOrderTests {
     /// position documented in three files and expressed nowhere is one nothing can sit beside.
     /// </remarks>
     [Fact]
-    public void GrantAuthorizationRunsAfterAuthenticationAndAheadOfSerialization() {
+    public void GrantAuthorizationRunsAfterAuthenticationAndAheadOfSerialization()
+    {
         Assert.True(FilterOrder.GrantAuthorization > FilterOrder.Authentication);
         Assert.True(FilterOrder.GrantAuthorization < FilterOrder.Serialization);
     }
@@ -45,7 +47,8 @@ public class FilterOrderTests {
     /// exist until deserialization and validation have run.
     /// </summary>
     [Fact]
-    public void AuthorizationRunsAfterParametersAreBound() {
+    public void AuthorizationRunsAfterParametersAreBound()
+    {
         Assert.True(FilterOrder.Authorization > FilterOrder.Serialization);
         Assert.True(FilterOrder.Authorization > FilterOrder.Validation);
     }
@@ -55,7 +58,8 @@ public class FilterOrderTests {
     /// been invoked would authorize work that has already happened.
     /// </summary>
     [Fact]
-    public void BothAuthorizationPositionsRunBeforeTheHandler() {
+    public void BothAuthorizationPositionsRunBeforeTheHandler()
+    {
         Assert.True(FilterOrder.GrantAuthorization < FilterOrder.EndPointInvoke);
         Assert.True(FilterOrder.Authorization < FilterOrder.EndPointInvoke);
     }
@@ -65,7 +69,8 @@ public class FilterOrderTests {
     /// metadata from, and the accepted schemes for an operation are metadata.
     /// </summary>
     [Fact]
-    public void HandlerCreationStillPrecedesAuthentication() {
+    public void HandlerCreationStillPrecedesAuthentication()
+    {
         Assert.True(FilterOrder.HandlerCreation < FilterOrder.Authentication);
     }
 
@@ -77,8 +82,10 @@ public class FilterOrderTests {
     /// <see cref="FilterOrder.After"/> is the case that is fine.
     /// </summary>
     [Fact]
-    public void NeitherAuthorizationSlotCollidesWithAnExistingStage() {
-        int[] existing = [
+    public void NeitherAuthorizationSlotCollidesWithAnExistingStage()
+    {
+        int[] existing =
+        [
             FilterOrder.HandlerCreation,
             FilterOrder.RateLimitTransport,
             FilterOrder.RateLimitPrincipal,

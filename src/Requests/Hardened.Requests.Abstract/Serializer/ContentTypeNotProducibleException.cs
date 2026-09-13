@@ -16,6 +16,8 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// JSON and sent; a success response that cannot travel as what it promised stays a fault.
 /// </para>
 /// </remarks>
-public class ContentTypeNotProducibleException : Exception {
-    public ContentTypeNotProducibleException(string message) : base(message) { }
+public class ContentTypeNotProducibleException : Exception
+{
+    public ContentTypeNotProducibleException(string message)
+        : base(message) { }
 }

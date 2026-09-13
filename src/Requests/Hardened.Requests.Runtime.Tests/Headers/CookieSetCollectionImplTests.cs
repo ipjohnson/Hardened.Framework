@@ -14,10 +14,11 @@ namespace Hardened.Requests.Runtime.Tests.Headers;
 /// instead of emitting two <c>Set-Cookie</c> headers for it. That is the right answer (a browser
 /// keeps the last one anyway) and it is worth being deliberate about.
 /// </remarks>
-public class CookieSetCollectionImplTests {
-
+public class CookieSetCollectionImplTests
+{
     [Fact]
-    public void AnAppendedCookieIsReadableByName() {
+    public void AnAppendedCookieIsReadableByName()
+    {
         var collection = new CookieSetCollectionImpl();
 
         collection.Append("session", "abc123");
@@ -32,7 +33,8 @@ public class CookieSetCollectionImplTests {
     /// unconditionally when the header is rendered.
     /// </summary>
     [Fact]
-    public void AnAppendWithoutOptionsGetsTheEmptyOptions() {
+    public void AnAppendWithoutOptionsGetsTheEmptyOptions()
+    {
         var collection = new CookieSetCollectionImpl();
 
         collection.Append("session", "abc123");
@@ -43,7 +45,8 @@ public class CookieSetCollectionImplTests {
     }
 
     [Fact]
-    public void SuppliedOptionsAreKept() {
+    public void SuppliedOptionsAreKept()
+    {
         var collection = new CookieSetCollectionImpl();
         var options = new CookieSetOptions(Path: "/admin", SameSite: SameSite.Strict);
 
@@ -53,7 +56,8 @@ public class CookieSetCollectionImplTests {
     }
 
     [Fact]
-    public void SeveralNamesAreAllKept() {
+    public void SeveralNamesAreAllKept()
+    {
         var collection = new CookieSetCollectionImpl();
 
         collection.Append("session", "abc123");
@@ -68,7 +72,8 @@ public class CookieSetCollectionImplTests {
     /// Appending the same name twice replaces rather than accumulating.
     /// </summary>
     [Fact]
-    public void AppendingTheSameNameTwiceKeepsTheLastValue() {
+    public void AppendingTheSameNameTwiceKeepsTheLastValue()
+    {
         var collection = new CookieSetCollectionImpl();
 
         collection.Append("session", "first");
@@ -83,7 +88,8 @@ public class CookieSetCollectionImplTests {
     /// <c>Path</c> silently keeps the earlier one's scope.
     /// </summary>
     [Fact]
-    public void AppendingTheSameNameTwiceReplacesTheOptionsAsWell() {
+    public void AppendingTheSameNameTwiceReplacesTheOptionsAsWell()
+    {
         var collection = new CookieSetCollectionImpl();
 
         collection.Append("session", "first", new CookieSetOptions(Path: "/admin"));
@@ -93,7 +99,8 @@ public class CookieSetCollectionImplTests {
     }
 
     [Fact]
-    public void CookieNamesAreCaseSensitive() {
+    public void CookieNamesAreCaseSensitive()
+    {
         var collection = new CookieSetCollectionImpl();
 
         collection.Append("Session", "upper");
@@ -103,7 +110,8 @@ public class CookieSetCollectionImplTests {
     }
 
     [Fact]
-    public void AFreshCollectionHasNoCookies() {
+    public void AFreshCollectionHasNoCookies()
+    {
         Assert.Empty(new CookieSetCollectionImpl().Cookies);
     }
 }

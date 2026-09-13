@@ -19,24 +19,33 @@ namespace Hardened.Aws.Lambda.Runtime.Development;
 /// emulator itself, which is also the tool's web UI, on 5050, the tool's own default.
 /// </para>
 /// </remarks>
-public sealed class LambdaEmulatorPlan {
+public sealed class LambdaEmulatorPlan
+{
     /// <summary>
     /// The variable the API Gateway emulator reads its routes from. Set on the tool's process, not
     /// the function's.
     /// </summary>
     public const string RouteConfigurationVariable = "APIGATEWAY_EMULATOR_ROUTE_CONFIG";
 
-    private LambdaEmulatorPlan(string functionName, bool apiGateway, int emulatorPort, int gatewayPort) {
+    private LambdaEmulatorPlan(
+        string functionName,
+        bool apiGateway,
+        int emulatorPort,
+        int gatewayPort
+    )
+    {
         FunctionName = functionName;
         ApiGateway = apiGateway;
         EmulatorPort = emulatorPort;
         GatewayPort = gatewayPort;
 
         Arguments =
-            $"lambda-test-tool start --lambda-emulator-port {emulatorPort} --no-launch-window" +
-            (apiGateway
-                ? $" --api-gateway-emulator-port {gatewayPort} --api-gateway-emulator-mode HttpV2"
-                : "");
+            $"lambda-test-tool start --lambda-emulator-port {emulatorPort} --no-launch-window"
+            + (
+                apiGateway
+                    ? $" --api-gateway-emulator-port {gatewayPort} --api-gateway-emulator-mode HttpV2"
+                    : ""
+            );
 
         RouteConfiguration = apiGateway ? Routes(functionName, EmulatorUrl) : null;
     }
@@ -88,43 +97,64 @@ public sealed class LambdaEmulatorPlan {
     /// The environment, as a lookup rather than <see cref="Environment.GetEnvironmentVariable(string)"/>
     /// so a test can supply one.
     /// </param>
-    public static LambdaEmulatorPlan? From(string functionName, bool apiGateway, Func<string, string?> environment) {
-        if (!string.IsNullOrWhiteSpace(environment(LambdaEmulator.RuntimeApiVariable))) {
+    public static LambdaEmulatorPlan? From(
+        string functionName,
+        bool apiGateway,
+        Func<string, string?> environment
+    )
+    {
+        if (!string.IsNullOrWhiteSpace(environment(LambdaEmulator.RuntimeApiVariable)))
+        {
             return null;
         }
 
         return new LambdaEmulatorPlan(
             functionName,
             apiGateway,
-            Port(environment, LambdaEmulator.EmulatorPortVariable, LambdaEmulator.DefaultEmulatorPort),
-            Port(environment, LambdaEmulator.GatewayPortVariable, LambdaEmulator.DefaultGatewayPort));
+            Port(
+                environment,
+                LambdaEmulator.EmulatorPortVariable,
+                LambdaEmulator.DefaultEmulatorPort
+            ),
+            Port(environment, LambdaEmulator.GatewayPortVariable, LambdaEmulator.DefaultGatewayPort)
+        );
     }
 
-    private static int Port(Func<string, string?> environment, string variable, int fallback) {
+    private static int Port(Func<string, string?> environment, string variable, int fallback)
+    {
         var value = environment(variable);
 
-        if (string.IsNullOrWhiteSpace(value)) {
+        if (string.IsNullOrWhiteSpace(value))
+        {
             return fallback;
         }
 
-        if (int.TryParse(value!.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var port) &&
-            port is > 0 and <= 65535) {
+        if (
+            int.TryParse(
+                value!.Trim(),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var port
+            ) && port is > 0 and <= 65535
+        )
+        {
             return port;
         }
 
         throw new InvalidOperationException(
-            $"{variable} is '{value}'. It must be a port number between 1 and 65535.");
+            $"{variable} is '{value}'. It must be a port number between 1 and 65535."
+        );
     }
 
     // Written by hand rather than serialised: two fixed entries, and a serialiser here would be the
     // only reflection-based one in the assembly.
-    private static string Routes(string functionName, string endpoint) {
+    private static string Routes(string functionName, string endpoint)
+    {
         var name = JsonEncodedText.Encode(functionName).ToString();
 
-        return
-            "[" +
-            $"{{\"LambdaResourceName\":\"{name}\",\"Endpoint\":\"{endpoint}\",\"HttpMethod\":\"ANY\",\"Path\":\"/\"}}," +
-            $"{{\"LambdaResourceName\":\"{name}\",\"Endpoint\":\"{endpoint}\",\"HttpMethod\":\"ANY\",\"Path\":\"/{{proxy+}}\"}}" +
-            "]";
+        return "["
+            + $"{{\"LambdaResourceName\":\"{name}\",\"Endpoint\":\"{endpoint}\",\"HttpMethod\":\"ANY\",\"Path\":\"/\"}},"
+            + $"{{\"LambdaResourceName\":\"{name}\",\"Endpoint\":\"{endpoint}\",\"HttpMethod\":\"ANY\",\"Path\":\"/{{proxy+}}\"}}"
+            + "]";
     }
 }

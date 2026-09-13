@@ -16,21 +16,23 @@ namespace Hardened.SourceGenerator.Tests.Caching;
 /// These assert the property caching actually depends on: a model rebuilt from identical
 /// inputs equals the original, and differing inputs do not.
 /// </summary>
-public class ModelEqualityCachingTests {
-
+public class ModelEqualityCachingTests
+{
     private static ITypeDefinition Type(string ns, string name) => TypeDefinition.Get(ns, name);
 
     private static RequestHandlerModel Model(
         string path = "/orders/{id}",
         string method = "GET",
         string handlerMethod = "GetOrder",
-        string returnTypeName = "String") =>
+        string returnTypeName = "String"
+    ) =>
         new(
             new RequestHandlerNameModel(path, method),
             Type("TestApp", "OrderController"),
             handlerMethod,
             Type("TestApp", "OrderController_GetOrder"),
-            new List<RequestParameterInformation> {
+            new List<RequestParameterInformation>
+            {
                 new(
                     parameterType: Type("System", "String"),
                     name: "id",
@@ -38,12 +40,12 @@ public class ModelEqualityCachingTests {
                     defaultValue: null,
                     bindingType: ParameterBindType.Path,
                     bindingName: "id",
-                    parameterIndex: 0)
+                    parameterIndex: 0
+                ),
             },
             new ResponseInformationModel { ReturnType = Type("System", returnTypeName) },
-            new List<AttributeModel> {
-                new(Type("TestApp", "AuthorizeAttribute"), "", "")
-            });
+            new List<AttributeModel> { new(Type("TestApp", "AuthorizeAttribute"), "", "") }
+        );
 
     /// <summary>
     /// Everything else rests on this. ITypeDefinition comes from CSharpAuthor and appears in
@@ -51,21 +53,29 @@ public class ModelEqualityCachingTests {
     /// cache.
     /// </summary>
     [Fact]
-    public void TypeDefinitionComparesStructurally() {
+    public void TypeDefinitionComparesStructurally()
+    {
         Assert.Equal(Type("System", "String"), Type("System", "String"));
-        Assert.Equal(Type("System", "String").GetHashCode(), Type("System", "String").GetHashCode());
+        Assert.Equal(
+            Type("System", "String").GetHashCode(),
+            Type("System", "String").GetHashCode()
+        );
         Assert.NotEqual(Type("System", "String"), Type("System", "Int32"));
     }
 
     [Fact]
-    public void IdenticallyBuiltModelsAreEqual() {
-        Assert.True(Model().Equals(Model()),
-            "two models built from identical inputs must compare equal or the generator " +
-            "pipeline re-runs on every edit");
+    public void IdenticallyBuiltModelsAreEqual()
+    {
+        Assert.True(
+            Model().Equals(Model()),
+            "two models built from identical inputs must compare equal or the generator "
+                + "pipeline re-runs on every edit"
+        );
     }
 
     [Fact]
-    public void IdenticallyBuiltModelsShareAHashCode() {
+    public void IdenticallyBuiltModelsShareAHashCode()
+    {
         Assert.Equal(Model().GetHashCode(), Model().GetHashCode());
     }
 
@@ -75,20 +85,29 @@ public class ModelEqualityCachingTests {
     [InlineData("/orders/{id}", "GET", "DeleteOrder", "String")]
     [InlineData("/orders/{id}", "GET", "GetOrder", "Int32")]
     public void ModelsDifferingInAnyMemberAreNotEqual(
-        string path, string method, string handlerMethod, string returnTypeName) {
-        Assert.False(Model().Equals(Model(path, method, handlerMethod, returnTypeName)),
-            "a model that differs must not compare equal, or a real code change would be " +
-            "cached away and never regenerated");
+        string path,
+        string method,
+        string handlerMethod,
+        string returnTypeName
+    )
+    {
+        Assert.False(
+            Model().Equals(Model(path, method, handlerMethod, returnTypeName)),
+            "a model that differs must not compare equal, or a real code change would be "
+                + "cached away and never regenerated"
+        );
     }
 
     [Fact]
-    public void ModelIsNotEqualToAnUnrelatedObject() {
+    public void ModelIsNotEqualToAnUnrelatedObject()
+    {
         Assert.False(Model().Equals("not a model"));
         Assert.False(Model().Equals(null!));
     }
 
     [Fact]
-    public void ComparerAgreesWithTheModel() {
+    public void ComparerAgreesWithTheModel()
+    {
         var comparer = new RequestHandlerModelComparer();
 
         Assert.True(comparer.Equals(Model(), Model()));
@@ -97,7 +116,8 @@ public class ModelEqualityCachingTests {
     }
 
     [Fact]
-    public void RequestHandlerNameModelComparesStructurally() {
+    public void RequestHandlerNameModelComparesStructurally()
+    {
         var a = new RequestHandlerNameModel("/a", "GET");
         var b = new RequestHandlerNameModel("/a", "GET");
 
@@ -113,13 +133,25 @@ public class ModelEqualityCachingTests {
     /// would silently revert them to reference equality.
     /// </summary>
     [Fact]
-    public void RecordModelsCompareStructurally() {
-        var responseA = new ResponseInformationModel { ReturnType = Type("System", "String"), IsAsync = true };
-        var responseB = new ResponseInformationModel { ReturnType = Type("System", "String"), IsAsync = true };
+    public void RecordModelsCompareStructurally()
+    {
+        var responseA = new ResponseInformationModel
+        {
+            ReturnType = Type("System", "String"),
+            IsAsync = true,
+        };
+        var responseB = new ResponseInformationModel
+        {
+            ReturnType = Type("System", "String"),
+            IsAsync = true,
+        };
 
         Assert.Equal(responseA, responseB);
         Assert.Equal(responseA.GetHashCode(), responseB.GetHashCode());
-        Assert.NotEqual(responseA, new ResponseInformationModel { ReturnType = Type("System", "String") });
+        Assert.NotEqual(
+            responseA,
+            new ResponseInformationModel { ReturnType = Type("System", "String") }
+        );
 
         var attributeA = new AttributeModel(Type("TestApp", "AuthorizeAttribute"), "args", "props");
         var attributeB = new AttributeModel(Type("TestApp", "AuthorizeAttribute"), "args", "props");

@@ -1,8 +1,7 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.RateLimiting;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -24,8 +23,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(429)]
 public sealed record RateLimited(TimeSpan RetryAfter, string? Detail = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders, IDeclaresStatus {
-
+    : IHttpStatusResponse,
+        IProvidesResponseHeaders,
+        IDeclaresStatus
+{
     public string Type => ProblemTypes.RateLimited;
 
     public string Title => "Too Many Requests";
@@ -34,7 +35,9 @@ public sealed record RateLimited(TimeSpan RetryAfter, string? Detail = null)
 
     public int Status => StatusCode;
 
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
-        headers[KnownHeaders.RetryAfter] = Hardened.Requests.Runtime.RateLimiting.RetryAfter.HeaderValue(RetryAfter);
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
+        headers[KnownHeaders.RetryAfter] =
+            Hardened.Requests.Runtime.RateLimiting.RetryAfter.HeaderValue(RetryAfter);
     }
 }

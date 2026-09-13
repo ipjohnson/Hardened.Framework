@@ -13,32 +13,41 @@ namespace Hardened.Shared.Runtime.Tests.Application;
 /// in <see cref="ProcessEnvironmentTests"/>, which owns that global on its own.
 /// </para>
 /// </summary>
-public class EnvironmentImplTests {
-
+public class EnvironmentImplTests
+{
     private static EnvironmentImpl Environment(params (string Name, string Value)[] values) =>
-        new(name: "test",
-            environmentValues: values.ToDictionary(pair => pair.Name, pair => pair.Value));
+        new(
+            name: "test",
+            environmentValues: values.ToDictionary(pair => pair.Name, pair => pair.Value)
+        );
 
     [Fact]
-    public void AnExplicitNameIsTheEnvironmentName() {
+    public void AnExplicitNameIsTheEnvironmentName()
+    {
         Assert.Equal("staging", new EnvironmentImpl("staging").Name);
     }
 
     [Fact]
-    public void ArgumentsDefaultToNoneRatherThanNull() {
+    public void ArgumentsDefaultToNoneRatherThanNull()
+    {
         Assert.Empty(new EnvironmentImpl("test").Arguments);
     }
 
     [Fact]
-    public void ArgumentsAreKeptInTheOrderTheyWereGiven() {
+    public void ArgumentsAreKeptInTheOrderTheyWereGiven()
+    {
         var environment = new EnvironmentImpl("test", arguments: ["--first", "--second"]);
 
         Assert.Equal(["--first", "--second"], environment.Arguments);
     }
 
     [Fact]
-    public void AValueInTheDictionaryIsReturned() {
-        Assert.Equal("http://localhost", Environment(("SERVICE_URL", "http://localhost")).Value<string>("SERVICE_URL"));
+    public void AValueInTheDictionaryIsReturned()
+    {
+        Assert.Equal(
+            "http://localhost",
+            Environment(("SERVICE_URL", "http://localhost")).Value<string>("SERVICE_URL")
+        );
     }
 
     /// <summary>
@@ -46,12 +55,14 @@ public class EnvironmentImplTests {
     /// generated configuration read depends on: it passes the field's current value as the default.
     /// </summary>
     [Fact]
-    public void AMissingValueFallsBackToTheDefault() {
+    public void AMissingValueFallsBackToTheDefault()
+    {
         Assert.Equal("fallback", Environment().Value("SERVICE_URL", "fallback"));
     }
 
     [Fact]
-    public void AMissingValueWithNoDefaultIsNull() {
+    public void AMissingValueWithNoDefaultIsNull()
+    {
         Assert.Null(Environment().Value<string>("SERVICE_URL"));
     }
 
@@ -60,7 +71,8 @@ public class EnvironmentImplTests {
     /// constructed with an empty dictionary — the null-conditional lookup is skipped entirely.
     /// </summary>
     [Fact]
-    public void AnEnvironmentWithNoDictionaryFallsBackToTheDefault() {
+    public void AnEnvironmentWithNoDictionaryFallsBackToTheDefault()
+    {
         Assert.Equal("fallback", new EnvironmentImpl("test").Value("SERVICE_URL", "fallback"));
     }
 
@@ -69,7 +81,8 @@ public class EnvironmentImplTests {
     /// variable to nothing gets the default rather than "".
     /// </summary>
     [Fact]
-    public void AnEmptyValueIsTreatedAsAbsent() {
+    public void AnEmptyValueIsTreatedAsAbsent()
+    {
         Assert.Equal("fallback", Environment(("SERVICE_URL", "")).Value("SERVICE_URL", "fallback"));
     }
 
@@ -77,7 +90,8 @@ public class EnvironmentImplTests {
     [InlineData("90", 90)]
     [InlineData("0", 0)]
     [InlineData("-1", -1)]
-    public void AnIntegerValueIsConverted(string raw, int expected) {
+    public void AnIntegerValueIsConverted(string raw, int expected)
+    {
         Assert.Equal(expected, Environment(("RETENTION_DAYS", raw)).Value<int>("RETENTION_DAYS"));
     }
 
@@ -85,17 +99,20 @@ public class EnvironmentImplTests {
     [InlineData("true", true)]
     [InlineData("True", true)]
     [InlineData("false", false)]
-    public void ABooleanValueIsConverted(string raw, bool expected) {
+    public void ABooleanValueIsConverted(string raw, bool expected)
+    {
         Assert.Equal(expected, Environment(("VERBOSE", raw)).Value<bool>("VERBOSE"));
     }
 
     [Fact]
-    public void ADoubleValueIsConverted() {
+    public void ADoubleValueIsConverted()
+    {
         Assert.Equal(1.5, Environment(("RATIO", "1.5")).Value<double>("RATIO"));
     }
 
     [Fact]
-    public void ALongValueIsConverted() {
+    public void ALongValueIsConverted()
+    {
         Assert.Equal(9_000_000_000L, Environment(("SIZE", "9000000000")).Value<long>("SIZE"));
     }
 
@@ -104,27 +121,40 @@ public class EnvironmentImplTests {
     /// separate branch and the one taken by almost every real read.
     /// </summary>
     [Fact]
-    public void AStringValueIsReturnedWithoutConversion() {
-        Assert.Equal("not-a-number", Environment(("SERVICE_URL", "not-a-number")).Value<string>("SERVICE_URL"));
+    public void AStringValueIsReturnedWithoutConversion()
+    {
+        Assert.Equal(
+            "not-a-number",
+            Environment(("SERVICE_URL", "not-a-number")).Value<string>("SERVICE_URL")
+        );
     }
 
     [Fact]
-    public void AValueThatCannotBeConvertedThrows() {
-        Assert.Throws<FormatException>(() => Environment(("RETENTION_DAYS", "ninety")).Value<int>("RETENTION_DAYS"));
+    public void AValueThatCannotBeConvertedThrows()
+    {
+        Assert.Throws<FormatException>(() =>
+            Environment(("RETENTION_DAYS", "ninety")).Value<int>("RETENTION_DAYS")
+        );
     }
 
     [Fact]
-    public void CustomDataIsReturnedWhenPresent() {
-        var environment = new EnvironmentImpl("test",
-            customData: new Dictionary<string, object> { ["handler"] = 42 });
+    public void CustomDataIsReturnedWhenPresent()
+    {
+        var environment = new EnvironmentImpl(
+            "test",
+            customData: new Dictionary<string, object> { ["handler"] = 42 }
+        );
 
         Assert.Equal(42, environment.CustomData<int>("handler"));
     }
 
     [Fact]
-    public void MissingCustomDataFallsBackToTheDefault() {
-        var environment = new EnvironmentImpl("test",
-            customData: new Dictionary<string, object> { ["handler"] = 42 });
+    public void MissingCustomDataFallsBackToTheDefault()
+    {
+        var environment = new EnvironmentImpl(
+            "test",
+            customData: new Dictionary<string, object> { ["handler"] = 42 }
+        );
 
         Assert.Equal(-1, environment.CustomData("absent", -1));
     }
@@ -134,14 +164,18 @@ public class EnvironmentImplTests {
     /// dictionary that simply does not hold the key.
     /// </summary>
     [Fact]
-    public void CustomDataWithNoDictionaryFallsBackToTheDefault() {
+    public void CustomDataWithNoDictionaryFallsBackToTheDefault()
+    {
         Assert.Equal(-1, new EnvironmentImpl("test").CustomData("handler", -1));
     }
 
     [Fact]
-    public void CustomDataOfTheWrongTypeThrowsRatherThanReturningTheDefault() {
-        var environment = new EnvironmentImpl("test",
-            customData: new Dictionary<string, object> { ["handler"] = "a string" });
+    public void CustomDataOfTheWrongTypeThrowsRatherThanReturningTheDefault()
+    {
+        var environment = new EnvironmentImpl(
+            "test",
+            customData: new Dictionary<string, object> { ["handler"] = "a string" }
+        );
 
         Assert.Throws<InvalidCastException>(() => environment.CustomData<int>("handler"));
     }
@@ -153,21 +187,24 @@ public class EnvironmentImplTests {
     /// environment.
     /// </summary>
     [Fact]
-    public void TheModuleEnvironmentNameIsTheHardenedEnvironmentName() {
+    public void TheModuleEnvironmentNameIsTheHardenedEnvironmentName()
+    {
         IModuleEnvironment environment = new EnvironmentImpl("staging");
 
         Assert.Equal("staging", environment.EnvironmentName);
     }
 
     [Fact]
-    public void TheModuleEnvironmentValueIsTheHardenedEnvironmentValue() {
+    public void TheModuleEnvironmentValueIsTheHardenedEnvironmentValue()
+    {
         IModuleEnvironment environment = Environment(("SERVICE_URL", "http://localhost"));
 
         Assert.Equal("http://localhost", environment.Value("SERVICE_URL"));
     }
 
     [Fact]
-    public void TheModuleEnvironmentValueIsNullForAnUnsetVariable() {
+    public void TheModuleEnvironmentValueIsNullForAnUnsetVariable()
+    {
         IModuleEnvironment environment = Environment();
 
         Assert.Null(environment.Value("SERVICE_URL"));
@@ -178,8 +215,8 @@ public class EnvironmentImplTests {
 /// <c>Matches</c> and <c>MatchesVariable</c> — how a module asks "am I in production?" without
 /// string-comparing the name itself everywhere.
 /// </summary>
-public class EnvironmentMatchingTests {
-
+public class EnvironmentMatchingTests
+{
     [Theory]
     [InlineData("production", "production", true)]
     [InlineData("production", "Production", true)]
@@ -187,23 +224,31 @@ public class EnvironmentMatchingTests {
     [InlineData("PRODUCTION", "production", true)]
     [InlineData("production", "development", false)]
     [InlineData("prod", "production", false)]
-    public void MatchesComparesTheEnvironmentNameWithoutCase(string name, string candidate, bool expected) {
+    public void MatchesComparesTheEnvironmentNameWithoutCase(
+        string name,
+        string candidate,
+        bool expected
+    )
+    {
         Assert.Equal(expected, new EnvironmentImpl(name).Matches(candidate));
     }
 
     [Fact]
-    public void MatchesIsTrueWhenAnyCandidateMatches() {
+    public void MatchesIsTrueWhenAnyCandidateMatches()
+    {
         Assert.True(new EnvironmentImpl("staging").Matches("production", "staging"));
     }
 
     [Fact]
-    public void MatchesIsFalseWhenNoCandidateMatches() {
+    public void MatchesIsFalseWhenNoCandidateMatches()
+    {
         Assert.False(new EnvironmentImpl("staging").Matches("production", "development"));
     }
 
     /// <summary>Asking whether the environment is one of nothing is false, not an error.</summary>
     [Fact]
-    public void MatchesWithNoCandidatesIsFalse() {
+    public void MatchesWithNoCandidatesIsFalse()
+    {
         Assert.False(new EnvironmentImpl("staging").Matches());
     }
 
@@ -212,9 +257,16 @@ public class EnvironmentMatchingTests {
     [InlineData("ON", "on", true)]
     [InlineData("on", "ON", true)]
     [InlineData("on", "off", false)]
-    public void MatchesVariableComparesTheValueWithoutCase(string actual, string expected, bool matches) {
-        var environment = new EnvironmentImpl("test",
-            environmentValues: new Dictionary<string, string> { ["FEATURE"] = actual });
+    public void MatchesVariableComparesTheValueWithoutCase(
+        string actual,
+        string expected,
+        bool matches
+    )
+    {
+        var environment = new EnvironmentImpl(
+            "test",
+            environmentValues: new Dictionary<string, string> { ["FEATURE"] = actual }
+        );
 
         Assert.Equal(matches, environment.MatchesVariable("FEATURE", expected));
     }
@@ -224,12 +276,14 @@ public class EnvironmentMatchingTests {
     /// answers false instead of throwing. A feature flag nobody set is off.
     /// </summary>
     [Fact]
-    public void MatchesVariableIsFalseForAnUnsetVariable() {
+    public void MatchesVariableIsFalseForAnUnsetVariable()
+    {
         Assert.False(new EnvironmentImpl("test").MatchesVariable("FEATURE", "on"));
     }
 
     [Fact]
-    public void MatchesVariableIsTrueWhenTheExpectedValueIsAlsoEmpty() {
+    public void MatchesVariableIsTrueWhenTheExpectedValueIsAlsoEmpty()
+    {
         Assert.True(new EnvironmentImpl("test").MatchesVariable("FEATURE", ""));
     }
 }

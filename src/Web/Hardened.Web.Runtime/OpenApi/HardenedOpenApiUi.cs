@@ -1,5 +1,5 @@
-﻿using DependencyModules.Runtime.Interfaces;
-using DependencyModules.Runtime.Attributes;
+﻿using DependencyModules.Runtime.Attributes;
+using DependencyModules.Runtime.Interfaces;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -61,8 +61,8 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// </para>
 /// </summary>
 [DependencyModule]
-public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfiguration {
-
+public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfiguration
+{
     /// <summary>
     /// Where the page is served. Also this module's identity - see <see cref="Equals"/>.
     /// </summary>
@@ -185,11 +185,13 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
     /// </remarks>
     public string? Environments { get; set; }
 
-    public void ConfigureServices(IServiceCollection services, IModuleEnvironment environment) {
+    public void ConfigureServices(IServiceCollection services, IModuleEnvironment environment)
+    {
         // Before anything is registered rather than as a check inside the provider: a page that
         // is not served in this environment should contribute no route, no handler and no
         // configuration, so nothing can reach it and nothing carries it.
-        if (!ServedIn(environment)) {
+        if (!ServedIn(environment))
+        {
             return;
         }
 
@@ -197,13 +199,28 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
     }
 
     /// <summary>Whether <see cref="Environments"/> admits the one the application is running in.</summary>
-    private bool ServedIn(IModuleEnvironment environment) {
-        if (string.IsNullOrWhiteSpace(Environments)) {
+    private bool ServedIn(IModuleEnvironment environment)
+    {
+        if (string.IsNullOrWhiteSpace(Environments))
+        {
             return true;
         }
 
-        foreach (var candidate in Environments!.Split(EnvironmentSeparators, StringSplitOptions.RemoveEmptyEntries)) {
-            if (string.Equals(candidate.Trim(), environment.EnvironmentName, StringComparison.OrdinalIgnoreCase)) {
+        foreach (
+            var candidate in Environments!.Split(
+                EnvironmentSeparators,
+                StringSplitOptions.RemoveEmptyEntries
+            )
+        )
+        {
+            if (
+                string.Equals(
+                    candidate.Trim(),
+                    environment.EnvironmentName,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
                 return true;
             }
         }
@@ -213,7 +230,8 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
 
     private static readonly char[] EnvironmentSeparators = [',', ';'];
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         // Stateless, and resolved once per request by the instance filter - so a singleton, and
         // Try because every installed page shares the one type.
         services.TryAddSingleton<OpenApiUiController>();
@@ -224,18 +242,19 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
             DocumentPath ?? DefaultDocumentPath,
             ScriptUrl ?? DefaultScriptUrl,
             ScriptIntegrity,
-            DecodeMessagePack ? MessagePackScriptUrl ?? DefaultMessagePackScriptUrl : null);
+            DecodeMessagePack ? MessagePackScriptUrl ?? DefaultMessagePackScriptUrl : null
+        );
 
         services.AddSingleton<IWebExecutionRequestHandlerProvider>(
-            serviceProvider => new OpenApiUiProvider(configuration, serviceProvider));
+            serviceProvider => new OpenApiUiProvider(configuration, serviceProvider)
+        );
     }
 
     /// <summary>
     /// A request path always begins with a slash, so a page configured as <c>"docs"</c> would match
     /// nothing and report nothing.
     /// </summary>
-    private static string NormalisePath(string path) =>
-        path.StartsWith('/') ? path : "/" + path;
+    private static string NormalisePath(string path) => path.StartsWith('/') ? path : "/" + path;
 
     /// <summary>
     /// Two installations are the same page when they are served from the same path.
@@ -255,11 +274,12 @@ public partial class HardenedOpenApiUi : IEnvironmentServiceCollectionConfigurat
     /// </para>
     /// </remarks>
     public override bool Equals(object? obj) =>
-        obj is HardenedOpenApiUi other &&
-        string.Equals(
+        obj is HardenedOpenApiUi other
+        && string.Equals(
             NormalisePath(other.Path ?? DefaultPath),
             NormalisePath(Path ?? DefaultPath),
-            StringComparison.Ordinal);
+            StringComparison.Ordinal
+        );
 
     public override int GetHashCode() =>
         NormalisePath(Path ?? DefaultPath).GetHashCode(StringComparison.Ordinal);

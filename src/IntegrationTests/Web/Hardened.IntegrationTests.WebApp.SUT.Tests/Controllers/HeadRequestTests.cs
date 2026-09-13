@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
@@ -12,41 +13,45 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// response to carry the header fields the GET would have carried, which is only true because the
 /// handler runs in full and the body is discarded on the way out.
 /// </summary>
-public class HeadRequestTests {
+public class HeadRequestTests
+{
     private const string Path = "/binding/path/42";
 
     [HardenedTest]
-    public async Task Head_ReachesTheGetHandler(ITestWebApp testWebApp) {
+    public async Task Head_ReachesTheGetHandler(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("HEAD", null, Path);
 
         response.Assert.Ok();
     }
 
     [HardenedTest]
-    public async Task Head_WritesNoBody(ITestWebApp testWebApp) {
+    public async Task Head_WritesNoBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("HEAD", null, Path);
 
         Assert.Equal(0, response.Body.Length);
     }
 
     [HardenedTest]
-    public async Task Head_ReportsTheLengthTheGetWouldHaveWritten(ITestWebApp testWebApp) {
+    public async Task Head_ReportsTheLengthTheGetWouldHaveWritten(ITestWebApp testWebApp)
+    {
         var get = await testWebApp.Get(Path);
         var head = await testWebApp.Request("HEAD", null, Path);
 
-        Assert.Equal(
-            get.Body.Length.ToString(),
-            head.Headers["Content-Length"].ToString());
+        Assert.Equal(get.Body.Length.ToString(), head.Headers["Content-Length"].ToString());
     }
 
     [HardenedTest]
-    public async Task Head_CarriesTheContentTypeOfTheGet(ITestWebApp testWebApp) {
+    public async Task Head_CarriesTheContentTypeOfTheGet(ITestWebApp testWebApp)
+    {
         var get = await testWebApp.Get(Path);
         var head = await testWebApp.Request("HEAD", null, Path);
 
         Assert.Equal(
             get.Headers["Content-Type"].ToString(),
-            head.Headers["Content-Type"].ToString());
+            head.Headers["Content-Type"].ToString()
+        );
     }
 
     /// <summary>
@@ -55,7 +60,8 @@ public class HeadRequestTests {
     /// fall-through has to be emitted in both.
     /// </summary>
     [HardenedTest]
-    public async Task Head_ReachesAHandlerBehindAWildcardNode(ITestWebApp testWebApp) {
+    public async Task Head_ReachesAHandlerBehindAWildcardNode(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("HEAD", null, "/verbs/item/abc123");
 
         response.Assert.Ok();

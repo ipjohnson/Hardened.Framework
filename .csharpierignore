@@ -1,0 +1,29 @@
+# XML formatting arrived in CSharpier 1.0 and is not what this repository adopted it for.
+# Project files are reviewed as build configuration, not as prose, and reformatting them
+# buries a one-line pin change in a whole-file diff.
+*.csproj
+*.props
+*.targets
+*.config
+*.slnx
+
+# CSharpier 1.3.0 ships a Roslyn that does not parse the C# union keyword, so these files
+# report CS1001. They are formatted to match the rest of the repository, by hand, and nothing
+# checks that they stay that way. Match the surrounding style when you edit them.
+# Revisit when CSharpier picks up a Roslyn that knows the syntax.
+src/IntegrationTests/Union/Hardened.IntegrationTests.Union.SUT/TodoController.cs
+src/Templates/Hardened.Templates/templates/hardened-web/src/Hardened1/TodoController.cs
+
+# Not valid C# until the template engine has processed it. The #if branches open and close
+# braces in different arms, so the file only balances once dotnet new has picked a mocking
+# library and a client. Roslyn reports CS1022 on it as written. Formatted by hand, like the
+# two above, and unchecked for the same reason.
+src/Templates/Hardened.Templates/templates/hardened-web/tests/Hardened1.Tests/TodoStoreMockTests.cs
+
+# Recorded generator output, compared byte for byte by the golden tests. These files are a
+# record of what the generators emit, not code this repository writes, so formatting them
+# fails RouteTable_OutputIsByteIdentical and SpecRouteTable_OutputIsByteIdentical. Rewrite
+# them with HARDENED_RECORD_FIXTURES=1, never with a formatter.
+src/SourceGenerators/Hardened.OpenApi.SourceGenerator.Tests/Fixtures/
+src/SourceGenerators/Hardened.SourceGenerator.Tests/Web/Fixtures/
+src/SourceGenerators/Hardened.Smithy.BuildTask.Tests/Fixtures/

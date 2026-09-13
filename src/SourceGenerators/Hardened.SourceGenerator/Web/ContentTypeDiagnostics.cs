@@ -33,7 +33,8 @@ namespace Hardened.SourceGenerator.Web;
 /// it would rebuild every handler below an edit.
 /// </para>
 /// </remarks>
-public static class ContentTypeDiagnostics {
+public static class ContentTypeDiagnostics
+{
     public const string MissingDeclarationId = "HRDR011";
 
     public const string NothingProducesId = "HRDR012";
@@ -43,28 +44,30 @@ public static class ContentTypeDiagnostics {
     /// <c>StreamFramingDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor MissingDeclaration() => new(
-        id: MissingDeclarationId,
-        title: "handler returns bytes and declares no content type",
-        messageFormat:
-        "'{0}' returns byte[] or Stream and carries no [Produces], so nothing says what the bytes " +
-        "are. Returning either means the handler writes its own response, and no serializer is " +
-        "consulted - declare the media type with [Produces(\"application/pdf\")] or return a model.",
-        category: "Hardened.Web",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor MissingDeclaration() =>
+        new(
+            id: MissingDeclarationId,
+            title: "handler returns bytes and declares no content type",
+            messageFormat: "'{0}' returns byte[] or Stream and carries no [Produces], so nothing says what the bytes "
+                + "are. Returning either means the handler writes its own response, and no serializer is "
+                + "consulted - declare the media type with [Produces(\"application/pdf\")] or return a model.",
+            category: "Hardened.Web",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
-    private static DiagnosticDescriptor NothingProduces() => new(
-        id: NothingProducesId,
-        title: "nothing in this compilation produces a declared content type",
-        messageFormat:
-        "'{0}' declares [Produces(\"{1}\")] and returns a model, and nothing here writes a model as " +
-        "that media type. Register an IResponseSerializer declaring it, or return string, byte[] " +
-        "or Stream and write the bytes yourself. A host that registers one makes this correct, " +
-        "which is why it is a warning.",
-        category: "Hardened.Web",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor NothingProduces() =>
+        new(
+            id: NothingProducesId,
+            title: "nothing in this compilation produces a declared content type",
+            messageFormat: "'{0}' declares [Produces(\"{1}\")] and returns a model, and nothing here writes a model as "
+                + "that media type. Register an IResponseSerializer declaring it, or return string, byte[] "
+                + "or Stream and write the bytes yourself. A host that registers one makes this correct, "
+                + "which is why it is a warning.",
+            category: "Hardened.Web",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// Reports the findings the transform carried, if any survive what this compilation can write.
@@ -82,23 +85,31 @@ public static class ContentTypeDiagnostics {
         string handler,
         bool declaresNothing,
         string? unproducible,
-        string writable) {
-        if (declaresNothing) {
+        string writable
+    )
+    {
+        if (declaresNothing)
+        {
             context.ReportDiagnostic(
-                Diagnostic.Create(MissingDeclaration(), Location.None, handler));
+                Diagnostic.Create(MissingDeclaration(), Location.None, handler)
+            );
         }
 
-        if (string.IsNullOrEmpty(unproducible)) {
+        if (string.IsNullOrEmpty(unproducible))
+        {
             return;
         }
 
-        foreach (var contentType in unproducible!.Split(',')) {
-            if (SerializerContentTypes.Writes(writable, contentType)) {
+        foreach (var contentType in unproducible!.Split(','))
+        {
+            if (SerializerContentTypes.Writes(writable, contentType))
+            {
                 continue;
             }
 
             context.ReportDiagnostic(
-                Diagnostic.Create(NothingProduces(), Location.None, handler, contentType));
+                Diagnostic.Create(NothingProduces(), Location.None, handler, contentType)
+            );
         }
     }
 }

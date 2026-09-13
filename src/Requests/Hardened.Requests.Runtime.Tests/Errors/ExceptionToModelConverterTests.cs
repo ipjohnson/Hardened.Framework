@@ -16,8 +16,8 @@ namespace Hardened.Requests.Runtime.Tests.Errors;
 /// This converter decides both the status code a caller sees and how much of the
 /// exception is echoed back to them, so its mapping is worth pinning precisely.
 /// </summary>
-public class ExceptionToModelConverterTests {
-
+public class ExceptionToModelConverterTests
+{
     private static readonly ExceptionToModelConverter Converter = new();
 
     /// <summary>
@@ -30,33 +30,53 @@ public class ExceptionToModelConverterTests {
     /// </param>
     private static IExecutionContext Context(
         int? validationErrorStatus = null,
-        IReadOnlyDictionary<int, object>? declaredErrorBodies = null) {
+        IReadOnlyDictionary<int, object>? declaredErrorBodies = null
+    )
+    {
         var response = Substitute.For<IExecutionResponse>();
         response.Headers.Returns(new Dictionary<string, StringValues>());
 
         var context = Substitute.For<IExecutionContext>();
         context.Response.Returns(response);
 
-        if (validationErrorStatus != null || declaredErrorBodies != null) {
+        if (validationErrorStatus != null || declaredErrorBodies != null)
+        {
             // The type the pipeline carries, rather than a substitute: ValidationErrorStatus is a
             // default interface member, and a stub for it would prove the stub works.
-            context.HandlerInfo.Returns(new ExecutionRequestHandlerInfo(
-                "/events", "POST", typeof(ExceptionToModelConverterTests), "Handle",
-                validationErrorStatus: validationErrorStatus,
-                declaredErrorBodies: declaredErrorBodies));
+            context.HandlerInfo.Returns(
+                new ExecutionRequestHandlerInfo(
+                    "/events",
+                    "POST",
+                    typeof(ExceptionToModelConverterTests),
+                    "Handle",
+                    validationErrorStatus: validationErrorStatus,
+                    declaredErrorBodies: declaredErrorBodies
+                )
+            );
         }
 
         return context;
     }
 
     [Fact]
-    public void ValidationExceptionMapsTo400WithFieldErrors() {
-        var result = ValidationModules.ValidationResult.FromErrors(new[] {
-            new ValidationModules.ValidationError("email", "Required", "email is required"),
-            new ValidationModules.ValidationError("age", "Range", "age must be between 0 and 120"),
-        });
+    public void ValidationExceptionMapsTo400WithFieldErrors()
+    {
+        var result = ValidationModules.ValidationResult.FromErrors(
+            new[]
+            {
+                new ValidationModules.ValidationError("email", "Required", "email is required"),
+                new ValidationModules.ValidationError(
+                    "age",
+                    "Range",
+                    "age must be between 0 and 120"
+                ),
+            }
+        );
 
-        var (status, model) = Converter.ConvertExceptionToModel(Context(), new ValidationException(result));
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(),
+            new ValidationException(result)
+        );
 
         Assert.Equal(400, status);
 
@@ -73,9 +93,12 @@ public class ExceptionToModelConverterTests {
     }
 
     [Fact]
-    public void ValidationExceptionWithNoErrorsStillMapsTo400() {
+    public void ValidationExceptionWithNoErrorsStillMapsTo400()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new ValidationException(ValidationModules.ValidationResult.Valid));
+            Context(),
+            new ValidationException(ValidationModules.ValidationResult.Valid)
+        );
 
         Assert.Equal(400, status);
         Assert.Empty(Assert.IsType<RequestValidationError>(model).Errors);
@@ -86,13 +109,16 @@ public class ExceptionToModelConverterTests {
     /// and has to reach the same response - one mapper, not two shapes agreeing by duplication.
     /// </summary>
     [Fact]
-    public void ValidationModulesValidationExceptionMapsTo400WithFieldErrors() {
-        var result = ValidationModules.ValidationResult.FromErrors(new[] {
-            new ValidationModules.ValidationError("sku", "pattern", "sku is malformed"),
-        });
+    public void ValidationModulesValidationExceptionMapsTo400WithFieldErrors()
+    {
+        var result = ValidationModules.ValidationResult.FromErrors(
+            new[] { new ValidationModules.ValidationError("sku", "pattern", "sku is malformed") }
+        );
 
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new ValidationModules.ValidationException(result));
+            Context(),
+            new ValidationModules.ValidationException(result)
+        );
 
         Assert.Equal(400, status);
 
@@ -105,9 +131,12 @@ public class ExceptionToModelConverterTests {
     }
 
     [Fact]
-    public void FormatExceptionMapsTo400() {
+    public void FormatExceptionMapsTo400()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new FormatException("not a number"));
+            Context(),
+            new FormatException("not a number")
+        );
 
         Assert.Equal(400, status);
         var error = Assert.IsType<ErrorModel>(model);
@@ -116,17 +145,23 @@ public class ExceptionToModelConverterTests {
     }
 
     [Fact]
-    public void BadRequestExceptionMapsTo400() {
+    public void BadRequestExceptionMapsTo400()
+    {
         var (status, _) = Converter.ConvertExceptionToModel(
-            Context(), new BadRequestException("malformed"));
+            Context(),
+            new BadRequestException("malformed")
+        );
 
         Assert.Equal(400, status);
     }
 
     [Fact]
-    public void UnrecognisedExceptionMapsTo500() {
+    public void UnrecognisedExceptionMapsTo500()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new InvalidOperationException("something went wrong"));
+            Context(),
+            new InvalidOperationException("something went wrong")
+        );
 
         Assert.Equal(500, status);
         var error = Assert.IsType<ErrorModel>(model);
@@ -134,16 +169,22 @@ public class ExceptionToModelConverterTests {
         Assert.DoesNotContain("something went wrong", error.Message);
     }
 
-    private class CustomValidationProblemException : Exception {
-        public CustomValidationProblemException() : base("custom") { }
+    private class CustomValidationProblemException : Exception
+    {
+        public CustomValidationProblemException()
+            : base("custom") { }
     }
 
-    private class BadgeNotFoundException : Exception {
-        public BadgeNotFoundException() : base("no badge") { }
+    private class BadgeNotFoundException : Exception
+    {
+        public BadgeNotFoundException()
+            : base("no badge") { }
     }
 
-    private class TenantMismatchException : BadRequestException {
-        public TenantMismatchException() : base("tenant does not match") { }
+    private class TenantMismatchException : BadRequestException
+    {
+        public TenantMismatchException()
+            : base("tenant does not match") { }
     }
 
     /// <summary>
@@ -151,9 +192,12 @@ public class ExceptionToModelConverterTests {
     /// validation, without deriving from BadRequestException, is not a client error.
     /// </summary>
     [Fact]
-    public void ExceptionMerelyNamedForValidationIsNotAClientError() {
+    public void ExceptionMerelyNamedForValidationIsNotAClientError()
+    {
         var (status, _) = Converter.ConvertExceptionToModel(
-            Context(), new CustomValidationProblemException());
+            Context(),
+            new CustomValidationProblemException()
+        );
 
         Assert.Equal(500, status);
     }
@@ -163,9 +207,12 @@ public class ExceptionToModelConverterTests {
     /// BadgeNotFoundException - an unrelated type - as a client error.
     /// </summary>
     [Fact]
-    public void UnrelatedNameContainingBadIsNotAClientError() {
+    public void UnrelatedNameContainingBadIsNotAClientError()
+    {
         var (status, _) = Converter.ConvertExceptionToModel(
-            Context(), new BadgeNotFoundException());
+            Context(),
+            new BadgeNotFoundException()
+        );
 
         Assert.Equal(500, status);
     }
@@ -175,9 +222,12 @@ public class ExceptionToModelConverterTests {
     /// BadRequestException. The name is irrelevant.
     /// </summary>
     [Fact]
-    public void DerivingFromBadRequestExceptionMakesItAClientError() {
+    public void DerivingFromBadRequestExceptionMakesItAClientError()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new TenantMismatchException());
+            Context(),
+            new TenantMismatchException()
+        );
 
         Assert.Equal(400, status);
         Assert.Equal(nameof(TenantMismatchException), Assert.IsType<ErrorModel>(model).Type);
@@ -190,11 +240,14 @@ public class ExceptionToModelConverterTests {
     /// server does accept, which only a status-carrying exception can write.
     /// </summary>
     [Fact]
-    public void UnsupportedContentEncodingIsA415NamingWhatIsAccepted() {
+    public void UnsupportedContentEncodingIsA415NamingWhatIsAccepted()
+    {
         var context = Context();
 
         var (status, _) = Converter.ConvertExceptionToModel(
-            context, new BadContentEncodingException("deflate"));
+            context,
+            new BadContentEncodingException("deflate")
+        );
 
         Assert.Equal(415, status);
         Assert.Equal("gzip, br", context.Response.Headers["Accept-Encoding"].ToString());
@@ -211,9 +264,12 @@ public class ExceptionToModelConverterTests {
     /// it.
     /// </remarks>
     [Fact]
-    public void UnrecognisedExceptionTellsTheCallerNothingAboutItself() {
+    public void UnrecognisedExceptionTellsTheCallerNothingAboutItself()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new Exception("connection string 'Server=db;Password=hunter2' failed"));
+            Context(),
+            new Exception("connection string 'Server=db;Password=hunter2' failed")
+        );
 
         var error = Assert.IsType<ErrorModel>(model);
 
@@ -233,9 +289,12 @@ public class ExceptionToModelConverterTests {
     /// 500 and echoed the exception text, so a client typo read as a server fault.
     /// </remarks>
     [Fact]
-    public void UnreadableRequestBodyMapsTo400() {
+    public void UnreadableRequestBodyMapsTo400()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new JsonException("'cooking' is not a value Genre declares."));
+            Context(),
+            new JsonException("'cooking' is not a value Genre declares.")
+        );
 
         Assert.Equal(400, status);
 
@@ -253,7 +312,8 @@ public class ExceptionToModelConverterTests {
     /// have spelled it.
     /// </summary>
     [Fact]
-    public void UnreadableRequestBodyNamesTheFieldFromTheJsonPath() {
+    public void UnreadableRequestBodyNamesTheFieldFromTheJsonPath()
+    {
         var exception = ThrownReading("{\"genre\":5}", "$.genre");
 
         var (_, model) = Converter.ConvertExceptionToModel(Context(), exception);
@@ -267,7 +327,8 @@ public class ExceptionToModelConverterTests {
     /// The line and byte position System.Text.Json appends belong in the field, not in prose.
     /// </summary>
     [Fact]
-    public void UnreadableRequestBodyDropsThePositionSuffixFromTheMessage() {
+    public void UnreadableRequestBodyDropsThePositionSuffixFromTheMessage()
+    {
         var exception = ThrownReading("{\"genre\":5}", "$.genre");
 
         var (_, model) = Converter.ConvertExceptionToModel(Context(), exception);
@@ -282,9 +343,11 @@ public class ExceptionToModelConverterTests {
     /// A real one from the serializer, so the shape of <c>Path</c> and <c>Message</c> is the
     /// runtime's rather than this test's idea of it.
     /// </summary>
-    private static JsonException ThrownReading(string json, string expectedPath) {
-        var exception = Assert.Throws<JsonException>(
-            () => JsonSerializer.Deserialize<PayloadWithAString>(json));
+    private static JsonException ThrownReading(string json, string expectedPath)
+    {
+        var exception = Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<PayloadWithAString>(json)
+        );
 
         Assert.Equal(expectedPath, exception.Path);
 
@@ -295,7 +358,8 @@ public class ExceptionToModelConverterTests {
     /// A number where a string is declared, which is what raises a <c>JsonException</c> carrying a
     /// member path. The JSON name is spelled out so the path reads as a wire name would.
     /// </summary>
-    private class PayloadWithAString {
+    private class PayloadWithAString
+    {
         [System.Text.Json.Serialization.JsonPropertyName("genre")]
         public string Genre { get; set; } = "";
     }
@@ -307,35 +371,47 @@ public class ExceptionToModelConverterTests {
     /// statuses are not well-formed without a header - a 401 with no <c>WWW-Authenticate</c> tells a
     /// client to authenticate without saying how - and the interface is what lets one say so.
     /// </summary>
-    private class ChallengeException : Exception, IStatusCodeException {
+    private class ChallengeException : Exception, IStatusCodeException
+    {
         public int StatusCode => 401;
 
-        public void ApplyHeaders(IDictionary<string, StringValues> headers) {
+        public void ApplyHeaders(IDictionary<string, StringValues> headers)
+        {
             headers["WWW-Authenticate"] = "Bearer realm=\"pets\"";
         }
     }
 
-    private class RetryLaterException : StatusCodeException {
-        public RetryLaterException() : base(429, value: null, message: "slow down") { }
+    private class RetryLaterException : StatusCodeException
+    {
+        public RetryLaterException()
+            : base(429, value: null, message: "slow down") { }
 
-        public override void ApplyHeaders(IDictionary<string, StringValues> headers) {
+        public override void ApplyHeaders(IDictionary<string, StringValues> headers)
+        {
             headers["Retry-After"] = "30";
         }
     }
 
     [Fact]
-    public void StatusCodeExceptionCarriesItsOwnStatus() {
-        var (status, _) = Converter.ConvertExceptionToModel(Context(), new StatusCodeException(404));
+    public void StatusCodeExceptionCarriesItsOwnStatus()
+    {
+        var (status, _) = Converter.ConvertExceptionToModel(
+            Context(),
+            new StatusCodeException(404)
+        );
 
         Assert.Equal(404, status);
     }
 
     [Fact]
-    public void StatusCodeExceptionCarriesItsDeclaredBody() {
+    public void StatusCodeExceptionCarriesItsDeclaredBody()
+    {
         var declared = new { Detail = "no such pet" };
 
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new StatusCodeException(404, declared));
+            Context(),
+            new StatusCodeException(404, declared)
+        );
 
         Assert.Equal(404, status);
         Assert.Same(declared, model);
@@ -346,9 +422,12 @@ public class ExceptionToModelConverterTests {
     /// undocumented status produces a sensible response rather than an empty one.
     /// </summary>
     [Fact]
-    public void StatusCodeExceptionWithoutABodyFallsBackToTheErrorModel() {
+    public void StatusCodeExceptionWithoutABodyFallsBackToTheErrorModel()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new StatusCodeException(409, value: null, message: "already exists"));
+            Context(),
+            new StatusCodeException(409, value: null, message: "already exists")
+        );
 
         Assert.Equal(409, status);
         Assert.Equal("already exists", Assert.IsType<ErrorModel>(model).Message);
@@ -364,12 +443,14 @@ public class ExceptionToModelConverterTests {
     /// model instead - an undescribed shape at a described status.
     /// </remarks>
     [Fact]
-    public void ARefusalWithNoBodyAnswersTheDeclaredOne() {
+    public void ARefusalWithNoBodyAnswersTheDeclaredOne()
+    {
         var declared = new { Title = "Unauthorized", Status = 401 };
 
         var (status, model) = Converter.ConvertExceptionToModel(
             Context(declaredErrorBodies: new Dictionary<int, object> { { 401, declared } }),
-            new StatusCodeException(401, value: null, message: "authentication required"));
+            new StatusCodeException(401, value: null, message: "authentication required")
+        );
 
         Assert.Equal(401, status);
         Assert.Same(declared, model);
@@ -379,12 +460,17 @@ public class ExceptionToModelConverterTests {
     /// And a status the contract declared nothing for keeps the generic model.
     /// </summary>
     [Fact]
-    public void ARefusalAtAnUndeclaredStatusKeepsTheGenericModel() {
+    public void ARefusalAtAnUndeclaredStatusKeepsTheGenericModel()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(declaredErrorBodies: new Dictionary<int, object> {
-                { 401, new { Title = "Unauthorized" } }
-            }),
-            new StatusCodeException(403, value: null, message: "forbidden"));
+            Context(
+                declaredErrorBodies: new Dictionary<int, object>
+                {
+                    { 401, new { Title = "Unauthorized" } },
+                }
+            ),
+            new StatusCodeException(403, value: null, message: "forbidden")
+        );
 
         Assert.Equal(403, status);
         Assert.Equal("forbidden", Assert.IsType<ErrorModel>(model).Message);
@@ -399,7 +485,8 @@ public class ExceptionToModelConverterTests {
     /// before the member existed, still loads and still answers.
     /// </remarks>
     [Fact]
-    public void AHandlerThatDeclaresNothingReadsAsEmpty() {
+    public void AHandlerThatDeclaresNothingReadsAsEmpty()
+    {
         // Through the interface, because the member is a default one: a call on the class would
         // not compile, which is the whole shape being pinned.
         IExecutionRequestHandlerInfo handlerInfo = new MinimalHandlerInfo();
@@ -414,14 +501,17 @@ public class ExceptionToModelConverterTests {
         context.HandlerInfo.Returns(handlerInfo);
 
         var (status, model) = Converter.ConvertExceptionToModel(
-            context, new StatusCodeException(401, value: null, message: "authentication required"));
+            context,
+            new StatusCodeException(401, value: null, message: "authentication required")
+        );
 
         Assert.Equal(401, status);
         Assert.Equal("authentication required", Assert.IsType<ErrorModel>(model).Message);
     }
 
     /// <summary>An implementation of the interface that overrides none of its default members.</summary>
-    private sealed class MinimalHandlerInfo : IExecutionRequestHandlerInfo {
+    private sealed class MinimalHandlerInfo : IExecutionRequestHandlerInfo
+    {
         public string Path => "/secured";
 
         public string Method => "GET";
@@ -440,15 +530,20 @@ public class ExceptionToModelConverterTests {
     /// assembly - has to reach the same place.
     /// </summary>
     [Fact]
-    public void AnExceptionImplementingTheInterfaceDirectlyNamesItsStatus() {
-        var (status, model) = Converter.ConvertExceptionToModel(Context(), new ChallengeException());
+    public void AnExceptionImplementingTheInterfaceDirectlyNamesItsStatus()
+    {
+        var (status, model) = Converter.ConvertExceptionToModel(
+            Context(),
+            new ChallengeException()
+        );
 
         Assert.Equal(401, status);
         Assert.Equal(nameof(ChallengeException), Assert.IsType<ErrorModel>(model).Type);
     }
 
     [Fact]
-    public void AnExceptionThatNamesAHeaderHasItAppliedToTheResponse() {
+    public void AnExceptionThatNamesAHeaderHasItAppliedToTheResponse()
+    {
         var context = Context();
 
         Converter.ConvertExceptionToModel(context, new ChallengeException());
@@ -457,7 +552,8 @@ public class ExceptionToModelConverterTests {
     }
 
     [Fact]
-    public void DerivingFromStatusCodeExceptionAlsoGetsHeadersApplied() {
+    public void DerivingFromStatusCodeExceptionAlsoGetsHeadersApplied()
+    {
         var context = Context();
 
         var (status, _) = Converter.ConvertExceptionToModel(context, new RetryLaterException());
@@ -471,7 +567,8 @@ public class ExceptionToModelConverterTests {
     /// twice must not send the challenge twice.
     /// </summary>
     [Fact]
-    public void ApplyingHeadersTwiceDoesNotDuplicateTheValue() {
+    public void ApplyingHeadersTwiceDoesNotDuplicateTheValue()
+    {
         var context = Context();
 
         Converter.ConvertExceptionToModel(context, new ChallengeException());
@@ -479,7 +576,8 @@ public class ExceptionToModelConverterTests {
 
         Assert.Equal(
             new StringValues("Bearer realm=\"pets\""),
-            context.Response.Headers["WWW-Authenticate"]);
+            context.Response.Headers["WWW-Authenticate"]
+        );
     }
 
     /// <summary>
@@ -487,7 +585,8 @@ public class ExceptionToModelConverterTests {
     /// would be a surprise.
     /// </summary>
     [Fact]
-    public void AStatusCodeExceptionThatNamesNoHeaderAddsNone() {
+    public void AStatusCodeExceptionThatNamesNoHeaderAddsNone()
+    {
         var context = Context();
 
         Converter.ConvertExceptionToModel(context, new StatusCodeException(404));
@@ -500,13 +599,19 @@ public class ExceptionToModelConverterTests {
     /// checked after it, so adding the interface did not reorder the mapping.
     /// </summary>
     [Fact]
-    public void ValidationStillWinsOverTheStatusBranch() {
-        var result = ValidationModules.ValidationResult.FromErrors(new[] {
-            new ValidationModules.ValidationError("email", "Required", "email is required"),
-        });
+    public void ValidationStillWinsOverTheStatusBranch()
+    {
+        var result = ValidationModules.ValidationResult.FromErrors(
+            new[]
+            {
+                new ValidationModules.ValidationError("email", "Required", "email is required"),
+            }
+        );
 
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new ValidationException(result));
+            Context(),
+            new ValidationException(result)
+        );
 
         Assert.Equal(400, status);
         Assert.IsType<RequestValidationError>(model);
@@ -528,10 +633,12 @@ public class ExceptionToModelConverterTests {
     /// published.
     /// </remarks>
     [Fact]
-    public void AnUndeclaredEnumValueAnswersTheDeclaredValidationStatus() {
+    public void AnUndeclaredEnumValueAnswersTheDeclaredValidationStatus()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
             Context(validationErrorStatus: 422),
-            new JsonException("'cooking' is not a value Genre declares."));
+            new JsonException("'cooking' is not a value Genre declares.")
+        );
 
         Assert.Equal(422, status);
         Assert.IsType<RequestValidationError>(model);
@@ -541,13 +648,18 @@ public class ExceptionToModelConverterTests {
     /// Malformed JSON is the same refusal from the same layer, so it answers the same status.
     /// </summary>
     [Fact]
-    public void MalformedJsonAnswersTheDeclaredValidationStatus() {
+    public void MalformedJsonAnswersTheDeclaredValidationStatus()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(validationErrorStatus: 422), ThrownReading("{\"genre\":5}", "$.genre"));
+            Context(validationErrorStatus: 422),
+            ThrownReading("{\"genre\":5}", "$.genre")
+        );
 
         Assert.Equal(422, status);
-        Assert.Equal("body.genre", Assert.Single(
-            Assert.IsType<RequestValidationError>(model).Errors).Field);
+        Assert.Equal(
+            "body.genre",
+            Assert.Single(Assert.IsType<RequestValidationError>(model).Errors).Field
+        );
     }
 
     /// <summary>
@@ -555,15 +667,20 @@ public class ExceptionToModelConverterTests {
     /// and this converter already answers in the validator's own shape.
     /// </summary>
     [Fact]
-    public void AMissingRequiredMemberAnswersTheDeclaredValidationStatus() {
+    public void AMissingRequiredMemberAnswersTheDeclaredValidationStatus()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
             Context(validationErrorStatus: 422),
             new JsonException(
-                "JSON deserialization for type 'CreateEvent' was missing required properties: 'genre'."));
+                "JSON deserialization for type 'CreateEvent' was missing required properties: 'genre'."
+            )
+        );
 
         Assert.Equal(422, status);
-        Assert.Equal("required", Assert.Single(
-            Assert.IsType<RequestValidationError>(model).Errors).Code);
+        Assert.Equal(
+            "required",
+            Assert.Single(Assert.IsType<RequestValidationError>(model).Errors).Code
+        );
     }
 
     /// <summary>
@@ -571,17 +688,30 @@ public class ExceptionToModelConverterTests {
     /// status.
     /// </summary>
     [Fact]
-    public void AConstraintFailureAndAnUnreadableBodyAnswerTheSameStatus() {
+    public void AConstraintFailureAndAnUnreadableBodyAnswerTheSameStatus()
+    {
         var context = Context(validationErrorStatus: 422);
 
         var (fromFilter, _) = Converter.ConvertExceptionToModel(
             context,
-            new ValidationException(ValidationModules.ValidationResult.FromErrors(new[] {
-                new ValidationModules.ValidationError("body.name", "required", "name is required"),
-            })));
+            new ValidationException(
+                ValidationModules.ValidationResult.FromErrors(
+                    new[]
+                    {
+                        new ValidationModules.ValidationError(
+                            "body.name",
+                            "required",
+                            "name is required"
+                        ),
+                    }
+                )
+            )
+        );
 
         var (fromDeserializer, _) = Converter.ConvertExceptionToModel(
-            context, new JsonException("'cooking' is not a value Genre declares."));
+            context,
+            new JsonException("'cooking' is not a value Genre declares.")
+        );
 
         Assert.Equal(fromFilter, fromDeserializer);
     }
@@ -591,9 +721,12 @@ public class ExceptionToModelConverterTests {
     /// code-first handler does.
     /// </summary>
     [Fact]
-    public void AnUnreadableBodyStillAnswers400WhereNothingDeclaredAStatus() {
+    public void AnUnreadableBodyStillAnswers400WhereNothingDeclaredAStatus()
+    {
         var (status, _) = Converter.ConvertExceptionToModel(
-            Context(), new JsonException("'cooking' is not a value Genre declares."));
+            Context(),
+            new JsonException("'cooking' is not a value Genre declares.")
+        );
 
         Assert.Equal(400, status);
     }
@@ -603,9 +736,12 @@ public class ExceptionToModelConverterTests {
     /// server fault on an operation declaring 422 is still a 500.
     /// </summary>
     [Fact]
-    public void TheDeclaredValidationStatusDoesNotMoveAnUnrelatedFailure() {
+    public void TheDeclaredValidationStatusDoesNotMoveAnUnrelatedFailure()
+    {
         var (status, _) = Converter.ConvertExceptionToModel(
-            Context(validationErrorStatus: 422), new InvalidOperationException("disk on fire"));
+            Context(validationErrorStatus: 422),
+            new InvalidOperationException("disk on fire")
+        );
 
         Assert.Equal(500, status);
     }
@@ -618,14 +754,22 @@ public class ExceptionToModelConverterTests {
     /// A context whose handler carries <paramref name="metadata"/>, which is where the converter
     /// reads a declared deadline's status from.
     /// </summary>
-    private static IExecutionContext ContextFor(params object[] metadata) {
+    private static IExecutionContext ContextFor(params object[] metadata)
+    {
         var response = Substitute.For<IExecutionResponse>();
         response.Headers.Returns(new Dictionary<string, StringValues>());
 
         var context = Substitute.For<IExecutionContext>();
         context.Response.Returns(response);
-        context.HandlerInfo.Returns(new ExecutionRequestHandlerInfo(
-            "/rates", "GET", typeof(ExceptionToModelConverterTests), "Read", metadata: metadata));
+        context.HandlerInfo.Returns(
+            new ExecutionRequestHandlerInfo(
+                "/rates",
+                "GET",
+                typeof(ExceptionToModelConverterTests),
+                "Read",
+                metadata: metadata
+            )
+        );
 
         return context;
     }
@@ -637,9 +781,12 @@ public class ExceptionToModelConverterTests {
     /// feature answers 500 and is invisible.
     /// </summary>
     [Fact]
-    public void ACancelledRequestOnABoundedHandlerIs504() {
+    public void ACancelledRequestOnABoundedHandlerIs504()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            ContextFor(new TimeoutAttribute()), new OperationCanceledException());
+            ContextFor(new TimeoutAttribute()),
+            new OperationCanceledException()
+        );
 
         Assert.Equal(504, status);
         Assert.Equal("GatewayTimeout", Assert.IsType<ErrorModel>(model).Type);
@@ -652,9 +799,12 @@ public class ExceptionToModelConverterTests {
     /// middleware answers only for endpoints a policy covers.
     /// </summary>
     [Fact]
-    public void ACancelledRequestOnAnUnboundedHandlerIsStillAServerFault() {
+    public void ACancelledRequestOnAnUnboundedHandlerIsStillAServerFault()
+    {
         var (status, model) = Converter.ConvertExceptionToModel(
-            Context(), new OperationCanceledException());
+            Context(),
+            new OperationCanceledException()
+        );
 
         Assert.Equal(500, status);
         Assert.Equal("ServerError", Assert.IsType<ErrorModel>(model).Type);
@@ -665,9 +815,12 @@ public class ExceptionToModelConverterTests {
     /// only <c>OperationCanceledException</c> by exact type would miss every real timeout.
     /// </summary>
     [Fact]
-    public void ATaskCancelledOnTheDeadlineIs504() {
+    public void ATaskCancelledOnTheDeadlineIs504()
+    {
         var (status, _) = Converter.ConvertExceptionToModel(
-            ContextFor(new TimeoutAttribute()), new TaskCanceledException());
+            ContextFor(new TimeoutAttribute()),
+            new TaskCanceledException()
+        );
 
         Assert.Equal(504, status);
     }
@@ -678,13 +831,15 @@ public class ExceptionToModelConverterTests {
     /// wrongly than 500 does.
     /// </summary>
     [Fact]
-    public void ADisconnectOnABoundedHandlerReadsTheSameAsADeadline() {
+    public void ADisconnectOnABoundedHandlerReadsTheSameAsADeadline()
+    {
         using var disconnected = new CancellationTokenSource();
         disconnected.Cancel();
 
         var (status, _) = Converter.ConvertExceptionToModel(
             ContextFor(new TimeoutAttribute()),
-            new OperationCanceledException(disconnected.Token));
+            new OperationCanceledException(disconnected.Token)
+        );
 
         Assert.Equal(504, status);
     }
@@ -695,10 +850,14 @@ public class ExceptionToModelConverterTests {
     /// answers 504.
     /// </summary>
     [Fact]
-    public void ADeclaredStatusIsWhatTheCallerSees() {
+    public void ADeclaredStatusIsWhatTheCallerSees()
+    {
         var context = ContextFor(new TimeoutAttribute { Status = 503, RetryAfterSeconds = 30 });
 
-        var (status, model) = Converter.ConvertExceptionToModel(context, new TaskCanceledException());
+        var (status, model) = Converter.ConvertExceptionToModel(
+            context,
+            new TaskCanceledException()
+        );
 
         Assert.Equal(503, status);
         Assert.Equal("ServiceUnavailable", Assert.IsType<ErrorModel>(model).Type);
@@ -710,7 +869,8 @@ public class ExceptionToModelConverterTests {
     /// default sends no number.
     /// </summary>
     [Fact]
-    public void A504SendsNoRetryAfter() {
+    public void A504SendsNoRetryAfter()
+    {
         var context = ContextFor(new TimeoutAttribute());
 
         Converter.ConvertExceptionToModel(context, new TaskCanceledException());
@@ -724,10 +884,12 @@ public class ExceptionToModelConverterTests {
     /// class asked for something else.
     /// </summary>
     [Fact]
-    public void TheNearestDeclarationIsTheOneThatDecidesTheStatus() {
+    public void TheNearestDeclarationIsTheOneThatDecidesTheStatus()
+    {
         var context = ContextFor(
-            new TimeoutAttribute { Milliseconds = 2000 },                  // the method
-            new TimeoutAttribute { Milliseconds = 500, Status = 503 });    // its class
+            new TimeoutAttribute { Milliseconds = 2000 }, // the method
+            new TimeoutAttribute { Milliseconds = 500, Status = 503 }
+        ); // its class
 
         var (status, _) = Converter.ConvertExceptionToModel(context, new TaskCanceledException());
 
@@ -739,10 +901,12 @@ public class ExceptionToModelConverterTests {
     /// the anonymous 500 follows.
     /// </summary>
     [Fact]
-    public void TheTimeoutBodyCarriesNothingAboutTheRequest() {
+    public void TheTimeoutBodyCarriesNothingAboutTheRequest()
+    {
         var (_, model) = Converter.ConvertExceptionToModel(
             ContextFor(new TimeoutAttribute()),
-            new OperationCanceledException("upstream rates.example.com never answered"));
+            new OperationCanceledException("upstream rates.example.com never answered")
+        );
 
         Assert.DoesNotContain("rates.example.com", Assert.IsType<ErrorModel>(model).Message);
     }

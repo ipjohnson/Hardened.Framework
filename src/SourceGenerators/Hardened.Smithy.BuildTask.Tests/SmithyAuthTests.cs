@@ -21,25 +21,30 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// operation.
 /// </para>
 /// </remarks>
-public class SmithyAuthTests {
-
+public class SmithyAuthTests
+{
     private static string Model(string serviceTraits, string operationTraits) =>
         $$"""
-          { "smithy": "2.0", "shapes": {
-              "com.example#Svc": {
-                "type": "service", "version": "1",
-                "operations": [ { "target": "com.example#Op" } ],
-                "traits": { {{serviceTraits}} } },
-              "com.example#Op": {
-                "type": "operation",
-                "traits": {
-                  "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 }
-                  {{operationTraits}} } } } }
-          """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Op" } ],
+                  "traits": { {{serviceTraits}} } },
+                "com.example#Op": {
+                  "type": "operation",
+                  "traits": {
+                    "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 }
+                    {{operationTraits}} } } } }
+            """;
 
-    private static OperationModel Parse(string serviceTraits, string operationTraits = "") {
+    private static OperationModel Parse(string serviceTraits, string operationTraits = "")
+    {
         var diagnostics = new List<string>();
-        var model = SmithySpecParser.Parse(Model(serviceTraits, operationTraits), "auth", diagnostics);
+        var model = SmithySpecParser.Parse(
+            Model(serviceTraits, operationTraits),
+            "auth",
+            diagnostics
+        );
 
         Assert.NotNull(model);
 
@@ -52,7 +57,8 @@ public class SmithyAuthTests {
     /// A service declaring a scheme requires a caller, and says nothing about what they hold.
     /// </summary>
     [Fact]
-    public void AServiceDeclaringASchemeRequiresAuthentication() {
+    public void AServiceDeclaringASchemeRequiresAuthentication()
+    {
         var branch = Assert.Single(Parse(BearerAuth).AuthorizationBranches);
 
         Assert.True(branch.RequiresAuthentication);
@@ -64,7 +70,8 @@ public class SmithyAuthTests {
     /// against.
     /// </summary>
     [Fact]
-    public void AServiceDeclaringNoSchemeRequiresNothing() {
+    public void AServiceDeclaringNoSchemeRequiresNothing()
+    {
         Assert.Empty(Parse("").AuthorizationBranches);
     }
 
@@ -73,9 +80,9 @@ public class SmithyAuthTests {
     /// one.
     /// </summary>
     [Fact]
-    public void OptionalAuthOnAnOperationRequiresNothing() {
-        Assert.Empty(
-            Parse(BearerAuth, ", \"smithy.api#optionalAuth\": {}").AuthorizationBranches);
+    public void OptionalAuthOnAnOperationRequiresNothing()
+    {
+        Assert.Empty(Parse(BearerAuth, ", \"smithy.api#optionalAuth\": {}").AuthorizationBranches);
     }
 
     /// <summary>
@@ -83,7 +90,8 @@ public class SmithyAuthTests {
     /// same thing.
     /// </summary>
     [Fact]
-    public void AnEmptyAuthListOnAnOperationRequiresNothing() {
+    public void AnEmptyAuthListOnAnOperationRequiresNothing()
+    {
         Assert.Empty(Parse(BearerAuth, ", \"smithy.api#auth\": []").AuthorizationBranches);
     }
 
@@ -91,9 +99,9 @@ public class SmithyAuthTests {
     /// A service that narrows to no scheme requires nothing of any operation under it.
     /// </summary>
     [Fact]
-    public void AnEmptyAuthListOnTheServiceRequiresNothing() {
-        Assert.Empty(
-            Parse(BearerAuth + ", \"smithy.api#auth\": []").AuthorizationBranches);
+    public void AnEmptyAuthListOnTheServiceRequiresNothing()
+    {
+        Assert.Empty(Parse(BearerAuth + ", \"smithy.api#auth\": []").AuthorizationBranches);
     }
 
     /// <summary>
@@ -104,11 +112,15 @@ public class SmithyAuthTests {
     /// <c>@uniqueItems</c> came to sit in <c>Mapped</c> with no reader behind it.
     /// </remarks>
     [Fact]
-    public void TheAuthTraitsAreNotReportedAsUnmodelled() {
+    public void TheAuthTraitsAreNotReportedAsUnmodelled()
+    {
         var diagnostics = new List<string>();
 
         SmithySpecParser.Parse(
-            Model(BearerAuth, ", \"smithy.api#optionalAuth\": {}"), "auth", diagnostics);
+            Model(BearerAuth, ", \"smithy.api#optionalAuth\": {}"),
+            "auth",
+            diagnostics
+        );
 
         Assert.DoesNotContain(diagnostics, d => d.Contains("httpBearerAuth"));
         Assert.DoesNotContain(diagnostics, d => d.Contains("optionalAuth"));
@@ -128,7 +140,8 @@ public class SmithyAuthTests {
     [InlineData("smithy.api#httpBearerAuth")]
     [InlineData("smithy.api#httpDigestAuth")]
     [InlineData("aws.auth#sigv4")]
-    public void EverySchemeTheSetNamesRequiresAuthentication(string scheme) {
+    public void EverySchemeTheSetNamesRequiresAuthentication(string scheme)
+    {
         var branch = Assert.Single(Parse($"\"{scheme}\": {{}}").AuthorizationBranches);
 
         Assert.True(branch.RequiresAuthentication);
@@ -138,10 +151,13 @@ public class SmithyAuthTests {
     /// <c>@auth</c> naming a scheme is a narrowing rather than an opt-out, so it still requires one.
     /// </summary>
     [Fact]
-    public void AnAuthListNamingASchemeStillRequiresAuthentication() {
+    public void AnAuthListNamingASchemeStillRequiresAuthentication()
+    {
         var branch = Assert.Single(
-            Parse(BearerAuth + ", \"smithy.api#auth\": [\"smithy.api#httpBearerAuth\"]")
-                .AuthorizationBranches);
+            Parse(
+                BearerAuth + ", \"smithy.api#auth\": [\"smithy.api#httpBearerAuth\"]"
+            ).AuthorizationBranches
+        );
 
         Assert.True(branch.RequiresAuthentication);
     }
@@ -151,9 +167,9 @@ public class SmithyAuthTests {
     /// it declares one.
     /// </summary>
     [Fact]
-    public void AnAuthListTakesPrecedenceOverADeclaredScheme() {
-        Assert.Empty(
-            Parse(BearerAuth + ", \"smithy.api#auth\": []").AuthorizationBranches);
+    public void AnAuthListTakesPrecedenceOverADeclaredScheme()
+    {
+        Assert.Empty(Parse(BearerAuth + ", \"smithy.api#auth\": []").AuthorizationBranches);
     }
 
     /// <summary>
@@ -164,42 +180,48 @@ public class SmithyAuthTests {
     /// service public would be invisible until somebody called a different route.
     /// </remarks>
     [Fact]
-    public void AnOperationOptingOutDoesNotOptOutItsSiblings() {
+    public void AnOperationOptingOutDoesNotOptOutItsSiblings()
+    {
         var diagnostics = new List<string>();
 
         var ast = $$"""
-                    { "smithy": "2.0", "shapes": {
-                        "com.example#Svc": {
-                          "type": "service", "version": "1",
-                          "operations": [
-                            { "target": "com.example#Open" }, { "target": "com.example#Shut" } ],
-                          "traits": { {{BearerAuth}} } },
-                        "com.example#Open": {
-                          "type": "operation",
-                          "traits": {
-                            "smithy.api#http": { "method": "GET", "uri": "/open", "code": 200 },
-                            "smithy.api#optionalAuth": {} } },
-                        "com.example#Shut": {
-                          "type": "operation",
-                          "traits": {
-                            "smithy.api#http": { "method": "GET", "uri": "/shut", "code": 200 } } } } }
-                    """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [
+                    { "target": "com.example#Open" }, { "target": "com.example#Shut" } ],
+                  "traits": { {{BearerAuth}} } },
+                "com.example#Open": {
+                  "type": "operation",
+                  "traits": {
+                    "smithy.api#http": { "method": "GET", "uri": "/open", "code": 200 },
+                    "smithy.api#optionalAuth": {} } },
+                "com.example#Shut": {
+                  "type": "operation",
+                  "traits": {
+                    "smithy.api#http": { "method": "GET", "uri": "/shut", "code": 200 } } } } }
+            """;
 
         var model = SmithySpecParser.Parse(ast, "auth", diagnostics);
         var operations = Assert.Single(model!.Services).Operations;
 
-        Assert.Empty(
-            Assert.Single(operations, o => o.OperationId == "Open").AuthorizationBranches);
+        Assert.Empty(Assert.Single(operations, o => o.OperationId == "Open").AuthorizationBranches);
 
         Assert.Single(
-            Assert.Single(operations, o => o.OperationId == "Shut").AuthorizationBranches);
+            Assert.Single(operations, o => o.OperationId == "Shut").AuthorizationBranches
+        );
     }
 
     #region what the published document is told
 
-    private static ServiceSpecModel ParseModel(string serviceTraits, string operationTraits = "") {
+    private static ServiceSpecModel ParseModel(string serviceTraits, string operationTraits = "")
+    {
         var diagnostics = new List<string>();
-        var model = SmithySpecParser.Parse(Model(serviceTraits, operationTraits), "auth", diagnostics);
+        var model = SmithySpecParser.Parse(
+            Model(serviceTraits, operationTraits),
+            "auth",
+            diagnostics
+        );
 
         Assert.NotNull(model);
 
@@ -212,7 +234,8 @@ public class SmithyAuthTests {
     /// so a client generated from it sent unauthenticated requests the service refuses.
     /// </summary>
     [Fact]
-    public void ABearerServiceRegistersItsSchemeForTheDocument() {
+    public void ABearerServiceRegistersItsSchemeForTheDocument()
+    {
         var model = ParseModel(BearerAuth);
         var scheme = Assert.Single(model.SecuritySchemes);
 
@@ -221,14 +244,13 @@ public class SmithyAuthTests {
 
         var operation = Assert.Single(Assert.Single(model.Services).Operations);
 
-        Assert.Equal(
-            "{\"httpBearerAuth\":[]}",
-            Assert.Single(operation.SecurityRequirements));
+        Assert.Equal("{\"httpBearerAuth\":[]}", Assert.Single(operation.SecurityRequirements));
     }
 
     /// <summary>An operation opting out with @auth([]) names no requirement.</summary>
     [Fact]
-    public void AnOptedOutOperationNamesNoRequirement() {
+    public void AnOptedOutOperationNamesNoRequirement()
+    {
         var operation = Parse(BearerAuth, ", \"smithy.api#auth\": []");
 
         Assert.Empty(operation.SecurityRequirements);
@@ -236,7 +258,8 @@ public class SmithyAuthTests {
 
     /// <summary>@title and the service version are the document's info block.</summary>
     [Fact]
-    public void TitleAndVersionReachTheModel() {
+    public void TitleAndVersionReachTheModel()
+    {
         var model = ParseModel(BearerAuth + ", \"smithy.api#title\": \"Pet Store\"");
 
         Assert.Equal("Pet Store", model.Title);

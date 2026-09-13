@@ -16,56 +16,63 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// unrelated edit is most likely to churn.
 /// </para>
 /// </summary>
-public class IncrementalFunctionGenerationTests {
-
+public class IncrementalFunctionGenerationTests
+{
     private static string Application(
         string signature = "public void Process(DataModel model) { }",
         string functionAttribute = "[HardenedFunction]",
         string extraMembers = "",
-        string applicationMembers = "") => $$"""
-        using System;
-        using System.Threading.Tasks;
-        using Hardened.Requests.Abstract.Attributes;
-        using Hardened.Requests.Abstract.Execution;
-        using Hardened.Shared.Runtime.Attributes;
+        string applicationMembers = ""
+    ) =>
+        $$"""
+            using System;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Requests.Abstract.Execution;
+            using Hardened.Shared.Runtime.Attributes;
 
-        namespace TestApp;
+            namespace TestApp;
 
-        public interface IThing { }
+            public interface IThing { }
 
-        public class DataModel { public string Value { get; set; } = ""; }
+            public class DataModel { public string Value { get; set; } = ""; }
 
-        [HardenedModule]
-        public partial class TestApplication {
-            {{applicationMembers}}
-        }
+            [HardenedModule]
+            public partial class TestApplication {
+                {{applicationMembers}}
+            }
 
-        public class TestFunctions {
-            {{extraMembers}}
+            public class TestFunctions {
+                {{extraMembers}}
 
-            {{functionAttribute}}
-            {{signature}}
-        }
-        """;
+                {{functionAttribute}}
+                {{signature}}
+            }
+            """;
 
     private static IncrementalRunResult Rerun(string first, string second) =>
         GeneratorTestHarness.RunIncremental(
             new Dictionary<string, string> { ["Test.cs"] = first },
             new Dictionary<string, string> { ["Test.cs"] = second },
             [new FunctionGenerator()],
-            FunctionGeneratorHarness.Anchors);
+            FunctionGeneratorHarness.Anchors
+        );
 
-    private static void AssertRegenerated(IncrementalRunResult result) {
-        Assert.False(result.AllOutputsCached,
-            "the edit changes generated code, so serving the cached output would leave the " +
-            "generated file describing the previous source");
+    private static void AssertRegenerated(IncrementalRunResult result)
+    {
+        Assert.False(
+            result.AllOutputsCached,
+            "the edit changes generated code, so serving the cached output would leave the "
+                + "generated file describing the previous source"
+        );
 
         Assert.NotEqual(result.FirstRun.Values, result.SecondRun.Values);
     }
 
     /// <summary>The unchanged compilation. Anything less than fully cached here is a bug.</summary>
     [Fact]
-    public void RerunningOverIdenticalSourceReusesEveryOutput() {
+    public void RerunningOverIdenticalSourceReusesEveryOutput()
+    {
         var result = Rerun(Application(), Application());
 
         Assert.True(result.AllOutputsCached);
@@ -77,7 +84,8 @@ public class IncrementalFunctionGenerationTests {
     /// equal to the previous ones — which is the whole reason the comparers exist.
     /// </summary>
     [Fact]
-    public void AddingACommentReusesEveryOutput() {
+    public void AddingACommentReusesEveryOutput()
+    {
         var result = Rerun(Application(), Application(extraMembers: "// an explanatory comment"));
 
         Assert.True(result.AllOutputsCached);
@@ -89,10 +97,12 @@ public class IncrementalFunctionGenerationTests {
     /// most of what happens between generator runs in an editor.
     /// </summary>
     [Fact]
-    public void ChangingAHandlerBodyReusesEveryOutput() {
+    public void ChangingAHandlerBodyReusesEveryOutput()
+    {
         var result = Rerun(
             Application(signature: "public void Process(DataModel model) { }"),
-            Application(signature: "public void Process(DataModel model) { var x = model.Value; }"));
+            Application(signature: "public void Process(DataModel model) { var x = model.Value; }")
+        );
 
         Assert.True(result.AllOutputsCached);
     }
@@ -102,8 +112,12 @@ public class IncrementalFunctionGenerationTests {
     /// file.
     /// </summary>
     [Fact]
-    public void AddingANonHandlerMethodReusesEveryOutput() {
-        var result = Rerun(Application(), Application(extraMembers: "private string Helper() => \"x\";"));
+    public void AddingANonHandlerMethodReusesEveryOutput()
+    {
+        var result = Rerun(
+            Application(),
+            Application(extraMembers: "private string Helper() => \"x\";")
+        );
 
         Assert.True(result.AllOutputsCached);
     }
@@ -114,17 +128,22 @@ public class IncrementalFunctionGenerationTests {
     /// registration does not depend on the application's members.
     /// </summary>
     [Fact]
-    public void AddingAMemberToTheApplicationReusesTheRegistration() {
-        var result = Rerun(Application(), Application(applicationMembers: "// nothing that matters"));
+    public void AddingAMemberToTheApplicationReusesTheRegistration()
+    {
+        var result = Rerun(
+            Application(),
+            Application(applicationMembers: "// nothing that matters")
+        );
 
         Assert.True(result.AllOutputsCached);
     }
 
     [Fact]
-    public void ChangingTheFunctionNameRegeneratesTheHandler() {
-        AssertRegenerated(Rerun(
-            Application(),
-            Application(functionAttribute: "[HardenedFunction(\"renamed\")]")));
+    public void ChangingTheFunctionNameRegeneratesTheHandler()
+    {
+        AssertRegenerated(
+            Rerun(Application(), Application(functionAttribute: "[HardenedFunction(\"renamed\")]"))
+        );
     }
 
     /// <summary>
@@ -132,30 +151,41 @@ public class IncrementalFunctionGenerationTests {
     /// registration has to be rebuilt as well as the handler.
     /// </summary>
     [Fact]
-    public void NamingAFunctionRebuildsTheRegistration() {
+    public void NamingAFunctionRebuildsTheRegistration()
+    {
         var result = Rerun(
             Application(),
-            Application(functionAttribute: "[HardenedFunction(\"renamed\")]"));
+            Application(functionAttribute: "[HardenedFunction(\"renamed\")]")
+        );
 
         Assert.NotEqual(
             result.FirstRun["TestApplication.FunctionHandlers.cs"],
-            result.SecondRun["TestApplication.FunctionHandlers.cs"]);
+            result.SecondRun["TestApplication.FunctionHandlers.cs"]
+        );
 
-        Assert.Contains("switch (scheme + \" \" + path)", result.SecondRun["TestApplication.FunctionHandlers.cs"]);
+        Assert.Contains(
+            "switch (scheme + \" \" + path)",
+            result.SecondRun["TestApplication.FunctionHandlers.cs"]
+        );
     }
 
     [Fact]
-    public void ChangingAParameterTypeRegeneratesTheHandler() {
-        AssertRegenerated(Rerun(
-            Application(),
-            Application(signature: "public void Process(IThing thing) { }")));
+    public void ChangingAParameterTypeRegeneratesTheHandler()
+    {
+        AssertRegenerated(
+            Rerun(Application(), Application(signature: "public void Process(IThing thing) { }"))
+        );
     }
 
     [Fact]
-    public void AddingAParameterRegeneratesTheHandler() {
-        AssertRegenerated(Rerun(
-            Application(),
-            Application(signature: "public void Process(DataModel model, IThing thing) { }")));
+    public void AddingAParameterRegeneratesTheHandler()
+    {
+        AssertRegenerated(
+            Rerun(
+                Application(),
+                Application(signature: "public void Process(DataModel model, IThing thing) { }")
+            )
+        );
     }
 
     /// <summary>
@@ -163,10 +193,16 @@ public class IncrementalFunctionGenerationTests {
     /// with, so a cached result here would be a handler that never awaits.
     /// </summary>
     [Fact]
-    public void MakingAHandlerAsyncRegeneratesTheHandler() {
-        AssertRegenerated(Rerun(
-            Application(),
-            Application(signature: "public Task Process(DataModel model) => Task.CompletedTask;")));
+    public void MakingAHandlerAsyncRegeneratesTheHandler()
+    {
+        AssertRegenerated(
+            Rerun(
+                Application(),
+                Application(
+                    signature: "public Task Process(DataModel model) => Task.CompletedTask;"
+                )
+            )
+        );
     }
 
     /// <summary>
@@ -174,10 +210,14 @@ public class IncrementalFunctionGenerationTests {
     /// response value, so the emitted text changes as well as the model.
     /// </summary>
     [Fact]
-    public void ChangingAHandlerToReturnNothingRegeneratesTheHandler() {
-        AssertRegenerated(Rerun(
-            Application(signature: "public string Process(DataModel model) => model.Value;"),
-            Application(signature: "public void Process(DataModel model) { }")));
+    public void ChangingAHandlerToReturnNothingRegeneratesTheHandler()
+    {
+        AssertRegenerated(
+            Rerun(
+                Application(signature: "public string Process(DataModel model) => model.Value;"),
+                Application(signature: "public void Process(DataModel model) { }")
+            )
+        );
     }
 
     /// <summary>
@@ -186,31 +226,43 @@ public class IncrementalFunctionGenerationTests {
     /// rebuilt — it is a whole-application view.
     /// </summary>
     [Fact]
-    public void AddingAHandlerLeavesTheExistingHandlersOutputUnchanged() {
+    public void AddingAHandlerLeavesTheExistingHandlersOutputUnchanged()
+    {
         var result = Rerun(
             Application(),
-            Application(extraMembers: """
+            Application(
+                extraMembers: """
                 [HardenedFunction("other")]
                 public void Other() { }
-                """));
+                """
+            )
+        );
 
-        Assert.Equal(result.FirstRun["INVOKE.Process.FunctionHandler.cs"], result.SecondRun["INVOKE.Process.FunctionHandler.cs"]);
+        Assert.Equal(
+            result.FirstRun["INVOKE.Process.FunctionHandler.cs"],
+            result.SecondRun["INVOKE.Process.FunctionHandler.cs"]
+        );
         Assert.Contains("INVOKE.other.FunctionHandler.cs", result.SecondRun.Keys);
 
         Assert.NotEqual(
             result.FirstRun["TestApplication.FunctionHandlers.cs"],
-            result.SecondRun["TestApplication.FunctionHandlers.cs"]);
+            result.SecondRun["TestApplication.FunctionHandlers.cs"]
+        );
     }
 
     /// <summary>Removing a handler removes its file rather than leaving it behind.</summary>
     [Fact]
-    public void RemovingAHandlerRemovesItsOutput() {
+    public void RemovingAHandlerRemovesItsOutput()
+    {
         var result = Rerun(
-            Application(extraMembers: """
+            Application(
+                extraMembers: """
                 [HardenedFunction("other")]
                 public void Other() { }
-                """),
-            Application());
+                """
+            ),
+            Application()
+        );
 
         Assert.Contains("INVOKE.other.FunctionHandler.cs", result.FirstRun.Keys);
         Assert.DoesNotContain("INVOKE.other.FunctionHandler.cs", result.SecondRun.Keys);
@@ -221,10 +273,12 @@ public class IncrementalFunctionGenerationTests {
     /// left behind.
     /// </summary>
     [Fact]
-    public void RenamingTheApplicationMovesTheRegistrationFile() {
+    public void RenamingTheApplicationMovesTheRegistrationFile()
+    {
         var result = Rerun(
             Application(),
-            Application().Replace("class TestApplication", "class RenamedApplication"));
+            Application().Replace("class TestApplication", "class RenamedApplication")
+        );
 
         Assert.Contains("TestApplication.FunctionHandlers.cs", result.FirstRun.Keys);
         Assert.Contains("RenamedApplication.FunctionHandlers.cs", result.SecondRun.Keys);

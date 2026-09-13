@@ -21,10 +21,9 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// test source are enough - this project references neither host nor the store package.
 /// </para>
 /// </remarks>
-public class ResponseCacheStoreDiagnosticTests {
-
-    private const string Spec =
-        """
+public class ResponseCacheStoreDiagnosticTests
+{
+    private const string Spec = """
         openapi: "3.0.0"
         info: { title: Things, version: "1.0" }
         paths:
@@ -36,8 +35,7 @@ public class ResponseCacheStoreDiagnosticTests {
                 '200': { description: ok }
         """;
 
-    private const string CachingImplementation =
-        """
+    private const string CachingImplementation = """
         [Handler]
         public class ThingServiceImpl : IThingService {
             [CacheResponse<VaryByRoute>(Duration = 60)]
@@ -47,26 +45,26 @@ public class ResponseCacheStoreDiagnosticTests {
 
     private static string Host(string moduleAttributes, string implementation = "") =>
         $$"""
-          using System.Threading.Tasks;
-          using Hardened.Requests.Abstract.Attributes;
-          using Hardened.Requests.Runtime.Caching;
-          using Hardened.Shared.Runtime.Attributes;
-          using Hardened.Web.Runtime.Caching;
-          using TestNamespace.Services;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Requests.Runtime.Caching;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Caching;
+            using TestNamespace.Services;
 
-          namespace TestNamespace;
+            namespace TestNamespace;
 
-          [HardenedModule]
-          {{moduleAttributes}}
-          public partial class TestApp {
-          }
+            [HardenedModule]
+            {{moduleAttributes}}
+            public partial class TestApp {
+            }
 
-          public class KestrelRuntimeAttribute : System.Attribute { }
+            public class KestrelRuntimeAttribute : System.Attribute { }
 
-          public class HardenedMemoryResponseCacheAttribute : System.Attribute { }
+            public class HardenedMemoryResponseCacheAttribute : System.Attribute { }
 
-          {{implementation}}
-          """;
+            {{implementation}}
+            """;
 
     private static IEnumerable<Diagnostic> Reported(GeneratorResult result) =>
         result.GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == "HRDW005");
@@ -74,9 +72,11 @@ public class ResponseCacheStoreDiagnosticTests {
     // ---------------------------------------------------------------- the implementation caches
 
     [Fact]
-    public void ADescribedOperationCachedByItsImplementationWithNoStoreIsHRDW005() {
-        var diagnostic = Assert.Single(Reported(
-            OpenApiGenerator.Run(Spec, Host("[KestrelRuntime]", CachingImplementation))));
+    public void ADescribedOperationCachedByItsImplementationWithNoStoreIsHRDW005()
+    {
+        var diagnostic = Assert.Single(
+            Reported(OpenApiGenerator.Run(Spec, Host("[KestrelRuntime]", CachingImplementation)))
+        );
 
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Contains("ListThings", diagnostic.GetMessage());
@@ -84,19 +84,28 @@ public class ResponseCacheStoreDiagnosticTests {
     }
 
     [Fact]
-    public void ADescribedOperationCachedWithTheStoreReportsNothing() {
-        Assert.Empty(Reported(OpenApiGenerator.Run(
-            Spec, Host("[KestrelRuntime] [HardenedMemoryResponseCache]", CachingImplementation))));
+    public void ADescribedOperationCachedWithTheStoreReportsNothing()
+    {
+        Assert.Empty(
+            Reported(
+                OpenApiGenerator.Run(
+                    Spec,
+                    Host("[KestrelRuntime] [HardenedMemoryResponseCache]", CachingImplementation)
+                )
+            )
+        );
     }
 
     /// <summary>A described library, hosted by some other compilation, is not asked.</summary>
     [Fact]
-    public void ADescribedLibraryModuleReportsNothing() {
+    public void ADescribedLibraryModuleReportsNothing()
+    {
         Assert.Empty(Reported(OpenApiGenerator.Run(Spec, Host("", CachingImplementation))));
     }
 
     [Fact]
-    public void ADescribedOperationThatDoesNotCacheReportsNothing() {
+    public void ADescribedOperationThatDoesNotCacheReportsNothing()
+    {
         Assert.Empty(Reported(OpenApiGenerator.Run(Spec, Host("[KestrelRuntime]"))));
     }
 
@@ -109,53 +118,64 @@ public class ResponseCacheStoreDiagnosticTests {
     /// </summary>
     private static string Library(bool carriesTheStore) =>
         $$"""
-          using Hardened.Requests.Runtime.Caching;
-          using Hardened.Web.Runtime.Attributes;
-          using Hardened.Web.Runtime.Caching;
+            using Hardened.Requests.Runtime.Caching;
+            using Hardened.Web.Runtime.Attributes;
+            using Hardened.Web.Runtime.Caching;
 
-          namespace Hardened.Requests.Caching.Memory {
-              public class HardenedMemoryResponseCacheAttribute : System.Attribute { }
-          }
+            namespace Hardened.Requests.Caching.Memory {
+                public class HardenedMemoryResponseCacheAttribute : System.Attribute { }
+            }
 
-          namespace Catalog {
-              {{(carriesTheStore ? "[Hardened.Requests.Caching.Memory.HardenedMemoryResponseCache]" : "")}}
-              public partial class CatalogLibrary { }
+            namespace Catalog {
+                {{(
+                carriesTheStore
+                    ? "[Hardened.Requests.Caching.Memory.HardenedMemoryResponseCache]"
+                    : ""
+            )}}
+                public partial class CatalogLibrary { }
 
-              public class CatalogLibraryAttribute : System.Attribute { }
+                public class CatalogLibraryAttribute : System.Attribute { }
 
-              public class CatalogController {
-                  [Get("/catalog")]
-                  [CacheResponse<VaryByRoute>(Duration = 60)]
-                  public string Catalog() => "catalog";
+                public class CatalogController {
+                    [Get("/catalog")]
+                    [CacheResponse<VaryByRoute>(Duration = 60)]
+                    public string Catalog() => "catalog";
 
-                  [Get("/offers")]
-                  public string Offers() => "offers";
-              }
+                    [Get("/offers")]
+                    public string Offers() => "offers";
+                }
 
-              [CacheResponse<VaryByRoute>(Duration = 60)]
-              public class OffersController {
-                  [Get("/deals")]
-                  public string Deals() => "deals";
+                [CacheResponse<VaryByRoute>(Duration = 60)]
+                public class OffersController {
+                    [Get("/deals")]
+                    public string Deals() => "deals";
 
-                  public string NotARoute() => "helper";
-              }
-          }
-          """;
+                    public string NotARoute() => "helper";
+                }
+            }
+            """;
 
-    private static GeneratorResult Importing(string moduleAttributes, bool libraryCarriesTheStore = false) {
+    private static GeneratorResult Importing(
+        string moduleAttributes,
+        bool libraryCarriesTheStore = false
+    )
+    {
         var (reference, _) = GeneratorTestHarness.CompileLibrary(
             Library(libraryCarriesTheStore),
             libraryCarriesTheStore ? "SpecCatalogWithStore" : "SpecCatalog",
-            [typeof(GetAttribute), typeof(CacheResponseAttribute<>)]);
+            [typeof(GetAttribute), typeof(CacheResponseAttribute<>)]
+        );
 
         return OpenApiGenerator.Run(
             new Dictionary<string, string> { ["petstore.yaml"] = Spec },
             Host(moduleAttributes + " [Catalog.CatalogLibrary]"),
-            additionalReferences: [reference]);
+            additionalReferences: [reference]
+        );
     }
 
     [Fact]
-    public void AHostImportingACachingLibraryWithNoStoreIsToldWhichHandlersFail() {
+    public void AHostImportingACachingLibraryWithNoStoreIsToldWhichHandlersFail()
+    {
         var diagnostic = Assert.Single(Reported(Importing("[KestrelRuntime]")));
 
         Assert.Contains("CatalogController.Catalog", diagnostic.GetMessage());
@@ -164,12 +184,14 @@ public class ResponseCacheStoreDiagnosticTests {
     }
 
     [Fact]
-    public void AHostImportingACachingLibraryWithTheStoreReportsNothing() {
+    public void AHostImportingACachingLibraryWithTheStoreReportsNothing()
+    {
         Assert.Empty(Reported(Importing("[KestrelRuntime] [HardenedMemoryResponseCache]")));
     }
 
     [Fact]
-    public void AHostImportingALibraryThatCarriesTheStoreReportsNothing() {
+    public void AHostImportingALibraryThatCarriesTheStoreReportsNothing()
+    {
         Assert.Empty(Reported(Importing("[KestrelRuntime]", libraryCarriesTheStore: true)));
     }
 }

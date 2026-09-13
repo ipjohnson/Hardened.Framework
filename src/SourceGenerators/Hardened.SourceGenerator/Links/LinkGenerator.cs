@@ -1,6 +1,6 @@
-﻿using Hardened.Generation;
-using System.Text;
+﻿using System.Text;
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
@@ -36,8 +36,8 @@ namespace Hardened.SourceGenerator.Links;
 /// rot.
 /// </para>
 /// </remarks>
-public static class LinkGenerator {
-
+public static class LinkGenerator
+{
     /// <summary>
     /// Both types are nested in the entry point rather than named after it.
     /// </summary>
@@ -76,20 +76,26 @@ public static class LinkGenerator {
         SourceProductionContext context,
         EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers,
-        string basePath) {
+        string basePath
+    )
+    {
         // Emitted even when a module declares no routes, so anything generated beside it - a
         // template base with a Links property - can name the type without first knowing whether
         // there were any. An empty links type costs a few lines; a conditional one costs every
         // generator that references it a way to find out.
         var groups = Group(appModel, handlers, basePath);
 
-        context.AddSource(appModel.EntryPointType.Name + ".Links",
-            GeneratedSource.Header(Write(appModel, groups)));
+        context.AddSource(
+            appModel.EntryPointType.Name + ".Links",
+            GeneratedSource.Header(Write(appModel, groups))
+        );
     }
 
     /// <summary>One entry per link method, in a stable order.</summary>
-    private readonly struct Link {
-        public Link(string group, string name, string body, IReadOnlyList<Parameter> parameters) {
+    private readonly struct Link
+    {
+        public Link(string group, string name, string body, IReadOnlyList<Parameter> parameters)
+        {
             Group = group;
             Name = name;
             Body = body;
@@ -116,8 +122,10 @@ public static class LinkGenerator {
     /// name a token <c>base</c>, and the fallback below turns a token nothing binds into a
     /// parameter name directly, so the escape cannot be left to the model that fed it.
     /// </remarks>
-    private readonly struct Parameter {
-        public Parameter(ITypeDefinition type, string name) {
+    private readonly struct Parameter
+    {
+        public Parameter(ITypeDefinition type, string name)
+        {
             Type = type;
             Name = NamingHelper.EscapeIdentifier(name);
         }
@@ -130,16 +138,23 @@ public static class LinkGenerator {
     private static IReadOnlyList<IGrouping<string, Link>> Group(
         EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> handlers,
-        string basePath) {
+        string basePath
+    )
+    {
         var links = new List<Link>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var handler in handlers.OrderBy(h => h.Name.Path, StringComparer.Ordinal)
-                     .ThenBy(h => h.Name.Method, StringComparer.Ordinal)) {
+        foreach (
+            var handler in handlers
+                .OrderBy(h => h.Name.Path, StringComparer.Ordinal)
+                .ThenBy(h => h.Name.Method, StringComparer.Ordinal)
+        )
+        {
             // A route HRDR002 has already refused - {id?}, {id=5}, {} - has no link. Its handler is
             // still emitted so that diagnostic stands alone, and a link method declaring a
             // parameter named `id?` would bury it under a dozen CS1003s instead.
-            if (Build(handler, basePath) is not { } link) {
+            if (Build(handler, basePath) is not { } link)
+            {
                 continue;
             }
 
@@ -148,22 +163,32 @@ public static class LinkGenerator {
             // produce output that does not compile, which is a worse failure than one route being
             // unreachable by name. Ordered by route so which one survives does not depend on the
             // order handlers happened to arrive in.
-            if (seen.Add(Signature(link))) {
+            if (seen.Add(Signature(link)))
+            {
                 links.Add(link);
             }
         }
 
-        return links.GroupBy(link => link.Group).OrderBy(group => group.Key, StringComparer.Ordinal).ToList();
+        return links
+            .GroupBy(link => link.Group)
+            .OrderBy(group => group.Key, StringComparer.Ordinal)
+            .ToList();
     }
 
     private static string Signature(Link link) =>
-        link.Group + "." + link.Name + "(" + string.Join(",", link.Parameters.Select(p => p.Type.ToString())) + ")";
+        link.Group
+        + "."
+        + link.Name
+        + "("
+        + string.Join(",", link.Parameters.Select(p => p.Type.ToString()))
+        + ")";
 
     /// <summary>
     /// One handler as a link: the route template with its tokens replaced by the parameters that
     /// bind to them. Null for a route whose tokens cannot be parameters.
     /// </summary>
-    private static Link? Build(RequestHandlerModel handler, string basePath) {
+    private static Link? Build(RequestHandlerModel handler, string basePath)
+    {
         var template = RoutePath.Combine(basePath, handler.Name.Path);
         var body = new StringBuilder();
         var parameters = new List<Parameter>();
@@ -172,10 +197,12 @@ public static class LinkGenerator {
 
         var index = 0;
 
-        while (index < template.Length) {
+        while (index < template.Length)
+        {
             var open = template.IndexOf('{', index);
 
-            if (open < 0) {
+            if (open < 0)
+            {
                 literal.Append(template, index, template.Length - index);
 
                 break;
@@ -183,7 +210,8 @@ public static class LinkGenerator {
 
             var close = template.IndexOf('}', open);
 
-            if (close < 0) {
+            if (close < 0)
+            {
                 literal.Append(template, index, template.Length - index);
 
                 break;
@@ -196,13 +224,15 @@ public static class LinkGenerator {
 
             // A token that is not an identifier, or one the route declares twice, is a link method
             // that does not compile. The route itself is reported by HRDR002.
-            if (!SyntaxFacts.IsValidIdentifier(name) || !names.Add(name)) {
+            if (!SyntaxFacts.IsValidIdentifier(name) || !names.Add(name))
+            {
                 return null;
             }
 
             var parameter = Bound(handler, name);
 
-            if (literal.Length > 0) {
+            if (literal.Length > 0)
+            {
                 Append(body, Quote(literal.ToString()));
                 literal.Clear();
             }
@@ -213,7 +243,8 @@ public static class LinkGenerator {
             index = close + 1;
         }
 
-        if (literal.Length > 0 || body.Length == 0) {
+        if (literal.Length > 0 || body.Length == 0)
+        {
             Append(body, Quote(literal.ToString()));
         }
 
@@ -236,10 +267,15 @@ public static class LinkGenerator {
     /// The fallback covers a route declaring a token no parameter binds - legal, and the route
     /// still needs a value in that position to be linkable at all.
     /// </remarks>
-    private static Parameter Bound(RequestHandlerModel handler, string token) {
-        foreach (var parameter in handler.RequestParameterInformationList) {
-            if (parameter.BindingType == ParameterBindType.Path &&
-                string.Equals(parameter.Name, token, StringComparison.Ordinal)) {
+    private static Parameter Bound(RequestHandlerModel handler, string token)
+    {
+        foreach (var parameter in handler.RequestParameterInformationList)
+        {
+            if (
+                parameter.BindingType == ParameterBindType.Path
+                && string.Equals(parameter.Name, token, StringComparison.Ordinal)
+            )
+            {
                 return new Parameter(parameter.ParameterType, parameter.Name);
             }
         }
@@ -266,19 +302,24 @@ public static class LinkGenerator {
     /// produce a different URL on a machine with a different locale.
     /// </para>
     /// </remarks>
-    private static string Value(Parameter parameter, bool catchAll) {
-        if (parameter.Type.Name == "String" || parameter.Type.Name == "string") {
+    private static string Value(Parameter parameter, bool catchAll)
+    {
+        if (parameter.Type.Name == "String" || parameter.Type.Name == "string")
+        {
             return catchAll
                 ? parameter.Name
                 : "global::System.Uri.EscapeDataString(" + parameter.Name + ")";
         }
 
-        return "global::System.Convert.ToString(" + parameter.Name +
-               ", global::System.Globalization.CultureInfo.InvariantCulture)";
+        return "global::System.Convert.ToString("
+            + parameter.Name
+            + ", global::System.Globalization.CultureInfo.InvariantCulture)";
     }
 
-    private static void Append(StringBuilder body, string part) {
-        if (body.Length > 0) {
+    private static void Append(StringBuilder body, string part)
+    {
+        if (body.Length > 0)
+        {
             body.Append(" + ");
         }
 
@@ -294,7 +335,10 @@ public static class LinkGenerator {
         "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
 
     private static string Write(
-        EntryPointSelector.Model appModel, IReadOnlyList<IGrouping<string, Link>> groups) {
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<IGrouping<string, Link>> groups
+    )
+    {
         var file = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
         // One more partial declaration of the application, carrying both types. The module
@@ -306,9 +350,9 @@ public static class LinkGenerator {
         WriteRoutes(app, appModel, groups);
         WriteLinks(app, appModel, groups);
 
-        var outputContext = new OutputContext(new OutputContextOptions {
-            TypeOutputMode = TypeOutputMode.Global
-        });
+        var outputContext = new OutputContext(
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
 
         file.WriteOutput(outputContext);
 
@@ -321,26 +365,31 @@ public static class LinkGenerator {
     private static void WriteRoutes(
         IConstructContainer file,
         EntryPointSelector.Model appModel,
-        IReadOnlyList<IGrouping<string, Link>> groups) {
+        IReadOnlyList<IGrouping<string, Link>> groups
+    )
+    {
         var routes = file.AddClass(RoutesMemberName);
 
         routes.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         routes.Comment =
-            $"The routes {appModel.EntryPointType.Name} declares, as paths. " +
-            $"For a link a client can call, use {LinksTypeName(appModel)}.";
+            $"The routes {appModel.EntryPointType.Name} declares, as paths. "
+            + $"For a link a client can call, use {LinksTypeName(appModel)}.";
 
-        foreach (var group in groups) {
+        foreach (var group in groups)
+        {
             var groupClass = routes.AddClass(group.Key);
 
             groupClass.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
 
-            foreach (var link in group) {
+            foreach (var link in group)
+            {
                 var method = groupClass.AddMethod(link.Name);
 
                 method.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
                 method.SetReturnType(typeof(string));
 
-                foreach (var parameter in link.Parameters) {
+                foreach (var parameter in link.Parameters)
+                {
                     method.AddParameter(parameter.Type, parameter.Name);
                 }
 
@@ -355,26 +404,34 @@ public static class LinkGenerator {
     private static void WriteLinks(
         IConstructContainer file,
         EntryPointSelector.Model appModel,
-        IReadOnlyList<IGrouping<string, Link>> groups) {
+        IReadOnlyList<IGrouping<string, Link>> groups
+    )
+    {
         var links = file.AddClass(LinksMemberName);
 
         links.Modifiers |= ComponentModifier.Public | ComponentModifier.Sealed;
         links.Comment =
-            $"Links to {appModel.EntryPointType.Name}'s routes, as a client would call them. " +
-            "Resolve from the container, or read it off a template.";
+            $"Links to {appModel.EntryPointType.Name}'s routes, as a client would call them. "
+            + "Resolve from the container, or read it off a template.";
 
         var contextField = links.AddField(KnownTypes.Requests.ILinkContext, "_context");
 
         contextField.Modifiers |= ComponentModifier.Private | ComponentModifier.Readonly;
 
         var constructor = links.AddConstructor();
-        var contextParameter = constructor.AddParameter(KnownTypes.Requests.ILinkContext, "context");
+        var contextParameter = constructor.AddParameter(
+            KnownTypes.Requests.ILinkContext,
+            "context"
+        );
 
         constructor.Assign(contextParameter).To(contextField.Instance);
 
-        foreach (var group in groups) {
+        foreach (var group in groups)
+        {
             var groupType = TypeDefinition.Get(
-                appModel.EntryPointType.Namespace, LinksTypeName(appModel) + "." + group.Key + "Links");
+                appModel.EntryPointType.Namespace,
+                LinksTypeName(appModel) + "." + group.Key + "Links"
+            );
 
             var property = links.AddProperty(groupType, group.Key);
 
@@ -396,14 +453,24 @@ public static class LinkGenerator {
             groupField.Modifiers |= ComponentModifier.Private | ComponentModifier.Readonly;
 
             var groupConstructor = groupClass.AddConstructor();
-            var groupParameter =
-                groupConstructor.AddParameter(KnownTypes.Requests.ILinkContext, "context");
+            var groupParameter = groupConstructor.AddParameter(
+                KnownTypes.Requests.ILinkContext,
+                "context"
+            );
 
             groupConstructor.Assign(groupParameter).To(groupField.Instance);
 
-            foreach (var link in group) {
+            foreach (var link in group)
+            {
                 WriteLinkMethod(appModel, groupClass, group.Key, link, "Resolve", link.Name);
-                WriteLinkMethod(appModel, groupClass, group.Key, link, "Absolute", link.Name + "Absolute");
+                WriteLinkMethod(
+                    appModel,
+                    groupClass,
+                    group.Key,
+                    link,
+                    "Absolute",
+                    link.Name + "Absolute"
+                );
             }
         }
 
@@ -437,12 +504,16 @@ public static class LinkGenerator {
     private static void WriteImportedLinks(
         ClassDefinition links,
         EntryPointSelector.Model appModel,
-        IReadOnlyList<IGrouping<string, Link>> groups) {
-        foreach (var imported in appModel.ImportedLinks) {
+        IReadOnlyList<IGrouping<string, Link>> groups
+    )
+    {
+        foreach (var imported in appModel.ImportedLinks)
+        {
             // A controller group of the same name owns the name: it is declared in this assembly,
             // and the imported module's links stay reachable by resolving their own type. Emitting
             // both would be a duplicate member and a confusing error in generated code.
-            if (groups.Any(group => group.Key == imported.PropertyName)) {
+            if (groups.Any(group => group.Key == imported.PropertyName))
+            {
                 continue;
             }
 
@@ -457,10 +528,13 @@ public static class LinkGenerator {
             // to that type and fails with CS0426. The property's own type is qualified already;
             // this is the one place the name was built by hand.
             property.Get.AddCode(
-                $"_{imported.PropertyName} ??= new global::{imported.LinksType.Namespace}.{imported.LinksType.Name}(_context);");
+                $"_{imported.PropertyName} ??= new global::{imported.LinksType.Namespace}.{imported.LinksType.Name}(_context);"
+            );
 
             var backing = links.AddField(
-                imported.LinksType.MakeNullable(), "_" + imported.PropertyName);
+                imported.LinksType.MakeNullable(),
+                "_" + imported.PropertyName
+            );
 
             backing.Modifiers |= ComponentModifier.Private;
         }
@@ -475,7 +549,9 @@ public static class LinkGenerator {
         string group,
         Link link,
         string resolver,
-        string name) {
+        string name
+    )
+    {
         var method = groupClass.AddMethod(name);
 
         method.Modifiers |= ComponentModifier.Public;
@@ -483,20 +559,33 @@ public static class LinkGenerator {
 
         var arguments = new StringBuilder();
 
-        foreach (var parameter in link.Parameters) {
+        foreach (var parameter in link.Parameters)
+        {
             method.AddParameter(parameter.Type, parameter.Name);
 
-            if (arguments.Length > 0) {
+            if (arguments.Length > 0)
+            {
                 arguments.Append(", ");
             }
 
             arguments.Append(parameter.Name);
         }
 
-        var route = "global::" + appModel.EntryPointType.Namespace + "." + RoutesTypeName(appModel) +
-                    "." + group + "." + link.Name + "(" + arguments + ")";
+        var route =
+            "global::"
+            + appModel.EntryPointType.Namespace
+            + "."
+            + RoutesTypeName(appModel)
+            + "."
+            + group
+            + "."
+            + link.Name
+            + "("
+            + arguments
+            + ")";
 
         method.AddIndentedStatement(
-            CodeOutputComponent.Get("return _context." + resolver + "(" + route + ")"));
+            CodeOutputComponent.Get("return _context." + resolver + "(" + route + ")")
+        );
     }
 }

@@ -8,10 +8,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// invocation, the exception filter, the converter and response serialization together.
 /// Unit tests cover the converter in isolation; these confirm the wiring around it.
 /// </summary>
-public class ErrorHandlingTests {
-
+public class ErrorHandlingTests
+{
     [HardenedTest]
-    public async Task BadRequestExceptionBecomes400(ITestWebApp testWebApp) {
+    public async Task BadRequestExceptionBecomes400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/bad-request");
 
         response.Assert.BadRequest();
@@ -22,14 +23,16 @@ public class ErrorHandlingTests {
     /// what it is called.
     /// </summary>
     [HardenedTest]
-    public async Task ExceptionDerivedFromBadRequestBecomes400(ITestWebApp testWebApp) {
+    public async Task ExceptionDerivedFromBadRequestBecomes400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/derived-client-error");
 
         response.Assert.BadRequest();
     }
 
     [HardenedTest]
-    public async Task FormatExceptionBecomes400(ITestWebApp testWebApp) {
+    public async Task FormatExceptionBecomes400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/format");
 
         response.Assert.BadRequest();
@@ -40,7 +43,10 @@ public class ErrorHandlingTests {
     /// JSON deserializers did the decoding; the request decompression filter changed both.
     /// </summary>
     [HardenedTest]
-    public async Task UnsupportedContentEncodingBecomes415NamingWhatIsAccepted(ITestWebApp testWebApp) {
+    public async Task UnsupportedContentEncodingBecomes415NamingWhatIsAccepted(
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/errors/bad-encoding");
 
         Assert.Equal(415, response.StatusCode);
@@ -48,7 +54,8 @@ public class ErrorHandlingTests {
     }
 
     [HardenedTest]
-    public async Task UnrecognisedExceptionBecomes500(ITestWebApp testWebApp) {
+    public async Task UnrecognisedExceptionBecomes500(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/server");
 
         Assert.Equal(500, response.StatusCode);
@@ -60,7 +67,8 @@ public class ErrorHandlingTests {
     /// "Bad". It derives from Exception, so it must be a 500.
     /// </summary>
     [HardenedTest]
-    public async Task ExceptionMerelyNamedLikeAClientErrorBecomes500(ITestWebApp testWebApp) {
+    public async Task ExceptionMerelyNamedLikeAClientErrorBecomes500(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/badge-missing");
 
         Assert.Equal(500, response.StatusCode);
@@ -73,7 +81,8 @@ public class ErrorHandlingTests {
     /// container's exception unwound past it.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerThatCannotBeConstructedAnswersTheErrorEnvelope(ITestWebApp testWebApp) {
+    public async Task AHandlerThatCannotBeConstructedAnswersTheErrorEnvelope(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/unsatisfiable");
 
         Assert.Equal(500, response.StatusCode);
@@ -87,7 +96,8 @@ public class ErrorHandlingTests {
     /// The response body carries a serialized ErrorModel, not just a status code.
     /// </summary>
     [HardenedTest]
-    public async Task ErrorResponseCarriesASerialisedModel(ITestWebApp testWebApp) {
+    public async Task ErrorResponseCarriesASerialisedModel(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/server");
 
         var error = response.Deserialize<ErrorModel>();
@@ -105,7 +115,8 @@ public class ErrorHandlingTests {
     /// is still logged in full through <c>IRequestLogger.RequestFailed</c>.
     /// </remarks>
     [HardenedTest]
-    public async Task AServerErrorRevealsNothingAboutTheException(ITestWebApp testWebApp) {
+    public async Task AServerErrorRevealsNothingAboutTheException(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/server");
 
         var error = response.Deserialize<ErrorModel>();
@@ -123,10 +134,13 @@ public class ErrorHandlingTests {
     /// refuses. This answered 500 and echoed the parser's message before.
     /// </remarks>
     [HardenedTest]
-    public async Task AnUnreadableRequestBodyBecomes400(ITestWebApp testWebApp) {
+    public async Task AnUnreadableRequestBodyBecomes400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            "{\"values\": }", "/binding/body/totals",
-            request => request.Headers["Content-Type"] = "application/json");
+            "{\"values\": }",
+            "/binding/body/totals",
+            request => request.Headers["Content-Type"] = "application/json"
+        );
 
         response.Assert.BadRequest();
     }
@@ -138,10 +152,13 @@ public class ErrorHandlingTests {
     /// that named its parameter something else - this one calls it <c>model</c>.
     /// </summary>
     [HardenedTest]
-    public async Task AnUnreadableRequestBodyCarriesAFieldLevelError(ITestWebApp testWebApp) {
+    public async Task AnUnreadableRequestBodyCarriesAFieldLevelError(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            "{\"values\": [\"not a number\"]}", "/binding/body/totals",
-            request => request.Headers["Content-Type"] = "application/json");
+            "{\"values\": [\"not a number\"]}",
+            "/binding/body/totals",
+            request => request.Headers["Content-Type"] = "application/json"
+        );
 
         response.Assert.BadRequest();
 
@@ -162,7 +179,8 @@ public class ErrorHandlingTests {
     /// the handler did.
     /// </summary>
     [HardenedTest]
-    public async Task AStatusCodeExceptionCarriesItsOwnStatus(ITestWebApp testWebApp) {
+    public async Task AStatusCodeExceptionCarriesItsOwnStatus(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/declared-status");
 
         Assert.Equal(404, response.StatusCode);
@@ -170,7 +188,8 @@ public class ErrorHandlingTests {
 
     /// <summary>And the body the specification declared for it, rather than the generic model.</summary>
     [HardenedTest]
-    public async Task AStatusCodeExceptionCarriesItsDeclaredBody(ITestWebApp testWebApp) {
+    public async Task AStatusCodeExceptionCarriesItsDeclaredBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/declared-body");
 
         Assert.Equal(409, response.StatusCode);
@@ -192,7 +211,9 @@ public class ErrorHandlingTests {
     /// </summary>
     [HardenedTest]
     public async Task ARawResponseHandlerThatThrowsStillAnswersItsDeclaredStatus(
-        ITestWebApp testWebApp) {
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/errors/raw-declared-status");
 
         Assert.Equal(409, response.StatusCode);
@@ -205,7 +226,8 @@ public class ErrorHandlingTests {
 
     /// <summary>The same rescue for an unclassified fault: a 500 with a body, in JSON.</summary>
     [HardenedTest]
-    public async Task ARawResponseHandlerThatFaultsAnswersAJsonServerError(ITestWebApp testWebApp) {
+    public async Task ARawResponseHandlerThatFaultsAnswersAJsonServerError(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/raw-server-error");
 
         Assert.Equal(500, response.StatusCode);
@@ -227,7 +249,8 @@ public class ErrorHandlingTests {
     /// exception. Both socket hosts have always answered 500 here.
     /// </remarks>
     [HardenedTest]
-    public async Task AResponseThatCannotBeSerializedIsAServerError(ITestWebApp testWebApp) {
+    public async Task AResponseThatCannotBeSerializedIsAServerError(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/unwritable");
 
         Assert.Equal(500, response.StatusCode);
@@ -238,7 +261,8 @@ public class ErrorHandlingTests {
     /// failure and what a test asserting which one it was has to read.
     /// </summary>
     [HardenedTest]
-    public async Task TheSerializerFailureIsRecordedOnTheResponse(ITestWebApp testWebApp) {
+    public async Task TheSerializerFailureIsRecordedOnTheResponse(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/unwritable");
 
         Assert.NotNull(response.Failure);
@@ -250,7 +274,8 @@ public class ErrorHandlingTests {
     /// it, and a failure there would be a consequence rather than the thing to name.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerFailureIsStillTheRecordedCause(ITestWebApp testWebApp) {
+    public async Task AHandlerFailureIsStillTheRecordedCause(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/errors/server");
 
         Assert.Equal(500, response.StatusCode);

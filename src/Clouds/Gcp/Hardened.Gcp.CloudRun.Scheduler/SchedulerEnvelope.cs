@@ -23,7 +23,8 @@ namespace Hardened.Gcp.CloudRun.Scheduler;
 /// schedule fires once.
 /// </para>
 /// </remarks>
-public sealed class SchedulerEnvelope : ITriggerEnvelope {
+public sealed class SchedulerEnvelope : ITriggerEnvelope
+{
     /// <summary>The scheme a schedule routes under.</summary>
     public const string TimerScheme = "TIMER";
 
@@ -39,7 +40,8 @@ public sealed class SchedulerEnvelope : ITriggerEnvelope {
     /// <summary>The scheduled time, RFC 3339, the same on every retry of one run.</summary>
     public const string ScheduleTimeHeader = "X-CloudScheduler-ScheduleTime";
 
-    public SchedulerEnvelope(string prefix) {
+    public SchedulerEnvelope(string prefix)
+    {
         Prefix = TriggerHeaders.Prefix(prefix);
     }
 
@@ -50,34 +52,46 @@ public sealed class SchedulerEnvelope : ITriggerEnvelope {
     public bool Recognises(IExecutionRequest request) =>
         !string.IsNullOrEmpty(TriggerHeaders.Under(request.Path, Prefix));
 
-    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) {
+    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload)
+    {
         var name = TriggerHeaders.Under(request.Path, Prefix);
 
-        if (string.IsNullOrEmpty(name)) {
+        if (string.IsNullOrEmpty(name))
+        {
             return null;
         }
 
         var job = TriggerHeaders.Get(request.Headers, JobNameHeader);
 
-        if (!string.IsNullOrEmpty(job) &&
-            !string.Equals(JobName(job!), name, StringComparison.Ordinal)) {
+        if (
+            !string.IsNullOrEmpty(job)
+            && !string.Equals(JobName(job!), name, StringComparison.Ordinal)
+        )
+        {
             // Refused rather than routed on either name: the job's target URL and the job's name
             // disagree, which is a wiring error in the deployment, and running a handler under a
             // name its schedule did not carry would hide it.
             throw new InvalidOperationException(
-                $"Cloud Scheduler job '{job}' posted to the timer route '{name}'. The name in the " +
-                $"target URL and the job's own name have to agree.");
+                $"Cloud Scheduler job '{job}' posted to the timer route '{name}'. The name in the "
+                    + $"target URL and the job's own name have to agree."
+            );
         }
 
         return new CloudRunTriggerRequest(
-            TimerScheme, "/" + name, payload.AsStream(), TriggerHeaders.Copy(request.Headers), request);
+            TimerScheme,
+            "/" + name,
+            payload.AsStream(),
+            TriggerHeaders.Copy(request.Headers),
+            request
+        );
     }
 
     /// <summary>
     /// The job's own name, whether the header carries it bare or as the full resource name
     /// <c>projects/p/locations/l/jobs/nightly</c>.
     /// </summary>
-    internal static string JobName(string job) {
+    internal static string JobName(string job)
+    {
         var slash = job.LastIndexOf('/');
 
         return slash > -1 ? job.Substring(slash + 1) : job;

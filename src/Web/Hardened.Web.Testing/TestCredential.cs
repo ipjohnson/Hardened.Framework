@@ -28,8 +28,8 @@ namespace Hardened.Web.Testing;
 /// caller who is authenticated and holds nothing, which the source spells as <c>-</c>.
 /// </param>
 /// <param name="Subject">Which caller, or null for the source's default subject.</param>
-public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subject = null) {
-
+public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subject = null)
+{
     /// <summary>No headers at all: the request stays anonymous.</summary>
     public static readonly TestCredential Anonymous = new(Grants: null);
 
@@ -40,16 +40,21 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
     /// Sets the two headers on <paramref name="headers"/> when the caller set neither, so a test
     /// that wrote its own credential into the request keeps it.
     /// </summary>
-    public void ApplyTo(IDictionary<string, StringValues> headers) {
-        if (IsAnonymous ||
-            headers.ContainsKey(TestGrantsPrincipalSource.GrantsHeader) ||
-            headers.ContainsKey(TestGrantsPrincipalSource.SubjectHeader)) {
+    public void ApplyTo(IDictionary<string, StringValues> headers)
+    {
+        if (
+            IsAnonymous
+            || headers.ContainsKey(TestGrantsPrincipalSource.GrantsHeader)
+            || headers.ContainsKey(TestGrantsPrincipalSource.SubjectHeader)
+        )
+        {
             return;
         }
 
         headers[TestGrantsPrincipalSource.GrantsHeader] = GrantsHeaderValue;
 
-        if (Subject != null) {
+        if (Subject != null)
+        {
             headers[TestGrantsPrincipalSource.SubjectHeader] = Subject;
         }
     }
@@ -58,30 +63,50 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
     /// Sets the two headers on a request that carries neither, in a socket host's chain - the
     /// same rule the pipeline host applies to the execution request it builds.
     /// </summary>
-    internal void ApplyTo(HttpRequestMessage request) {
-        if (IsAnonymous ||
-            request.Headers.Contains(TestGrantsPrincipalSource.GrantsHeader) ||
-            request.Headers.Contains(TestGrantsPrincipalSource.SubjectHeader)) {
+    internal void ApplyTo(HttpRequestMessage request)
+    {
+        if (
+            IsAnonymous
+            || request.Headers.Contains(TestGrantsPrincipalSource.GrantsHeader)
+            || request.Headers.Contains(TestGrantsPrincipalSource.SubjectHeader)
+        )
+        {
             return;
         }
 
-        request.Headers.TryAddWithoutValidation(TestGrantsPrincipalSource.GrantsHeader, GrantsHeaderValue);
+        request.Headers.TryAddWithoutValidation(
+            TestGrantsPrincipalSource.GrantsHeader,
+            GrantsHeaderValue
+        );
 
-        if (Subject != null) {
-            request.Headers.TryAddWithoutValidation(TestGrantsPrincipalSource.SubjectHeader, Subject);
+        if (Subject != null)
+        {
+            request.Headers.TryAddWithoutValidation(
+                TestGrantsPrincipalSource.SubjectHeader,
+                Subject
+            );
         }
     }
 
     /// <summary>Sets the two headers as the client's defaults, so every request it sends carries them.</summary>
-    public void ApplyTo(HttpClient client) {
-        if (IsAnonymous) {
+    public void ApplyTo(HttpClient client)
+    {
+        if (IsAnonymous)
+        {
             return;
         }
 
-        client.DefaultRequestHeaders.TryAddWithoutValidation(TestGrantsPrincipalSource.GrantsHeader, GrantsHeaderValue);
+        client.DefaultRequestHeaders.TryAddWithoutValidation(
+            TestGrantsPrincipalSource.GrantsHeader,
+            GrantsHeaderValue
+        );
 
-        if (Subject != null) {
-            client.DefaultRequestHeaders.TryAddWithoutValidation(TestGrantsPrincipalSource.SubjectHeader, Subject);
+        if (Subject != null)
+        {
+            client.DefaultRequestHeaders.TryAddWithoutValidation(
+                TestGrantsPrincipalSource.SubjectHeader,
+                Subject
+            );
         }
     }
 
@@ -104,10 +129,15 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
     /// parameter's attributes come from the parameter itself and are applied last.
     /// <see cref="AnonymousAttribute"/> at any level resets what the wider levels said.
     /// </remarks>
-    public static TestCredential Resolve(ITestMethodContext testMethod, ParameterInfo? parameter = null) {
+    public static TestCredential Resolve(
+        ITestMethodContext testMethod,
+        ParameterInfo? parameter = null
+    )
+    {
         var attributes = testMethod.Attributes.AsEnumerable();
 
-        if (parameter != null) {
+        if (parameter != null)
+        {
             attributes = attributes.Concat(parameter.GetCustomAttributes());
         }
 
@@ -115,11 +145,14 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
     }
 
     /// <summary>Applies every credential attribute in <paramref name="widestFirst"/>, in order.</summary>
-    public static TestCredential Resolve(IEnumerable<Attribute> widestFirst) {
+    public static TestCredential Resolve(IEnumerable<Attribute> widestFirst)
+    {
         var credential = Anonymous;
 
-        foreach (var attribute in widestFirst) {
-            if (attribute is TestCredentialAttribute credentialAttribute) {
+        foreach (var attribute in widestFirst)
+        {
+            if (attribute is TestCredentialAttribute credentialAttribute)
+            {
                 credential = credentialAttribute.Apply(credential);
             }
         }
@@ -139,17 +172,21 @@ public sealed record TestCredential(IReadOnlyList<string>? Grants, string? Subje
 /// <see cref="WebTestingAttribute"/> registered with the method's. On a method, a class or the
 /// assembly the runner never calls the hook; only the <see cref="Apply"/> step is read.
 /// </remarks>
-public abstract class TestCredentialAttribute : Attribute, ITestParameterValueProvider {
-
+public abstract class TestCredentialAttribute : Attribute, ITestParameterValueProvider
+{
     internal abstract TestCredential Apply(TestCredential current);
 
     void ITestParameterValueProvider.SetupServiceCollection(
-        ITestMethodContext testMethod, Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection, ParameterInfo parameter) {
-    }
+        ITestMethodContext testMethod,
+        Microsoft.Extensions.DependencyInjection.IServiceCollection serviceCollection,
+        ParameterInfo parameter
+    ) { }
 
     Task<object?> ITestParameterValueProvider.GetParameterValueAsync(
-        ITestMethodContext testMethod, IServiceProvider serviceProvider, ParameterInfo parameter) =>
-        Task.FromResult(TestClientBuilder.ForParameter(testMethod, serviceProvider, parameter));
+        ITestMethodContext testMethod,
+        IServiceProvider serviceProvider,
+        ParameterInfo parameter
+    ) => Task.FromResult(TestClientBuilder.ForParameter(testMethod, serviceProvider, parameter));
 }
 
 /// <summary>
@@ -160,15 +197,26 @@ public abstract class TestCredentialAttribute : Attribute, ITestParameterValuePr
 /// another only the grants change - a <see cref="SubjectAttribute"/> on the class still names the
 /// caller a method-level <c>[Grants]</c> sends as.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly)]
-public sealed class GrantsAttribute : TestCredentialAttribute {
-    public GrantsAttribute(params string[] grants) {
+[AttributeUsage(
+    AttributeTargets.Parameter
+        | AttributeTargets.Method
+        | AttributeTargets.Class
+        | AttributeTargets.Assembly
+)]
+public sealed class GrantsAttribute : TestCredentialAttribute
+{
+    public GrantsAttribute(params string[] grants)
+    {
         Grants = grants;
     }
 
     public IReadOnlyList<string> Grants { get; }
 
-    internal override TestCredential Apply(TestCredential current) => current with { Grants = Grants };
+    internal override TestCredential Apply(TestCredential current) =>
+        current with
+        {
+            Grants = Grants,
+        };
 }
 
 /// <summary>
@@ -179,22 +227,39 @@ public sealed class GrantsAttribute : TestCredentialAttribute {
 /// A subject with no grants in scope is still sent, as a caller who is authenticated and holds
 /// nothing; the source spells that <c>-</c>.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly)]
-public sealed class SubjectAttribute : TestCredentialAttribute {
-    public SubjectAttribute(string subject) {
+[AttributeUsage(
+    AttributeTargets.Parameter
+        | AttributeTargets.Method
+        | AttributeTargets.Class
+        | AttributeTargets.Assembly
+)]
+public sealed class SubjectAttribute : TestCredentialAttribute
+{
+    public SubjectAttribute(string subject)
+    {
         Subject = subject;
     }
 
     public string Subject { get; }
 
-    internal override TestCredential Apply(TestCredential current) => current with { Subject = Subject };
+    internal override TestCredential Apply(TestCredential current) =>
+        current with
+        {
+            Subject = Subject,
+        };
 }
 
 /// <summary>
 /// No credential, cancelling whatever a wider level declared: a class of tests that all hold a
 /// grant, and the one that asserts the refusal.
 /// </summary>
-[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly)]
-public sealed class AnonymousAttribute : TestCredentialAttribute {
+[AttributeUsage(
+    AttributeTargets.Parameter
+        | AttributeTargets.Method
+        | AttributeTargets.Class
+        | AttributeTargets.Assembly
+)]
+public sealed class AnonymousAttribute : TestCredentialAttribute
+{
     internal override TestCredential Apply(TestCredential current) => TestCredential.Anonymous;
 }

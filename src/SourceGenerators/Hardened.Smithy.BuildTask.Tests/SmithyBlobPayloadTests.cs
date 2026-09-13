@@ -17,47 +17,50 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// The framework's own Smithy subject binds <c>@httpPayload</c> on outputs only, which is how a
 /// whole direction of this stayed unexercised.
 /// </remarks>
-public class SmithyBlobPayloadTests {
-
+public class SmithyBlobPayloadTests
+{
     private static string Model(string payloadTarget, string extraShapes = "") =>
         $$"""
-          { "smithy": "2.0", "shapes": {
-              "com.example#Svc": {
-                "type": "service", "version": "1",
-                "operations": [
-                  { "target": "com.example#Put" },
-                  { "target": "com.example#Get" } ] },
-              "com.example#Put": {
-                "type": "operation",
-                "traits": { "smithy.api#http": { "method": "PUT", "uri": "/blobs/{id}", "code": 200 } },
-                "input": { "target": "com.example#PutInput" } },
-              "com.example#PutInput": {
-                "type": "structure",
-                "members": {
-                  "id": { "target": "smithy.api#String",
-                          "traits": { "smithy.api#httpLabel": {}, "smithy.api#required": {} } },
-                  "content": { "target": "{{payloadTarget}}",
-                               "traits": { "smithy.api#httpPayload": {} } } } },
-              "com.example#Get": {
-                "type": "operation",
-                "traits": { "smithy.api#http": { "method": "GET", "uri": "/blobs/{id}", "code": 200 } },
-                "input": { "target": "com.example#GetInput" },
-                "output": { "target": "com.example#GetOutput" } },
-              "com.example#GetInput": {
-                "type": "structure",
-                "members": {
-                  "id": { "target": "smithy.api#String",
-                          "traits": { "smithy.api#httpLabel": {}, "smithy.api#required": {} } } } },
-              "com.example#GetOutput": {
-                "type": "structure",
-                "members": {
-                  "content": { "target": "{{payloadTarget}}",
-                               "traits": { "smithy.api#httpPayload": {} } } } }
-              {{extraShapes}} } }
-          """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [
+                    { "target": "com.example#Put" },
+                    { "target": "com.example#Get" } ] },
+                "com.example#Put": {
+                  "type": "operation",
+                  "traits": { "smithy.api#http": { "method": "PUT", "uri": "/blobs/{id}", "code": 200 } },
+                  "input": { "target": "com.example#PutInput" } },
+                "com.example#PutInput": {
+                  "type": "structure",
+                  "members": {
+                    "id": { "target": "smithy.api#String",
+                            "traits": { "smithy.api#httpLabel": {}, "smithy.api#required": {} } },
+                    "content": { "target": "{{payloadTarget}}",
+                                 "traits": { "smithy.api#httpPayload": {} } } } },
+                "com.example#Get": {
+                  "type": "operation",
+                  "traits": { "smithy.api#http": { "method": "GET", "uri": "/blobs/{id}", "code": 200 } },
+                  "input": { "target": "com.example#GetInput" },
+                  "output": { "target": "com.example#GetOutput" } },
+                "com.example#GetInput": {
+                  "type": "structure",
+                  "members": {
+                    "id": { "target": "smithy.api#String",
+                            "traits": { "smithy.api#httpLabel": {}, "smithy.api#required": {} } } } },
+                "com.example#GetOutput": {
+                  "type": "structure",
+                  "members": {
+                    "content": { "target": "{{payloadTarget}}",
+                                 "traits": { "smithy.api#httpPayload": {} } } } }
+                {{extraShapes}} } }
+            """;
 
     private static (OperationModel Put, OperationModel Get) Parse(
-        string payloadTarget = "smithy.api#Blob", string extraShapes = "") {
+        string payloadTarget = "smithy.api#Blob",
+        string extraShapes = ""
+    )
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(Model(payloadTarget, extraShapes), "blob", diagnostics);
 
@@ -68,7 +71,8 @@ public class SmithyBlobPayloadTests {
 
         return (
             Assert.Single(operations, operation => operation.OperationId == "Put"),
-            Assert.Single(operations, operation => operation.OperationId == "Get"));
+            Assert.Single(operations, operation => operation.OperationId == "Get")
+        );
     }
 
     /// <summary>
@@ -80,7 +84,8 @@ public class SmithyBlobPayloadTests {
     /// <c>byte[]</c> and <c>string</c> once mapped.
     /// </remarks>
     [Fact]
-    public void ABlobPayloadCarriesItsFormatInBothDirections() {
+    public void ABlobPayloadCarriesItsFormatInBothDirections()
+    {
         var (put, get) = Parse();
 
         Assert.Equal("string", put.RequestBodyType);
@@ -98,7 +103,8 @@ public class SmithyBlobPayloadTests {
     /// negotiated as JSON and refused. The response side read <c>@mediaType</c> and nothing else.
     /// </remarks>
     [Fact]
-    public void ABlobPayloadIsOctetStreamInBothDirections() {
+    public void ABlobPayloadIsOctetStreamInBothDirections()
+    {
         var (put, get) = Parse();
 
         Assert.Equal("application/octet-stream", put.RequestBodyContentType);
@@ -107,14 +113,16 @@ public class SmithyBlobPayloadTests {
 
     /// <summary>A declared media type wins over the shape's default, as it always did on the way out.</summary>
     [Fact]
-    public void ADeclaredMediaTypeWinsOverTheDefault() {
+    public void ADeclaredMediaTypeWinsOverTheDefault()
+    {
         var (put, get) = Parse(
             "com.example#Pdf",
             """
             , "com.example#Pdf": {
                 "type": "blob",
                 "traits": { "smithy.api#mediaType": "application/pdf" } }
-            """);
+            """
+        );
 
         Assert.Equal("application/pdf", put.RequestBodyContentType);
         Assert.Equal("application/pdf", get.ResponseContentType);
@@ -129,14 +137,16 @@ public class SmithyBlobPayloadTests {
     /// octet-stream for every payload there is.
     /// </remarks>
     [Fact]
-    public void AStructurePayloadIsStillJson() {
+    public void AStructurePayloadIsStillJson()
+    {
         var (put, get) = Parse(
             "com.example#Pet",
             """
             , "com.example#Pet": {
                 "type": "structure",
                 "members": { "id": { "target": "smithy.api#String" } } }
-            """);
+            """
+        );
 
         Assert.Equal("application/json", put.RequestBodyContentType);
         Assert.Null(put.RequestBodyFormat);
@@ -147,7 +157,8 @@ public class SmithyBlobPayloadTests {
 
     /// <summary>A string payload keeps the JSON default too, unless it names a media type.</summary>
     [Fact]
-    public void AStringPayloadIsStillJson() {
+    public void AStringPayloadIsStillJson()
+    {
         var (put, _) = Parse("smithy.api#String");
 
         Assert.Equal("application/json", put.RequestBodyContentType);

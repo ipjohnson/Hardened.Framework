@@ -25,12 +25,14 @@ public record NewTodo(string Title);
 /// keyword's own coverage is the sibling Union fixture, which needs the .NET 11 SDK.
 /// </para>
 /// </remarks>
-public class TodoController {
-
+public class TodoController
+{
     /// <summary>200 or 404, both named in the signature.</summary>
     [Get("/{id}")]
-    public Response<Todo, NotFound> ById(int id) {
-        if (id == 404) {
+    public Response<Todo, NotFound> ById(int id)
+    {
+        if (id == 404)
+        {
             return new NotFound("todo", "no todo has that id");
         }
 
@@ -46,8 +48,10 @@ public class TodoController {
     /// Todo, not the wrapper that named the status.
     /// </remarks>
     [Post("/")]
-    public Response<Created<Todo>, Conflict> Create(NewTodo request) {
-        if (request.Title == "taken") {
+    public Response<Created<Todo>, Conflict> Create(NewTodo request)
+    {
+        if (request.Title == "taken")
+        {
             return new Conflict("a todo with that title exists");
         }
 
@@ -64,8 +68,10 @@ public class TodoController {
     /// from a 200 carrying the four characters "null".
     /// </remarks>
     [Delete("/{id}")]
-    public Response<NoContent, NotFound> Remove(int id) {
-        if (id == 404) {
+    public Response<NoContent, NotFound> Remove(int id)
+    {
+        if (id == 404)
+        {
             return new NotFound("todo", "no todo has that id");
         }
 
@@ -80,8 +86,10 @@ public class TodoController {
     /// written from the wrapper would describe a shape no client ever receives.
     /// </remarks>
     [Get("/typed/{id}")]
-    public Response<Todo, NotFound<ApiError>> Typed(int id) {
-        if (id == 404) {
+    public Response<Todo, NotFound<ApiError>> Typed(int id)
+    {
+        if (id == 404)
+        {
             return new NotFound<ApiError>(new ApiError("not_found", "no todo has that id"));
         }
 
@@ -130,7 +138,8 @@ public class TodoController {
     /// than asserting it.
     /// </remarks>
     [Post("/bare-overridden")]
-    public Created<Todo> CreateBareOverridden(IExecutionContext context, NewTodo request) {
+    public Created<Todo> CreateBareOverridden(IExecutionContext context, NewTodo request)
+    {
         context.Response.Status = 202;
 
         return new Created<Todo>(new Todo(7, request.Title), "/responses/7");
@@ -139,7 +148,10 @@ public class TodoController {
     /// <summary>The same contradiction inside a declared set.</summary>
     [Post("/set-overridden")]
     public Response<Created<Todo>, Conflict> CreateInSetOverridden(
-        IExecutionContext context, NewTodo request) {
+        IExecutionContext context,
+        NewTodo request
+    )
+    {
         context.Response.Status = 202;
 
         return new Created<Todo>(new Todo(7, request.Title), "/responses/7");

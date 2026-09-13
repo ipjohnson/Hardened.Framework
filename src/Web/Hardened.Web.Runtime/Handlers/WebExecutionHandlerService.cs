@@ -5,16 +5,17 @@ using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Configuration;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Handlers;
 
 public interface IWebExecutionHandlerService : IHandlerDispatch;
 
 [SingletonService(Using = RegistrationType.Try)]
-public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
+public partial class WebExecutionHandlerService : IWebExecutionHandlerService
+{
     /// <summary>
     /// The providers to ask, in the order they are asked.
     /// </summary>
@@ -43,7 +44,9 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
         IResourceNotFoundHandler resourceNotFoundHandler,
         IMethodNotAllowedHandler methodNotAllowedHandler,
         IRequestLogger requestLogger,
-        IOptions<IWebRoutingConfiguration> routing) {
+        IOptions<IWebRoutingConfiguration> routing
+    )
+    {
         _resourceNotFoundHandler = resourceNotFoundHandler;
         _methodNotAllowedHandler = methodNotAllowedHandler;
         _requestLogger = requestLogger;
@@ -52,13 +55,15 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
         // A fallback registers as both, so it would otherwise be walked twice - once in its own
         // right and once among the ordinary providers, where being asked early is the whole thing
         // this avoids.
-        _handlers = handlers.Where(handler => handler is not IFallbackRequestHandlerProvider)
+        _handlers = handlers
+            .Where(handler => handler is not IFallbackRequestHandlerProvider)
             .Reverse()
             .Concat(fallbacks.Reverse())
             .ToArray();
     }
 
-    public Task Execute(IExecutionChain chain) {
+    public Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
         // What the tables that path-matched but verb-missed said was allowed. Collected across
@@ -67,14 +72,17 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
         string? allow = null;
         RequestHandlerInfo? match;
 
-        try {
+        try
+        {
             match = Match(context, context.Request.Path, ref allow);
         }
-        catch (Exception exception) {
+        catch (Exception exception)
+        {
             return Recorded(context, exception);
         }
 
-        if (match != null) {
+        if (match != null)
+        {
             return Dispatch(context, match);
         }
 
@@ -91,7 +99,8 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
     /// the failure is recorded for <c>ResponseFinalizerFilter</c> to write, which is the answer a
     /// fault inside the chain gets, instead of unwinding to the host as a 500 with no body.
     /// </remarks>
-    private static Task Recorded(IExecutionContext context, Exception exception) {
+    private static Task Recorded(IExecutionContext context, Exception exception)
+    {
         context.Response.ExceptionValue = exception;
 
         return Task.CompletedTask;
@@ -101,19 +110,23 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
     /// The first provider with a handler for <paramref name="path"/>, recording what any that
     /// merely recognised it said was allowed.
     /// </summary>
-    private RequestHandlerInfo? Match(IExecutionContext context, string path, ref string? allow) {
+    private RequestHandlerInfo? Match(IExecutionContext context, string path, ref string? allow)
+    {
         var probe = string.Equals(path, context.Request.Path, StringComparison.Ordinal)
             ? context
             : context.Clone(request: context.Request.Clone(path: path));
 
-        foreach (var provider in _handlers) {
+        foreach (var provider in _handlers)
+        {
             var handler = provider.GetExecutionRequestHandler(probe);
 
-            if (handler == null) {
+            if (handler == null)
+            {
                 continue;
             }
 
-            if (handler.Handler == null) {
+            if (handler.Handler == null)
+            {
                 allow = Merge(allow, handler.Allow);
 
                 continue;
@@ -125,7 +138,8 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
         return null;
     }
 
-    private Task Dispatch(IExecutionContext context, RequestHandlerInfo match) {
+    private Task Dispatch(IExecutionContext context, RequestHandlerInfo match)
+    {
         context.Request.PathTokens = match.PathTokens;
         context.HandlerInfo = match.Handler!.HandlerInfo;
 
@@ -133,17 +147,20 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
 
         IExecutionChain handlerChain;
 
-        try {
+        try
+        {
             handlerChain = match.Handler.GetExecutionChain(context);
         }
-        catch (Exception exception) {
+        catch (Exception exception)
+        {
             return Recorded(context, exception);
         }
 
         // A HEAD reaches the GET handler - the routing table sends it there - and must run it in
         // full to produce the same headers, so the body is dropped on the way out rather than never
         // asked for.
-        if (HeadRequest.IsHead(context)) {
+        if (HeadRequest.IsHead(context))
+        {
             return HeadRequest.ExecuteWithoutBody(handlerChain, context);
         }
 
@@ -160,18 +177,24 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
     /// chain, so authorization applies to it.
     /// </remarks>
     private async Task ResolvedFromSecondarySources(
-        IExecutionChain chain, IExecutionContext context, string? allow) {
+        IExecutionChain chain,
+        IExecutionContext context,
+        string? allow
+    )
+    {
         // The other spelling, when the application asked for one. Tried after static content, so a
         // file that exists at the path as written still wins, and before the 405, because a route
         // reached by normalising is a route that answers this verb.
-        if (await TrailingSlash(context)) {
+        if (await TrailingSlash(context))
+        {
             return;
         }
 
         // 405 before 404, and only after static content: a path that a table recognised under
         // another verb is a resource that exists, which is the whole distinction. API Gateway and
         // CloudFront cache the two differently, and a generated client reads them differently.
-        if (allow != null) {
+        if (allow != null)
+        {
             await _methodNotAllowedHandler.Handle(context, allow);
 
             return;
@@ -190,16 +213,19 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
     /// strict is what an OpenAPI document says, and it is what every existing application already
     /// behaves as.
     /// </remarks>
-    private async Task<bool> TrailingSlash(IExecutionContext context) {
+    private async Task<bool> TrailingSlash(IExecutionContext context)
+    {
         var policy = _routing.TrailingSlash;
 
-        if (policy == Configuration.TrailingSlash.Strict) {
+        if (policy == Configuration.TrailingSlash.Strict)
+        {
             return false;
         }
 
         var alternative = Alternative(context.Request.Path);
 
-        if (alternative == null) {
+        if (alternative == null)
+        {
             return false;
         }
 
@@ -209,20 +235,24 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
         string? ignored = null;
         RequestHandlerInfo? match;
 
-        try {
+        try
+        {
             match = Match(context, alternative, ref ignored);
         }
-        catch (Exception exception) {
+        catch (Exception exception)
+        {
             await Recorded(context, exception);
 
             return true;
         }
 
-        if (match == null) {
+        if (match == null)
+        {
             return false;
         }
 
-        if (policy == Configuration.TrailingSlash.Redirect) {
+        if (policy == Configuration.TrailingSlash.Redirect)
+        {
             context.Response.Status = 308;
             context.Response.Headers[KnownHeaders.Location] = new StringValues(alternative);
             context.Response.ShouldSerialize = false;
@@ -239,14 +269,14 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
     /// The same path with its trailing slash added or removed, or null when there is no other
     /// spelling - the root is <c>/</c> either way.
     /// </summary>
-    private static string? Alternative(string path) {
-        if (path.Length <= 1) {
+    private static string? Alternative(string path)
+    {
+        if (path.Length <= 1)
+        {
             return null;
         }
 
-        return path[path.Length - 1] == '/'
-            ? path.Substring(0, path.Length - 1)
-            : path + "/";
+        return path[path.Length - 1] == '/' ? path.Substring(0, path.Length - 1) : path + "/";
     }
 
     /// <summary>
@@ -257,12 +287,15 @@ public partial class WebExecutionHandlerService : IWebExecutionHandlerService {
     /// alternative is reporting one of them and leaving a client to conclude the other verb is
     /// unavailable when it is not.
     /// </remarks>
-    private static string? Merge(string? existing, string? addition) {
-        if (string.IsNullOrEmpty(addition)) {
+    private static string? Merge(string? existing, string? addition)
+    {
+        if (string.IsNullOrEmpty(addition))
+        {
             return existing;
         }
 
-        if (string.IsNullOrEmpty(existing)) {
+        if (string.IsNullOrEmpty(existing))
+        {
             return addition;
         }
 

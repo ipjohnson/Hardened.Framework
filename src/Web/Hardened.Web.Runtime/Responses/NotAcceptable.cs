@@ -20,8 +20,8 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(406)]
-public sealed record NotAcceptable : IHttpStatusResponse, IResponseExpectation<NotAcceptable> {
-
+public sealed record NotAcceptable : IHttpStatusResponse, IResponseExpectation<NotAcceptable>
+{
     public static int StatusCode => 406;
 
     public int Status => StatusCode;
@@ -29,5 +29,7 @@ public sealed record NotAcceptable : IHttpStatusResponse, IResponseExpectation<N
     public bool HasBody => false;
 
     public static NotAcceptable FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) => new();
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new();
 }

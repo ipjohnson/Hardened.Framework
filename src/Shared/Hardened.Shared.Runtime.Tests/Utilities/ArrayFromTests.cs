@@ -12,29 +12,33 @@ namespace Hardened.Shared.Runtime.Tests.Utilities;
 /// generated call site is <c>ArrayFrom.ObjectValues(a, b, c)</c> and an extra copy per handler
 /// construction is exactly the allocation the helper exists to avoid.
 /// </remarks>
-public class ArrayFromTests {
-
+public class ArrayFromTests
+{
     [Fact]
-    public void ObjectValuesReturnsTheValuesInOrder() {
+    public void ObjectValuesReturnsTheValuesInOrder()
+    {
         var values = ArrayFrom.ObjectValues("first", 2, true);
 
         Assert.Equal(["first", 2, true], values);
     }
 
     [Fact]
-    public void ObjectValuesOfNothingIsEmptyRatherThanNull() {
+    public void ObjectValuesOfNothingIsEmptyRatherThanNull()
+    {
         Assert.Empty(ArrayFrom.ObjectValues());
     }
 
     [Fact]
-    public void ObjectValuesHandsBackTheParamsArrayItself() {
+    public void ObjectValuesHandsBackTheParamsArrayItself()
+    {
         var source = new object[] { "first", 2 };
 
         Assert.Same(source, ArrayFrom.ObjectValues(source));
     }
 
     [Fact]
-    public void ValuesKeepsTheElementType() {
+    public void ValuesKeepsTheElementType()
+    {
         var values = ArrayFrom.Values("first", "second");
 
         Assert.IsType<string[]>(values);
@@ -42,7 +46,8 @@ public class ArrayFromTests {
     }
 
     [Fact]
-    public void ValuesOfNothingIsEmptyRatherThanNull() {
+    public void ValuesOfNothingIsEmptyRatherThanNull()
+    {
         Assert.Empty(ArrayFrom.Values<string>());
     }
 }

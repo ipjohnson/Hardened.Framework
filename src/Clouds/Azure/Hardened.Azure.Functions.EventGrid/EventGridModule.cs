@@ -18,8 +18,10 @@ namespace Hardened.Azure.Functions.EventGrid;
 /// </remarks>
 [DependencyModule]
 [FunctionsRuntimeModule]
-public partial class EventGridModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class EventGridModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerAdapter>(new EventGridAdapter());
 
         // One event per invocation is never a batch, but the neutral test delivery always is, and

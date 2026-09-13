@@ -17,7 +17,8 @@ namespace Hardened.Requests.Abstract.Execution;
 /// fork and what a failure means.
 /// </para>
 /// </remarks>
-public interface IBatchRequest {
+public interface IBatchRequest
+{
     /// <summary>How many items the delivery carried.</summary>
     int Count { get; }
 

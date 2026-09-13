@@ -17,17 +17,25 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// that guards a handler arriving from a referenced assembly nothing analysed, so it is the one that
 /// has to be right.
 /// </remarks>
-public class RequireAuthorizationTests {
-
-    private static readonly IHardenedEnvironment Environment = Substitute.For<IHardenedEnvironment>();
+public class RequireAuthorizationTests
+{
+    private static readonly IHardenedEnvironment Environment =
+        Substitute.For<IHardenedEnvironment>();
 
     /// <summary>The provider the framework registers by default, with the posture off.</summary>
     private static IConfigurationPackage Defaults() =>
-        new SimpleConfigurationPackage(new IConfigurationValueProvider[] {
-            new NewConfigurationValueProvider<IAuthorizationConfiguration, AuthorizationConfiguration>(null)
-        });
+        new SimpleConfigurationPackage(
+            new IConfigurationValueProvider[]
+            {
+                new NewConfigurationValueProvider<
+                    IAuthorizationConfiguration,
+                    AuthorizationConfiguration
+                >(null),
+            }
+        );
 
-    private static IConfigurationPackage Amendment() {
+    private static IConfigurationPackage Amendment()
+    {
         var services = new ServiceCollection();
 
         services.RequireAuthorization();
@@ -42,14 +50,16 @@ public class RequireAuthorizationTests {
     /// of the ladder.
     /// </summary>
     [Fact]
-    public void TheDefaultIsThatNothingIsRequired() {
+    public void TheDefaultIsThatNothingIsRequired()
+    {
         var manager = new ConfigurationManager(Environment, new[] { Defaults() });
 
         Assert.False(manager.GetConfiguration<IAuthorizationConfiguration>().RequireAuthorization);
     }
 
     [Fact]
-    public void RequireAuthorizationTurnsThePostureOn() {
+    public void RequireAuthorizationTurnsThePostureOn()
+    {
         var manager = new ConfigurationManager(Environment, new[] { Defaults(), Amendment() });
 
         Assert.True(manager.GetConfiguration<IAuthorizationConfiguration>().RequireAuthorization);
@@ -62,12 +72,17 @@ public class RequireAuthorizationTests {
     /// registration happened to be enumerated first.
     /// </summary>
     [Fact]
-    public void ItHoldsWhicheverOrderTheRegistrationsHappenIn() {
+    public void ItHoldsWhicheverOrderTheRegistrationsHappenIn()
+    {
         var afterwards = new ConfigurationManager(Environment, new[] { Defaults(), Amendment() });
         var beforehand = new ConfigurationManager(Environment, new[] { Amendment(), Defaults() });
 
-        Assert.True(afterwards.GetConfiguration<IAuthorizationConfiguration>().RequireAuthorization);
-        Assert.True(beforehand.GetConfiguration<IAuthorizationConfiguration>().RequireAuthorization);
+        Assert.True(
+            afterwards.GetConfiguration<IAuthorizationConfiguration>().RequireAuthorization
+        );
+        Assert.True(
+            beforehand.GetConfiguration<IAuthorizationConfiguration>().RequireAuthorization
+        );
     }
 
     #endregion
@@ -79,7 +94,8 @@ public class RequireAuthorizationTests {
     /// cares about, so it has to leave the rest alone.
     /// </summary>
     [Fact]
-    public void TheAmenderLeavesOtherConfigurationUntouched() {
+    public void TheAmenderLeavesOtherConfigurationUntouched()
+    {
         var amender = Assert.Single(Amendment().ConfigurationValueAmenders(Environment));
         var unrelated = new UnrelatedConfiguration { Value = "original" };
 
@@ -90,7 +106,8 @@ public class RequireAuthorizationTests {
     }
 
     [Fact]
-    public void TheAmenderReturnsTheValueItWasGiven() {
+    public void TheAmenderReturnsTheValueItWasGiven()
+    {
         var amender = Assert.Single(Amendment().ConfigurationValueAmenders(Environment));
         var configuration = new AuthorizationConfiguration();
 
@@ -102,11 +119,13 @@ public class RequireAuthorizationTests {
     /// other amendment applied to the same configuration.
     /// </summary>
     [Fact]
-    public void TheRegistrationAddsNoValueProvider() {
+    public void TheRegistrationAddsNoValueProvider()
+    {
         Assert.Empty(Amendment().ConfigurationValueProviders(Environment));
     }
 
-    private class UnrelatedConfiguration {
+    private class UnrelatedConfiguration
+    {
         public string Value { get; set; } = "";
     }
 
@@ -119,8 +138,10 @@ public class RequireAuthorizationTests {
     /// <c>[BasePath]</c> already supports both for the same reason.
     /// </summary>
     [Fact]
-    public void TheAttributeAppliesToAClassOrAnAssembly() {
-        var usage = typeof(RequireAuthorizationAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
+    public void TheAttributeAppliesToAClassOrAnAssembly()
+    {
+        var usage =
+            typeof(RequireAuthorizationAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
 
         Assert.Equal(AttributeTargets.Class | AttributeTargets.Assembly, usage.ValidOn);
         Assert.False(usage.AllowMultiple);

@@ -30,13 +30,18 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// construction, which is the contract they are written against.
 /// </para>
 /// </remarks>
-public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider {
+public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider
+{
     private readonly IOpenApiUiConfiguration _configuration;
     private readonly IServiceProvider _serviceProvider;
 
     private IExecutionRequestHandler? _handler;
 
-    public OpenApiUiProvider(IOpenApiUiConfiguration configuration, IServiceProvider serviceProvider) {
+    public OpenApiUiProvider(
+        IOpenApiUiConfiguration configuration,
+        IServiceProvider serviceProvider
+    )
+    {
         _configuration = configuration;
         _serviceProvider = serviceProvider;
     }
@@ -51,8 +56,10 @@ public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider {
     /// <summary>What a request to this path may do, when it did something else.</summary>
     private const string Allow = "GET, HEAD";
 
-    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context) {
-        if (!string.Equals(context.Request.Path, _configuration.Path, StringComparison.Ordinal)) {
+    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+    {
+        if (!string.Equals(context.Request.Path, _configuration.Path, StringComparison.Ordinal))
+        {
             return null;
         }
 
@@ -60,8 +67,11 @@ public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider {
         // length for one, so accepting it here is all that is needed.
         var method = context.Request.Method;
 
-        if (!string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase)) {
+        if (
+            !string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase)
+        )
+        {
             // The path is checked first so a write to it answers 405 rather than 404. The resource
             // exists; the verb is the problem, and API Gateway and CloudFront cache the two
             // differently.
@@ -69,11 +79,13 @@ public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider {
         }
 
         return new RequestHandlerInfo(
-            _handler ??= new Handler(_configuration, _serviceProvider), PathTokenCollection.Empty);
+            _handler ??= new Handler(_configuration, _serviceProvider),
+            PathTokenCollection.Empty
+        );
     }
 
-    private sealed class Handler : BaseExecutionHandler<OpenApiUiController> {
-
+    private sealed class Handler : BaseExecutionHandler<OpenApiUiController>
+    {
         /// <remarks>
         /// The same assignment the generator emits beside every handler declaring an
         /// <c>[Output&lt;T&gt;]</c>. It is what makes "this output's model matches what the handler
@@ -89,18 +101,28 @@ public class OpenApiUiProvider : IWebExecutionRequestHandlerProvider {
         private static readonly object[] Metadata = [new OutputAttribute<OpenApiUiPage>()];
 
         public Handler(IOpenApiUiConfiguration configuration, IServiceProvider serviceProvider)
-            : base(ExecutionHelper.StandardFilterEmptyParameters<OpenApiUiController>(
-                serviceProvider,
-                new ExecutionRequestHandlerInfo(
-                    configuration.Path, "GET", typeof(OpenApiUiController),
-                    nameof(OpenApiUiController.Index), [], Metadata),
-                // A lambda rather than a static method, because what varies between two installed
-                // pages is exactly what it closes over.
-                (context, controller) => {
-                    context.Response.OutputFactory = OutputFactory;
-                    context.Response.ResponseValue = controller.Index(configuration);
-                },
-                ExecutionHelper.GetFilterInfo(Metadata))) {
+            : base(
+                ExecutionHelper.StandardFilterEmptyParameters<OpenApiUiController>(
+                    serviceProvider,
+                    new ExecutionRequestHandlerInfo(
+                        configuration.Path,
+                        "GET",
+                        typeof(OpenApiUiController),
+                        nameof(OpenApiUiController.Index),
+                        [],
+                        Metadata
+                    ),
+                    // A lambda rather than a static method, because what varies between two installed
+                    // pages is exactly what it closes over.
+                    (context, controller) =>
+                    {
+                        context.Response.OutputFactory = OutputFactory;
+                        context.Response.ResponseValue = controller.Index(configuration);
+                    },
+                    ExecutionHelper.GetFilterInfo(Metadata)
+                )
+            )
+        {
             _ = OutputCheck;
         }
     }

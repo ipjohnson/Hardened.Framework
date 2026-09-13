@@ -2,17 +2,17 @@ using System.Security.Cryptography;
 using System.Text;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Web.Runtime.CacheControl;
 using Hardened.Requests.Abstract.RequestFilter;
-using Hardened.Requests.Runtime.Authorization;
-using Hardened.Requests.Runtime.DependencyInjection;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Authorization;
 using Hardened.Requests.Runtime.Configuration;
+using Hardened.Requests.Runtime.DependencyInjection;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.Streaming;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
+using Hardened.Web.Runtime.CacheControl;
 using Hardened.Web.Runtime.DependencyInjection;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,13 +35,17 @@ namespace Hardened.Web.StaticContent.Tests;
 /// that the mock was called.
 /// </para>
 /// </summary>
-public class StaticContentMountProviderTests : IDisposable {
-
+public class StaticContentMountProviderTests : IDisposable
+{
     private readonly string _tempRoot;
     private readonly string _staticRoot;
 
-    public StaticContentMountProviderTests() {
-        _tempRoot = Path.Combine(Path.GetTempPath(), "hardened-mount-" + Guid.NewGuid().ToString("N"));
+    public StaticContentMountProviderTests()
+    {
+        _tempRoot = Path.Combine(
+            Path.GetTempPath(),
+            "hardened-mount-" + Guid.NewGuid().ToString("N")
+        );
         _staticRoot = Path.Combine(_tempRoot, "wwwroot");
 
         Directory.CreateDirectory(_staticRoot);
@@ -49,8 +53,15 @@ public class StaticContentMountProviderTests : IDisposable {
         File.WriteAllText(Path.Combine(_staticRoot, "app.js"), "console.log('hi');");
     }
 
-    public void Dispose() {
-        try { Directory.Delete(_tempRoot, true); } catch { /* best effort */ }
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_tempRoot, true);
+        }
+        catch
+        { /* best effort */
+        }
 
         GC.SuppressFinalize(this);
     }
@@ -66,12 +77,19 @@ public class StaticContentMountProviderTests : IDisposable {
     /// here directly, which is exactly what <c>AuthorizationStartupService</c> does from it.
     /// </param>
     private ServiceProvider Application(
-        bool requireAuthorization = false, Requirement? mountRequirement = null) =>
-        Application(configuration => configuration.Requirement.Returns(mountRequirement),
-            requireAuthorization);
+        bool requireAuthorization = false,
+        Requirement? mountRequirement = null
+    ) =>
+        Application(
+            configuration => configuration.Requirement.Returns(mountRequirement),
+            requireAuthorization
+        );
 
     private ServiceProvider Application(
-        Action<IStaticContentConfiguration> configure, bool requireAuthorization = false) {
+        Action<IStaticContentConfiguration> configure,
+        bool requireAuthorization = false
+    )
+    {
         var services = new ServiceCollection();
 
         new HardenedWebModule().ConfigureServices(services);
@@ -89,23 +107,27 @@ public class StaticContentMountProviderTests : IDisposable {
         services.TryAddSingleton<IGZipStaticContentCompressor, GZipStaticContentCompressor>();
         services.TryAddSingleton<IETagProvider, ETagProvider>();
         services.TryAddSingleton<IMemoryStreamPool, MemoryStreamPool>();
-        services.TryAddSingleton<IItemPool<SHA256>>(
-            _ => new ItemPool<SHA256>(SHA256.Create, _ => { }, hash => hash.Dispose()));
+        services.TryAddSingleton<IItemPool<SHA256>>(_ => new ItemPool<SHA256>(
+            SHA256.Create,
+            _ => { },
+            hash => hash.Dispose()
+        ));
 
         // Never reached - every response here sets ShouldSerialize false - but IOFilterProvider
         // takes them to construct.
         services.TryAddSingleton(Substitute.For<IContextSerializationService>());
         services.TryAddSingleton(
-            Options.Create<IResponseHeaderConfiguration>(new ResponseHeaderConfiguration()));
+            Options.Create<IResponseHeaderConfiguration>(new ResponseHeaderConfiguration())
+        );
         services.TryAddSingleton(
-            Options.Create<IStreamingConfiguration>(new StreamingConfiguration()));
+            Options.Create<IStreamingConfiguration>(new StreamingConfiguration())
+        );
 
         var configuration = Substitute.For<IStaticContentConfiguration>();
 
         configuration.Path.Returns(_staticRoot);
         configuration.CacheContent.Returns(true);
-        configuration.CacheControlType.Returns(
-            CacheControlEnum.MaxAge | CacheControlEnum.Public);
+        configuration.CacheControlType.Returns(CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(true);
         configuration.CompressTextContent.Returns(false);
@@ -122,20 +144,26 @@ public class StaticContentMountProviderTests : IDisposable {
         // The attribute is compile-time, so what [RequireAuthorization] turns on at run time - the
         // filter provider with its backstop enabled - is installed directly, which is exactly what
         // AuthorizationStartupService does from it.
-        provider.GetRequiredService<IGlobalFilterRegistry>()
+        provider
+            .GetRequiredService<IGlobalFilterRegistry>()
             .RegisterFilter(new AuthorizationFilterProvider(requireAuthorization).GetFilter);
 
         return provider;
     }
 
     private static StaticContentMountProvider Mount(IServiceProvider provider) =>
-        provider.GetServices<IFallbackRequestHandlerProvider>()
+        provider
+            .GetServices<IFallbackRequestHandlerProvider>()
             .OfType<StaticContentMountProvider>()
             .Single();
 
-    private static (IExecutionContext context, MemoryStream body, IExecutionResponse response,
-        IDictionary<string, StringValues> headers)
-        Context(IServiceProvider services, string path, string method = "GET") {
+    private static (
+        IExecutionContext context,
+        MemoryStream body,
+        IExecutionResponse response,
+        IDictionary<string, StringValues> headers
+    ) Context(IServiceProvider services, string path, string method = "GET")
+    {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
         var response = Substitute.For<IExecutionResponse>();
@@ -143,10 +171,14 @@ public class StaticContentMountProviderTests : IDisposable {
 
         request.Path.Returns(path);
         request.Method.Returns(method);
-        request.Headers.Returns(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase));
+        request.Headers.Returns(
+            new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        );
 
         response.Body.Returns(body);
-        response.Headers.Returns(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase));
+        response.Headers.Returns(
+            new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        );
         response.ShouldSerialize.Returns(true);
 
         context.Request.Returns(request);
@@ -159,7 +191,8 @@ public class StaticContentMountProviderTests : IDisposable {
     }
 
     /// <summary>Runs the mount's chain for a request, the way <c>Dispatch</c> would.</summary>
-    private static async Task Serve(IServiceProvider services, IExecutionContext context) {
+    private static async Task Serve(IServiceProvider services, IExecutionContext context)
+    {
         var match = Mount(services).GetExecutionRequestHandler(context);
 
         Assert.NotNull(match);
@@ -181,7 +214,8 @@ public class StaticContentMountProviderTests : IDisposable {
     /// static content today expects and must keep getting.
     /// </summary>
     [Fact]
-    public async Task AFileIsPublicWhenNoAuthorizationIsConfigured() {
+    public async Task AFileIsPublicWhenNoAuthorizationIsConfigured()
+    {
         using var application = Application();
 
         var (context, body, _, _) = Context(application, "/app.js");
@@ -198,7 +232,8 @@ public class StaticContentMountProviderTests : IDisposable {
     /// handler directly and no filter chain, authorization included, ever ran.
     /// </summary>
     [Fact]
-    public async Task DefaultDenyRefusesAnAnonymousRequestForAFile() {
+    public async Task DefaultDenyRefusesAnAnonymousRequestForAFile()
+    {
         using var application = Application(requireAuthorization: true);
 
         var (context, body, response, _) = Context(application, "/app.js");
@@ -211,7 +246,9 @@ public class StaticContentMountProviderTests : IDisposable {
         var refusal = Assert.IsType<AuthorizationException>(response.ExceptionValue);
 
         Assert.Equal(
-            AuthorizationChallenge.AuthenticationRequired().Scheme, refusal.Challenge.Scheme);
+            AuthorizationChallenge.AuthenticationRequired().Scheme,
+            refusal.Challenge.Scheme
+        );
 
         Assert.Empty(body.ToArray());
     }
@@ -221,7 +258,8 @@ public class StaticContentMountProviderTests : IDisposable {
     /// default-deny, which is what makes a directory a place to put authorization.
     /// </summary>
     [Fact]
-    public async Task AMountRequirementRefusesACallerWithoutIt() {
+    public async Task AMountRequirementRefusesACallerWithoutIt()
+    {
         using var application = Application(mountRequirement: Requirement.Grant("files:read"));
 
         var (context, body, response, _) = Context(application, "/app.js");
@@ -237,7 +275,8 @@ public class StaticContentMountProviderTests : IDisposable {
     /// it an empty body proves only that something went wrong somewhere.
     /// </summary>
     [Fact]
-    public async Task AFileIsServedWithNoRefusalRecordedWhenNothingGuardsIt() {
+    public async Task AFileIsServedWithNoRefusalRecordedWhenNothingGuardsIt()
+    {
         using var application = Application();
 
         var (context, body, response, _) = Context(application, "/app.js");
@@ -253,7 +292,8 @@ public class StaticContentMountProviderTests : IDisposable {
     /// which is what <c>IExecutionRequestHandlerInfo</c> documents for a handler registered by hand.
     /// </summary>
     [Fact]
-    public void AMountRequirementReachesTheHandlerInfo() {
+    public void AMountRequirementReachesTheHandlerInfo()
+    {
         var requirement = Requirement.Grant("files:read");
 
         using var application = Application(mountRequirement: requirement);
@@ -270,7 +310,8 @@ public class StaticContentMountProviderTests : IDisposable {
     /// application's posture is rather than asserting one of its own.
     /// </summary>
     [Fact]
-    public void AMountWithNothingDeclaredCarriesNoRequirement() {
+    public void AMountWithNothingDeclaredCarriesNoRequirement()
+    {
         using var application = Application();
 
         var (context, _, _, _) = Context(application, "/app.js");
@@ -289,7 +330,8 @@ public class StaticContentMountProviderTests : IDisposable {
     /// handler is what makes <c>Dispatch</c> run at all - static content never got there before.
     /// </summary>
     [Fact]
-    public void AHeadRequestIsMatchedToTheSameHandler() {
+    public void AHeadRequestIsMatchedToTheSameHandler()
+    {
         using var application = Application();
 
         var (get, _, _, _) = Context(application, "/app.js");
@@ -299,7 +341,8 @@ public class StaticContentMountProviderTests : IDisposable {
 
         Assert.Same(
             mount.GetExecutionRequestHandler(get)!.Handler,
-            mount.GetExecutionRequestHandler(head)!.Handler);
+            mount.GetExecutionRequestHandler(head)!.Handler
+        );
     }
 
     /// <summary>
@@ -311,7 +354,8 @@ public class StaticContentMountProviderTests : IDisposable {
     [InlineData("PUT")]
     [InlineData("DELETE")]
     [InlineData("PATCH")]
-    public void AWriteToAFileIsMethodNotAllowed(string method) {
+    public void AWriteToAFileIsMethodNotAllowed(string method)
+    {
         using var application = Application();
 
         var (context, _, _, _) = Context(application, "/app.js", method);
@@ -329,11 +373,13 @@ public class StaticContentMountProviderTests : IDisposable {
     /// that <c>POST /api/typo</c> reached something.
     /// </summary>
     [Fact]
-    public void AWriteToAPathThatOnlyTheFallbackAnswersDeclines() {
+    public void AWriteToAPathThatOnlyTheFallbackAnswersDeclines()
+    {
         File.WriteAllText(Path.Combine(_staticRoot, "index.html"), "<html>shell</html>");
 
-        using var application = Application(
-            configuration => configuration.FallBackFile.Returns("/index.html"));
+        using var application = Application(configuration =>
+            configuration.FallBackFile.Returns("/index.html")
+        );
 
         var (write, _, _, _) = Context(application, "/api/typo", "POST");
 
@@ -351,7 +397,8 @@ public class StaticContentMountProviderTests : IDisposable {
 
     /// <summary>A path with no file behind it declines, so something else answers.</summary>
     [Fact]
-    public void APathWithNoFileDeclines() {
+    public void APathWithNoFileDeclines()
+    {
         using var application = Application();
 
         var (context, _, _, _) = Context(application, "/does-not-exist.js");
@@ -365,7 +412,8 @@ public class StaticContentMountProviderTests : IDisposable {
     /// is meant to be settled at startup a per-request cost.
     /// </summary>
     [Fact]
-    public void TheHandlerIsBuiltOnce() {
+    public void TheHandlerIsBuiltOnce()
+    {
         using var application = Application();
 
         var mount = Mount(application);
@@ -375,7 +423,8 @@ public class StaticContentMountProviderTests : IDisposable {
 
         Assert.Same(
             mount.GetExecutionRequestHandler(first)!.Handler,
-            mount.GetExecutionRequestHandler(second)!.Handler);
+            mount.GetExecutionRequestHandler(second)!.Handler
+        );
     }
 
     /// <summary>
@@ -385,14 +434,21 @@ public class StaticContentMountProviderTests : IDisposable {
     /// this shipped as its own package.
     /// </summary>
     [Fact]
-    public void TheMountRegistersAsAFallbackRatherThanAnOrdinaryProvider() {
+    public void TheMountRegistersAsAFallbackRatherThanAnOrdinaryProvider()
+    {
         using var application = Application();
 
-        Assert.Single(application.GetServices<IFallbackRequestHandlerProvider>()
-            .OfType<StaticContentMountProvider>());
+        Assert.Single(
+            application
+                .GetServices<IFallbackRequestHandlerProvider>()
+                .OfType<StaticContentMountProvider>()
+        );
 
-        Assert.Empty(application.GetServices<IWebExecutionRequestHandlerProvider>()
-            .OfType<StaticContentMountProvider>());
+        Assert.Empty(
+            application
+                .GetServices<IWebExecutionRequestHandlerProvider>()
+                .OfType<StaticContentMountProvider>()
+        );
     }
 
     /// <summary>
@@ -401,7 +457,8 @@ public class StaticContentMountProviderTests : IDisposable {
     /// between a service that cannot serve a file and one that serves whatever is in wwwroot.
     /// </summary>
     [Fact]
-    public void TheWebModuleAloneRegistersNoMount() {
+    public void TheWebModuleAloneRegistersNoMount()
+    {
         var services = new ServiceCollection();
 
         new HardenedWebModule().ConfigureServices(services);

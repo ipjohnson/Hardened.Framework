@@ -1,8 +1,8 @@
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Testing.Tests;
 
@@ -11,8 +11,10 @@ namespace Hardened.Web.Testing.Tests;
 /// <see cref="TestWebResponse"/> and <see cref="WebAssertThat"/> directly, without
 /// standing up a web application.
 /// </summary>
-internal class FakeExecutionResponse : IExecutionResponse {
-    public FakeExecutionResponse(int? status = null, Stream? body = null) {
+internal class FakeExecutionResponse : IExecutionResponse
+{
+    public FakeExecutionResponse(int? status = null, Stream? body = null)
+    {
         Status = status;
         Body = body ?? new MemoryStream();
     }
@@ -21,7 +23,8 @@ internal class FakeExecutionResponse : IExecutionResponse {
 
     public Stream Body { get; set; }
 
-    public IDictionary<string, StringValues> Headers { get; } = new Dictionary<string, StringValues>();
+    public IDictionary<string, StringValues> Headers { get; } =
+        new Dictionary<string, StringValues>();
 
     public string? ContentType { get; set; }
 

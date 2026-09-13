@@ -11,6 +11,7 @@ namespace Hardened.Requests.Abstract.Execution;
 /// plainly at <c>RetryFilter = -5000</c> against <c>FilterOrder.Retry</c> behind serialization.
 /// Nothing shipped ever named a member of it.
 /// </remarks>
-public interface IExecutionFilter {
+public interface IExecutionFilter
+{
     Task Execute(IExecutionChain chain);
 }

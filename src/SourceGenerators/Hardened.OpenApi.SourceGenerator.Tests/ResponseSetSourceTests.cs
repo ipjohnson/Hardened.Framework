@@ -2,8 +2,8 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -24,23 +24,26 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// this is the copy it ships.
 /// </para>
 /// </remarks>
-public class ResponseSetSourceTests {
-
+public class ResponseSetSourceTests
+{
     #region the encoded case list
 
     [Fact]
-    public void RoundTripKeepsEveryFieldOfEveryCase() {
-        var cases = new[] {
+    public void RoundTripKeepsEveryFieldOfEveryCase()
+    {
+        var cases = new[]
+        {
             new UnionCaseModel("global::App.Todo", 200, appliesHeaders: false, hasBody: true),
             new UnionCaseModel("global::App.RateLimited", 429, appliesHeaders: true, hasBody: true),
-            new UnionCaseModel("global::App.NoContent", 204, appliesHeaders: false, hasBody: false)
+            new UnionCaseModel("global::App.NoContent", 204, appliesHeaders: false, hasBody: false),
         };
 
         var decoded = UnionResponseSelector.Decode(UnionResponseSelector.Encode(cases));
 
         Assert.Equal(cases.Length, decoded.Count);
 
-        for (var i = 0; i < cases.Length; i++) {
+        for (var i = 0; i < cases.Length; i++)
+        {
             Assert.Equal(cases[i].TypeName, decoded[i].TypeName);
             Assert.Equal(cases[i].Status, decoded[i].Status);
             Assert.Equal(cases[i].AppliesHeaders, decoded[i].AppliesHeaders);
@@ -51,7 +54,8 @@ public class ResponseSetSourceTests {
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    public void NothingDecodesToNoCases(string? encoded) {
+    public void NothingDecodesToNoCases(string? encoded)
+    {
         Assert.Empty(UnionResponseSelector.Decode(encoded));
     }
 
@@ -68,14 +72,17 @@ public class ResponseSetSourceTests {
     [InlineData("global::App.Todo")]
     [InlineData("global::App.Todo|notanumber|010|")]
     [InlineData("global::App.Todo|200|1|")]
-    public void AMalformedEntryIsSkipped(string encoded) {
+    public void AMalformedEntryIsSkipped(string encoded)
+    {
         Assert.Empty(UnionResponseSelector.Decode(encoded));
     }
 
     [Fact]
-    public void AMalformedEntryDoesNotDiscardTheGoodOnesBesideIt() {
+    public void AMalformedEntryDoesNotDiscardTheGoodOnesBesideIt()
+    {
         var decoded = UnionResponseSelector.Decode(
-            "global::App.Todo|200|010|;broken;global::App.Gone|410|010|");
+            "global::App.Todo|200|010|;broken;global::App.Gone|410|010|"
+        );
 
         Assert.Equal(2, decoded.Count);
         Assert.Equal("global::App.Todo", decoded[0].TypeName);
@@ -93,12 +100,14 @@ public class ResponseSetSourceTests {
     [InlineData(404, "Not Found")]
     [InlineData(409, "Conflict")]
     [InlineData(503, "Service Unavailable")]
-    public void AStatusIsDescribedByItsRegisteredName(int status, string expected) {
+    public void AStatusIsDescribedByItsRegisteredName(int status, string expected)
+    {
         Assert.Equal(expected, HttpResponseDescription.For(status));
     }
 
     [Fact]
-    public void AnUnlistedStatusNamesItself() {
+    public void AnUnlistedStatusNamesItself()
+    {
         Assert.Contains("418", HttpResponseDescription.For(418), StringComparison.Ordinal);
     }
 
@@ -107,19 +116,23 @@ public class ResponseSetSourceTests {
     #region response equality
 
     [Fact]
-    public void IdenticallyBuiltResponsesAreEqual() {
+    public void IdenticallyBuiltResponsesAreEqual()
+    {
         var schema = new HandlerSchema("{}", new[] { new SchemaComponent("Todo", "{}") });
 
         Assert.Equal(
             new ResponseSchemaModel(404, "Not Found", schema),
-            new ResponseSchemaModel(404, "Not Found", schema));
+            new ResponseSchemaModel(404, "Not Found", schema)
+        );
     }
 
     [Fact]
-    public void ResponsesDifferingInTheirStatusAreNotEqual() {
+    public void ResponsesDifferingInTheirStatusAreNotEqual()
+    {
         Assert.NotEqual(
             new ResponseSchemaModel(404, "Not Found", null),
-            new ResponseSchemaModel(410, "Not Found", null));
+            new ResponseSchemaModel(410, "Not Found", null)
+        );
     }
 
     #endregion
@@ -127,29 +140,43 @@ public class ResponseSetSourceTests {
     #region the mode selector
 
     [Fact]
-    public void AnEntryPointWithNoAttributeIsThrows() {
+    public void AnEntryPointWithNoAttributeIsThrows()
+    {
         Assert.Equal(
             ResponseModelValue.Throws,
-            ResponseModelSelector.Read(new EntryPointSelector.Model {
-                EntryPointType = CSharpAuthor.TypeDefinition.Get("MyApp", "Application"),
-                AttributeModels = System.Array.Empty<AttributeModel>()
-            }));
+            ResponseModelSelector.Read(
+                new EntryPointSelector.Model
+                {
+                    EntryPointType = CSharpAuthor.TypeDefinition.Get("MyApp", "Application"),
+                    AttributeModels = System.Array.Empty<AttributeModel>(),
+                }
+            )
+        );
     }
 
     [Theory]
-    [InlineData("Hardened.Requests.Abstract.Responses.ResponseModel.Union", ResponseModelValue.Union)]
+    [InlineData(
+        "Hardened.Requests.Abstract.Responses.ResponseModel.Union",
+        ResponseModelValue.Union
+    )]
     [InlineData("ResponseModel.Response", ResponseModelValue.Response)]
     [InlineData("Union", ResponseModelValue.Union)]
     [InlineData("ResponseModel.Throws", ResponseModelValue.Throws)]
     [InlineData("ResponseModel.Standard", ResponseModelValue.Throws)]
     [InlineData("ResponseModel.Whatever", ResponseModelValue.Throws)]
-    public void TheDeclaredModeIsRead(string arguments, ResponseModelValue expected) {
-        var model = new EntryPointSelector.Model {
+    public void TheDeclaredModeIsRead(string arguments, ResponseModelValue expected)
+    {
+        var model = new EntryPointSelector.Model
+        {
             EntryPointType = CSharpAuthor.TypeDefinition.Get("MyApp", "Application"),
-            AttributeModels = new[] {
+            AttributeModels = new[]
+            {
                 new AttributeModel(
-                    CSharpAuthor.TypeDefinition.Get("MyApp", "ResponseModelAttribute"), arguments, "")
-            }
+                    CSharpAuthor.TypeDefinition.Get("MyApp", "ResponseModelAttribute"),
+                    arguments,
+                    ""
+                ),
+            },
         };
 
         Assert.Equal(expected, ResponseModelSelector.Read(model));

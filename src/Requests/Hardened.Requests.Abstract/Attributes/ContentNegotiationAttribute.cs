@@ -22,8 +22,10 @@ namespace Hardened.Requests.Abstract.Attributes;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = false)]
-public class ContentNegotiationAttribute : Attribute {
-    public ContentNegotiationAttribute(ContentNegotiationMode mode) {
+public class ContentNegotiationAttribute : Attribute
+{
+    public ContentNegotiationAttribute(ContentNegotiationMode mode)
+    {
         Mode = mode;
     }
 

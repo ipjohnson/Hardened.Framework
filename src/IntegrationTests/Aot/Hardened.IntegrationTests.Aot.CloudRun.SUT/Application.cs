@@ -47,7 +47,8 @@ public partial class AotContext : JsonSerializerContext;
 /// binary that answers it has proved <c>Google.Protobuf</c> survives ILC, which the analyzers
 /// cannot say. The web route goes through the same socket and the same dispatch to the other path.
 /// </remarks>
-public class OrderHandlers {
+public class OrderHandlers
+{
     [Queue("orders-new")]
     public void OnOrder(Order order, IOrderSink sink) => sink.Seen(order);
 
@@ -60,7 +61,8 @@ public class OrderHandlers {
 }
 
 /// <summary>Where the handlers' results go, so the probe can read them.</summary>
-public interface IOrderSink {
+public interface IOrderSink
+{
     void Seen(Order order);
 
     void Changed(Order order, Order? previous);
@@ -70,9 +72,12 @@ public interface IOrderSink {
 /// Prints rather than stores: the service runs until Cloud Run ends it, so the entry point has no
 /// moment after the handler to print anything itself.
 /// </summary>
-public class OrderSink : IOrderSink {
+public class OrderSink : IOrderSink
+{
     public void Seen(Order order) => Console.WriteLine($"HANDLED {order.Id} x{order.Quantity}");
 
     public void Changed(Order order, Order? previous) =>
-        Console.WriteLine($"CHANGED {order.Id} x{order.Quantity} from {(previous is null ? "nothing" : "x" + previous.Quantity)}");
+        Console.WriteLine(
+            $"CHANGED {order.Id} x{order.Quantity} from {(previous is null ? "nothing" : "x" + previous.Quantity)}"
+        );
 }

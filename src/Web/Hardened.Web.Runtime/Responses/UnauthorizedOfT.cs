@@ -1,7 +1,6 @@
 using Hardened.Requests.Abstract.Authorization;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -28,9 +27,11 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(401)]
 public sealed record Unauthorized<T>(T Body, AuthorizationChallenge? Challenge = null)
-    : IHttpStatusResponse, ICarriesResponseBody, IProvidesResponseHeaders,
-        IResponseExpectation<Unauthorized<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IProvidesResponseHeaders,
+        IResponseExpectation<Unauthorized<T>>
+{
     public string Type => ProblemTypes.Unauthorized;
 
     public string Title => "Unauthorized";
@@ -40,15 +41,23 @@ public sealed record Unauthorized<T>(T Body, AuthorizationChallenge? Challenge =
     public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
+
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
         var challenge = Challenge ?? AuthorizationChallenge.AuthenticationRequired();
 
         headers[AuthorizationChallenge.HeaderName] = challenge.HeaderValue;
     }
 
     public static Unauthorized<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body),
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) =>
+        new(
+            ResponseExpectation.Body<T>(body),
             ResponseExpectation.OptionalHeader(headers, AuthorizationChallenge.HeaderName)
-                is { } challenge ? AuthorizationChallenge.Parse(challenge) : null);
+                is { } challenge
+                ? AuthorizationChallenge.Parse(challenge)
+                : null
+        );
 }

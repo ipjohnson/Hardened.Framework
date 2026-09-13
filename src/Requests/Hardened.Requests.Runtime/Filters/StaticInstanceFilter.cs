@@ -19,13 +19,15 @@ namespace Hardened.Requests.Runtime.Filters;
 /// invoke method ignores it.
 /// </para>
 /// </remarks>
-public class StaticInstanceFilter : IExecutionFilter {
+public class StaticInstanceFilter : IExecutionFilter
+{
     /// <summary>The value a static handler's <c>HandlerInstance</c> is set to.</summary>
     public static readonly object HandlerInstance = new();
 
     public static readonly StaticInstanceFilter Instance = new();
 
-    public Task Execute(IExecutionChain chain) {
+    public Task Execute(IExecutionChain chain)
+    {
         chain.Context.HandlerInstance = HandlerInstance;
 
         return chain.Next();

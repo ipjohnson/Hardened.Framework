@@ -36,7 +36,8 @@ namespace Hardened.Idl.SourceGenerator;
 /// Sharing them would mean making those public to move logic the walk never touched.
 /// </para>
 /// </remarks>
-internal static class SpecRoutingTableGenerator {
+internal static class SpecRoutingTableGenerator
+{
     public static void GenerateRoute(
         SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
@@ -44,7 +45,9 @@ internal static class SpecRoutingTableGenerator {
         ImmutableArray<SpecRegistration> specRegistrations,
         IReadOnlyList<RouteConstraintModel> constraints,
         bool excludeFromCoverage = false,
-        DocumentIdentity? identity = null) {
+        DocumentIdentity? identity = null
+    )
+    {
         // Per application, as the attribute-routed table reports it: a described operation whose
         // implementation declares [CacheResponse], or one in a module this application imports,
         // fails every request in an application that registers no store - and a described
@@ -52,11 +55,19 @@ internal static class SpecRoutingTableGenerator {
         ResponseCacheStoreDiagnostics.Report(context, models.Left, models.Right);
 
         var outputString = GenerateCSharpRouteFile(
-            models.Left, models.Right, handlerInfos, specRegistrations,
-            context.CancellationToken, excludeFromCoverage, constraints);
+            models.Left,
+            models.Right,
+            handlerInfos,
+            specRegistrations,
+            context.CancellationToken,
+            excludeFromCoverage,
+            constraints
+        );
 
         context.AddSource(
-            models.Left.EntryPointType.Name + ".SpecRouting", GeneratedSource.Header(outputString));
+            models.Left.EntryPointType.Name + ".SpecRouting",
+            GeneratedSource.Header(outputString)
+        );
 
         // The document this application serves, generated from the normalised model - the same
         // function, over the same models, that an attribute-routed application uses.
@@ -70,7 +81,8 @@ internal static class SpecRoutingTableGenerator {
         // over-promise, because the model holds only what was actually read.
         context.AddSource(
             models.Left.EntryPointType.Name + ".OpenApiDocument",
-            OpenApiDocumentSource.Write(models.Left, models.Right, "", identity: identity));
+            OpenApiDocumentSource.Write(models.Left, models.Right, "", identity: identity)
+        );
 
         // The same links an attribute-routed application gets, from the same models. A document
         // generates the routes, so a link built from one is checked against the document rather
@@ -85,14 +97,17 @@ internal static class SpecRoutingTableGenerator {
         ImmutableArray<SpecRegistration> specRegistrations,
         CancellationToken cancellationToken,
         bool excludeFromCoverage = false,
-        IReadOnlyList<RouteConstraintModel>? constraints = null) {
+        IReadOnlyList<RouteConstraintModel>? constraints = null
+    )
+    {
         // Ordered so the emitted table does not reshuffle between builds.
         var ordered = specRegistrations
             .OrderBy(registration => registration.ResolverName, StringComparer.Ordinal)
             .ThenBy(registration => registration.PublishUrl, StringComparer.Ordinal)
             .ToList();
 
-        var options = new RoutingTableOptions {
+        var options = new RoutingTableOptions
+        {
             ClassName = "SpecRoutingTable",
             HintSuffix = ".SpecRouting",
             DependencyFieldName = "_openApiRoutingTableDependencies",
@@ -114,12 +129,21 @@ internal static class SpecRoutingTableGenerator {
             // to reach the table that compiles them in.
             Constraints = constraints,
 
-            AdditionalRegistrations =
-                Registrations(appModel, handlers, handlerInfos, ordered, cancellationToken)
+            AdditionalRegistrations = Registrations(
+                appModel,
+                handlers,
+                handlerInfos,
+                ordered,
+                cancellationToken
+            ),
         };
 
         return RoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, cancellationToken, options);
+            appModel,
+            handlers,
+            cancellationToken,
+            options
+        );
     }
 
     /// <summary>
@@ -130,7 +154,9 @@ internal static class SpecRoutingTableGenerator {
         IReadOnlyList<RequestHandlerModel> handlers,
         ImmutableArray<HandlerInfo?> handlerInfos,
         IReadOnlyList<SpecRegistration> ordered,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var statements = new List<IOutputComponent>();
 
         // The OpenAPI-generated JSON type info resolvers, for AOT serialization.
@@ -139,13 +165,18 @@ internal static class SpecRoutingTableGenerator {
         // to derive a single "{RootNamespace}.Models.OpenApiJsonTypeInfoResolver" from the first
         // handler's namespace, which meant two spec files in one project emitted two classes of that
         // one name and the project did not compile - finding 3.1.
-        foreach (var registration in ordered) {
-            if (registration.ResolverName.Length == 0) {
+        foreach (var registration in ordered)
+        {
+            if (registration.ResolverName.Length == 0)
+            {
                 continue;
             }
 
-            statements.Add(new CodeOutputComponent(
-                $"serviceCollection.AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), global::{registration.ResolverName}.Instance)"));
+            statements.Add(
+                new CodeOutputComponent(
+                    $"serviceCollection.AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), global::{registration.ResolverName}.Instance)"
+                )
+            );
 
             // The enum converters the same resolver holds, as the parameter binder consumes them.
             //
@@ -154,9 +185,12 @@ internal static class SpecRoutingTableGenerator {
             // own value - answers 400 while `?genre=ScienceFiction`, a name appearing nowhere in the
             // document, answers 200. The body and the response were always right; only parameters
             // spoke a second vocabulary.
-            statements.Add(new CodeOutputComponent(
-                $"foreach (var stringConverter in global::{registration.ResolverName}.StringConverters) " +
-                "{ serviceCollection.AddSingleton(typeof(global::Hardened.Requests.Abstract.Serializer.IStringConverter), stringConverter); }"));
+            statements.Add(
+                new CodeOutputComponent(
+                    $"foreach (var stringConverter in global::{registration.ResolverName}.StringConverters) "
+                        + "{ serviceCollection.AddSingleton(typeof(global::Hardened.Requests.Abstract.Serializer.IStringConverter), stringConverter); }"
+                )
+            );
         }
 
         AddPublishedSpecs(appModel, statements, ordered);
@@ -164,27 +198,35 @@ internal static class SpecRoutingTableGenerator {
         // The service-wide negotiation policy, from the entry point or from a description's root.
         var negotiation = ContentNegotiationRegistration.Statement(
             appModel.AttributeModels,
-            ordered.FirstOrDefault(registration => registration.ContentNegotiation.Length > 0)
-                ?.ContentNegotiation ?? "");
+            ordered
+                .FirstOrDefault(registration => registration.ContentNegotiation.Length > 0)
+                ?.ContentNegotiation
+                ?? ""
+        );
 
-        if (negotiation != null) {
+        if (negotiation != null)
+        {
             statements.Add(new CodeOutputComponent(negotiation));
         }
 
         // And what a failed request answers with, from the entry point or the same root.
         var errorBodies = ErrorBodyRegistration.Statement(
             appModel.AttributeModels,
-            ordered.FirstOrDefault(registration => registration.ErrorBodies.Length > 0)
-                ?.ErrorBodies ?? "");
+            ordered.FirstOrDefault(registration => registration.ErrorBodies.Length > 0)?.ErrorBodies
+                ?? ""
+        );
 
-        if (errorBodies != null) {
+        if (errorBodies != null)
+        {
             statements.Add(new CodeOutputComponent(errorBodies));
         }
 
         var declaredServiceNames = new HashSet<string>(handlers.Select(m => m.ControllerType.Name));
 
-        foreach (var handlerInfo in handlerInfos) {
-            if (handlerInfo == null) {
+        foreach (var handlerInfo in handlerInfos)
+        {
+            if (handlerInfo == null)
+            {
                 continue;
             }
 
@@ -199,12 +241,17 @@ internal static class SpecRoutingTableGenerator {
 
             // The matching model, for the correctly namespaced interface type.
             var matchingModel = handlers.FirstOrDefault(m =>
-                m.ControllerType.Name == (service ?? handlerInfo.InterfaceType).Name);
+                m.ControllerType.Name == (service ?? handlerInfo.InterfaceType).Name
+            );
 
-            var interfaceType = matchingModel?.ControllerType ?? service ?? handlerInfo.InterfaceType;
+            var interfaceType =
+                matchingModel?.ControllerType ?? service ?? handlerInfo.InterfaceType;
 
-            statements.Add(new CodeOutputComponent(
-                $"serviceCollection.AddTransient<{Global(interfaceType)}, {Global(handlerInfo.ImplementationType)}>()"));
+            statements.Add(
+                new CodeOutputComponent(
+                    $"serviceCollection.AddTransient<{Global(interfaceType)}, {Global(handlerInfo.ImplementationType)}>()"
+                )
+            );
         }
 
         return statements;
@@ -213,25 +260,37 @@ internal static class SpecRoutingTableGenerator {
     private static void AddPublishedSpecs(
         EntryPointSelector.Model appModel,
         List<IOutputComponent> statements,
-        IReadOnlyList<SpecRegistration> registrations) {
-        foreach (var registration in registrations) {
+        IReadOnlyList<SpecRegistration> registrations
+    )
+    {
+        foreach (var registration in registrations)
+        {
             // The contract itself, where the application asked for it. Its own content type, because
             // a YAML contract is served as YAML - converting it to JSON to fit a conventional path
             // would put an emitter back in the path this exists to keep out of.
-            if (registration.SourceUrl.Length > 0) {
-                statements.Add(new CodeOutputComponent(
-                    $"serviceCollection.AddSingleton<{Global(KnownTypes.Web.IWebExecutionRequestHandlerProvider)}>(" +
-                    // A factory rather than an instance. The provider builds its chain through
-                    // ExecutionHelper - which is where conventions are applied and the global filter
-                    // registry is asked for this handler's guard - and that needs the container.
-                    "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
-                    "serviceProvider, global::" +
-                    registration.SpecificationTypeName + ".DocumentGZip, " +
-                    Quote(registration.SourceUrl) + ", global::" +
-                    registration.SpecificationTypeName + ".ContentType))"));
+            if (registration.SourceUrl.Length > 0)
+            {
+                statements.Add(
+                    new CodeOutputComponent(
+                        $"serviceCollection.AddSingleton<{Global(KnownTypes.Web.IWebExecutionRequestHandlerProvider)}>("
+                            +
+                            // A factory rather than an instance. The provider builds its chain through
+                            // ExecutionHelper - which is where conventions are applied and the global filter
+                            // registry is asked for this handler's guard - and that needs the container.
+                            "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider("
+                            + "serviceProvider, global::"
+                            + registration.SpecificationTypeName
+                            + ".DocumentGZip, "
+                            + Quote(registration.SourceUrl)
+                            + ", global::"
+                            + registration.SpecificationTypeName
+                            + ".ContentType))"
+                    )
+                );
             }
 
-            if (registration.PublishUrl.Length == 0) {
+            if (registration.PublishUrl.Length == 0)
+            {
                 continue;
             }
 
@@ -239,27 +298,43 @@ internal static class SpecRoutingTableGenerator {
             // SourceUrl's job above - and the source is an OpenAPI document only when the contract
             // happens to be one, which is how a Smithy model came to publish a Smithy AST at a path
             // named openapi.json.
-            statements.Add(new CodeOutputComponent(
-                $"serviceCollection.AddSingleton<{Global(KnownTypes.Web.IWebExecutionRequestHandlerProvider)}>(" +
-                "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
-                "serviceProvider, global::" +
-                appModel.EntryPointType.Namespace + "." + appModel.EntryPointType.Name + "." +
-                OpenApiDocumentSource.DocumentMemberPath + ", " +
-                Quote(registration.PublishUrl) + "))"));
+            statements.Add(
+                new CodeOutputComponent(
+                    $"serviceCollection.AddSingleton<{Global(KnownTypes.Web.IWebExecutionRequestHandlerProvider)}>("
+                        + "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider("
+                        + "serviceProvider, global::"
+                        + appModel.EntryPointType.Namespace
+                        + "."
+                        + appModel.EntryPointType.Name
+                        + "."
+                        + OpenApiDocumentSource.DocumentMemberPath
+                        + ", "
+                        + Quote(registration.PublishUrl)
+                        + "))"
+                )
+            );
 
-            if (registration.UiUrl.Length == 0) {
+            if (registration.UiUrl.Length == 0)
+            {
                 continue;
             }
 
-            statements.Add(CodeOutputComponent.Get(
-                "global::DependencyModules.Runtime.ServiceCollectionExtensions.AddModule(" +
-                "serviceCollection" +
-                ", new global::Hardened.Web.Runtime.OpenApi.HardenedOpenApiUi { Path = " +
-                Quote(registration.UiUrl) + ", DocumentPath = " +
-                Quote(registration.PublishUrl) +
-                (registration.UiEnvironments.Length == 0
-                    ? ""
-                    : ", Environments = " + Quote(registration.UiEnvironments)) + " })"));
+            statements.Add(
+                CodeOutputComponent.Get(
+                    "global::DependencyModules.Runtime.ServiceCollectionExtensions.AddModule("
+                        + "serviceCollection"
+                        + ", new global::Hardened.Web.Runtime.OpenApi.HardenedOpenApiUi { Path = "
+                        + Quote(registration.UiUrl)
+                        + ", DocumentPath = "
+                        + Quote(registration.PublishUrl)
+                        + (
+                            registration.UiEnvironments.Length == 0
+                                ? ""
+                                : ", Environments = " + Quote(registration.UiEnvironments)
+                        )
+                        + " })"
+                )
+            );
         }
     }
 
@@ -272,7 +347,8 @@ internal static class SpecRoutingTableGenerator {
     /// InvokeGeneric on a CodeOutputComponent receiver does not work - it writes indexer syntax,
     /// and the generated file fails with CS0029 against System.Index.
     /// </remarks>
-    private static string Global(ITypeDefinition type) {
+    private static string Global(ITypeDefinition type)
+    {
         var builder = new StringBuilder();
 
         type.WriteTypeName(builder, TypeOutputMode.Global);

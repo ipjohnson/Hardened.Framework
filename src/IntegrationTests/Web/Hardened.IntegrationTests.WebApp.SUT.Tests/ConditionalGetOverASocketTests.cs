@@ -1,8 +1,8 @@
 using System.Net;
 using Hardened.Web.AspNetCore.Runtime;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 
@@ -22,22 +22,29 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// on the wire is the one the cache wrote.
 /// </para>
 /// </remarks>
-public class ConditionalGetOverASocketTests {
-
+public class ConditionalGetOverASocketTests
+{
     private const string FirstAnswer = "\"en-GB-1\"";
 
     [Fact]
-    public async Task AClientHoldingTheTagIsAnswered304WithNoBody() {
+    public async Task AClientHoldingTheTagIsAnswered304WithNoBody()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var miss = await host.Get(TestContext.Current.CancellationToken);
         var tag = Assert.IsType<System.Net.Http.Headers.EntityTagHeaderValue>(miss.Headers.ETag);
 
-        using var revalidated = await host.Revalidate(tag.ToString(), HttpMethod.Get, TestContext.Current.CancellationToken);
+        using var revalidated = await host.Revalidate(
+            tag.ToString(),
+            HttpMethod.Get,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.NotModified, revalidated.StatusCode);
         AssertNoContentHeaders(revalidated);
-        Assert.Empty(await revalidated.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
+        Assert.Empty(
+            await revalidated.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)
+        );
         Assert.Equal(tag, revalidated.Headers.ETag);
     }
 
@@ -47,30 +54,44 @@ public class ConditionalGetOverASocketTests {
     /// means it left nothing.
     /// </summary>
     [Fact]
-    public async Task TheConnectionIsReusableAfterA304() {
+    public async Task TheConnectionIsReusableAfterA304()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var miss = await host.Get(TestContext.Current.CancellationToken);
 
-        using (var revalidated = await host.Revalidate(
-                   miss.Headers.ETag!.ToString(), HttpMethod.Get, TestContext.Current.CancellationToken)) {
+        using (
+            var revalidated = await host.Revalidate(
+                miss.Headers.ETag!.ToString(),
+                HttpMethod.Get,
+                TestContext.Current.CancellationToken
+            )
+        )
+        {
             Assert.Equal(HttpStatusCode.NotModified, revalidated.StatusCode);
         }
 
         var hit = await host.Get(TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, hit.StatusCode);
-        Assert.Equal(FirstAnswer, await hit.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            FirstAnswer,
+            await hit.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     [Fact]
-    public async Task AHeadHoldingTheTagIs304WithoutALength() {
+    public async Task AHeadHoldingTheTagIs304WithoutALength()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var miss = await host.Get(TestContext.Current.CancellationToken);
 
         using var head = await host.Revalidate(
-            miss.Headers.ETag!.ToString(), HttpMethod.Head, TestContext.Current.CancellationToken);
+            miss.Headers.ETag!.ToString(),
+            HttpMethod.Head,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.NotModified, head.StatusCode);
         AssertNoContentHeaders(head);
@@ -81,7 +102,8 @@ public class ConditionalGetOverASocketTests {
     /// content, and <c>HttpClient</c> then records the buffer's length in this collection as
     /// though a <c>Content-Length</c> had been on the wire.
     /// </summary>
-    private static void AssertNoContentHeaders(HttpResponseMessage response) {
+    private static void AssertNoContentHeaders(HttpResponseMessage response)
+    {
         Assert.False(response.Content.Headers.Contains("Content-Length"));
         Assert.False(response.Content.Headers.Contains("Content-Type"));
     }
@@ -89,16 +111,19 @@ public class ConditionalGetOverASocketTests {
     /// <summary>
     /// The application, started as <c>Program.cs</c> starts it, listening on a port the OS picked.
     /// </summary>
-    private sealed class Host : IAsyncDisposable {
+    private sealed class Host : IAsyncDisposable
+    {
         private readonly WebApplication _app;
         private readonly HttpClient _client;
 
-        private Host(WebApplication app, HttpClient client) {
+        private Host(WebApplication app, HttpClient client)
+        {
             _app = app;
             _client = client;
         }
 
-        public static async Task<Host> Start(CancellationToken cancellationToken) {
+        public static async Task<Host> Start(CancellationToken cancellationToken)
+        {
             var builder = Application.CreateBuilder([]);
 
             // Port 0, so the OS picks one and nothing collides with a parallel test class.
@@ -112,19 +137,28 @@ public class ConditionalGetOverASocketTests {
 
             // One connection, so every request is framed by the one before it, and a short
             // timeout because the failure this exists for is a hang.
-            var client = new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = 1 }) {
+            var client = new HttpClient(new SocketsHttpHandler { MaxConnectionsPerServer = 1 })
+            {
                 BaseAddress = new Uri(app.Urls.First()),
-                Timeout = TimeSpan.FromSeconds(10)
+                Timeout = TimeSpan.FromSeconds(10),
             };
 
             return new Host(app, client);
         }
 
         /// <summary>A full answer, read to the end so the connection is free for the next.</summary>
-        public async Task<HttpResponseMessage> Get(CancellationToken cancellationToken) {
-            using var request = new HttpRequestMessage(HttpMethod.Get, "/response-cache/catalog?culture=en-GB");
+        public async Task<HttpResponseMessage> Get(CancellationToken cancellationToken)
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Get,
+                "/response-cache/catalog?culture=en-GB"
+            );
 
-            return await _client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            return await _client.SendAsync(
+                request,
+                HttpCompletionOption.ResponseContentRead,
+                cancellationToken
+            );
         }
 
         /// <summary>
@@ -132,15 +166,27 @@ public class ConditionalGetOverASocketTests {
         /// in, so a test can see them as they arrived. The caller disposes it.
         /// </summary>
         public async Task<HttpResponseMessage> Revalidate(
-            string ifNoneMatch, HttpMethod method, CancellationToken cancellationToken) {
-            using var request = new HttpRequestMessage(method, "/response-cache/catalog?culture=en-GB");
+            string ifNoneMatch,
+            HttpMethod method,
+            CancellationToken cancellationToken
+        )
+        {
+            using var request = new HttpRequestMessage(
+                method,
+                "/response-cache/catalog?culture=en-GB"
+            );
 
             request.Headers.TryAddWithoutValidation("If-None-Match", ifNoneMatch);
 
-            return await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            return await _client.SendAsync(
+                request,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken
+            );
         }
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             _client.Dispose();
 
             await _app.DisposeAsync();

@@ -2,9 +2,9 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.StaticContent;
 
@@ -46,8 +46,8 @@ namespace Hardened.Web.StaticContent;
 /// relative to another module's is the application's choice rather than this package's.
 /// </para>
 /// </remarks>
-public class StaticContentMountProvider : IFallbackRequestHandlerProvider {
-
+public class StaticContentMountProvider : IFallbackRequestHandlerProvider
+{
     /// <summary>What a request to a file may do, when it did something else.</summary>
     private const string Allow = "GET, HEAD";
 
@@ -62,27 +62,34 @@ public class StaticContentMountProvider : IFallbackRequestHandlerProvider {
     /// other modules, so a factory that resolved them would fail while the container was still being
     /// built, for every application, including one serving no static content at all.
     /// </remarks>
-    public StaticContentMountProvider(IServiceProvider serviceProvider) {
+    public StaticContentMountProvider(IServiceProvider serviceProvider)
+    {
         _serviceProvider = serviceProvider;
     }
 
-    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context) {
+    public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+    {
         var mount = _mount ??= Mount.Resolve(_serviceProvider);
 
-        if (!mount.Source.Enabled) {
+        if (!mount.Source.Enabled)
+        {
             return null;
         }
 
         var location = mount.Source.Locate(context.Request.Path);
 
-        if (location == null) {
+        if (location == null)
+        {
             return null;
         }
 
         var method = context.Request.Method;
 
-        if (!string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase)) {
+        if (
+            !string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase)
+        )
+        {
             // A file that exists answers 405 for a verb it does not: the resource is there and the
             // verb is the problem, which is a distinction a client and a CDN both read. A path that
             // only resolved because a single-page application catches everything is not a resource,
@@ -100,17 +107,24 @@ public class StaticContentMountProvider : IFallbackRequestHandlerProvider {
     /// <summary>
     /// One mount's source, configuration and handler, resolved together on first use.
     /// </summary>
-    private sealed class Mount {
+    private sealed class Mount
+    {
         private Mount(
-            IStaticContentSource source, IStaticContentConfiguration configuration,
-            IServiceProvider serviceProvider) {
+            IStaticContentSource source,
+            IStaticContentConfiguration configuration,
+            IServiceProvider serviceProvider
+        )
+        {
             Source = source;
 
             // Built here rather than per request: conventions are asked as a handler is
             // constructed, which is the contract they are written against.
             Handler = new MountHandler(
-                source, configuration,
-                StaticContentWriter.CacheControlFor(configuration), serviceProvider);
+                source,
+                configuration,
+                StaticContentWriter.CacheControlFor(configuration),
+                serviceProvider
+            );
         }
 
         public IStaticContentSource Source { get; }
@@ -118,13 +132,15 @@ public class StaticContentMountProvider : IFallbackRequestHandlerProvider {
         public IExecutionRequestHandler Handler { get; }
 
         public static Mount Resolve(IServiceProvider serviceProvider) =>
-            new(serviceProvider.GetRequiredService<IStaticContentSource>(),
+            new(
+                serviceProvider.GetRequiredService<IStaticContentSource>(),
                 serviceProvider.GetRequiredService<IOptions<IStaticContentConfiguration>>().Value,
-                serviceProvider);
+                serviceProvider
+            );
     }
 
-    private sealed class MountHandler : BaseExecutionHandler<StaticContentController> {
-
+    private sealed class MountHandler : BaseExecutionHandler<StaticContentController>
+    {
         /// <summary>
         /// Empty, and load bearing. See the note on <see cref="StaticContentMountProvider"/>: what
         /// is absent here is what lets a mount inherit the application's authorization posture.
@@ -135,20 +151,29 @@ public class StaticContentMountProvider : IFallbackRequestHandlerProvider {
             IStaticContentSource source,
             IStaticContentConfiguration configuration,
             string? cacheControl,
-            IServiceProvider serviceProvider)
-            : base(ExecutionHelper.AsyncStandardFilterEmptyParameters<StaticContentController>(
-                serviceProvider,
-                new ExecutionRequestHandlerInfo(
-                    // Not a route anything matched against - the provider decides what this mount
-                    // answers - so this names the mount for a log line and a metric rather than
-                    // describing a path.
-                    "/*", "GET", typeof(StaticContentController),
-                    nameof(StaticContentController.Serve), [], Metadata,
-                    configuration.Requirement),
-                // A lambda rather than a static method, because what varies between two mounts is
-                // exactly what it closes over.
-                (context, controller) =>
-                    controller.Serve(context, source, configuration, cacheControl),
-                ExecutionHelper.GetFilterInfo(Metadata))) { }
+            IServiceProvider serviceProvider
+        )
+            : base(
+                ExecutionHelper.AsyncStandardFilterEmptyParameters<StaticContentController>(
+                    serviceProvider,
+                    new ExecutionRequestHandlerInfo(
+                        // Not a route anything matched against - the provider decides what this mount
+                        // answers - so this names the mount for a log line and a metric rather than
+                        // describing a path.
+                        "/*",
+                        "GET",
+                        typeof(StaticContentController),
+                        nameof(StaticContentController.Serve),
+                        [],
+                        Metadata,
+                        configuration.Requirement
+                    ),
+                    // A lambda rather than a static method, because what varies between two mounts is
+                    // exactly what it closes over.
+                    (context, controller) =>
+                        controller.Serve(context, source, configuration, cacheControl),
+                    ExecutionHelper.GetFilterInfo(Metadata)
+                )
+            ) { }
     }
 }

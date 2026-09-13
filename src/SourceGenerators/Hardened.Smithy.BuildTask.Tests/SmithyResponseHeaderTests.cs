@@ -24,18 +24,21 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// exists to prevent.
 /// </para>
 /// </remarks>
-public class SmithyResponseHeaderTests {
-
+public class SmithyResponseHeaderTests
+{
     private static string Fixture() =>
-        File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "response-headers.json"));
+        File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Fixtures", "response-headers.json")
+        );
 
-    private static OperationModel Operation(string operationId) {
+    private static OperationModel Operation(string operationId)
+    {
         var model = SmithySpecParser.Parse(Fixture(), "response-headers", new List<string>());
 
         Assert.NotNull(model);
 
-        return model!.Services
-            .SelectMany(service => service.Operations)
+        return model!
+            .Services.SelectMany(service => service.Operations)
             .Single(operation => operation.OperationId == operationId);
     }
 
@@ -43,7 +46,8 @@ public class SmithyResponseHeaderTests {
         Assert.Single(Operation(operationId).SuccessResponses);
 
     [Fact]
-    public void AHeaderBoundMemberBecomesADeclaredResponseHeader() {
+    public void AHeaderBoundMemberBecomesADeclaredResponseHeader()
+    {
         var headers = Success("CreateJob").Headers;
 
         Assert.Equal(2, headers.Count);
@@ -64,7 +68,8 @@ public class SmithyResponseHeaderTests {
     /// sending none, only harder to see.
     /// </remarks>
     [Fact]
-    public void TheHeaderTakesItsNameFromTheTraitRatherThanTheMember() {
+    public void TheHeaderTakesItsNameFromTheTraitRatherThanTheMember()
+    {
         var etag = Success("CreateJob").Headers.Single(header => header.ParameterName == "ETag");
 
         Assert.Equal("ETag", etag.Name);
@@ -79,7 +84,8 @@ public class SmithyResponseHeaderTests {
     /// all that is needed, and no second type has to be invented to hold what is left.
     /// </remarks>
     [Fact]
-    public void AHeaderBoundMemberStopsBeingSerialized() {
+    public void AHeaderBoundMemberStopsBeingSerialized()
+    {
         var model = SmithySpecParser.Parse(Fixture(), "response-headers", new List<string>());
 
         var success = Success("CreateJob");
@@ -91,7 +97,8 @@ public class SmithyResponseHeaderTests {
         // Every member is still there.
         Assert.Equal(
             new[] { "id", "title", "location", "etag" },
-            output.Properties.Select(property => property.Name).ToArray());
+            output.Properties.Select(property => property.Name).ToArray()
+        );
 
         // Two of them leave as headers instead of in the body.
         Assert.Equal("Location", output.Properties.Single(p => p.Name == "location").HeaderName);
@@ -109,7 +116,8 @@ public class SmithyResponseHeaderTests {
     /// the real shape would have taken. <c>Job</c> binds nothing and must be untouched.
     /// </remarks>
     [Fact]
-    public void AnOutputBindingNothingKeepsTheSchemaItAlreadyHad() {
+    public void AnOutputBindingNothingKeepsTheSchemaItAlreadyHad()
+    {
         var model = SmithySpecParser.Parse(Fixture(), "response-headers", new List<string>());
 
         var success = Success("GetJob");
@@ -133,7 +141,8 @@ public class SmithyResponseHeaderTests {
     /// is strictly less wrong and the remaining half is the bodyless-response question.
     /// </remarks>
     [Fact]
-    public void AnOutputThatIsAllHeadersStillNamesItsType() {
+    public void AnOutputThatIsAllHeadersStillNamesItsType()
+    {
         var success = Success("TouchJob");
 
         Assert.Equal(204, success.StatusCode);
@@ -160,11 +169,12 @@ public class SmithyResponseHeaderTests {
     /// this parser disagreeing with the protocol it is implementing.
     /// </remarks>
     [Fact]
-    public void ADispatchProtocolLeavesHeaderMembersInTheBody() {
+    public void ADispatchProtocolLeavesHeaderMembersInTheBody()
+    {
         var model = SmithySpecParser.Parse(Fixture(), "response-headers", new List<string>());
 
-        var operation = model!.Services
-            .SelectMany(service => service.Operations)
+        var operation = model!
+            .Services.SelectMany(service => service.Operations)
             .Single(candidate => candidate.OperationId == "DispatchedJob");
 
         Assert.Empty(Assert.Single(operation.SuccessResponses).Headers);
@@ -175,7 +185,8 @@ public class SmithyResponseHeaderTests {
     }
 
     [Fact]
-    public void AHeaderBindingDoesNotForceAResponseSet() {
+    public void AHeaderBindingDoesNotForceAResponseSet()
+    {
         var operation = Operation("CreateJob");
 
         Assert.True(ResponseSetPlan.PrimarySuccessCarriesHeaders(operation));

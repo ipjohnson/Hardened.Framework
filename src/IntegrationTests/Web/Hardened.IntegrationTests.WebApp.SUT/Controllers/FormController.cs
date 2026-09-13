@@ -11,8 +11,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// sent more than once, and a request that sends no form at all.
 /// </remarks>
 [BasePath("/form")]
-public class FormController {
-
+public class FormController
+{
     /// <summary>Two fields, the ordinary case.</summary>
     [Post("/sign-in")]
     public string SignIn([FromForm] string username, [FromForm] string password) =>

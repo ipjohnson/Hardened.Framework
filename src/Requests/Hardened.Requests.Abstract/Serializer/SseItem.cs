@@ -8,7 +8,8 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// it - so it cannot pattern-match <c>SseItem&lt;T&gt;</c> without knowing <c>T</c>. This is what it
 /// matches instead, and it is why <see cref="Data"/> is <c>object?</c> here and typed on the record.
 /// </remarks>
-public interface ISseEvent {
+public interface ISseEvent
+{
     /// <summary>The payload, which is what gets serialized as <c>data:</c>.</summary>
     object? Data { get; }
 
@@ -52,8 +53,8 @@ public interface ISseEvent {
 /// worth sending once rather than on every event.
 /// </param>
 public record SseItem<T>(T Data, string? Id = null, string? Event = null, int? Retry = null)
-    : ISseEvent {
-
+    : ISseEvent
+{
     /// <summary>
     /// The payload as the framing sees it, which does not know <typeparamref name="T"/>.
     /// </summary>

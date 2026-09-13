@@ -4,7 +4,8 @@ using Hardened.Shared.Runtime.Collections;
 
 namespace Hardened.Web.StaticContent;
 
-public interface IETagProvider {
+public interface IETagProvider
+{
     string GenerateETag(byte[] content);
 }
 
@@ -15,14 +16,17 @@ public interface IETagProvider {
 /// would take the static content path down on its first request rather than degrade. The build task
 /// already hashes with SHA-256; this is the same decision on the side that reads a directory.
 /// </remarks>
-public class ETagProvider : IETagProvider {
+public class ETagProvider : IETagProvider
+{
     private readonly IItemPool<SHA256> _hashPool;
 
-    public ETagProvider(IItemPool<SHA256> hashPool) {
+    public ETagProvider(IItemPool<SHA256> hashPool)
+    {
         _hashPool = hashPool;
     }
 
-    public string GenerateETag(byte[] content) {
+    public string GenerateETag(byte[] content)
+    {
         using var rental = _hashPool.Get();
 
         return Convert.ToBase64String(rental.Item.ComputeHash(content));

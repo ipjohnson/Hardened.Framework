@@ -13,14 +13,21 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// name and its own file name, and none of that had ever been compiled before this suite.
 /// </para>
 /// </summary>
-public class FunctionHandlerShapeTests {
-
+public class FunctionHandlerShapeTests
+{
     [Fact]
-    public void AVoidHandlerAssignsNoResponseValue() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process() { }
-            """)).AssertNoErrors();
+    public void AVoidHandlerAssignsNoResponseValue()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process() { }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Process.FunctionHandler");
 
@@ -36,29 +43,48 @@ public class FunctionHandlerShapeTests {
     /// function generator's own, written in a different file from the routing table's.
     /// </remarks>
     [Fact]
-    public void AStaticHandlerIsCalledOnItsDeclaringTypeAndNotRegistered() {
-        var result = FunctionGeneratorHarness.Generate(
-            FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public static string Process() => "x";
-            """)).AssertNoErrors();
+    public void AStaticHandlerIsCalledOnItsDeclaringTypeAndNotRegistered()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public static string Process() => "x";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Response.ResponseValue = global::TestApp.TestFunctions.Process();",
-            result.SourceContaining("Process.FunctionHandler"));
+        Assert.Contains(
+            "context.Response.ResponseValue = global::TestApp.TestFunctions.Process();",
+            result.SourceContaining("Process.FunctionHandler")
+        );
 
-        Assert.DoesNotContain("AddTransient<TestFunctions>",
-            result.SourceContaining("TestApplication.FunctionHandlers"));
+        Assert.DoesNotContain(
+            "AddTransient<TestFunctions>",
+            result.SourceContaining("TestApplication.FunctionHandlers")
+        );
     }
 
     [Fact]
-    public void AValueReturningHandlerAssignsTheResponseValue() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public string Process() => "x";
-            """)).AssertNoErrors();
+    public void AValueReturningHandlerAssignsTheResponseValue()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public string Process() => "x";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Response.ResponseValue = controller.Process();",
-            result.SourceContaining("Process.FunctionHandler"));
+        Assert.Contains(
+            "context.Response.ResponseValue = controller.Process();",
+            result.SourceContaining("Process.FunctionHandler")
+        );
     }
 
     /// <summary>
@@ -67,11 +93,18 @@ public class FunctionHandlerShapeTests {
     /// without assigning a response value.
     /// </summary>
     [Fact]
-    public void ATaskReturningHandlerIsAwaitedAndAssignsNoResponseValue() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public Task Process() => Task.CompletedTask;
-            """)).AssertNoErrors();
+    public void ATaskReturningHandlerIsAwaitedAndAssignsNoResponseValue()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public Task Process() => Task.CompletedTask;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Process.FunctionHandler");
 
@@ -80,25 +113,43 @@ public class FunctionHandlerShapeTests {
     }
 
     [Fact]
-    public void ATaskOfTReturningHandlerIsAwaitedIntoTheResponseValue() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public Task<string> Process() => Task.FromResult("x");
-            """)).AssertNoErrors();
+    public void ATaskOfTReturningHandlerIsAwaitedIntoTheResponseValue()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public Task<string> Process() => Task.FromResult("x");
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Response.ResponseValue = await controller.Process();",
-            result.SourceContaining("Process.FunctionHandler"));
+        Assert.Contains(
+            "context.Response.ResponseValue = await controller.Process();",
+            result.SourceContaining("Process.FunctionHandler")
+        );
     }
 
     [Fact]
-    public void AValueTaskOfTReturningHandlerIsAwaitedIntoTheResponseValue() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public ValueTask<string> Process() => new ValueTask<string>("x");
-            """)).AssertNoErrors();
+    public void AValueTaskOfTReturningHandlerIsAwaitedIntoTheResponseValue()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public ValueTask<string> Process() => new ValueTask<string>("x");
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Response.ResponseValue = await controller.Process();",
-            result.SourceContaining("Process.FunctionHandler"));
+        Assert.Contains(
+            "context.Response.ResponseValue = await controller.Process();",
+            result.SourceContaining("Process.FunctionHandler")
+        );
     }
 
     /// <summary>
@@ -106,13 +157,21 @@ public class FunctionHandlerShapeTests {
     /// single test here stands for "the shipped consumer still builds", it is this one.
     /// </summary>
     [Fact]
-    public void AnAsyncTaskHandlerTakingAModelCompiles() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public async Task Process(DataModel model) {
-                    await Task.Yield();
-                }
-            """, FunctionGeneratorHarness.SupportTypes)).AssertNoErrors();
+    public void AnAsyncTaskHandlerTakingAModelCompiles()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public async Task Process(DataModel model) {
+                            await Task.Yield();
+                        }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Process.FunctionHandler");
 
@@ -121,11 +180,18 @@ public class FunctionHandlerShapeTests {
     }
 
     [Fact]
-    public void AZeroParameterHandlerUsesTheEmptyParameterConstructor() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public string Process() => "x";
-            """)).AssertNoErrors();
+    public void AZeroParameterHandlerUsesTheEmptyParameterConstructor()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public string Process() => "x";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Process.FunctionHandler");
 
@@ -139,25 +205,41 @@ public class FunctionHandlerShapeTests {
     /// surfaced on the web side.
     /// </summary>
     [Fact]
-    public void AZeroParameterHandlerEmitsNoParametersClass() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process() { }
-            """)).AssertNoErrors().SourceContaining("Process.FunctionHandler");
+    public void AZeroParameterHandlerEmitsNoParametersClass()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process() { }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Process.FunctionHandler");
 
         Assert.DoesNotContain("class Parameters", source);
         Assert.DoesNotContain("_parameterInfo", source);
     }
 
     [Fact]
-    public void AnAsyncHandlerWithNoParametersUsesTheAsyncEmptyParameterConstructor() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public async Task<string> Process() {
-                    await Task.Yield();
-                    return "x";
-                }
-            """)).AssertNoErrors().SourceContaining("Process.FunctionHandler");
+    public void AnAsyncHandlerWithNoParametersUsesTheAsyncEmptyParameterConstructor()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public async Task<string> Process() {
+                            await Task.Yield();
+                            return "x";
+                        }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Process.FunctionHandler");
 
         Assert.Contains("AsyncStandardFilterEmptyParameters", source);
         Assert.DoesNotContain("BindRequestParameters", source);
@@ -168,26 +250,37 @@ public class FunctionHandlerShapeTests {
     /// reordering compiles whenever two parameters share a type and fails silently at run time.
     /// </summary>
     [Fact]
-    public void SeveralParametersAreInvokedInDeclarationOrder() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public Task<string> Process(DataModel model, IThing thing, IExecutionContext context) =>
-                    Task.FromResult("x");
-            """, FunctionGeneratorHarness.SupportTypes))
+    public void SeveralParametersAreInvokedInDeclarationOrder()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public Task<string> Process(DataModel model, IThing thing, IExecutionContext context) =>
+                            Task.FromResult("x");
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
-        var invoke = source.Substring(source.IndexOf("await controller.Process(", StringComparison.Ordinal));
+        var invoke = source.Substring(
+            source.IndexOf("await controller.Process(", StringComparison.Ordinal)
+        );
 
         Assert.True(
-            invoke.IndexOf("parameters.model", StringComparison.Ordinal) <
-            invoke.IndexOf("parameters.thing", StringComparison.Ordinal),
-            "the model is declared first and must be passed first");
+            invoke.IndexOf("parameters.model", StringComparison.Ordinal)
+                < invoke.IndexOf("parameters.thing", StringComparison.Ordinal),
+            "the model is declared first and must be passed first"
+        );
 
         Assert.True(
-            invoke.IndexOf("parameters.thing", StringComparison.Ordinal) <
-            invoke.IndexOf("parameters.context", StringComparison.Ordinal),
-            "the service is declared second and must be passed second");
+            invoke.IndexOf("parameters.thing", StringComparison.Ordinal)
+                < invoke.IndexOf("parameters.context", StringComparison.Ordinal),
+            "the service is declared second and must be passed second"
+        );
     }
 
     /// <summary>
@@ -196,11 +289,18 @@ public class FunctionHandlerShapeTests {
     /// one.
     /// </summary>
     [Fact]
-    public void EachParameterGetsItsOwnIndexerCase() {
-        var source = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process(DataModel model, IThing thing) { }
-            """, FunctionGeneratorHarness.SupportTypes))
+    public void EachParameterGetsItsOwnIndexerCase()
+    {
+        var source = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process(DataModel model, IThing thing) { }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
@@ -212,11 +312,19 @@ public class FunctionHandlerShapeTests {
 
     /// <summary>A record payload, the shape most function models actually have.</summary>
     [Fact]
-    public void ARecordPayloadCompiles() {
-        FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public Task<OrderModel> Process(OrderModel order) => Task.FromResult(order);
-            """, "public record OrderModel(string Sku, int Quantity);")).AssertNoErrors();
+    public void ARecordPayloadCompiles()
+    {
+        FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public Task<OrderModel> Process(OrderModel order) => Task.FromResult(order);
+                    """,
+                    "public record OrderModel(string Sku, int Quantity);"
+                )
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -224,24 +332,32 @@ public class FunctionHandlerShapeTests {
     /// static surfaces here and nowhere else.
     /// </summary>
     [Fact]
-    public void EveryHandlerShapeCoexistsOnOneClass() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction] public void Nothing() { }
+    public void EveryHandlerShapeCoexistsOnOneClass()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction] public void Nothing() { }
 
-                [HardenedFunction] public Task Bare() => Task.CompletedTask;
+                        [HardenedFunction] public Task Bare() => Task.CompletedTask;
 
-                [HardenedFunction] public string Value() => "x";
+                        [HardenedFunction] public string Value() => "x";
 
-                [HardenedFunction] public Task<string> TaskOfT() => Task.FromResult("x");
+                        [HardenedFunction] public Task<string> TaskOfT() => Task.FromResult("x");
 
-                [HardenedFunction] public ValueTask<string> ValueTaskOfT() => new ValueTask<string>("x");
+                        [HardenedFunction] public ValueTask<string> ValueTaskOfT() => new ValueTask<string>("x");
 
-                [HardenedFunction]
-                public async Task<string> WithParameter(DataModel model) {
-                    await Task.Yield();
-                    return model.Value;
-                }
-            """, FunctionGeneratorHarness.SupportTypes)).AssertNoErrors();
+                        [HardenedFunction]
+                        public async Task<string> WithParameter(DataModel model) {
+                            await Task.Yield();
+                            return model.Value;
+                        }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
+            .AssertNoErrors();
 
         // Six invokers plus the one provider file.
         Assert.Equal(8, result.GeneratedSources.Count);
@@ -252,14 +368,22 @@ public class FunctionHandlerShapeTests {
     /// name carries a hash of the parameter identifiers precisely so these do not collide.
     /// </summary>
     [Fact]
-    public void OverloadsWithDistinctFunctionNamesGetDistinctInvokerTypes() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction("no-args")]
-                public void Process() { }
+    public void OverloadsWithDistinctFunctionNamesGetDistinctInvokerTypes()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction("no-args")]
+                        public void Process() { }
 
-                [HardenedFunction("with-args")]
-                public void Process(DataModel model) { }
-            """, FunctionGeneratorHarness.SupportTypes)).AssertNoErrors();
+                        [HardenedFunction("with-args")]
+                        public void Process(DataModel model) { }
+                    """,
+                    FunctionGeneratorHarness.SupportTypes
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("INVOKE.no-args.FunctionHandler.cs", result.GeneratedSources.Keys);
         Assert.Contains("INVOKE.with-args.FunctionHandler.cs", result.GeneratedSources.Keys);

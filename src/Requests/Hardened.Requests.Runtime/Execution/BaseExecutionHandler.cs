@@ -2,11 +2,16 @@
 
 namespace Hardened.Requests.Runtime.Execution;
 
-public abstract class BaseExecutionHandler<TController> : IExecutionRequestHandler {
+public abstract class BaseExecutionHandler<TController> : IExecutionRequestHandler
+{
     private readonly Func<IExecutionContext, IExecutionFilter>[] _filters;
     private readonly DefaultOutputFunc? _outputFunc;
 
-    protected BaseExecutionHandler(ExecutionHandlerSetup setup, DefaultOutputFunc? outputFunc = null) {
+    protected BaseExecutionHandler(
+        ExecutionHandlerSetup setup,
+        DefaultOutputFunc? outputFunc = null
+    )
+    {
         HandlerInfo = setup.HandlerInfo;
         _filters = setup.Filters;
         _outputFunc = outputFunc;
@@ -31,7 +36,8 @@ public abstract class BaseExecutionHandler<TController> : IExecutionRequestHandl
     /// </remarks>
     public IExecutionRequestHandlerInfo HandlerInfo { get; }
 
-    public IExecutionChain GetExecutionChain(IExecutionContext context) {
+    public IExecutionChain GetExecutionChain(IExecutionContext context)
+    {
         context.HandlerInfo = HandlerInfo;
         context.DefaultOutput = _outputFunc;
 

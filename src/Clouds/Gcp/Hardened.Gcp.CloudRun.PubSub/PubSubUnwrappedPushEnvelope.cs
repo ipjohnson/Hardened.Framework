@@ -27,15 +27,18 @@ namespace Hardened.Gcp.CloudRun.PubSub;
 /// their own names and nothing marks which headers are attributes.
 /// </para>
 /// </remarks>
-public sealed class PubSubUnwrappedPushEnvelope : ITriggerEnvelope {
+public sealed class PubSubUnwrappedPushEnvelope : ITriggerEnvelope
+{
     public bool Recognises(IExecutionRequest request) =>
-        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase) &&
-        TriggerHeaders.Get(request.Headers, PubSubPushBody.SubscriptionHeader) != null;
+        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase)
+        && TriggerHeaders.Get(request.Headers, PubSubPushBody.SubscriptionHeader) != null;
 
-    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) {
+    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload)
+    {
         var subscription = TriggerHeaders.Get(request.Headers, PubSubPushBody.SubscriptionHeader);
 
-        if (string.IsNullOrEmpty(subscription)) {
+        if (string.IsNullOrEmpty(subscription))
+        {
             return null;
         }
 
@@ -44,6 +47,7 @@ public sealed class PubSubUnwrappedPushEnvelope : ITriggerEnvelope {
             "/" + PubSubPushBody.SubscriptionName(subscription!),
             payload.AsStream(),
             TriggerHeaders.Copy(request.Headers),
-            request);
+            request
+        );
     }
 }

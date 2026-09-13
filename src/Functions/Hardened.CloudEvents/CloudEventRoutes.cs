@@ -17,7 +17,8 @@ namespace Hardened.CloudEvents;
 /// and is documented on the attribute's page for that cloud.
 /// </para>
 /// </remarks>
-public static class CloudEventRoutes {
+public static class CloudEventRoutes
+{
     /// <summary>The scheme an event routes under.</summary>
     public const string EventScheme = "EVENT";
 
@@ -33,8 +34,10 @@ public static class CloudEventRoutes {
     /// slash. Empty for an empty value, which is a route no handler declared rather than a failure
     /// inside an adapter.
     /// </summary>
-    public static string LastSegment(string? value) {
-        if (string.IsNullOrEmpty(value)) {
+    public static string LastSegment(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
             return "";
         }
 

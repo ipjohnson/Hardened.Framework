@@ -28,27 +28,33 @@ namespace Hardened.Shared.Testing.Tests.Impl;
 /// <see cref="BothModuleShapesProduceTheSameWiring"/> is what notices when only one is edited.
 /// </para>
 /// </remarks>
-public class TestApplicationTests {
-
+public class TestApplicationTests
+{
     private static IHardenedEnvironment Environment() => new EnvironmentImpl();
 
     /// <summary>An <see cref="IApplicationModule"/> that registers whatever it is handed.</summary>
-    private sealed class ApplicationModule : IApplicationModule {
+    private sealed class ApplicationModule : IApplicationModule
+    {
         private readonly Action<IHardenedEnvironment, IServiceCollection> _configure;
 
-        public ApplicationModule(Action<IHardenedEnvironment, IServiceCollection> configure) {
+        public ApplicationModule(Action<IHardenedEnvironment, IServiceCollection> configure)
+        {
             _configure = configure;
         }
 
-        public void ConfigureModule(IHardenedEnvironment environment, IServiceCollection services) =>
-            _configure(environment, services);
+        public void ConfigureModule(
+            IHardenedEnvironment environment,
+            IServiceCollection services
+        ) => _configure(environment, services);
     }
 
     /// <summary>An <see cref="IDependencyModule"/> that registers whatever it is handed.</summary>
-    private sealed class DependencyModule : IDependencyModule {
+    private sealed class DependencyModule : IDependencyModule
+    {
         private readonly Action<IServiceCollection> _configure;
 
-        public DependencyModule(Action<IServiceCollection> configure) {
+        public DependencyModule(Action<IServiceCollection> configure)
+        {
             _configure = configure;
         }
 
@@ -57,34 +63,40 @@ public class TestApplicationTests {
 
     private static TestApplication FromApplicationModule(
         Action<IHardenedEnvironment, IServiceCollection>? configure = null,
-        Action<IHardenedEnvironment, IServiceCollection>? overrides = null) =>
-        new(new ApplicationModule(configure ?? ((_, _) => { })), "test", Environment(), overrides);
+        Action<IHardenedEnvironment, IServiceCollection>? overrides = null
+    ) => new(new ApplicationModule(configure ?? ((_, _) => { })), "test", Environment(), overrides);
 
     private static TestApplication FromDependencyModule(
         Action<IServiceCollection>? configure = null,
-        Action<IHardenedEnvironment, IServiceCollection>? overrides = null) =>
-        new(new DependencyModule(configure ?? (_ => { })), "test", Environment(), overrides);
+        Action<IHardenedEnvironment, IServiceCollection>? overrides = null
+    ) => new(new DependencyModule(configure ?? (_ => { })), "test", Environment(), overrides);
 
     #region what the container ends up with
 
     [Fact]
-    public async Task TheModulesRegistrationsReachTheProvider() {
+    public async Task TheModulesRegistrationsReachTheProvider()
+    {
         await using var application = FromApplicationModule(
-            (_, services) => services.AddSingleton<IGreetingService, RealGreetingService>());
+            (_, services) => services.AddSingleton<IGreetingService, RealGreetingService>()
+        );
 
         Assert.Equal(
             "real hello world",
-            application.Provider.GetRequiredService<IGreetingService>().Greet("world"));
+            application.Provider.GetRequiredService<IGreetingService>().Greet("world")
+        );
     }
 
     [Fact]
-    public async Task ADependencyModulesRegistrationsReachTheProviderToo() {
-        await using var application = FromDependencyModule(
-            services => services.AddSingleton<IGreetingService, RealGreetingService>());
+    public async Task ADependencyModulesRegistrationsReachTheProviderToo()
+    {
+        await using var application = FromDependencyModule(services =>
+            services.AddSingleton<IGreetingService, RealGreetingService>()
+        );
 
         Assert.Equal(
             "real hello world",
-            application.Provider.GetRequiredService<IGreetingService>().Greet("world"));
+            application.Provider.GetRequiredService<IGreetingService>().Greet("world")
+        );
     }
 
     /// <summary>
@@ -92,18 +104,24 @@ public class TestApplicationTests {
     /// bring its own stack.
     /// </summary>
     [Fact]
-    public async Task LoggingIsAvailableWithoutTheModuleRegisteringIt() {
+    public async Task LoggingIsAvailableWithoutTheModuleRegisteringIt()
+    {
         await using var application = FromApplicationModule();
 
         Assert.NotNull(application.Provider.GetRequiredService<ILogger<TestApplicationTests>>());
     }
 
     [Fact]
-    public async Task TheEnvironmentIsResolvable() {
+    public async Task TheEnvironmentIsResolvable()
+    {
         var environment = Environment();
 
         await using var application = new TestApplication(
-            new ApplicationModule((_, _) => { }), "test", environment, null);
+            new ApplicationModule((_, _) => { }),
+            "test",
+            environment,
+            null
+        );
 
         Assert.Same(environment, application.Provider.GetRequiredService<IHardenedEnvironment>());
     }
@@ -113,12 +131,17 @@ public class TestApplicationTests {
     /// it and a service that reads it agree.
     /// </summary>
     [Fact]
-    public async Task TheModuleIsGivenTheSameEnvironment() {
+    public async Task TheModuleIsGivenTheSameEnvironment()
+    {
         var environment = Environment();
         IHardenedEnvironment? seen = null;
 
         await using var application = new TestApplication(
-            new ApplicationModule((given, _) => seen = given), "test", environment, null);
+            new ApplicationModule((given, _) => seen = given),
+            "test",
+            environment,
+            null
+        );
 
         Assert.Same(environment, seen);
     }
@@ -133,52 +156,66 @@ public class TestApplicationTests {
     /// effect — and the tests would mostly still pass, because the real service usually works.
     /// </summary>
     [Fact]
-    public async Task AnOverrideReplacesTheModulesRegistration() {
+    public async Task AnOverrideReplacesTheModulesRegistration()
+    {
         await using var application = FromApplicationModule(
             (_, services) => services.AddSingleton<IGreetingService, RealGreetingService>(),
-            (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting()));
+            (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting())
+        );
 
         Assert.Equal(
             "stub hello world",
-            application.Provider.GetRequiredService<IGreetingService>().Greet("world"));
+            application.Provider.GetRequiredService<IGreetingService>().Greet("world")
+        );
     }
 
     [Fact]
-    public async Task AnOverrideReplacesADependencyModulesRegistrationToo() {
+    public async Task AnOverrideReplacesADependencyModulesRegistrationToo()
+    {
         await using var application = FromDependencyModule(
             services => services.AddSingleton<IGreetingService, RealGreetingService>(),
-            (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting()));
+            (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting())
+        );
 
         Assert.Equal(
             "stub hello world",
-            application.Provider.GetRequiredService<IGreetingService>().Greet("world"));
+            application.Provider.GetRequiredService<IGreetingService>().Greet("world")
+        );
     }
 
     [Fact]
-    public async Task AnOverrideMayAddAServiceTheModuleNeverRegistered() {
+    public async Task AnOverrideMayAddAServiceTheModuleNeverRegistered()
+    {
         await using var application = FromApplicationModule(
-            overrides: (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting()));
+            overrides: (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting())
+        );
 
         Assert.Equal(
             "stub hello world",
-            application.Provider.GetRequiredService<IGreetingService>().Greet("world"));
+            application.Provider.GetRequiredService<IGreetingService>().Greet("world")
+        );
     }
 
     [Fact]
-    public async Task NoOverrideIsFine() {
+    public async Task NoOverrideIsFine()
+    {
         await using var application = FromApplicationModule();
 
         Assert.NotNull(application.Provider);
     }
 
     [Fact]
-    public async Task TheOverrideIsGivenTheEnvironment() {
+    public async Task TheOverrideIsGivenTheEnvironment()
+    {
         var environment = Environment();
         IHardenedEnvironment? seen = null;
 
         await using var application = new TestApplication(
-            new ApplicationModule((_, _) => { }), "test", environment,
-            (given, _) => seen = given);
+            new ApplicationModule((_, _) => { }),
+            "test",
+            environment,
+            (given, _) => seen = given
+        );
 
         Assert.Same(environment, seen);
     }
@@ -192,24 +229,30 @@ public class TestApplicationTests {
     /// production would have rather than one that skipped every startup step.
     /// </summary>
     [Fact]
-    public async Task StartupServicesRunBeforeTheConstructorReturns() {
+    public async Task StartupServicesRunBeforeTheConstructorReturns()
+    {
         var startup = new RecordingStartupService();
 
         await using var application = FromApplicationModule(
-            (_, services) => services.AddSingleton<IStartupService>(startup));
+            (_, services) => services.AddSingleton<IStartupService>(startup)
+        );
 
         Assert.True(startup.Ran, "the startup service had not run when the constructor returned");
     }
 
     [Fact]
-    public async Task EveryStartupServiceRuns() {
+    public async Task EveryStartupServiceRuns()
+    {
         var first = new RecordingStartupService();
         var second = new RecordingStartupService();
 
-        await using var application = FromApplicationModule((_, services) => {
-            services.AddSingleton<IStartupService>(first);
-            services.AddSingleton<IStartupService>(second);
-        });
+        await using var application = FromApplicationModule(
+            (_, services) =>
+            {
+                services.AddSingleton<IStartupService>(first);
+                services.AddSingleton<IStartupService>(second);
+            }
+        );
 
         Assert.True(first.Ran);
         Assert.True(second.Ran);
@@ -220,11 +263,13 @@ public class TestApplicationTests {
     /// startup happens.
     /// </summary>
     [Fact]
-    public async Task AStartupServiceAddedByAnOverrideAlsoRuns() {
+    public async Task AStartupServiceAddedByAnOverrideAlsoRuns()
+    {
         var startup = new RecordingStartupService();
 
         await using var application = FromApplicationModule(
-            overrides: (_, services) => services.AddSingleton<IStartupService>(startup));
+            overrides: (_, services) => services.AddSingleton<IStartupService>(startup)
+        );
 
         Assert.True(startup.Ran);
     }
@@ -238,9 +283,11 @@ public class TestApplicationTests {
     /// <c>AddSingleton(new Thing())</c> would prove nothing about whether the provider was disposed.
     /// </summary>
     [Fact]
-    public async Task DisposingDisposesSingletonsTheContainerOwns() {
+    public async Task DisposingDisposesSingletonsTheContainerOwns()
+    {
         var application = FromApplicationModule(
-            (_, services) => services.AddSingleton<TrackedDisposable>());
+            (_, services) => services.AddSingleton<TrackedDisposable>()
+        );
 
         var disposable = application.Provider.GetRequiredService<TrackedDisposable>();
 
@@ -257,50 +304,62 @@ public class TestApplicationTests {
     /// Two constructors, near-identical bodies. This fails when one is edited and the other is not.
     /// </summary>
     [Fact]
-    public async Task BothModuleShapesProduceTheSameWiring() {
+    public async Task BothModuleShapesProduceTheSameWiring()
+    {
         var startup = new RecordingStartupService();
         var otherStartup = new RecordingStartupService();
 
         await using var fromApplication = FromApplicationModule(
-            (_, services) => {
+            (_, services) =>
+            {
                 services.AddSingleton<IGreetingService, RealGreetingService>();
                 services.AddSingleton<IStartupService>(startup);
             },
-            (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting()));
+            (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting())
+        );
 
         await using var fromDependency = FromDependencyModule(
-            services => {
+            services =>
+            {
                 services.AddSingleton<IGreetingService, RealGreetingService>();
                 services.AddSingleton<IStartupService>(otherStartup);
             },
-            (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting()));
+            (_, services) => services.AddSingleton<IGreetingService>(new StubGreeting())
+        );
 
         Assert.Equal(
             fromApplication.Provider.GetRequiredService<IGreetingService>().Greet("world"),
-            fromDependency.Provider.GetRequiredService<IGreetingService>().Greet("world"));
+            fromDependency.Provider.GetRequiredService<IGreetingService>().Greet("world")
+        );
 
         Assert.Equal(startup.Ran, otherStartup.Ran);
         Assert.True(startup.Ran);
 
-        Assert.NotNull(fromApplication.Provider.GetRequiredService<ILogger<TestApplicationTests>>());
+        Assert.NotNull(
+            fromApplication.Provider.GetRequiredService<ILogger<TestApplicationTests>>()
+        );
         Assert.NotNull(fromDependency.Provider.GetRequiredService<ILogger<TestApplicationTests>>());
     }
 
-    private sealed class StubGreeting : IGreetingService {
+    private sealed class StubGreeting : IGreetingService
+    {
         public string Greet(string name) => $"stub hello {name}";
     }
 
-    private sealed class RecordingStartupService : IStartupService {
+    private sealed class RecordingStartupService : IStartupService
+    {
         public bool Ran { get; private set; }
 
-        public Task<bool> Startup(IServiceProvider provider) {
+        public Task<bool> Startup(IServiceProvider provider)
+        {
             Ran = true;
 
             return Task.FromResult(true);
         }
     }
 
-    private sealed class TrackedDisposable : IDisposable {
+    private sealed class TrackedDisposable : IDisposable
+    {
         public bool Disposed { get; private set; }
 
         public void Dispose() => Disposed = true;
@@ -318,16 +377,22 @@ public class TestApplicationTests {
     [Theory]
     [InlineData("staging")]
     [InlineData("development")]
-    public void TheModuleSystemSeesTheEnvironmentTheTestWasGiven(string environmentName) {
+    public void TheModuleSystemSeesTheEnvironmentTheTestWasGiven(string environmentName)
+    {
         var environment = new EnvironmentImpl(environmentName);
 
         var application = new TestApplication(
-            new ApplicationModule((_, _) => { }), "test", environment, null);
+            new ApplicationModule((_, _) => { }),
+            "test",
+            environment,
+            null
+        );
 
         Assert.Same(environment, application.Provider.GetRequiredService<IModuleEnvironment>());
         Assert.Equal(
             environmentName,
-            application.Provider.GetRequiredService<IModuleEnvironment>().EnvironmentName);
+            application.Provider.GetRequiredService<IModuleEnvironment>().EnvironmentName
+        );
     }
 
     /// <summary>
@@ -335,13 +400,20 @@ public class TestApplicationTests {
     /// drift <see cref="BothModuleShapesProduceTheSameWiring"/> exists to catch.
     /// </summary>
     [Fact]
-    public void BothModuleShapesReachTheEnvironmentUnderBothInterfaces() {
-        foreach (var provider in new[] {
-                     FromApplicationModule().Provider, FromDependencyModule().Provider
-                 }) {
+    public void BothModuleShapesReachTheEnvironmentUnderBothInterfaces()
+    {
+        foreach (
+            var provider in new[]
+            {
+                FromApplicationModule().Provider,
+                FromDependencyModule().Provider,
+            }
+        )
+        {
             Assert.Same(
                 provider.GetRequiredService<IHardenedEnvironment>(),
-                provider.GetRequiredService<IModuleEnvironment>());
+                provider.GetRequiredService<IModuleEnvironment>()
+            );
         }
     }
 

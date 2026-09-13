@@ -1,8 +1,8 @@
 using CSharpAuthor;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 
@@ -16,8 +16,8 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// resolved symbol.
 /// </para>
 /// </summary>
-public class ResponseModelSelectorTests {
-
+public class ResponseModelSelectorTests
+{
     #region defaulting
 
     /// <summary>
@@ -25,14 +25,16 @@ public class ResponseModelSelectorTests {
     /// exactly as it did.
     /// </summary>
     [Fact]
-    public void Read_DefaultsToThrowsWhenTheEntryPointSaysNothing() {
+    public void Read_DefaultsToThrowsWhenTheEntryPointSaysNothing()
+    {
         var model = EntryPoint();
 
         Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
     }
 
     [Fact]
-    public void Read_DefaultsToThrowsWhenThereAreNoAttributesAtAll() {
+    public void Read_DefaultsToThrowsWhenThereAreNoAttributesAtAll()
+    {
         var model = EntryPoint();
         model.AttributeModels = null!;
 
@@ -40,7 +42,8 @@ public class ResponseModelSelectorTests {
     }
 
     [Fact]
-    public void Read_IgnoresOtherModuleAttributes() {
+    public void Read_IgnoresOtherModuleAttributes()
+    {
         var model = EntryPoint(Attribute("CaseInsensitiveRoutesAttribute", ""));
 
         Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
@@ -55,15 +58,21 @@ public class ResponseModelSelectorTests {
     /// sees most of the time.
     /// </summary>
     [Fact]
-    public void Read_UnderstandsTheFullyQualifiedMember() {
-        var model = EntryPoint(Attribute(
-            "ResponseModelAttribute", "Hardened.Requests.Abstract.Responses.ResponseModel.Union"));
+    public void Read_UnderstandsTheFullyQualifiedMember()
+    {
+        var model = EntryPoint(
+            Attribute(
+                "ResponseModelAttribute",
+                "Hardened.Requests.Abstract.Responses.ResponseModel.Union"
+            )
+        );
 
         Assert.Equal(ResponseModelValue.Union, ResponseModelSelector.Read(model));
     }
 
     [Fact]
-    public void Read_UnderstandsTheEnumQualifiedMember() {
+    public void Read_UnderstandsTheEnumQualifiedMember()
+    {
         var model = EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Response"));
 
         Assert.Equal(ResponseModelValue.Response, ResponseModelSelector.Read(model));
@@ -74,7 +83,8 @@ public class ResponseModelSelectorTests {
     /// that only handled the qualified form would silently read as Throws.
     /// </summary>
     [Fact]
-    public void Read_UnderstandsTheBareMember() {
+    public void Read_UnderstandsTheBareMember()
+    {
         var model = EntryPoint(Attribute("ResponseModelAttribute", "Union"));
 
         Assert.Equal(ResponseModelValue.Union, ResponseModelSelector.Read(model));
@@ -85,19 +95,26 @@ public class ResponseModelSelectorTests {
     /// only one would do nothing for a project that wrote the other.
     /// </summary>
     [Fact]
-    public void Read_AcceptsTheNameWithAndWithoutTheAttributeSuffix() {
+    public void Read_AcceptsTheNameWithAndWithoutTheAttributeSuffix()
+    {
         Assert.Equal(
             ResponseModelValue.Union,
-            ResponseModelSelector.Read(EntryPoint(Attribute("ResponseModel", "ResponseModel.Union"))));
+            ResponseModelSelector.Read(
+                EntryPoint(Attribute("ResponseModel", "ResponseModel.Union"))
+            )
+        );
 
         Assert.Equal(
             ResponseModelValue.Union,
             ResponseModelSelector.Read(
-                EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Union"))));
+                EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Union"))
+            )
+        );
     }
 
     [Fact]
-    public void Read_ReadsThrowsAsThrows() {
+    public void Read_ReadsThrowsAsThrows()
+    {
         var model = EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Throws"));
 
         Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
@@ -109,7 +126,8 @@ public class ResponseModelSelectorTests {
     /// mode.
     /// </summary>
     [Fact]
-    public void Read_ReadsTheRenamedStandardSpellingAsThrows() {
+    public void Read_ReadsTheRenamedStandardSpellingAsThrows()
+    {
         var model = EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Standard"));
 
         Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
@@ -120,7 +138,8 @@ public class ResponseModelSelectorTests {
     /// Hardened. Throws is the answer that still builds.
     /// </summary>
     [Fact]
-    public void Read_FallsBackToThrowsForAnUnknownMember() {
+    public void Read_FallsBackToThrowsForAnUnknownMember()
+    {
         var model = EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Whatever"));
 
         Assert.Equal(ResponseModelValue.Throws, ResponseModelSelector.Read(model));
@@ -134,19 +153,24 @@ public class ResponseModelSelectorTests {
     /// Saying Throws and saying nothing produce the same emit and are not the same statement.
     /// </summary>
     [Fact]
-    public void IsDeclared_SeparatesAnExplicitThrowsFromSilence() {
+    public void IsDeclared_SeparatesAnExplicitThrowsFromSilence()
+    {
         Assert.False(ResponseModelSelector.IsDeclared(EntryPoint()));
 
-        Assert.True(ResponseModelSelector.IsDeclared(
-            EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Throws"))));
+        Assert.True(
+            ResponseModelSelector.IsDeclared(
+                EntryPoint(Attribute("ResponseModelAttribute", "ResponseModel.Throws"))
+            )
+        );
     }
 
     #endregion
 
     private static EntryPointSelector.Model EntryPoint(params AttributeModel[] attributes) =>
-        new() {
+        new()
+        {
             EntryPointType = TypeDefinition.Get("MyApp", "Application"),
-            AttributeModels = attributes
+            AttributeModels = attributes,
         };
 
     private static AttributeModel Attribute(string name, string arguments) =>

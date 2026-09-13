@@ -18,17 +18,24 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// skipped test, on the grounds that a skip is a test the suite is not running.
 /// </para>
 /// </remarks>
-public class GenerateSmithyAstTests : IDisposable {
-
+public class GenerateSmithyAstTests : IDisposable
+{
     private readonly string _root = Path.Combine(
-        Path.GetTempPath(), "hardened-smithy-cli-tests", Guid.NewGuid().ToString("n"));
+        Path.GetTempPath(),
+        "hardened-smithy-cli-tests",
+        Guid.NewGuid().ToString("n")
+    );
 
     public GenerateSmithyAstTests() => Directory.CreateDirectory(_root);
 
-    public void Dispose() {
-        try {
+    public void Dispose()
+    {
+        try
+        {
             Directory.Delete(_root, recursive: true);
-        } catch (IOException) {
+        }
+        catch (IOException)
+        {
             // A leftover temp directory is not worth failing a test over.
         }
     }
@@ -40,11 +47,17 @@ public class GenerateSmithyAstTests : IDisposable {
     /// carry on either platform.
     /// </summary>
     private string FakeCli(
-        string version, string output = "", int exitCode = 0, string error = "",
-        string report = "") {
+        string version,
+        string output = "",
+        int exitCode = 0,
+        string error = "",
+        string report = ""
+    )
+    {
         var reportEmit = "";
 
-        if (report.Length > 0) {
+        if (report.Length > 0)
+        {
             var reportPath = Path.Combine(_root, "report.txt");
 
             File.WriteAllText(reportPath, report);
@@ -54,37 +67,45 @@ public class GenerateSmithyAstTests : IDisposable {
                 : $"cat '{reportPath}' 1>&2\n";
         }
 
-        if (OperatingSystem.IsWindows()) {
+        if (OperatingSystem.IsWindows())
+        {
             var batch = Path.Combine(_root, "smithy.cmd");
 
-            File.WriteAllText(batch,
-                "@echo off\r\n" +
-                $"if \"%1\"==\"--version\" (echo {version}& exit /b 0)\r\n" +
-                (output.Length > 0 ? $"echo {output}\r\n" : "") +
-                (error.Length > 0 ? $"echo {error} 1>&2\r\n" : "") +
-                reportEmit +
-                $"exit /b {exitCode}\r\n");
+            File.WriteAllText(
+                batch,
+                "@echo off\r\n"
+                    + $"if \"%1\"==\"--version\" (echo {version}& exit /b 0)\r\n"
+                    + (output.Length > 0 ? $"echo {output}\r\n" : "")
+                    + (error.Length > 0 ? $"echo {error} 1>&2\r\n" : "")
+                    + reportEmit
+                    + $"exit /b {exitCode}\r\n"
+            );
 
             return batch;
         }
 
         var script = Path.Combine(_root, "smithy");
 
-        File.WriteAllText(script,
-            "#!/bin/sh\n" +
-            $"if [ \"$1\" = \"--version\" ]; then echo '{version}'; exit 0; fi\n" +
-            (output.Length > 0 ? $"printf '%s' '{output}'\n" : "") +
-            (error.Length > 0 ? $"echo '{error}' 1>&2\n" : "") +
-            reportEmit +
-            $"exit {exitCode}\n");
+        File.WriteAllText(
+            script,
+            "#!/bin/sh\n"
+                + $"if [ \"$1\" = \"--version\" ]; then echo '{version}'; exit 0; fi\n"
+                + (output.Length > 0 ? $"printf '%s' '{output}'\n" : "")
+                + (error.Length > 0 ? $"echo '{error}' 1>&2\n" : "")
+                + reportEmit
+                + $"exit {exitCode}\n"
+        );
 
-        File.SetUnixFileMode(script,
-            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        File.SetUnixFileMode(
+            script,
+            UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+        );
 
         return script;
     }
 
-    private string Model() {
+    private string Model()
+    {
         var path = Path.Combine(_root, "model.smithy");
 
         File.WriteAllText(path, "$version: \"2\"\nnamespace com.example\n");
@@ -93,17 +114,22 @@ public class GenerateSmithyAstTests : IDisposable {
     }
 
     private (bool Result, SmithyTaskHarness.RecordingBuildEngine Engine, string Output) Run(
-        string? toolPath, string expectedVersion = "", bool pinVersion = true) {
+        string? toolPath,
+        string expectedVersion = "",
+        bool pinVersion = true
+    )
+    {
         var engine = new SmithyTaskHarness.RecordingBuildEngine();
         var output = Path.Combine(_root, "out", "ast.json");
 
-        var task = new GenerateSmithyAst {
+        var task = new GenerateSmithyAst
+        {
             BuildEngine = engine,
             Models = new ITaskItem[] { new Microsoft.Build.Utilities.TaskItem(Model()) },
             OutputPath = output,
             ToolPath = toolPath ?? "",
             ExpectedVersion = expectedVersion,
-            PinVersion = pinVersion
+            PinVersion = pinVersion,
         };
 
         return (task.Execute(), engine, output);
@@ -117,12 +143,15 @@ public class GenerateSmithyAstTests : IDisposable {
     /// AST and skip it entirely.
     /// </summary>
     [Fact]
-    public void Execute_ReportsAMissingCli() {
+    public void Execute_ReportsAMissingCli()
+    {
         var (result, engine, _) = Run(Path.Combine(_root, "no-such-smithy"));
 
         Assert.False(result);
-        Assert.True(HasError(engine, "HSMT010"),
-            string.Join("\n", engine.Errors.Select(e => e.Message)));
+        Assert.True(
+            HasError(engine, "HSMT010"),
+            string.Join("\n", engine.Errors.Select(e => e.Message))
+        );
     }
 
     /// <summary>
@@ -130,7 +159,8 @@ public class GenerateSmithyAstTests : IDisposable {
     /// from identical sources, and that is not something to discover downstream of a publish.
     /// </summary>
     [Fact]
-    public void Execute_RefusesACliThatIsNotThePinnedVersion() {
+    public void Execute_RefusesACliThatIsNotThePinnedVersion()
+    {
         var (result, engine, output) = Run(FakeCli("1.56.0"), expectedVersion: "1.73.0");
 
         Assert.False(result);
@@ -155,11 +185,13 @@ public class GenerateSmithyAstTests : IDisposable {
     /// changes.
     /// </remarks>
     [Fact]
-    public void Execute_WarnsButBuildsWhenTheVersionIsNotPinned() {
+    public void Execute_WarnsButBuildsWhenTheVersionIsNotPinned()
+    {
         var (result, engine, output) = Run(
             FakeCli("1.56.0", output: "{\"smithy\":\"2.0\",\"shapes\":{}}"),
             expectedVersion: "1.73.0",
-            pinVersion: false);
+            pinVersion: false
+        );
 
         Assert.True(result, string.Join("\n", engine.Errors.Select(error => error.Message)));
         Assert.False(HasError(engine, "HSMT011"));
@@ -172,16 +204,20 @@ public class GenerateSmithyAstTests : IDisposable {
     }
 
     [Fact]
-    public void Execute_AcceptsTheCliWhenTheVersionMatches() {
+    public void Execute_AcceptsTheCliWhenTheVersionMatches()
+    {
         var (result, engine, output) = Run(
-            FakeCli("1.73.0", output: "{\"smithy\":\"2.0\",\"shapes\":{}}"), expectedVersion: "1.73.0");
+            FakeCli("1.73.0", output: "{\"smithy\":\"2.0\",\"shapes\":{}}"),
+            expectedVersion: "1.73.0"
+        );
 
         Assert.True(result, string.Join("\n", engine.Errors.Select(e => e.Message)));
         Assert.Contains("\"smithy\"", File.ReadAllText(output));
     }
 
     [Fact]
-    public void Execute_AcceptsAnyVersionWhenNothingIsPinned() {
+    public void Execute_AcceptsAnyVersionWhenNothingIsPinned()
+    {
         var (result, engine, _) = Run(FakeCli("0.1.2", output: "{\"shapes\":{}}"));
 
         Assert.True(result, string.Join("\n", engine.Errors.Select(e => e.Message)));
@@ -192,12 +228,18 @@ public class GenerateSmithyAstTests : IDisposable {
     /// through whole rather than lost, against the first model because there is nothing better.
     /// </summary>
     [Fact]
-    public void Execute_ReportsWhatTheCliSaidWhenItFails() {
-        var (result, engine, output) = Run(FakeCli("1.73.0", exitCode: 1, error: "Model.UnresolvedShape"));
+    public void Execute_ReportsWhatTheCliSaidWhenItFails()
+    {
+        var (result, engine, output) = Run(
+            FakeCli("1.73.0", exitCode: 1, error: "Model.UnresolvedShape")
+        );
 
         Assert.False(result);
         Assert.True(HasError(engine, "HSMT012"));
-        Assert.Contains("Model.UnresolvedShape", engine.Errors.Single(e => e.Code == "HSMT012").Message);
+        Assert.Contains(
+            "Model.UnresolvedShape",
+            engine.Errors.Single(e => e.Code == "HSMT012").Message
+        );
         Assert.False(File.Exists(output));
     }
 
@@ -205,8 +247,7 @@ public class GenerateSmithyAstTests : IDisposable {
     /// What the CLI prints when it refuses a model: one banner per finding, each naming its file,
     /// line and column. The excerpt and the count line are the report's own layout.
     /// </summary>
-    private const string Report =
-        """
+    private const string Report = """
 
         ──  ERROR  ────────────────────────────────────────────── Target.UnresolvedShape
         Shape: probe#Svc
@@ -238,7 +279,8 @@ public class GenerateSmithyAstTests : IDisposable {
     /// author at the wrong file.
     /// </summary>
     [Fact]
-    public void Execute_ReportsOneErrorPerFindingWhereTheCliPlacedIt() {
+    public void Execute_ReportsOneErrorPerFindingWhereTheCliPlacedIt()
+    {
         var (result, engine, _) = Run(FakeCli("1.73.0", exitCode: 1, report: Report));
 
         Assert.False(result);
@@ -262,14 +304,18 @@ public class GenerateSmithyAstTests : IDisposable {
 
     /// <summary>The same attribution for what the CLI got away with on a run it exited cleanly from.</summary>
     [Fact]
-    public void Execute_AttributesWarningsTheCliPrintedOnASuccessfulRun() {
-        var (result, engine, _) = Run(FakeCli(
-            "1.73.0",
-            output: "{\"smithy\":\"2.0\",\"shapes\":{}}",
-            report: "──  WARNING  ──── HttpMethodSemantics\n" +
-                    "File:  models/ok.smithy:5:1\n" +
-                    "\n" +
-                    "POST on a @readonly operation\n"));
+    public void Execute_AttributesWarningsTheCliPrintedOnASuccessfulRun()
+    {
+        var (result, engine, _) = Run(
+            FakeCli(
+                "1.73.0",
+                output: "{\"smithy\":\"2.0\",\"shapes\":{}}",
+                report: "──  WARNING  ──── HttpMethodSemantics\n"
+                    + "File:  models/ok.smithy:5:1\n"
+                    + "\n"
+                    + "POST on a @readonly operation\n"
+            )
+        );
 
         Assert.True(result, string.Join("\n", engine.Errors.Select(e => e.Message)));
 
@@ -287,7 +333,8 @@ public class GenerateSmithyAstTests : IDisposable {
     /// report as broken JSON at position zero.
     /// </summary>
     [Fact]
-    public void Execute_LeavesNoOutputBehindWhenTheCliFails() {
+    public void Execute_LeavesNoOutputBehindWhenTheCliFails()
+    {
         var (result, _, output) = Run(FakeCli("1.73.0", exitCode: 2));
 
         Assert.False(result);
@@ -301,12 +348,15 @@ public class GenerateSmithyAstTests : IDisposable {
     /// not in any .smithy file.
     /// </summary>
     [Fact]
-    public void Execute_TreatsASilentSuccessAsAFailure() {
+    public void Execute_TreatsASilentSuccessAsAFailure()
+    {
         var (result, engine, output) = Run(FakeCli("1.73.0"));
 
         Assert.False(result);
-        Assert.True(HasError(engine, "HSMT014"),
-            string.Join("\n", engine.Errors.Select(e => e.Code)));
+        Assert.True(
+            HasError(engine, "HSMT014"),
+            string.Join("\n", engine.Errors.Select(e => e.Code))
+        );
         Assert.False(File.Exists(output));
     }
 
@@ -315,7 +365,8 @@ public class GenerateSmithyAstTests : IDisposable {
     /// both key off that - so editing a comment in a model would rebuild the whole compilation.
     /// </summary>
     [Fact]
-    public void Execute_LeavesAnUnchangedAstUntouched() {
+    public void Execute_LeavesAnUnchangedAstUntouched()
+    {
         var cli = FakeCli("1.73.0", output: "{\"smithy\":\"2.0\",\"shapes\":{}}");
 
         var first = Run(cli, expectedVersion: "1.73.0");

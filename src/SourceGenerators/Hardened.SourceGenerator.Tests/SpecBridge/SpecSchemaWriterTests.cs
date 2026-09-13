@@ -3,8 +3,8 @@ using System.Text.Json;
 using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.SpecBridge;
 
@@ -17,9 +17,10 @@ namespace Hardened.SourceGenerator.Tests.SpecBridge;
 /// source. Without this the published document carried paths and operation ids and no
 /// <c>components</c> at all.
 /// </remarks>
-public class SpecSchemaWriterTests {
-
-    private static SchemaModel Object(string name, params PropertyModel[] properties) {
+public class SpecSchemaWriterTests
+{
+    private static SchemaModel Object(string name, params PropertyModel[] properties)
+    {
         var schema = new SchemaModel { Name = name, Kind = SchemaKind.Object };
 
         schema.Properties.AddRange(properties);
@@ -28,20 +29,33 @@ public class SpecSchemaWriterTests {
     }
 
     private static PropertyModel Property(
-        string name, string? type = "string", string? reference = null,
-        string? description = null, bool required = false, string? headerName = null,
-        int? messagePackIndex = null) =>
-        new() {
-            Name = name, Type = reference == null ? type : null, Ref = reference,
-            Description = description, IsRequired = required, HeaderName = headerName,
-            MessagePackIndex = messagePackIndex
+        string name,
+        string? type = "string",
+        string? reference = null,
+        string? description = null,
+        bool required = false,
+        string? headerName = null,
+        int? messagePackIndex = null
+    ) =>
+        new()
+        {
+            Name = name,
+            Type = reference == null ? type : null,
+            Ref = reference,
+            Description = description,
+            IsRequired = required,
+            HeaderName = headerName,
+            MessagePackIndex = messagePackIndex,
         };
 
     private static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement;
 
-    private static JsonElement Component(HandlerSchema schema, string name) {
-        foreach (var component in schema.Components) {
-            if (component.Name == name) {
+    private static JsonElement Component(HandlerSchema schema, string name)
+    {
+        foreach (var component in schema.Components)
+        {
+            if (component.Name == name)
+            {
                 return Parse(component.Json);
             }
         }
@@ -58,16 +72,31 @@ public class SpecSchemaWriterTests {
     /// nothing else - which under a keyed format is agreement about the wrong thing.
     /// </remarks>
     [Fact]
-    public void AKeyedPropertyPublishesItsIndex() {
-        var schemas = new List<SchemaModel> {
-            Object("Reading", Property("sensor", messagePackIndex: 0), Property("value", messagePackIndex: 7))
+    public void AKeyedPropertyPublishesItsIndex()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            Object(
+                "Reading",
+                Property("sensor", messagePackIndex: 0),
+                Property("value", messagePackIndex: 7)
+            ),
         };
 
-        var reading = Component(SpecSchemaWriter.ForRef("#/components/schemas/Reading", schemas)!, "Reading");
+        var reading = Component(
+            SpecSchemaWriter.ForRef("#/components/schemas/Reading", schemas)!,
+            "Reading"
+        );
         var properties = reading.GetProperty("properties");
 
-        Assert.Equal(0, properties.GetProperty("sensor").GetProperty("x-message-pack-index").GetInt32());
-        Assert.Equal(7, properties.GetProperty("value").GetProperty("x-message-pack-index").GetInt32());
+        Assert.Equal(
+            0,
+            properties.GetProperty("sensor").GetProperty("x-message-pack-index").GetInt32()
+        );
+        Assert.Equal(
+            7,
+            properties.GetProperty("value").GetProperty("x-message-pack-index").GetInt32()
+        );
     }
 
     /// <summary>
@@ -75,14 +104,17 @@ public class SpecSchemaWriterTests {
     /// produces the document it always did.
     /// </summary>
     [Fact]
-    public void AnUnkeyedPropertyPublishesNoExtension() {
+    public void AnUnkeyedPropertyPublishesNoExtension()
+    {
         var schemas = new List<SchemaModel> { Object("Pet", Property("id")) };
 
         var pet = Component(SpecSchemaWriter.ForRef("#/components/schemas/Pet", schemas)!, "Pet");
 
         Assert.False(
-            pet.GetProperty("properties").GetProperty("id")
-                .TryGetProperty("x-message-pack-index", out _));
+            pet.GetProperty("properties")
+                .GetProperty("id")
+                .TryGetProperty("x-message-pack-index", out _)
+        );
     }
 
     /// <summary>
@@ -90,19 +122,28 @@ public class SpecSchemaWriterTests {
     /// siblings in 3.0, so the key written beside it would be dropped by every reader.
     /// </summary>
     [Fact]
-    public void AKeyedReferenceIsWrappedInAllOf() {
-        var schemas = new List<SchemaModel> {
-            Object("Order", Property("pet", reference: "#/components/schemas/Pet", messagePackIndex: 3)),
-            Object("Pet", Property("id"))
+    public void AKeyedReferenceIsWrappedInAllOf()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            Object(
+                "Order",
+                Property("pet", reference: "#/components/schemas/Pet", messagePackIndex: 3)
+            ),
+            Object("Pet", Property("id")),
         };
 
-        var order = Component(SpecSchemaWriter.ForRef("#/components/schemas/Order", schemas)!, "Order");
+        var order = Component(
+            SpecSchemaWriter.ForRef("#/components/schemas/Order", schemas)!,
+            "Order"
+        );
         var pet = order.GetProperty("properties").GetProperty("pet");
 
         Assert.Equal(3, pet.GetProperty("x-message-pack-index").GetInt32());
         Assert.Equal(
             "#/components/schemas/Pet",
-            pet.GetProperty("allOf")[0].GetProperty("$ref").GetString());
+            pet.GetProperty("allOf")[0].GetProperty("$ref").GetString()
+        );
     }
 
     /// <summary>
@@ -110,40 +151,62 @@ public class SpecSchemaWriterTests {
     /// a keyed object needs an answer for every member.
     /// </summary>
     [Fact]
-    public void AKeyedArrayMemberPublishesItsIndex() {
+    public void AKeyedArrayMemberPublishesItsIndex()
+    {
         var schema = Object("Reading");
 
-        schema.Properties.Add(new PropertyModel {
-            Name = "tags", IsArray = true, ArrayItemsType = "string", MessagePackIndex = 2
-        });
+        schema.Properties.Add(
+            new PropertyModel
+            {
+                Name = "tags",
+                IsArray = true,
+                ArrayItemsType = "string",
+                MessagePackIndex = 2,
+            }
+        );
 
         var reading = Component(
-            SpecSchemaWriter.ForRef("#/components/schemas/Reading", new List<SchemaModel> { schema })!,
-            "Reading");
+            SpecSchemaWriter.ForRef(
+                "#/components/schemas/Reading",
+                new List<SchemaModel> { schema }
+            )!,
+            "Reading"
+        );
 
         Assert.Equal(
             2,
-            reading.GetProperty("properties").GetProperty("tags")
-                .GetProperty("x-message-pack-index").GetInt32());
+            reading
+                .GetProperty("properties")
+                .GetProperty("tags")
+                .GetProperty("x-message-pack-index")
+                .GetInt32()
+        );
     }
 
     [Fact]
-    public void ANullRefWritesNothing() {
+    public void ANullRefWritesNothing()
+    {
         Assert.Null(SpecSchemaWriter.ForRef(null, new List<SchemaModel>()));
         Assert.Null(SpecSchemaWriter.ForArrayOf(null, new List<SchemaModel>()));
     }
 
     [Fact]
     public void ARefThatNamesNoSchemaWritesNothing() =>
-        Assert.Null(SpecSchemaWriter.ForRef("#/components/schemas/Missing", new List<SchemaModel>()));
+        Assert.Null(
+            SpecSchemaWriter.ForRef("#/components/schemas/Missing", new List<SchemaModel>())
+        );
 
     [Fact]
-    public void TheRootIsAReferenceAndTheSchemaIsAComponent() {
+    public void TheRootIsAReferenceAndTheSchemaIsAComponent()
+    {
         var schemas = new List<SchemaModel> { Object("Pet", Property("id"), Property("name")) };
 
         var written = SpecSchemaWriter.ForRef("#/components/schemas/Pet", schemas)!;
 
-        Assert.Equal("#/components/schemas/Pet", Parse(written.Schema).GetProperty("$ref").GetString());
+        Assert.Equal(
+            "#/components/schemas/Pet",
+            Parse(written.Schema).GetProperty("$ref").GetString()
+        );
 
         var pet = Component(written, "Pet");
 
@@ -153,7 +216,8 @@ public class SpecSchemaWriterTests {
     }
 
     [Fact]
-    public void AnArrayWrapsTheReference() {
+    public void AnArrayWrapsTheReference()
+    {
         var schemas = new List<SchemaModel> { Object("Pet", Property("id")) };
 
         var written = SpecSchemaWriter.ForArrayOf("#/components/schemas/Pet", schemas)!;
@@ -162,21 +226,31 @@ public class SpecSchemaWriterTests {
         Assert.Equal("array", root.GetProperty("type").GetString());
         Assert.Equal(
             "#/components/schemas/Pet",
-            root.GetProperty("items").GetProperty("$ref").GetString());
+            root.GetProperty("items").GetProperty("$ref").GetString()
+        );
     }
 
     [Fact]
-    public void DescriptionsReachTheSchemaAndItsProperties() {
+    public void DescriptionsReachTheSchemaAndItsProperties()
+    {
         var pet = Object("Pet", Property("id", description: "Assigned by the store."));
 
         pet.Description = "A pet in the store.";
 
-        var written = Component(SpecSchemaWriter.ForRef("#/components/schemas/Pet", new List<SchemaModel> { pet })!, "Pet");
+        var written = Component(
+            SpecSchemaWriter.ForRef("#/components/schemas/Pet", new List<SchemaModel> { pet })!,
+            "Pet"
+        );
 
         Assert.Equal("A pet in the store.", written.GetProperty("description").GetString());
         Assert.Equal(
             "Assigned by the store.",
-            written.GetProperty("properties").GetProperty("id").GetProperty("description").GetString());
+            written
+                .GetProperty("properties")
+                .GetProperty("id")
+                .GetProperty("description")
+                .GetString()
+        );
     }
 
     /// <summary>
@@ -187,42 +261,66 @@ public class SpecSchemaWriterTests {
     /// drop it. <c>allOf</c> is the spelling every tool reads.
     /// </remarks>
     [Fact]
-    public void ADescribedReferenceIsWrappedInAllOf() {
-        var schemas = new List<SchemaModel> {
-            Object("Order", Property("pet", reference: "#/components/schemas/Pet", description: "What was ordered.")),
-            Object("Pet", Property("id"))
+    public void ADescribedReferenceIsWrappedInAllOf()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            Object(
+                "Order",
+                Property(
+                    "pet",
+                    reference: "#/components/schemas/Pet",
+                    description: "What was ordered."
+                )
+            ),
+            Object("Pet", Property("id")),
         };
 
-        var order = Component(SpecSchemaWriter.ForRef("#/components/schemas/Order", schemas)!, "Order");
+        var order = Component(
+            SpecSchemaWriter.ForRef("#/components/schemas/Order", schemas)!,
+            "Order"
+        );
         var pet = order.GetProperty("properties").GetProperty("pet");
 
         Assert.Equal("What was ordered.", pet.GetProperty("description").GetString());
         Assert.Equal(
             "#/components/schemas/Pet",
-            pet.GetProperty("allOf")[0].GetProperty("$ref").GetString());
+            pet.GetProperty("allOf")[0].GetProperty("$ref").GetString()
+        );
     }
 
     [Fact]
-    public void AnUndescribedReferenceIsWrittenBare() {
-        var schemas = new List<SchemaModel> {
+    public void AnUndescribedReferenceIsWrittenBare()
+    {
+        var schemas = new List<SchemaModel>
+        {
             Object("Order", Property("pet", reference: "#/components/schemas/Pet")),
-            Object("Pet", Property("id"))
+            Object("Pet", Property("id")),
         };
 
-        var pet = Component(SpecSchemaWriter.ForRef("#/components/schemas/Order", schemas)!, "Order")
-            .GetProperty("properties").GetProperty("pet");
+        var pet = Component(
+                SpecSchemaWriter.ForRef("#/components/schemas/Order", schemas)!,
+                "Order"
+            )
+            .GetProperty("properties")
+            .GetProperty("pet");
 
         Assert.Equal("#/components/schemas/Pet", pet.GetProperty("$ref").GetString());
         Assert.False(pet.TryGetProperty("allOf", out _));
     }
 
     [Fact]
-    public void RequiredNamesTheMembersTheContractRequires() {
-        var schemas = new List<SchemaModel> {
-            Object("Pet", Property("id", required: true), Property("nickname"))
+    public void RequiredNamesTheMembersTheContractRequires()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            Object("Pet", Property("id", required: true), Property("nickname")),
         };
 
-        var required = Component(SpecSchemaWriter.ForRef("#/components/schemas/Pet", schemas)!, "Pet")
+        var required = Component(
+                SpecSchemaWriter.ForRef("#/components/schemas/Pet", schemas)!,
+                "Pet"
+            )
             .GetProperty("required");
 
         Assert.Equal(1, required.GetArrayLength());
@@ -233,14 +331,21 @@ public class SpecSchemaWriterTests {
     /// A member bound to a response header is not in the body, so it cannot be required of one.
     /// </summary>
     [Fact]
-    public void AHeaderBoundMemberIsNeverRequired() {
-        var schemas = new List<SchemaModel> {
-            Object("CreatePetOutput",
+    public void AHeaderBoundMemberIsNeverRequired()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            Object(
+                "CreatePetOutput",
                 Property("pet", required: true),
-                Property("location", required: true, headerName: "Location"))
+                Property("location", required: true, headerName: "Location")
+            ),
         };
 
-        var written = Component(SpecSchemaWriter.ForRef("#/components/schemas/CreatePetOutput", schemas)!, "CreatePetOutput");
+        var written = Component(
+            SpecSchemaWriter.ForRef("#/components/schemas/CreatePetOutput", schemas)!,
+            "CreatePetOutput"
+        );
         var required = written.GetProperty("required");
 
         Assert.Equal(1, required.GetArrayLength());
@@ -248,12 +353,19 @@ public class SpecSchemaWriterTests {
     }
 
     [Fact]
-    public void AnEnumWritesItsWireValues() {
+    public void AnEnumWritesItsWireValues()
+    {
         var kind = new SchemaModel { Name = "PetKind", Kind = SchemaKind.Enum };
 
         kind.EnumValues.AddRange(new[] { "cat", "dog" });
 
-        var written = Component(SpecSchemaWriter.ForRef("#/components/schemas/PetKind", new List<SchemaModel> { kind })!, "PetKind");
+        var written = Component(
+            SpecSchemaWriter.ForRef(
+                "#/components/schemas/PetKind",
+                new List<SchemaModel> { kind }
+            )!,
+            "PetKind"
+        );
 
         Assert.Equal("string", written.GetProperty("type").GetString());
         Assert.Equal("cat", written.GetProperty("enum")[0].GetString());
@@ -264,19 +376,29 @@ public class SpecSchemaWriterTests {
     /// A type that reaches itself is written once and referenced, rather than expanded forever.
     /// </summary>
     [Fact]
-    public void ASelfReferencingSchemaTerminates() {
+    public void ASelfReferencingSchemaTerminates()
+    {
         var node = Object("Node", Property("child", reference: "#/components/schemas/Node"));
 
-        var written = SpecSchemaWriter.ForRef("#/components/schemas/Node", new List<SchemaModel> { node })!;
+        var written = SpecSchemaWriter.ForRef(
+            "#/components/schemas/Node",
+            new List<SchemaModel> { node }
+        )!;
 
         Assert.Single(written.Components);
         Assert.Equal(
             "#/components/schemas/Node",
-            Component(written, "Node").GetProperty("properties").GetProperty("child").GetProperty("$ref").GetString());
+            Component(written, "Node")
+                .GetProperty("properties")
+                .GetProperty("child")
+                .GetProperty("$ref")
+                .GetString()
+        );
     }
 
     [Fact]
-    public void TheStatusWordingIsAFallbackForAResponseThatDeclaredNone() {
+    public void TheStatusWordingIsAFallbackForAResponseThatDeclaredNone()
+    {
         Assert.Equal("Created", SpecSchemaWriter.DescriptionFor(null, 201));
         Assert.Equal("Created", SpecSchemaWriter.DescriptionFor("", 201));
         Assert.Equal("Pet created", SpecSchemaWriter.DescriptionFor("Pet created", 201));
@@ -292,39 +414,69 @@ public class SpecSchemaWriterTests {
     /// generated one and read null.
     /// </remarks>
     [Fact]
-    public void AMapPropertyIsPublishedAsAnObjectWithAdditionalProperties() {
-        var schemas = new List<SchemaModel> {
-            Object("Report", new PropertyModel {
-                Name = "byStatus", IsDictionary = true, DictionaryValueType = "integer",
-                DictionaryValueFormat = "int32"
-            })
+    public void AMapPropertyIsPublishedAsAnObjectWithAdditionalProperties()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            Object(
+                "Report",
+                new PropertyModel
+                {
+                    Name = "byStatus",
+                    IsDictionary = true,
+                    DictionaryValueType = "integer",
+                    DictionaryValueFormat = "int32",
+                }
+            ),
         };
 
-        var byStatus = Component(SpecSchemaWriter.ForRef("#/components/schemas/Report", schemas)!, "Report")
-            .GetProperty("properties").GetProperty("byStatus");
+        var byStatus = Component(
+                SpecSchemaWriter.ForRef("#/components/schemas/Report", schemas)!,
+                "Report"
+            )
+            .GetProperty("properties")
+            .GetProperty("byStatus");
 
         Assert.Equal("object", byStatus.GetProperty("type").GetString());
-        Assert.Equal("integer", byStatus.GetProperty("additionalProperties").GetProperty("type").GetString());
-        Assert.Equal("int32", byStatus.GetProperty("additionalProperties").GetProperty("format").GetString());
+        Assert.Equal(
+            "integer",
+            byStatus.GetProperty("additionalProperties").GetProperty("type").GetString()
+        );
+        Assert.Equal(
+            "int32",
+            byStatus.GetProperty("additionalProperties").GetProperty("format").GetString()
+        );
     }
 
     /// <summary>A map whose values name a component references it rather than inlining it.</summary>
     [Fact]
-    public void AMapOfReferencesReferencesTheValueSchema() {
-        var schemas = new List<SchemaModel> {
-            Object("Store", new PropertyModel {
-                Name = "pets", IsDictionary = true,
-                DictionaryValueRef = "#/components/schemas/Pet"
-            }),
-            Object("Pet", Property("id"))
+    public void AMapOfReferencesReferencesTheValueSchema()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            Object(
+                "Store",
+                new PropertyModel
+                {
+                    Name = "pets",
+                    IsDictionary = true,
+                    DictionaryValueRef = "#/components/schemas/Pet",
+                }
+            ),
+            Object("Pet", Property("id")),
         };
 
         var written = SpecSchemaWriter.ForRef("#/components/schemas/Store", schemas)!;
 
         Assert.Equal(
             "#/components/schemas/Pet",
-            Component(written, "Store").GetProperty("properties").GetProperty("pets")
-                .GetProperty("additionalProperties").GetProperty("$ref").GetString());
+            Component(written, "Store")
+                .GetProperty("properties")
+                .GetProperty("pets")
+                .GetProperty("additionalProperties")
+                .GetProperty("$ref")
+                .GetString()
+        );
 
         Assert.Equal("object", Component(written, "Pet").GetProperty("type").GetString());
     }
@@ -334,38 +486,62 @@ public class SpecSchemaWriterTests {
     /// the map's own and not its value's.
     /// </summary>
     [Fact]
-    public void ANullableMapIsAnObjectOrNull() {
-        var schemas = new List<SchemaModel> {
-            Object("Pet", new PropertyModel {
-                Name = "tags", IsDictionary = true, DictionaryValueType = "string", IsNullable = true
-            })
+    public void ANullableMapIsAnObjectOrNull()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            Object(
+                "Pet",
+                new PropertyModel
+                {
+                    Name = "tags",
+                    IsDictionary = true,
+                    DictionaryValueType = "string",
+                    IsNullable = true,
+                }
+            ),
         };
 
         var tags = Component(SpecSchemaWriter.ForRef("#/components/schemas/Pet", schemas)!, "Pet")
-            .GetProperty("properties").GetProperty("tags");
+            .GetProperty("properties")
+            .GetProperty("tags");
         var type = tags.GetProperty("type");
 
         Assert.Equal(2, type.GetArrayLength());
         Assert.Equal("object", type[0].GetString());
         Assert.Equal("null", type[1].GetString());
-        Assert.Equal("string", tags.GetProperty("additionalProperties").GetProperty("type").GetString());
+        Assert.Equal(
+            "string",
+            tags.GetProperty("additionalProperties").GetProperty("type").GetString()
+        );
     }
 
     /// <summary>A schema that is itself a map, which the object branch published members-less.</summary>
     [Fact]
-    public void ANamedMapSchemaIsPublishedAsAMap() {
-        var schemas = new List<SchemaModel> {
-            new() {
-                Name = "Counts", Kind = SchemaKind.Dictionary, DictionaryValueType = "integer",
-                Description = "How many of each."
-            }
+    public void ANamedMapSchemaIsPublishedAsAMap()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
+                Name = "Counts",
+                Kind = SchemaKind.Dictionary,
+                DictionaryValueType = "integer",
+                Description = "How many of each.",
+            },
         };
 
-        var counts = Component(SpecSchemaWriter.ForRef("#/components/schemas/Counts", schemas)!, "Counts");
+        var counts = Component(
+            SpecSchemaWriter.ForRef("#/components/schemas/Counts", schemas)!,
+            "Counts"
+        );
 
         Assert.Equal("object", counts.GetProperty("type").GetString());
         Assert.Equal("How many of each.", counts.GetProperty("description").GetString());
-        Assert.Equal("integer", counts.GetProperty("additionalProperties").GetProperty("type").GetString());
+        Assert.Equal(
+            "integer",
+            counts.GetProperty("additionalProperties").GetProperty("type").GetString()
+        );
     }
 
     /// <summary>
@@ -373,9 +549,17 @@ public class SpecSchemaWriterTests {
     /// object.
     /// </summary>
     [Fact]
-    public void ANamedPrimitiveSchemaKeepsItsTypeAndFormat() {
-        var schemas = new List<SchemaModel> {
-            new() { Name = "Sku", Kind = SchemaKind.Primitive, Type = "string", Format = "uuid" }
+    public void ANamedPrimitiveSchemaKeepsItsTypeAndFormat()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
+                Name = "Sku",
+                Kind = SchemaKind.Primitive,
+                Type = "string",
+                Format = "uuid",
+            },
         };
 
         var sku = Component(SpecSchemaWriter.ForRef("#/components/schemas/Sku", schemas)!, "Sku");

@@ -5,15 +5,21 @@ namespace Hardened.Web.Runtime.Cors;
 /// <summary>
 /// Which origins may call this application, and what they may see when they do.
 /// </summary>
-public class CorsConfiguration {
+public class CorsConfiguration
+{
     public const string DefaultEnvironmentVariable = "CORS_ALLOWED_ORIGINS";
 
     private readonly HashSet<string> _allowedOrigins = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _allowedOriginSuffixes = new();
-    private readonly HashSet<string> _allowedHeaders =
-        new(StringComparer.OrdinalIgnoreCase) {
-            "Authorization", "Content-Type", "Accept", "x-auth-token", "x-amz-content-sha256"
-        };
+    private readonly HashSet<string> _allowedHeaders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "x-auth-token",
+        "x-amz-content-sha256",
+    };
+
     /// <summary>
     /// Seeded with the correlation header, which the pipeline puts on every response.
     /// </summary>
@@ -64,7 +70,8 @@ public class CorsConfiguration {
     /// </remarks>
     public string FallbackMethods { get; set; } = "GET, POST, PUT, DELETE, OPTIONS";
 
-    public void AllowOrigin(string origin) {
+    public void AllowOrigin(string origin)
+    {
         _allowedOrigins.Add(Normalize(origin));
     }
 
@@ -77,26 +84,31 @@ public class CorsConfiguration {
     /// <c>notexample.com</c>. The apex itself is not included; add it with
     /// <see cref="AllowOrigin"/> if it is wanted.
     /// </remarks>
-    public void AllowOriginSuffix(string domain) {
+    public void AllowOriginSuffix(string domain)
+    {
         _allowedOriginSuffixes.Add("." + domain.TrimStart('.').TrimEnd('/').ToLowerInvariant());
     }
 
-    public void AllowHeader(string header) {
+    public void AllowHeader(string header)
+    {
         _allowedHeaders.Add(header);
     }
 
     /// <summary>
     /// Stop exposing anything, including the correlation header this starts with.
     /// </summary>
-    public void ClearExposedHeaders() {
+    public void ClearExposedHeaders()
+    {
         _exposedHeaders.Clear();
     }
 
     /// <summary>
     /// Let scripts read <paramref name="header"/> off the response.
     /// </summary>
-    public void ExposeHeader(string header) {
-        if (!_exposedHeaders.Contains(header, StringComparer.OrdinalIgnoreCase)) {
+    public void ExposeHeader(string header)
+    {
+        if (!_exposedHeaders.Contains(header, StringComparer.OrdinalIgnoreCase))
+        {
             _exposedHeaders.Add(header);
         }
     }
@@ -105,22 +117,32 @@ public class CorsConfiguration {
     /// Reads comma-separated origins from the configured environment variable and adds them to the
     /// allowed set.
     /// </summary>
-    public void LoadFromEnvironment() {
+    public void LoadFromEnvironment()
+    {
         var value = Environment.GetEnvironmentVariable(EnvironmentVariable);
 
-        if (string.IsNullOrWhiteSpace(value)) {
+        if (string.IsNullOrWhiteSpace(value))
+        {
             return;
         }
 
-        foreach (var origin in value.Split(
-                     ',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
-            if (origin == "*") {
+        foreach (
+            var origin in value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
+        )
+        {
+            if (origin == "*")
+            {
                 AllowAnyOrigin = true;
             }
-            else if (origin.StartsWith("*.", StringComparison.Ordinal)) {
+            else if (origin.StartsWith("*.", StringComparison.Ordinal))
+            {
                 AllowOriginSuffix(origin.Substring(2));
             }
-            else {
+            else
+            {
                 AllowOrigin(origin);
             }
         }
@@ -130,18 +152,22 @@ public class CorsConfiguration {
     public bool IsConfigured =>
         AllowAnyOrigin || _allowedOrigins.Count > 0 || _allowedOriginSuffixes.Count > 0;
 
-    public bool IsOriginAllowed(string origin) {
-        if (AllowAnyOrigin) {
+    public bool IsOriginAllowed(string origin)
+    {
+        if (AllowAnyOrigin)
+        {
             return true;
         }
 
         var normalized = Normalize(origin);
 
-        if (_allowedOrigins.Contains(normalized)) {
+        if (_allowedOrigins.Contains(normalized))
+        {
             return true;
         }
 
-        if (_allowedOriginSuffixes.Count == 0) {
+        if (_allowedOriginSuffixes.Count == 0)
+        {
             return false;
         }
 
@@ -149,8 +175,10 @@ public class CorsConfiguration {
         // satisfied by a path or a port that merely ends the right way.
         var host = Host(normalized);
 
-        foreach (var suffix in _allowedOriginSuffixes) {
-            if (host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var suffix in _allowedOriginSuffixes)
+        {
+            if (host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
             }
         }
@@ -159,9 +187,12 @@ public class CorsConfiguration {
     }
 
     /// <summary>Whether every header the preflight asked about is allowed.</summary>
-    public bool AreHeadersAllowed(IEnumerable<string> requested) {
-        foreach (var header in requested) {
-            if (!_allowedHeaders.Contains(header)) {
+    public bool AreHeadersAllowed(IEnumerable<string> requested)
+    {
+        foreach (var header in requested)
+        {
+            if (!_allowedHeaders.Contains(header))
+            {
                 return false;
             }
         }
@@ -171,7 +202,8 @@ public class CorsConfiguration {
 
     private static string Normalize(string origin) => origin.Trim().TrimEnd('/');
 
-    private static string Host(string origin) {
+    private static string Host(string origin)
+    {
         var scheme = origin.IndexOf("://", StringComparison.Ordinal);
         var start = scheme < 0 ? 0 : scheme + 3;
         var port = origin.IndexOf(':', start);

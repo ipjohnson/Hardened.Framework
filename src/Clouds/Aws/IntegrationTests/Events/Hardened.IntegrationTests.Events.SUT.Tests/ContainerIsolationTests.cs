@@ -22,8 +22,8 @@ namespace Hardened.IntegrationTests.Events.SUT.Tests;
 /// fresh handler, installing dispatch for the first time, exactly as a cold environment does.
 /// </para>
 /// </remarks>
-public class ContainerIsolationTests {
-
+public class ContainerIsolationTests
+{
     /// <summary>
     /// Every send gets its own container, so a singleton never carries anything forward.
     /// </summary>
@@ -35,11 +35,15 @@ public class ContainerIsolationTests {
     /// </remarks>
     [HardenedTest]
     public async Task EachInvocationRunsOnItsOwnContainer(
-        EventsTestApp.Queues queues, [Mock] ITriggerLog log) {
+        EventsTestApp.Queues queues,
+        [Mock] ITriggerLog log
+    )
+    {
         await queues.OrdersNew(new Order { Id = "q-1" });
         await queues.OrdersNew(new Order { Id = "q-2" });
 
-        Received.InOrder(() => {
+        Received.InOrder(() =>
+        {
             log.Record("queue:q-1");
             log.Record("queue:q-2");
         });
@@ -50,11 +54,16 @@ public class ContainerIsolationTests {
     /// </summary>
     [HardenedTest]
     public async Task TwoSourcesDoNotShareAContainer(
-        EventsTestApp.Queues queues, EventsTestApp.Topics topics, [Mock] ITriggerLog log) {
+        EventsTestApp.Queues queues,
+        EventsTestApp.Topics topics,
+        [Mock] ITriggerLog log
+    )
+    {
         await queues.OrdersNew(new Order { Id = "q-1" });
         await topics.OrderEvents(new Order { Id = "t-1" });
 
-        Received.InOrder(() => {
+        Received.InOrder(() =>
+        {
             log.Record("queue:q-1");
             log.Record("topic:t-1");
         });
@@ -72,11 +81,18 @@ public class ContainerIsolationTests {
     /// </remarks>
     [HardenedTest]
     public async Task ABatchIsOneInvocationAndOneContainer(
-        EventsTestApp.Queues queues, [Mock] ITriggerLog log) {
+        EventsTestApp.Queues queues,
+        [Mock] ITriggerLog log
+    )
+    {
         await queues.OrdersNew(
-            new Order { Id = "b-1" }, new Order { Id = "b-2" }, new Order { Id = "b-3" });
+            new Order { Id = "b-1" },
+            new Order { Id = "b-2" },
+            new Order { Id = "b-3" }
+        );
 
-        Received.InOrder(() => {
+        Received.InOrder(() =>
+        {
             log.Record("queue:b-1");
             log.Record("queue:b-2");
             log.Record("queue:b-3");

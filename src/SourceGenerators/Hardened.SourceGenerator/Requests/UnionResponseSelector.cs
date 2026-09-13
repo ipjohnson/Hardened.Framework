@@ -10,11 +10,17 @@ namespace Hardened.SourceGenerator.Requests;
 /// <summary>
 /// One case of a handler's declared response set: what type it is, and what it answers with.
 /// </summary>
-public readonly struct UnionCaseModel {
-
+public readonly struct UnionCaseModel
+{
     public UnionCaseModel(
-        string typeName, int status, bool appliesHeaders, bool hasBody,
-        bool carriesBody = false, string? bodyTypeName = null) {
+        string typeName,
+        int status,
+        bool appliesHeaders,
+        bool hasBody,
+        bool carriesBody = false,
+        string? bodyTypeName = null
+    )
+    {
         TypeName = typeName;
         Status = status;
         AppliesHeaders = appliesHeaders;
@@ -82,8 +88,8 @@ public readonly struct UnionCaseModel {
 /// an input to this - which is what makes every code path work regardless of what the module says.
 /// </para>
 /// </remarks>
-public static class UnionResponseSelector {
-
+public static class UnionResponseSelector
+{
     private const string ValuePropertyName = "Value";
 
     private const string HttpStatusAttributeName = "HttpStatusAttribute";
@@ -107,10 +113,15 @@ public static class UnionResponseSelector {
     /// The endpoint's success status, which every case that does not name one of its own takes.
     /// </param>
     public static string? Read(
-        SemanticModel semanticModel, MethodDeclarationSyntax methodDeclaration, int? successStatus) {
+        SemanticModel semanticModel,
+        MethodDeclarationSyntax methodDeclaration,
+        int? successStatus
+    )
+    {
         var returned = Unwrap(semanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
 
-        if (returned == null) {
+        if (returned == null)
+        {
             return null;
         }
 
@@ -142,29 +153,39 @@ public static class UnionResponseSelector {
     /// </para>
     /// </remarks>
     public static string? ReadDeclared(
-        SemanticModel semanticModel, MethodDeclarationSyntax methodDeclaration, int? successStatus) {
+        SemanticModel semanticModel,
+        MethodDeclarationSyntax methodDeclaration,
+        int? successStatus
+    )
+    {
         var returned = Unwrap(semanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
 
-        if (returned == null || !Implements(returned, StatusResponseInterfaceName)) {
+        if (returned == null || !Implements(returned, StatusResponseInterfaceName))
+        {
             return null;
         }
 
         // A set is described case by case; this is only for a type answering on its own.
-        if (Cases(returned, successStatus ?? 200) != null) {
+        if (Cases(returned, successStatus ?? 200) != null)
+        {
             return null;
         }
 
         var status = Status(returned, successStatus ?? 200);
 
-        return Encode(new[] {
-            new UnionCaseModel(
-                returned.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                status,
-                AppliesHeaders(returned),
-                HasBody(status),
-                Implements(returned, BodyInterfaceName),
-                BodyType(returned))
-        });
+        return Encode(
+            new[]
+            {
+                new UnionCaseModel(
+                    returned.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    status,
+                    AppliesHeaders(returned),
+                    HasBody(status),
+                    Implements(returned, BodyInterfaceName),
+                    BodyType(returned)
+                ),
+            }
+        );
     }
 
     /// <summary>
@@ -177,47 +198,67 @@ public static class UnionResponseSelector {
     /// forward rather than rejected in place.
     /// </remarks>
     public static string? Diagnose(
-        SemanticModel semanticModel, MethodDeclarationSyntax methodDeclaration, int? successStatus) {
+        SemanticModel semanticModel,
+        MethodDeclarationSyntax methodDeclaration,
+        int? successStatus
+    )
+    {
         var returned = Unwrap(semanticModel.GetTypeInfo(methodDeclaration.ReturnType).Type);
 
-        if (returned == null) {
+        if (returned == null)
+        {
             return null;
         }
 
         var symbols = CaseSymbols(returned);
 
-        if (symbols.Count == 0) {
+        if (symbols.Count == 0)
+        {
             return null;
         }
 
-        foreach (var symbol in symbols) {
-            if (symbol.SpecialType == SpecialType.System_Object ||
-                symbol.TypeKind == TypeKind.Dynamic) {
+        foreach (var symbol in symbols)
+        {
+            if (
+                symbol.SpecialType == SpecialType.System_Object
+                || symbol.TypeKind == TypeKind.Dynamic
+            )
+            {
                 return UntypedFinding + FieldSeparator + Display(symbol);
             }
         }
 
         // Pairwise over a closed set that is never large. Only across statuses: two cases of one
         // status share a oneOf and their relationship decides nothing.
-        for (var i = 0; i < symbols.Count; i++) {
-            for (var j = i + 1; j < symbols.Count; j++) {
+        for (var i = 0; i < symbols.Count; i++)
+        {
+            for (var j = i + 1; j < symbols.Count; j++)
+            {
                 var first = symbols[i];
                 var second = symbols[j];
 
                 var firstStatus = Status(first, successStatus ?? 200);
                 var secondStatus = Status(second, successStatus ?? 200);
 
-                if (firstStatus == secondStatus) {
+                if (firstStatus == secondStatus)
+                {
                     continue;
                 }
 
-                if (!Assignable(first, second) && !Assignable(second, first)) {
+                if (!Assignable(first, second) && !Assignable(second, first))
+                {
                     continue;
                 }
 
-                return AssignableFinding + FieldSeparator + Display(first) +
-                       FieldSeparator + firstStatus + FieldSeparator + Display(second) +
-                       FieldSeparator + secondStatus;
+                return AssignableFinding
+                    + FieldSeparator
+                    + Display(first)
+                    + FieldSeparator
+                    + firstStatus
+                    + FieldSeparator
+                    + Display(second)
+                    + FieldSeparator
+                    + secondStatus;
             }
         }
 
@@ -230,20 +271,26 @@ public static class UnionResponseSelector {
     public const string AssignableFinding = "assignable";
 
     /// <summary>The fields of an encoded finding, in the order above.</summary>
-    public static IReadOnlyList<string> DecodeFinding(string finding) => finding.Split(FieldSeparator);
+    public static IReadOnlyList<string> DecodeFinding(string finding) =>
+        finding.Split(FieldSeparator);
 
     private static string Display(ITypeSymbol symbol) =>
         symbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
 
-    private static bool Assignable(ITypeSymbol from, ITypeSymbol to) {
-        for (var current = from.BaseType; current != null; current = current.BaseType) {
-            if (SymbolEqualityComparer.Default.Equals(current, to)) {
+    private static bool Assignable(ITypeSymbol from, ITypeSymbol to)
+    {
+        for (var current = from.BaseType; current != null; current = current.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, to))
+            {
                 return true;
             }
         }
 
-        foreach (var contract in from.AllInterfaces) {
-            if (SymbolEqualityComparer.Default.Equals(contract, to)) {
+        foreach (var contract in from.AllInterfaces)
+        {
+            if (SymbolEqualityComparer.Default.Equals(contract, to))
+            {
                 return true;
             }
         }
@@ -252,21 +299,25 @@ public static class UnionResponseSelector {
     }
 
     /// <summary>The case types of a response set, or nothing where the type is not one.</summary>
-    private static IReadOnlyList<ITypeSymbol> CaseSymbols(INamedTypeSymbol type) {
-        var value = type
-            .GetMembers(ValuePropertyName)
+    private static IReadOnlyList<ITypeSymbol> CaseSymbols(INamedTypeSymbol type)
+    {
+        var value = type.GetMembers(ValuePropertyName)
             .OfType<IPropertySymbol>()
             .FirstOrDefault(p =>
-                p.DeclaredAccessibility == Accessibility.Public &&
-                !p.IsStatic &&
-                p.Type.SpecialType == SpecialType.System_Object);
+                p.DeclaredAccessibility == Accessibility.Public
+                && !p.IsStatic
+                && p.Type.SpecialType == SpecialType.System_Object
+            );
 
-        if (value == null) {
+        if (value == null)
+        {
             return Array.Empty<ITypeSymbol>();
         }
 
-        return type.InstanceConstructors
-            .Where(c => c.DeclaredAccessibility == Accessibility.Public && c.Parameters.Length == 1)
+        return type
+            .InstanceConstructors.Where(c =>
+                c.DeclaredAccessibility == Accessibility.Public && c.Parameters.Length == 1
+            )
             .Select(c => c.Parameters[0].Type)
             .ToList();
     }
@@ -279,14 +330,19 @@ public static class UnionResponseSelector {
     /// One level only. <c>Task&lt;Task&lt;T&gt;&gt;</c> is not something a handler returns, and
     /// unwrapping repeatedly would turn a genuine <c>Task</c>-shaped case type into its argument.
     /// </remarks>
-    private static INamedTypeSymbol? Unwrap(ITypeSymbol? returnType) {
-        if (returnType is not INamedTypeSymbol named) {
+    private static INamedTypeSymbol? Unwrap(ITypeSymbol? returnType)
+    {
+        if (returnType is not INamedTypeSymbol named)
+        {
             return null;
         }
 
-        if (named.IsGenericType &&
-            (named.Name == "Task" || named.Name == "ValueTask") &&
-            named.TypeArguments.Length == 1) {
+        if (
+            named.IsGenericType
+            && (named.Name == "Task" || named.Name == "ValueTask")
+            && named.TypeArguments.Length == 1
+        )
+        {
             return named.TypeArguments[0] as INamedTypeSymbol;
         }
 
@@ -309,45 +365,55 @@ public static class UnionResponseSelector {
     /// unreachable code hiding a contradiction the author needs to see.
     /// </para>
     /// </remarks>
-    private static List<UnionCaseModel>? Cases(INamedTypeSymbol type, int successStatus) {
-        var value = type
-            .GetMembers(ValuePropertyName)
+    private static List<UnionCaseModel>? Cases(INamedTypeSymbol type, int successStatus)
+    {
+        var value = type.GetMembers(ValuePropertyName)
             .OfType<IPropertySymbol>()
             .FirstOrDefault(p =>
-                p.DeclaredAccessibility == Accessibility.Public &&
-                !p.IsStatic &&
-                p.Type.SpecialType == SpecialType.System_Object);
+                p.DeclaredAccessibility == Accessibility.Public
+                && !p.IsStatic
+                && p.Type.SpecialType == SpecialType.System_Object
+            );
 
-        if (value == null) {
+        if (value == null)
+        {
             return null;
         }
 
-        var constructors = type.InstanceConstructors
-            .Where(c => c.DeclaredAccessibility == Accessibility.Public && c.Parameters.Length == 1)
+        var constructors = type
+            .InstanceConstructors.Where(c =>
+                c.DeclaredAccessibility == Accessibility.Public && c.Parameters.Length == 1
+            )
             .ToList();
 
-        if (constructors.Count == 0) {
+        if (constructors.Count == 0)
+        {
             return null;
         }
 
         var cases = new List<UnionCaseModel>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var constructor in constructors) {
+        foreach (var constructor in constructors)
+        {
             var caseType = constructor.Parameters[0].Type;
             var name = caseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-            if (!seen.Add(name)) {
+            if (!seen.Add(name))
+            {
                 return null;
             }
 
-            cases.Add(new UnionCaseModel(
-                name,
-                Status(caseType, successStatus),
-                AppliesHeaders(caseType),
-                HasBody(Status(caseType, successStatus)),
-                Implements(caseType, BodyInterfaceName),
-                BodyType(caseType)));
+            cases.Add(
+                new UnionCaseModel(
+                    name,
+                    Status(caseType, successStatus),
+                    AppliesHeaders(caseType),
+                    HasBody(Status(caseType, successStatus)),
+                    Implements(caseType, BodyInterfaceName),
+                    BodyType(caseType)
+                )
+            );
         }
 
         return cases;
@@ -363,14 +429,20 @@ public static class UnionResponseSelector {
     /// one set is meaningful rather than an error: it is two shapes under one status, which is what
     /// a schema <c>oneOf</c> within a 200 is.
     /// </remarks>
-    private static int Status(ITypeSymbol caseType, int successStatus) {
-        foreach (var attribute in caseType.GetAttributes()) {
-            if (attribute.AttributeClass?.Name != HttpStatusAttributeName) {
+    private static int Status(ITypeSymbol caseType, int successStatus)
+    {
+        foreach (var attribute in caseType.GetAttributes())
+        {
+            if (attribute.AttributeClass?.Name != HttpStatusAttributeName)
+            {
                 continue;
             }
 
-            if (attribute.ConstructorArguments.Length > 0 &&
-                attribute.ConstructorArguments[0].Value is int declared) {
+            if (
+                attribute.ConstructorArguments.Length > 0
+                && attribute.ConstructorArguments[0].Value is int declared
+            )
+            {
                 return declared;
             }
         }
@@ -404,22 +476,31 @@ public static class UnionResponseSelector {
     /// <c>MyEnvelope&lt;Http.ImATeapot, T&gt;</c> resolves without this knowing that type exists.
     /// </para>
     /// </remarks>
-    private static int? MarkedStatus(ITypeSymbol caseType) {
-        if (caseType is not INamedTypeSymbol { IsGenericType: true } generic ||
-            generic.TypeArguments.Length == 0) {
+    private static int? MarkedStatus(ITypeSymbol caseType)
+    {
+        if (
+            caseType is not INamedTypeSymbol { IsGenericType: true } generic
+            || generic.TypeArguments.Length == 0
+        )
+        {
             return null;
         }
 
         var marker = generic.TypeArguments[0];
 
-        if (!Implements(marker, StatusCodeInterfaceName)) {
+        if (!Implements(marker, StatusCodeInterfaceName))
+        {
             return null;
         }
 
-        foreach (var attribute in marker.GetAttributes()) {
-            if (attribute.AttributeClass?.Name == HttpStatusAttributeName &&
-                attribute.ConstructorArguments.Length > 0 &&
-                attribute.ConstructorArguments[0].Value is int declared) {
+        foreach (var attribute in marker.GetAttributes())
+        {
+            if (
+                attribute.AttributeClass?.Name == HttpStatusAttributeName
+                && attribute.ConstructorArguments.Length > 0
+                && attribute.ConstructorArguments[0].Value is int declared
+            )
+            {
                 return declared;
             }
         }
@@ -455,18 +536,22 @@ public static class UnionResponseSelector {
     /// wrapper.
     /// </para>
     /// </remarks>
-    private static string? BodyType(ITypeSymbol caseType) {
-        if (!Implements(caseType, BodyInterfaceName)) {
+    private static string? BodyType(ITypeSymbol caseType)
+    {
+        if (!Implements(caseType, BodyInterfaceName))
+        {
             return null;
         }
 
-        if (caseType is not INamedTypeSymbol generic) {
+        if (caseType is not INamedTypeSymbol generic)
+        {
             return null;
         }
 
         var arguments = generic.TypeArguments;
 
-        if (arguments.Length == 1) {
+        if (arguments.Length == 1)
+        {
             return arguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         }
 
@@ -489,37 +574,48 @@ public static class UnionResponseSelector {
     /// rather than publishing a wrong one.
     /// </remarks>
     internal static IReadOnlyList<Hardened.Generation.Models.ResponseHeaderModel> DeclaredHeaders(
-        INamedTypeSymbol caseType) {
-        if (!Implements(caseType, HeaderInterfaceName)) {
+        INamedTypeSymbol caseType
+    )
+    {
+        if (!Implements(caseType, HeaderInterfaceName))
+        {
             return System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
         }
 
         var constructor = PrimaryConstructor(caseType);
 
-        if (constructor == null) {
+        if (constructor == null)
+        {
             return System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
         }
 
         List<Hardened.Generation.Models.ResponseHeaderModel>? headers = null;
 
-        foreach (var parameter in constructor.Parameters) {
-            if (parameter.Type.SpecialType != SpecialType.System_String ||
-                string.Equals(parameter.Name, "Detail", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(parameter.Name, "Value", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(parameter.Name, "Body", StringComparison.OrdinalIgnoreCase)) {
+        foreach (var parameter in constructor.Parameters)
+        {
+            if (
+                parameter.Type.SpecialType != SpecialType.System_String
+                || string.Equals(parameter.Name, "Detail", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(parameter.Name, "Value", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(parameter.Name, "Body", StringComparison.OrdinalIgnoreCase)
+            )
+            {
                 continue;
             }
 
             headers ??= new List<Hardened.Generation.Models.ResponseHeaderModel>();
 
-            headers.Add(new Hardened.Generation.Models.ResponseHeaderModel {
-                Name = parameter.Name,
-                ParameterName = parameter.Name
-            });
+            headers.Add(
+                new Hardened.Generation.Models.ResponseHeaderModel
+                {
+                    Name = parameter.Name,
+                    ParameterName = parameter.Name,
+                }
+            );
         }
 
         return (IReadOnlyList<Hardened.Generation.Models.ResponseHeaderModel>?)headers
-               ?? System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
+            ?? System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>();
     }
 
     /// <summary>
@@ -547,24 +643,31 @@ public static class UnionResponseSelector {
     /// of which this changes.
     /// </para>
     /// </remarks>
-    private static IMethodSymbol? PrimaryConstructor(INamedTypeSymbol caseType) {
-        var constructors = caseType.Constructors
-            .Where(candidate => candidate.DeclaredAccessibility == Accessibility.Public)
+    private static IMethodSymbol? PrimaryConstructor(INamedTypeSymbol caseType)
+    {
+        var constructors = caseType
+            .Constructors.Where(candidate =>
+                candidate.DeclaredAccessibility == Accessibility.Public
+            )
             .OrderByDescending(candidate => candidate.Parameters.Length)
             .ToList();
 
-        if (constructors.Count < 2) {
+        if (constructors.Count < 2)
+        {
             return constructors.FirstOrDefault();
         }
 
-        var deconstruct = caseType.GetMembers("Deconstruct")
+        var deconstruct = caseType
+            .GetMembers("Deconstruct")
             .OfType<IMethodSymbol>()
             .FirstOrDefault(method => method.Parameters.Length > 0);
 
-        if (deconstruct != null) {
+        if (deconstruct != null)
+        {
             var primary = constructors.FirstOrDefault(candidate => Matches(candidate, deconstruct));
 
-            if (primary != null) {
+            if (primary != null)
+            {
                 return primary;
             }
         }
@@ -573,16 +676,23 @@ public static class UnionResponseSelector {
     }
 
     /// <summary>Whether a constructor is the one a record's <c>Deconstruct</c> was written from.</summary>
-    private static bool Matches(IMethodSymbol constructor, IMethodSymbol deconstruct) {
-        if (constructor.Parameters.Length != deconstruct.Parameters.Length) {
+    private static bool Matches(IMethodSymbol constructor, IMethodSymbol deconstruct)
+    {
+        if (constructor.Parameters.Length != deconstruct.Parameters.Length)
+        {
             return false;
         }
 
-        for (var index = 0; index < constructor.Parameters.Length; index++) {
-            if (!string.Equals(
+        for (var index = 0; index < constructor.Parameters.Length; index++)
+        {
+            if (
+                !string.Equals(
                     constructor.Parameters[index].Name,
                     deconstruct.Parameters[index].Name,
-                    StringComparison.Ordinal)) {
+                    StringComparison.Ordinal
+                )
+            )
+            {
                 return false;
             }
         }
@@ -593,8 +703,9 @@ public static class UnionResponseSelector {
     /// <summary>Whether the case implements one of the response interfaces.</summary>
     private static bool Implements(ITypeSymbol caseType, string interfaceName) =>
         caseType.AllInterfaces.Any(i =>
-            i.Name == interfaceName &&
-            i.ContainingNamespace?.ToDisplayString() == ResponsesNamespace);
+            i.Name == interfaceName
+            && i.ContainingNamespace?.ToDisplayString() == ResponsesNamespace
+        );
 
     /// <summary>
     /// Whether a status may carry a body at all.
@@ -626,46 +737,65 @@ public static class UnionResponseSelector {
 
     private const char FieldSeparator = '|';
 
-    public static string Encode(IReadOnlyList<UnionCaseModel> cases) {
+    public static string Encode(IReadOnlyList<UnionCaseModel> cases)
+    {
         var builder = new StringBuilder();
 
-        for (var i = 0; i < cases.Count; i++) {
-            if (i > 0) {
+        for (var i = 0; i < cases.Count; i++)
+        {
+            if (i > 0)
+            {
                 builder.Append(CaseSeparator);
             }
 
-            builder.Append(cases[i].TypeName)
-                .Append(FieldSeparator).Append(cases[i].Status)
-                .Append(FieldSeparator).Append(cases[i].AppliesHeaders ? '1' : '0')
+            builder
+                .Append(cases[i].TypeName)
+                .Append(FieldSeparator)
+                .Append(cases[i].Status)
+                .Append(FieldSeparator)
+                .Append(cases[i].AppliesHeaders ? '1' : '0')
                 .Append(cases[i].HasBody ? '1' : '0')
                 .Append(cases[i].CarriesBody ? '1' : '0')
-                .Append(FieldSeparator).Append(cases[i].BodyTypeName ?? "");
+                .Append(FieldSeparator)
+                .Append(cases[i].BodyTypeName ?? "");
         }
 
         return builder.ToString();
     }
 
-    public static IReadOnlyList<UnionCaseModel> Decode(string? encoded) {
-        if (string.IsNullOrEmpty(encoded)) {
+    public static IReadOnlyList<UnionCaseModel> Decode(string? encoded)
+    {
+        if (string.IsNullOrEmpty(encoded))
+        {
             return Array.Empty<UnionCaseModel>();
         }
 
         var cases = new List<UnionCaseModel>();
 
-        foreach (var part in encoded!.Split(CaseSeparator)) {
+        foreach (var part in encoded!.Split(CaseSeparator))
+        {
             var fields = part.Split(FieldSeparator);
 
-            if (fields.Length != 4 || fields[2].Length != 3) {
+            if (fields.Length != 4 || fields[2].Length != 3)
+            {
                 continue;
             }
 
-            if (!int.TryParse(fields[1], out var status)) {
+            if (!int.TryParse(fields[1], out var status))
+            {
                 continue;
             }
 
-            cases.Add(new UnionCaseModel(
-                fields[0], status, fields[2][0] == '1', fields[2][1] == '1', fields[2][2] == '1',
-                fields[3].Length == 0 ? null : fields[3]));
+            cases.Add(
+                new UnionCaseModel(
+                    fields[0],
+                    status,
+                    fields[2][0] == '1',
+                    fields[2][1] == '1',
+                    fields[2][2] == '1',
+                    fields[3].Length == 0 ? null : fields[3]
+                )
+            );
         }
 
         return cases;

@@ -9,7 +9,8 @@ namespace Hardened.Requests.Testing.Conformance;
 /// The conformance suite then asserts that what comes out the far side is the same
 /// regardless of which transport carried it.
 /// </summary>
-public class ConformanceRequestSpec {
+public class ConformanceRequestSpec
+{
     public string Method { get; set; } = "GET";
 
     public string Path { get; set; } = "/";

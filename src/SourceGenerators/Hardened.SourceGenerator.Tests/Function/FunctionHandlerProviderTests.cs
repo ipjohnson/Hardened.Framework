@@ -14,15 +14,16 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// than at build time.
 /// </para>
 /// </summary>
-public class FunctionHandlerProviderTests {
-
+public class FunctionHandlerProviderTests
+{
     private const string OneHandler = """
         [HardenedFunction]
         public void Process() { }
         """;
 
     private static string Provider(string body, string extraTypes = "") =>
-        FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application(body, extraTypes))
+        FunctionGeneratorHarness
+            .Generate(FunctionGeneratorHarness.Application(body, extraTypes))
             .AssertNoErrors()
             .SourceContaining("FunctionHandlers.cs");
 
@@ -40,20 +41,26 @@ public class FunctionHandlerProviderTests {
     /// application class is where the registration has to land for DependencyRegistry to find it.
     /// </summary>
     [Fact]
-    public void TheProviderIsEmittedAsAPartialOfTheApplicationClass() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application(OneHandler))
+    public void TheProviderIsEmittedAsAPartialOfTheApplicationClass()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(FunctionGeneratorHarness.Application(OneHandler))
             .AssertNoErrors();
 
         Assert.Contains("TestApplication.FunctionHandlers.cs", result.GeneratedSources.Keys);
-        Assert.Contains("public partial class TestApplication",
-            result.SourceContaining("FunctionHandlers.cs"));
+        Assert.Contains(
+            "public partial class TestApplication",
+            result.SourceContaining("FunctionHandlers.cs")
+        );
     }
 
     [Fact]
-    public void TheProviderImplementsTheFunctionHandlerProviderInterface() {
+    public void TheProviderImplementsTheFunctionHandlerProviderInterface()
+    {
         Assert.Contains(
             "class FunctionHandlerProvider : global::Hardened.Requests.Abstract.Execution.IFunctionHandlerProvider",
-            Provider(OneHandler));
+            Provider(OneHandler)
+        );
     }
 
     /// <summary>
@@ -61,11 +68,15 @@ public class FunctionHandlerProviderTests {
     /// concrete type instead, nothing resolving <c>IFunctionHandlerProvider</c> would find it.
     /// </summary>
     [Fact]
-    public void TheProviderIsRegisteredAsASingletonAgainstItsInterface() {
+    public void TheProviderIsRegisteredAsASingletonAgainstItsInterface()
+    {
         var provider = Provider(OneHandler);
 
         Assert.Contains("serviceCollection.AddSingleton<", provider);
-        Assert.Contains("global::Hardened.Requests.Abstract.Execution.IFunctionHandlerProvider", provider);
+        Assert.Contains(
+            "global::Hardened.Requests.Abstract.Execution.IFunctionHandlerProvider",
+            provider
+        );
         Assert.Contains("FunctionHandlerProvider", provider);
     }
 
@@ -74,9 +85,12 @@ public class FunctionHandlerProviderTests {
     /// provider on every invocation, so without this the handler builds and then fails to resolve.
     /// </summary>
     [Fact]
-    public void TheHandlerTypeIsRegisteredAsTransient() {
-        Assert.Contains("serviceCollection.AddTransient<global::TestApp.TestFunctions>();",
-            Provider(OneHandler));
+    public void TheHandlerTypeIsRegisteredAsTransient()
+    {
+        Assert.Contains(
+            "serviceCollection.AddTransient<global::TestApp.TestFunctions>();",
+            Provider(OneHandler)
+        );
     }
 
     /// <summary>
@@ -85,11 +99,15 @@ public class FunctionHandlerProviderTests {
     /// trimmed — it is only ever called through the registry.
     /// </summary>
     [Fact]
-    public void RegistrationIsAddedToTheApplicationsDependencyRegistry() {
+    public void RegistrationIsAddedToTheApplicationsDependencyRegistry()
+    {
         var provider = Provider(OneHandler);
 
         Assert.Contains("DependencyRegistry<TestApplication>.Add(FunctionHandlersDI)", provider);
-        Assert.Contains("[global::System.Diagnostics.CodeAnalysis.DynamicDependency(nameof(FunctionHandlersDI))]", provider);
+        Assert.Contains(
+            "[global::System.Diagnostics.CodeAnalysis.DynamicDependency(nameof(FunctionHandlersDI))]",
+            provider
+        );
     }
 
     /// <summary>
@@ -97,10 +115,14 @@ public class FunctionHandlerProviderTests {
     /// function never sends a name worth matching, which is the case SqsTest is.
     /// </summary>
     [Fact]
-    public void AnUnnamedHandlerAnswersToAnyFunctionName() {
+    public void AnUnnamedHandlerAnswersToAnyFunctionName()
+    {
         var provider = Provider(OneHandler);
 
-        Assert.Contains("return new global::TestApp.Generated.TestFunctions_Process(serviceProvider);", provider);
+        Assert.Contains(
+            "return new global::TestApp.Generated.TestFunctions_Process(serviceProvider);",
+            provider
+        );
         Assert.DoesNotContain("switch (scheme + \" \" + path)", provider);
     }
 
@@ -108,11 +130,14 @@ public class FunctionHandlerProviderTests {
     /// An explicitly named handler is matched by name instead, through a switch.
     /// </summary>
     [Fact]
-    public void ANamedHandlerIsMatchedByItsFunctionName() {
-        var provider = Provider("""
+    public void ANamedHandlerIsMatchedByItsFunctionName()
+    {
+        var provider = Provider(
+            """
             [HardenedFunction("order-received")]
             public void Process() { }
-            """);
+            """
+        );
 
         Assert.Contains("switch (scheme + \" \" + path)", provider);
         Assert.Contains("case \"INVOKE /order-received\":", provider);
@@ -123,11 +148,16 @@ public class FunctionHandlerProviderTests {
     /// arbitrary one. The caller distinguishes "no such function" from a handler that did nothing.
     /// </summary>
     [Fact]
-    public void AnUnmatchedFunctionNameReturnsNull() {
-        var provider = Compact(Provider("""
-            [HardenedFunction("order-received")]
-            public void Process() { }
-            """));
+    public void AnUnmatchedFunctionNameReturnsNull()
+    {
+        var provider = Compact(
+            Provider(
+                """
+                [HardenedFunction("order-received")]
+                public void Process() { }
+                """
+            )
+        );
 
         // The null return is the statement immediately after the switch closes, so a name matching
         // no case falls out of the switch and returns null rather than reaching any handler.
@@ -139,21 +169,32 @@ public class FunctionHandlerProviderTests {
     /// unnamed one is the fallback for everything else.
     /// </summary>
     [Fact]
-    public void ANamedHandlerIsMatchedBeforeTheUnnamedFallback() {
-        var provider = Provider("""
+    public void ANamedHandlerIsMatchedBeforeTheUnnamedFallback()
+    {
+        var provider = Provider(
+            """
             [HardenedFunction("order-received")]
             public void Named() { }
 
             [HardenedFunction]
             public void Fallback() { }
-            """);
+            """
+        );
 
-        var switchIndex = provider.IndexOf("case \"INVOKE /order-received\":", StringComparison.Ordinal);
-        var fallbackIndex = provider.IndexOf("return new global::TestApp.Generated.TestFunctions_Fallback",
-            StringComparison.Ordinal);
+        var switchIndex = provider.IndexOf(
+            "case \"INVOKE /order-received\":",
+            StringComparison.Ordinal
+        );
+        var fallbackIndex = provider.IndexOf(
+            "return new global::TestApp.Generated.TestFunctions_Fallback",
+            StringComparison.Ordinal
+        );
 
         Assert.True(switchIndex >= 0, "the named handler should be a switch case");
-        Assert.True(fallbackIndex > switchIndex, "the unnamed handler should be the fallback after the switch");
+        Assert.True(
+            fallbackIndex > switchIndex,
+            "the unnamed handler should be the fallback after the switch"
+        );
     }
 
     /// <summary>
@@ -161,27 +202,35 @@ public class FunctionHandlerProviderTests {
     /// the semantic model, so a <c>const</c> resolves to its value rather than to its source text.
     /// </summary>
     [Fact]
-    public void AFunctionNameGivenAsAConstantResolvesToItsValue() {
-        var result = FunctionGeneratorHarness.Generate("""
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Shared.Runtime.Attributes;
+    public void AFunctionNameGivenAsAConstantResolvesToItsValue()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public static class FunctionNames {
-                public const string OrderReceived = "order-received";
-            }
+                public static class FunctionNames {
+                    public const string OrderReceived = "order-received";
+                }
 
-            [HardenedModule]
-            public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-            public class TestFunctions {
-                [HardenedFunction(FunctionNames.OrderReceived)]
-                public void Process() { }
-            }
-            """).AssertNoErrors();
+                public class TestFunctions {
+                    [HardenedFunction(FunctionNames.OrderReceived)]
+                    public void Process() { }
+                }
+                """
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("case \"INVOKE /order-received\":", result.SourceContaining("FunctionHandlers.cs"));
+        Assert.Contains(
+            "case \"INVOKE /order-received\":",
+            result.SourceContaining("FunctionHandlers.cs")
+        );
         Assert.Contains("INVOKE.order-received.FunctionHandler.cs", result.GeneratedSources.Keys);
     }
 
@@ -193,8 +242,10 @@ public class FunctionHandlerProviderTests {
     /// so this asserts on the generator's output rather than on a clean build.
     /// </summary>
     [Fact]
-    public void AnUnresolvableFunctionNameFallsBackToItsSourceText() {
-        var result = FunctionGeneratorHarness.Generate("""
+    public void AnUnresolvableFunctionNameFallsBackToItsSourceText()
+    {
+        var result = FunctionGeneratorHarness.Generate(
+            """
             using Hardened.Requests.Abstract.Attributes;
             using Hardened.Shared.Runtime.Attributes;
 
@@ -207,11 +258,18 @@ public class FunctionHandlerProviderTests {
                 [HardenedFunction(NotDeclaredAnywhere.Name)]
                 public void Process() { }
             }
-            """);
+            """
+        );
 
         Assert.Empty(result.GeneratorExceptions);
-        Assert.Contains("INVOKE.NotDeclaredAnywhere.Name.FunctionHandler.cs", result.GeneratedSources.Keys);
-        Assert.Contains("case \"INVOKE /NotDeclaredAnywhere.Name\":", result.SourceContaining("FunctionHandlers.cs"));
+        Assert.Contains(
+            "INVOKE.NotDeclaredAnywhere.Name.FunctionHandler.cs",
+            result.GeneratedSources.Keys
+        );
+        Assert.Contains(
+            "case \"INVOKE /NotDeclaredAnywhere.Name\":",
+            result.SourceContaining("FunctionHandlers.cs")
+        );
     }
 
     /// <summary>
@@ -222,14 +280,24 @@ public class FunctionHandlerProviderTests {
     /// as <c>EmitCompilerGeneratedFiles</c> does, is writing into a subdirectory.
     /// </summary>
     [Fact]
-    public void TheFunctionNameIsUsedVerbatimAsTheGeneratedFileName() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction("orders/received")]
-                public void Process() { }
-            """)).AssertNoErrors();
+    public void TheFunctionNameIsUsedVerbatimAsTheGeneratedFileName()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction("orders/received")]
+                        public void Process() { }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("INVOKE.orders/received.FunctionHandler.cs", result.GeneratedSources.Keys);
-        Assert.Contains("case \"INVOKE /orders/received\":", result.SourceContaining("FunctionHandlers.cs"));
+        Assert.Contains(
+            "case \"INVOKE /orders/received\":",
+            result.SourceContaining("FunctionHandlers.cs")
+        );
     }
 
     /// <summary>
@@ -237,14 +305,21 @@ public class FunctionHandlerProviderTests {
     /// gets its own case, and the declaring class is registered once.
     /// </summary>
     [Fact]
-    public void SeveralNamedHandlersEachGetTheirOwnCase() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction("first")] public void One() { }
+    public void SeveralNamedHandlersEachGetTheirOwnCase()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction("first")] public void One() { }
 
-                [HardenedFunction("second")] public void Two() { }
+                        [HardenedFunction("second")] public void Two() { }
 
-                [HardenedFunction("third")] public void Three() { }
-            """)).AssertNoErrors();
+                        [HardenedFunction("third")] public void Three() { }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var provider = result.SourceContaining("FunctionHandlers.cs");
 
@@ -260,27 +335,39 @@ public class FunctionHandlerProviderTests {
     /// the first would leave the second unresolvable at run time.
     /// </summary>
     [Fact]
-    public void HandlersOnSeparateClassesEachRegisterTheirDeclaringType() {
-        var provider = FunctionGeneratorHarness.Generate("""
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Shared.Runtime.Attributes;
+    public void HandlersOnSeparateClassesEachRegisterTheirDeclaringType()
+    {
+        var provider = FunctionGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-            public class OrderFunctions {
-                [HardenedFunction("order")] public void Handle() { }
-            }
+                public class OrderFunctions {
+                    [HardenedFunction("order")] public void Handle() { }
+                }
 
-            public class InvoiceFunctions {
-                [HardenedFunction("invoice")] public void Handle() { }
-            }
-            """).AssertNoErrors().SourceContaining("FunctionHandlers.cs");
+                public class InvoiceFunctions {
+                    [HardenedFunction("invoice")] public void Handle() { }
+                }
+                """
+            )
+            .AssertNoErrors()
+            .SourceContaining("FunctionHandlers.cs");
 
-        Assert.Contains("serviceCollection.AddTransient<global::TestApp.OrderFunctions>();", provider);
-        Assert.Contains("serviceCollection.AddTransient<global::TestApp.InvoiceFunctions>();", provider);
+        Assert.Contains(
+            "serviceCollection.AddTransient<global::TestApp.OrderFunctions>();",
+            provider
+        );
+        Assert.Contains(
+            "serviceCollection.AddTransient<global::TestApp.InvoiceFunctions>();",
+            provider
+        );
     }
 
     /// <summary>
@@ -288,14 +375,20 @@ public class FunctionHandlerProviderTests {
     /// registration is not an error, but it doubles the descriptor list for every handler declared.
     /// </summary>
     [Fact]
-    public void TwoHandlersOnOneClassRegisterItOnce() {
-        var provider = Provider("""
+    public void TwoHandlersOnOneClassRegisterItOnce()
+    {
+        var provider = Provider(
+            """
             [HardenedFunction("first")] public void One() { }
 
             [HardenedFunction("second")] public void Two() { }
-            """);
+            """
+        );
 
-        var registrations = provider.Split("serviceCollection.AddTransient<global::TestApp.TestFunctions>();").Length - 1;
+        var registrations =
+            provider
+                .Split("serviceCollection.AddTransient<global::TestApp.TestFunctions>();")
+                .Length - 1;
 
         Assert.Equal(1, registrations);
     }
@@ -306,19 +399,27 @@ public class FunctionHandlerProviderTests {
     /// <c>IFunctionHandlerProvider</c> finds an implementation rather than failing to construct.
     /// </summary>
     [Fact]
-    public void AnApplicationWithNoHandlersStillRegistersAProviderThatReturnsNull() {
-        var result = FunctionGeneratorHarness.Generate("""
-            using Hardened.Shared.Runtime.Attributes;
+    public void AnApplicationWithNoHandlersStillRegistersAProviderThatReturnsNull()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Shared.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            public partial class TestApplication { }
-            """).AssertNoErrors();
+                [HardenedModule]
+                public partial class TestApplication { }
+                """
+            )
+            .AssertNoErrors();
 
         var provider = result.SourceContaining("FunctionHandlers.cs");
 
-        Assert.Contains("global::Hardened.Requests.Abstract.Execution.IFunctionHandlerProvider", provider);
+        Assert.Contains(
+            "global::Hardened.Requests.Abstract.Execution.IFunctionHandlerProvider",
+            provider
+        );
         Assert.DoesNotContain("AddTransient", provider);
 
         // Null for every name, with no switch and nothing to construct.
@@ -335,29 +436,40 @@ public class FunctionHandlerProviderTests {
     /// per application.
     /// </summary>
     [Fact]
-    public void EachEntryPointGetsItsOwnProvider() {
-        var result = FunctionGeneratorHarness.Generate("""
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Shared.Runtime.Attributes;
+    public void EachEntryPointGetsItsOwnProvider()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            public partial class AppOne { }
+                [HardenedModule]
+                public partial class AppOne { }
 
-            [HardenedModule]
-            public partial class AppTwo { }
+                [HardenedModule]
+                public partial class AppTwo { }
 
-            public class TestFunctions {
-                [HardenedFunction] public void Process() { }
-            }
-            """).AssertNoErrors();
+                public class TestFunctions {
+                    [HardenedFunction] public void Process() { }
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("AppOne.FunctionHandlers.cs", result.GeneratedSources.Keys);
         Assert.Contains("AppTwo.FunctionHandlers.cs", result.GeneratedSources.Keys);
 
-        Assert.Contains("DependencyRegistry<AppOne>", result.GeneratedSources["AppOne.FunctionHandlers.cs"]);
-        Assert.Contains("DependencyRegistry<AppTwo>", result.GeneratedSources["AppTwo.FunctionHandlers.cs"]);
+        Assert.Contains(
+            "DependencyRegistry<AppOne>",
+            result.GeneratedSources["AppOne.FunctionHandlers.cs"]
+        );
+        Assert.Contains(
+            "DependencyRegistry<AppTwo>",
+            result.GeneratedSources["AppTwo.FunctionHandlers.cs"]
+        );
     }
 
     /// <summary>
@@ -366,31 +478,40 @@ public class FunctionHandlerProviderTests {
     /// different namespaces at all.
     /// </summary>
     [Fact]
-    public void TheProviderReferencesHandlersInOtherNamespacesFullyQualified() {
-        var result = FunctionGeneratorHarness.Generate(new Dictionary<string, string> {
-            ["Application.cs"] = """
-                using Hardened.Shared.Runtime.Attributes;
+    public void TheProviderReferencesHandlersInOtherNamespacesFullyQualified()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                new Dictionary<string, string>
+                {
+                    ["Application.cs"] = """
+                    using Hardened.Shared.Runtime.Attributes;
 
-                namespace TestApp;
+                    namespace TestApp;
 
-                [HardenedModule]
-                public partial class TestApplication { }
-                """,
-            ["Handlers.cs"] = """
-                using Hardened.Requests.Abstract.Attributes;
+                    [HardenedModule]
+                    public partial class TestApplication { }
+                    """,
+                    ["Handlers.cs"] = """
+                    using Hardened.Requests.Abstract.Attributes;
 
-                namespace TestApp.Handlers;
+                    namespace TestApp.Handlers;
 
-                public class OrderFunctions {
-                    [HardenedFunction] public void Process() { }
+                    public class OrderFunctions {
+                        [HardenedFunction] public void Process() { }
+                    }
+                    """,
                 }
-                """
-        }).AssertNoErrors();
+            )
+            .AssertNoErrors();
 
         var provider = result.SourceContaining("FunctionHandlers.cs");
 
         Assert.Contains("namespace TestApp", provider);
         Assert.Contains("global::TestApp.Handlers.Generated.OrderFunctions_Process", provider);
-        Assert.Contains("serviceCollection.AddTransient<global::TestApp.Handlers.OrderFunctions>();", provider);
+        Assert.Contains(
+            "serviceCollection.AddTransient<global::TestApp.Handlers.OrderFunctions>();",
+            provider
+        );
     }
 }

@@ -34,9 +34,13 @@ namespace Hardened.Azure.Functions.Testing;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method)]
-public class AzureFunctionsTestingAttribute : Attribute, ITestServiceSetupAttribute {
+public class AzureFunctionsTestingAttribute : Attribute, ITestServiceSetupAttribute
+{
     public void SetupServiceCollection(
-        ITestMethodContext testMethod, IServiceCollection serviceCollection) {
+        ITestMethodContext testMethod,
+        IServiceCollection serviceCollection
+    )
+    {
         serviceCollection.AddTriggerTesting();
 
         serviceCollection.RemoveAll<ITriggerDelivery>();

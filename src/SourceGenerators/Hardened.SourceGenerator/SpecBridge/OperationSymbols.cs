@@ -35,8 +35,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// Roslyn's incremental caches compare.
 /// </para>
 /// </remarks>
-public sealed class OperationSymbols {
-
+public sealed class OperationSymbols
+{
     /// <summary>The type declaring the handler method — a controller, or a described service interface.</summary>
     public ITypeDefinition? ControllerType { get; set; }
 
@@ -134,5 +134,7 @@ public sealed class OperationSymbols {
 
     /// <summary>The resolved type for <paramref name="parameterName"/>, or null.</summary>
     public ITypeDefinition? Parameter(string parameterName) =>
-        ParameterTypes != null && ParameterTypes.TryGetValue(parameterName, out var type) ? type : null;
+        ParameterTypes != null && ParameterTypes.TryGetValue(parameterName, out var type)
+            ? type
+            : null;
 }

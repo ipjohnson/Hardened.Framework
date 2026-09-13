@@ -46,15 +46,16 @@ namespace Hardened.Requests.Abstract.Responses;
 /// and fails CS0266 - which is the whole reason this is a struct.
 /// </para>
 /// </remarks>
-
 /// <summary>A response set of 2 cases. See <see cref="Response{T1, T2}"/>.</summary>
-public readonly struct Response<T1, T2> {
-
-    public Response(T1 value) {
+public readonly struct Response<T1, T2>
+{
+    public Response(T1 value)
+    {
         Value = value;
     }
 
-    public Response(T2 value) {
+    public Response(T2 value)
+    {
         Value = value;
     }
 
@@ -69,6 +70,7 @@ public readonly struct Response<T1, T2> {
     public object? Value { get; }
 
     public static implicit operator Response<T1, T2>(T1 value) => new(value);
+
     public static implicit operator Response<T1, T2>(T2 value) => new(value);
 
     /// <summary>The case's own rendering, so logging one does not print the wrapper.</summary>
@@ -76,17 +78,20 @@ public readonly struct Response<T1, T2> {
 }
 
 /// <summary>A response set of 3 cases. See <see cref="Response{T1, T2}"/>.</summary>
-public readonly struct Response<T1, T2, T3> {
-
-    public Response(T1 value) {
+public readonly struct Response<T1, T2, T3>
+{
+    public Response(T1 value)
+    {
         Value = value;
     }
 
-    public Response(T2 value) {
+    public Response(T2 value)
+    {
         Value = value;
     }
 
-    public Response(T3 value) {
+    public Response(T3 value)
+    {
         Value = value;
     }
 
@@ -101,7 +106,9 @@ public readonly struct Response<T1, T2, T3> {
     public object? Value { get; }
 
     public static implicit operator Response<T1, T2, T3>(T1 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3>(T2 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3>(T3 value) => new(value);
 
     /// <summary>The case's own rendering, so logging one does not print the wrapper.</summary>
@@ -109,21 +116,25 @@ public readonly struct Response<T1, T2, T3> {
 }
 
 /// <summary>A response set of 4 cases. See <see cref="Response{T1, T2}"/>.</summary>
-public readonly struct Response<T1, T2, T3, T4> {
-
-    public Response(T1 value) {
+public readonly struct Response<T1, T2, T3, T4>
+{
+    public Response(T1 value)
+    {
         Value = value;
     }
 
-    public Response(T2 value) {
+    public Response(T2 value)
+    {
         Value = value;
     }
 
-    public Response(T3 value) {
+    public Response(T3 value)
+    {
         Value = value;
     }
 
-    public Response(T4 value) {
+    public Response(T4 value)
+    {
         Value = value;
     }
 
@@ -138,8 +149,11 @@ public readonly struct Response<T1, T2, T3, T4> {
     public object? Value { get; }
 
     public static implicit operator Response<T1, T2, T3, T4>(T1 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4>(T2 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4>(T3 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4>(T4 value) => new(value);
 
     /// <summary>The case's own rendering, so logging one does not print the wrapper.</summary>
@@ -147,25 +161,30 @@ public readonly struct Response<T1, T2, T3, T4> {
 }
 
 /// <summary>A response set of 5 cases. See <see cref="Response{T1, T2}"/>.</summary>
-public readonly struct Response<T1, T2, T3, T4, T5> {
-
-    public Response(T1 value) {
+public readonly struct Response<T1, T2, T3, T4, T5>
+{
+    public Response(T1 value)
+    {
         Value = value;
     }
 
-    public Response(T2 value) {
+    public Response(T2 value)
+    {
         Value = value;
     }
 
-    public Response(T3 value) {
+    public Response(T3 value)
+    {
         Value = value;
     }
 
-    public Response(T4 value) {
+    public Response(T4 value)
+    {
         Value = value;
     }
 
-    public Response(T5 value) {
+    public Response(T5 value)
+    {
         Value = value;
     }
 
@@ -180,9 +199,13 @@ public readonly struct Response<T1, T2, T3, T4, T5> {
     public object? Value { get; }
 
     public static implicit operator Response<T1, T2, T3, T4, T5>(T1 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5>(T2 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5>(T3 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5>(T4 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5>(T5 value) => new(value);
 
     /// <summary>The case's own rendering, so logging one does not print the wrapper.</summary>
@@ -190,29 +213,35 @@ public readonly struct Response<T1, T2, T3, T4, T5> {
 }
 
 /// <summary>A response set of 6 cases. See <see cref="Response{T1, T2}"/>.</summary>
-public readonly struct Response<T1, T2, T3, T4, T5, T6> {
-
-    public Response(T1 value) {
+public readonly struct Response<T1, T2, T3, T4, T5, T6>
+{
+    public Response(T1 value)
+    {
         Value = value;
     }
 
-    public Response(T2 value) {
+    public Response(T2 value)
+    {
         Value = value;
     }
 
-    public Response(T3 value) {
+    public Response(T3 value)
+    {
         Value = value;
     }
 
-    public Response(T4 value) {
+    public Response(T4 value)
+    {
         Value = value;
     }
 
-    public Response(T5 value) {
+    public Response(T5 value)
+    {
         Value = value;
     }
 
-    public Response(T6 value) {
+    public Response(T6 value)
+    {
         Value = value;
     }
 
@@ -227,10 +256,15 @@ public readonly struct Response<T1, T2, T3, T4, T5, T6> {
     public object? Value { get; }
 
     public static implicit operator Response<T1, T2, T3, T4, T5, T6>(T1 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6>(T2 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6>(T3 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6>(T4 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6>(T5 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6>(T6 value) => new(value);
 
     /// <summary>The case's own rendering, so logging one does not print the wrapper.</summary>
@@ -238,33 +272,40 @@ public readonly struct Response<T1, T2, T3, T4, T5, T6> {
 }
 
 /// <summary>A response set of 7 cases. See <see cref="Response{T1, T2}"/>.</summary>
-public readonly struct Response<T1, T2, T3, T4, T5, T6, T7> {
-
-    public Response(T1 value) {
+public readonly struct Response<T1, T2, T3, T4, T5, T6, T7>
+{
+    public Response(T1 value)
+    {
         Value = value;
     }
 
-    public Response(T2 value) {
+    public Response(T2 value)
+    {
         Value = value;
     }
 
-    public Response(T3 value) {
+    public Response(T3 value)
+    {
         Value = value;
     }
 
-    public Response(T4 value) {
+    public Response(T4 value)
+    {
         Value = value;
     }
 
-    public Response(T5 value) {
+    public Response(T5 value)
+    {
         Value = value;
     }
 
-    public Response(T6 value) {
+    public Response(T6 value)
+    {
         Value = value;
     }
 
-    public Response(T7 value) {
+    public Response(T7 value)
+    {
         Value = value;
     }
 
@@ -279,11 +320,17 @@ public readonly struct Response<T1, T2, T3, T4, T5, T6, T7> {
     public object? Value { get; }
 
     public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7>(T1 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7>(T2 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7>(T3 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7>(T4 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7>(T5 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7>(T6 value) => new(value);
+
     public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7>(T7 value) => new(value);
 
     /// <summary>The case's own rendering, so logging one does not print the wrapper.</summary>
@@ -291,37 +338,45 @@ public readonly struct Response<T1, T2, T3, T4, T5, T6, T7> {
 }
 
 /// <summary>A response set of 8 cases. See <see cref="Response{T1, T2}"/>.</summary>
-public readonly struct Response<T1, T2, T3, T4, T5, T6, T7, T8> {
-
-    public Response(T1 value) {
+public readonly struct Response<T1, T2, T3, T4, T5, T6, T7, T8>
+{
+    public Response(T1 value)
+    {
         Value = value;
     }
 
-    public Response(T2 value) {
+    public Response(T2 value)
+    {
         Value = value;
     }
 
-    public Response(T3 value) {
+    public Response(T3 value)
+    {
         Value = value;
     }
 
-    public Response(T4 value) {
+    public Response(T4 value)
+    {
         Value = value;
     }
 
-    public Response(T5 value) {
+    public Response(T5 value)
+    {
         Value = value;
     }
 
-    public Response(T6 value) {
+    public Response(T6 value)
+    {
         Value = value;
     }
 
-    public Response(T7 value) {
+    public Response(T7 value)
+    {
         Value = value;
     }
 
-    public Response(T8 value) {
+    public Response(T8 value)
+    {
         Value = value;
     }
 
@@ -335,14 +390,29 @@ public readonly struct Response<T1, T2, T3, T4, T5, T6, T7, T8> {
     /// </remarks>
     public object? Value { get; }
 
-    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T1 value) => new(value);
-    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T2 value) => new(value);
-    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T3 value) => new(value);
-    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T4 value) => new(value);
-    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T5 value) => new(value);
-    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T6 value) => new(value);
-    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T7 value) => new(value);
-    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T8 value) => new(value);
+    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T1 value) =>
+        new(value);
+
+    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T2 value) =>
+        new(value);
+
+    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T3 value) =>
+        new(value);
+
+    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T4 value) =>
+        new(value);
+
+    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T5 value) =>
+        new(value);
+
+    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T6 value) =>
+        new(value);
+
+    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T7 value) =>
+        new(value);
+
+    public static implicit operator Response<T1, T2, T3, T4, T5, T6, T7, T8>(T8 value) =>
+        new(value);
 
     /// <summary>The case's own rendering, so logging one does not print the wrapper.</summary>
     public override string ToString() => Value?.ToString() ?? "";

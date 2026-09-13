@@ -1,7 +1,7 @@
-using Hardened.Generation;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 
 namespace Hardened.Idl;
@@ -49,8 +49,8 @@ namespace Hardened.Idl;
 /// allocating is what makes which one gets it independent of the document's order.
 /// </para>
 /// </remarks>
-internal static class NameAllocator {
-
+internal static class NameAllocator
+{
     /// <summary>
     /// Members a record already has, which a property cannot redeclare.
     /// </summary>
@@ -59,23 +59,36 @@ internal static class NameAllocator {
     /// name for its copy method and rejects any member called it outright (CS8859), where the
     /// others merely collide. Bitbucket declares a property named <c>clone</c>.
     /// </remarks>
-    private static readonly string[] ObjectMembers = {
-        "ToString", "Equals", "GetHashCode", "GetType", "ReferenceEquals", "MemberwiseClone",
-        "Clone", "Deconstruct", "PrintMembers", "EqualityContract"
+    private static readonly string[] ObjectMembers =
+    {
+        "ToString",
+        "Equals",
+        "GetHashCode",
+        "GetType",
+        "ReferenceEquals",
+        "MemberwiseClone",
+        "Clone",
+        "Deconstruct",
+        "PrintMembers",
+        "EqualityContract",
     };
 
     /// <summary>
     /// One container's names.
     /// </summary>
-    private sealed class Scope {
+    private sealed class Scope
+    {
         private readonly HashSet<string> _taken = new(StringComparer.Ordinal);
 
-        public Scope(IEnumerable<string>? reserved = null) {
-            if (reserved == null) {
+        public Scope(IEnumerable<string>? reserved = null)
+        {
+            if (reserved == null)
+            {
                 return;
             }
 
-            foreach (var name in reserved) {
+            foreach (var name in reserved)
+            {
                 _taken.Add(name);
             }
         }
@@ -89,25 +102,30 @@ internal static class NameAllocator {
         /// <c>ZoomDateTime</c>. Derived from the thing being named rather than from a counter, so
         /// the answer does not depend on how many names came before it.
         /// </param>
-        public string Allocate(string desired, string alternative) {
+        public string Allocate(string desired, string alternative)
+        {
             var candidate = NamingHelper.ToPascalCase(desired);
 
-            if (_taken.Add(candidate)) {
+            if (_taken.Add(candidate))
+            {
                 return candidate;
             }
 
             var qualified = NamingHelper.ToPascalCase(alternative);
 
-            if (qualified != candidate && _taken.Add(qualified)) {
+            if (qualified != candidate && _taken.Add(qualified))
+            {
                 return qualified;
             }
 
             // Both taken, which means two things the document does not distinguish by anything this
             // scope can see. Numbered, and the order is fixed by sorting before allocating.
-            for (var suffix = 2; ; suffix++) {
+            for (var suffix = 2; ; suffix++)
+            {
                 var numbered = candidate + suffix.ToString(CultureInfo.InvariantCulture);
 
-                if (_taken.Add(numbered)) {
+                if (_taken.Add(numbered))
+                {
                     return numbered;
                 }
             }
@@ -124,7 +142,8 @@ internal static class NameAllocator {
     /// schema declares a property called <c>commit</c>, and <c>CommitCommit</c> at least says which
     /// two things met, where a number says nothing.
     /// </remarks>
-    private static string Qualify(string scope, string name) {
+    private static string Qualify(string scope, string name)
+    {
         var prefix = NamingHelper.ToPascalCase(scope);
         var pascal = NamingHelper.ToPascalCase(name);
 
@@ -133,7 +152,8 @@ internal static class NameAllocator {
             : prefix + pascal;
     }
 
-    public static void Apply(ServiceSpecModel model, string specFileName) {
+    public static void Apply(ServiceSpecModel model, string specFileName)
+    {
         var file = NamingHelper.ToPascalCase(specFileName);
 
         var types = AllocateTypeNames(model, file);
@@ -167,24 +187,29 @@ internal static class NameAllocator {
     /// document two sets of names depending on how it was built.
     /// </para>
     /// </remarks>
-    private static void AllocateResponseContainerNames(ServiceSpecModel model, Scope types) {
+    private static void AllocateResponseContainerNames(ServiceSpecModel model, Scope types)
+    {
         var operations = new List<OperationModel>();
 
-        foreach (var service in model.Services) {
+        foreach (var service in model.Services)
+        {
             operations.AddRange(service.Operations);
         }
 
         operations.Sort((left, right) => string.CompareOrdinal(left.MethodName, right.MethodName));
 
-        foreach (var operation in operations) {
+        foreach (var operation in operations)
+        {
             var desired = operation.MethodName + "Response";
 
             // Qualified by what distinguishes the container from the schema it collided with: it is
             // the set of responses rather than one of them, and "response set" is what the rest of
             // the generator calls it. A number would say nothing, and the document is not what the
             // two disagreed over.
-            operation.ResponseContainerName =
-                types.Allocate(desired, operation.MethodName + "ResponseSet");
+            operation.ResponseContainerName = types.Allocate(
+                desired,
+                operation.MethodName + "ResponseSet"
+            );
         }
     }
 
@@ -211,32 +236,45 @@ internal static class NameAllocator {
     /// one class under two names, and nothing downstream ever read either type's identity.
     /// </para>
     /// </remarks>
-    private static void AllocateErrorTypeNames(ServiceSpecModel model, Scope types) {
+    private static void AllocateErrorTypeNames(ServiceSpecModel model, Scope types)
+    {
         var errors = new List<ErrorResponseModel>();
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                foreach (var error in operation.ErrorResponses) {
-                    if (ShippedResponses.For(error) == null) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                foreach (var error in operation.ErrorResponses)
+                {
+                    if (ShippedResponses.For(error) == null)
+                    {
                         errors.Add(error);
                     }
                 }
             }
         }
 
-        if (errors.Count == 0) {
+        if (errors.Count == 0)
+        {
             return;
         }
 
-        errors.Sort((left, right) => string.CompareOrdinal(
-            ShippedResponses.GeneratedKey(left), ShippedResponses.GeneratedKey(right)));
+        errors.Sort(
+            (left, right) =>
+                string.CompareOrdinal(
+                    ShippedResponses.GeneratedKey(left),
+                    ShippedResponses.GeneratedKey(right)
+                )
+        );
 
         var allocated = new Dictionary<string, ErrorTypeNames>(StringComparer.Ordinal);
 
-        foreach (var error in errors) {
+        foreach (var error in errors)
+        {
             var key = ShippedResponses.GeneratedKey(error);
 
-            if (!allocated.TryGetValue(key, out var names)) {
+            if (!allocated.TryGetValue(key, out var names))
+            {
                 var desired = ShippedResponses.GeneratedName(error);
 
                 names = new ErrorTypeNames(
@@ -244,7 +282,8 @@ internal static class NameAllocator {
                     // is that it is the response rather than the payload. A number would say
                     // nothing, and the document is not what these two collided over.
                     types.Allocate(desired, desired + "Error"),
-                    types.Allocate(desired + "Exception", desired + "ErrorException"));
+                    types.Allocate(desired + "Exception", desired + "ErrorException")
+                );
 
                 allocated.Add(key, names);
             }
@@ -255,9 +294,10 @@ internal static class NameAllocator {
     }
 
     /// <summary>Both names one declared error can be generated under, allocated together.</summary>
-    private readonly struct ErrorTypeNames {
-
-        public ErrorTypeNames(string typeName, string exceptionTypeName) {
+    private readonly struct ErrorTypeNames
+    {
+        public ErrorTypeNames(string typeName, string exceptionTypeName)
+        {
             TypeName = typeName;
             ExceptionTypeName = exceptionTypeName;
         }
@@ -283,32 +323,39 @@ internal static class NameAllocator {
     /// <c>Monitor</c> is always allocated first and always wins the argument.
     /// </para>
     /// </remarks>
-    private static Scope AllocateTypeNames(ServiceSpecModel model, string file) {
-        var scope = new Scope(new[] {
-            file + "Patterns", file + "Specification", file + "JsonTypeInfoResolver",
-
-            // The static class the throwing shorthand lives in. An extension method has to be in a
-            // non-generic static class, so unlike the wrappers below it has nowhere else to go.
-            file + "Errors",
-
-            // The static class the conversions from a bare record call into, for the same reason.
-            file + "Problems",
-
-            // Exactly the names the type mapper resolves by spelling - no more. It looks a type up
-            // by its rendered name, so a schema called DateTime became System.DateTime everywhere
-            // it was referenced; Zoom declares one, and it is a date range with `from` and `to`,
-            // not a moment. The keyword forms (int, string) cannot collide because a pascal-cased
-            // name never produces one, and reserving ordinary words like Type or Object would
-            // rename a great many schemas to no purpose.
-            "DateTime", "DateTimeOffset", "DateOnly", "JsonElement"
-        });
+    private static Scope AllocateTypeNames(ServiceSpecModel model, string file)
+    {
+        var scope = new Scope(
+            new[]
+            {
+                file + "Patterns",
+                file + "Specification",
+                file + "JsonTypeInfoResolver",
+                // The static class the throwing shorthand lives in. An extension method has to be in a
+                // non-generic static class, so unlike the wrappers below it has nowhere else to go.
+                file + "Errors",
+                // The static class the conversions from a bare record call into, for the same reason.
+                file + "Problems",
+                // Exactly the names the type mapper resolves by spelling - no more. It looks a type up
+                // by its rendered name, so a schema called DateTime became System.DateTime everywhere
+                // it was referenced; Zoom declares one, and it is a date range with `from` and `to`,
+                // not a moment. The keyword forms (int, string) cannot collide because a pascal-cased
+                // name never produces one, and reserving ordinary words like Type or Object would
+                // rename a great many schemas to no purpose.
+                "DateTime",
+                "DateTimeOffset",
+                "DateOnly",
+                "JsonElement",
+            }
+        );
 
         var ordered = new List<SchemaModel>(model.Schemas);
         ordered.Sort((left, right) => string.CompareOrdinal(left.Name, right.Name));
 
         var renamed = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        foreach (var schema in ordered) {
+        foreach (var schema in ordered)
+        {
             // Qualified by the document, because what a schema collides with is either another
             // schema in the same document or a name the language already spends - and the document
             // is what distinguishes it from both.
@@ -318,21 +365,26 @@ internal static class NameAllocator {
 
             // Same argument for a choice type: the converter is named after it and has nowhere
             // else to go. See OneOfConverterEmitter.
-            if (schema.Kind is SchemaKind.OneOf or SchemaKind.Enum) {
+            if (schema.Kind is SchemaKind.OneOf or SchemaKind.Enum)
+            {
                 scope.Reserve(allocated + "Converter");
             }
 
-            if (allocated != schema.Name) {
+            if (allocated != schema.Name)
+            {
                 renamed[schema.Name] = allocated;
                 schema.Name = allocated;
             }
         }
 
-        if (renamed.Count > 0) {
-            foreach (var reference in ModelRefs.All(model)) {
+        if (renamed.Count > 0)
+        {
+            foreach (var reference in ModelRefs.All(model))
+            {
                 var name = TypeMapper.GetRefName(reference.Value ?? "");
 
-                if (reference.Value != null && renamed.TryGetValue(name, out var replacement)) {
+                if (reference.Value != null && renamed.TryGetValue(name, out var replacement))
+                {
                     reference.Set(TypeMapper.MakeRef(replacement));
                 }
             }
@@ -353,13 +405,15 @@ internal static class NameAllocator {
     /// because the parameter interface is partial, the two merged into a single type with every
     /// member declared twice rather than failing where the duplication was.
     /// </remarks>
-    private static void AllocateOperationNames(ServiceSpecModel model, string file) {
+    private static void AllocateOperationNames(ServiceSpecModel model, string file)
+    {
         var services = new List<ServiceModel>(model.Services);
         services.Sort((left, right) => string.CompareOrdinal(left.Tag, right.Tag));
 
         var tags = new Scope();
 
-        foreach (var service in services) {
+        foreach (var service in services)
+        {
             var tag = service.Tag ?? "Default";
 
             service.TypeBaseName = tags.Allocate(tag, Qualify(file, tag));
@@ -367,27 +421,36 @@ internal static class NameAllocator {
 
         var operations = new List<OperationModel>();
 
-        foreach (var service in services) {
+        foreach (var service in services)
+        {
             operations.AddRange(service.Operations);
         }
 
-        operations.Sort((left, right) => {
-            var byId = string.CompareOrdinal(left.OperationId, right.OperationId);
-            return byId != 0
-                ? byId
-                : string.CompareOrdinal(left.HttpMethod + left.Path, right.HttpMethod + right.Path);
-        });
+        operations.Sort(
+            (left, right) =>
+            {
+                var byId = string.CompareOrdinal(left.OperationId, right.OperationId);
+                return byId != 0
+                    ? byId
+                    : string.CompareOrdinal(
+                        left.HttpMethod + left.Path,
+                        right.HttpMethod + right.Path
+                    );
+            }
+        );
 
         var ids = new Scope();
 
-        foreach (var operation in operations) {
+        foreach (var operation in operations)
+        {
             // Not qualified by the tag: Cloudflare's DeleteWebhook and deleteWebhook share one, so
             // it distinguishes nothing. What differs is the route, so a colliding id falls back to
             // the name the operation would have had if it had declared none - deleteZonesZoneId -
             // which is a convention the generator already uses and a reader already recognises.
             operation.MethodName = ids.Allocate(
                 operation.OperationId,
-                NamingHelper.OperationIdFromRoute(operation.HttpMethod, operation.Path));
+                NamingHelper.OperationIdFromRoute(operation.HttpMethod, operation.Path)
+            );
         }
     }
 
@@ -398,8 +461,10 @@ internal static class NameAllocator {
     /// The wire name never moves - <c>[JsonPropertyName]</c> pins it - so only the C# member is
     /// allocated, and it is carried on the model rather than re-derived by each emitter.
     /// </remarks>
-    private static void AllocateMemberNames(ServiceSpecModel model) {
-        foreach (var schema in model.Schemas) {
+    private static void AllocateMemberNames(ServiceSpecModel model)
+    {
+        foreach (var schema in model.Schemas)
+        {
             // The type's own name is taken: C# forbids a member matching its enclosing type
             // (CS0542), which GitHub's commit.commit and Stripe's error.error both are.
             var members = new Scope(ObjectMembers) { };
@@ -416,15 +481,19 @@ internal static class NameAllocator {
 
             var typeName = NamingHelper.ToPascalCase(schema.Name);
 
-            foreach (var property in properties) {
+            foreach (var property in properties)
+            {
                 // Qualified by the type that declares it, which is what a property collides
                 // against: its own type's name, a member every record already has, or another
                 // property of the same type. Bitbucket's repository.clone becomes RepositoryClone.
-                property.MemberNameOverride =
-                    members.Allocate(property.Name, Qualify(typeName, property.Name));
+                property.MemberNameOverride = members.Allocate(
+                    property.Name,
+                    Qualify(typeName, property.Name)
+                );
             }
 
-            if (schema.EnumValues is { Count: > 0 }) {
+            if (schema.EnumValues is { Count: > 0 })
+            {
                 var values = new Scope();
                 var allocated = new string[schema.EnumValues.Count];
                 var order = new List<int>(schema.EnumValues.Count);
@@ -438,40 +507,48 @@ internal static class NameAllocator {
                 // collide as easily as two values can.
                 var preferred = new string[schema.EnumValues.Count];
                 var declared =
-                    schema.EnumMemberNamesAreDeclared &&
-                    schema.EnumMemberNames.Count == schema.EnumValues.Count
+                    schema.EnumMemberNamesAreDeclared
+                    && schema.EnumMemberNames.Count == schema.EnumValues.Count
                         ? schema.EnumMemberNames
                         : null;
                 var numeric = EnumWireForm.IsNumeric(schema);
 
-                for (var i = 0; i < schema.EnumValues.Count; i++) {
+                for (var i = 0; i < schema.EnumValues.Count; i++)
+                {
                     order.Add(i);
-                    preferred[i] = declared != null
-                        ? declared[i]
-                        : numeric
-                            ? EnumWireForm.SynthesizedName(schema.EnumValues[i])
-                            : schema.EnumValues[i];
+                    preferred[i] =
+                        declared != null ? declared[i]
+                        : numeric ? EnumWireForm.SynthesizedName(schema.EnumValues[i])
+                        : schema.EnumValues[i];
                 }
 
                 // Same rule, and the results go back to the positions their values hold, because
                 // EnumMemberNames pairs with EnumValues by index.
-                order.Sort((left, right) =>
-                    string.CompareOrdinal(schema.EnumValues[left], schema.EnumValues[right]));
+                order.Sort(
+                    (left, right) =>
+                        string.CompareOrdinal(schema.EnumValues[left], schema.EnumValues[right])
+                );
 
-                foreach (var index in order) {
+                foreach (var index in order)
+                {
                     allocated[index] = values.Allocate(
-                        preferred[index], Qualify(typeName, preferred[index]));
+                        preferred[index],
+                        Qualify(typeName, preferred[index])
+                    );
                 }
 
                 schema.EnumMemberNames = new List<string>(allocated);
             }
         }
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
                 var parameters = new Scope();
 
-                foreach (var parameter in Ordered(operation.Parameters)) {
+                foreach (var parameter in Ordered(operation.Parameters))
+                {
                     // Qualified by where it travels, because that is what OpenAPI allows two
                     // parameters of one name to differ by: Kubernetes' proxy routes take `path` in
                     // the path and `path` in the query, so the second becomes queryPath.
@@ -479,7 +556,10 @@ internal static class NameAllocator {
                         NamingHelper.ToCamelCase(
                             parameters.Allocate(
                                 parameter.Name,
-                                Qualify(parameter.In ?? "value", parameter.Name))));
+                                Qualify(parameter.In ?? "value", parameter.Name)
+                            )
+                        )
+                    );
                 }
             }
         }
@@ -495,23 +575,28 @@ internal static class NameAllocator {
     /// <c>path</c> in the path and <c>path</c> in the query. The location decides, and it decides
     /// the same way every time.
     /// </remarks>
-    private static List<ParameterModel> Ordered(List<ParameterModel> parameters) {
-        static int Rank(string? location) => location switch {
-            "path" => 0,
-            "query" => 1,
-            "header" => 2,
-            "cookie" => 3,
-            _ => 4
-        };
+    private static List<ParameterModel> Ordered(List<ParameterModel> parameters)
+    {
+        static int Rank(string? location) =>
+            location switch
+            {
+                "path" => 0,
+                "query" => 1,
+                "header" => 2,
+                "cookie" => 3,
+                _ => 4,
+            };
 
         var ordered = new List<ParameterModel>(parameters);
 
-        ordered.Sort((left, right) => {
-            var byRank = Rank(left.In).CompareTo(Rank(right.In));
-            return byRank != 0 ? byRank : string.CompareOrdinal(left.Name, right.Name);
-        });
+        ordered.Sort(
+            (left, right) =>
+            {
+                var byRank = Rank(left.In).CompareTo(Rank(right.In));
+                return byRank != 0 ? byRank : string.CompareOrdinal(left.Name, right.Name);
+            }
+        );
 
         return ordered;
     }
 }
-

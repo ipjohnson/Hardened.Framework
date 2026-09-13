@@ -1,5 +1,5 @@
-﻿using Hardened.Web.Runtime.Links;
-using Hardened.IntegrationTests.WebApp.SUT;
+﻿using Hardened.IntegrationTests.WebApp.SUT;
+using Hardened.Web.Runtime.Links;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
@@ -15,16 +15,20 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// existing would stop this project compiling rather than fail when someone followed the link.
 /// </para>
 /// </remarks>
-public class LinkTests {
-
+public class LinkTests
+{
     /// <summary>
     /// The path, with no idea where the application is deployed. This is the form for a caller who
     /// wants the route rather than something a client can call.
     /// </summary>
     [HardenedTest]
-    public Task RoutesBuildThePathFromTheTemplate(ITestWebApp testWebApp) {
+    public Task RoutesBuildThePathFromTheTemplate(ITestWebApp testWebApp)
+    {
         Assert.Equal("/binding/path/42", Application.Routes.Binding.FromPath("42"));
-        Assert.Equal("/binding/pair/a/b", Application.Routes.Binding.FromMultiplePathTokens("a", "b"));
+        Assert.Equal(
+            "/binding/pair/a/b",
+            Application.Routes.Binding.FromMultiplePathTokens("a", "b")
+        );
         Assert.Equal("/", Application.Routes.Home.HelloWorld());
 
         return Task.CompletedTask;
@@ -36,10 +40,12 @@ public class LinkTests {
     /// spec-first route with the same token reaches the same emit sites.
     /// </summary>
     [HardenedTest]
-    public Task RoutesBuildAPathFromTokensNamedAfterKeywords(ITestWebApp testWebApp) {
+    public Task RoutesBuildAPathFromTokensNamedAfterKeywords(ITestWebApp testWebApp)
+    {
         Assert.Equal(
             "/binding/keyword/one/two",
-            Application.Routes.Binding.FromKeywordPathTokens("one", "two"));
+            Application.Routes.Binding.FromKeywordPathTokens("one", "two")
+        );
 
         return Task.CompletedTask;
     }
@@ -50,7 +56,8 @@ public class LinkTests {
     /// another door.
     /// </summary>
     [HardenedTest]
-    public Task ATokenValueIsEscaped(ITestWebApp testWebApp) {
+    public Task ATokenValueIsEscaped(ITestWebApp testWebApp)
+    {
         Assert.Equal("/binding/path/a%2Fb", Application.Routes.Binding.FromPath("a/b"));
 
         return Task.CompletedTask;
@@ -61,7 +68,8 @@ public class LinkTests {
     /// URL on a machine with a different locale.
     /// </summary>
     [HardenedTest]
-    public Task ATypedTokenIsFormattedInvariantly(ITestWebApp testWebApp) {
+    public Task ATypedTokenIsFormattedInvariantly(ITestWebApp testWebApp)
+    {
         Assert.Equal("/binding/path-typed/-7", Application.Routes.Binding.TypedPathToken(-7));
 
         return Task.CompletedTask;
@@ -71,7 +79,8 @@ public class LinkTests {
     /// The links type is in the container, so a handler can take it as a constructor parameter.
     /// </summary>
     [HardenedTest]
-    public Task TheLinksTypeResolvesFromTheContainer(ITestWebApp testWebApp) {
+    public Task TheLinksTypeResolvesFromTheContainer(ITestWebApp testWebApp)
+    {
         Assert.NotNull(testWebApp.RootServiceProvider.GetRequiredService<Application.Links>());
 
         return Task.CompletedTask;
@@ -82,18 +91,23 @@ public class LinkTests {
     /// strips a prefix before the application sees the path - API Gateway's stage.
     /// </summary>
     [HardenedTest]
-    public Task ALinkGoesThroughTheLinkContext(ITestWebApp testWebApp) {
+    public Task ALinkGoesThroughTheLinkContext(ITestWebApp testWebApp)
+    {
         var links = new Application.Links(new StageContext());
 
         Assert.Equal("/prod/binding/path/42", links.Binding.FromPath("42"));
-        Assert.Equal("https://api.example.com/prod/binding/path/42", links.Binding.FromPathAbsolute("42"));
+        Assert.Equal(
+            "https://api.example.com/prod/binding/path/42",
+            links.Binding.FromPathAbsolute("42")
+        );
 
         return Task.CompletedTask;
     }
 
     /// <summary>The default context is the identity, which is right for a host serving the root.</summary>
     [HardenedTest]
-    public Task TheDefaultContextLeavesThePathAlone(ITestWebApp testWebApp) {
+    public Task TheDefaultContextLeavesThePathAlone(ITestWebApp testWebApp)
+    {
         var links = testWebApp.RootServiceProvider.GetRequiredService<Application.Links>();
 
         Assert.Equal("/binding/path/42", links.Binding.FromPath("42"));
@@ -102,7 +116,8 @@ public class LinkTests {
     }
 
     /// <summary>A host that serves the application under a prefix and knows its own address.</summary>
-    private class StageContext : ILinkContext {
+    private class StageContext : ILinkContext
+    {
         public string BasePath => "/prod";
 
         public string Scheme => "https";
@@ -132,10 +147,12 @@ public class LinkTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public Task AnImportedModulesRoutesAreReachableFromTheApplicationsLinks(Application.Links links) {
+    public Task AnImportedModulesRoutesAreReachableFromTheApplicationsLinks(Application.Links links)
+    {
         Assert.Equal(
             "/web-library/string-methods/concat/a/b",
-            links.WebLibrary.Some.Concat("a", "b"));
+            links.WebLibrary.Some.Concat("a", "b")
+        );
 
         return Task.CompletedTask;
     }
@@ -144,7 +161,8 @@ public class LinkTests {
     /// The property is named for the module, which is the name already written at the import site.
     /// </summary>
     [HardenedTest]
-    public Task TheImportedPropertyIsNamedForTheModule(Application.Links links) {
+    public Task TheImportedPropertyIsNamedForTheModule(Application.Links links)
+    {
         Assert.IsType<Hardened.IntegrationTests.Web.SUT.WebLibrary.Links>(links.WebLibrary);
 
         return Task.CompletedTask;

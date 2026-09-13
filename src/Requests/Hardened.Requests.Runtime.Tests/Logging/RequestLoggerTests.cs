@@ -17,28 +17,43 @@ namespace Hardened.Requests.Runtime.Tests.Logging;
 /// caller's mistake and a declared 504 is the operation's own decision; neither is a fault, and a
 /// log that reports them as faults buries the ones that are.
 /// </remarks>
-public class RequestLoggerTests {
-
-    private sealed class Line {
+public class RequestLoggerTests
+{
+    private sealed class Line
+    {
         public LogLevel Level { get; init; }
         public string Message { get; init; } = "";
         public Exception? Exception { get; init; }
     }
 
-    private sealed class Capturing : ILogger<RequestLogger> {
+    private sealed class Capturing : ILogger<RequestLogger>
+    {
         public List<Line> Lines { get; } = [];
 
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
         public void Log<TState>(
-            LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-            Func<TState, Exception?, string> formatter) =>
-            Lines.Add(new Line { Level = logLevel, Message = formatter(state, exception), Exception = exception });
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        ) =>
+            Lines.Add(
+                new Line
+                {
+                    Level = logLevel,
+                    Message = formatter(state, exception),
+                    Exception = exception,
+                }
+            );
     }
 
-    private static (RequestLogger Logger, Capturing Log) Logger() {
+    private static (RequestLogger Logger, Capturing Log) Logger()
+    {
         var capturing = new Capturing();
 
         return (new RequestLogger(capturing), capturing);
@@ -48,13 +63,17 @@ public class RequestLoggerTests {
         context.Response.Body.WriteByte((byte)'{');
 
     [Fact]
-    public void ARefusalIsOneWarningLineWithoutAStack() {
+    public void ARefusalIsOneWarningLineWithoutAStack()
+    {
         var (logger, log) = Logger();
         var context = Pipeline.Context("POST", "/todos");
 
         context.Response.Status = 400;
 
-        logger.RequestFailed(context, new FormatException("The input string 'abc' was not in a correct format."));
+        logger.RequestFailed(
+            context,
+            new FormatException("The input string 'abc' was not in a correct format.")
+        );
 
         var line = Assert.Single(log.Lines);
 
@@ -66,7 +85,8 @@ public class RequestLoggerTests {
 
     /// <summary>A throws-mode 404 is a refusal too, however it was raised.</summary>
     [Fact]
-    public void AThrownNotFoundIsAWarning() {
+    public void AThrownNotFoundIsAWarning()
+    {
         var (logger, log) = Logger();
         var context = Pipeline.Context(path: "/todos/999");
 
@@ -78,7 +98,8 @@ public class RequestLoggerTests {
     }
 
     [Fact]
-    public void AServerFaultIsAnErrorWithTheException() {
+    public void AServerFaultIsAnErrorWithTheException()
+    {
         var (logger, log) = Logger();
         var context = Pipeline.Context();
         var fault = new InvalidOperationException("boom");
@@ -95,7 +116,8 @@ public class RequestLoggerTests {
 
     /// <summary>The hosts log an escaped exception before any status is assigned; that is a fault.</summary>
     [Fact]
-    public void AFailureWithNoStatusIsAnError() {
+    public void AFailureWithNoStatusIsAnError()
+    {
         var (logger, log) = Logger();
 
         logger.RequestFailed(Pipeline.Context(), new InvalidOperationException("boom"));
@@ -110,12 +132,18 @@ public class RequestLoggerTests {
     [Theory]
     [InlineData(504)]
     [InlineData(503)]
-    public void ADeclaredDeadlineIsOneWarningLineNamingTheBudget(int status) {
+    public void ADeclaredDeadlineIsOneWarningLineNamingTheBudget(int status)
+    {
         var (logger, log) = Logger();
         var context = Pipeline.Context(path: "/rates");
 
         context.HandlerInfo = new ExecutionRequestHandlerInfo(
-            "/rates", "GET", typeof(object), "Read", timeout: new TimeoutPolicy(200, status));
+            "/rates",
+            "GET",
+            typeof(object),
+            "Read",
+            timeout: new TimeoutPolicy(200, status)
+        );
         context.Response.Status = status;
 
         logger.RequestFailed(context, new TaskCanceledException());
@@ -130,7 +158,8 @@ public class RequestLoggerTests {
 
     /// <summary>A cancellation on a handler nothing bounded is whatever the converter made of it.</summary>
     [Fact]
-    public void ACancellationWithNoBudgetIsAnError() {
+    public void ACancellationWithNoBudgetIsAnError()
+    {
         var (logger, log) = Logger();
         var context = Pipeline.Context();
 
@@ -146,7 +175,8 @@ public class RequestLoggerTests {
     /// and a failure past that point tore the body: a fault.
     /// </summary>
     [Fact]
-    public void AFailureAfterTheResponseStartedIsAnErrorWhateverTheStatus() {
+    public void AFailureAfterTheResponseStartedIsAnErrorWhateverTheStatus()
+    {
         var (logger, log) = Logger();
         var context = Pipeline.Context();
 
@@ -163,7 +193,8 @@ public class RequestLoggerTests {
     /// not a second Error with the same stack.
     /// </summary>
     [Fact]
-    public void ABindFailureIsLoggedAtDebug() {
+    public void ABindFailureIsLoggedAtDebug()
+    {
         var (logger, log) = Logger();
 
         logger.RequestParameterBindFailed(Pipeline.Context(), new FormatException("bad"));

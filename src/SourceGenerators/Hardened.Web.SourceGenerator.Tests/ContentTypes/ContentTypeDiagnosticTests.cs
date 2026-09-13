@@ -18,11 +18,12 @@ namespace Hardened.Web.SourceGenerator.Tests.ContentTypes;
 /// declares <c>text/csv</c> still compiles without its host.
 /// </para>
 /// </summary>
-public class ContentTypeDiagnosticTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),      // Hardened.Web.Runtime
-        typeof(ProducesAttribute)  // Hardened.Requests.Abstract
+public class ContentTypeDiagnosticTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(ProducesAttribute), // Hardened.Requests.Abstract
     ];
 
     private static GeneratorResult Generate(string handler, string assemblyAttributes = "") =>
@@ -49,7 +50,8 @@ public class ContentTypeDiagnosticTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
     private static IEnumerable<Diagnostic> Reported(GeneratorResult result, string id) =>
         result.GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == id);
@@ -65,29 +67,39 @@ public class ContentTypeDiagnosticTests {
     [InlineData("public Stream Report() => Stream.Null;")]
     [InlineData("public Task<byte[]> Report() => Task.FromResult(new byte[] { 1 });")]
     [InlineData("public Task<Stream> Report() => Task.FromResult(Stream.Null);")]
-    public void BytesWithNoDeclarationIsHRDR011(string handler) {
+    public void BytesWithNoDeclarationIsHRDR011(string handler)
+    {
         var diagnostic = Assert.Single(
             Reported(
-                Generate($"""
+                Generate(
+                    $"""
                     [Get("/report")]
                     {handler}
-                    """),
-                ContentTypeDiagnostics.MissingDeclarationId));
+                    """
+                ),
+                ContentTypeDiagnostics.MissingDeclarationId
+            )
+        );
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("ReportController.Report", diagnostic.GetMessage());
     }
 
     [Fact]
-    public void BytesThatDeclareAMediaTypeAreFine() {
+    public void BytesThatDeclareAMediaTypeAreFine()
+    {
         Assert.Empty(
             Reported(
-                Generate("""
+                Generate(
+                    """
                     [Get("/report")]
                     [Produces("application/pdf")]
                     public byte[] Report() => new byte[] { 1 };
-                    """),
-                ContentTypeDiagnostics.MissingDeclarationId));
+                    """
+                ),
+                ContentTypeDiagnostics.MissingDeclarationId
+            )
+        );
     }
 
     /// <summary>
@@ -95,14 +107,19 @@ public class ContentTypeDiagnosticTests {
     /// nothing answers with, so there is nothing to refuse.
     /// </summary>
     [Fact]
-    public void AStringWithNoDeclarationIsFine() {
+    public void AStringWithNoDeclarationIsFine()
+    {
         Assert.Empty(
             Reported(
-                Generate("""
+                Generate(
+                    """
                     [Get("/report")]
                     public string Report() => "a,b";
-                    """),
-                ContentTypeDiagnostics.MissingDeclarationId));
+                    """
+                ),
+                ContentTypeDiagnostics.MissingDeclarationId
+            )
+        );
     }
 
     /// <summary>
@@ -110,28 +127,38 @@ public class ContentTypeDiagnosticTests {
     /// the semantic model rather than by its name.
     /// </summary>
     [Fact]
-    public void AModelNamedLikeAStreamIsNotOne() {
+    public void AModelNamedLikeAStreamIsNotOne()
+    {
         Assert.Empty(
             Reported(
-                Generate("""
+                Generate(
+                    """
                     [Get("/report")]
                     public Reading Report() => new("a");
-                    """),
-                ContentTypeDiagnostics.MissingDeclarationId));
+                    """
+                ),
+                ContentTypeDiagnostics.MissingDeclarationId
+            )
+        );
     }
 
     // ── a model declared as something nothing writes ───────────────────
 
     [Fact]
-    public void AModelDeclaredAsSomethingNothingWritesIsHRDR012() {
+    public void AModelDeclaredAsSomethingNothingWritesIsHRDR012()
+    {
         var diagnostic = Assert.Single(
             Reported(
-                Generate("""
+                Generate(
+                    """
                     [Get("/report")]
                     [Produces("text/csv")]
                     public Reading Report() => new("a");
-                    """),
-                ContentTypeDiagnostics.NothingProducesId));
+                    """
+                ),
+                ContentTypeDiagnostics.NothingProducesId
+            )
+        );
 
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Contains("text/csv", diagnostic.GetMessage());
@@ -143,16 +170,21 @@ public class ContentTypeDiagnosticTests {
     /// without its host is not a library.
     /// </summary>
     [Fact]
-    public void ItIsNotAnErrorSoALibraryStillCompiles() {
-        var result = Generate("""
+    public void ItIsNotAnErrorSoALibraryStillCompiles()
+    {
+        var result = Generate(
+            """
             [Get("/report")]
             [Produces("text/csv")]
             public Reading Report() => new("a");
-            """);
+            """
+        );
 
         Assert.Empty(
-            result.GeneratorDiagnostics.Where(
-                diagnostic => diagnostic.Severity == DiagnosticSeverity.Error));
+            result.GeneratorDiagnostics.Where(diagnostic =>
+                diagnostic.Severity == DiagnosticSeverity.Error
+            )
+        );
     }
 
     /// <summary>
@@ -162,28 +194,38 @@ public class ContentTypeDiagnosticTests {
     [Theory]
     [InlineData("public string Report() => \"a,b\";")]
     [InlineData("public byte[] Report() => new byte[] { 1 };")]
-    public void AHandlerThatWritesItsOwnBytesProducesAnythingItDeclares(string handler) {
+    public void AHandlerThatWritesItsOwnBytesProducesAnythingItDeclares(string handler)
+    {
         Assert.Empty(
             Reported(
-                Generate($"""
+                Generate(
+                    $"""
                     [Get("/report")]
                     [Produces("text/csv")]
                     {handler}
-                    """),
-                ContentTypeDiagnostics.NothingProducesId));
+                    """
+                ),
+                ContentTypeDiagnostics.NothingProducesId
+            )
+        );
     }
 
     /// <summary>JSON is always producible: the framework registers a serializer for it.</summary>
     [Fact]
-    public void JsonIsAlwaysProducible() {
+    public void JsonIsAlwaysProducible()
+    {
         Assert.Empty(
             Reported(
-                Generate("""
+                Generate(
+                    """
                     [Get("/report")]
                     [Produces("application/json")]
                     public Reading Report() => new("a");
-                    """),
-                ContentTypeDiagnostics.NothingProducesId));
+                    """
+                ),
+                ContentTypeDiagnostics.NothingProducesId
+            )
+        );
     }
 
     // ── a serializer in reach declares the media type ──────────────────
@@ -198,7 +240,8 @@ public class ContentTypeDiagnosticTests {
     /// application adopting MessagePack could not build warning-free.
     /// </remarks>
     [Fact]
-    public void ADeclaredMediaTypeASerializerWritesIsNotWarnedAbout() {
+    public void ADeclaredMediaTypeASerializerWritesIsNotWarnedAbout()
+    {
         Assert.Empty(
             Reported(
                 Generate(
@@ -207,8 +250,11 @@ public class ContentTypeDiagnosticTests {
                     [Produces("application/x-msgpack")]
                     public Reading Report() => new("a");
                     """,
-                    """[assembly: WritesContentType("application/x-msgpack")]"""),
-                ContentTypeDiagnostics.NothingProducesId));
+                    """[assembly: WritesContentType("application/x-msgpack")]"""
+                ),
+                ContentTypeDiagnostics.NothingProducesId
+            )
+        );
     }
 
     /// <summary>
@@ -216,7 +262,8 @@ public class ContentTypeDiagnosticTests {
     /// filtered rather than passed or failed whole.
     /// </summary>
     [Fact]
-    public void OnlyTheTypesWithNoWriterAreReported() {
+    public void OnlyTheTypesWithNoWriterAreReported()
+    {
         var diagnostic = Assert.Single(
             Reported(
                 Generate(
@@ -225,8 +272,11 @@ public class ContentTypeDiagnosticTests {
                     [Produces("application/x-msgpack", "text/csv")]
                     public Reading Report() => new("a");
                     """,
-                    """[assembly: WritesContentType("application/x-msgpack")]"""),
-                ContentTypeDiagnostics.NothingProducesId));
+                    """[assembly: WritesContentType("application/x-msgpack")]"""
+                ),
+                ContentTypeDiagnostics.NothingProducesId
+            )
+        );
 
         Assert.Contains("text/csv", diagnostic.GetMessage());
     }
@@ -236,7 +286,8 @@ public class ContentTypeDiagnosticTests {
     /// declares them.
     /// </summary>
     [Fact]
-    public void OneAttributeCanNameSeveralMediaTypes() {
+    public void OneAttributeCanNameSeveralMediaTypes()
+    {
         Assert.Empty(
             Reported(
                 Generate(
@@ -245,8 +296,11 @@ public class ContentTypeDiagnosticTests {
                     [Produces("application/msgpack")]
                     public Reading Report() => new("a");
                     """,
-                    """[assembly: WritesContentType("application/x-msgpack", "application/msgpack")]"""),
-                ContentTypeDiagnostics.NothingProducesId));
+                    """[assembly: WritesContentType("application/x-msgpack", "application/msgpack")]"""
+                ),
+                ContentTypeDiagnostics.NothingProducesId
+            )
+        );
     }
 
     /// <summary>
@@ -255,7 +309,8 @@ public class ContentTypeDiagnosticTests {
     /// uses. Matching a wildcard here would go quiet for a spelling the locator will not find.
     /// </summary>
     [Fact]
-    public void AWildcardDeclarationDoesNotCoverAConcreteType() {
+    public void AWildcardDeclarationDoesNotCoverAConcreteType()
+    {
         Assert.Single(
             Reported(
                 Generate(
@@ -264,18 +319,23 @@ public class ContentTypeDiagnosticTests {
                     [Produces("application/x-msgpack")]
                     public Reading Report() => new("a");
                     """,
-                    """[assembly: WritesContentType("application/*")]"""),
-                ContentTypeDiagnostics.NothingProducesId));
+                    """[assembly: WritesContentType("application/*")]"""
+                ),
+                ContentTypeDiagnostics.NothingProducesId
+            )
+        );
     }
 
     /// <summary>
     /// A streamed handler's media types are its framing's, and the streaming writer produces both.
     /// </summary>
     [Fact]
-    public void AStreamedHandlerIsNotWarnedAbout() {
+    public void AStreamedHandlerIsNotWarnedAbout()
+    {
         Assert.Empty(
             Reported(
-                Generate("""
+                Generate(
+                    """
                     [Get("/report")]
                     [ServerSentEvents]
                     public async IAsyncEnumerable<Reading> Report() {
@@ -283,7 +343,10 @@ public class ContentTypeDiagnosticTests {
 
                         await Task.CompletedTask;
                     }
-                    """),
-                ContentTypeDiagnostics.NothingProducesId));
+                    """
+                ),
+                ContentTypeDiagnostics.NothingProducesId
+            )
+        );
     }
 }

@@ -18,8 +18,8 @@ namespace Hardened.Aws.DynamoDbClient.Tests;
 /// SDK still signs every request. Getting that branch wrong fails at the first call, not at startup.
 /// </para>
 /// </summary>
-public class DefaultClientSettingsTests {
-
+public class DefaultClientSettingsTests
+{
     private const string LocalUrl = "http://localhost:8000";
 
     /// <summary>
@@ -30,7 +30,8 @@ public class DefaultClientSettingsTests {
     private const string AsTheSdkStoresIt = LocalUrl + "/";
 
     [Fact]
-    public void WithNothingConfiguredEverythingIsLeftToTheSdk() {
+    public void WithNothingConfiguredEverythingIsLeftToTheSdk()
+    {
         var (config, credentials) = Settings(new DynamoDbOptions());
 
         Assert.Null(credentials);
@@ -39,7 +40,8 @@ public class DefaultClientSettingsTests {
     }
 
     [Fact]
-    public void ARegionIsParsedIntoAnEndpoint() {
+    public void ARegionIsParsedIntoAnEndpoint()
+    {
         var (config, _) = Settings(new DynamoDbOptions { Region = "eu-west-1" });
 
         Assert.Equal("eu-west-1", config.RegionEndpoint.SystemName);
@@ -52,14 +54,16 @@ public class DefaultClientSettingsTests {
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void AnEmptyRegionIsLeftToTheSdk(string region) {
+    public void AnEmptyRegionIsLeftToTheSdk(string region)
+    {
         var (config, _) = Settings(new DynamoDbOptions { Region = region });
 
         Assert.Null(config.RegionEndpoint);
     }
 
     [Fact]
-    public void AServiceUrlPointsTheClientAtIt() {
+    public void AServiceUrlPointsTheClientAtIt()
+    {
         var (config, _) = Settings(new DynamoDbOptions { ServiceUrl = LocalUrl });
 
         Assert.Equal(AsTheSdkStoresIt, config.ServiceURL);
@@ -70,7 +74,8 @@ public class DefaultClientSettingsTests {
     /// to send a request it cannot sign, so credentials that mean nothing still have to be there.
     /// </summary>
     [Fact]
-    public void AServiceUrlSuppliesCredentialsBecauseTheSdkSignsEveryRequest() {
+    public void AServiceUrlSuppliesCredentialsBecauseTheSdkSignsEveryRequest()
+    {
         var (_, credentials) = Settings(new DynamoDbOptions { ServiceUrl = LocalUrl });
 
         Assert.IsType<BasicAWSCredentials>(credentials);
@@ -84,11 +89,11 @@ public class DefaultClientSettingsTests {
     /// said. It is carried as the signing region instead.
     /// </summary>
     [Fact]
-    public void ARegionGivenAlongsideAServiceUrlSurvivesAsTheSigningRegion() {
-        var (config, credentials) = Settings(new DynamoDbOptions {
-            ServiceUrl = LocalUrl,
-            Region = "us-west-2",
-        });
+    public void ARegionGivenAlongsideAServiceUrlSurvivesAsTheSigningRegion()
+    {
+        var (config, credentials) = Settings(
+            new DynamoDbOptions { ServiceUrl = LocalUrl, Region = "us-west-2" }
+        );
 
         Assert.Equal(AsTheSdkStoresIt, config.ServiceURL);
         Assert.Equal("us-west-2", config.AuthenticationRegion);
@@ -101,8 +106,11 @@ public class DefaultClientSettingsTests {
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
-    public void AnEmptyServiceUrlMeansDeployed(string serviceUrl) {
-        var (config, credentials) = Settings(new DynamoDbOptions { ServiceUrl = serviceUrl, Region = "us-west-2" });
+    public void AnEmptyServiceUrlMeansDeployed(string serviceUrl)
+    {
+        var (config, credentials) = Settings(
+            new DynamoDbOptions { ServiceUrl = serviceUrl, Region = "us-west-2" }
+        );
 
         Assert.Null(credentials);
         Assert.Null(config.ServiceURL);
@@ -113,15 +121,14 @@ public class DefaultClientSettingsTests {
     /// so this goes through the provider rather than the helper.
     /// </summary>
     [Fact]
-    public void TheDefaultClientIsBuiltFromTheOptions() {
-        var options = new DynamoDbOptions {
-            ServiceUrl = LocalUrl,
-            Region = "us-west-2",
-        };
+    public void TheDefaultClientIsBuiltFromTheOptions()
+    {
+        var options = new DynamoDbOptions { ServiceUrl = LocalUrl, Region = "us-west-2" };
 
         var provider = new DynamoDbClientProvider(
             Options.Create<IDynamoDbOptions>(options),
-            Substitute.For<IServiceProvider>());
+            Substitute.For<IServiceProvider>()
+        );
 
         var client = provider.GetClient();
 
@@ -136,14 +143,16 @@ public class DefaultClientSettingsTests {
     /// cleanly, and then silently stops configuring anything.
     /// </summary>
     [Fact]
-    public void TheEnvironmentVariableNamesAreFixed() {
+    public void TheEnvironmentVariableNamesAreFixed()
+    {
         Assert.Equal("DYNAMODB_SERVICE_URL", EnvironmentVariableBehind("_serviceUrl"));
         Assert.Equal("AWS_REGION", EnvironmentVariableBehind("_region"));
     }
 
-    private static (Amazon.DynamoDBv2.AmazonDynamoDBConfig Config, AWSCredentials? Credentials) Settings(
-        DynamoDbOptions options) =>
-        DynamoDbClientProvider.DefaultClientSettings(options);
+    private static (
+        Amazon.DynamoDBv2.AmazonDynamoDBConfig Config,
+        AWSCredentials? Credentials
+    ) Settings(DynamoDbOptions options) => DynamoDbClientProvider.DefaultClientSettings(options);
 
     private static string? EnvironmentVariableBehind(string fieldName) =>
         typeof(DynamoDbOptions)

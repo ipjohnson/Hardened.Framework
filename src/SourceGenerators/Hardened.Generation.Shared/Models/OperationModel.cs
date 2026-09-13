@@ -1,6 +1,7 @@
 ﻿namespace Hardened.Generation.Models;
 
-internal class OperationModel : IEquatable<OperationModel> {
+internal class OperationModel : IEquatable<OperationModel>
+{
     public string OperationId { get; set; } = "";
 
     /// <summary>
@@ -12,8 +13,12 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// declares both <c>DeleteWebhook</c> and <c>deleteWebhook</c>, so the two ids are distinct and
     /// the two C# names have to be made so.
     /// </remarks>
-    public string MethodName {
-        get => _methodName.Length > 0 ? _methodName : Generation.NamingHelper.ToPascalCase(OperationId);
+    public string MethodName
+    {
+        get =>
+            _methodName.Length > 0
+                ? _methodName
+                : Generation.NamingHelper.ToPascalCase(OperationId);
         set => _methodName = value ?? "";
     }
 
@@ -36,7 +41,8 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// gets the name it always had without going through the allocator.
     /// </para>
     /// </remarks>
-    public string ResponseContainerName {
+    public string ResponseContainerName
+    {
         get => _responseContainerName.Length > 0 ? _responseContainerName : MethodName + "Response";
         set => _responseContainerName = value ?? "";
     }
@@ -294,14 +300,19 @@ internal class OperationModel : IEquatable<OperationModel> {
     public List<PropertyModel> RequestBodyProperties { get; set; } = new();
     public List<string> RequestBodyRequired { get; set; } = new();
 
-
-    public bool HasValidationConstraints {
-        get {
-            foreach (var p in Parameters) {
-                if (p.HasValidationConstraints) return true;
+    public bool HasValidationConstraints
+    {
+        get
+        {
+            foreach (var p in Parameters)
+            {
+                if (p.HasValidationConstraints)
+                    return true;
             }
-            foreach (var p in RequestBodyProperties) {
-                if (p.HasValidationConstraints) return true;
+            foreach (var p in RequestBodyProperties)
+            {
+                if (p.HasValidationConstraints)
+                    return true;
             }
             return false;
         }
@@ -318,40 +329,47 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// that compared equal to the previous one and the generator served the code it had already
     /// emitted. The spec said one thing and the build kept shipping another.
     /// </remarks>
-    public bool Equals(OperationModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return OperationId == other.OperationId && Path == other.Path &&
-               ResponseContainerName == other.ResponseContainerName &&
-               HttpMethod == other.HttpMethod && DispatchKey == other.DispatchKey &&
-               Tag == other.Tag && Tags.SequenceEqual(other.Tags) &&
-               Summary == other.Summary &&
-               Description == other.Description && IsDeprecated == other.IsDeprecated &&
-               SuccessStatusCode == other.SuccessStatusCode &&
-               RequestBodyContentType == other.RequestBodyContentType &&
-               RequestBodyRef == other.RequestBodyRef &&
-               RequestBodyType == other.RequestBodyType &&
-               RequestBodyFormat == other.RequestBodyFormat &&
-               ResponseContentType == other.ResponseContentType &&
-               ResponseRef == other.ResponseRef &&
-               ResponseType == other.ResponseType &&
-               ResponseFormat == other.ResponseFormat &&
-               ResponseIsArray == other.ResponseIsArray &&
-               ResponseArrayItemsRef == other.ResponseArrayItemsRef &&
-               ResponseArrayItemsType == other.ResponseArrayItemsType &&
-               ResponseArrayItemsFormat == other.ResponseArrayItemsFormat &&
-               SuccessResponses.SequenceEqual(other.SuccessResponses) &&
-               ErrorResponses.SequenceEqual(other.ErrorResponses) &&
-               ProducedContentTypes.SequenceEqual(other.ProducedContentTypes) &&
-               SuccessContentTypes.SequenceEqual(other.SuccessContentTypes) &&
-               ErrorContentTypes.SequenceEqual(other.ErrorContentTypes) &&
-               Parameters.SequenceEqual(other.Parameters) &&
-               FilterInstances.SequenceEqual(other.FilterInstances) &&
-               AuthorizationBranches.SequenceEqual(other.AuthorizationBranches) &&
-               SecurityRequirements.SequenceEqual(other.SecurityRequirements) &&
-               RequestBodyProperties.SequenceEqual(other.RequestBodyProperties) &&
-               RequestBodyRequired.SequenceEqual(other.RequestBodyRequired) &&
-               Equals(Timeout, other.Timeout);
+    public bool Equals(OperationModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
+        return OperationId == other.OperationId
+            && Path == other.Path
+            && ResponseContainerName == other.ResponseContainerName
+            && HttpMethod == other.HttpMethod
+            && DispatchKey == other.DispatchKey
+            && Tag == other.Tag
+            && Tags.SequenceEqual(other.Tags)
+            && Summary == other.Summary
+            && Description == other.Description
+            && IsDeprecated == other.IsDeprecated
+            && SuccessStatusCode == other.SuccessStatusCode
+            && RequestBodyContentType == other.RequestBodyContentType
+            && RequestBodyRef == other.RequestBodyRef
+            && RequestBodyType == other.RequestBodyType
+            && RequestBodyFormat == other.RequestBodyFormat
+            && ResponseContentType == other.ResponseContentType
+            && ResponseRef == other.ResponseRef
+            && ResponseType == other.ResponseType
+            && ResponseFormat == other.ResponseFormat
+            && ResponseIsArray == other.ResponseIsArray
+            && ResponseArrayItemsRef == other.ResponseArrayItemsRef
+            && ResponseArrayItemsType == other.ResponseArrayItemsType
+            && ResponseArrayItemsFormat == other.ResponseArrayItemsFormat
+            && SuccessResponses.SequenceEqual(other.SuccessResponses)
+            && ErrorResponses.SequenceEqual(other.ErrorResponses)
+            && ProducedContentTypes.SequenceEqual(other.ProducedContentTypes)
+            && SuccessContentTypes.SequenceEqual(other.SuccessContentTypes)
+            && ErrorContentTypes.SequenceEqual(other.ErrorContentTypes)
+            && Parameters.SequenceEqual(other.Parameters)
+            && FilterInstances.SequenceEqual(other.FilterInstances)
+            && AuthorizationBranches.SequenceEqual(other.AuthorizationBranches)
+            && SecurityRequirements.SequenceEqual(other.SecurityRequirements)
+            && RequestBodyProperties.SequenceEqual(other.RequestBodyProperties)
+            && RequestBodyRequired.SequenceEqual(other.RequestBodyRequired)
+            && Equals(Timeout, other.Timeout);
     }
 
     public override bool Equals(object? obj) => Equals(obj as OperationModel);
@@ -361,8 +379,10 @@ internal class OperationModel : IEquatable<OperationModel> {
     /// fields that never change for a given operation. Roslyn buckets by hash and then compares, so
     /// a hash must agree with equality but need not distinguish everything equality does.
     /// </summary>
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = OperationId.GetHashCode();
             hash = (hash * 397) ^ Path.GetHashCode();
             hash = (hash * 397) ^ HttpMethod.GetHashCode();

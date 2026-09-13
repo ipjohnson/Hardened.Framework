@@ -23,10 +23,11 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 /// <c>Bootstrap.cs</c> decides which.
 /// </para>
 /// </remarks>
-public class HostClientTests {
-
+public class HostClientTests
+{
     [HardenedTest]
-    public async Task AClientReachesTheHandlerThroughTheHost(HttpClient client) {
+    public async Task AClientReachesTheHandlerThroughTheHost(HttpClient client)
+    {
         var order = await client.GetFromJsonAsync<Order>("/orders/c-1");
 
         Assert.NotNull(order);
@@ -43,7 +44,8 @@ public class HostClientTests {
     /// invocation left behind was needed by the second.
     /// </remarks>
     [HardenedTest]
-    public async Task EachRequestGetsItsOwnEnvironment(HttpClient client) {
+    public async Task EachRequestGetsItsOwnEnvironment(HttpClient client)
+    {
         var first = await client.GetFromJsonAsync<Order>("/orders/c-1");
         var second = await client.GetFromJsonAsync<Order>("/orders/c-2");
 
@@ -56,7 +58,8 @@ public class HostClientTests {
     /// from, which is the warm sandbox a test whose subject is the reuse asks for.
     /// </summary>
     [HardenedTest]
-    public async Task ASharedClientStillAnswers([Shared] HttpClient client) {
+    public async Task ASharedClientStillAnswers([Shared] HttpClient client)
+    {
         var order = await client.GetFromJsonAsync<Order>("/orders/c-3");
 
         Assert.Equal("c-3", order!.Id);
@@ -73,8 +76,8 @@ public class HostClientTests {
     /// handler leaning on what the last one left behind has to fail here.
     /// </remarks>
     [HardenedTest]
-    public void TheHostRebuildsItsContainerPerInvocation(ITestHost host) {
+    public void TheHostRebuildsItsContainerPerInvocation(ITestHost host)
+    {
         Assert.Equal(TestContainerPolicy.PerInvocation, host.ContainerPolicy);
     }
 }
-

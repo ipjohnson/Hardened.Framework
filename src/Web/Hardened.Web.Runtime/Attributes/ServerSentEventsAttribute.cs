@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.Web.Runtime.Attributes;
 
 /// <summary>
@@ -85,4 +86,5 @@ namespace Hardened.Web.Runtime.Attributes;
 [AttributeUsage(AttributeTargets.Method)]
 public class ServerSentEventsAttribute()
     : Hardened.Requests.Abstract.Attributes.ProducesAttribute(
-        Hardened.Requests.Abstract.Headers.KnownContentType.EventStream);
+        Hardened.Requests.Abstract.Headers.KnownContentType.EventStream
+    );

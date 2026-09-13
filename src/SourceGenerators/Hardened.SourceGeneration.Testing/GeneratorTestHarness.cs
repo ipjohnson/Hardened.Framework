@@ -24,8 +24,8 @@ namespace Hardened.SourceGeneration.Testing;
 /// porting to the other.
 /// </para>
 /// </summary>
-public static class GeneratorTestHarness {
-
+public static class GeneratorTestHarness
+{
     /// <summary>
     /// Compiles <paramref name="sources"/>, runs <paramref name="generators"/>, and returns
     /// everything they emitted.
@@ -57,16 +57,20 @@ public static class GeneratorTestHarness {
         IReadOnlyDictionary<string, string>? buildProperties = null,
         OutputKind outputKind = OutputKind.DynamicallyLinkedLibrary,
         string assemblyName = "GeneratorTestAssembly",
-        IReadOnlyList<MetadataReference>? additionalReferences = null) {
-
+        IReadOnlyList<MetadataReference>? additionalReferences = null
+    )
+    {
         var projectDir = ResolveProjectDir(buildProperties);
         var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
 
         var syntaxTrees = sources
-            .Select(pair => CSharpSyntaxTree.ParseText(
-                pair.Value,
-                parseOptions,
-                path: Path.Combine(projectDir, pair.Key)))
+            .Select(pair =>
+                CSharpSyntaxTree.ParseText(
+                    pair.Value,
+                    parseOptions,
+                    path: Path.Combine(projectDir, pair.Key)
+                )
+            )
             .ToArray();
 
         var references = GeneratorReferences.For(referenceAnchors ?? Array.Empty<Type>());
@@ -75,19 +79,30 @@ public static class GeneratorTestHarness {
             assemblyName,
             syntaxTrees,
             additionalReferences == null ? references : references.Concat(additionalReferences),
-            new CSharpCompilationOptions(outputKind, nullableContextOptions: NullableContextOptions.Enable));
+            new CSharpCompilationOptions(
+                outputKind,
+                nullableContextOptions: NullableContextOptions.Enable
+            )
+        );
 
         var driver = CSharpGeneratorDriver.Create(
             generators.Select(generator => generator.AsSourceGenerator()).ToArray(),
             additionalTexts: (additionalTexts ?? new Dictionary<string, string>())
-                .Select(pair => (AdditionalText)new TestAdditionalText(
-                    Path.Combine(projectDir, pair.Key), pair.Value))
+                .Select(pair =>
+                    (AdditionalText)
+                        new TestAdditionalText(Path.Combine(projectDir, pair.Key), pair.Value)
+                )
                 .ToArray(),
             optionsProvider: new TestAnalyzerConfigOptionsProvider(buildProperties, projectDir),
-            parseOptions: parseOptions);
+            parseOptions: parseOptions
+        );
 
-        var updated = (CSharpGeneratorDriver)driver.RunGeneratorsAndUpdateCompilation(
-            compilation, out var outputCompilation, out var generatorDiagnostics);
+        var updated = (CSharpGeneratorDriver)
+            driver.RunGeneratorsAndUpdateCompilation(
+                compilation,
+                out var outputCompilation,
+                out var generatorDiagnostics
+            );
 
         var runResult = updated.GetRunResult();
 
@@ -95,8 +110,8 @@ public static class GeneratorTestHarness {
         // generator can produce the same name twice. Two generators emitting one type's partial
         // twice is a real defect, so it is recorded and asserted on rather than throwing behind a
         // dictionary error.
-        var emitted = runResult.Results
-            .SelectMany(result => result.GeneratedSources)
+        var emitted = runResult
+            .Results.SelectMany(result => result.GeneratedSources)
             .Select(generated => (generated.HintName, Source: generated.SourceText.ToString()))
             .ToArray();
 
@@ -112,8 +127,8 @@ public static class GeneratorTestHarness {
 
         // A generator that catches its own exceptions and has nowhere to log them produces nothing
         // and reports success. Surface them so a crash fails loudly.
-        var exceptions = runResult.Results
-            .Select(result => result.Exception)
+        var exceptions = runResult
+            .Results.Select(result => result.Exception)
             .Where(exception => exception != null)
             .ToArray();
 
@@ -123,7 +138,8 @@ public static class GeneratorTestHarness {
             outputCompilation.GetDiagnostics(),
             outputCompilation,
             exceptions!,
-            duplicateHintNames);
+            duplicateHintNames
+        );
     }
 
     /// <summary>Convenience overload for the common single-file, single-generator case.</summary>
@@ -132,13 +148,15 @@ public static class GeneratorTestHarness {
         IIncrementalGenerator generator,
         IReadOnlyList<Type>? referenceAnchors = null,
         IReadOnlyDictionary<string, string>? additionalTexts = null,
-        IReadOnlyDictionary<string, string>? buildProperties = null) =>
+        IReadOnlyDictionary<string, string>? buildProperties = null
+    ) =>
         Run(
             new Dictionary<string, string> { ["Test.cs"] = source },
             new[] { generator },
             referenceAnchors,
             additionalTexts,
-            buildProperties);
+            buildProperties
+        );
 
     /// <summary>
     /// Runs the generator over <paramref name="first"/>, then re-runs the same driver over
@@ -156,8 +174,9 @@ public static class GeneratorTestHarness {
         IReadOnlyList<IIncrementalGenerator> generators,
         IReadOnlyList<Type>? referenceAnchors = null,
         IReadOnlyDictionary<string, string>? additionalTexts = null,
-        IReadOnlyDictionary<string, string>? buildProperties = null) {
-
+        IReadOnlyDictionary<string, string>? buildProperties = null
+    )
+    {
         var projectDir = ResolveProjectDir(buildProperties);
         var parseOptions = new CSharpParseOptions(LanguageVersion.Latest);
         var references = GeneratorReferences.For(referenceAnchors ?? Array.Empty<Type>());
@@ -165,22 +184,32 @@ public static class GeneratorTestHarness {
         Compilation Compile(IReadOnlyDictionary<string, string> sources) =>
             CSharpCompilation.Create(
                 "GeneratorTestAssembly",
-                sources.Select(pair => CSharpSyntaxTree.ParseText(
-                    pair.Value, parseOptions, path: Path.Combine(projectDir, pair.Key))),
+                sources.Select(pair =>
+                    CSharpSyntaxTree.ParseText(
+                        pair.Value,
+                        parseOptions,
+                        path: Path.Combine(projectDir, pair.Key)
+                    )
+                ),
                 references,
                 new CSharpCompilationOptions(
                     OutputKind.DynamicallyLinkedLibrary,
-                    nullableContextOptions: NullableContextOptions.Enable));
+                    nullableContextOptions: NullableContextOptions.Enable
+                )
+            );
 
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             generators.Select(generator => generator.AsSourceGenerator()).ToArray(),
             additionalTexts: (additionalTexts ?? new Dictionary<string, string>())
-                .Select(pair => (AdditionalText)new TestAdditionalText(
-                    Path.Combine(projectDir, pair.Key), pair.Value))
+                .Select(pair =>
+                    (AdditionalText)
+                        new TestAdditionalText(Path.Combine(projectDir, pair.Key), pair.Value)
+                )
                 .ToArray(),
             optionsProvider: new TestAnalyzerConfigOptionsProvider(buildProperties, projectDir),
             parseOptions: parseOptions,
-            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true));
+            driverOptions: new GeneratorDriverOptions(default, trackIncrementalGeneratorSteps: true)
+        );
 
         driver = driver.RunGenerators(Compile(first));
         var firstOutputs = Outputs(driver.GetRunResult());
@@ -188,8 +217,8 @@ public static class GeneratorTestHarness {
         driver = driver.RunGenerators(Compile(second));
         var secondRun = driver.GetRunResult();
 
-        var reasons = secondRun.Results
-            .SelectMany(result => result.TrackedOutputSteps)
+        var reasons = secondRun
+            .Results.SelectMany(result => result.TrackedOutputSteps)
             .SelectMany(step => step.Value)
             .SelectMany(step => step.Outputs)
             .Select(output => output.Reason)
@@ -209,35 +238,50 @@ public static class GeneratorTestHarness {
     public static (MetadataReference Reference, Assembly Assembly) CompileLibrary(
         string source,
         string assemblyName,
-        IReadOnlyList<Type>? referenceAnchors = null) {
-
+        IReadOnlyList<Type>? referenceAnchors = null
+    )
+    {
         var compilation = CSharpCompilation.Create(
             assemblyName,
-            new[] { CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest)) },
+            new[]
+            {
+                CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest)),
+            },
             GeneratorReferences.For(referenceAnchors ?? Array.Empty<Type>()),
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         using var stream = new MemoryStream();
 
         var result = compilation.Emit(stream);
 
-        Xunit.Assert.True(result.Success,
-            "The test library did not compile: " + string.Join(
-                Environment.NewLine,
-                result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)));
+        Xunit.Assert.True(
+            result.Success,
+            "The test library did not compile: "
+                + string.Join(
+                    Environment.NewLine,
+                    result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error)
+                )
+        );
 
         var bytes = stream.ToArray();
         var assembly = Assembly.Load(bytes);
 
         // Assembly.Load(byte[]) puts it in the default context but does not make it discoverable by
         // name, so generated code referencing it fails to bind at run time. The resolver closes that.
-        lock (LoadedLibraries) {
+        lock (LoadedLibraries)
+        {
             LoadedLibraries[assemblyName] = assembly;
 
-            if (!_resolverHooked) {
-                AssemblyLoadContext.Default.Resolving += (_, name) => {
-                    lock (LoadedLibraries) {
-                        return name.Name != null && LoadedLibraries.TryGetValue(name.Name, out var found)
+            if (!_resolverHooked)
+            {
+                AssemblyLoadContext.Default.Resolving += (_, name) =>
+                {
+                    lock (LoadedLibraries)
+                    {
+                        return
+                            name.Name != null
+                            && LoadedLibraries.TryGetValue(name.Name, out var found)
                             ? found
                             : null;
                     }
@@ -257,9 +301,11 @@ public static class GeneratorTestHarness {
 
     private static bool _resolverHooked;
 
-    private static IReadOnlyDictionary<string, string> Outputs(GeneratorDriverRunResult runResult) =>
-        runResult.Results
-            .SelectMany(result => result.GeneratedSources)
+    private static IReadOnlyDictionary<string, string> Outputs(
+        GeneratorDriverRunResult runResult
+    ) =>
+        runResult
+            .Results.SelectMany(result => result.GeneratedSources)
             .GroupBy(generated => generated.HintName)
             .ToDictionary(group => group.Key, group => group.First().SourceText.ToString());
 

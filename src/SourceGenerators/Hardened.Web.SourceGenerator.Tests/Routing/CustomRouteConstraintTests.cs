@@ -15,38 +15,34 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// nothing to look up per request - which is also what makes the failure legible: a name nothing
 /// declares is a build error rather than a route that silently constrains nothing.
 /// </remarks>
-public class CustomRouteConstraintTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),
-        typeof(FromBodyAttribute)
-    ];
+public class CustomRouteConstraintTests
+{
+    private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(FromBodyAttribute)];
 
     /// <summary>A three-letter uppercase code, and a route that uses it.</summary>
     private static string Application(string signature) =>
         $$"""
-        using System;
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Web.Runtime.Attributes;
+            using System;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
 
-        namespace TestApp;
+            namespace TestApp;
 
-        [HardenedModule]
-        public partial class TestApplication { }
+            [HardenedModule]
+            public partial class TestApplication { }
 
-        public static class Codes {
-            [RouteConstraint("code")]
-            {{signature}}
-        }
+            public static class Codes {
+                [RouteConstraint("code")]
+                {{signature}}
+            }
 
-        public class ItemController {
-            [Get("/items/{id:code}")]
-            public string Item(string id) => id;
-        }
-        """;
+            public class ItemController {
+                [Get("/items/{id:code}")]
+                public string Item(string id) => id;
+            }
+            """;
 
-    private const string ValidSignature =
-        """
+    private const string ValidSignature = """
         public static bool IsCode(ReadOnlySpan<char> value) {
                 if (value.Length != 3) {
                     return false;
@@ -69,14 +65,16 @@ public class CustomRouteConstraintTests {
         GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = Application(signature) },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
     /// <summary>
     /// The declared test decides the match, on the same terms as a built-in one: a value that fails
     /// it is no resource at that URL rather than a 400 from a binder.
     /// </summary>
     [Fact]
-    public void ADeclaredConstraintDecidesTheMatch() {
+    public void ADeclaredConstraintDecidesTheMatch()
+    {
         var routing = Routing();
 
         Assert.Equal("Item", routing.Handler("GET", "/items/ABC").InvokeMethod);
@@ -86,7 +84,8 @@ public class CustomRouteConstraintTests {
 
     /// <summary>And the token still binds under its own name.</summary>
     [Fact]
-    public void TheTokenStillBinds() {
+    public void TheTokenStillBinds()
+    {
         Assert.Equal("ABC", Assert.Contains("id", Routing().PathTokens("GET", "/items/ABC")));
     }
 
@@ -95,10 +94,12 @@ public class CustomRouteConstraintTests {
     /// is that there is nothing left to resolve per request.
     /// </summary>
     [Fact]
-    public void TheTableCallsTheDeclaredMethodDirectly() {
+    public void TheTableCallsTheDeclaredMethodDirectly()
+    {
         Assert.Contains(
             "global::TestApp.Codes.IsCode(",
-            Generate(ValidSignature).AssertNoErrors().SourceContaining("Routing"));
+            Generate(ValidSignature).AssertNoErrors().SourceContaining("Routing")
+        );
     }
 
     /// <summary>
@@ -106,10 +107,12 @@ public class CustomRouteConstraintTests {
     /// would otherwise make a custom constraint impossible to use.
     /// </summary>
     [Fact]
-    public void ADeclaredNameIsNotReportedAsUnknown() {
+    public void ADeclaredNameIsNotReportedAsUnknown()
+    {
         Assert.DoesNotContain(
             Generate(ValidSignature).GeneratorDiagnostics,
-            diagnostic => diagnostic.Id == "HRDR002");
+            diagnostic => diagnostic.Id == "HRDR002"
+        );
     }
 
     /// <summary>
@@ -122,10 +125,12 @@ public class CustomRouteConstraintTests {
     [InlineData("public bool IsCode(ReadOnlySpan<char> value) => value.Length == 3;")]
     [InlineData("public static string IsCode(ReadOnlySpan<char> value) => \"\";")]
     [InlineData("public static bool IsCode(ReadOnlySpan<char> value, int length) => true;")]
-    public void AWrongSignatureIsReported(string signature) {
+    public void AWrongSignatureIsReported(string signature)
+    {
         Assert.Contains(
             Generate(signature).GeneratorDiagnostics,
-            diagnostic => diagnostic.Id == "HRDR003");
+            diagnostic => diagnostic.Id == "HRDR003"
+        );
     }
 
     /// <summary>
@@ -134,7 +139,8 @@ public class CustomRouteConstraintTests {
     /// compiler error in generated code.
     /// </summary>
     [Fact]
-    public void AWrongSignatureIsNotCalled() {
+    public void AWrongSignatureIsNotCalled()
+    {
         var result = Generate("public static bool IsCode(string value) => value.Length == 3;");
 
         Assert.DoesNotContain("Codes.IsCode(", result.SourceContaining("Routing"));

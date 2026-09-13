@@ -21,32 +21,40 @@ namespace Hardened.IntegrationTests.CloudRunBlob.Simulator.Tests;
 /// </para>
 /// </remarks>
 [Trait("Category", "Simulator")]
-public sealed class StorageNotificationTests : IClassFixture<StorageNotificationTests.Stack> {
+public sealed class StorageNotificationTests : IClassFixture<StorageNotificationTests.Stack>
+{
     private readonly Stack _stack;
 
-    public StorageNotificationTests(Stack stack) {
+    public StorageNotificationTests(Stack stack)
+    {
         _stack = stack;
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task AStorageNotificationThroughTheEmulatorReachesTheHandlerInTheContainer() {
+    public async Task AStorageNotificationThroughTheEmulatorReachesTheHandlerInTheContainer()
+    {
         await _stack.Emulator.PublishAsync(
             _stack.Topic,
             """{"kind":"storage#object","bucket":"uploads","name":"report.pdf","size":"1024","contentType":"application/pdf","generation":"7"}""",
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["eventType"] = "OBJECT_FINALIZE",
                 ["bucketId"] = "uploads",
                 ["objectId"] = "report.pdf",
                 ["objectGeneration"] = "7",
                 ["eventTime"] = "2026-09-07T10:00:00.000Z",
                 ["payloadFormat"] = "JSON_API_V1",
-                ["notificationConfig"] = "projects/_/buckets/uploads/notificationConfigs/1"
+                ["notificationConfig"] = "projects/_/buckets/uploads/notificationConfigs/1",
             },
-            Token);
+            Token
+        );
 
-        var observed = await _stack.Service.Observed.WaitFor(one => one.Has("name", "report.pdf"), cancellationToken: Token);
+        var observed = await _stack.Service.Observed.WaitFor(
+            one => one.Has("name", "report.pdf"),
+            cancellationToken: Token
+        );
 
         Assert.Equal("blob", observed.Get("kind"));
         Assert.Equal("uploads", observed.Get("bucket"));
@@ -54,10 +62,12 @@ public sealed class StorageNotificationTests : IClassFixture<StorageNotification
         Assert.Equal(1024, observed.Fields.GetProperty("size").GetInt64());
     }
 
-    public sealed class Stack : IAsyncLifetime {
+    public sealed class Stack : IAsyncLifetime
+    {
         private readonly INetwork _network = new NetworkBuilder().Build();
 
-        public Stack() {
+        public Stack()
+        {
             Service = CloudRunService.For("Hardened.IntegrationTests.CloudRunBlob.SUT", _network);
             Emulator = new PubSubEmulator(_network);
         }
@@ -68,7 +78,8 @@ public sealed class StorageNotificationTests : IClassFixture<StorageNotification
 
         public TopicName Topic { get; private set; } = null!;
 
-        public async ValueTask InitializeAsync() {
+        public async ValueTask InitializeAsync()
+        {
             await _network.CreateAsync(Token);
 
             await Task.WhenAll(Service.StartAsync(Token), Emulator.StartAsync(Token));
@@ -77,10 +88,15 @@ public sealed class StorageNotificationTests : IClassFixture<StorageNotification
             // name is the deployment's and the handler never sees it, because a notification
             // routes on the bucket.
             Topic = await Emulator.CreateTopicWithPushSubscription(
-                "uploads-notifications", "uploads-to-service", Service.PushEndpoint, Token);
+                "uploads-notifications",
+                "uploads-to-service",
+                Service.PushEndpoint,
+                Token
+            );
         }
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             await Emulator.DisposeAsync();
             await Service.DisposeAsync();
             await _network.DisposeAsync();

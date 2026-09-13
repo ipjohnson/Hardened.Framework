@@ -12,10 +12,13 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Hardened.SourceGenerator.Web;
 
-public static class WebIncrementalGenerator {
+public static class WebIncrementalGenerator
+{
     public static void Setup(
         IncrementalGeneratorInitializationContext initializationContext,
-        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider) {
+        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider
+    )
+    {
         var requestModelGenerator = new WebRequestHandlerModelGenerator();
 
         // Validation runs the front half of this pipeline: it builds the handler model, emits the
@@ -25,20 +28,26 @@ public static class WebIncrementalGenerator {
         var modelProvider = HandlerValidationGenerator.Setup(
             initializationContext,
             requestModelGenerator,
-            requestModelGenerator.SelectWebRequestMethods);
+            requestModelGenerator.SelectWebRequestMethods
+        );
 
         // Every [RouteConstraint] the application declares, flattened and ordered so the value is
         // stable between runs - an unordered collection would rebuild everything downstream on any
         // edit that reshuffled the syntax provider.
-        var constraints = initializationContext.SyntaxProvider.CreateSyntaxProvider(
+        var constraints = initializationContext
+            .SyntaxProvider.CreateSyntaxProvider(
                 RouteConstraintSelector.Predicate,
-                RouteConstraintSelector.Transform)
+                RouteConstraintSelector.Transform
+            )
             .SelectMany((declared, _) => declared)
             .Collect()
-            .Select((declared, _) =>
-                declared.OrderBy(constraint => constraint.Name, StringComparer.Ordinal)
-                    .ThenBy(constraint => constraint.Call, StringComparer.Ordinal)
-                    .ToImmutableArray());
+            .Select(
+                (declared, _) =>
+                    declared
+                        .OrderBy(constraint => constraint.Name, StringComparer.Ordinal)
+                        .ThenBy(constraint => constraint.Call, StringComparer.Ordinal)
+                        .ToImmutableArray()
+            );
 
         // Once per compilation, so a wrong signature is reported once however many routes or
         // modules the assembly has.
@@ -46,7 +55,9 @@ public static class WebIncrementalGenerator {
             constraints,
             SourceGeneratorWrapper.Wrap<ImmutableArray<RouteConstraintModel>>(
                 (context, declared) =>
-                    RouteConstraintSelector.ReportInvalidSignatures(context, declared)));
+                    RouteConstraintSelector.ReportInvalidSignatures(context, declared)
+            )
+        );
 
         // Authorization diagnostics run on their own provider, carrying a location, and feed nothing
         // that emits source.
@@ -58,12 +69,14 @@ public static class WebIncrementalGenerator {
         // insensitive to where things sit in a file. This one does not.
         var authorizationRequired = entryPointProvider
             .Collect()
-            .Select((entryPoints, _) =>
-                entryPoints.Any(RequireAuthorizationDiagnostics.IsRequired));
+            .Select(
+                (entryPoints, _) => entryPoints.Any(RequireAuthorizationDiagnostics.IsRequired)
+            );
 
         var handlerAuthorization = initializationContext.SyntaxProvider.CreateSyntaxProvider(
             requestModelGenerator.SelectWebRequestMethods,
-            HandlerAuthorizationSelector.Transform);
+            HandlerAuthorizationSelector.Transform
+        );
 
         // Per handler rather than over the collected set, so an edit invalidates only the handlers
         // it moved.
@@ -71,18 +84,22 @@ public static class WebIncrementalGenerator {
             handlerAuthorization.Combine(authorizationRequired),
             SourceGeneratorWrapper.Wrap<(HandlerAuthorizationModel Left, bool Right)>(
                 (context, pair) =>
-                    RequireAuthorizationDiagnostics.Report(context, pair.Left, pair.Right)));
+                    RequireAuthorizationDiagnostics.Report(context, pair.Left, pair.Right)
+            )
+        );
 
         // A verb attribute on an interface member, which the selector above skips. Its own
         // provider, reported per declaration, for the reason the authorization diagnostic gives:
         // it carries a location, and nothing downstream of it emits source.
         var interfaceRoutes = initializationContext.SyntaxProvider.CreateSyntaxProvider(
             InterfaceRouteDiagnostics.Predicate,
-            InterfaceRouteDiagnostics.Transform);
+            InterfaceRouteDiagnostics.Transform
+        );
 
         initializationContext.RegisterSourceOutput(
             interfaceRoutes,
-            SourceGeneratorWrapper.Wrap<InterfaceRouteModel?>(InterfaceRouteDiagnostics.Report));
+            SourceGeneratorWrapper.Wrap<InterfaceRouteModel?>(InterfaceRouteDiagnostics.Report)
+        );
 
         var invokeGenerator = new WebExecutionHandlerCodeGenerator();
 
@@ -91,8 +108,10 @@ public static class WebIncrementalGenerator {
         // which is the right trade for a diagnostic that would otherwise be wrong.
         initializationContext.RegisterSourceOutput(
             modelProvider.Combine(constraints),
-            SourceGeneratorWrapper.Wrap<(RequestHandlerModel Left, ImmutableArray<RouteConstraintModel> Right)>(
-                (context, pair) => invokeGenerator.GenerateSource(context, pair.Left, pair.Right))
+            SourceGeneratorWrapper.Wrap<(
+                RequestHandlerModel Left,
+                ImmutableArray<RouteConstraintModel> Right
+            )>((context, pair) => invokeGenerator.GenerateSource(context, pair.Left, pair.Right))
         );
 
         // One abstract template base per [Enable<T>] marker, off the entry point alone - it
@@ -100,7 +119,8 @@ public static class WebIncrementalGenerator {
         // template base whenever any route changed.
         initializationContext.RegisterSourceOutput(
             entryPointProvider,
-            SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(TemplateBaseGenerator.Generate));
+            SourceGeneratorWrapper.Wrap<EntryPointSelector.Model>(TemplateBaseGenerator.Generate)
+        );
 
         var collection = modelProvider.Collect();
 
@@ -119,38 +139,69 @@ public static class WebIncrementalGenerator {
         // yields a new compilation per keystroke, and combining one directly rebuilds the routing
         // table on every edit.
         var writableContentTypes = initializationContext.CompilationProvider.Select(
-            static (compilation, _) => SerializerContentTypes.Read(compilation));
+            static (compilation, _) => SerializerContentTypes.Read(compilation)
+        );
 
-        var options = initializationContext.AnalyzerConfigOptionsProvider.Select(
-                (provider, _) => new WebGeneratorOptions(
-                    Value(provider, "HardenedAmbiguousRoutes"),
-                    Value(provider, OpenApiVersionFacts.PropertyName)))
+        var options = initializationContext
+            .AnalyzerConfigOptionsProvider.Select(
+                (provider, _) =>
+                    new WebGeneratorOptions(
+                        Value(provider, "HardenedAmbiguousRoutes"),
+                        Value(provider, OpenApiVersionFacts.PropertyName)
+                    )
+            )
             .Combine(writableContentTypes)
             .Select(static (pair, _) => pair.Left with { WritableContentTypes = pair.Right });
 
-        var routeProvider = entryPointProvider.Combine(collection).WithComparer(new CombinedComparer());
+        var routeProvider = entryPointProvider
+            .Combine(collection)
+            .WithComparer(new CombinedComparer());
 
         initializationContext.RegisterSourceOutput(
             routeProvider.Combine(options).Combine(constraints),
-            SourceGeneratorWrapper.Wrap<
-                (((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left,
-                    WebGeneratorOptions Right) Left, ImmutableArray<RouteConstraintModel> Right)>((context, pair) =>
-                RoutingTableGenerator.GenerateRoute(
-                    context, pair.Left.Left, pair.Left.Right, pair.Right)));
+            SourceGeneratorWrapper.Wrap<(
+                (
+                    (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) Left,
+                    WebGeneratorOptions Right
+                ) Left,
+                ImmutableArray<RouteConstraintModel> Right
+            )>(
+                (context, pair) =>
+                    RoutingTableGenerator.GenerateRoute(
+                        context,
+                        pair.Left.Left,
+                        pair.Left.Right,
+                        pair.Right
+                    )
+            )
+        );
     }
 
     private static string? Value(AnalyzerConfigOptionsProvider provider, string property) =>
-        provider.GlobalOptions.TryGetValue("build_property." + property, out var value) ? value : null;
+        provider.GlobalOptions.TryGetValue("build_property." + property, out var value)
+            ? value
+            : null;
 
-    public class CombinedComparer : IEqualityComparer<(EntryPointSelector.Model Left,
-        ImmutableArray<RequestHandlerModel> Right)> {
-        public bool Equals((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) x,
-            (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) y) {
+    public class CombinedComparer
+        : IEqualityComparer<(
+            EntryPointSelector.Model Left,
+            ImmutableArray<RequestHandlerModel> Right
+        )>
+    {
+        public bool Equals(
+            (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) x,
+            (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) y
+        )
+        {
             return x.Item1.Equals(y.Item1) && ((Object)x.Item2).Equals(y.Item2);
         }
 
-        public int GetHashCode((EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) obj) {
-            unchecked {
+        public int GetHashCode(
+            (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) obj
+        )
+        {
+            unchecked
+            {
                 return (obj.Item1.GetHashCode() * 397) ^ obj.Item2.GetHashCodeAggregation();
             }
         }

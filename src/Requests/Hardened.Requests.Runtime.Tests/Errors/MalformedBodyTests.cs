@@ -25,15 +25,17 @@ namespace Hardened.Requests.Runtime.Tests.Errors;
 /// fabricated one carries no inner exception, which is the signal being read.
 /// </para>
 /// </remarks>
-public class MalformedBodyTests {
-
+public class MalformedBodyTests
+{
     private static readonly ExceptionToModelConverter Converter = new();
 
     private record Quote(
         [property: JsonPropertyName("accountId")] string AccountId,
-        [property: JsonPropertyName("weightKg")] int WeightKg);
+        [property: JsonPropertyName("weightKg")] int WeightKg
+    );
 
-    private static IExecutionContext Context() {
+    private static IExecutionContext Context()
+    {
         var response = Substitute.For<IExecutionResponse>();
         response.Headers.Returns(new Dictionary<string, StringValues>());
 
@@ -43,9 +45,14 @@ public class MalformedBodyTests {
         return context;
     }
 
-    private static RequestValidationFieldError Refused(string json) {
-        var exception = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Quote>(
-            json, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+    private static RequestValidationFieldError Refused(string json)
+    {
+        var exception = Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Quote>(
+                json,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            )
+        );
 
         var (status, model) = Converter.ConvertExceptionToModel(Context(), exception);
 
@@ -63,7 +70,8 @@ public class MalformedBodyTests {
     [InlineData("""{"accountId":"A""")]
     [InlineData("""{"accountId":"A","weightKg":1""")]
     [InlineData("x")]
-    public void AMalformedDocumentIsReportedAgainstTheBody(string json) {
+    public void AMalformedDocumentIsReportedAgainstTheBody(string json)
+    {
         var error = Refused(json);
 
         Assert.Equal("body", error.Field);
@@ -75,7 +83,8 @@ public class MalformedBodyTests {
     /// field at fault, and naming it is the whole use of the answer.
     /// </summary>
     [Fact]
-    public void AValueOfTheWrongTypeIsReportedAgainstItsOwnMember() {
+    public void AValueOfTheWrongTypeIsReportedAgainstItsOwnMember()
+    {
         var error = Refused("""{"accountId":"A","weightKg":"heavy"}""");
 
         Assert.Equal("body.weightKg", error.Field);
@@ -89,7 +98,8 @@ public class MalformedBodyTests {
     /// Expected the input to start with a valid JSON token, when isFinalBlock is true."</c>
     /// </summary>
     [Fact]
-    public void AnEmptyBodyIsReportedAsMissingRatherThanMalformed() {
+    public void AnEmptyBodyIsReportedAsMissingRatherThanMalformed()
+    {
         var error = Refused("");
 
         Assert.Equal("body", error.Field);
@@ -99,20 +109,33 @@ public class MalformedBodyTests {
 
     /// <summary>The prefix is the handler's own body parameter identifier wherever it appears.</summary>
     [Fact]
-    public void TheFieldIsTheHandlersBodyParameter() {
+    public void TheFieldIsTheHandlersBodyParameter()
+    {
         var context = Context();
 
-        context.HandlerInfo.Returns(new Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(
-            "/quotes", "POST", typeof(object), "Create", bodyParameterName: "request"));
+        context.HandlerInfo.Returns(
+            new Hardened.Requests.Runtime.Execution.ExecutionRequestHandlerInfo(
+                "/quotes",
+                "POST",
+                typeof(object),
+                "Create",
+                bodyParameterName: "request"
+            )
+        );
 
-        var exception = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Quote>(
-            """{"accountId":""", new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var exception = Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Quote>(
+                """{"accountId":""",
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            )
+        );
 
         var (_, model) = Converter.ConvertExceptionToModel(context, exception);
 
         Assert.Equal(
             "request",
-            Assert.Single(Assert.IsType<RequestValidationError>(model).Errors!).Field);
+            Assert.Single(Assert.IsType<RequestValidationError>(model).Errors!).Field
+        );
     }
 }
 
@@ -124,12 +147,14 @@ public class MalformedBodyTests {
 /// refusal has to be made where the value lands. Same field, same code, same sentence an empty body
 /// gets - see <c>MalformedBodyTests.AnEmptyBodyIsReportedAsMissingRatherThanMalformed</c>.
 /// </remarks>
-public class RequestBodyTests {
-
+public class RequestBodyTests
+{
     [Fact]
-    public void ANullBodyIsRefusedAsRequired() {
-        var exception = Assert.Throws<ValidationException>(
-            () => RequestBody.Required<string>(null, "request"));
+    public void ANullBodyIsRefusedAsRequired()
+    {
+        var exception = Assert.Throws<ValidationException>(() =>
+            RequestBody.Required<string>(null, "request")
+        );
 
         var error = Assert.Single(exception.ValidationResult.Errors);
 
@@ -139,7 +164,8 @@ public class RequestBodyTests {
     }
 
     [Fact]
-    public void ABodyThatArrivedIsHandedBack() {
+    public void ABodyThatArrivedIsHandedBack()
+    {
         Assert.Equal("sent", RequestBody.Required("sent", "request"));
     }
 }
@@ -154,35 +180,44 @@ public class RequestBodyTests {
 /// on. An SDK that stops wrapping reader failures that way fails here, naming the reason, rather
 /// than quietly putting a member's name on the caller's syntax error again.
 /// </remarks>
-public class MalformedBodyMessageTests {
-
+public class MalformedBodyMessageTests
+{
     private record Quote(
         [property: JsonPropertyName("accountId")] string AccountId,
-        [property: JsonPropertyName("weightKg")] int WeightKg);
+        [property: JsonPropertyName("weightKg")] int WeightKg
+    );
 
     private static JsonException Deserialize(string json) =>
-        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<Quote>(
-            json, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        Assert.Throws<JsonException>(() =>
+            JsonSerializer.Deserialize<Quote>(
+                json,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            )
+        );
 
     [Theory]
     [InlineData("""{"accountId":""")]
     [InlineData("x")]
     [InlineData("")]
-    public void AReaderFailureIsStillWrappedInAJsonReaderException(string json) {
+    public void AReaderFailureIsStillWrappedInAJsonReaderException(string json)
+    {
         Assert.Equal("JsonReaderException", Deserialize(json).InnerException?.GetType().Name);
     }
 
     /// <summary>A conversion failure is not, which is what makes the type a signal.</summary>
     [Fact]
-    public void AConversionFailureIsStillNotAReaderException() {
+    public void AConversionFailureIsStillNotAReaderException()
+    {
         Assert.NotEqual(
             "JsonReaderException",
-            Deserialize("""{"accountId":"A","weightKg":"heavy"}""").InnerException?.GetType().Name);
+            Deserialize("""{"accountId":"A","weightKg":"heavy"}""").InnerException?.GetType().Name
+        );
     }
 
     /// <summary>The sentence an empty payload is still told apart by.</summary>
     [Fact]
-    public void AnEmptyPayloadStillSaysItCarriesNoTokens() {
+    public void AnEmptyPayloadStillSaysItCarriesNoTokens()
+    {
         Assert.StartsWith("The input does not contain any JSON tokens", Deserialize("").Message);
     }
 }

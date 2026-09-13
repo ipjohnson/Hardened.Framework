@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(504)]
 public sealed record GatewayTimeout<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<GatewayTimeout<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<GatewayTimeout<T>>
+{
     public string Type => ProblemTypes.GatewayTimeout;
 
     public string Title => "Gateway Timeout";
@@ -38,6 +40,7 @@ public sealed record GatewayTimeout<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static GatewayTimeout<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

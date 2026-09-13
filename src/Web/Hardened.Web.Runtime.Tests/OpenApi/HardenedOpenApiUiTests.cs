@@ -10,24 +10,28 @@ namespace Hardened.Web.Runtime.Tests.OpenApi;
 /// properties must survive the generated attribute, and its equality decides how many pages an
 /// application can install.
 /// </summary>
-public class HardenedOpenApiUiTests {
-
-    private static IReadOnlyList<ServiceDescriptor> Register(params HardenedOpenApiUi[] modules) {
+public class HardenedOpenApiUiTests
+{
+    private static IReadOnlyList<ServiceDescriptor> Register(params HardenedOpenApiUi[] modules)
+    {
         var services = new ServiceCollection();
 
-        foreach (var module in modules) {
+        foreach (var module in modules)
+        {
             module.ConfigureServices(services);
         }
 
         return services.ToList();
     }
 
-    private static IOpenApiUiConfiguration Configure(HardenedOpenApiUi module) {
+    private static IOpenApiUiConfiguration Configure(HardenedOpenApiUi module)
+    {
         var services = new ServiceCollection();
 
         module.ConfigureServices(services);
 
-        var provider = services.BuildServiceProvider()
+        var provider = services
+            .BuildServiceProvider()
             .GetServices<IWebExecutionRequestHandlerProvider>()
             .OfType<OpenApiUiProvider>()
             .Single();
@@ -45,7 +49,8 @@ public class HardenedOpenApiUiTests {
     /// and this is what says so.
     /// </remarks>
     [Fact]
-    public void ConfigureServices_UsesTheDefaultsWhenNothingIsSet() {
+    public void ConfigureServices_UsesTheDefaultsWhenNothingIsSet()
+    {
         var configuration = Configure(new HardenedOpenApiUi());
 
         Assert.Equal(HardenedOpenApiUi.DefaultPath, configuration.Path);
@@ -56,14 +61,18 @@ public class HardenedOpenApiUiTests {
     }
 
     [Fact]
-    public void ConfigureServices_CarriesWhatWasSet() {
-        var configuration = Configure(new HardenedOpenApiUi {
-            Path = "/docs/internal",
-            Title = "Internal",
-            DocumentPath = "/internal.json",
-            ScriptUrl = "/assets/ui.js",
-            ScriptIntegrity = ""
-        });
+    public void ConfigureServices_CarriesWhatWasSet()
+    {
+        var configuration = Configure(
+            new HardenedOpenApiUi
+            {
+                Path = "/docs/internal",
+                Title = "Internal",
+                DocumentPath = "/internal.json",
+                ScriptUrl = "/assets/ui.js",
+                ScriptIntegrity = "",
+            }
+        );
 
         Assert.Equal("/docs/internal", configuration.Path);
         Assert.Equal("Internal", configuration.Title);
@@ -73,10 +82,17 @@ public class HardenedOpenApiUiTests {
     }
 
     [Fact]
-    public void ConfigureServices_FallsBackWhenAPropertyIsNulled() {
-        var configuration = Configure(new HardenedOpenApiUi {
-            Path = null, Title = null, DocumentPath = null, ScriptUrl = null
-        });
+    public void ConfigureServices_FallsBackWhenAPropertyIsNulled()
+    {
+        var configuration = Configure(
+            new HardenedOpenApiUi
+            {
+                Path = null,
+                Title = null,
+                DocumentPath = null,
+                ScriptUrl = null,
+            }
+        );
 
         Assert.Equal(HardenedOpenApiUi.DefaultPath, configuration.Path);
         Assert.Equal(HardenedOpenApiUi.DefaultTitle, configuration.Title);
@@ -89,8 +105,12 @@ public class HardenedOpenApiUiTests {
     /// nothing and say nothing about why.
     /// </summary>
     [Fact]
-    public void ConfigureServices_GivesAPathWithoutALeadingSlashOne() {
-        Assert.Equal("/docs/internal", Configure(new HardenedOpenApiUi { Path = "docs/internal" }).Path);
+    public void ConfigureServices_GivesAPathWithoutALeadingSlashOne()
+    {
+        Assert.Equal(
+            "/docs/internal",
+            Configure(new HardenedOpenApiUi { Path = "docs/internal" }).Path
+        );
     }
 
     #endregion
@@ -102,10 +122,12 @@ public class HardenedOpenApiUiTests {
     /// mechanism behind installing a page per published specification.
     /// </summary>
     [Fact]
-    public void Equals_TellsTwoPathsApart() {
+    public void Equals_TellsTwoPathsApart()
+    {
         Assert.NotEqual(
             new HardenedOpenApiUi { Path = "/docs" },
-            new HardenedOpenApiUi { Path = "/docs/internal" });
+            new HardenedOpenApiUi { Path = "/docs/internal" }
+        );
     }
 
     /// <summary>
@@ -114,27 +136,43 @@ public class HardenedOpenApiUiTests {
     /// registration order, so it would only shadow the first.
     /// </summary>
     [Fact]
-    public void Equals_TreatsOnePathAsOnePageWhateverElseDiffers() {
+    public void Equals_TreatsOnePathAsOnePageWhateverElseDiffers()
+    {
         Assert.Equal(
-            new HardenedOpenApiUi { Path = "/docs", Title = "One", DocumentPath = "/a.json" },
-            new HardenedOpenApiUi { Path = "/docs", Title = "Two", DocumentPath = "/b.json" });
+            new HardenedOpenApiUi
+            {
+                Path = "/docs",
+                Title = "One",
+                DocumentPath = "/a.json",
+            },
+            new HardenedOpenApiUi
+            {
+                Path = "/docs",
+                Title = "Two",
+                DocumentPath = "/b.json",
+            }
+        );
     }
 
     [Fact]
-    public void Equals_HoldsForTheDefaultPathHoweverItIsSpelled() {
+    public void Equals_HoldsForTheDefaultPathHoweverItIsSpelled()
+    {
         Assert.Equal(new HardenedOpenApiUi(), new HardenedOpenApiUi { Path = "docs" });
         Assert.Equal(new HardenedOpenApiUi(), new HardenedOpenApiUi { Path = null });
     }
 
     [Fact]
-    public void GetHashCode_AgreesWithEquals() {
+    public void GetHashCode_AgreesWithEquals()
+    {
         Assert.Equal(
             new HardenedOpenApiUi { Path = "/docs", Title = "One" }.GetHashCode(),
-            new HardenedOpenApiUi { Path = "docs", Title = "Two" }.GetHashCode());
+            new HardenedOpenApiUi { Path = "docs", Title = "Two" }.GetHashCode()
+        );
 
         Assert.NotEqual(
             new HardenedOpenApiUi { Path = "/docs" }.GetHashCode(),
-            new HardenedOpenApiUi { Path = "/other" }.GetHashCode());
+            new HardenedOpenApiUi { Path = "/other" }.GetHashCode()
+        );
     }
 
     #endregion
@@ -145,28 +183,36 @@ public class HardenedOpenApiUiTests {
     /// every page would render it.
     /// </summary>
     [Fact]
-    public void ConfigureServices_RegistersNoSharedConfiguration() {
+    public void ConfigureServices_RegistersNoSharedConfiguration()
+    {
         var registered = Register(
             new HardenedOpenApiUi(),
-            new HardenedOpenApiUi { Path = "/docs/internal", Title = "Internal" });
+            new HardenedOpenApiUi { Path = "/docs/internal", Title = "Internal" }
+        );
 
         Assert.DoesNotContain(
-            registered, service => service.ServiceType == typeof(IOpenApiUiConfiguration));
+            registered,
+            service => service.ServiceType == typeof(IOpenApiUiConfiguration)
+        );
 
         Assert.Equal(
             2,
-            registered.Count(
-                service => service.ServiceType == typeof(IWebExecutionRequestHandlerProvider)));
+            registered.Count(service =>
+                service.ServiceType == typeof(IWebExecutionRequestHandlerProvider)
+            )
+        );
     }
 
     /// <summary>
     /// The controller is shared, and registered once however many pages install.
     /// </summary>
     [Fact]
-    public void ConfigureServices_RegistersTheControllerOnce() {
+    public void ConfigureServices_RegistersTheControllerOnce()
+    {
         var registered = Register(
             new HardenedOpenApiUi(),
-            new HardenedOpenApiUi { Path = "/docs/internal" });
+            new HardenedOpenApiUi { Path = "/docs/internal" }
+        );
 
         Assert.Single(registered, service => service.ServiceType == typeof(OpenApiUiController));
     }
@@ -176,7 +222,8 @@ public class HardenedOpenApiUiTests {
     /// without its hash produces a page whose script never runs.
     /// </summary>
     [Fact]
-    public void DefaultScriptUrl_IsVersionPinnedSoItsIntegrityHashCanBe() {
+    public void DefaultScriptUrl_IsVersionPinnedSoItsIntegrityHashCanBe()
+    {
         Assert.Contains("@scalar/api-reference@", HardenedOpenApiUi.DefaultScriptUrl);
         Assert.DoesNotContain("@latest", HardenedOpenApiUi.DefaultScriptUrl);
         Assert.StartsWith("sha384-", HardenedOpenApiUi.DefaultScriptIntegrity);
@@ -199,13 +246,20 @@ public class HardenedOpenApiUiTests {
     [InlineData("development", "production", false)]
     [InlineData("development,test", "staging", false)]
     public void EnvironmentsDecidesWhetherThePageIsInstalled(
-        string environments, string running, bool expected) {
+        string environments,
+        string running,
+        bool expected
+    )
+    {
         var services = new ServiceCollection();
 
-        new HardenedOpenApiUi { Environments = environments }
-            .ConfigureServices(services, new StubEnvironment(running));
+        new HardenedOpenApiUi { Environments = environments }.ConfigureServices(
+            services,
+            new StubEnvironment(running)
+        );
 
-        var installed = services.BuildServiceProvider()
+        var installed = services
+            .BuildServiceProvider()
             .GetServices<IWebExecutionRequestHandlerProvider>()
             .OfType<OpenApiUiProvider>()
             .Any();
@@ -221,19 +275,26 @@ public class HardenedOpenApiUiTests {
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
-    public void WithoutEnvironmentsThePageIsInstalledEverywhere(string? environments) {
+    public void WithoutEnvironmentsThePageIsInstalledEverywhere(string? environments)
+    {
         var services = new ServiceCollection();
 
-        new HardenedOpenApiUi { Environments = environments }
-            .ConfigureServices(services, new StubEnvironment("production"));
+        new HardenedOpenApiUi { Environments = environments }.ConfigureServices(
+            services,
+            new StubEnvironment("production")
+        );
 
         Assert.Contains(
             services.BuildServiceProvider().GetServices<IWebExecutionRequestHandlerProvider>(),
-            provider => provider is OpenApiUiProvider);
+            provider => provider is OpenApiUiProvider
+        );
     }
 
-    private sealed class StubEnvironment : global::DependencyModules.Runtime.Interfaces.IModuleEnvironment {
-        public StubEnvironment(string environmentName) {
+    private sealed class StubEnvironment
+        : global::DependencyModules.Runtime.Interfaces.IModuleEnvironment
+    {
+        public StubEnvironment(string environmentName)
+        {
             EnvironmentName = environmentName;
         }
 

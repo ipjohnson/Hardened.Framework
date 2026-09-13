@@ -22,8 +22,8 @@ namespace Hardened.Requests.Runtime.Forms;
 /// field a browser sent as <c>John Smith</c>, on every form post, silently.
 /// </para>
 /// </remarks>
-public static class UrlEncodedParser {
-
+public static class UrlEncodedParser
+{
     /// <summary>
     /// Parses a form body into its fields.
     /// </summary>
@@ -32,15 +32,19 @@ public static class UrlEncodedParser {
     /// sends the name once per checked box, and taking the last would silently drop the rest.
     /// <see cref="StringValues"/> is what the header collections already use for the same reason.
     /// </remarks>
-    public static IFormCollection Parse(string? body) {
-        if (string.IsNullOrEmpty(body)) {
+    public static IFormCollection Parse(string? body)
+    {
+        if (string.IsNullOrEmpty(body))
+        {
             return EmptyFormCollection.Instance;
         }
 
         var fields = new Dictionary<string, StringValues>(StringComparer.Ordinal);
 
-        foreach (var pair in body!.Split('&')) {
-            if (pair.Length == 0) {
+        foreach (var pair in body!.Split('&'))
+        {
+            if (pair.Length == 0)
+            {
                 continue;
             }
 

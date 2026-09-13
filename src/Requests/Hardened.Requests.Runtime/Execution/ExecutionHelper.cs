@@ -9,8 +9,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Hardened.Requests.Runtime.Execution;
 
-public static partial class ExecutionHelper {
-
+public static partial class ExecutionHelper
+{
     /// <summary>
     /// The log category that writes each handler's composed filter chain, at Debug.
     /// </summary>
@@ -32,12 +32,17 @@ public static partial class ExecutionHelper {
     private static readonly Task<IExecutionRequestParameters> _emptyRequestParameters =
         Task.FromResult(EmptyParameters.Instance);
 
-    private static readonly Func<IExecutionContext, Task<IExecutionRequestParameters>>
-        _emptyDeserializeRequest = _ => _emptyRequestParameters;
+    private static readonly Func<
+        IExecutionContext,
+        Task<IExecutionRequestParameters>
+    > _emptyDeserializeRequest = _ => _emptyRequestParameters;
 
-    public static IEnumerable<IRequestFilterProvider> GetFilterInfo(params object[] attributes) {
-        foreach (var attribute in attributes) {
-            if (attribute is IRequestFilterProvider filterProvider) {
+    public static IEnumerable<IRequestFilterProvider> GetFilterInfo(params object[] attributes)
+    {
+        foreach (var attribute in attributes)
+        {
+            if (attribute is IRequestFilterProvider filterProvider)
+            {
                 yield return filterProvider;
             }
         }
@@ -51,7 +56,9 @@ public static partial class ExecutionHelper {
         IServiceProvider serviceProvider,
         IExecutionRequestHandlerInfo handlerInfo,
         InvokeNoParameters<TController> invokeMethod,
-        IEnumerable<IRequestFilterProvider> filterProviders) {
+        IEnumerable<IRequestFilterProvider> filterProviders
+    )
+    {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
         IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
@@ -59,25 +66,39 @@ public static partial class ExecutionHelper {
 
         var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
 
-        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+        var instanceFilter = serviceProvider
+            .GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
-        
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
+
+        return CreateFilterArray(
+            serviceProvider,
+            handlerInfo,
+            filterProviders,
+            IoFilter,
+            invokeFilter,
+            instanceFilter
+        );
     }
 
     #endregion
 
     #region sync invoke parameters
 
-    public delegate void InvokeWithParameters<TController, TParameter>(IExecutionContext context,
-        TController controller, TParameter parameter);
+    public delegate void InvokeWithParameters<TController, TParameter>(
+        IExecutionContext context,
+        TController controller,
+        TParameter parameter
+    );
 
     public static ExecutionHandlerSetup StandardFilterWithParameters<TController, TParameter>(
         IServiceProvider serviceProvider,
         IExecutionRequestHandlerInfo handlerInfo,
         Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
         InvokeWithParameters<TController, TParameter> invokeMethod,
-        IEnumerable<IRequestFilterProvider> filterProviders) where TController : class {
+        IEnumerable<IRequestFilterProvider> filterProviders
+    )
+        where TController : class
+    {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
         IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
@@ -85,35 +106,57 @@ public static partial class ExecutionHelper {
 
         var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
 
-        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+        var instanceFilter = serviceProvider
+            .GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
-        
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
+
+        return CreateFilterArray(
+            serviceProvider,
+            handlerInfo,
+            filterProviders,
+            IoFilter,
+            invokeFilter,
+            instanceFilter
+        );
     }
 
     #endregion
 
     #region async invoke no parameters
 
-    public delegate Task AsyncInvokeNoParameters<TController>(IExecutionContext context, TController controller)
+    public delegate Task AsyncInvokeNoParameters<TController>(
+        IExecutionContext context,
+        TController controller
+    )
         where TController : class;
 
     public static ExecutionHandlerSetup AsyncStandardFilterEmptyParameters<TController>(
         IServiceProvider serviceProvider,
         IExecutionRequestHandlerInfo handlerInfo,
         AsyncInvokeNoParameters<TController> invokeMethod,
-        IEnumerable<IRequestFilterProvider> filterProviders) where TController : class {
+        IEnumerable<IRequestFilterProvider> filterProviders
+    )
+        where TController : class
+    {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
         IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
             ioFilterProvider.ProvideFilter(resolved, _emptyDeserializeRequest);
 
         var invokeFilter = new AsyncInvokeNoParametersFilter<TController>(invokeMethod);
-        
-        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+
+        var instanceFilter = serviceProvider
+            .GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
 
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
+        return CreateFilterArray(
+            serviceProvider,
+            handlerInfo,
+            filterProviders,
+            IoFilter,
+            invokeFilter,
+            instanceFilter
+        );
     }
 
     #endregion
@@ -121,76 +164,124 @@ public static partial class ExecutionHelper {
     #region invoke async parameters
 
     public delegate Task AsyncInvokeWithParameters<TController, TParameter>(
-        IExecutionContext context, TController controller, TParameter parameter)
-        where TController : class where TParameter : class;
+        IExecutionContext context,
+        TController controller,
+        TParameter parameter
+    )
+        where TController : class
+        where TParameter : class;
 
-    public static ExecutionHandlerSetup
-AsyncStandardFilterWithParameters<TController, TParameter>(
-            IServiceProvider serviceProvider,
-            IExecutionRequestHandlerInfo handlerInfo,
-            Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
-            AsyncInvokeWithParameters<TController, TParameter> invokeMethod,
-            IEnumerable<IRequestFilterProvider> filterProviders) where TController : class where TParameter : class {
+    public static ExecutionHandlerSetup AsyncStandardFilterWithParameters<TController, TParameter>(
+        IServiceProvider serviceProvider,
+        IExecutionRequestHandlerInfo handlerInfo,
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
+        AsyncInvokeWithParameters<TController, TParameter> invokeMethod,
+        IEnumerable<IRequestFilterProvider> filterProviders
+    )
+        where TController : class
+        where TParameter : class
+    {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
         IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
             ioFilterProvider.ProvideFilter(resolved, deserializeRequestFunc);
 
-        var invokeFilter = new AsyncInvokeWithParametersFilter<TController, TParameter>(invokeMethod);
-        
-        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+        var invokeFilter = new AsyncInvokeWithParametersFilter<TController, TParameter>(
+            invokeMethod
+        );
+
+        var instanceFilter = serviceProvider
+            .GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
-        
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
+
+        return CreateFilterArray(
+            serviceProvider,
+            handlerInfo,
+            filterProviders,
+            IoFilter,
+            invokeFilter,
+            instanceFilter
+        );
     }
 
     #endregion
 
     #region async enumerable with parameters
 
-    public static ExecutionHandlerSetup
-AsyncEnumerableFilterWithParameters<TController, TParameter, TItem>(
-            IServiceProvider serviceProvider,
-            IExecutionRequestHandlerInfo handlerInfo,
-            Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
-            InvokeWithParameters<TController, TParameter> invokeMethod,
-            IEnumerable<IRequestFilterProvider> filterProviders,
-            IStreamFraming? framing = null) where TController : class {
+    public static ExecutionHandlerSetup AsyncEnumerableFilterWithParameters<
+        TController,
+        TParameter,
+        TItem
+    >(
+        IServiceProvider serviceProvider,
+        IExecutionRequestHandlerInfo handlerInfo,
+        Func<IExecutionContext, Task<IExecutionRequestParameters>> deserializeRequestFunc,
+        InvokeWithParameters<TController, TParameter> invokeMethod,
+        IEnumerable<IRequestFilterProvider> filterProviders,
+        IStreamFraming? framing = null
+    )
+        where TController : class
+    {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
         IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
-            ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(resolved, deserializeRequestFunc, framing);
+            ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(
+                resolved,
+                deserializeRequestFunc,
+                framing
+            );
 
         var invokeFilter = new InvokeWithParametersFilter<TController, TParameter>(invokeMethod);
 
-        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+        var instanceFilter = serviceProvider
+            .GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
 
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
+        return CreateFilterArray(
+            serviceProvider,
+            handlerInfo,
+            filterProviders,
+            IoFilter,
+            invokeFilter,
+            instanceFilter
+        );
     }
 
     #endregion
 
     #region async enumerable no parameters
 
-    public static ExecutionHandlerSetup
-AsyncEnumerableFilterEmptyParameters<TController, TItem>(
-            IServiceProvider serviceProvider,
-            IExecutionRequestHandlerInfo handlerInfo,
-            InvokeNoParameters<TController> invokeMethod,
-            IEnumerable<IRequestFilterProvider> filterProviders,
-            IStreamFraming? framing = null) {
+    public static ExecutionHandlerSetup AsyncEnumerableFilterEmptyParameters<TController, TItem>(
+        IServiceProvider serviceProvider,
+        IExecutionRequestHandlerInfo handlerInfo,
+        InvokeNoParameters<TController> invokeMethod,
+        IEnumerable<IRequestFilterProvider> filterProviders,
+        IStreamFraming? framing = null
+    )
+    {
         var ioFilterProvider = serviceProvider.GetRequiredService<IIOFilterProvider>();
 
         IExecutionFilter IoFilter(IExecutionRequestHandlerInfo resolved) =>
-            ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(resolved, _emptyDeserializeRequest, framing);
+            ioFilterProvider.ProvideAsyncEnumerableFilter<TItem>(
+                resolved,
+                _emptyDeserializeRequest,
+                framing
+            );
 
         var invokeFilter = new InvokeNoParametersFilter<TController>(invokeMethod);
 
-        var instanceFilter = serviceProvider.GetRequiredService<IInstanceFilterProvider>()
+        var instanceFilter = serviceProvider
+            .GetRequiredService<IInstanceFilterProvider>()
             .ProvideFilter<TController>(serviceProvider);
 
-        return CreateFilterArray(serviceProvider, handlerInfo, filterProviders, IoFilter, invokeFilter, instanceFilter);
+        return CreateFilterArray(
+            serviceProvider,
+            handlerInfo,
+            filterProviders,
+            IoFilter,
+            invokeFilter,
+            instanceFilter
+        );
     }
 
     #endregion
@@ -216,7 +307,9 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
         IEnumerable<IRequestFilterProvider> filterProviders,
         Func<IExecutionRequestHandlerInfo, IExecutionFilter> ioFilterFactory,
         IExecutionFilter invokeFilter,
-        IExecutionFilter instanceFilter) {
+        IExecutionFilter instanceFilter
+    )
+    {
         // First, because everything below reads the handler: a convention reads its requirement,
         // the resolver reads its metadata for a deadline, and the registry's predicates ask what it
         // declares - and a declaration on the entry point is one of the things it declares.
@@ -224,38 +317,59 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
 
         handlerInfo = handlerInfo.WithWiderRungs(wider);
         handlerInfo = ApplyConventions(serviceProvider, handlerInfo);
-        handlerInfo = handlerInfo.WithTimeout(TimeoutResolver.Resolve(serviceProvider, handlerInfo));
+        handlerInfo = handlerInfo.WithTimeout(
+            TimeoutResolver.Resolve(serviceProvider, handlerInfo)
+        );
         handlerInfo = handlerInfo.WithProducedContentTypes(
-            ContentTypeResolver.Resolve(serviceProvider, handlerInfo));
+            ContentTypeResolver.Resolve(serviceProvider, handlerInfo)
+        );
 
         // Built here rather than by the caller, because it binds the serializer for whatever this
         // handler ends up declaring - and the two rungs below the operation, its assembly and the
         // application's registered default, are only resolved on the line above.
         var ioFilter = ioFilterFactory(handlerInfo);
 
-        var filterList =
-            serviceProvider.GetRequiredService<IGlobalFilterRegistry>().GetFilters(handlerInfo);
+        var filterList = serviceProvider
+            .GetRequiredService<IGlobalFilterRegistry>()
+            .GetFilters(handlerInfo);
 
         // Beside the registry's rather than with the handler's own, which is the position
         // [Enable<T>] already gives them: ties break on insertion order, so a declaration covering
         // the application runs ahead of one on a handler that asked for the same place. The wider
         // declaration was written first.
-        foreach (var provider in GetFilterInfo(wider)) {
+        foreach (var provider in GetFilterInfo(wider))
+        {
             filterList.AddRange(provider.GetFilters(handlerInfo));
         }
 
         AddTimeoutFilter(filterList, handlerInfo);
 
-        filterList.Add(new RequestFilterInfo(
-            _ => ioFilter, FilterOrder.Serialization, FilterNames.Of(ioFilter)));
+        filterList.Add(
+            new RequestFilterInfo(
+                _ => ioFilter,
+                FilterOrder.Serialization,
+                FilterNames.Of(ioFilter)
+            )
+        );
 
-        filterList.Add(new RequestFilterInfo(
-            _ => invokeFilter, FilterOrder.EndPointInvoke, FilterNames.Of(invokeFilter)));
+        filterList.Add(
+            new RequestFilterInfo(
+                _ => invokeFilter,
+                FilterOrder.EndPointInvoke,
+                FilterNames.Of(invokeFilter)
+            )
+        );
 
-        filterList.Add(new RequestFilterInfo(
-            _ => instanceFilter, FilterOrder.HandlerCreation, FilterNames.Of(instanceFilter)));
+        filterList.Add(
+            new RequestFilterInfo(
+                _ => instanceFilter,
+                FilterOrder.HandlerCreation,
+                FilterNames.Of(instanceFilter)
+            )
+        );
 
-        foreach (var requestFilterProvider in filterProviders) {
+        foreach (var requestFilterProvider in filterProviders)
+        {
             filterList.AddRange(requestFilterProvider.GetFilters(handlerInfo));
         }
 
@@ -275,7 +389,8 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
 
         return new ExecutionHandlerSetup(
             handlerInfo,
-            Array.ConvertAll(chain, filter => filter.FilterFunc));
+            Array.ConvertAll(chain, filter => filter.FilterFunc)
+        );
     }
 
     /// <summary>
@@ -296,17 +411,24 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
     private static void LogFilterChain(
         IServiceProvider serviceProvider,
         IExecutionRequestHandlerInfo handlerInfo,
-        RequestFilterInfo[] chain) {
-        var logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger(FilterChainLogCategory);
+        RequestFilterInfo[] chain
+    )
+    {
+        var logger = serviceProvider
+            .GetService<ILoggerFactory>()
+            ?.CreateLogger(FilterChainLogCategory);
 
-        if (logger == null || !logger.IsEnabled(LogLevel.Debug)) {
+        if (logger == null || !logger.IsEnabled(LogLevel.Debug))
+        {
             return;
         }
 
         var described = new string[chain.Length];
 
-        for (var i = 0; i < chain.Length; i++) {
-            described[i] = FilterNames.Of(chain[i]) + "@" + (chain[i].Order ?? FilterOrder.DefaultValue);
+        for (var i = 0; i < chain.Length; i++)
+        {
+            described[i] =
+                FilterNames.Of(chain[i]) + "@" + (chain[i].Order ?? FilterOrder.DefaultValue);
         }
 
         LogFilterChain(logger, handlerInfo.Method, handlerInfo.Path, string.Join(", ", described));
@@ -315,8 +437,14 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
     [LoggerMessage(
         EventId = 78010,
         Level = LogLevel.Debug,
-        Message = "{httpMethod} {path} filter chain: {chain}")]
-    private static partial void LogFilterChain(ILogger logger, string httpMethod, string path, string chain);
+        Message = "{httpMethod} {path} filter chain: {chain}"
+    )]
+    private static partial void LogFilterChain(
+        ILogger logger,
+        string httpMethod,
+        string path,
+        string chain
+    );
 
     /// <summary>
     /// Installs the one filter that enforces whatever the cascade resolved.
@@ -342,17 +470,24 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
     /// </para>
     /// </remarks>
     private static void AddTimeoutFilter(
-        List<RequestFilterInfo> filterList, IExecutionRequestHandlerInfo handlerInfo) {
-        if (handlerInfo.Timeout is not { } timeout) {
+        List<RequestFilterInfo> filterList,
+        IExecutionRequestHandlerInfo handlerInfo
+    )
+    {
+        if (handlerInfo.Timeout is not { } timeout)
+        {
             return;
         }
 
         var filter = new TimeoutFilter(timeout.Milliseconds, timeout.Deadline);
 
-        filterList.Add(new RequestFilterInfo(
-            _ => filter,
-            FilterOrder.Before + FilterOrder.Serialization,
-            nameof(TimeoutFilter)));
+        filterList.Add(
+            new RequestFilterInfo(
+                _ => filter,
+                FilterOrder.Before + FilterOrder.Serialization,
+                nameof(TimeoutFilter)
+            )
+        );
     }
 
     /// <summary>
@@ -382,27 +517,35 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
     /// </para>
     /// </remarks>
     private static object[] WiderRungs(
-        IServiceProvider serviceProvider, IExecutionRequestHandlerInfo handlerInfo) {
+        IServiceProvider serviceProvider,
+        IExecutionRequestHandlerInfo handlerInfo
+    )
+    {
         // GetService rather than GetServices, for the reason ApplyConventions gives: the
         // convenience overload resolves IEnumerable<T> as required, and Hardened's container does
         // not synthesise an empty one.
         var registered = serviceProvider.GetService<IEnumerable<IApplicationFilterDeclarations>>();
 
-        if (registered == null) {
+        if (registered == null)
+        {
             return Array.Empty<object>();
         }
 
         List<object>? reaching = null;
 
-        foreach (var declarations in registered) {
+        foreach (var declarations in registered)
+        {
             // One per module that declares anything, so the handler's own assembly is what picks
             // out the declarations that are about it.
-            if (!Equals(declarations.DeclaringAssembly, handlerInfo.HandlerType.Assembly)) {
+            if (!Equals(declarations.DeclaringAssembly, handlerInfo.HandlerType.Assembly))
+            {
                 continue;
             }
 
-            foreach (var declaration in declarations.Declared) {
-                if (!DeclaredNearer(handlerInfo.Metadata, declaration.GetType())) {
+            foreach (var declaration in declarations.Declared)
+            {
+                if (!DeclaredNearer(handlerInfo.Metadata, declaration.GetType()))
+                {
                     (reaching ??= new List<object>()).Add(declaration);
                 }
             }
@@ -411,9 +554,12 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
         return reaching == null ? Array.Empty<object>() : reaching.ToArray();
     }
 
-    private static bool DeclaredNearer(IReadOnlyList<object> metadata, Type declaration) {
-        foreach (var item in metadata) {
-            if (item.GetType() == declaration) {
+    private static bool DeclaredNearer(IReadOnlyList<object> metadata, Type declaration)
+    {
+        foreach (var item in metadata)
+        {
+            if (item.GetType() == declaration)
+            {
                 return true;
             }
         }
@@ -447,7 +593,10 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
     /// </para>
     /// </remarks>
     private static IExecutionRequestHandlerInfo ApplyConventions(
-        IServiceProvider serviceProvider, IExecutionRequestHandlerInfo handlerInfo) {
+        IServiceProvider serviceProvider,
+        IExecutionRequestHandlerInfo handlerInfo
+    )
+    {
         // GetService rather than GetServices, which resolves IEnumerable<T> as *required* and throws
         // outright on a container that does not synthesise an empty one for an unregistered service.
         // Hardened's does not, so the convenience overload turns "this application registered no
@@ -455,39 +604,53 @@ AsyncEnumerableFilterEmptyParameters<TController, TItem>(
         // all.
         var conventions = serviceProvider.GetService<IEnumerable<IAuthorizationConvention>>();
 
-        if (conventions == null) {
+        if (conventions == null)
+        {
             return handlerInfo;
         }
 
         List<Requirement>? requirements = null;
 
-        foreach (var convention in conventions) {
+        foreach (var convention in conventions)
+        {
             var requirement = convention.Apply(handlerInfo);
 
-            if (requirement != null) {
+            if (requirement != null)
+            {
                 (requirements ??= []).Add(requirement);
             }
         }
 
-        if (requirements == null) {
+        if (requirements == null)
+        {
             return handlerInfo;
         }
 
-        if (handlerInfo.Requirement != null) {
+        if (handlerInfo.Requirement != null)
+        {
             requirements.Insert(0, handlerInfo.Requirement);
         }
 
-        return handlerInfo.WithRequirement(Requirement.AllOf([..requirements]));
+        return handlerInfo.WithRequirement(Requirement.AllOf([.. requirements]));
     }
 
     #endregion
 
-    public static ValueTask<T> CustomAttributeData<T>(IExecutionContext context, object attribute, IExecutionRequestParameter parameter) {
-        if (attribute is ICustomBindingAttribute customBindingAttribute) {
+    public static ValueTask<T> CustomAttributeData<T>(
+        IExecutionContext context,
+        object attribute,
+        IExecutionRequestParameter parameter
+    )
+    {
+        if (attribute is ICustomBindingAttribute customBindingAttribute)
+        {
             return customBindingAttribute.BindValue<T>(context, parameter);
         }
-        else {
-            throw new Exception($"Attribute type {attribute.GetType().FullName} does not implement ICustomBindingAttribute");
+        else
+        {
+            throw new Exception(
+                $"Attribute type {attribute.GetType().FullName} does not implement ICustomBindingAttribute"
+            );
         }
     }
 }

@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# Refuses a commit that contains unformatted C#.
+#
+# This checks rather than formats on purpose. Formatting staged files and re-adding them
+# would also stage the unstaged hunks of a partially staged file, which silently commits
+# work that was deliberately held back.
+#
+# Paths listed in .csharpierignore are skipped by csharpier itself, so the hook and
+# `dotnet csharpier check .` agree about what is in scope.
+#
+# Enable with:  git config core.hooksPath .githooks
+
+files=$(git diff --cached --name-only --diff-filter=ACM -z | tr '\0' '\n' | grep '\.cs$')
+[ -z "$files" ] && exit 0
+
+output=$(printf '%s\n' "$files" | xargs dotnet csharpier check 2>&1) && exit 0
+
+echo "csharpier: staged C# is not formatted."
+echo
+echo "$output" | grep -E '^Error' || echo "$output"
+echo
+echo "Fix with:     dotnet csharpier format ."
+echo "Bypass with:  git commit --no-verify"
+exit 1

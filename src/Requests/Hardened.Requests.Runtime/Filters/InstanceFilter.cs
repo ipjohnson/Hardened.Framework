@@ -14,7 +14,8 @@ namespace Hardened.Requests.Runtime.Filters;
 /// while the message naming the missing service reached only the log. See
 /// <see cref="HandlerCreationException"/>.
 /// </remarks>
-public class InstanceFilter<TController> : IExecutionFilter {
+public class InstanceFilter<TController> : IExecutionFilter
+{
     /// <summary>
     /// The one instance of this filter a closed <typeparamref name="TController"/> needs.
     /// </summary>
@@ -26,15 +27,23 @@ public class InstanceFilter<TController> : IExecutionFilter {
     /// </remarks>
     public static readonly InstanceFilter<TController> Instance = new();
 
-    public Task Execute(IExecutionChain chain) {
+    public Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
-        try {
-            context.HandlerInstance = context.RequestServices.GetRequiredService(typeof(TController));
+        try
+        {
+            context.HandlerInstance = context.RequestServices.GetRequiredService(
+                typeof(TController)
+            );
         }
-        catch (Exception exception) {
-            context.Response.ExceptionValue =
-                new HandlerCreationException(HandlerName(context), typeof(TController), exception);
+        catch (Exception exception)
+        {
+            context.Response.ExceptionValue = new HandlerCreationException(
+                HandlerName(context),
+                typeof(TController),
+                exception
+            );
         }
 
         return chain.Next();

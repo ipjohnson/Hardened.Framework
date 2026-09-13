@@ -13,8 +13,8 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// means <c>[Get("/x")]</c> constructed into the metadata array, which does not compile.
 /// </para>
 /// </summary>
-public class FilterAttributeDetectionTests {
-
+public class FilterAttributeDetectionTests
+{
     private const string Attributes = """
         using System;
         using Hardened.Requests.Runtime.Filters;
@@ -35,30 +35,45 @@ public class FilterAttributeDetectionTests {
         public class ThrottleAttribute : Attribute { }
         """;
 
-    private static string WithAttributes(string controller) => Attributes + Environment.NewLine + controller;
+    private static string WithAttributes(string controller) =>
+        Attributes + Environment.NewLine + controller;
 
     [Fact]
-    public void AMethodAttributeBecomesHandlerMetadata() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            public class OrderController {
-                [Get("/orders")]
-                [Trace]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void AMethodAttributeBecomesHandlerMetadata()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        [Trace]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("new global::TestApp.TraceAttribute()", result.SourceContaining("All"));
     }
 
     [Fact]
-    public void AControllerAttributeBecomesHandlerMetadata() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            [Trace]
-            public class OrderController {
-                [Get("/orders")]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void AControllerAttributeBecomesHandlerMetadata()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    [Trace]
+                    public class OrderController {
+                        [Get("/orders")]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("new global::TestApp.TraceAttribute()", result.SourceContaining("All"));
     }
@@ -69,21 +84,29 @@ public class FilterAttributeDetectionTests {
     /// than an implementation detail.
     /// </summary>
     [Fact]
-    public void MethodFiltersPrecedeControllerFilters() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            [Trace]
-            public class OrderController {
-                [Get("/orders")]
-                [Throttle]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void MethodFiltersPrecedeControllerFilters()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    [Trace]
+                    public class OrderController {
+                        [Get("/orders")]
+                        [Throttle]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("All");
 
         Assert.Contains(
             "new object[] { new global::TestApp.ThrottleAttribute(), new global::TestApp.TraceAttribute() }",
-            source);
+            source
+        );
     }
 
     /// <summary>
@@ -91,48 +114,74 @@ public class FilterAttributeDetectionTests {
     /// the controller expects them to run in.
     /// </summary>
     [Fact]
-    public void MultipleMethodFiltersKeepTheirDeclarationOrder() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            public class OrderController {
-                [Get("/orders")]
-                [Trace]
-                [Throttle]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void MultipleMethodFiltersKeepTheirDeclarationOrder()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        [Trace]
+                        [Throttle]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains(
             "new object[] { new global::TestApp.TraceAttribute(), new global::TestApp.ThrottleAttribute() }",
-            result.SourceContaining("All"));
+            result.SourceContaining("All")
+        );
     }
 
     /// <summary>Filters declared in one bracketed list, rather than one list each.</summary>
     [Fact]
-    public void FiltersInASingleAttributeListAreAllDetected() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            public class OrderController {
-                [Get("/orders")]
-                [Trace, Throttle]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void FiltersInASingleAttributeListAreAllDetected()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        [Trace, Throttle]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains(
             "new object[] { new global::TestApp.TraceAttribute(), new global::TestApp.ThrottleAttribute() }",
-            result.SourceContaining("All"));
+            result.SourceContaining("All")
+        );
     }
 
     [Fact]
-    public void AFilterKeepsItsConstructorArguments() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            public class OrderController {
-                [Get("/orders")]
-                [Audit("orders")]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void AFilterKeepsItsConstructorArguments()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        [Audit("orders")]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("new global::TestApp.AuditAttribute(\"orders\")", result.SourceContaining("All"));
+        Assert.Contains(
+            "new global::TestApp.AuditAttribute(\"orders\")",
+            result.SourceContaining("All")
+        );
     }
 
     /// <summary>
@@ -141,17 +190,26 @@ public class FilterAttributeDetectionTests {
     /// mixing them up produces a call to a constructor that does not exist.
     /// </summary>
     [Fact]
-    public void AFilterSplitsPositionalArgumentsFromPropertyAssignments() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            public class OrderController {
-                [Get("/orders")]
-                [Audit("orders", Level = 2)]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void AFilterSplitsPositionalArgumentsFromPropertyAssignments()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        [Audit("orders", Level = 2)]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("new global::TestApp.AuditAttribute(\"orders\"){ Level = 2 }",
-            result.SourceContaining("All"));
+        Assert.Contains(
+            "new global::TestApp.AuditAttribute(\"orders\"){ Level = 2 }",
+            result.SourceContaining("All")
+        );
     }
 
     /// <summary>
@@ -159,18 +217,26 @@ public class FilterAttributeDetectionTests {
     /// the metadata array with no constructor arguments and an initialiser.
     /// </summary>
     [Fact]
-    public void AShippedFilterConfiguredOnlyByPropertyReachesTheMetadata() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            public class OrderController {
-                [Get("/orders")]
-                [Retry(Retries = 3)]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void AShippedFilterConfiguredOnlyByPropertyReachesTheMetadata()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        [Retry(Retries = 3)]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains(
             "new global::Hardened.Requests.Runtime.Filters.RetryAttribute(){ Retries = 3 }",
-            result.SourceContaining("All"));
+            result.SourceContaining("All")
+        );
     }
 
     /// <summary>
@@ -183,13 +249,20 @@ public class FilterAttributeDetectionTests {
     [InlineData("Put")]
     [InlineData("Delete")]
     [InlineData("Patch")]
-    public void TheRouteVerbIsNotAFilter(string verb) {
-        var result = RequestGeneratorHarness.Generate(WithAttributes($$"""
-            public class OrderController {
-                [{{verb}}("/orders")]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void TheRouteVerbIsNotAFilter(string verb)
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    $$"""
+                    public class OrderController {
+                        [{{verb}}("/orders")]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("All");
 
@@ -202,13 +275,20 @@ public class FilterAttributeDetectionTests {
     /// and only the short one is ever exercised by hand-written controllers.
     /// </summary>
     [Fact]
-    public void TheRouteVerbWrittenInFullIsStillNotAFilter() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            public class OrderController {
-                [GetAttribute("/orders")]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void TheRouteVerbWrittenInFullIsStillNotAFilter()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    public class OrderController {
+                        [GetAttribute("/orders")]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain("_metadata", result.SourceContaining("All"));
     }
@@ -218,13 +298,20 @@ public class FilterAttributeDetectionTests {
     /// ExecutionRequestHandlerInfo.
     /// </summary>
     [Fact]
-    public void AHandlerWithNoFiltersEmitsNoMetadata() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            public class OrderController {
-                [Get("/orders")]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void AHandlerWithNoFiltersEmitsNoMetadata()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("All");
 
@@ -238,23 +325,31 @@ public class FilterAttributeDetectionTests {
     /// that arrived as null at run time would be the symptom of getting that wrong.
     /// </summary>
     [Fact]
-    public void AFilteredHandlerPassesItsMetadataToTheFilterLookup() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            public class OrderController {
-                [Get("/orders")]
-                [Trace]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors();
+    public void AFilteredHandlerPassesItsMetadataToTheFilterLookup()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        [Trace]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("All");
 
         Assert.Contains("GetFilterInfo(_metadata)", source);
         Assert.True(
-            source.IndexOf("_metadata =", StringComparison.Ordinal) <
-            source.IndexOf("_handlerInfo =", StringComparison.Ordinal),
-            "_metadata must be declared before _handlerInfo, or the static initialiser that reads " +
-            "it runs first and the handler is built with no filters");
+            source.IndexOf("_metadata =", StringComparison.Ordinal)
+                < source.IndexOf("_handlerInfo =", StringComparison.Ordinal),
+            "_metadata must be declared before _handlerInfo, or the static initialiser that reads "
+                + "it runs first and the handler is built with no filters"
+        );
     }
 
     /// <summary>
@@ -262,15 +357,22 @@ public class FilterAttributeDetectionTests {
     /// independent, and this is the combination where the parameters slot has to hold both.
     /// </summary>
     [Fact]
-    public void FiltersAndParametersCoexistOnOneHandler() {
-        var result = RequestGeneratorHarness.Generate(WithAttributes("""
-            [Trace]
-            public class OrderController {
-                [Get("/orders/{id}")]
-                [Audit("order")]
-                public string One(string id) => id;
-            }
-            """)).AssertNoErrors();
+    public void FiltersAndParametersCoexistOnOneHandler()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                WithAttributes(
+                    """
+                    [Trace]
+                    public class OrderController {
+                        [Get("/orders/{id}")]
+                        [Audit("order")]
+                        public string One(string id) => id;
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("\"One\", _parameterInfo, _metadata)", result.SourceContaining("One"));
     }

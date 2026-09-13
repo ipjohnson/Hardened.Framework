@@ -1,6 +1,7 @@
 namespace Hardened.Benchmarks.Contracts;
 
-public interface ISumService {
+public interface ISumService
+{
     int Sum(IReadOnlyList<int> values);
 }
 
@@ -15,11 +16,14 @@ public interface ISumService {
 /// register the identical type through the identical mechanism (<c>AddTransient</c>), leaving
 /// resolution cost the same on both sides of the comparison.
 /// </summary>
-public class SumService : ISumService {
-    public int Sum(IReadOnlyList<int> values) {
+public class SumService : ISumService
+{
+    public int Sum(IReadOnlyList<int> values)
+    {
         var total = 0;
 
-        for (var i = 0; i < values.Count; i++) {
+        for (var i = 0; i < values.Count; i++)
+        {
             total += values[i];
         }
 

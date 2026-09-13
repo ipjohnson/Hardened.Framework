@@ -45,18 +45,22 @@ namespace Hardened.Web.AspNetCore.Testing;
 /// with this one; the runner takes the narrowest.
 /// </para>
 /// </remarks>
-public sealed class AspNetCoreTestingAttribute : TestHostProviderAttribute, IServiceProviderBuilderAttribute {
+public sealed class AspNetCoreTestingAttribute
+    : TestHostProviderAttribute,
+        IServiceProviderBuilderAttribute
+{
     private readonly Type _composition;
 
     /// <summary>The default composition: <c>app.UseHardened()</c> alone.</summary>
-    public AspNetCoreTestingAttribute() : this(typeof(DefaultAspNetCoreTestComposition)) {
-    }
+    public AspNetCoreTestingAttribute()
+        : this(typeof(DefaultAspNetCoreTestComposition)) { }
 
     /// <param name="composition">
     /// A public <see cref="IAspNetCoreTestComposition"/> with a parameterless constructor, which
     /// arranges the pipeline the way <c>Program.cs</c> does.
     /// </param>
-    public AspNetCoreTestingAttribute(Type composition) {
+    public AspNetCoreTestingAttribute(Type composition)
+    {
         ArgumentNullException.ThrowIfNull(composition);
 
         _composition = composition;
@@ -72,17 +76,26 @@ public sealed class AspNetCoreTestingAttribute : TestHostProviderAttribute, ISer
     /// is never disposed by the container; the <c>ITestHost</c> factory registration
     /// <c>[WebTesting]</c> makes is what is.
     /// </remarks>
-    public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services) {
-        if (!typeof(IAspNetCoreTestComposition).IsAssignableFrom(_composition) ||
-            _composition.GetConstructor(Type.EmptyTypes) == null) {
+    public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services)
+    {
+        if (
+            !typeof(IAspNetCoreTestComposition).IsAssignableFrom(_composition)
+            || _composition.GetConstructor(Type.EmptyTypes) == null
+        )
+        {
             throw new InvalidOperationException(
-                $"{_composition.FullName} is named as the composition of [assembly: AspNetCoreTesting], and it is not a " +
-                "public IAspNetCoreTestComposition with a parameterless constructor.");
+                $"{_composition.FullName} is named as the composition of [assembly: AspNetCoreTesting], and it is not a "
+                    + "public IAspNetCoreTestComposition with a parameterless constructor."
+            );
         }
 
-        var environment = testMethod.Attributes.OfType<EnvironmentNameAttribute>().LastOrDefault()?.Name ?? "test";
+        var environment =
+            testMethod.Attributes.OfType<EnvironmentNameAttribute>().LastOrDefault()?.Name
+            ?? "test";
         var host = new AspNetCoreTestHost(
-            (IAspNetCoreTestComposition)Activator.CreateInstance(_composition)!, environment);
+            (IAspNetCoreTestComposition)Activator.CreateInstance(_composition)!,
+            environment
+        );
 
         services.AddSingleton(host);
 
@@ -95,25 +108,35 @@ public sealed class AspNetCoreTestingAttribute : TestHostProviderAttribute, ISer
     /// class carrying <c>[KestrelRuntime]</c> - means the plain container the runner would have
     /// built; no host at all means <c>[WebTesting]</c> is missing.
     /// </remarks>
-    public IServiceProvider BuildServiceProvider(ITestMethodContext testMethod, IServiceCollection serviceCollection) {
+    public IServiceProvider BuildServiceProvider(
+        ITestMethodContext testMethod,
+        IServiceCollection serviceCollection
+    )
+    {
         var host = serviceCollection
             .Select(descriptor => descriptor.ImplementationInstance as AspNetCoreTestHost)
             .FirstOrDefault(instance => instance != null);
 
-        if (host == null) {
-            if (!serviceCollection.Any(descriptor => descriptor.ServiceType == typeof(ITestHost))) {
+        if (host == null)
+        {
+            if (!serviceCollection.Any(descriptor => descriptor.ServiceType == typeof(ITestHost)))
+            {
                 throw new InvalidOperationException(
-                    "[assembly: AspNetCoreTesting] builds the container for a test [WebTesting] registered a host in, and " +
-                    "this test has none: declare [assembly: WebTesting] beside the entry point attribute.");
+                    "[assembly: AspNetCoreTesting] builds the container for a test [WebTesting] registered a host in, and "
+                        + "this test has none: declare [assembly: WebTesting] beside the entry point attribute."
+                );
             }
 
             return serviceCollection.BuildServiceProvider();
         }
 
-        var builder = WebApplication.CreateBuilder(new WebApplicationOptions {
-            ApplicationName = testMethod.Method.DeclaringType!.Assembly.GetName().Name,
-            EnvironmentName = host.EnvironmentName,
-        });
+        var builder = WebApplication.CreateBuilder(
+            new WebApplicationOptions
+            {
+                ApplicationName = testMethod.Method.DeclaringType!.Assembly.GetName().Name,
+                EnvironmentName = host.EnvironmentName,
+            }
+        );
 
         // Port 0, the way the socket tests in this repository bind: the kernel picks, and the
         // bound address is read back from app.Urls once the server has started.
@@ -127,7 +150,8 @@ public sealed class AspNetCoreTestingAttribute : TestHostProviderAttribute, ISer
 
         // The test's container on top of the host's: last wins for a single resolution, and the
         // host's own registrations stay for what the test did not name.
-        foreach (var descriptor in serviceCollection) {
+        foreach (var descriptor in serviceCollection)
+        {
             builder.Services.Add(descriptor);
         }
 

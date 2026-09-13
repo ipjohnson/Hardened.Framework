@@ -9,18 +9,27 @@ namespace Hardened.IntegrationTests.CloudRunWeb.Simulator.Tests;
 /// The web fixture in the image Cloud Run runs, reached over real HTTP: the matrix's ✓ for HTTP.
 /// </summary>
 [Trait("Category", "Simulator")]
-public sealed class HttpServiceImageTests : IClassFixture<HttpServiceImageTests.Service> {
+public sealed class HttpServiceImageTests : IClassFixture<HttpServiceImageTests.Service>
+{
     private readonly Service _service;
 
-    public HttpServiceImageTests(Service service) {
+    public HttpServiceImageTests(Service service)
+    {
         _service = service;
     }
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task AGetReachesItsHandlerInTheContainer() {
-        using var response = await _service.Container.SendAsync(HttpMethod.Get, "/orders/o-1", null, "application/json", Token);
+    public async Task AGetReachesItsHandlerInTheContainer()
+    {
+        using var response = await _service.Container.SendAsync(
+            HttpMethod.Get,
+            "/orders/o-1",
+            null,
+            "application/json",
+            Token
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -31,9 +40,15 @@ public sealed class HttpServiceImageTests : IClassFixture<HttpServiceImageTests.
     }
 
     [Fact]
-    public async Task APostBindsItsBodyInTheContainer() {
+    public async Task APostBindsItsBodyInTheContainer()
+    {
         using var response = await _service.Container.SendAsync(
-            HttpMethod.Post, "/orders", """{"id":"o-2","quantity":3}""", "application/json", Token);
+            HttpMethod.Post,
+            "/orders",
+            """{"id":"o-2","quantity":3}""",
+            "application/json",
+            Token
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -43,16 +58,26 @@ public sealed class HttpServiceImageTests : IClassFixture<HttpServiceImageTests.
     }
 
     [Fact]
-    public async Task AnUnmatchedPathIsA404InTheContainer() {
-        using var response = await _service.Container.SendAsync(HttpMethod.Get, "/nothing-here", null, "application/json", Token);
+    public async Task AnUnmatchedPathIsA404InTheContainer()
+    {
+        using var response = await _service.Container.SendAsync(
+            HttpMethod.Get,
+            "/nothing-here",
+            null,
+            "application/json",
+            Token
+        );
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    public sealed class Service : IAsyncLifetime {
-        public CloudRunService Container { get; } = CloudRunService.For("Hardened.IntegrationTests.CloudRunWeb.SUT");
+    public sealed class Service : IAsyncLifetime
+    {
+        public CloudRunService Container { get; } =
+            CloudRunService.For("Hardened.IntegrationTests.CloudRunWeb.SUT");
 
-        public async ValueTask InitializeAsync() => await Container.StartAsync(TestContext.Current.CancellationToken);
+        public async ValueTask InitializeAsync() =>
+            await Container.StartAsync(TestContext.Current.CancellationToken);
 
         public async ValueTask DisposeAsync() => await Container.DisposeAsync();
     }

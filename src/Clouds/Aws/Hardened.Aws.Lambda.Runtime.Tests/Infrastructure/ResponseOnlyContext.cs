@@ -15,8 +15,10 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 /// says so: a member it reaches for that it has no business reading throws here rather than
 /// returning something plausible.
 /// </remarks>
-public sealed class ResponseOnlyContext : IExecutionContext {
-    public ResponseOnlyContext(IExecutionResponse response, IExecutionRequest? request = null) {
+public sealed class ResponseOnlyContext : IExecutionContext
+{
+    public ResponseOnlyContext(IExecutionResponse response, IExecutionRequest? request = null)
+    {
         Response = response;
         _request = request;
     }
@@ -29,40 +31,48 @@ public sealed class ResponseOnlyContext : IExecutionContext {
         IExecutionRequest? request = null,
         IExecutionResponse? response = null,
         IServiceProvider? serviceProvider = null,
-        IMetricLogger? metricLogger = null) => throw new NotSupportedException();
+        IMetricLogger? metricLogger = null
+    ) => throw new NotSupportedException();
 
     public IServiceProvider RootServiceProvider => throw new NotSupportedException();
     public IKnownServices KnownServices => throw new NotSupportedException();
     public IServiceProvider RequestServices => throw new NotSupportedException();
+
     /// <summary>
     /// The request when a test supplied one. Adapters that write a per-item failure report read it,
     /// because the report names items of the delivery rather than anything on the response.
     /// </summary>
     public IExecutionRequest Request =>
-        _request ?? throw new NotSupportedException(
-            "This context was built with a response only. Pass a request to ResponseOnlyContext " +
-            "when the adapter under test reads one.");
+        _request
+        ?? throw new NotSupportedException(
+            "This context was built with a response only. Pass a request to ResponseOnlyContext "
+                + "when the adapter under test reads one."
+        );
     public IMetricLogger RequestMetrics => throw new NotSupportedException();
     public MachineTimestamp StartTime => throw new NotSupportedException();
     public CancellationToken CancellationToken => throw new NotSupportedException();
     public string CorrelationId => throw new NotSupportedException();
 
-    public ICallerPrincipal CallerPrincipal {
+    public ICallerPrincipal CallerPrincipal
+    {
         get => throw new NotSupportedException();
         set => throw new NotSupportedException();
     }
 
-    public object? HandlerInstance {
+    public object? HandlerInstance
+    {
         get => throw new NotSupportedException();
         set => throw new NotSupportedException();
     }
 
-    public IExecutionRequestHandlerInfo? HandlerInfo {
+    public IExecutionRequestHandlerInfo? HandlerInfo
+    {
         get => throw new NotSupportedException();
         set => throw new NotSupportedException();
     }
 
-    public DefaultOutputFunc? DefaultOutput {
+    public DefaultOutputFunc? DefaultOutput
+    {
         get => throw new NotSupportedException();
         set => throw new NotSupportedException();
     }

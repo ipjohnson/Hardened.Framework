@@ -18,7 +18,8 @@ namespace Hardened.Aws.DynamoDbClient;
 /// at all.
 /// </para>
 /// </summary>
-public interface IDynamoDbClientProvider {
+public interface IDynamoDbClientProvider
+{
     /// <param name="clientName">
     /// Empty for the default client. A name selects one configured under that name — a second
     /// region, another account, a role with narrower permissions.

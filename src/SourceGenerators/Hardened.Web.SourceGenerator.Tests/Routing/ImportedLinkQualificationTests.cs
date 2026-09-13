@@ -18,11 +18,12 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// <c>dotnet new hardened-web -n Todo</c> produces, so the name most likely to be typed for a todo
 /// sample was the one name that could not build.
 /// </remarks>
-public class ImportedLinkQualificationTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),       // Hardened.Web.Runtime
-        typeof(FromBodyAttribute)   // Hardened.Requests.Abstract
+public class ImportedLinkQualificationTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
     ];
 
     /// <summary>
@@ -34,8 +35,7 @@ public class ImportedLinkQualificationTests {
     /// <c>Todo.TodoLibrary+Links</c> and <c>Todo.Todo</c> - not how they got there. Generating them
     /// would test the library half of the generator on the way to the host half.
     /// </remarks>
-    private const string Library =
-        """
+    private const string Library = """
         using System;
         using Hardened.Web.Runtime.Links;
 
@@ -52,8 +52,7 @@ public class ImportedLinkQualificationTests {
         }
         """;
 
-    private const string Host =
-        """
+    private const string Host = """
         using Hardened.Shared.Runtime.Attributes;
         using Todo;
 
@@ -65,21 +64,22 @@ public class ImportedLinkQualificationTests {
         """;
 
     [Fact]
-    public void AnImportedLinkIsQualifiedAgainstATypeSharingTheRootNamespaceName() {
+    public void AnImportedLinkIsQualifiedAgainstATypeSharingTheRootNamespaceName()
+    {
         var library = GeneratorTestHarness.CompileLibrary(Library, "Todo", Anchors);
 
         var result = GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Application.cs"] = Host },
             [new WebLibrarySourceGenerator()],
             Anchors,
-            additionalReferences: [library.Reference]);
+            additionalReferences: [library.Reference]
+        );
+
+        Assert.DoesNotContain(result.Errors, diagnostic => diagnostic.Id == "CS0426");
 
         Assert.DoesNotContain(
             result.Errors,
-            diagnostic => diagnostic.Id == "CS0426");
-
-        Assert.DoesNotContain(
-            result.Errors,
-            diagnostic => diagnostic.Id.StartsWith("CS", StringComparison.Ordinal));
+            diagnostic => diagnostic.Id.StartsWith("CS", StringComparison.Ordinal)
+        );
     }
 }

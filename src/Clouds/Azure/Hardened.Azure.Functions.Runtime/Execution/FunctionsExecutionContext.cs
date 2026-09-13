@@ -24,7 +24,8 @@ namespace Hardened.Azure.Functions.Runtime.Execution;
 /// context adds, and it is what lets a handler abandon work when the host has given up on it.
 /// </para>
 /// </remarks>
-public class FunctionsExecutionContext : IExecutionContext {
+public class FunctionsExecutionContext : IExecutionContext
+{
     public FunctionsExecutionContext(
         IServiceProvider rootServiceProvider,
         IServiceProvider requestServices,
@@ -32,7 +33,9 @@ public class FunctionsExecutionContext : IExecutionContext {
         IExecutionRequest request,
         IExecutionResponse response,
         FunctionContext functionContext,
-        IMetricLogger? metricLogger = null) {
+        IMetricLogger? metricLogger = null
+    )
+    {
         RootServiceProvider = rootServiceProvider;
         RequestServices = requestServices;
         KnownServices = knownServices;
@@ -59,7 +62,9 @@ public class FunctionsExecutionContext : IExecutionContext {
         IExecutionRequest? request = null,
         IExecutionResponse? response = null,
         IServiceProvider? serviceProvider = null,
-        IMetricLogger? metricLogger = null) {
+        IMetricLogger? metricLogger = null
+    )
+    {
         return new FunctionsExecutionContext(
             RootServiceProvider,
             serviceProvider ?? RequestServices,
@@ -67,7 +72,9 @@ public class FunctionsExecutionContext : IExecutionContext {
             request ?? Request,
             response ?? Response,
             FunctionContext,
-            metricLogger ?? RequestMetrics) {
+            metricLogger ?? RequestMetrics
+        )
+        {
             HandlerInstance = HandlerInstance,
             HandlerInfo = HandlerInfo,
             DefaultOutput = DefaultOutput,
@@ -77,7 +84,7 @@ public class FunctionsExecutionContext : IExecutionContext {
             CorrelationId = CorrelationId,
             // A token replaced by a filter stays replaced on the forks it opens.
             CancellationToken = CancellationToken,
-            Dispatch = Dispatch
+            Dispatch = Dispatch,
         };
     }
 
@@ -96,7 +103,8 @@ public class FunctionsExecutionContext : IExecutionContext {
     private string? _correlationId;
 
     /// <inheritdoc />
-    public string CorrelationId {
+    public string CorrelationId
+    {
         get => _correlationId ??= CorrelationIdentifier.ForCurrentTrace();
         init => _correlationId = value;
     }

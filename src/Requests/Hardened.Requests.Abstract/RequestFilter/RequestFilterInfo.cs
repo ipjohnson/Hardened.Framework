@@ -6,8 +6,13 @@ namespace Hardened.Requests.Abstract.RequestFilter;
 /// One filter's place in a handler's chain: how to get the filter, where it runs, and what to call
 /// it when the composed chain is written out.
 /// </summary>
-public class RequestFilterInfo {
-    public RequestFilterInfo(Func<IExecutionContext, IExecutionFilter> filterFunc, int? order = null) {
+public class RequestFilterInfo
+{
+    public RequestFilterInfo(
+        Func<IExecutionContext, IExecutionFilter> filterFunc,
+        int? order = null
+    )
+    {
         FilterFunc = filterFunc;
         Order = order;
     }
@@ -20,8 +25,12 @@ public class RequestFilterInfo {
     /// calls removed from the filter it builds.
     /// </param>
     public RequestFilterInfo(
-        Func<IExecutionContext, IExecutionFilter> filterFunc, int? order, string name)
-        : this(filterFunc, order) {
+        Func<IExecutionContext, IExecutionFilter> filterFunc,
+        int? order,
+        string name
+    )
+        : this(filterFunc, order)
+    {
         Name = name;
     }
 

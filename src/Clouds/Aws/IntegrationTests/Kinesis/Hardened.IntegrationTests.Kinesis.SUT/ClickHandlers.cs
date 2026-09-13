@@ -2,18 +2,21 @@ using Hardened.Functions.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.Kinesis.SUT;
 
-public class Click {
+public class Click
+{
     public string Id { get; set; } = "";
 
     public int Count { get; set; }
 }
 
 /// <summary>Where a handled record goes, so a test can observe it.</summary>
-public interface IClickSink {
+public interface IClickSink
+{
     void Record(Click click);
 }
 
-public class ClickHandlers {
+public class ClickHandlers
+{
     /// <summary>
     /// A record, bound from the publisher's own bytes.
     /// </summary>

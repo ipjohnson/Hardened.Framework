@@ -26,8 +26,10 @@ namespace Hardened.Gcp.CloudRun.PubSub;
 /// </remarks>
 [DependencyModule]
 [CloudRunRuntime]
-public partial class PubSubModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class PubSubModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerEnvelope, PubSubUnwrappedPushEnvelope>();
         services.AddSingleton<ITriggerEnvelope, PubSubTopicEnvelope>();
         services.AddSingleton<ITriggerEnvelope, PubSubPushEnvelope>();

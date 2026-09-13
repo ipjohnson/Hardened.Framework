@@ -2,9 +2,9 @@
 using Hardened.Requests.Abstract.Diagnostics;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
-using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Headers;
 using Hardened.Requests.Runtime.PathTokens;
@@ -12,14 +12,15 @@ using Hardened.Requests.Runtime.QueryString;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.AspNetCore.Runtime.Impl;
 
-public class AspNetExecutionContext : IExecutionContext {
+public class AspNetExecutionContext : IExecutionContext
+{
     private HttpContext _httpContext;
 
     /// <summary>
@@ -34,7 +35,8 @@ public class AspNetExecutionContext : IExecutionContext {
     /// </remarks>
     private CancellationToken? _cancellationToken;
 
-    public AspNetExecutionContext(HttpContext httpContext, IMetricLogger logger) {
+    public AspNetExecutionContext(HttpContext httpContext, IMetricLogger logger)
+    {
         _httpContext = httpContext;
         KnownServices = httpContext.RequestServices.GetRequiredService<IKnownServices>();
         Request = new AspNetExecutionRequest(httpContext.Request);
@@ -50,7 +52,9 @@ public class AspNetExecutionContext : IExecutionContext {
         IExecutionResponse response,
         IMetricLogger metricLogger,
         MachineTimestamp startTime,
-        CancellationToken? cancellationToken) {
+        CancellationToken? cancellationToken
+    )
+    {
         _httpContext = httpContext;
         KnownServices = knownServices;
         Request = request;
@@ -66,7 +70,9 @@ public class AspNetExecutionContext : IExecutionContext {
         IExecutionRequest? request,
         IExecutionResponse? response,
         IServiceProvider? serviceProvider,
-        IMetricLogger? metricLogger) {
+        IMetricLogger? metricLogger
+    )
+    {
         return new AspNetExecutionContext(
             _httpContext,
             KnownServices,
@@ -74,7 +80,9 @@ public class AspNetExecutionContext : IExecutionContext {
             response ?? Response,
             metricLogger ?? RequestMetrics,
             StartTime,
-            _cancellationToken) {
+            _cancellationToken
+        )
+        {
             HandlerInstance = HandlerInstance,
             HandlerInfo = HandlerInfo,
             // The reference, not a copy: a fork is the same caller.
@@ -107,7 +115,8 @@ public class AspNetExecutionContext : IExecutionContext {
     /// and the one the rest of the trace is filed under - where TraceIdentifier is a
     /// connection-scoped string in a different shape that nothing else here would recognise.
     /// </remarks>
-    public string CorrelationId {
+    public string CorrelationId
+    {
         get => _correlationId ??= CorrelationIdentifier.ForCurrentTrace();
         init => _correlationId = value;
     }
@@ -117,7 +126,8 @@ public class AspNetExecutionContext : IExecutionContext {
     public DefaultOutputFunc? DefaultOutput { get; set; }
     public IMetricLogger RequestMetrics { get; }
     public MachineTimestamp StartTime { get; }
-    public CancellationToken CancellationToken {
+    public CancellationToken CancellationToken
+    {
         get => _cancellationToken ?? _httpContext.RequestAborted;
         set => _cancellationToken = value;
     }
@@ -126,7 +136,8 @@ public class AspNetExecutionContext : IExecutionContext {
     public void ReplaceCancellationToken(CancellationToken token) => CancellationToken = token;
 }
 
-public class AspNetExecutionRequest : IExecutionRequest {
+public class AspNetExecutionRequest : IExecutionRequest
+{
     private readonly HttpRequest _httpRequest;
 
     // Values supplied by Clone. Null means "fall through to the underlying HttpRequest",
@@ -142,7 +153,8 @@ public class AspNetExecutionRequest : IExecutionRequest {
     private IReadOnlyList<string>? _cookies;
     private ITransportInfo? _transport;
 
-    public AspNetExecutionRequest(HttpRequest httpRequest) {
+    public AspNetExecutionRequest(HttpRequest httpRequest)
+    {
         _httpRequest = httpRequest;
     }
 
@@ -153,7 +165,9 @@ public class AspNetExecutionRequest : IExecutionRequest {
         IDictionary<string, StringValues>? headersOverride,
         IQueryStringCollection? queryStringOverride,
         IReadOnlyList<string>? cookiesOverride,
-        ITransportInfo? transport) {
+        ITransportInfo? transport
+    )
+    {
         _httpRequest = httpRequest;
         _transport = transport;
         _methodOverride = methodOverride;
@@ -183,7 +197,9 @@ public class AspNetExecutionRequest : IExecutionRequest {
         string? path = null,
         IDictionary<string, StringValues>? headers = null,
         IQueryStringCollection? queryString = null,
-        IReadOnlyList<string>? cookies = null) {
+        IReadOnlyList<string>? cookies = null
+    )
+    {
         return new AspNetExecutionRequest(
             _httpRequest,
             method ?? _methodOverride,
@@ -194,7 +210,9 @@ public class AspNetExecutionRequest : IExecutionRequest {
             // The same instance, not a fresh one over the same request: a fork is the same request
             // on the same connection, and the conformance suite asserts identity rather than
             // equality because that is the property callers rely on.
-            Transport) {
+            Transport
+        )
+        {
             // Cloned, not shared: a forked chain must be able to rebind without writing
             // through to the request it was forked from. See the conformance suite.
             Parameters = Parameters?.Clone(),
@@ -212,7 +230,8 @@ public class AspNetExecutionRequest : IExecutionRequest {
 
     public IExecutionRequestParameters? Parameters { get; set; }
 
-    public Stream Body {
+    public Stream Body
+    {
         get => _httpRequest.Body;
         set => _httpRequest.Body = value;
     }
@@ -226,10 +245,15 @@ public class AspNetExecutionRequest : IExecutionRequest {
     /// had been more than one.
     /// </summary>
     public IQueryStringCollection QueryString =>
-        _queryStringOverride ?? (_queryString ??= new SimpleQueryStringCollection(
-            _httpRequest.Query.ToDictionary(q => q.Key, q => q.Value)));
+        _queryStringOverride
+        ?? (
+            _queryString ??= new SimpleQueryStringCollection(
+                _httpRequest.Query.ToDictionary(q => q.Key, q => q.Value)
+            )
+        );
 
-    public IPathTokenCollection PathTokens {
+    public IPathTokenCollection PathTokens
+    {
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }
@@ -239,20 +263,28 @@ public class AspNetExecutionRequest : IExecutionRequest {
     /// is the raw <c>name=value</c> form that API Gateway v2 delivers, so reassemble it.
     /// </summary>
     public IReadOnlyList<string> Cookies =>
-        _cookiesOverride ?? (_cookies ??=
-            _httpRequest.Cookies.Select(cookie => $"{cookie.Key}={cookie.Value}").ToList());
+        _cookiesOverride
+        ?? (
+            _cookies ??= _httpRequest
+                .Cookies.Select(cookie => $"{cookie.Key}={cookie.Value}")
+                .ToList()
+        );
 }
 
-public class AspNetExecutionResponse : IExecutionResponse {
+public class AspNetExecutionResponse : IExecutionResponse
+{
     private HttpResponse _httpResponse;
     private int? _status;
 
-    public AspNetExecutionResponse(HttpResponse httpResponse) {
+    public AspNetExecutionResponse(HttpResponse httpResponse)
+    {
         _httpResponse = httpResponse;
     }
 
-    public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
-        return new AspNetExecutionResponse(_httpResponse) {
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection)
+    {
+        return new AspNetExecutionResponse(_httpResponse)
+        {
             _status = _status,
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
@@ -262,7 +294,8 @@ public class AspNetExecutionResponse : IExecutionResponse {
         };
     }
 
-    public string? ContentType {
+    public string? ContentType
+    {
         get => _httpResponse.ContentType;
         set => _httpResponse.ContentType = value ?? "";
     }
@@ -290,15 +323,18 @@ public class AspNetExecutionResponse : IExecutionResponse {
     /// has started the status is settled, so reporting it is accurate rather than a guess — and
     /// every filter that tests for null runs earlier than that, before anything is written.
     /// </summary>
-    public int? Status {
+    public int? Status
+    {
         get => _status ?? (_httpResponse.HasStarted ? _httpResponse.StatusCode : null);
-        set {
+        set
+        {
             _status = value;
             _httpResponse.StatusCode = value ?? 200;
         }
     }
 
-    public Stream Body {
+    public Stream Body
+    {
         get => _httpResponse.Body;
         set => _httpResponse.Body = value;
     }

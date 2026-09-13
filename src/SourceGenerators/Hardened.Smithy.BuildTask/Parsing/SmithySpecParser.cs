@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 
 namespace Hardened.Smithy.BuildTask.Parsing;
 
@@ -22,8 +22,8 @@ namespace Hardened.Smithy.BuildTask.Parsing;
 /// naming pass belongs to a front end rather than to the shell.
 /// </para>
 /// </remarks>
-internal static class SmithySpecParser {
-
+internal static class SmithySpecParser
+{
     /// <summary>
     /// Reads one AST. Returns null when nothing usable could be built, having said why.
     /// </summary>
@@ -36,32 +36,46 @@ internal static class SmithySpecParser {
         string json,
         string fileName,
         ICollection<string> diagnostics,
-        string? serviceShapeId = null) {
+        string? serviceShapeId = null
+    )
+    {
         var ast = SmithyAst.Load(json, diagnostics);
 
-        if (ast == null) {
+        if (ast == null)
+        {
             return null;
         }
 
         var services = new List<KeyValuePair<string, JsonElement>>();
 
-        foreach (var shape in ast.Shapes) {
-            if (SmithyAst.Kind(shape.Value) == "service" &&
-                !SmithyAst.IsTraitDefinition(shape.Value)) {
+        foreach (var shape in ast.Shapes)
+        {
+            if (
+                SmithyAst.Kind(shape.Value) == "service"
+                && !SmithyAst.IsTraitDefinition(shape.Value)
+            )
+            {
                 services.Add(shape);
             }
         }
 
-        if (services.Count == 0) {
-            diagnostics.Add("the model declares no service shape, so there is nothing to generate.");
+        if (services.Count == 0)
+        {
+            diagnostics.Add(
+                "the model declares no service shape, so there is nothing to generate."
+            );
 
             return null;
         }
 
-        if (serviceShapeId != null) {
-            services.RemoveAll(s => !string.Equals(s.Key, serviceShapeId, StringComparison.Ordinal));
+        if (serviceShapeId != null)
+        {
+            services.RemoveAll(s =>
+                !string.Equals(s.Key, serviceShapeId, StringComparison.Ordinal)
+            );
 
-            if (services.Count == 0) {
+            if (services.Count == 0)
+            {
                 diagnostics.Add($"the model declares no service shape named '{serviceShapeId}'.");
 
                 return null;
@@ -76,16 +90,21 @@ internal static class SmithySpecParser {
         var model = new ServiceSpecModel { FileName = fileName };
         var context = new ParseContext(ast, model, diagnostics);
 
-        foreach (var service in services) {
-            if (!TryReadProtocol(service.Key, service.Value, diagnostics, out var protocol)) {
+        foreach (var service in services)
+        {
+            if (!TryReadProtocol(service.Key, service.Value, diagnostics, out var protocol))
+            {
                 return null;
             }
 
             ParseService(context, service.Key, service.Value, protocol);
         }
 
-        if (model.Services.Count == 0 || model.Services.TrueForAll(s => s.Operations.Count == 0)) {
-            diagnostics.Add("the model's services bind no operations, so there is nothing to generate.");
+        if (model.Services.Count == 0 || model.Services.TrueForAll(s => s.Operations.Count == 0))
+        {
+            diagnostics.Add(
+                "the model's services bind no operations, so there is nothing to generate."
+            );
 
             return null;
         }
@@ -103,8 +122,14 @@ internal static class SmithySpecParser {
     }
 
     /// <summary>What one parse needs to carry, so nothing threads six parameters.</summary>
-    private sealed class ParseContext {
-        internal ParseContext(SmithyAst ast, ServiceSpecModel model, ICollection<string> diagnostics) {
+    private sealed class ParseContext
+    {
+        internal ParseContext(
+            SmithyAst ast,
+            ServiceSpecModel model,
+            ICollection<string> diagnostics
+        )
+        {
             Ast = ast;
             Model = model;
             Diagnostics = diagnostics;
@@ -131,7 +156,8 @@ internal static class SmithySpecParser {
     /// dispatched, where every request goes to one route and a header names it. Nothing else about
     /// a protocol reaches the model, which is what keeps a third one a table entry.
     /// </remarks>
-    private readonly struct ProtocolBinding {
+    private readonly struct ProtocolBinding
+    {
         internal string? DispatchHeader { get; init; }
 
         internal string? ContentType { get; init; }
@@ -152,22 +178,29 @@ internal static class SmithySpecParser {
         string serviceId,
         JsonElement service,
         ICollection<string> diagnostics,
-        out ProtocolBinding protocol) {
+        out ProtocolBinding protocol
+    )
+    {
         protocol = default;
 
-        foreach (var trait in SmithyAst.Traits(service)) {
-            if (SmithyTraits.RefusedProtocols.TryGetValue(trait.Key, out var reason)) {
+        foreach (var trait in SmithyAst.Traits(service))
+        {
+            if (SmithyTraits.RefusedProtocols.TryGetValue(trait.Key, out var reason))
+            {
                 diagnostics.Add(
-                    $"service '{SmithyPrelude.LocalName(serviceId)}' declares protocol " +
-                    $"'{trait.Key}', which this generator does not serve: {reason}.");
+                    $"service '{SmithyPrelude.LocalName(serviceId)}' declares protocol "
+                        + $"'{trait.Key}', which this generator does not serve: {reason}."
+                );
 
                 return false;
             }
 
-            if (SmithyTraits.DispatchProtocols.TryGetValue(trait.Key, out var header)) {
-                protocol = new ProtocolBinding {
+            if (SmithyTraits.DispatchProtocols.TryGetValue(trait.Key, out var header))
+            {
+                protocol = new ProtocolBinding
+                {
                     DispatchHeader = header,
-                    ContentType = SmithyTraits.DispatchContentTypes[trait.Key]
+                    ContentType = SmithyTraits.DispatchContentTypes[trait.Key],
                 };
             }
         }
@@ -176,7 +209,12 @@ internal static class SmithySpecParser {
     }
 
     private static void ParseService(
-        ParseContext context, string serviceId, JsonElement service, ProtocolBinding protocol) {
+        ParseContext context,
+        string serviceId,
+        JsonElement service,
+        ProtocolBinding protocol
+    )
+    {
         var tag = SmithyPrelude.LocalName(serviceId);
         var operations = new List<OperationModel>();
 
@@ -184,44 +222,63 @@ internal static class SmithySpecParser {
 
         // The service's identity, for the published document. @title was accepted by the trait
         // table and never read, so the served document titled the API after the module class.
-        if (context.Model.Title == null &&
-            SmithyAst.TryGetTrait(service, SmithyTraits.Title, out var title) &&
-            title.ValueKind == JsonValueKind.String) {
+        if (
+            context.Model.Title == null
+            && SmithyAst.TryGetTrait(service, SmithyTraits.Title, out var title)
+            && title.ValueKind == JsonValueKind.String
+        )
+        {
             context.Model.Title = title.GetString();
         }
 
-        if (context.Model.Version == null &&
-            service.TryGetProperty("version", out var version) &&
-            version.ValueKind == JsonValueKind.String) {
+        if (
+            context.Model.Version == null
+            && service.TryGetProperty("version", out var version)
+            && version.ValueKind == JsonValueKind.String
+        )
+        {
             context.Model.Version = version.GetString();
         }
 
         var securityScheme = DeclaredScheme(context, service);
 
-        foreach (var operationId in Operations(context, service)) {
-            if (!context.Ast.TryGetShape(operationId, out var operation)) {
+        foreach (var operationId in Operations(context, service))
+        {
+            if (!context.Ast.TryGetShape(operationId, out var operation))
+            {
                 Dangling(context, operationId, "service '" + tag + "' binds operation");
 
                 continue;
             }
 
             var parsed = ParseOperation(
-                context, operationId, operation, tag, protocol, RequiresAuth(service),
-                securityScheme);
+                context,
+                operationId,
+                operation,
+                tag,
+                protocol,
+                RequiresAuth(service),
+                securityScheme
+            );
 
-            if (parsed != null) {
+            if (parsed != null)
+            {
                 operations.Add(parsed);
             }
         }
 
-        operations.Sort((left, right) =>
-            string.CompareOrdinal(left.OperationId, right.OperationId));
+        operations.Sort(
+            (left, right) => string.CompareOrdinal(left.OperationId, right.OperationId)
+        );
 
-        context.Model.Services.Add(new ServiceModel {
-            Tag = tag,
-            DispatchHeader = protocol.DispatchHeader,
-            Operations = operations
-        });
+        context.Model.Services.Add(
+            new ServiceModel
+            {
+                Tag = tag,
+                DispatchHeader = protocol.DispatchHeader,
+                Operations = operations,
+            }
+        );
     }
 
     /// <summary>
@@ -232,40 +289,51 @@ internal static class SmithySpecParser {
     /// are ordinary operations with ordinary HTTP bindings, and the resource itself has no C#
     /// equivalent worth inventing - it groups operations, which is what the service already does.
     /// </remarks>
-    private static IEnumerable<string> Operations(ParseContext context, JsonElement service) {
+    private static IEnumerable<string> Operations(ParseContext context, JsonElement service)
+    {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var queue = new Queue<JsonElement>();
 
         queue.Enqueue(service);
 
-        while (queue.Count > 0) {
+        while (queue.Count > 0)
+        {
             var shape = queue.Dequeue();
 
-            foreach (var operationId in SmithyAst.TargetList(shape, "operations")) {
-                if (seen.Add(operationId)) {
+            foreach (var operationId in SmithyAst.TargetList(shape, "operations"))
+            {
+                if (seen.Add(operationId))
+                {
                     yield return operationId;
                 }
             }
 
-            foreach (var operationId in SmithyAst.TargetList(shape, "collectionOperations")) {
-                if (seen.Add(operationId)) {
+            foreach (var operationId in SmithyAst.TargetList(shape, "collectionOperations"))
+            {
+                if (seen.Add(operationId))
+                {
                     yield return operationId;
                 }
             }
 
             // A resource's lifecycle bindings are single targets rather than a list.
-            foreach (var lifecycle in new[] { "create", "put", "read", "update", "delete", "list" }) {
-                if (shape.TryGetProperty(lifecycle, out var bound)) {
+            foreach (var lifecycle in new[] { "create", "put", "read", "update", "delete", "list" })
+            {
+                if (shape.TryGetProperty(lifecycle, out var bound))
+                {
                     var target = SmithyAst.Target(bound);
 
-                    if (target != null && seen.Add(target)) {
+                    if (target != null && seen.Add(target))
+                    {
                         yield return target;
                     }
                 }
             }
 
-            foreach (var resourceId in SmithyAst.TargetList(shape, "resources")) {
-                if (context.Ast.TryGetShape(resourceId, out var resource)) {
+            foreach (var resourceId in SmithyAst.TargetList(shape, "resources"))
+            {
+                if (context.Ast.TryGetShape(resourceId, out var resource))
+                {
                     queue.Enqueue(resource);
                 }
             }
@@ -291,22 +359,26 @@ internal static class SmithySpecParser {
     /// </remarks>
     /// <summary>Whether the shape narrows its supported schemes to none - <c>@auth([])</c>.</summary>
     private static bool DeclaresNoAuth(JsonElement shape) =>
-        SmithyAst.TryGetTrait(shape, SmithyTraits.Auth, out var auth) &&
-        auth.ValueKind == JsonValueKind.Array &&
-        auth.GetArrayLength() == 0;
+        SmithyAst.TryGetTrait(shape, SmithyTraits.Auth, out var auth)
+        && auth.ValueKind == JsonValueKind.Array
+        && auth.GetArrayLength() == 0;
 
-    private static bool RequiresAuth(JsonElement service) {
+    private static bool RequiresAuth(JsonElement service)
+    {
         // @auth narrows the schemes a shape supports, so it answers on its own when present - and
         // an empty list is how a service supports none.
         //
         // No @optionalAuth check here. Smithy defines that trait on operations, so a service
         // carrying one is not a model this has to answer for, and the operation is asked directly.
-        if (SmithyAst.TryGetTrait(service, SmithyTraits.Auth, out var auth)) {
+        if (SmithyAst.TryGetTrait(service, SmithyTraits.Auth, out var auth))
+        {
             return auth.ValueKind == JsonValueKind.Array && auth.GetArrayLength() > 0;
         }
 
-        foreach (var scheme in SmithyTraits.AuthSchemes) {
-            if (SmithyAst.HasTrait(service, scheme)) {
+        foreach (var scheme in SmithyTraits.AuthSchemes)
+        {
+            if (SmithyAst.HasTrait(service, scheme))
+            {
                 return true;
             }
         }
@@ -324,28 +396,36 @@ internal static class SmithySpecParser {
     /// with an OpenAPI spelling: sigv4 has none, so a sigv4 service keeps enforcing and the
     /// document stays silent about it rather than inventing a vocabulary other tools cannot read.
     /// </remarks>
-    private static string? DeclaredScheme(ParseContext context, JsonElement service) {
-        foreach (var trait in SmithyTraits.AuthSchemes) {
-            if (!SmithyAst.HasTrait(service, trait)) {
+    private static string? DeclaredScheme(ParseContext context, JsonElement service)
+    {
+        foreach (var trait in SmithyTraits.AuthSchemes)
+        {
+            if (!SmithyAst.HasTrait(service, trait))
+            {
                 continue;
             }
 
             var name = SmithyPrelude.LocalName(trait);
 
-            var json = name switch {
+            var json = name switch
+            {
                 "httpBearerAuth" => "{\"type\":\"http\",\"scheme\":\"bearer\"}",
                 "httpBasicAuth" => "{\"type\":\"http\",\"scheme\":\"basic\"}",
                 "httpDigestAuth" => "{\"type\":\"http\",\"scheme\":\"digest\"}",
                 "httpApiKeyAuth" => ApiKeySchemeJson(service),
-                _ => null
+                _ => null,
             };
 
-            if (json == null) {
+            if (json == null)
+            {
                 continue;
             }
 
-            if (!context.Model.SecuritySchemes.Exists(scheme => scheme.Name == name)) {
-                context.Model.SecuritySchemes.Add(new SecuritySchemeModel { Name = name, Json = json });
+            if (!context.Model.SecuritySchemes.Exists(scheme => scheme.Name == name))
+            {
+                context.Model.SecuritySchemes.Add(
+                    new SecuritySchemeModel { Name = name, Json = json }
+                );
             }
 
             return name;
@@ -355,20 +435,22 @@ internal static class SmithySpecParser {
     }
 
     /// <summary>@httpApiKeyAuth's name and location, read off the trait itself.</summary>
-    private static string? ApiKeySchemeJson(JsonElement service) {
-        if (!SmithyAst.TryGetTrait(service, "smithy.api#httpApiKeyAuth", out var trait)) {
+    private static string? ApiKeySchemeJson(JsonElement service)
+    {
+        if (!SmithyAst.TryGetTrait(service, "smithy.api#httpApiKeyAuth", out var trait))
+        {
             return null;
         }
 
         var name = String(trait, "name");
         var location = String(trait, "in");
 
-        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(location)) {
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(location))
+        {
             return null;
         }
 
-        return "{\"type\":\"apiKey\",\"name\":\"" + name +
-               "\",\"in\":\"" + location + "\"}";
+        return "{\"type\":\"apiKey\",\"name\":\"" + name + "\",\"in\":\"" + location + "\"}";
     }
 
     private static OperationModel? ParseOperation(
@@ -378,48 +460,59 @@ internal static class SmithySpecParser {
         string tag,
         ProtocolBinding protocol,
         bool serviceRequiresAuth,
-        string? securityScheme = null) {
+        string? securityScheme = null
+    )
+    {
         Note(context, operation);
 
         var name = SmithyPrelude.LocalName(operationId);
 
-        if (SmithyAst.HasTrait(operation, SmithyTraits.Streaming)) {
+        if (SmithyAst.HasTrait(operation, SmithyTraits.Streaming))
+        {
             context.Diagnostics.Add(
-                $"operation '{name}' is @streaming, which this generator cannot serve, so it was skipped.");
+                $"operation '{name}' is @streaming, which this generator cannot serve, so it was skipped."
+            );
 
             return null;
         }
 
         OperationModel model;
 
-        if (protocol.Dispatches) {
+        if (protocol.Dispatches)
+        {
             // The protocol decides all of this, and the operation has no say. An @http trait here is
             // not an error and not a conflict: the specification says HTTP binding traits "MUST be
             // ignored if they are present", so a model that carries both is well formed and this is
             // what ignoring them means.
-            model = new OperationModel {
+            model = new OperationModel
+            {
                 OperationId = name,
                 Tag = tag,
                 Path = "/",
                 HttpMethod = "POST",
                 DispatchKey = tag + "." + name,
                 RequestBodyContentType = protocol.ContentType,
-                ResponseContentType = protocol.ContentType
+                ResponseContentType = protocol.ContentType,
             };
-        } else {
-            if (!SmithyAst.TryGetTrait(operation, SmithyTraits.Http, out var http)) {
+        }
+        else
+        {
+            if (!SmithyAst.TryGetTrait(operation, SmithyTraits.Http, out var http))
+            {
                 context.Diagnostics.Add(
-                    $"operation '{name}' has no @http trait, so it has no route and was skipped.");
+                    $"operation '{name}' has no @http trait, so it has no route and was skipped."
+                );
 
                 return null;
             }
 
-            model = new OperationModel {
+            model = new OperationModel
+            {
                 OperationId = name,
                 Tag = tag,
                 Path = String(http, "uri") ?? "/",
                 HttpMethod = (String(http, "method") ?? "GET").ToUpperInvariant(),
-                SuccessStatusCode = Int(http, "code") ?? 200
+                SuccessStatusCode = Int(http, "code") ?? 200,
             };
         }
 
@@ -429,20 +522,25 @@ internal static class SmithySpecParser {
         // The deadline, into the same model field the OpenAPI front end fills. Both descriptions
         // then reach the pipeline through one path, and a budget written in a Smithy model resolves
         // against a [Timeout] on the implementation by the runtime's own nearest-wins rule.
-        if (SmithyAst.TryGetTrait(operation, SmithyTraits.Timeout, out var timeout)) {
+        if (SmithyAst.TryGetTrait(operation, SmithyTraits.Timeout, out var timeout))
+        {
             var milliseconds = Int(timeout, "milliseconds") ?? 0;
 
-            if (milliseconds <= 0) {
+            if (milliseconds <= 0)
+            {
                 context.Diagnostics.Add(
-                    $"operation '{name}' declares an @timeout of {milliseconds} milliseconds. " +
-                    "A budget has to be greater than zero; an operation that should not be " +
-                    "bounded declares no timeout instead.");
+                    $"operation '{name}' declares an @timeout of {milliseconds} milliseconds. "
+                        + "A budget has to be greater than zero; an operation that should not be "
+                        + "bounded declares no timeout instead."
+                );
             }
-            else {
-                model.Timeout = new TimeoutModel {
+            else
+            {
+                model.Timeout = new TimeoutModel
+                {
                     Milliseconds = milliseconds,
                     Status = Int(timeout, "status") ?? 504,
-                    RetryAfterSeconds = Int(timeout, "retryAfterSeconds") ?? 0
+                    RetryAfterSeconds = Int(timeout, "retryAfterSeconds") ?? 0,
                 };
             }
         }
@@ -450,15 +548,20 @@ internal static class SmithySpecParser {
         // Authentication only, because that is all the language carries. An operation may opt out of
         // an authenticated service; it cannot opt in to one that declares no scheme, because there
         // would be nothing to authenticate against.
-        if (serviceRequiresAuth &&
-            !SmithyAst.HasTrait(operation, SmithyTraits.OptionalAuth) &&
-            !DeclaresNoAuth(operation)) {
+        if (
+            serviceRequiresAuth
+            && !SmithyAst.HasTrait(operation, SmithyTraits.OptionalAuth)
+            && !DeclaresNoAuth(operation)
+        )
+        {
             model.AuthorizationBranches.Add(
-                new AuthorizationBranchModel { RequiresAuthentication = true });
+                new AuthorizationBranchModel { RequiresAuthentication = true }
+            );
 
             // The same fact for the document: the operation requires the service's scheme. Smithy
             // has no scopes, so the requirement's list is always empty.
-            if (securityScheme != null) {
+            if (securityScheme != null)
+            {
                 model.SecurityRequirements.Add("{\"" + securityScheme + "\":[]}");
             }
         }
@@ -466,7 +569,13 @@ internal static class SmithySpecParser {
         ParseInput(context, operation, model, name, protocol);
 
         var responseHeaders = ParseOutput(
-            context, operation, model, name, protocol, out var headersOnPayload);
+            context,
+            operation,
+            model,
+            name,
+            protocol,
+            out var headersOnPayload
+        );
 
         // The success as a declared response, mirroring what the OpenAPI parser records. Smithy
         // models one output per operation, so there is always exactly one and never the multiple
@@ -474,7 +583,8 @@ internal static class SmithySpecParser {
         // fields when they build a response set, and an operation missing from it gets a set
         // carrying only its errors and no case a handler can return to say it succeeded. That is
         // what a Smithy operation answering 204 did: RemoveTodoNoContent was never emitted.
-        var success = new SuccessResponseModel {
+        var success = new SuccessResponseModel
+        {
             StatusCode = model.SuccessStatusCode,
             Ref = model.ResponseRef,
             Type = model.ResponseType,
@@ -482,7 +592,7 @@ internal static class SmithySpecParser {
             IsArray = model.ResponseIsArray,
             ArrayItemsRef = model.ResponseArrayItemsRef,
             ArrayItemsType = model.ResponseArrayItemsType,
-            ContentType = model.ResponseContentType
+            ContentType = model.ResponseContentType,
         };
 
         success.Headers.AddRange(responseHeaders);
@@ -505,16 +615,23 @@ internal static class SmithySpecParser {
         // it is what lets a declared error answer on an operation whose success is not. Dispatch
         // protocols stay out: the protocol names one content type for everything and negotiation
         // has no say.
-        if (!protocol.Dispatches) {
-            if (model.ResponseContentType != null &&
-                !model.ProducedContentTypes.Contains(model.ResponseContentType)) {
+        if (!protocol.Dispatches)
+        {
+            if (
+                model.ResponseContentType != null
+                && !model.ProducedContentTypes.Contains(model.ResponseContentType)
+            )
+            {
                 model.ProducedContentTypes.Add(model.ResponseContentType);
 
                 model.SuccessContentTypes.Add(model.ResponseContentType);
             }
 
-            if (model.ErrorResponses.Count > 0 &&
-                !model.ProducedContentTypes.Contains("application/json")) {
+            if (
+                model.ErrorResponses.Count > 0
+                && !model.ProducedContentTypes.Contains("application/json")
+            )
+            {
                 model.ProducedContentTypes.Add("application/json");
             }
         }
@@ -522,11 +639,14 @@ internal static class SmithySpecParser {
         // What the document says an error body is, stated here rather than worked out by the
         // writer. The rule is the one above: JSON for a REST protocol whatever the success is, and
         // the protocol's own content type for a dispatch protocol, which names one for everything.
-        if (model.ErrorResponses.Count > 0) {
-            var errorContentType =
-                protocol.Dispatches ? model.ResponseContentType : "application/json";
+        if (model.ErrorResponses.Count > 0)
+        {
+            var errorContentType = protocol.Dispatches
+                ? model.ResponseContentType
+                : "application/json";
 
-            if (errorContentType != null) {
+            if (errorContentType != null)
+            {
                 model.ErrorContentTypes.Add(errorContentType);
             }
         }
@@ -548,18 +668,23 @@ internal static class SmithySpecParser {
         JsonElement operation,
         OperationModel model,
         string operationName,
-        ProtocolBinding protocol) {
-        if (!operation.TryGetProperty("input", out var inputRef)) {
+        ProtocolBinding protocol
+    )
+    {
+        if (!operation.TryGetProperty("input", out var inputRef))
+        {
             return;
         }
 
         var inputId = SmithyAst.Target(inputRef);
 
-        if (inputId == null || inputId == SmithyPrelude.Unit) {
+        if (inputId == null || inputId == SmithyPrelude.Unit)
+        {
             return;
         }
 
-        if (!context.Ast.TryGetShape(inputId, out var input)) {
+        if (!context.Ast.TryGetShape(inputId, out var input))
+        {
             Dangling(context, inputId, "operation '" + operationName + "' takes");
 
             return;
@@ -569,54 +694,94 @@ internal static class SmithySpecParser {
 
         var bodyMembers = new List<KeyValuePair<string, JsonElement>>();
 
-        foreach (var member in SmithyAst.Members(input)) {
+        foreach (var member in SmithyAst.Members(input))
+        {
             Note(context, member.Value);
 
             // Under a dispatch protocol there is nowhere for a binding to put anything: the request
             // is POST / with the input structure as its body, and the specification requires the
             // binding traits to be ignored rather than honoured.
-            if (protocol.Dispatches) {
+            if (protocol.Dispatches)
+            {
                 bodyMembers.Add(member);
-            } else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpLabel, out _)) {
+            }
+            else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpLabel, out _))
+            {
                 AddParameter(context, model, member, "path", member.Key);
-            } else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpQuery, out var query)) {
-                AddParameter(context, model, member, "query",
-                    query.ValueKind == JsonValueKind.String ? query.GetString() ?? member.Key : member.Key);
-            } else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpHeader, out var header)) {
-                AddParameter(context, model, member, "header",
-                    header.ValueKind == JsonValueKind.String ? header.GetString() ?? member.Key : member.Key);
-            } else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpPayload, out _)) {
+            }
+            else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpQuery, out var query))
+            {
+                AddParameter(
+                    context,
+                    model,
+                    member,
+                    "query",
+                    query.ValueKind == JsonValueKind.String
+                        ? query.GetString() ?? member.Key
+                        : member.Key
+                );
+            }
+            else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpHeader, out var header))
+            {
+                AddParameter(
+                    context,
+                    model,
+                    member,
+                    "header",
+                    header.ValueKind == JsonValueKind.String
+                        ? header.GetString() ?? member.Key
+                        : member.Key
+                );
+            }
+            else if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpPayload, out _))
+            {
                 var target = SmithyAst.Target(member.Value);
 
-                if (target != null) {
+                if (target != null)
+                {
                     // Classified like any member, for the reasons the output payload gives.
-                    Describe(context, target, out var type, out var format, out var reference,
-                        out var facts);
+                    Describe(
+                        context,
+                        target,
+                        out var type,
+                        out var format,
+                        out var reference,
+                        out var facts
+                    );
 
                     model.RequestBodyContentType ??= PayloadContentType(context, target, format);
 
-                    if (reference != null) {
+                    if (reference != null)
+                    {
                         model.RequestBodyRef = reference;
-                    } else if (type != null && !facts.IsArray) {
+                    }
+                    else if (type != null && !facts.IsArray)
+                    {
                         model.RequestBodyType = type;
 
                         // The format the response side has always kept. Dropped here, a blob became
                         // a string parameter that cannot take a binary body, and neither the
                         // generated signature nor the published document said so.
                         model.RequestBodyFormat = format;
-                    } else {
+                    }
+                    else
+                    {
                         context.Diagnostics.Add(
-                            $"operation '{operationName}' binds @httpPayload to '{target}', a " +
-                            "shape this front end cannot take as a request body; the member was " +
-                            "left unbound.");
+                            $"operation '{operationName}' binds @httpPayload to '{target}', a "
+                                + "shape this front end cannot take as a request body; the member was "
+                                + "left unbound."
+                        );
                     }
                 }
-            } else {
+            }
+            else
+            {
                 bodyMembers.Add(member);
             }
         }
 
-        if (bodyMembers.Count == 0 || model.RequestBodyRef != null || model.RequestBodyType != null) {
+        if (bodyMembers.Count == 0 || model.RequestBodyRef != null || model.RequestBodyType != null)
+        {
             return;
         }
 
@@ -632,28 +797,40 @@ internal static class SmithySpecParser {
 
         var boundMembers = model.Parameters.Count;
 
-        if (boundMembers == 0) {
+        if (boundMembers == 0)
+        {
             model.RequestBodyRef = ReferenceTo(context, inputId);
-        } else {
+        }
+        else
+        {
             var bodyName = SmithyPrelude.LocalName(inputId) + "Body";
 
-            if (context.Built.Add(inputId + "#body")) {
-                var bodySchema = new SchemaModel {
+            if (context.Built.Add(inputId + "#body"))
+            {
+                var bodySchema = new SchemaModel
+                {
                     Name = bodyName,
                     Kind = SchemaKind.Object,
-                    Description = "The unbound members of " + SmithyPrelude.LocalName(inputId) + "."
+                    Description =
+                        "The unbound members of " + SmithyPrelude.LocalName(inputId) + ".",
                 };
 
-                foreach (var member in bodyMembers) {
+                foreach (var member in bodyMembers)
+                {
                     // Named for the diagnostic as the model spells it rather than as the body
                     // schema does: one member of one Smithy structure, whatever the reader
                     // materialises it into.
                     var schemaProperty = BuildProperty(
-                        context, member.Key, member.Value, SmithyPrelude.LocalName(inputId));
+                        context,
+                        member.Key,
+                        member.Value,
+                        SmithyPrelude.LocalName(inputId)
+                    );
 
                     bodySchema.Properties.Add(schemaProperty);
 
-                    if (schemaProperty.IsRequired) {
+                    if (schemaProperty.IsRequired)
+                    {
                         bodySchema.Required.Add(schemaProperty.Name);
                     }
                 }
@@ -664,13 +841,19 @@ internal static class SmithySpecParser {
             model.RequestBodyRef = TypeMapper.MakeRef(bodyName);
         }
 
-        foreach (var member in bodyMembers) {
+        foreach (var member in bodyMembers)
+        {
             var property = BuildProperty(
-                context, member.Key, member.Value, SmithyPrelude.LocalName(inputId));
+                context,
+                member.Key,
+                member.Value,
+                SmithyPrelude.LocalName(inputId)
+            );
 
             model.RequestBodyProperties.Add(property);
 
-            if (property.IsRequired) {
+            if (property.IsRequired)
+            {
                 model.RequestBodyRequired.Add(member.Key);
             }
         }
@@ -703,22 +886,27 @@ internal static class SmithySpecParser {
         OperationModel model,
         string operationName,
         ProtocolBinding protocol,
-        out bool headersOnPayload) {
+        out bool headersOnPayload
+    )
+    {
         var headers = new List<ResponseHeaderModel>();
 
         headersOnPayload = false;
 
-        if (!operation.TryGetProperty("output", out var outputRef)) {
+        if (!operation.TryGetProperty("output", out var outputRef))
+        {
             return headers;
         }
 
         var outputId = SmithyAst.Target(outputRef);
 
-        if (outputId == null || outputId == SmithyPrelude.Unit) {
+        if (outputId == null || outputId == SmithyPrelude.Unit)
+        {
             return headers;
         }
 
-        if (!context.Ast.TryGetShape(outputId, out var output)) {
+        if (!context.Ast.TryGetShape(outputId, out var output))
+        {
             Dangling(context, outputId, "operation '" + operationName + "' returns");
 
             return headers;
@@ -734,20 +922,27 @@ internal static class SmithySpecParser {
         // member name -> the name it goes out under, which the trait carries and the member does not.
         var boundOut = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        if (!protocol.Dispatches) {
-            foreach (var member in SmithyAst.Members(output)) {
+        if (!protocol.Dispatches)
+        {
+            foreach (var member in SmithyAst.Members(output))
+            {
                 Note(context, member.Value);
 
-                if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpHeader, out var header)) {
-                    var wireName = header.ValueKind == JsonValueKind.String
-                        ? header.GetString() ?? member.Key
-                        : member.Key;
+                if (SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpHeader, out var header))
+                {
+                    var wireName =
+                        header.ValueKind == JsonValueKind.String
+                            ? header.GetString() ?? member.Key
+                            : member.Key;
 
-                    headers.Add(new ResponseHeaderModel {
-                        Name = wireName,
-                        ParameterName = NamingHelper.ToPascalCase(wireName),
-                        Description = Text(member.Value, SmithyTraits.Documentation)
-                    });
+                    headers.Add(
+                        new ResponseHeaderModel
+                        {
+                            Name = wireName,
+                            ParameterName = NamingHelper.ToPascalCase(wireName),
+                            Description = Text(member.Value, SmithyTraits.Documentation),
+                        }
+                    );
 
                     boundOut[JsonName(member.Value) ?? member.Key] = wireName;
                 }
@@ -755,50 +950,73 @@ internal static class SmithySpecParser {
         }
 
         // An @httpPayload member is the whole response body; otherwise the output structure is.
-        foreach (var member in SmithyAst.Members(output)) {
-            if (protocol.Dispatches ||
-                !SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpPayload, out _)) {
+        foreach (var member in SmithyAst.Members(output))
+        {
+            if (
+                protocol.Dispatches
+                || !SmithyAst.TryGetTrait(member.Value, SmithyTraits.HttpPayload, out _)
+            )
+            {
                 continue;
             }
 
             var target = SmithyAst.Target(member.Value);
 
-            if (target != null) {
+            if (target != null)
+            {
                 // Through the same classification every member goes through, because the payload
                 // used to be treated as a structure whatever it targeted: the prelude String
                 // became a reference to a type nothing declares, and a named list became an empty
                 // record - one a compile error in generated code, the other a body that
                 // serialized {} with no diagnostic at all.
-                Describe(context, target, out var type, out var format, out var reference, out var facts);
+                Describe(
+                    context,
+                    target,
+                    out var type,
+                    out var format,
+                    out var reference,
+                    out var facts
+                );
 
                 // A @streaming union is Smithy's event stream: the payload is many of the union's
                 // members, one after another, each named by the member it came in as. That is a
                 // streamed response whose item is the union, framed as server-sent events with the
                 // member name as the event field - the same thing OpenAPI 3.2 spells as itemSchema
                 // under text/event-stream, so it goes on the model the same way.
-                if (reference != null &&
-                    context.Ast.TryGetShape(target, out var streamedShape) &&
-                    SmithyAst.HasTrait(streamedShape, SmithyTraits.Streaming) &&
-                    SmithyAst.Kind(streamedShape) == "union") {
+                if (
+                    reference != null
+                    && context.Ast.TryGetShape(target, out var streamedShape)
+                    && SmithyAst.HasTrait(streamedShape, SmithyTraits.Streaming)
+                    && SmithyAst.Kind(streamedShape) == "union"
+                )
+                {
                     model.ItemSchemaRef = reference;
                     model.ResponseContentType = "text/event-stream";
 
                     return headers;
                 }
 
-                if (reference != null) {
+                if (reference != null)
+                {
                     model.ResponseRef = reference;
-                } else if (facts.IsArray) {
+                }
+                else if (facts.IsArray)
+                {
                     model.ResponseIsArray = true;
                     model.ResponseArrayItemsRef = facts.ItemRef;
                     model.ResponseArrayItemsType = facts.ItemType;
-                } else if (type != null) {
+                }
+                else if (type != null)
+                {
                     model.ResponseType = type;
                     model.ResponseFormat = format;
-                } else {
+                }
+                else
+                {
                     context.Diagnostics.Add(
-                        $"operation '{operationName}' binds @httpPayload to '{target}', a shape " +
-                        "this front end cannot type; the response body was left undeclared.");
+                        $"operation '{operationName}' binds @httpPayload to '{target}', a shape "
+                            + "this front end cannot type; the response body was left undeclared."
+                    );
                 }
 
                 // @mediaType on the payload target is the response's content type - text/plain on
@@ -811,7 +1029,8 @@ internal static class SmithySpecParser {
                 // decided for it.
                 var responseContentType = PayloadContentType(context, target, format);
 
-                if (responseContentType != "application/json") {
+                if (responseContentType != "application/json")
+                {
                     model.ResponseContentType = responseContentType;
                 }
 
@@ -854,11 +1073,15 @@ internal static class SmithySpecParser {
     /// was negotiated as JSON and refused; the response side read <c>@mediaType</c> and nothing
     /// else, so a blob with no media type went out quoted.
     /// </remarks>
-    private static string PayloadContentType(ParseContext context, string target, string? format) {
-        if (context.Ast.TryGetShape(target, out var shape) &&
-            SmithyAst.TryGetTrait(shape, SmithyTraits.MediaType, out var mediaType) &&
-            mediaType.ValueKind == JsonValueKind.String &&
-            mediaType.GetString() is { Length: > 0 } declared) {
+    private static string PayloadContentType(ParseContext context, string target, string? format)
+    {
+        if (
+            context.Ast.TryGetShape(target, out var shape)
+            && SmithyAst.TryGetTrait(shape, SmithyTraits.MediaType, out var mediaType)
+            && mediaType.ValueKind == JsonValueKind.String
+            && mediaType.GetString() is { Length: > 0 } declared
+        )
+        {
             return declared;
         }
 
@@ -866,20 +1089,29 @@ internal static class SmithySpecParser {
     }
 
     private static void MarkHeaderBound(
-        ParseContext context, string outputId, IReadOnlyDictionary<string, string> boundOut) {
-        if (boundOut.Count == 0) {
+        ParseContext context,
+        string outputId,
+        IReadOnlyDictionary<string, string> boundOut
+    )
+    {
+        if (boundOut.Count == 0)
+        {
             return;
         }
 
         var name = SmithyPrelude.LocalName(outputId);
 
-        foreach (var schema in context.Model.Schemas) {
-            if (schema.Name != name) {
+        foreach (var schema in context.Model.Schemas)
+        {
+            if (schema.Name != name)
+            {
                 continue;
             }
 
-            foreach (var property in schema.Properties) {
-                if (boundOut.TryGetValue(property.Name, out var wireName)) {
+            foreach (var property in schema.Properties)
+            {
+                if (boundOut.TryGetValue(property.Name, out var wireName))
+                {
                     property.HeaderName = wireName;
                 }
             }
@@ -889,9 +1121,16 @@ internal static class SmithySpecParser {
     }
 
     private static void ParseErrors(
-        ParseContext context, JsonElement operation, OperationModel model, ProtocolBinding protocol) {
-        foreach (var errorId in SmithyAst.TargetList(operation, "errors")) {
-            if (!context.Ast.TryGetShape(errorId, out var error)) {
+        ParseContext context,
+        JsonElement operation,
+        OperationModel model,
+        ProtocolBinding protocol
+    )
+    {
+        foreach (var errorId in SmithyAst.TargetList(operation, "errors"))
+        {
+            if (!context.Ast.TryGetShape(errorId, out var error))
+            {
                 // Dropped in silence until now, which is the quietest of the four: the operation
                 // keeps its other errors, the generated interface simply never declares this one,
                 // and the status the model promised is answered by nothing.
@@ -906,12 +1145,19 @@ internal static class SmithySpecParser {
 
             // @httpError is an HTTP binding trait, which a dispatch protocol requires be ignored -
             // so under one, @error's client/server is the only thing that decides the status.
-            if (!protocol.Dispatches &&
-                SmithyAst.TryGetTrait(error, SmithyTraits.HttpError, out var httpError) &&
-                httpError.ValueKind == JsonValueKind.Number) {
+            if (
+                !protocol.Dispatches
+                && SmithyAst.TryGetTrait(error, SmithyTraits.HttpError, out var httpError)
+                && httpError.ValueKind == JsonValueKind.Number
+            )
+            {
                 status = httpError.GetInt32();
-            } else if (SmithyAst.TryGetTrait(error, SmithyTraits.Error, out var kind) &&
-                       kind.ValueKind == JsonValueKind.String) {
+            }
+            else if (
+                SmithyAst.TryGetTrait(error, SmithyTraits.Error, out var kind)
+                && kind.ValueKind == JsonValueKind.String
+            )
+            {
                 // @error says client or server; @httpError says which code. With only the former,
                 // the conventional default for each is the honest answer.
                 status = kind.GetString() == "client" ? 400 : 500;
@@ -919,23 +1165,27 @@ internal static class SmithySpecParser {
 
             var reference = ReferenceTo(context, errorId);
 
-            if (protocol.Dispatches) {
+            if (protocol.Dispatches)
+            {
                 AddTypeDiscriminator(context, errorId);
             }
 
-            model.ErrorResponses.Add(new ErrorResponseModel {
-                StatusCode = status,
-                Ref = reference,
-                Description = Text(error, SmithyTraits.Documentation),
+            model.ErrorResponses.Add(
+                new ErrorResponseModel
+                {
+                    StatusCode = status,
+                    Ref = reference,
+                    Description = Text(error, SmithyTraits.Documentation),
 
-                // The shape's own name, which is the thing this front end knows and OpenAPI
-                // usually does not. An error in Smithy is a named shape bound to operations -
-                // bank.smithy declares AccountNotFound once and binds it to two - so the generated
-                // type is named after it, once, shared by both. That is what every other Smithy
-                // code generator emits from the same model, and it is why the status is no longer
-                // enough to key a type on: two @error("client") shapes both default to 400.
-                Name = SmithyPrelude.LocalName(errorId)
-            });
+                    // The shape's own name, which is the thing this front end knows and OpenAPI
+                    // usually does not. An error in Smithy is a named shape bound to operations -
+                    // bank.smithy declares AccountNotFound once and binds it to two - so the generated
+                    // type is named after it, once, shared by both. That is what every other Smithy
+                    // code generator emits from the same model, and it is why the status is no longer
+                    // enough to key a type on: two @error("client") shapes both default to 400.
+                    Name = SmithyPrelude.LocalName(errorId),
+                }
+            );
         }
 
         model.ErrorResponses.Sort((left, right) => left.StatusCode.CompareTo(right.StatusCode));
@@ -966,24 +1216,29 @@ internal static class SmithySpecParser {
     /// them reaches this.
     /// </para>
     /// </remarks>
-    private static void AddTypeDiscriminator(ParseContext context, string errorId) {
+    private static void AddTypeDiscriminator(ParseContext context, string errorId)
+    {
         var name = SmithyPrelude.LocalName(errorId);
         var schema = context.Model.Schemas.Find(s => s.Name == name);
 
-        if (schema == null || schema.Properties.Exists(p => p.Name == TypeDiscriminator)) {
+        if (schema == null || schema.Properties.Exists(p => p.Name == TypeDiscriminator))
+        {
             return;
         }
 
-        schema.Properties.Add(new PropertyModel {
-            Name = TypeDiscriminator,
-            Type = "string",
+        schema.Properties.Add(
+            new PropertyModel
+            {
+                Name = TypeDiscriminator,
+                Type = "string",
 
-            // Optional, which is what gives the parameter its default - and the default is the
-            // whole point: nothing constructs this, it is a constant the wire needs.
-            IsRequired = false,
-            Default = errorId,
-            Description = "The shape id identifying this error, as the protocol requires."
-        });
+                // Optional, which is what gives the parameter its default - and the default is the
+                // whole point: nothing constructs this, it is a constant the wire needs.
+                IsRequired = false,
+                Default = errorId,
+                Description = "The shape id identifying this error, as the protocol requires.",
+            }
+        );
     }
 
     /// <summary>The body field an awsJson error is recognised by.</summary>
@@ -994,18 +1249,21 @@ internal static class SmithySpecParser {
         OperationModel model,
         KeyValuePair<string, JsonElement> member,
         string location,
-        string wireName) {
+        string wireName
+    )
+    {
         var target = SmithyAst.Target(member.Value);
-        var parameter = new ParameterModel {
+        var parameter = new ParameterModel
+        {
             Name = wireName,
             In = location,
-            IsRequired = location == "path" ||
-                         SmithyAst.HasTrait(member.Value, SmithyTraits.Required),
+            IsRequired =
+                location == "path" || SmithyAst.HasTrait(member.Value, SmithyTraits.Required),
             Description = Text(member.Value, SmithyTraits.Documentation),
             // The trait's value, not only its presence: it already decided nullability, but the
             // value never reached the model, so the binder answered an absent parameter with null
             // rather than the default the contract declared, and the document never mentioned it.
-            Default = DefaultValueText(member.Value)
+            Default = DefaultValueText(member.Value),
         };
 
         // MemberNameOverride is deliberately not set here. It is NameAllocator's output slot, not an
@@ -1013,10 +1271,18 @@ internal static class SmithySpecParser {
         // written here is overwritten. So a member called `detailed` bound to @httpQuery("verbose")
         // reaches C# as `verbose`: the wire name is the contract, and the alternative would be a
         // second naming authority, which is the exact defect NameAllocator was built to remove.
-        if (target != null) {
-            Describe(context, target, out var type, out var format, out var reference, out var array,
+        if (target != null)
+        {
+            Describe(
+                context,
+                target,
+                out var type,
+                out var format,
+                out var reference,
+                out var array,
                 model.OperationId + "." + parameter.Name,
-                SmithyAst.HasTrait(member.Value, SmithyTraits.Narrowed));
+                SmithyAst.HasTrait(member.Value, SmithyTraits.Narrowed)
+            );
 
             parameter.Type = type;
             parameter.Format = format;
@@ -1037,21 +1303,35 @@ internal static class SmithySpecParser {
     /// may each hold an <c>amount</c>, and "'amount' narrows" says nothing about where to look.
     /// </param>
     private static PropertyModel BuildProperty(
-        ParseContext context, string name, JsonElement member, string owner) {
-        var property = new PropertyModel {
+        ParseContext context,
+        string name,
+        JsonElement member,
+        string owner
+    )
+    {
+        var property = new PropertyModel
+        {
             Name = JsonName(member) ?? name,
             IsRequired = SmithyAst.HasTrait(member, SmithyTraits.Required),
-            Description = Text(member, SmithyTraits.Documentation)
+            Description = Text(member, SmithyTraits.Documentation),
         };
 
         // As with parameters, the C# name is NameAllocator's to assign - from Name, which @jsonName
         // has already set to the wire spelling where the two differ.
         var target = SmithyAst.Target(member);
 
-        if (target != null) {
-            Describe(context, target, out var type, out var format, out var reference, out var shape,
+        if (target != null)
+        {
+            Describe(
+                context,
+                target,
+                out var type,
+                out var format,
+                out var reference,
+                out var shape,
                 owner + "." + property.Name,
-                SmithyAst.HasTrait(member, SmithyTraits.Narrowed));
+                SmithyAst.HasTrait(member, SmithyTraits.Narrowed)
+            );
 
             property.Type = type;
             property.Format = format;
@@ -1070,10 +1350,11 @@ internal static class SmithySpecParser {
         // a member is non-null when it is @required or carries a @default, and nullable otherwise.
         // @clientOptional makes a required member optional for clients, which a server implementing
         // the contract still has to accept.
-        property.IsNullable = !property.IsRequired &&
-                              !SmithyAst.HasTrait(member, SmithyTraits.Default);
+        property.IsNullable =
+            !property.IsRequired && !SmithyAst.HasTrait(member, SmithyTraits.Default);
 
-        if (SmithyAst.HasTrait(member, SmithyTraits.ClientOptional)) {
+        if (SmithyAst.HasTrait(member, SmithyTraits.ClientOptional))
+        {
             property.IsNullable = true;
         }
 
@@ -1105,35 +1386,50 @@ internal static class SmithySpecParser {
     /// </para>
     /// </remarks>
     /// <summary>@default's value as text, in the spelling the model wrote it.</summary>
-    private static string? DefaultValueText(JsonElement member) {
-        if (!SmithyAst.TryGetTrait(member, SmithyTraits.Default, out var value)) {
+    private static string? DefaultValueText(JsonElement member)
+    {
+        if (!SmithyAst.TryGetTrait(member, SmithyTraits.Default, out var value))
+        {
             return null;
         }
 
-        return value.ValueKind switch {
+        return value.ValueKind switch
+        {
             JsonValueKind.String => value.GetString(),
             JsonValueKind.Number => value.GetRawText(),
             JsonValueKind.True => "true",
             JsonValueKind.False => "false",
-            _ => null
+            _ => null,
         };
     }
 
-    private static void NoteUnmappedTraits(ParseContext context, JsonElement member, string name) {
-        if (SmithyAst.HasTrait(member, SmithyTraits.UniqueItems)) {
+    private static void NoteUnmappedTraits(ParseContext context, JsonElement member, string name)
+    {
+        if (SmithyAst.HasTrait(member, SmithyTraits.UniqueItems))
+        {
             context.Model.UnmappedKeywords.Add(new UnmappedKeywordModel("@uniqueItems", name));
         }
 
-        if (SmithyAst.HasTrait(member, SmithyTraits.Sparse)) {
+        if (SmithyAst.HasTrait(member, SmithyTraits.Sparse))
+        {
             context.Model.UnmappedKeywords.Add(new UnmappedKeywordModel("@sparse", name));
         }
     }
 
     /// <summary>Where a shape id lands in the IR: an inlined primitive, a reference, or a collection.</summary>
-    private readonly struct ShapeFacts {
+    private readonly struct ShapeFacts
+    {
         internal ShapeFacts(
-            bool isArray, string? itemType, string? itemFormat, string? itemRef,
-            bool isDictionary, string? valueType, string? valueFormat, string? valueRef) {
+            bool isArray,
+            string? itemType,
+            string? itemFormat,
+            string? itemRef,
+            bool isDictionary,
+            string? valueType,
+            string? valueFormat,
+            string? valueRef
+        )
+        {
             IsArray = isArray;
             ItemType = itemType;
             ItemFormat = itemFormat;
@@ -1187,17 +1483,21 @@ internal static class SmithySpecParser {
         out string? reference,
         out ShapeFacts facts,
         string? memberName = null,
-        bool narrowingAccepted = false) {
+        bool narrowingAccepted = false
+    )
+    {
         type = null;
         format = null;
         reference = null;
         facts = default;
 
-        if (SmithyPrelude.TryMap(target, out var preludeType, out var preludeFormat)) {
+        if (SmithyPrelude.TryMap(target, out var preludeType, out var preludeFormat))
+        {
             type = preludeType;
             format = preludeFormat;
 
-            if (!narrowingAccepted && SmithyPrelude.LossDescription(target) is { } loss) {
+            if (!narrowingAccepted && SmithyPrelude.LossDescription(target) is { } loss)
+            {
                 // Once per member, naming it. Three BigDecimal members used to produce three
                 // byte-identical warnings naming none of them, so the count was the only way to
                 // tell how many there were and no way to tell which - and a set of identical
@@ -1209,7 +1509,8 @@ internal static class SmithySpecParser {
 
                 // A structure is walked twice - once as a schema, once as an operation's body - so
                 // without this every narrowed member is reported twice.
-                if (!context.Diagnostics.Contains(message)) {
+                if (!context.Diagnostics.Contains(message))
+                {
                     context.Diagnostics.Add(message);
                 }
             }
@@ -1217,13 +1518,15 @@ internal static class SmithySpecParser {
             return;
         }
 
-        if (!context.Ast.TryGetShape(target, out var shape)) {
+        if (!context.Ast.TryGetShape(target, out var shape))
+        {
             Dangling(context, target, "member");
 
             return;
         }
 
-        switch (SmithyAst.Kind(shape)) {
+        switch (SmithyAst.Kind(shape))
+        {
             case "structure":
             case "union":
             case "enum":
@@ -1253,7 +1556,8 @@ internal static class SmithySpecParser {
                 // A named simple shape - string, integer, timestamp - inlined to what it targets.
                 var member = SmithyAst.Kind(shape);
 
-                type = member switch {
+                type = member switch
+                {
                     "string" => "string",
                     "boolean" => "boolean",
                     "byte" or "short" or "integer" => "integer",
@@ -1262,10 +1566,11 @@ internal static class SmithySpecParser {
                     "bigInteger" => "integer",
                     "blob" => "string",
                     "timestamp" => "string",
-                    _ => null
+                    _ => null,
                 };
 
-                format = member switch {
+                format = member switch
+                {
                     "long" or "bigInteger" => "int64",
                     "float" => "float",
                     "double" => "double",
@@ -1278,24 +1583,32 @@ internal static class SmithySpecParser {
                     "bigDecimal" => "decimal",
                     "blob" => "byte",
                     "timestamp" => "date-time",
-                    _ => null
+                    _ => null,
                 };
 
                 // And the same narrowing, so it is reported the same way. Read off the named shape
                 // as well as the member, so a model that says @narrowed once on the shape does not
                 // have to repeat it at every use.
-                if (!narrowingAccepted && member is "bigDecimal" or "bigInteger" &&
-                    !SmithyAst.HasTrait(shape, SmithyTraits.Narrowed)) {
+                if (
+                    !narrowingAccepted
+                    && member is "bigDecimal" or "bigInteger"
+                    && !SmithyAst.HasTrait(shape, SmithyTraits.Narrowed)
+                )
+                {
                     var where = memberName == null ? "" : $"'{memberName}' ";
 
                     var message =
-                        $"{where}targets {SmithyPrelude.LocalName(target)}, which " +
-                        (member == "bigDecimal"
-                            ? "becomes decimal, which is exact but holds 28 significant digits " +
-                              "rather than arbitrarily many"
-                            : "becomes long, so a value outside 64 bits does not round-trip") + ".";
+                        $"{where}targets {SmithyPrelude.LocalName(target)}, which "
+                        + (
+                            member == "bigDecimal"
+                                ? "becomes decimal, which is exact but holds 28 significant digits "
+                                    + "rather than arbitrarily many"
+                                : "becomes long, so a value outside 64 bits does not round-trip"
+                        )
+                        + ".";
 
-                    if (!context.Diagnostics.Contains(message)) {
+                    if (!context.Diagnostics.Contains(message))
+                    {
                         context.Diagnostics.Add(message);
                     }
                 }
@@ -1304,14 +1617,17 @@ internal static class SmithySpecParser {
         }
     }
 
-    private static ShapeFacts ListFacts(ParseContext context, JsonElement shape) {
-        if (!shape.TryGetProperty("member", out var member)) {
+    private static ShapeFacts ListFacts(ParseContext context, JsonElement shape)
+    {
+        if (!shape.TryGetProperty("member", out var member))
+        {
             return new ShapeFacts(true, null, null, null, false, null, null, null);
         }
 
         var target = SmithyAst.Target(member);
 
-        if (target == null) {
+        if (target == null)
+        {
             return new ShapeFacts(true, null, null, null, false, null, null, null);
         }
 
@@ -1320,14 +1636,17 @@ internal static class SmithySpecParser {
         return new ShapeFacts(true, type, format, reference, false, null, null, null);
     }
 
-    private static ShapeFacts MapFacts(ParseContext context, JsonElement shape) {
-        if (!shape.TryGetProperty("value", out var value)) {
+    private static ShapeFacts MapFacts(ParseContext context, JsonElement shape)
+    {
+        if (!shape.TryGetProperty("value", out var value))
+        {
             return new ShapeFacts(false, null, null, null, true, null, null, null);
         }
 
         var target = SmithyAst.Target(value);
 
-        if (target == null) {
+        if (target == null)
+        {
             return new ShapeFacts(false, null, null, null, true, null, null, null);
         }
 
@@ -1345,24 +1664,29 @@ internal static class SmithySpecParser {
     /// derived one - read them with <c>GetRefName</c>. The form is the spine's to define; this front
     /// end only has to agree.
     /// </remarks>
-    private static string ReferenceTo(ParseContext context, string shapeId) {
+    private static string ReferenceTo(ParseContext context, string shapeId)
+    {
         var name = SmithyPrelude.LocalName(shapeId);
 
-        if (context.Built.Add(shapeId)) {
+        if (context.Built.Add(shapeId))
+        {
             BuildSchema(context, shapeId, name);
         }
 
         return TypeMapper.MakeRef(name);
     }
 
-    private static void BuildSchema(ParseContext context, string shapeId, string name) {
-        if (!context.Ast.TryGetShape(shapeId, out var shape)) {
+    private static void BuildSchema(ParseContext context, string shapeId, string name)
+    {
+        if (!context.Ast.TryGetShape(shapeId, out var shape))
+        {
             return;
         }
 
         Note(context, shape);
 
-        var schema = new SchemaModel {
+        var schema = new SchemaModel
+        {
             Name = name,
             Description = Text(shape, SmithyTraits.Documentation),
             IsDeprecated = SmithyAst.HasTrait(shape, SmithyTraits.Deprecated),
@@ -1370,23 +1694,26 @@ internal static class SmithySpecParser {
             // Carried onto the schema because DefaultErrorBody needs it, and it is the only place
             // that knows: by the time a schema reaches the shared generation model, an error shape
             // and a payload look alike. See SchemaModel.IsErrorShape.
-            IsErrorShape = SmithyAst.HasTrait(shape, SmithyTraits.Error)
+            IsErrorShape = SmithyAst.HasTrait(shape, SmithyTraits.Error),
         };
 
-        switch (SmithyAst.Kind(shape)) {
+        switch (SmithyAst.Kind(shape))
+        {
             case "enum":
                 schema.Kind = SchemaKind.Enum;
 
-                foreach (var member in SmithyAst.Members(shape)) {
+                foreach (var member in SmithyAst.Members(shape))
+                {
                     // Smithy supplies both halves: the member name is the C# identifier and
                     // @enumValue is the wire value. OpenAPI has only the latter and the allocator
                     // has to invent the former.
                     schema.EnumMemberNames.Add(NamingHelper.ToPascalCase(member.Key));
                     schema.EnumValues.Add(
-                        SmithyAst.TryGetTrait(member.Value, SmithyTraits.EnumValue, out var value) &&
-                        value.ValueKind == JsonValueKind.String
+                        SmithyAst.TryGetTrait(member.Value, SmithyTraits.EnumValue, out var value)
+                        && value.ValueKind == JsonValueKind.String
                             ? value.GetString() ?? member.Key
-                            : member.Key);
+                            : member.Key
+                    );
                 }
 
                 break;
@@ -1394,23 +1721,39 @@ internal static class SmithySpecParser {
             case "union":
                 schema.Kind = SchemaKind.OneOf;
 
-                foreach (var member in SmithyAst.Members(shape)) {
+                foreach (var member in SmithyAst.Members(shape))
+                {
                     var target = SmithyAst.Target(member.Value);
 
-                    if (target == null) {
+                    if (target == null)
+                    {
                         continue;
                     }
 
-                    Describe(context, target, out var type, out var format, out var reference, out _);
+                    Describe(
+                        context,
+                        target,
+                        out var type,
+                        out var format,
+                        out var reference,
+                        out _
+                    );
 
                     // The member's wire name rides with the branch. A streamed union writes it as
                     // the event: field beside each item, which is what tells a client which
                     // member arrived; nothing else about a union reads it.
                     var branchName = JsonName(member.Value) ?? member.Key;
 
-                    schema.OneOf.Add(reference != null
-                        ? new ChoiceBranchModel { Ref = reference, Name = branchName }
-                        : new ChoiceBranchModel { Type = type, Format = format, Name = branchName });
+                    schema.OneOf.Add(
+                        reference != null
+                            ? new ChoiceBranchModel { Ref = reference, Name = branchName }
+                            : new ChoiceBranchModel
+                            {
+                                Type = type,
+                                Format = format,
+                                Name = branchName,
+                            }
+                    );
                 }
 
                 break;
@@ -1418,14 +1761,16 @@ internal static class SmithySpecParser {
             default:
                 schema.Kind = SchemaKind.Object;
 
-                foreach (var member in SmithyAst.Members(shape)) {
+                foreach (var member in SmithyAst.Members(shape))
+                {
                     Note(context, member.Value);
 
                     var property = BuildProperty(context, member.Key, member.Value, schema.Name);
 
                     schema.Properties.Add(property);
 
-                    if (property.IsRequired) {
+                    if (property.IsRequired)
+                    {
                         schema.Required.Add(property.Name);
                     }
                 }
@@ -1445,7 +1790,8 @@ internal static class SmithySpecParser {
     /// facets are get-only there, so reading into this and applying it twice is what keeps the two
     /// call sites from drifting: a constraint added here reaches both or neither.
     /// </remarks>
-    private readonly struct Constraints {
+    private readonly struct Constraints
+    {
         internal int? MinLength { get; init; }
 
         internal int? MaxLength { get; init; }
@@ -1460,15 +1806,17 @@ internal static class SmithySpecParser {
 
         internal string? Pattern { get; init; }
 
-        internal Constraints Merge(Constraints other) => new() {
-            MinLength = MinLength ?? other.MinLength,
-            MaxLength = MaxLength ?? other.MaxLength,
-            MinItems = MinItems ?? other.MinItems,
-            MaxItems = MaxItems ?? other.MaxItems,
-            Minimum = Minimum ?? other.Minimum,
-            Maximum = Maximum ?? other.Maximum,
-            Pattern = Pattern ?? other.Pattern
-        };
+        internal Constraints Merge(Constraints other) =>
+            new()
+            {
+                MinLength = MinLength ?? other.MinLength,
+                MaxLength = MaxLength ?? other.MaxLength,
+                MinItems = MinItems ?? other.MinItems,
+                MaxItems = MaxItems ?? other.MaxItems,
+                Minimum = Minimum ?? other.Minimum,
+                Maximum = Maximum ?? other.Maximum,
+                Pattern = Pattern ?? other.Pattern,
+            };
     }
 
     /// <summary>
@@ -1480,59 +1828,78 @@ internal static class SmithySpecParser {
     /// under it.
     /// </remarks>
     private static Constraints ReadConstraints(
-        ParseContext context, JsonElement member, string? target) {
+        ParseContext context,
+        JsonElement member,
+        string? target
+    )
+    {
         var collection = IsCollection(context, target);
         var fromMember = ReadFrom(member, collection);
 
-        if (target == null || !context.Ast.TryGetShape(target, out var shape)) {
+        if (target == null || !context.Ast.TryGetShape(target, out var shape))
+        {
             return fromMember;
         }
 
         return fromMember.Merge(ReadFrom(shape, collection));
     }
 
-    private static Constraints ReadFrom(JsonElement source, bool collection) {
-        if (source.ValueKind != JsonValueKind.Object) {
+    private static Constraints ReadFrom(JsonElement source, bool collection)
+    {
+        if (source.ValueKind != JsonValueKind.Object)
+        {
             return default;
         }
 
-        int? minLength = null, maxLength = null, minItems = null, maxItems = null;
+        int? minLength = null,
+            maxLength = null,
+            minItems = null,
+            maxItems = null;
 
-        if (SmithyAst.TryGetTrait(source, SmithyTraits.Length, out var length)) {
+        if (SmithyAst.TryGetTrait(source, SmithyTraits.Length, out var length))
+        {
             // @length bounds a string's characters and a list's or map's entries. Which pair of IR
             // fields that is depends on what the member is, and getting it wrong emits a validator
             // that reads .Count off a string - which is the case TypeMapper.HasItemCount guards.
-            if (collection) {
+            if (collection)
+            {
                 minItems = Int(length, "min");
                 maxItems = Int(length, "max");
-            } else {
+            }
+            else
+            {
                 minLength = Int(length, "min");
                 maxLength = Int(length, "max");
             }
         }
 
-        decimal? minimum = null, maximum = null;
+        decimal? minimum = null,
+            maximum = null;
 
-        if (SmithyAst.TryGetTrait(source, SmithyTraits.Range, out var range)) {
+        if (SmithyAst.TryGetTrait(source, SmithyTraits.Range, out var range))
+        {
             minimum = Decimal(range, "min");
             maximum = Decimal(range, "max");
         }
 
-        return new Constraints {
+        return new Constraints
+        {
             MinLength = minLength,
             MaxLength = maxLength,
             MinItems = minItems,
             MaxItems = maxItems,
             Minimum = minimum,
             Maximum = maximum,
-            Pattern = SmithyAst.TryGetTrait(source, SmithyTraits.Pattern, out var pattern) &&
-                      pattern.ValueKind == JsonValueKind.String
-                ? pattern.GetString()
-                : null
+            Pattern =
+                SmithyAst.TryGetTrait(source, SmithyTraits.Pattern, out var pattern)
+                && pattern.ValueKind == JsonValueKind.String
+                    ? pattern.GetString()
+                    : null,
         };
     }
 
-    private static void ApplyTo(Constraints constraints, PropertyModel model) {
+    private static void ApplyTo(Constraints constraints, PropertyModel model)
+    {
         model.MinLength = constraints.MinLength;
         model.MaxLength = constraints.MaxLength;
         model.MinItems = constraints.MinItems;
@@ -1542,7 +1909,8 @@ internal static class SmithySpecParser {
         model.Pattern = constraints.Pattern;
     }
 
-    private static void ApplyTo(Constraints constraints, ParameterModel model) {
+    private static void ApplyTo(Constraints constraints, ParameterModel model)
+    {
         model.MinLength = constraints.MinLength;
         model.MaxLength = constraints.MaxLength;
         model.MinItems = constraints.MinItems;
@@ -1552,8 +1920,10 @@ internal static class SmithySpecParser {
         model.Pattern = constraints.Pattern;
     }
 
-    private static bool IsCollection(ParseContext context, string? target) {
-        if (target == null || !context.Ast.TryGetShape(target, out var shape)) {
+    private static bool IsCollection(ParseContext context, string? target)
+    {
+        if (target == null || !context.Ast.TryGetShape(target, out var shape))
+        {
             return false;
         }
 
@@ -1581,8 +1951,10 @@ internal static class SmithySpecParser {
         context.Model.DanglingReferences.Add(new DanglingReferenceModel(target, where));
 
     /// <summary>Records every trait a shape carries, for the report at the end.</summary>
-    private static void Note(ParseContext context, JsonElement shape) {
-        foreach (var trait in SmithyAst.Traits(shape)) {
+    private static void Note(ParseContext context, JsonElement shape)
+    {
+        foreach (var trait in SmithyAst.Traits(shape))
+        {
             context.SeenTraits.Add(trait.Key);
         }
     }
@@ -1595,17 +1967,21 @@ internal static class SmithySpecParser {
     /// reported once, by name, so a model using a feature this does not implement says so at build
     /// time instead of producing a server that quietly disagrees with its own description.
     /// </remarks>
-    private static void ReportUnhandledTraits(ParseContext context) {
+    private static void ReportUnhandledTraits(ParseContext context)
+    {
         var unhandled = new List<string>();
 
-        foreach (var trait in context.SeenTraits) {
-            if (SmithyTraits.IsAccountedFor(trait)) {
+        foreach (var trait in context.SeenTraits)
+        {
+            if (SmithyTraits.IsAccountedFor(trait))
+            {
                 continue;
             }
 
             // A custom trait is the model's own extension point rather than something missing, and
             // is reported separately by the filter pass when one is wired to it.
-            if (!SmithyPrelude.IsPrelude(trait)) {
+            if (!SmithyPrelude.IsPrelude(trait))
+            {
                 continue;
             }
 
@@ -1614,47 +1990,51 @@ internal static class SmithySpecParser {
 
         unhandled.Sort(StringComparer.Ordinal);
 
-        foreach (var trait in unhandled) {
+        foreach (var trait in unhandled)
+        {
             context.Diagnostics.Add(
-                $"the model applies '{trait}', which this generator does not model; it was ignored.");
+                $"the model applies '{trait}', which this generator does not model; it was ignored."
+            );
         }
 
-        foreach (var trait in context.SeenTraits) {
-            if (SmithyTraits.Degrades.Contains(trait)) {
+        foreach (var trait in context.SeenTraits)
+        {
+            if (SmithyTraits.Degrades.Contains(trait))
+            {
                 context.Diagnostics.Add(
-                    $"the model applies '{trait}', which has no equivalent in the generated code.");
+                    $"the model applies '{trait}', which has no equivalent in the generated code."
+                );
             }
         }
     }
 
     private static string? String(JsonElement element, string property) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(property, out var value) &&
-        value.ValueKind == JsonValueKind.String
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
     private static int? Int(JsonElement element, string property) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(property, out var value) &&
-        value.ValueKind == JsonValueKind.Number
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.Number
             ? value.GetInt32()
             : null;
 
     private static decimal? Decimal(JsonElement element, string property) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(property, out var value) &&
-        value.ValueKind == JsonValueKind.Number
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(property, out var value)
+        && value.ValueKind == JsonValueKind.Number
             ? value.GetDecimal()
             : null;
 
     /// <summary>A trait whose value is a bare string - @documentation, @title.</summary>
     private static string? Text(JsonElement shape, string traitId) =>
-        SmithyAst.TryGetTrait(shape, traitId, out var value) &&
-        value.ValueKind == JsonValueKind.String
+        SmithyAst.TryGetTrait(shape, traitId, out var value)
+        && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
-    private static string? JsonName(JsonElement member) =>
-        Text(member, SmithyTraits.JsonName);
+    private static string? JsonName(JsonElement member) => Text(member, SmithyTraits.JsonName);
 }

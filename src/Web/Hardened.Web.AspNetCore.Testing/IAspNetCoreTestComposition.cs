@@ -13,8 +13,8 @@ namespace Hardened.Web.AspNetCore.Testing;
 /// authentication in front and static files behind writes a composition of two methods that do
 /// the same, and names it in <c>[assembly: AspNetCoreTesting(typeof(...))]</c>.
 /// </remarks>
-public interface IAspNetCoreTestComposition {
-
+public interface IAspNetCoreTestComposition
+{
     /// <summary>Before <c>Build</c>: the services and host configuration <c>Program.cs</c> adds.</summary>
     void Configure(WebApplicationBuilder builder);
 
@@ -26,10 +26,9 @@ public interface IAspNetCoreTestComposition {
 }
 
 /// <summary>The composition with nothing around Hardened: <c>app.UseHardened()</c> alone.</summary>
-public sealed class DefaultAspNetCoreTestComposition : IAspNetCoreTestComposition {
-
-    public void Configure(WebApplicationBuilder builder) {
-    }
+public sealed class DefaultAspNetCoreTestComposition : IAspNetCoreTestComposition
+{
+    public void Configure(WebApplicationBuilder builder) { }
 
     public void Configure(WebApplication app) => app.UseHardened();
 }

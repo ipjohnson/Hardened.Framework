@@ -1,0 +1,8 @@
+# Revisions that changed formatting and nothing else.
+#
+# Enable with:  git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# GitHub reads this file without any configuration.
+
+# Reformat with CSharpier
+375e074fddda955b763ce30ffb17b137ecacfd33

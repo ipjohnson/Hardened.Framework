@@ -22,13 +22,16 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Tests;
 /// package could be entirely non-functional without anything going red.
 /// </para>
 /// </remarks>
-public class NewtonsoftDeserializerTests {
-
+public class NewtonsoftDeserializerTests
+{
     [Fact]
-    public async Task AJsonBodyIsRead() {
-        var payload = await Pipeline.Deserializer(Pipeline.Pool())
+    public async Task AJsonBodyIsRead()
+    {
+        var payload = await Pipeline
+            .Deserializer(Pipeline.Pool())
             .DeserializeRequestBody<Pipeline.Payload>(
-                Pipeline.Context("""{"Name":"first","Count":2}"""));
+                Pipeline.Context("""{"Name":"first","Count":2}""")
+            );
 
         Assert.NotNull(payload);
         Assert.Equal("first", payload.Name);
@@ -36,52 +39,70 @@ public class NewtonsoftDeserializerTests {
     }
 
     [Fact]
-    public async Task ABodyLargerThanThePoolsInitialBufferIsReadWhole() {
+    public async Task ABodyLargerThanThePoolsInitialBufferIsReadWhole()
+    {
         var name = new string('a', 8192);
 
-        var payload = await Pipeline.Deserializer(Pipeline.Pool())
+        var payload = await Pipeline
+            .Deserializer(Pipeline.Pool())
             .DeserializeRequestBody<Pipeline.Payload>(
-                Pipeline.Context($$"""{"Name":"{{name}}","Count":2}"""));
+                Pipeline.Context($$"""{"Name":"{{name}}","Count":2}""")
+            );
 
         Assert.NotNull(payload);
         Assert.Equal(name, payload.Name);
     }
 
     [Fact]
-    public async Task AnEmptyBodyIsNull() {
+    public async Task AnEmptyBodyIsNull()
+    {
         Assert.Null(
-            await Pipeline.Deserializer(Pipeline.Pool())
-                .DeserializeRequestBody<Pipeline.Payload>(Pipeline.Context()));
+            await Pipeline
+                .Deserializer(Pipeline.Pool())
+                .DeserializeRequestBody<Pipeline.Payload>(Pipeline.Context())
+        );
     }
 
     [Fact]
-    public async Task AJsonNullBodyIsNull() {
+    public async Task AJsonNullBodyIsNull()
+    {
         Assert.Null(
-            await Pipeline.Deserializer(Pipeline.Pool())
-                .DeserializeRequestBody<Pipeline.Payload>(Pipeline.Context("null")));
+            await Pipeline
+                .Deserializer(Pipeline.Pool())
+                .DeserializeRequestBody<Pipeline.Payload>(Pipeline.Context("null"))
+        );
     }
 
     [Fact]
-    public async Task AMalformedBodyThrows() {
-        await Assert.ThrowsAsync<JsonReaderException>(
-            () => Pipeline.Deserializer(Pipeline.Pool())
-                .DeserializeRequestBody<Pipeline.Payload>(Pipeline.Context("{not json")).AsTask());
+    public async Task AMalformedBodyThrows()
+    {
+        await Assert.ThrowsAsync<JsonReaderException>(() =>
+            Pipeline
+                .Deserializer(Pipeline.Pool())
+                .DeserializeRequestBody<Pipeline.Payload>(Pipeline.Context("{not json"))
+                .AsTask()
+        );
     }
 
     /// <summary>
     /// The configured serializer is the one that runs, which is the whole reason the package exists.
     /// </summary>
     [Fact]
-    public async Task TheConfiguredNamingStrategyIsHonoured() {
-        var serializer = JsonSerializer.CreateDefault(new JsonSerializerSettings {
-            ContractResolver = new DefaultContractResolver {
-                NamingStrategy = new SnakeCaseNamingStrategy()
+    public async Task TheConfiguredNamingStrategyIsHonoured()
+    {
+        var serializer = JsonSerializer.CreateDefault(
+            new JsonSerializerSettings
+            {
+                ContractResolver = new DefaultContractResolver
+                {
+                    NamingStrategy = new SnakeCaseNamingStrategy(),
+                },
             }
-        });
+        );
 
-        var payload = await Pipeline.Deserializer(Pipeline.Pool(), serializer)
-            .DeserializeRequestBody<SnakePayload>(
-                Pipeline.Context("""{"first_name":"ada"}"""));
+        var payload = await Pipeline
+            .Deserializer(Pipeline.Pool(), serializer)
+            .DeserializeRequestBody<SnakePayload>(Pipeline.Context("""{"first_name":"ada"}"""));
 
         Assert.NotNull(payload);
         Assert.Equal("ada", payload.FirstName);
@@ -96,12 +117,15 @@ public class NewtonsoftDeserializerTests {
     /// is a <c>MemoryStream</c> leaked per request per two of them, growing with traffic.
     /// </remarks>
     [Fact]
-    public async Task OneReservationIsTakenPerRequestAndReturned() {
+    public async Task OneReservationIsTakenPerRequestAndReturned()
+    {
         var pool = new Pipeline.CountingPool();
 
-        await Pipeline.Deserializer(pool)
+        await Pipeline
+            .Deserializer(pool)
             .DeserializeRequestBody<Pipeline.Payload>(
-                Pipeline.Context("""{"Name":"first","Count":2}"""));
+                Pipeline.Context("""{"Name":"first","Count":2}""")
+            );
 
         Assert.Equal(1, pool.Taken);
         Assert.Equal(1, pool.Returned);
@@ -112,12 +136,16 @@ public class NewtonsoftDeserializerTests {
     /// on the throwing path, or a malformed-request flood drains the pool.
     /// </summary>
     [Fact]
-    public async Task AReservationIsReturnedEvenWhenParsingThrows() {
+    public async Task AReservationIsReturnedEvenWhenParsingThrows()
+    {
         var pool = new Pipeline.CountingPool();
 
-        await Assert.ThrowsAsync<JsonReaderException>(
-            () => Pipeline.Deserializer(pool)
-                .DeserializeRequestBody<Pipeline.Payload>(Pipeline.Context("{not json")).AsTask());
+        await Assert.ThrowsAsync<JsonReaderException>(() =>
+            Pipeline
+                .Deserializer(pool)
+                .DeserializeRequestBody<Pipeline.Payload>(Pipeline.Context("{not json"))
+                .AsTask()
+        );
 
         Assert.Equal(1, pool.Taken);
         Assert.Equal(1, pool.Returned);
@@ -128,12 +156,15 @@ public class NewtonsoftDeserializerTests {
     /// bytes.
     /// </summary>
     [Fact]
-    public async Task AReturnedStreamCarriesNothingFromTheLastRequest() {
+    public async Task AReturnedStreamCarriesNothingFromTheLastRequest()
+    {
         var pool = Pipeline.Pool();
 
-        await Pipeline.Deserializer(pool)
+        await Pipeline
+            .Deserializer(pool)
             .DeserializeRequestBody<Pipeline.Payload>(
-                Pipeline.Context("""{"Name":"first","Count":2}"""));
+                Pipeline.Context("""{"Name":"first","Count":2}""")
+            );
 
         using var reservation = pool.Get();
 
@@ -145,13 +176,16 @@ public class NewtonsoftDeserializerTests {
     /// nothing stops a scope resolving it once and using it twice.
     /// </summary>
     [Fact]
-    public async Task TwoCallsOnOneInstanceEachReadTheirOwnBody() {
+    public async Task TwoCallsOnOneInstanceEachReadTheirOwnBody()
+    {
         var deserializer = Pipeline.Deserializer(Pipeline.Pool());
 
         var first = await deserializer.DeserializeRequestBody<Pipeline.Payload>(
-            Pipeline.Context("""{"Name":"first","Count":1}"""));
+            Pipeline.Context("""{"Name":"first","Count":1}""")
+        );
         var second = await deserializer.DeserializeRequestBody<Pipeline.Payload>(
-            Pipeline.Context("""{"Name":"second","Count":2}"""));
+            Pipeline.Context("""{"Name":"second","Count":2}""")
+        );
 
         Assert.Equal("first", first!.Name);
         Assert.Equal("second", second!.Name);
@@ -162,10 +196,12 @@ public class NewtonsoftDeserializerTests {
     /// anything after binding — and a retry, which rewinds and reads it again.
     /// </summary>
     [Fact]
-    public async Task TheRequestBodyIsLeftOpen() {
+    public async Task TheRequestBodyIsLeftOpen()
+    {
         var context = Pipeline.Context("""{"Name":"first","Count":2}""");
 
-        await Pipeline.Deserializer(Pipeline.Pool())
+        await Pipeline
+            .Deserializer(Pipeline.Pool())
             .DeserializeRequestBody<Pipeline.Payload>(context);
 
         Assert.True(context.Request.Body.CanRead, "the deserializer closed a body it was handed");
@@ -176,37 +212,48 @@ public class NewtonsoftDeserializerTests {
     [Theory]
     [InlineData("application/json")]
     [InlineData("application/json; charset=utf-8")]
-    public void AJsonContentTypeIsClaimed(string contentType) {
+    public void AJsonContentTypeIsClaimed(string contentType)
+    {
         Assert.True(
-            Pipeline.Deserializer(Pipeline.Pool())
-                .CanProcessContext(Pipeline.Context(contentType: contentType)));
+            Pipeline
+                .Deserializer(Pipeline.Pool())
+                .CanProcessContext(Pipeline.Context(contentType: contentType))
+        );
     }
 
     [Theory]
     [InlineData("text/plain")]
     [InlineData("application/xml")]
     [InlineData("application/octet-stream")]
-    public void AnotherContentTypeIsNotClaimed(string contentType) {
+    public void AnotherContentTypeIsNotClaimed(string contentType)
+    {
         Assert.False(
-            Pipeline.Deserializer(Pipeline.Pool())
-                .CanProcessContext(Pipeline.Context(contentType: contentType)));
+            Pipeline
+                .Deserializer(Pipeline.Pool())
+                .CanProcessContext(Pipeline.Context(contentType: contentType))
+        );
     }
 
     [Fact]
-    public void AMissingContentTypeIsNotClaimed() {
+    public void AMissingContentTypeIsNotClaimed()
+    {
         Assert.False(
-            Pipeline.Deserializer(Pipeline.Pool())
-                .CanProcessContext(Pipeline.Context(contentType: null)));
+            Pipeline
+                .Deserializer(Pipeline.Pool())
+                .CanProcessContext(Pipeline.Context(contentType: null))
+        );
     }
 
     [Fact]
-    public void ItOffersItselfAsTheDefault() {
+    public void ItOffersItselfAsTheDefault()
+    {
         Assert.True(Pipeline.Deserializer(Pipeline.Pool()).IsDefaultSerializer);
     }
 
     #endregion
 
-    private class SnakePayload {
+    private class SnakePayload
+    {
         public string? FirstName { get; set; }
     }
 }

@@ -19,12 +19,14 @@ namespace Hardened.Gcp.CloudRun.Runtime.Envelopes;
 /// this as soon as the envelopes have answered.
 /// </para>
 /// </remarks>
-public sealed class TriggerPayload : IDisposable {
+public sealed class TriggerPayload : IDisposable
+{
     private readonly ReadOnlyMemory<byte> _raw;
     private JsonDocument? _document;
     private bool _parsed;
 
-    public TriggerPayload(ReadOnlyMemory<byte> raw) {
+    public TriggerPayload(ReadOnlyMemory<byte> raw)
+    {
         _raw = raw;
     }
 
@@ -34,15 +36,20 @@ public sealed class TriggerPayload : IDisposable {
     /// <summary>
     /// The body as a JSON document, parsed on first use, or null when it is not one.
     /// </summary>
-    public JsonElement? Json {
-        get {
-            if (!_parsed) {
+    public JsonElement? Json
+    {
+        get
+        {
+            if (!_parsed)
+            {
                 _parsed = true;
 
-                try {
+                try
+                {
                     _document = JsonDocument.Parse(_raw);
                 }
-                catch (JsonException) {
+                catch (JsonException)
+                {
                     _document = null;
                 }
             }
@@ -64,7 +71,8 @@ public sealed class TriggerPayload : IDisposable {
     /// </summary>
     public static Stream AsStream(ReadOnlyMemory<byte> bytes) => new ReadOnlyMemoryStream(bytes);
 
-    public void Dispose() {
+    public void Dispose()
+    {
         _document?.Dispose();
         _document = null;
     }
@@ -76,11 +84,13 @@ public sealed class TriggerPayload : IDisposable {
     /// <c>MemoryStream</c> cannot wrap <c>ReadOnlyMemory</c> without copying, and a push body can
     /// be thirteen megabytes. Reading is all the pipeline does with a body.
     /// </remarks>
-    private sealed class ReadOnlyMemoryStream : Stream {
+    private sealed class ReadOnlyMemoryStream : Stream
+    {
         private readonly ReadOnlyMemory<byte> _memory;
         private int _position;
 
-        public ReadOnlyMemoryStream(ReadOnlyMemory<byte> memory) {
+        public ReadOnlyMemoryStream(ReadOnlyMemory<byte> memory)
+        {
             _memory = memory;
         }
 
@@ -89,15 +99,18 @@ public sealed class TriggerPayload : IDisposable {
         public override bool CanWrite => false;
         public override long Length => _memory.Length;
 
-        public override long Position {
+        public override long Position
+        {
             get => _position;
             set => _position = checked((int)value);
         }
 
-        public override int Read(Span<byte> buffer) {
+        public override int Read(Span<byte> buffer)
+        {
             var remaining = _memory.Length - _position;
 
-            if (remaining <= 0) {
+            if (remaining <= 0)
+            {
                 return 0;
             }
 
@@ -112,15 +125,18 @@ public sealed class TriggerPayload : IDisposable {
         public override int Read(byte[] buffer, int offset, int count) =>
             Read(buffer.AsSpan(offset, count));
 
-        public override long Seek(long offset, SeekOrigin origin) {
-            var target = origin switch {
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            var target = origin switch
+            {
                 SeekOrigin.Begin => offset,
                 SeekOrigin.Current => _position + offset,
                 SeekOrigin.End => _memory.Length + offset,
-                _ => throw new ArgumentOutOfRangeException(nameof(origin))
+                _ => throw new ArgumentOutOfRangeException(nameof(origin)),
             };
 
-            if (target < 0 || target > _memory.Length) {
+            if (target < 0 || target > _memory.Length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(offset));
             }
 

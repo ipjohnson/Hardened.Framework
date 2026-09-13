@@ -21,23 +21,30 @@ namespace Hardened.SourceGenerator.Shared;
 /// everything else on the entry point.
 /// </para>
 /// </remarks>
-public static class ImportedCachedHandlers {
+public static class ImportedCachedHandlers
+{
     private const string CacheAttributeName = "CacheResponseAttribute";
 
     private const string CacheAttributeNamespace = "Hardened.Requests.Runtime.Caching";
 
     private const string VerbAttributeNamespace = "Hardened.Web.Runtime.Attributes";
 
-    private static readonly string[] VerbAttributeNames = {
-        "GetAttribute", "PostAttribute", "PutAttribute", "PatchAttribute", "DeleteAttribute"
+    private static readonly string[] VerbAttributeNames =
+    {
+        "GetAttribute",
+        "PostAttribute",
+        "PutAttribute",
+        "PatchAttribute",
+        "DeleteAttribute",
     };
 
     /// <summary>
     /// The module attributes that bring a store, as <c>ResponseCacheStoreDiagnostics</c> names
     /// them - repeated here because that class is not compiled into every generator this file is.
     /// </summary>
-    private static readonly string[] StoreModuleAttributes = {
-        "HardenedMemoryResponseCacheAttribute"
+    private static readonly string[] StoreModuleAttributes =
+    {
+        "HardenedMemoryResponseCacheAttribute",
     };
 
     /// <summary>
@@ -50,19 +57,28 @@ public static class ImportedCachedHandlers {
     /// has a store, whatever its own attributes say.
     /// </remarks>
     public static bool ImportsAStore(
-        GeneratorSyntaxContext syntaxContext, IReadOnlyList<AttributeModel> attributes) {
+        GeneratorSyntaxContext syntaxContext,
+        IReadOnlyList<AttributeModel> attributes
+    )
+    {
         var compilation = syntaxContext.SemanticModel.Compilation;
 
-        foreach (var attribute in attributes) {
+        foreach (var attribute in attributes)
+        {
             var module = ModuleType(compilation, attribute);
 
-            if (module == null) {
+            if (module == null)
+            {
                 continue;
             }
 
-            foreach (var applied in module.GetAttributes()) {
-                if (applied.AttributeClass != null &&
-                    Array.IndexOf(StoreModuleAttributes, applied.AttributeClass.Name) >= 0) {
+            foreach (var applied in module.GetAttributes())
+            {
+                if (
+                    applied.AttributeClass != null
+                    && Array.IndexOf(StoreModuleAttributes, applied.AttributeClass.Name) >= 0
+                )
+                {
                     return true;
                 }
             }
@@ -75,11 +91,13 @@ public static class ImportedCachedHandlers {
     /// The module class an attribute applies: the attribute's name without its suffix, in the
     /// attribute's namespace, which is how DependencyModules names the generated companion.
     /// </summary>
-    private static INamedTypeSymbol? ModuleType(Compilation compilation, AttributeModel attribute) {
+    private static INamedTypeSymbol? ModuleType(Compilation compilation, AttributeModel attribute)
+    {
         var ns = attribute.TypeDefinition.Namespace;
         var name = attribute.TypeDefinition.Name;
 
-        if (name.EndsWith("Attribute", StringComparison.Ordinal)) {
+        if (name.EndsWith("Attribute", StringComparison.Ordinal))
+        {
             name = name.Substring(0, name.Length - "Attribute".Length);
         }
 
@@ -92,27 +110,35 @@ public static class ImportedCachedHandlers {
     /// <c>Type.Method</c> for every cached handler in every module the attributes apply, sorted.
     /// </summary>
     public static IReadOnlyList<string> Read(
-        GeneratorSyntaxContext syntaxContext, IReadOnlyList<AttributeModel> attributes) {
+        GeneratorSyntaxContext syntaxContext,
+        IReadOnlyList<AttributeModel> attributes
+    )
+    {
         var compilation = syntaxContext.SemanticModel.Compilation;
         var visited = new HashSet<IAssemblySymbol>(SymbolEqualityComparer.Default);
 
         List<string>? found = null;
 
-        foreach (var attribute in attributes) {
+        foreach (var attribute in attributes)
+        {
             var assembly = ModuleAssembly(compilation, attribute);
 
             // The entry point's own assembly is the one the routing table already reports on, and
             // an assembly reached through two attributes is walked once.
-            if (assembly == null ||
-                SymbolEqualityComparer.Default.Equals(assembly, compilation.Assembly) ||
-                !visited.Add(assembly)) {
+            if (
+                assembly == null
+                || SymbolEqualityComparer.Default.Equals(assembly, compilation.Assembly)
+                || !visited.Add(assembly)
+            )
+            {
                 continue;
             }
 
             Walk(assembly.GlobalNamespace, found ??= new List<string>());
         }
 
-        if (found == null) {
+        if (found == null)
+        {
             return Array.Empty<string>();
         }
 
@@ -129,21 +155,29 @@ public static class ImportedCachedHandlers {
     /// Both spellings of the name reach here depending on how the attribute was written, so both
     /// are tried; the generated companion of a module is named after the module with the suffix.
     /// </remarks>
-    private static IAssemblySymbol? ModuleAssembly(Compilation compilation, AttributeModel attribute) {
+    private static IAssemblySymbol? ModuleAssembly(
+        Compilation compilation,
+        AttributeModel attribute
+    )
+    {
         var ns = attribute.TypeDefinition.Namespace;
         var name = attribute.TypeDefinition.Name;
 
         var prefix = string.IsNullOrEmpty(ns) ? "" : ns + ".";
 
-        var symbol = compilation.GetTypeByMetadataName(prefix + name) ??
-                     compilation.GetTypeByMetadataName(prefix + name + "Attribute");
+        var symbol =
+            compilation.GetTypeByMetadataName(prefix + name)
+            ?? compilation.GetTypeByMetadataName(prefix + name + "Attribute");
 
         return symbol?.ContainingAssembly;
     }
 
-    private static void Walk(INamespaceSymbol ns, List<string> found) {
-        foreach (var member in ns.GetMembers()) {
-            switch (member) {
+    private static void Walk(INamespaceSymbol ns, List<string> found)
+    {
+        foreach (var member in ns.GetMembers())
+        {
+            switch (member)
+            {
                 case INamespaceSymbol child:
                     Walk(child, found);
                     break;
@@ -160,22 +194,27 @@ public static class ImportedCachedHandlers {
     /// only the methods carrying a verb attribute do, which is what the class's declaration
     /// reaches.
     /// </summary>
-    private static void Visit(INamedTypeSymbol type, List<string> found) {
+    private static void Visit(INamedTypeSymbol type, List<string> found)
+    {
         var classDeclares = DeclaresCaching(type.GetAttributes());
 
-        foreach (var member in type.GetMembers()) {
-            if (member is not IMethodSymbol { MethodKind: MethodKind.Ordinary } method) {
+        foreach (var member in type.GetMembers())
+        {
+            if (member is not IMethodSymbol { MethodKind: MethodKind.Ordinary } method)
+            {
                 continue;
             }
 
             var attributes = method.GetAttributes();
 
-            if (DeclaresCaching(attributes) || (classDeclares && IsRoute(attributes))) {
+            if (DeclaresCaching(attributes) || (classDeclares && IsRoute(attributes)))
+            {
                 found.Add(type.Name + "." + method.Name);
             }
         }
 
-        foreach (var nested in type.GetTypeMembers()) {
+        foreach (var nested in type.GetTypeMembers())
+        {
             Visit(nested, found);
         }
     }
@@ -183,12 +222,17 @@ public static class ImportedCachedHandlers {
     /// <summary>
     /// Either form: the generic attribute's symbol has the same name and namespace, with an arity.
     /// </summary>
-    private static bool DeclaresCaching(ImmutableArray<AttributeData> attributes) {
-        foreach (var attribute in attributes) {
+    private static bool DeclaresCaching(ImmutableArray<AttributeData> attributes)
+    {
+        foreach (var attribute in attributes)
+        {
             var attributeClass = attribute.AttributeClass;
 
-            if (attributeClass?.Name == CacheAttributeName &&
-                attributeClass.ContainingNamespace?.ToDisplayString() == CacheAttributeNamespace) {
+            if (
+                attributeClass?.Name == CacheAttributeName
+                && attributeClass.ContainingNamespace?.ToDisplayString() == CacheAttributeNamespace
+            )
+            {
                 return true;
             }
         }
@@ -196,13 +240,18 @@ public static class ImportedCachedHandlers {
         return false;
     }
 
-    private static bool IsRoute(ImmutableArray<AttributeData> attributes) {
-        foreach (var attribute in attributes) {
+    private static bool IsRoute(ImmutableArray<AttributeData> attributes)
+    {
+        foreach (var attribute in attributes)
+        {
             var attributeClass = attribute.AttributeClass;
 
-            if (attributeClass != null &&
-                Array.IndexOf(VerbAttributeNames, attributeClass.Name) >= 0 &&
-                attributeClass.ContainingNamespace?.ToDisplayString() == VerbAttributeNamespace) {
+            if (
+                attributeClass != null
+                && Array.IndexOf(VerbAttributeNames, attributeClass.Name) >= 0
+                && attributeClass.ContainingNamespace?.ToDisplayString() == VerbAttributeNamespace
+            )
+            {
                 return true;
             }
         }

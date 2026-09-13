@@ -16,8 +16,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// document nothing ever got wrong belongs in <c>Specs</c> with the ordinary fixtures.
 /// </para>
 /// </remarks>
-internal static class ScenarioSpecs {
-
+internal static class ScenarioSpecs
+{
     private const string Head = """
         openapi: "3.1.0"
         info: { title: Scenario, version: "1.0" }
@@ -44,28 +44,32 @@ internal static class ScenarioSpecs {
     /// each one into a two-branch union - 596 generated types where 92 were real - so what is
     /// asserted is that it stays one nullable property.
     /// </remarks>
-    public const string NullableByTypeArray = Head + """
+    public const string NullableByTypeArray =
+        Head
+        + """
 
-            Thing:
-              type: object
-              required: [name]
-              properties:
-                name: { type: [string, "null"] }
-                count: { type: [integer, "null"] }
-        """;
+                Thing:
+                  type: object
+                  required: [name]
+                  properties:
+                    name: { type: [string, "null"] }
+                    count: { type: [integer, "null"] }
+            """;
 
     /// <summary>
     /// 3.1's <c>const</c>, which is a single-valued enum and is how a great many descriptions spell
     /// a discriminator without declaring one.
     /// </summary>
-    public const string ConstProperty = Head + """
+    public const string ConstProperty =
+        Head
+        + """
 
-            Thing:
-              type: object
-              properties:
-                kind: { type: string, const: thing }
-                name: { type: string }
-        """;
+                Thing:
+                  type: object
+                  properties:
+                    kind: { type: string, const: thing }
+                    name: { type: string }
+            """;
 
     /// <summary>
     /// A bound the type its format implies cannot hold.
@@ -75,14 +79,16 @@ internal static class ScenarioSpecs {
     /// 4294967295. Left as <c>int</c> the generated model overflows on a payload the description
     /// calls valid, so the bound is part of the type.
     /// </remarks>
-    public const string BoundsWiderThanInt = Head + """
+    public const string BoundsWiderThanInt =
+        Head
+        + """
 
-            Thing:
-              type: object
-              properties:
-                small: { type: integer, maximum: 100 }
-                wide: { type: integer, maximum: 4294967295 }
-        """;
+                Thing:
+                  type: object
+                  properties:
+                    small: { type: integer, maximum: 100 }
+                    wide: { type: integer, maximum: 4294967295 }
+            """;
 
     /// <summary>
     /// A constraint that cannot apply to the type it is written on.
@@ -92,15 +98,17 @@ internal static class ScenarioSpecs {
     /// emitting them produced validator code comparing an int against a string length. The
     /// description is wrong and there is nothing to be done about it, so the constraint is dropped.
     /// </remarks>
-    public const string ConstraintsOnMismatchedTypes = Head + """
+    public const string ConstraintsOnMismatchedTypes =
+        Head
+        + """
 
-            Thing:
-              type: object
-              properties:
-                counted: { type: integer, minLength: 3 }
-                measured: { type: string, minimum: 5 }
-                listed: { type: array, items: { type: string }, minItems: 1 }
-        """;
+                Thing:
+                  type: object
+                  properties:
+                    counted: { type: integer, minLength: 3 }
+                    measured: { type: string, minimum: 5 }
+                    listed: { type: array, items: { type: string }, minItems: 1 }
+            """;
 
     /// <summary>
     /// A pattern that is not a regular expression any .NET engine will accept.
@@ -109,14 +117,16 @@ internal static class ScenarioSpecs {
     /// Emitted verbatim it fails at run time inside generated code, where the message names neither
     /// the property nor the description it came from.
     /// </remarks>
-    public const string InvalidPattern = Head + """
+    public const string InvalidPattern =
+        Head
+        + """
 
-            Thing:
-              type: object
-              properties:
-                good: { type: string, pattern: "^[a-z]+$" }
-                bad: { type: string, pattern: "^(unclosed" }
-        """;
+                Thing:
+                  type: object
+                  properties:
+                    good: { type: string, pattern: "^[a-z]+$" }
+                    bad: { type: string, pattern: "^(unclosed" }
+            """;
 
     /// <summary>
     /// A value set that reaches C# as nothing at all.
@@ -126,28 +136,32 @@ internal static class ScenarioSpecs {
     /// reaction enum is <c>+1</c> and <c>-1</c>; Elasticsearch declares <c>buckets.count</c> beside
     /// <c>buckets_count</c>. Each produced an enum member with no name, or two with the same one.
     /// </remarks>
-    public const string AwkwardEnumValues = Head + """
+    public const string AwkwardEnumValues =
+        Head
+        + """
 
-            Thing:
-              type: object
-              properties:
-                reaction: { $ref: '#/components/schemas/Reaction' }
-            Reaction:
-              type: string
-              enum: ["+1", "-1", "", "buckets.count", "buckets_count", "StartTime>"]
-        """;
+                Thing:
+                  type: object
+                  properties:
+                    reaction: { $ref: '#/components/schemas/Reaction' }
+                Reaction:
+                  type: string
+                  enum: ["+1", "-1", "", "buckets.count", "buckets_count", "StartTime>"]
+            """;
 
     /// <summary>Binary content, which is a string in the description and bytes in C#.</summary>
-    public const string BinaryFormats = Head + """
+    public const string BinaryFormats =
+        Head
+        + """
 
-            Thing:
-              type: object
-              properties:
-                avatar: { type: string, format: byte }
-                blob: { type: string, format: binary }
-                when: { type: string, format: date-time }
-                day: { type: string, format: date }
-        """;
+                Thing:
+                  type: object
+                  properties:
+                    avatar: { type: string, format: byte }
+                    blob: { type: string, format: binary }
+                    when: { type: string, format: date-time }
+                    day: { type: string, format: date }
+            """;
 
     /// <summary>
     /// A schema that refers to itself, and one that nests arrays.
@@ -156,25 +170,27 @@ internal static class ScenarioSpecs {
     /// A recursive reference is a cycle in every pass that walks references, and each of those had
     /// to be written not to follow it forever.
     /// </remarks>
-    public const string RecursiveAndNested = Head + """
+    public const string RecursiveAndNested =
+        Head
+        + """
 
-            Thing:
-              type: object
-              properties:
-                self: { $ref: '#/components/schemas/Thing' }
-                children:
-                  type: array
-                  items: { $ref: '#/components/schemas/Thing' }
-                matrix:
-                  type: array
-                  items:
-                    type: array
-                    items: { type: number }
-                inline:
+                Thing:
                   type: object
                   properties:
-                    nested: { type: string }
-        """;
+                    self: { $ref: '#/components/schemas/Thing' }
+                    children:
+                      type: array
+                      items: { $ref: '#/components/schemas/Thing' }
+                    matrix:
+                      type: array
+                      items:
+                        type: array
+                        items: { type: number }
+                    inline:
+                      type: object
+                      properties:
+                        nested: { type: string }
+            """;
 
     /// <summary>
     /// A request body that is not JSON.

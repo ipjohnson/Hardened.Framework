@@ -11,8 +11,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// asserting anything about the generated text, because the claim is "the same mode", not "a mode
 /// that looks like this".
 /// </remarks>
-public class ResponseModelPropertyTests {
-
+public class ResponseModelPropertyTests
+{
     private const string Spec = """
         openapi: 3.0.0
         info: { title: Pets, version: 1.0.0 }
@@ -40,7 +40,8 @@ public class ResponseModelPropertyTests {
                 name: { type: string }
         """;
 
-    private static string Generated(string responseModel) {
+    private static string Generated(string responseModel)
+    {
         using var harness = new TaskHarness();
         var path = harness.WriteSpec("pets.yaml", Spec);
 
@@ -51,17 +52,20 @@ public class ResponseModelPropertyTests {
     }
 
     [Fact]
-    public void TheRenamedStandardValue_SelectsThrowsMode() {
+    public void TheRenamedStandardValue_SelectsThrowsMode()
+    {
         Assert.Equal(Generated("Throws"), Generated("Standard"));
     }
 
     [Fact]
-    public void AnAbsentValue_StillMeansThrowsMode() {
+    public void AnAbsentValue_StillMeansThrowsMode()
+    {
         Assert.Equal(Generated("Throws"), Generated(""));
     }
 
     [Fact]
-    public void TheRenamedStandardValue_DrawsThe026RenameNotice() {
+    public void TheRenamedStandardValue_DrawsThe026RenameNotice()
+    {
         using var harness = new TaskHarness();
         var path = harness.WriteSpec("pets.yaml", Spec);
 
@@ -76,7 +80,8 @@ public class ResponseModelPropertyTests {
     /// descriptions has one thing to fix.
     /// </summary>
     [Fact]
-    public void TheRenameNotice_IsReportedOnceForManySpecs() {
+    public void TheRenameNotice_IsReportedOnceForManySpecs()
+    {
         using var harness = new TaskHarness();
         var first = harness.WriteSpec("pets.yaml", Spec);
         var second = harness.WriteSpec("more-pets.yaml", Spec.Replace("getPet", "getMorePet"));
@@ -88,8 +93,10 @@ public class ResponseModelPropertyTests {
     }
 
     [Fact]
-    public void TheCurrentValues_DrawNoRenameNotice() {
-        foreach (var value in new[] { "Throws", "Response", "Union", "" }) {
+    public void TheCurrentValues_DrawNoRenameNotice()
+    {
+        foreach (var value in new[] { "Throws", "Response", "Union", "" })
+        {
             using var harness = new TaskHarness();
             var path = harness.WriteSpec("pets.yaml", Spec);
 

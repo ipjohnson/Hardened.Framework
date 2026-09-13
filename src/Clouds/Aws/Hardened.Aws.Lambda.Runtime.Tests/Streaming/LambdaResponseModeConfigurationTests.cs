@@ -10,8 +10,8 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Streaming;
 /// The deployment setting that says which wire protocol the front door expects. Read once, at
 /// startup, and wrong in exactly one way.
 /// </summary>
-public class LambdaResponseModeConfigurationTests {
-
+public class LambdaResponseModeConfigurationTests
+{
     [Theory]
     [InlineData(null, LambdaResponseMode.Buffered)]
     [InlineData("", LambdaResponseMode.Buffered)]
@@ -21,7 +21,11 @@ public class LambdaResponseModeConfigurationTests {
     [InlineData("stream", LambdaResponseMode.Stream)]
     [InlineData("STREAM", LambdaResponseMode.Stream)]
     [InlineData(" stream ", LambdaResponseMode.Stream)]
-    public void TheSettingParsesCaseInsensitivelyWithBufferedAsTheDefault(string? value, LambdaResponseMode expected) {
+    public void TheSettingParsesCaseInsensitivelyWithBufferedAsTheDefault(
+        string? value,
+        LambdaResponseMode expected
+    )
+    {
         Assert.Equal(expected, LambdaResponseModeConfiguration.Parse(value));
     }
 
@@ -34,8 +38,11 @@ public class LambdaResponseModeConfigurationTests {
     [InlineData("streaming")]
     [InlineData("RESPONSE_STREAM")]
     [InlineData("true")]
-    public void AnUnrecognisedValueFailsNamingTheVariableAndTheChoices(string value) {
-        var failure = Assert.Throws<InvalidOperationException>(() => LambdaResponseModeConfiguration.Parse(value));
+    public void AnUnrecognisedValueFailsNamingTheVariableAndTheChoices(string value)
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            LambdaResponseModeConfiguration.Parse(value)
+        );
 
         Assert.Contains(LambdaResponseModeConfiguration.EnvironmentVariable, failure.Message);
         Assert.Contains(value, failure.Message);
@@ -50,15 +57,23 @@ public class LambdaResponseModeConfigurationTests {
     [Theory]
     [InlineData(LambdaResponseMode.Buffered)]
     [InlineData(LambdaResponseMode.Stream)]
-    public void TheWrittenValueParsesBackToTheMode(LambdaResponseMode mode) {
-        Assert.Equal(mode, LambdaResponseModeConfiguration.Parse(LambdaResponseModeConfiguration.ValueOf(mode)));
+    public void TheWrittenValueParsesBackToTheMode(LambdaResponseMode mode)
+    {
+        Assert.Equal(
+            mode,
+            LambdaResponseModeConfiguration.Parse(LambdaResponseModeConfiguration.ValueOf(mode))
+        );
     }
 
     [Fact]
-    public void TheEnvironmentVariableSetsTheMode() {
-        var environment = new EnvironmentImpl(environmentValues: new Dictionary<string, string> {
-            [LambdaResponseModeConfiguration.EnvironmentVariable] = "stream"
-        });
+    public void TheEnvironmentVariableSetsTheMode()
+    {
+        var environment = new EnvironmentImpl(
+            environmentValues: new Dictionary<string, string>
+            {
+                [LambdaResponseModeConfiguration.EnvironmentVariable] = "stream",
+            }
+        );
         var configuration = new LambdaResponseModeConfiguration();
 
         LambdaResponseModeConfiguration.FromEnvironment(environment, configuration);
@@ -67,17 +82,21 @@ public class LambdaResponseModeConfigurationTests {
     }
 
     [Fact]
-    public void AnEnvironmentWithoutTheVariableIsBuffered() {
+    public void AnEnvironmentWithoutTheVariableIsBuffered()
+    {
         var configuration = new LambdaResponseModeConfiguration();
 
         LambdaResponseModeConfiguration.FromEnvironment(
-            new EnvironmentImpl(environmentValues: new Dictionary<string, string>()), configuration);
+            new EnvironmentImpl(environmentValues: new Dictionary<string, string>()),
+            configuration
+        );
 
         Assert.Equal(LambdaResponseMode.Buffered, configuration.Mode);
     }
 
     [Fact]
-    public void AFreshConfigurationIsBuffered() {
+    public void AFreshConfigurationIsBuffered()
+    {
         Assert.Equal(LambdaResponseMode.Buffered, new LambdaResponseModeConfiguration().Mode);
     }
 
@@ -90,28 +109,39 @@ public class LambdaResponseModeConfigurationTests {
     /// variable being set correctly in every stack that creates it.
     /// </remarks>
     [Fact]
-    public void ConfigureLambdaResponseModeWinsOverTheEnvironment() {
+    public void ConfigureLambdaResponseModeWinsOverTheEnvironment()
+    {
         var services = new ServiceCollection();
 
         services.ConfigureLambdaResponseMode(mode => mode.Mode = LambdaResponseMode.Stream);
 
-        var environment = new EnvironmentImpl(environmentValues: new Dictionary<string, string> {
-            [LambdaResponseModeConfiguration.EnvironmentVariable] = "buffered"
-        });
+        var environment = new EnvironmentImpl(
+            environmentValues: new Dictionary<string, string>
+            {
+                [LambdaResponseModeConfiguration.EnvironmentVariable] = "buffered",
+            }
+        );
 
         // The provider the runtime module registers, then whatever the extension added beside it.
-        IConfigurationPackage[] packages = [
-            new SimpleConfigurationPackage(new IConfigurationValueProvider[] {
-                new NewConfigurationValueProvider<ILambdaResponseModeConfiguration, LambdaResponseModeConfiguration>(
-                    LambdaResponseModeConfiguration.FromEnvironment)
-            }),
-            .. services.BuildServiceProvider().GetServices<IConfigurationPackage>()
+        IConfigurationPackage[] packages =
+        [
+            new SimpleConfigurationPackage(
+                new IConfigurationValueProvider[]
+                {
+                    new NewConfigurationValueProvider<
+                        ILambdaResponseModeConfiguration,
+                        LambdaResponseModeConfiguration
+                    >(LambdaResponseModeConfiguration.FromEnvironment),
+                }
+            ),
+            .. services.BuildServiceProvider().GetServices<IConfigurationPackage>(),
         ];
 
         var manager = new ConfigurationManager(environment, packages);
 
         Assert.Equal(
             LambdaResponseMode.Stream,
-            manager.GetConfiguration<ILambdaResponseModeConfiguration>().Mode);
+            manager.GetConfiguration<ILambdaResponseModeConfiguration>().Mode
+        );
     }
 }

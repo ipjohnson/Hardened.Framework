@@ -16,7 +16,8 @@ namespace Hardened.Gcp.CloudRun.Invoke;
 /// </remarks>
 [DependencyModule]
 [CloudRunRuntime]
-public partial class InvokeModule : IServiceCollectionConfiguration {
+public partial class InvokeModule : IServiceCollectionConfiguration
+{
     /// <summary>
     /// The path an invocation names its operation under, or null for
     /// <see cref="InvokeEnvelope.DefaultPrefix"/>.
@@ -27,8 +28,11 @@ public partial class InvokeModule : IServiceCollectionConfiguration {
     /// </remarks>
     public string? Prefix { get; set; }
 
-    public void ConfigureServices(IServiceCollection services) {
-        services.AddSingleton<ITriggerEnvelope>(new InvokeEnvelope(Prefix ?? InvokeEnvelope.DefaultPrefix));
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<ITriggerEnvelope>(
+            new InvokeEnvelope(Prefix ?? InvokeEnvelope.DefaultPrefix)
+        );
     }
 
     /// <summary>By type alone, so applying the module twice registers one envelope.</summary>

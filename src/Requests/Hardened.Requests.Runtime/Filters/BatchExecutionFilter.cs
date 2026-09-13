@@ -33,25 +33,31 @@ namespace Hardened.Requests.Runtime.Filters;
 /// rewind and every later item is being redelivered anyway.
 /// </para>
 /// </remarks>
-public class BatchExecutionFilter : IExecutionFilter {
-    public async Task Execute(IExecutionChain chain) {
+public class BatchExecutionFilter : IExecutionFilter
+{
+    public async Task Execute(IExecutionChain chain)
+    {
         // Not a batch, or an empty one. An empty delivery is not an error - nothing was asked for
         // and nothing is reported - and running the chain once keeps an unbatched transport
         // completely unaffected by this filter being registered globally.
-        if (chain.Context.Request is not IBatchRequest batch || batch.Count == 0) {
+        if (chain.Context.Request is not IBatchRequest batch || batch.Count == 0)
+        {
             await chain.Next();
 
             return;
         }
 
-        for (var index = 0; index < batch.Count; index++) {
+        for (var index = 0; index < batch.Count; index++)
+        {
             var failure = await Item(chain, batch, index);
 
-            if (failure == null) {
+            if (failure == null)
+            {
                 continue;
             }
 
-            if (!batch.ReportsItemFailures) {
+            if (!batch.ReportsItemFailures)
+            {
                 // Rethrown with its stack rather than raised anew, so what reaches the host names
                 // where the handler failed rather than this loop.
                 ExceptionDispatchInfo.Capture(failure).Throw();
@@ -59,7 +65,8 @@ public class BatchExecutionFilter : IExecutionFilter {
 
             batch.RecordFailure(index, failure);
 
-            if (batch.FailureMode == BatchFailureMode.Checkpoint) {
+            if (batch.FailureMode == BatchFailureMode.Checkpoint)
+            {
                 // Recorded first, then stopped. The report has to name this item: it is what the
                 // transport rewinds to, and a checkpoint batch that stopped without naming
                 // anything would be answered as wholly successful and the failure lost.
@@ -76,17 +83,25 @@ public class BatchExecutionFilter : IExecutionFilter {
     /// read as another's. <see cref="IExecutionChain.Fork"/> copies the chain at this position,
     /// which is what makes "run the rest of this again" expressible.
     /// </remarks>
-    private static async Task<Exception?> Item(IExecutionChain chain, IBatchRequest batch, int index) {
+    private static async Task<Exception?> Item(
+        IExecutionChain chain,
+        IBatchRequest batch,
+        int index
+    )
+    {
         var context = chain.Context.Clone(
             request: batch.ForItem(index),
-            response: chain.Context.Response.Clone(null));
+            response: chain.Context.Response.Clone(null)
+        );
 
-        try {
+        try
+        {
             await chain.Fork(context).Next();
 
             return context.Response.ExceptionValue;
         }
-        catch (Exception exception) {
+        catch (Exception exception)
+        {
             return exception;
         }
     }

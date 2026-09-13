@@ -8,11 +8,13 @@ namespace Hardened.CloudEvents.Tests;
 /// The binary HTTP form, as Eventarc delivers it: the payload as the body, the attributes as
 /// <c>ce-</c> headers.
 /// </summary>
-public class BinaryCloudEventTests {
+public class BinaryCloudEventTests
+{
     private static readonly byte[] Body = Encoding.UTF8.GetBytes("{\"id\":\"a-1\"}");
 
     private static Dictionary<string, StringValues> Headers(bool caseInsensitive = true) =>
-        new(caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal) {
+        new(caseInsensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal)
+        {
             ["ce-specversion"] = "1.0",
             ["ce-id"] = "1234",
             ["ce-source"] = "//storage.googleapis.com/projects/_/buckets/uploads",
@@ -22,11 +24,12 @@ public class BinaryCloudEventTests {
             ["ce-dataschema"] = "https://example.test/object.json",
             ["ce-bucket"] = "uploads",
             ["Content-Type"] = "application/json",
-            ["X-Unrelated"] = "ignored"
+            ["X-Unrelated"] = "ignored",
         };
 
     [Fact]
-    public void TheContextAttributesComeFromTheHeaders() {
+    public void TheContextAttributesComeFromTheHeaders()
+    {
         var cloudEvent = CloudEventReader.ReadBinary(Headers(), Body);
 
         Assert.Equal("1.0", cloudEvent.SpecVersion);
@@ -39,7 +42,8 @@ public class BinaryCloudEventTests {
     }
 
     [Fact]
-    public void TheBodyIsTheDataAndContentTypeIsItsType() {
+    public void TheBodyIsTheDataAndContentTypeIsItsType()
+    {
         var cloudEvent = CloudEventReader.ReadBinary(Headers(), Body);
 
         Assert.Equal(Body, cloudEvent.Data.ToArray());
@@ -47,7 +51,8 @@ public class BinaryCloudEventTests {
     }
 
     [Fact]
-    public void OtherPrefixedHeadersAreExtensionsWithoutThePrefix() {
+    public void OtherPrefixedHeadersAreExtensionsWithoutThePrefix()
+    {
         var cloudEvent = CloudEventReader.ReadBinary(Headers(), Body);
 
         Assert.Equal("uploads", cloudEvent.Extensions["bucket"]);
@@ -57,7 +62,8 @@ public class BinaryCloudEventTests {
 
     /// <summary>A plain dictionary a test built compares by case; a transport's does not. Both read alike.</summary>
     [Fact]
-    public void ACaseSensitiveDictionaryReadsTheSame() {
+    public void ACaseSensitiveDictionaryReadsTheSame()
+    {
         var headers = Headers(caseInsensitive: false);
 
         headers.Remove("ce-id");
@@ -70,24 +76,33 @@ public class BinaryCloudEventTests {
     }
 
     [Fact]
-    public void AMissingRequiredHeaderIsNamed() {
+    public void AMissingRequiredHeaderIsNamed()
+    {
         var headers = Headers();
 
         headers.Remove("ce-type");
 
-        var failure = Assert.Throws<CloudEventFormatException>(() => CloudEventReader.ReadBinary(headers, Body));
+        var failure = Assert.Throws<CloudEventFormatException>(() =>
+            CloudEventReader.ReadBinary(headers, Body)
+        );
 
         Assert.Contains("ce-type", failure.Message);
     }
 
     [Fact]
-    public void TheBinaryFormIsRecognisedBySpecVersion() {
+    public void TheBinaryFormIsRecognisedBySpecVersion()
+    {
         Assert.True(CloudEventReader.IsBinary(Headers()));
-        Assert.False(CloudEventReader.IsBinary(new Dictionary<string, StringValues> { ["Content-Type"] = "application/json" }));
+        Assert.False(
+            CloudEventReader.IsBinary(
+                new Dictionary<string, StringValues> { ["Content-Type"] = "application/json" }
+            )
+        );
     }
 
     [Fact]
-    public void ReadPicksTheFormFromTheRequest() {
+    public void ReadPicksTheFormFromTheRequest()
+    {
         var binary = CloudEventReader.Read("application/json", Headers(), Body);
 
         Assert.Equal("1234", binary.Id);
@@ -95,11 +110,13 @@ public class BinaryCloudEventTests {
         var structured = CloudEventReader.Read(
             "application/cloudevents+json",
             new Dictionary<string, StringValues>(),
-            Encoding.UTF8.GetBytes("""{"specversion":"1.0","id":"s-1","source":"/s","type":"t"}"""));
+            Encoding.UTF8.GetBytes("""{"specversion":"1.0","id":"s-1","source":"/s","type":"t"}""")
+        );
 
         Assert.Equal("s-1", structured.Id);
 
-        Assert.Throws<CloudEventFormatException>(
-            () => CloudEventReader.Read("application/json", new Dictionary<string, StringValues>(), Body));
+        Assert.Throws<CloudEventFormatException>(() =>
+            CloudEventReader.Read("application/json", new Dictionary<string, StringValues>(), Body)
+        );
     }
 }

@@ -21,13 +21,16 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// <c>MethodNotAllowed</c> an <c>Allow</c>; <c>NotAcceptable</c> carries no message.
 /// </para>
 /// </remarks>
-public class DefaultInstanceTests {
-
-    public static TheoryData<Type> RecordsWithADefault {
-        get {
+public class DefaultInstanceTests
+{
+    public static TheoryData<Type> RecordsWithADefault
+    {
+        get
+        {
             var data = new TheoryData<Type>();
 
-            foreach (var type in Records()) {
+            foreach (var type in Records())
+            {
                 data.Add(type);
             }
 
@@ -36,13 +39,20 @@ public class DefaultInstanceTests {
     }
 
     /// <summary>Every response record with a static <c>Default</c>, found rather than named.</summary>
-    private static IEnumerable<Type> Records() {
-        foreach (var type in typeof(NotFound).Assembly.GetExportedTypes()) {
-            if (type.IsGenericTypeDefinition || type.GetCustomAttribute<HttpStatusAttribute>() == null) {
+    private static IEnumerable<Type> Records()
+    {
+        foreach (var type in typeof(NotFound).Assembly.GetExportedTypes())
+        {
+            if (
+                type.IsGenericTypeDefinition
+                || type.GetCustomAttribute<HttpStatusAttribute>() == null
+            )
+            {
                 continue;
             }
 
-            if (type.GetField("Default", BindingFlags.Public | BindingFlags.Static) != null) {
+            if (type.GetField("Default", BindingFlags.Public | BindingFlags.Static) != null)
+            {
                 yield return type;
             }
         }
@@ -50,7 +60,8 @@ public class DefaultInstanceTests {
 
     [Theory]
     [MemberData(nameof(RecordsWithADefault))]
-    public void ADefault_IsAnInstanceOfItsOwnTypeAtItsOwnStatus(Type type) {
+    public void ADefault_IsAnInstanceOfItsOwnTypeAtItsOwnStatus(Type type)
+    {
         var field = type.GetField("Default", BindingFlags.Public | BindingFlags.Static)!;
         var instance = field.GetValue(null);
 
@@ -58,14 +69,17 @@ public class DefaultInstanceTests {
         Assert.IsType(type, instance);
         Assert.Equal(
             type.GetCustomAttribute<HttpStatusAttribute>()!.StatusCode,
-            ((IHttpStatusResponse)instance!).Status);
+            ((IHttpStatusResponse)instance!).Status
+        );
     }
 
     /// <summary>The message is generic, and there is one: the point is a body that says something.</summary>
     [Theory]
     [MemberData(nameof(RecordsWithADefault))]
-    public void ADefault_CarriesAGenericDetail(Type type) {
-        var instance = type.GetField("Default", BindingFlags.Public | BindingFlags.Static)!.GetValue(null);
+    public void ADefault_CarriesAGenericDetail(Type type)
+    {
+        var instance = type.GetField("Default", BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null);
         var detail = (string?)type.GetProperty("Detail")!.GetValue(instance);
 
         Assert.False(string.IsNullOrWhiteSpace(detail));
@@ -77,7 +91,8 @@ public class DefaultInstanceTests {
     /// that cannot have one do not.
     /// </summary>
     [Fact]
-    public void EveryRecordThatCanHaveADefaultDoes() {
+    public void EveryRecordThatCanHaveADefaultDoes()
+    {
         var withDefault = new HashSet<Type>(Records());
 
         Assert.Equal(18, withDefault.Count);
@@ -90,14 +105,16 @@ public class DefaultInstanceTests {
     }
 
     [Fact]
-    public void NotFound_DefaultNamesNoParticularResource() {
+    public void NotFound_DefaultNamesNoParticularResource()
+    {
         Assert.Equal("resource", NotFound.Default.Resource);
         Assert.Equal(404, NotFound.Default.Status);
     }
 
     /// <summary>Returning the same instance twice is the same answer; nothing is built per return.</summary>
     [Fact]
-    public void ADefault_IsOneInstance() {
+    public void ADefault_IsOneInstance()
+    {
         Assert.Same(NotFound.Default, NotFound.Default);
         Assert.Same(Conflict.Default, Conflict.Default);
     }

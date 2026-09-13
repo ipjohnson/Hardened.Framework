@@ -51,25 +51,36 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// <c>OpenApiDocumentSourceTests</c> asserts it rather than trusting it.
 /// </para>
 /// </remarks>
-internal static class OpenApiDocumentSource {
-
+internal static class OpenApiDocumentSource
+{
     public static string Write(
-        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers, string basePath,
-        OpenApiVersion version = OpenApiVersionFacts.Default, DocumentIdentity? identity = null) {
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers,
+        string basePath,
+        OpenApiVersion version = OpenApiVersionFacts.Default,
+        DocumentIdentity? identity = null
+    )
+    {
         var file = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
         var entryPoint = file.AddClass(appModel.EntryPointType.Name);
 
         entryPoint.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
 
-        var document = OpenApiDocumentGenerator.Write(appModel, handlers, basePath, version, identity);
+        var document = OpenApiDocumentGenerator.Write(
+            appModel,
+            handlers,
+            basePath,
+            version,
+            identity
+        );
 
         var container = entryPoint.AddClass(DocumentTypeName);
 
         container.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
         container.Comment =
-            "The OpenAPI document this application serves, as the build wrote it. " +
-            "<HardenedOpenApiOutput> reads it from the compiled assembly under this name.";
+            "The OpenAPI document this application serves, as the build wrote it. "
+            + "<HardenedOpenApiOutput> reads it from the compiled assembly under this name.";
 
         var property = container.AddProperty(ReadOnlySpanOfByte, DocumentPropertyName);
 
@@ -79,11 +90,12 @@ internal static class OpenApiDocumentSource {
         property.Get.AddCode(GZipLiteral.Write(document));
         property.Comment =
             "The routes this application declares, as a gzip-compressed OpenAPI "
-            + OpenApiVersionFacts.VersionString(version) + " document.";
+            + OpenApiVersionFacts.VersionString(version)
+            + " document.";
 
-        var outputContext = new OutputContext(new OutputContextOptions {
-            TypeOutputMode = TypeOutputMode.Global
-        });
+        var outputContext = new OutputContext(
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
 
         file.WriteOutput(outputContext);
 
@@ -110,6 +122,9 @@ internal static class OpenApiDocumentSource {
 
     private static ITypeDefinition ReadOnlySpanOfByte =>
         new GenericTypeDefinition(
-            TypeDefinitionEnum.ClassDefinition, "System", "ReadOnlySpan",
-            new[] { TypeDefinition.Get(typeof(byte)) });
+            TypeDefinitionEnum.ClassDefinition,
+            "System",
+            "ReadOnlySpan",
+            new[] { TypeDefinition.Get(typeof(byte)) }
+        );
 }

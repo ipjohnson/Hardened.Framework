@@ -21,15 +21,22 @@ namespace Hardened.Aws.Lambda.DynamoDb;
 /// hand often does.
 /// </para>
 /// </remarks>
-public sealed class UnixEpochDateTimeConverter : JsonConverter<DateTime> {
+public sealed class UnixEpochDateTimeConverter : JsonConverter<DateTime>
+{
     public override DateTime Read(
-        ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
-        if (reader.TokenType == JsonTokenType.Number) {
+        ref Utf8JsonReader reader,
+        Type typeToConvert,
+        JsonSerializerOptions options
+    )
+    {
+        if (reader.TokenType == JsonTokenType.Number)
+        {
             // Seconds, and fractional on a stream that reports sub-second creation times. Read as a
             // double so the fraction survives to the DateTime rather than being truncated by a
             // long.
-            return DateTimeOffset.FromUnixTimeMilliseconds(
-                (long)(reader.GetDouble() * 1000)).UtcDateTime;
+            return DateTimeOffset
+                .FromUnixTimeMilliseconds((long)(reader.GetDouble() * 1000))
+                .UtcDateTime;
         }
 
         return reader.GetDateTime();
@@ -41,7 +48,11 @@ public sealed class UnixEpochDateTimeConverter : JsonConverter<DateTime> {
     /// one does.
     /// </remarks>
     public override void Write(
-        Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options) =>
+        Utf8JsonWriter writer,
+        DateTime value,
+        JsonSerializerOptions options
+    ) =>
         writer.WriteNumberValue(
-            new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)).ToUnixTimeSeconds());
+            new DateTimeOffset(DateTime.SpecifyKind(value, DateTimeKind.Utc)).ToUnixTimeSeconds()
+        );
 }

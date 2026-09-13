@@ -15,36 +15,47 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// these produced before was five compiler errors in a file nobody wrote.
 /// </para>
 /// </summary>
-public class StaticHandlerTests {
+public class StaticHandlerTests
+{
+    private static string Application(string controllers) =>
+        $$"""
+            using System;
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
 
-    private static string Application(string controllers) => $$"""
-        using System;
-        using System.Collections.Generic;
-        using System.Threading.Tasks;
-        using Hardened.Requests.Abstract.Attributes;
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Web.Runtime.Attributes;
+            namespace TestApp;
 
-        namespace TestApp;
+            [HardenedModule]
+            public partial class Application { }
 
-        [HardenedModule]
-        public partial class Application { }
-
-        {{controllers}}
-        """;
+            {{controllers}}
+            """;
 
     [Fact]
-    public void AStaticHandlerIsCalledOnItsDeclaringType() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class OrderController {
-                [Get("/orders")]
-                public static string List() => "x";
-            }
-            """)).AssertNoErrors();
+    public void AStaticHandlerIsCalledOnItsDeclaringType()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        public static string List() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("List");
 
-        Assert.Contains("context.Response.ResponseValue = global::TestApp.OrderController.List();", source);
+        Assert.Contains(
+            "context.Response.ResponseValue = global::TestApp.OrderController.List();",
+            source
+        );
         Assert.DoesNotContain("controller.List()", source);
     }
 
@@ -53,13 +64,20 @@ public class StaticHandlerTests {
     /// can be a type argument to nothing.
     /// </summary>
     [Fact]
-    public void AStaticClassCanBeAController() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public static class OrderController {
-                [Get("/orders")]
-                public static string List() => "x";
-            }
-            """)).AssertNoErrors();
+    public void AStaticClassCanBeAController()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public static class OrderController {
+                        [Get("/orders")]
+                        public static string List() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("List");
 
@@ -68,13 +86,21 @@ public class StaticHandlerTests {
     }
 
     [Fact]
-    public void TheControllerTypeArgumentBecomesObject() {
-        var source = RequestGeneratorHarness.Generate(Application("""
-            public class OrderController {
-                [Get("/orders")]
-                public static string List() => "x";
-            }
-            """)).AssertNoErrors().SourceContaining("List");
+    public void TheControllerTypeArgumentBecomesObject()
+    {
+        var source = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        public static string List() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("List");
 
         Assert.Contains("StandardFilterEmptyParameters<object>", source);
         Assert.Contains("IExecutionContext context, object controller)", source);
@@ -86,25 +112,40 @@ public class StaticHandlerTests {
     /// other there.
     /// </summary>
     [Fact]
-    public void TheHandlerInfoStillNamesTheDeclaringType() {
-        var source = RequestGeneratorHarness.Generate(Application("""
-            public static class OrderController {
-                [Get("/orders")]
-                public static string List() => "x";
-            }
-            """)).AssertNoErrors().SourceContaining("List");
+    public void TheHandlerInfoStillNamesTheDeclaringType()
+    {
+        var source = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public static class OrderController {
+                        [Get("/orders")]
+                        public static string List() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("List");
 
         Assert.Contains("typeof(global::TestApp.OrderController)", source);
     }
 
     [Fact]
-    public void AStaticHandlerBindsItsParameters() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public static class OrderController {
-                [Get("/orders/{id}")]
-                public static string Get(string id) => id;
-            }
-            """)).AssertNoErrors();
+    public void AStaticHandlerBindsItsParameters()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public static class OrderController {
+                        [Get("/orders/{id}")]
+                        public static string Get(string id) => id;
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Get");
 
@@ -112,17 +153,25 @@ public class StaticHandlerTests {
     }
 
     [Fact]
-    public void AnAsyncStaticHandlerIsAwaited() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public static class OrderController {
-                [Get("/orders")]
-                public static Task<string> List() => Task.FromResult("x");
-            }
-            """)).AssertNoErrors();
+    public void AnAsyncStaticHandlerIsAwaited()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public static class OrderController {
+                        [Get("/orders")]
+                        public static Task<string> List() => Task.FromResult("x");
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains(
             "context.Response.ResponseValue = await global::TestApp.OrderController.List();",
-            result.SourceContaining("List"));
+            result.SourceContaining("List")
+        );
     }
 
     /// <summary>
@@ -130,13 +179,21 @@ public class StaticHandlerTests {
     /// cannot be registered at all.
     /// </summary>
     [Fact]
-    public void AnAllStaticControllerIsNotRegistered() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public static class OrderController {
-                [Get("/orders")]
-                public static string List() => "x";
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+    public void AnAllStaticControllerIsNotRegistered()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public static class OrderController {
+                        [Get("/orders")]
+                        public static string List() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.DoesNotContain("AddTransient<OrderController>", routing);
     }
@@ -146,16 +203,24 @@ public class StaticHandlerTests {
     /// still needs one.
     /// </summary>
     [Fact]
-    public void AControllerWithBothKindsIsStillRegistered() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class OrderController {
-                [Get("/orders")]
-                public static string List() => "x";
+    public void AControllerWithBothKindsIsStillRegistered()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        public static string List() => "x";
 
-                [Get("/orders/{id}")]
-                public string Get(string id) => id;
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+                        [Get("/orders/{id}")]
+                        public string Get(string id) => id;
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains("AddTransient<OrderController>", routing);
     }

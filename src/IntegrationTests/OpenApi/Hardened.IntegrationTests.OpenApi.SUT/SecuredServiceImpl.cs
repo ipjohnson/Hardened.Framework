@@ -22,7 +22,8 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// </para>
 /// </remarks>
 [Handler]
-public class SecuredServiceImpl(ICurrentCaller caller) : ISecuredService {
+public class SecuredServiceImpl(ICurrentCaller caller) : ISecuredService
+{
     public Task<string> SecuredScoped() => Task.FromResult("reached");
 
     public Task<string> SecuredEither() => Task.FromResult("reached");

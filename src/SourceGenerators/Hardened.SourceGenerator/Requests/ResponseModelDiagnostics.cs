@@ -18,8 +18,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// which is exactly why nothing else would surface them.
 /// </para>
 /// </remarks>
-public static class ResponseModelDiagnostics {
-
+public static class ResponseModelDiagnostics
+{
     /// <summary>A case type that everything is assignable to.</summary>
     public const string UntypedCaseId = "HRDRM003";
 
@@ -29,16 +29,17 @@ public static class ResponseModelDiagnostics {
     /// <summary>
     /// <c>object</c> or <c>dynamic</c> as a case.
     /// </summary>
-    internal static DiagnosticDescriptor UntypedCaseDescriptor() => new(
-        id: UntypedCaseId,
-        title: "A response case must be a specific type",
-        messageFormat:
-            "'{0}' declares '{1}' as a response case. Everything is assignable to it, so the " +
-            "generated dispatch would answer that case's status for every response the handler " +
-            "returns, and the document would describe every one of them with its schema.",
-        category: "Hardened.Responses",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    internal static DiagnosticDescriptor UntypedCaseDescriptor() =>
+        new(
+            id: UntypedCaseId,
+            title: "A response case must be a specific type",
+            messageFormat: "'{0}' declares '{1}' as a response case. Everything is assignable to it, so the "
+                + "generated dispatch would answer that case's status for every response the handler "
+                + "returns, and the document would describe every one of them with its schema.",
+            category: "Hardened.Responses",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// One case assignable to another, at different statuses.
@@ -50,17 +51,18 @@ public static class ResponseModelDiagnostics {
     /// subtype's schema is a superset of the base's and a payload validates against both. No
     /// arrangement of switch arms fixes an artifact that is already ambiguous.
     /// </remarks>
-    internal static DiagnosticDescriptor AssignableCasesDescriptor() => new(
-        id: AssignableCasesId,
-        title: "Response cases at different statuses must not be assignable to one another",
-        messageFormat:
-            "'{0}' declares '{1}' at {2} and '{3}' at {4}, and one is assignable to the other. The " +
-            "document then describes two statuses with schemas where one is a superset of the " +
-            "other, so a payload validates against both and a reader cannot tell which status it " +
-            "belongs to. Give them a common base neither case is, or map them to one status.",
-        category: "Hardened.Responses",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    internal static DiagnosticDescriptor AssignableCasesDescriptor() =>
+        new(
+            id: AssignableCasesId,
+            title: "Response cases at different statuses must not be assignable to one another",
+            messageFormat: "'{0}' declares '{1}' at {2} and '{3}' at {4}, and one is assignable to the other. The "
+                + "document then describes two statuses with schemas where one is a superset of the "
+                + "other, so a payload validates against both and a reader cannot tell which status it "
+                + "belongs to. Give them a common base neither case is, or map them to one status.",
+            category: "Hardened.Responses",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// Reports whatever the selector found wrong with a handler's declared case set.
@@ -70,24 +72,40 @@ public static class ResponseModelDiagnostics {
     /// the transform could see and this method needs no compilation of its own.
     /// </remarks>
     public static void ReportCaseSetFindings(
-        SourceProductionContext context, string handler, string? finding) {
-        if (string.IsNullOrEmpty(finding)) {
+        SourceProductionContext context,
+        string handler,
+        string? finding
+    )
+    {
+        if (string.IsNullOrEmpty(finding))
+        {
             return;
         }
 
         var fields = UnionResponseSelector.DecodeFinding(finding!);
 
-        if (fields.Count == 2 && fields[0] == UnionResponseSelector.UntypedFinding) {
-            context.ReportDiagnostic(Diagnostic.Create(
-                UntypedCaseDescriptor(), Location.None, handler, fields[1]));
+        if (fields.Count == 2 && fields[0] == UnionResponseSelector.UntypedFinding)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.Create(UntypedCaseDescriptor(), Location.None, handler, fields[1])
+            );
 
             return;
         }
 
-        if (fields.Count == 5 && fields[0] == UnionResponseSelector.AssignableFinding) {
-            context.ReportDiagnostic(Diagnostic.Create(
-                AssignableCasesDescriptor(), Location.None,
-                handler, fields[1], fields[2], fields[3], fields[4]));
+        if (fields.Count == 5 && fields[0] == UnionResponseSelector.AssignableFinding)
+        {
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    AssignableCasesDescriptor(),
+                    Location.None,
+                    handler,
+                    fields[1],
+                    fields[2],
+                    fields[3],
+                    fields[4]
+                )
+            );
         }
     }
 }

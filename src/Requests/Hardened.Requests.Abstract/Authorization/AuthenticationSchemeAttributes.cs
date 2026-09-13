@@ -1,18 +1,20 @@
 namespace Hardened.Requests.Abstract.Authorization;
 
 /// <summary>Where an API key travels.</summary>
-public enum ApiKeyLocation {
+public enum ApiKeyLocation
+{
     Header,
     Query,
-    Cookie
+    Cookie,
 }
 
 /// <summary>The OAuth2 flow a scheme declares.</summary>
-public enum OAuth2Flow {
+public enum OAuth2Flow
+{
     AuthorizationCode,
     ClientCredentials,
     Implicit,
-    Password
+    Password,
 }
 
 /// <summary>
@@ -26,8 +28,10 @@ public enum OAuth2Flow {
 /// reader applies in the other direction.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class HttpAuthenticationSchemeAttribute : Attribute {
-    public HttpAuthenticationSchemeAttribute(string scheme) {
+public sealed class HttpAuthenticationSchemeAttribute : Attribute
+{
+    public HttpAuthenticationSchemeAttribute(string scheme)
+    {
         Scheme = scheme;
     }
 
@@ -44,8 +48,10 @@ public sealed class HttpAuthenticationSchemeAttribute : Attribute {
 /// Declares an <see cref="IAuthenticationScheme"/> type as an API-key scheme.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class ApiKeyAuthenticationSchemeAttribute : Attribute {
-    public ApiKeyAuthenticationSchemeAttribute(string name, ApiKeyLocation location) {
+public sealed class ApiKeyAuthenticationSchemeAttribute : Attribute
+{
+    public ApiKeyAuthenticationSchemeAttribute(string name, ApiKeyLocation location)
+    {
         Name = name;
         Location = location;
     }
@@ -67,8 +73,10 @@ public sealed class ApiKeyAuthenticationSchemeAttribute : Attribute {
 /// empty for now; the scopes an operation actually requires appear on the operation.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class OAuth2AuthenticationSchemeAttribute : Attribute {
-    public OAuth2AuthenticationSchemeAttribute(OAuth2Flow flow) {
+public sealed class OAuth2AuthenticationSchemeAttribute : Attribute
+{
+    public OAuth2AuthenticationSchemeAttribute(OAuth2Flow flow)
+    {
         Flow = flow;
     }
 

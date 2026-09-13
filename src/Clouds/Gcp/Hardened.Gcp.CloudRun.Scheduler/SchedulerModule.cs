@@ -17,7 +17,8 @@ namespace Hardened.Gcp.CloudRun.Scheduler;
 /// </remarks>
 [DependencyModule]
 [CloudRunRuntime]
-public partial class SchedulerModule : IServiceCollectionConfiguration {
+public partial class SchedulerModule : IServiceCollectionConfiguration
+{
     /// <summary>
     /// The path a job's target URL carries the timer's name under, or null for
     /// <see cref="SchedulerEnvelope.DefaultPrefix"/>.
@@ -28,8 +29,11 @@ public partial class SchedulerModule : IServiceCollectionConfiguration {
     /// </remarks>
     public string? Prefix { get; set; }
 
-    public void ConfigureServices(IServiceCollection services) {
-        services.AddSingleton<ITriggerEnvelope>(new SchedulerEnvelope(Prefix ?? SchedulerEnvelope.DefaultPrefix));
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<ITriggerEnvelope>(
+            new SchedulerEnvelope(Prefix ?? SchedulerEnvelope.DefaultPrefix)
+        );
 
         // For the neutral test delivery, which sends every trigger as a batch; a schedule fires
         // once, and a fork carrying one item passes straight through.

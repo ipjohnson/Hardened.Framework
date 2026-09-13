@@ -19,8 +19,8 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(204)]
-public sealed record NoContent : IHttpStatusResponse, IResponseExpectation<NoContent> {
-
+public sealed record NoContent : IHttpStatusResponse, IResponseExpectation<NoContent>
+{
     public static int StatusCode => 204;
 
     public int Status => StatusCode;
@@ -28,5 +28,7 @@ public sealed record NoContent : IHttpStatusResponse, IResponseExpectation<NoCon
     public bool HasBody => false;
 
     public static NoContent FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) => new();
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new();
 }

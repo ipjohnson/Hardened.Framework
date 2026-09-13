@@ -28,8 +28,8 @@ namespace Hardened.Requests.Runtime.Filters;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = false)]
-public class RetryAttribute : Attribute, IRequestFilterProvider {
-
+public class RetryAttribute : Attribute, IRequestFilterProvider
+{
     /// <summary>
     /// Total attempts, including the first. Three by default.
     /// </summary>
@@ -46,7 +46,8 @@ public class RetryAttribute : Attribute, IRequestFilterProvider {
     /// <c>[Retry]</c> in the wild is written with. The same value, under the name that described it
     /// less well.
     /// </summary>
-    public int Retries {
+    public int Retries
+    {
         get => Attempts;
         set => Attempts = value;
     }
@@ -72,10 +73,12 @@ public class RetryAttribute : Attribute, IRequestFilterProvider {
     /// </summary>
     public bool AllowNonIdempotent { get; set; }
 
-    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
+    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+    {
         yield return new RequestFilterInfo(
             _ => new RetryFilter(Attempts, SleepTime, TotalBudget, AllowNonIdempotent),
             FilterOrder.Retry,
-            nameof(RetryFilter));
+            nameof(RetryFilter)
+        );
     }
 }

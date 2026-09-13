@@ -1,7 +1,7 @@
+using System.Text;
 using Hardened.SourceGeneration.Testing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
-using System.Text;
 using Xunit;
 
 namespace Hardened.SourceGeneration.Testing.Tests;
@@ -16,13 +16,18 @@ namespace Hardened.SourceGeneration.Testing.Tests;
 /// 2026-08-11.
 /// </para>
 /// </summary>
-public class HarnessCatchesBrokenGeneratorsTests {
-
+public class HarnessCatchesBrokenGeneratorsTests
+{
     [Fact]
-    public void OutputThatDoesNotCompileFailsTheAssertion() {
+    public void OutputThatDoesNotCompileFailsTheAssertion()
+    {
         var result = GeneratorTestHarness.Run(
             "namespace TestApp; public class Marker { }",
-            new EmittingGenerator("Broken.g.cs", "namespace TestApp { public class Broken { void M() { var x = ; } } }"));
+            new EmittingGenerator(
+                "Broken.g.cs",
+                "namespace TestApp { public class Broken { void M() { var x = ; } } }"
+            )
+        );
 
         var failure = Assert.ThrowsAny<Exception>(() => result.AssertNoErrors());
 
@@ -35,10 +40,15 @@ public class HarnessCatchesBrokenGeneratorsTests {
     /// diagnosed, so the offending file is printed with line numbers and the bad line marked.
     /// </summary>
     [Fact]
-    public void TheFailureMessageContainsTheGeneratedSource() {
+    public void TheFailureMessageContainsTheGeneratedSource()
+    {
         var result = GeneratorTestHarness.Run(
             "namespace TestApp; public class Marker { }",
-            new EmittingGenerator("Broken.g.cs", "namespace TestApp { public class Broken { void M() { var x = ; } } }"));
+            new EmittingGenerator(
+                "Broken.g.cs",
+                "namespace TestApp { public class Broken { void M() { var x = ; } } }"
+            )
+        );
 
         var failure = Assert.ThrowsAny<Exception>(() => result.AssertNoErrors());
 
@@ -53,10 +63,12 @@ public class HarnessCatchesBrokenGeneratorsTests {
     /// passes.
     /// </summary>
     [Fact]
-    public void AGeneratorThatThrowsFailsTheAssertion() {
+    public void AGeneratorThatThrowsFailsTheAssertion()
+    {
         var result = GeneratorTestHarness.Run(
             "namespace TestApp; public class Marker { }",
-            new ThrowingGenerator());
+            new ThrowingGenerator()
+        );
 
         var failure = Assert.ThrowsAny<Exception>(() => result.AssertNoErrors());
 
@@ -67,13 +79,19 @@ public class HarnessCatchesBrokenGeneratorsTests {
     /// Two generators emitting the same hint name means one output silently replaced another.
     /// </summary>
     [Fact]
-    public void DuplicateHintNamesFailTheAssertion() {
+    public void DuplicateHintNamesFailTheAssertion()
+    {
         var result = GeneratorTestHarness.Run(
-            new Dictionary<string, string> { ["Test.cs"] = "namespace TestApp; public class Marker { }" },
-            new IIncrementalGenerator[] {
+            new Dictionary<string, string>
+            {
+                ["Test.cs"] = "namespace TestApp; public class Marker { }",
+            },
+            new IIncrementalGenerator[]
+            {
                 new EmittingGenerator("Same.g.cs", "namespace TestApp { public class A { } }"),
-                new EmittingGenerator("Same.g.cs", "namespace TestApp { public class B { } }")
-            });
+                new EmittingGenerator("Same.g.cs", "namespace TestApp { public class B { } }"),
+            }
+        );
 
         var failure = Assert.ThrowsAny<Exception>(() => result.AssertNoErrors());
 
@@ -81,10 +99,13 @@ public class HarnessCatchesBrokenGeneratorsTests {
     }
 
     [Fact]
-    public void OutputThatCompilesPassesTheAssertion() {
-        GeneratorTestHarness.Run(
+    public void OutputThatCompilesPassesTheAssertion()
+    {
+        GeneratorTestHarness
+            .Run(
                 "namespace TestApp; public class Marker { }",
-                new EmittingGenerator("Fine.g.cs", "namespace TestApp { public class Fine { } }"))
+                new EmittingGenerator("Fine.g.cs", "namespace TestApp { public class Fine { } }")
+            )
             .AssertNoErrors();
     }
 
@@ -93,11 +114,13 @@ public class HarnessCatchesBrokenGeneratorsTests {
     /// harness that drops them cannot test either.
     /// </summary>
     [Fact]
-    public void AdditionalFilesReachTheGenerator() {
+    public void AdditionalFilesReachTheGenerator()
+    {
         var result = GeneratorTestHarness.Run(
             "namespace TestApp; public class Marker { }",
             new AdditionalTextEchoGenerator(),
-            additionalTexts: new Dictionary<string, string> { ["spec.yaml"] = "openapi: 3.0.0" });
+            additionalTexts: new Dictionary<string, string> { ["spec.yaml"] = "openapi: 3.0.0" }
+        );
 
         result.AssertNoErrors();
 
@@ -110,17 +133,20 @@ public class HarnessCatchesBrokenGeneratorsTests {
     /// none. <c>RootNamespace</c> is read by every Hardened generator.
     /// </summary>
     [Fact]
-    public void BuildPropertiesReachTheGenerator() {
+    public void BuildPropertiesReachTheGenerator()
+    {
         var withDefault = GeneratorTestHarness.Run(
             "namespace TestApp; public class Marker { }",
-            new BuildPropertyEchoGenerator("RootNamespace"));
+            new BuildPropertyEchoGenerator("RootNamespace")
+        );
 
         Assert.Contains("TestNamespace", withDefault.SourceContaining("Echo"));
 
         var overridden = GeneratorTestHarness.Run(
             "namespace TestApp; public class Marker { }",
             new BuildPropertyEchoGenerator("RootNamespace"),
-            buildProperties: new Dictionary<string, string> { ["RootNamespace"] = "Contoso.Api" });
+            buildProperties: new Dictionary<string, string> { ["RootNamespace"] = "Contoso.Api" }
+        );
 
         Assert.Contains("Contoso.Api", overridden.SourceContaining("Echo"));
     }
@@ -130,8 +156,10 @@ public class HarnessCatchesBrokenGeneratorsTests {
     /// legitimately compiles is reported as a generator defect.
     /// </summary>
     [Fact]
-    public void ReferenceAnchorsResolveTransitively() {
-        GeneratorTestHarness.Run(
+    public void ReferenceAnchorsResolveTransitively()
+    {
+        GeneratorTestHarness
+            .Run(
                 """
                 using Microsoft.CodeAnalysis;
 
@@ -142,7 +170,8 @@ public class HarnessCatchesBrokenGeneratorsTests {
                 }
                 """,
                 new EmittingGenerator("Fine.g.cs", "namespace TestApp { public class Fine { } }"),
-                referenceAnchors: [typeof(GeneratorTestHarness)])
+                referenceAnchors: [typeof(GeneratorTestHarness)]
+            )
             .AssertNoErrors();
     }
 
@@ -159,10 +188,12 @@ public class HarnessCatchesBrokenGeneratorsTests {
     /// diagnostic and whatever the generated code did wrong.
     /// </remarks>
     [Fact]
-    public void AnErrorWithNoLocationIsDescribedRatherThanThrowing() {
+    public void AnErrorWithNoLocationIsDescribedRatherThanThrowing()
+    {
         var result = GeneratorTestHarness.Run(
             "namespace TestApp; public class Marker { }",
-            new DiagnosticReportingGenerator());
+            new DiagnosticReportingGenerator()
+        );
 
         var failure = Assert.ThrowsAny<Exception>(() => result.AssertNoErrors());
 
@@ -171,65 +202,100 @@ public class HarnessCatchesBrokenGeneratorsTests {
         Assert.Contains("no location", failure.Message);
     }
 
-    private sealed class EmittingGenerator(string hintName, string source) : IIncrementalGenerator {
+    private sealed class EmittingGenerator(string hintName, string source) : IIncrementalGenerator
+    {
         public void Initialize(IncrementalGeneratorInitializationContext context) =>
-            context.RegisterPostInitializationOutput(
-                ctx => ctx.AddSource(hintName, SourceText.From(source, Encoding.UTF8)));
+            context.RegisterPostInitializationOutput(ctx =>
+                ctx.AddSource(hintName, SourceText.From(source, Encoding.UTF8))
+            );
     }
 
     /// <summary>Reports an error at <see cref="Location.None"/>, as every generator here does.</summary>
-    private sealed class DiagnosticReportingGenerator : IIncrementalGenerator {
+    private sealed class DiagnosticReportingGenerator : IIncrementalGenerator
+    {
         public void Initialize(IncrementalGeneratorInitializationContext context) =>
             context.RegisterSourceOutput(
                 context.CompilationProvider,
-                (production, _) => production.ReportDiagnostic(
-                    Diagnostic.Create(
-                        new DiagnosticDescriptor(
-                            id: "HRDTEST",
-                            title: "Deliberate",
-                            messageFormat: "Reported with no location, as the real ones are.",
-                            category: "Hardened.Testing",
-                            defaultSeverity: DiagnosticSeverity.Error,
-                            isEnabledByDefault: true),
-                        Location.None)));
+                (production, _) =>
+                    production.ReportDiagnostic(
+                        Diagnostic.Create(
+                            new DiagnosticDescriptor(
+                                id: "HRDTEST",
+                                title: "Deliberate",
+                                messageFormat: "Reported with no location, as the real ones are.",
+                                category: "Hardened.Testing",
+                                defaultSeverity: DiagnosticSeverity.Error,
+                                isEnabledByDefault: true
+                            ),
+                            Location.None
+                        )
+                    )
+            );
     }
 
-    private sealed class ThrowingGenerator : IIncrementalGenerator {
+    private sealed class ThrowingGenerator : IIncrementalGenerator
+    {
         public void Initialize(IncrementalGeneratorInitializationContext context) =>
             context.RegisterSourceOutput(
                 context.CompilationProvider,
-                (_, _) => throw new InvalidOperationException("deliberate"));
+                (_, _) => throw new InvalidOperationException("deliberate")
+            );
     }
 
-    private sealed class AdditionalTextEchoGenerator : IIncrementalGenerator {
-        public void Initialize(IncrementalGeneratorInitializationContext context) {
-            var texts = context.AdditionalTextsProvider
-                .Select((text, token) => (Path.GetFileName(text.Path), text.GetText(token)?.ToString() ?? ""))
+    private sealed class AdditionalTextEchoGenerator : IIncrementalGenerator
+    {
+        public void Initialize(IncrementalGeneratorInitializationContext context)
+        {
+            var texts = context
+                .AdditionalTextsProvider.Select(
+                    (text, token) =>
+                        (Path.GetFileName(text.Path), text.GetText(token)?.ToString() ?? "")
+                )
                 .Collect();
 
-            context.RegisterSourceOutput(texts, (ctx, all) => {
-                var body = string.Join(
-                    Environment.NewLine,
-                    all.Select(pair => $"// {pair.Item1}: {pair.Item2}"));
+            context.RegisterSourceOutput(
+                texts,
+                (ctx, all) =>
+                {
+                    var body = string.Join(
+                        Environment.NewLine,
+                        all.Select(pair => $"// {pair.Item1}: {pair.Item2}")
+                    );
 
-                ctx.AddSource("Echo.g.cs", SourceText.From(
-                    $"{body}{Environment.NewLine}namespace TestApp {{ public class Echo {{ }} }}",
-                    Encoding.UTF8));
-            });
+                    ctx.AddSource(
+                        "Echo.g.cs",
+                        SourceText.From(
+                            $"{body}{Environment.NewLine}namespace TestApp {{ public class Echo {{ }} }}",
+                            Encoding.UTF8
+                        )
+                    );
+                }
+            );
         }
     }
 
-    private sealed class BuildPropertyEchoGenerator(string property) : IIncrementalGenerator {
-        public void Initialize(IncrementalGeneratorInitializationContext context) {
-            var value = context.AnalyzerConfigOptionsProvider.Select((options, _) =>
-                options.GlobalOptions.TryGetValue("build_property." + property, out var found)
-                    ? found
-                    : "(unset)");
+    private sealed class BuildPropertyEchoGenerator(string property) : IIncrementalGenerator
+    {
+        public void Initialize(IncrementalGeneratorInitializationContext context)
+        {
+            var value = context.AnalyzerConfigOptionsProvider.Select(
+                (options, _) =>
+                    options.GlobalOptions.TryGetValue("build_property." + property, out var found)
+                        ? found
+                        : "(unset)"
+            );
 
-            context.RegisterSourceOutput(value, (ctx, found) =>
-                ctx.AddSource("Echo.g.cs", SourceText.From(
-                    $"// {property} = {found}{Environment.NewLine}namespace TestApp {{ public class Echo {{ }} }}",
-                    Encoding.UTF8)));
+            context.RegisterSourceOutput(
+                value,
+                (ctx, found) =>
+                    ctx.AddSource(
+                        "Echo.g.cs",
+                        SourceText.From(
+                            $"// {property} = {found}{Environment.NewLine}namespace TestApp {{ public class Echo {{ }} }}",
+                            Encoding.UTF8
+                        )
+                    )
+            );
         }
     }
 }

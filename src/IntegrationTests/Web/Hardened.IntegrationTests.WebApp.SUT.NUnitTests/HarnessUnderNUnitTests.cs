@@ -2,10 +2,10 @@ using Hardened.IntegrationTests.WebApp.SUT.Client;
 using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Kiota.Abstractions;
 using NSubstitute;
 using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
 
@@ -13,12 +13,13 @@ namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
 /// The web harness, read through NUnit. Each test here has a twin in the xUnit project next door
 /// asserting the same answer; the difference is the runner, and that is the point.
 /// </summary>
-public class HarnessUnderNUnitTests {
-
+public class HarnessUnderNUnitTests
+{
     private static CancellationToken Token => TestContext.CurrentContext.CancellationToken;
 
     [HardenedTest]
-    public async Task ARequestThroughTheHarnessAnswers(ITestWebApp app) {
+    public async Task ARequestThroughTheHarnessAnswers(ITestWebApp app)
+    {
         var response = await app.Get("/verbs/item/1");
 
         response.Assert.Ok();
@@ -26,7 +27,11 @@ public class HarnessUnderNUnitTests {
     }
 
     [HardenedTest]
-    public async Task AMockBehindARouteIsTheOneTheHandlerSees(ITestWebApp app, [Mock] IMathService<int> math) {
+    public async Task AMockBehindARouteIsTheOneTheHandlerSees(
+        ITestWebApp app,
+        [Mock] IMathService<int> math
+    )
+    {
         math.Add(Arg.Any<int[]>()).Returns(100);
 
         var response = await app.Post(new MathAddModel { Values = [1, 2, 3] }, "/int/add");
@@ -36,9 +41,13 @@ public class HarnessUnderNUnitTests {
     }
 
     [HardenedTest]
-    public async Task AGeneratedClientIsAParameterAndReturnsReadsIt(WebAppClient client) {
-        var created = await client.Verbs.Located
-            .PostAsync(new ClientModels.MathAddModel { Values = [1, 2, 3] }, cancellationToken: Token)
+    public async Task AGeneratedClientIsAParameterAndReturnsReadsIt(WebAppClient client)
+    {
+        var created = await client
+            .Verbs.Located.PostAsync(
+                new ClientModels.MathAddModel { Values = [1, 2, 3] },
+                cancellationToken: Token
+            )
             .Returns<Created<ClientModels.MathAddModel>>();
 
         Assert.That(created.Value.Values, Has.Count.EqualTo(3));
@@ -46,7 +55,8 @@ public class HarnessUnderNUnitTests {
     }
 
     [HardenedTest]
-    public async Task ARefitInterfaceIsAParameterAndReturnsReadsIt(IWebAppApi api) {
+    public async Task ARefitInterfaceIsAParameterAndReturnsReadsIt(IWebAppApi api)
+    {
         var created = await api.CreateLocated(new MathAddModel { Values = [1, 2, 3] })
             .Returns<Created<MathAddModel>>();
 
@@ -54,7 +64,8 @@ public class HarnessUnderNUnitTests {
     }
 
     [HardenedTest]
-    public async Task LastResponseIsKeyedOnTheRunningTest(WebAppClient client) {
+    public async Task LastResponseIsKeyedOnTheRunningTest(WebAppClient client)
+    {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token);
 
         Assert.That(LastResponse.Status, Is.EqualTo(204));
@@ -62,9 +73,14 @@ public class HarnessUnderNUnitTests {
 
     [HardenedTest]
     public async Task TwoParametersCarryTwoCredentials(
-        [Grants("pets:read")] WebAppClient reader, [Anonymous] WebAppClient nobody) {
+        [Grants("pets:read")] WebAppClient reader,
+        [Anonymous] WebAppClient nobody
+    )
+    {
         var pets = await reader.Authorization.Pets.GetAsync(cancellationToken: Token);
-        var refused = Assert.ThrowsAsync<ClientModels.ErrorModel>(() => nobody.Authorization.Pets.GetAsync(cancellationToken: Token));
+        var refused = Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
+            nobody.Authorization.Pets.GetAsync(cancellationToken: Token)
+        );
 
         Assert.That(pets, Is.Not.Null);
         Assert.That(refused!.ResponseStatusCode, Is.EqualTo(401));
@@ -72,7 +88,8 @@ public class HarnessUnderNUnitTests {
 
     [HardenedTest]
     [Grants("pets:read")]
-    public async Task TheCredentialInScopeReachesARefitCall(IWebAppApi api) {
+    public async Task TheCredentialInScopeReachesARefitCall(IWebAppApi api)
+    {
         var pets = await api.Pets().Returns<Ok<string>>();
 
         Assert.That(pets.Value, Is.EqualTo("\"pets\""));
@@ -80,7 +97,8 @@ public class HarnessUnderNUnitTests {
 
     /// <summary>A refusal from the harness's own assertion reads as this test's failure, with its message.</summary>
     [HardenedTest]
-    public async Task TheHarnessAssertionNamesTheStatus(ITestWebApp app) {
+    public async Task TheHarnessAssertionNamesTheStatus(ITestWebApp app)
+    {
         var response = await app.Get("/no/such/route");
 
         var failure = Assert.Throws<WebAssertionException>(() => response.Assert.Ok());

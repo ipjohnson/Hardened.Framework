@@ -1,18 +1,19 @@
-﻿using System.IO;
+﻿using System.Globalization;
+using System.IO;
 using System.Text;
-using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Hardened.Generation;
+using Hardened.Generation.Models;
+using Hardened.Idl;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using Microsoft.OpenApi.YamlReader;
-using Hardened.Generation.Models;
-using Hardened.Idl;
-using Hardened.Generation;
 
 namespace Hardened.OpenApi.SourceGenerator;
 
-internal static class OpenApiSpecParser {
+internal static class OpenApiSpecParser
+{
     /// <summary>
     /// Readers for both formats a specification is written in.
     /// </summary>
@@ -21,12 +22,14 @@ internal static class OpenApiSpecParser {
     /// added before a YAML document will parse at all. Both are first-class here - the Petstore and
     /// Slack descriptions are JSON, everything else tested is YAML.
     /// </remarks>
-    private static OpenApiReaderSettings ReaderSettings(string? externalRefRoot) {
+    private static OpenApiReaderSettings ReaderSettings(string? externalRefRoot)
+    {
         var settings = new OpenApiReaderSettings();
 
         settings.AddYamlReader();
 
-        if (externalRefRoot != null) {
+        if (externalRefRoot != null)
+        {
             settings.LoadExternalRefs = true;
 
             // A file URI, so relative references resolve beside the specification rather than
@@ -34,7 +37,8 @@ internal static class OpenApiSpecParser {
             settings.BaseUrl = new Uri(
                 externalRefRoot.EndsWith("/", StringComparison.Ordinal)
                     ? externalRefRoot
-                    : externalRefRoot + "/");
+                    : externalRefRoot + "/"
+            );
         }
 
         return settings;
@@ -48,9 +52,12 @@ internal static class OpenApiSpecParser {
     /// YAML. Named explicitly rather than left to the reader to infer, so a document that opens with
     /// a comment or a byte order mark cannot be mistaken for the other format.
     /// </remarks>
-    private static string DetectFormat(string text) {
-        foreach (var character in text) {
-            if (char.IsWhiteSpace(character) || character == '﻿') {
+    private static string DetectFormat(string text)
+    {
+        foreach (var character in text)
+        {
+            if (char.IsWhiteSpace(character) || character == '﻿')
+            {
                 continue;
             }
 
@@ -61,6 +68,7 @@ internal static class OpenApiSpecParser {
 
         return OpenApiConstants.Yaml;
     }
+
     /// <param name="diagnostics">
     /// Reasons, when there are any. The reader knows exactly what is wrong - an unsupported
     /// specification version, an unresolved reference - and its message was previously the only
@@ -78,13 +86,20 @@ internal static class OpenApiSpecParser {
     /// directory restricts resolution to files beside the specification.
     /// </param>
     public static ServiceSpecModel? Parse(
-        string text, string fileName, CancellationToken cancellationToken,
-        bool applyServerBasePath = false, ICollection<string>? diagnostics = null,
-        bool groupUntaggedByPath = false, string? externalRefRoot = null) {
+        string text,
+        string fileName,
+        CancellationToken cancellationToken,
+        bool applyServerBasePath = false,
+        ICollection<string>? diagnostics = null,
+        bool groupUntaggedByPath = false,
+        string? externalRefRoot = null
+    )
+    {
         cancellationToken.ThrowIfCancellationRequested();
 
         OpenApiDocument? document;
-        try {
+        try
+        {
             var settings = ReaderSettings(externalRefRoot);
             var format = DetectFormat(text);
 
@@ -92,29 +107,41 @@ internal static class OpenApiSpecParser {
             // one refuses outright. Blocking on it is safe here and nowhere near a hot path: an
             // MSBuild task's Execute is synchronous by contract, the task runs in its own host
             // process with no synchronisation context to deadlock against, and it runs once.
-            var result = externalRefRoot == null
-                ? OpenApiDocument.Parse(text, format, settings)
-                : OpenApiDocument
-                    .LoadAsync(new MemoryStream(Encoding.UTF8.GetBytes(text)), format, settings,
-                        cancellationToken)
-                    .GetAwaiter().GetResult();
+            var result =
+                externalRefRoot == null
+                    ? OpenApiDocument.Parse(text, format, settings)
+                    : OpenApiDocument
+                        .LoadAsync(
+                            new MemoryStream(Encoding.UTF8.GetBytes(text)),
+                            format,
+                            settings,
+                            cancellationToken
+                        )
+                        .GetAwaiter()
+                        .GetResult();
 
             document = result.Document;
 
-            if (result.Diagnostic?.Errors != null) {
-                foreach (var error in result.Diagnostic.Errors) {
+            if (result.Diagnostic?.Errors != null)
+            {
+                foreach (var error in result.Diagnostic.Errors)
+                {
                     diagnostics?.Add(
                         string.IsNullOrEmpty(error.Pointer)
                             ? error.Message
-                            : error.Pointer + ": " + error.Message);
+                            : error.Pointer + ": " + error.Message
+                    );
                 }
             }
-        } catch (Exception exception) {
+        }
+        catch (Exception exception)
+        {
             diagnostics?.Add(exception.Message);
             return null;
         }
 
-        if (document == null) {
+        if (document == null)
+        {
             return null;
         }
 
@@ -127,14 +154,17 @@ internal static class OpenApiSpecParser {
         model.Version = document.Info?.Version;
         model.InfoDescription = document.Info?.Description;
 
-        if (document.Components?.SecuritySchemes != null) {
-            foreach (var pair in document.Components.SecuritySchemes) {
+        if (document.Components?.SecuritySchemes != null)
+        {
+            foreach (var pair in document.Components.SecuritySchemes)
+            {
                 var json = SecuritySchemeJson(pair.Value);
 
-                if (json != null) {
-                    model.SecuritySchemes.Add(new SecuritySchemeModel {
-                        Name = pair.Key, Json = json
-                    });
+                if (json != null)
+                {
+                    model.SecuritySchemes.Add(
+                        new SecuritySchemeModel { Name = pair.Key, Json = json }
+                    );
                 }
             }
         }
@@ -144,11 +174,14 @@ internal static class OpenApiSpecParser {
         // visible to SpecDiagnostics as a duplicate rather than quietly overwriting it.
         var synthesized = new SchemaCollector(document.Components?.Schemas?.Keys);
 
-        if (document.Components?.Schemas != null) {
-            foreach (var kvp in document.Components.Schemas) {
+        if (document.Components?.Schemas != null)
+        {
+            foreach (var kvp in document.Components.Schemas)
+            {
                 cancellationToken.ThrowIfCancellationRequested();
                 var schema = ParseSchema(kvp.Key, kvp.Value, synthesized);
-                if (schema != null) {
+                if (schema != null)
+                {
                     model.Schemas.Add(schema);
                 }
             }
@@ -158,29 +191,46 @@ internal static class OpenApiSpecParser {
         // Whole-service, and at the root because that is the only place a document addresses the
         // service rather than an operation. What an operation produces is per operation; what
         // happens when a client asks for something outside that set is one answer for all of them.
-        if (document.Extensions != null &&
-            document.Extensions.TryGetValue("x-hardened-content-negotiation", out var negotiationExt) &&
-            negotiationExt is JsonNodeExtension { Node: JsonValue negotiationValue } &&
-            negotiationValue.GetValueKind() == JsonValueKind.String) {
-            model.ContentNegotiation = negotiationValue.GetValue<string>().Trim().ToLowerInvariant();
+        if (
+            document.Extensions != null
+            && document.Extensions.TryGetValue(
+                "x-hardened-content-negotiation",
+                out var negotiationExt
+            )
+            && negotiationExt is JsonNodeExtension { Node: JsonValue negotiationValue }
+            && negotiationValue.GetValueKind() == JsonValueKind.String
+        )
+        {
+            model.ContentNegotiation = negotiationValue
+                .GetValue<string>()
+                .Trim()
+                .ToLowerInvariant();
         }
 
         // Beside it, and at the root for the same reason: what a failure is written as is one
         // answer for the whole service rather than a thing one operation differs on.
-        if (document.Extensions != null &&
-            document.Extensions.TryGetValue("x-hardened-error-bodies", out var errorBodiesExt) &&
-            errorBodiesExt is JsonNodeExtension { Node: JsonValue errorBodiesValue } &&
-            errorBodiesValue.GetValueKind() == JsonValueKind.String) {
+        if (
+            document.Extensions != null
+            && document.Extensions.TryGetValue("x-hardened-error-bodies", out var errorBodiesExt)
+            && errorBodiesExt is JsonNodeExtension { Node: JsonValue errorBodiesValue }
+            && errorBodiesValue.GetValueKind() == JsonValueKind.String
+        )
+        {
             model.ErrorBodies = errorBodiesValue.GetValue<string>().Trim().ToLowerInvariant();
         }
 
-        if (document.Extensions != null &&
-            document.Extensions.TryGetValue("x-filter-types", out var filterTypesExt) &&
-            filterTypesExt is JsonNodeExtension { Node: JsonObject filterTypesObj }) {
-            foreach (var kvp in filterTypesObj) {
+        if (
+            document.Extensions != null
+            && document.Extensions.TryGetValue("x-filter-types", out var filterTypesExt)
+            && filterTypesExt is JsonNodeExtension { Node: JsonObject filterTypesObj }
+        )
+        {
+            foreach (var kvp in filterTypesObj)
+            {
                 cancellationToken.ThrowIfCancellationRequested();
                 var filterType = ParseFilterType(kvp.Key, kvp.Value);
-                if (filterType != null) {
+                if (filterType != null)
+                {
                     model.FilterTypes.Add(filterType);
                 }
             }
@@ -192,15 +242,25 @@ internal static class OpenApiSpecParser {
 
         ReadServers(document, basePath, model);
 
-        if (document.Paths != null) {
-            foreach (var pathKvp in document.Paths) {
+        if (document.Paths != null)
+        {
+            foreach (var pathKvp in document.Paths)
+            {
                 cancellationToken.ThrowIfCancellationRequested();
-                ParsePath(basePath + pathKvp.Key, pathKvp.Value, operationsByTag, synthesized,
-                    groupUntaggedByPath, document, diagnostics);
+                ParsePath(
+                    basePath + pathKvp.Key,
+                    pathKvp.Value,
+                    operationsByTag,
+                    synthesized,
+                    groupUntaggedByPath,
+                    document,
+                    diagnostics
+                );
             }
         }
 
-        foreach (var schema in synthesized.Synthesized) {
+        foreach (var schema in synthesized.Synthesized)
+        {
             model.Schemas.Add(schema);
         }
 
@@ -209,15 +269,20 @@ internal static class OpenApiSpecParser {
         // asked about, since a dropped keyword left no field to look at.
         model.UnmappedKeywords.AddRange(synthesized.Unmapped);
 
-        foreach (var kvp in operationsByTag) {
-            model.Services.Add(new ServiceModel {
-                Tag = kvp.Key,
-                // From the document's top-level tags list, which is the one place a contract
-                // describes a group rather than an operation.
-                TagDescription = document.Tags?
-                    .FirstOrDefault(t => t.Name == kvp.Key)?.Description,
-                Operations = kvp.Value
-            });
+        foreach (var kvp in operationsByTag)
+        {
+            model.Services.Add(
+                new ServiceModel
+                {
+                    Tag = kvp.Key,
+                    // From the document's top-level tags list, which is the one place a contract
+                    // describes a group rather than an operation.
+                    TagDescription = document
+                        .Tags?.FirstOrDefault(t => t.Name == kvp.Key)
+                        ?.Description,
+                    Operations = kvp.Value,
+                }
+            );
         }
 
         // Order matters, and only here. References are cleared before names are allocated so the
@@ -250,29 +315,42 @@ internal static class OpenApiSpecParser {
     /// is lost is the type relationship, not any of the data.
     /// </para>
     /// </remarks>
-    private static void DropIncompatibleBaseTypes(ServiceSpecModel model) {
+    private static void DropIncompatibleBaseTypes(ServiceSpecModel model)
+    {
         var byName = new Dictionary<string, SchemaModel>(StringComparer.Ordinal);
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             byName[schema.Name] = schema;
         }
 
-        foreach (var schema in model.Schemas) {
-            if (schema.BaseRef == null ||
-                !byName.TryGetValue(TypeMapper.GetRefName(schema.BaseRef), out var baseSchema)) {
+        foreach (var schema in model.Schemas)
+        {
+            if (
+                schema.BaseRef == null
+                || !byName.TryGetValue(TypeMapper.GetRefName(schema.BaseRef), out var baseSchema)
+            )
+            {
                 continue;
             }
 
-            foreach (var property in schema.Properties) {
-                var inherited = baseSchema.Properties.Find(p => p.MemberName == property.MemberName);
+            foreach (var property in schema.Properties)
+            {
+                var inherited = baseSchema.Properties.Find(p =>
+                    p.MemberName == property.MemberName
+                );
 
-                if (inherited == null) {
+                if (inherited == null)
+                {
                     continue;
                 }
 
-                if (TypeMapper.MapPropertyToCSharpType(inherited) !=
-                        TypeMapper.MapPropertyToCSharpType(property) ||
-                    inherited.IsCSharpNullable != property.IsCSharpNullable) {
+                if (
+                    TypeMapper.MapPropertyToCSharpType(inherited)
+                        != TypeMapper.MapPropertyToCSharpType(property)
+                    || inherited.IsCSharpNullable != property.IsCSharpNullable
+                )
+                {
                     schema.BaseRef = null;
                     break;
                 }
@@ -280,12 +358,7 @@ internal static class OpenApiSpecParser {
         }
     }
 
-
-
-
-
     /// <summary>Points every reference at a renamed schema's new name.</summary>
-
     /// <summary>
     /// A short, stable qualifier for a name that has to differ from another.
     /// </summary>
@@ -295,7 +368,6 @@ internal static class OpenApiSpecParser {
     /// churns the file and recompiles every consumer. Derived from provenance rather than from the
     /// order things were parsed in, so reordering a document cannot rename a type.
     /// </remarks>
-
     /// <summary>
     /// Rewrites references to top-level array schemas into the array they stand for.
     /// </summary>
@@ -326,7 +398,8 @@ internal static class OpenApiSpecParser {
     /// <c>JsonElement</c> the caller inspects is more honest than a type that picks one.
     /// </para>
     /// </remarks>
-    private static void DropUndecidableChoices(ServiceSpecModel model) {
+    private static void DropUndecidableChoices(ServiceSpecModel model)
+    {
         var dropped = new HashSet<string>(StringComparer.Ordinal);
 
         // The schemas that will emit a type, which is not every schema in the model: an array
@@ -334,14 +407,18 @@ internal static class OpenApiSpecParser {
         // naming one names nothing the converter can read into.
         var declared = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var schema in model.Schemas) {
-            if (schema.Kind is SchemaKind.Object or SchemaKind.Enum or SchemaKind.OneOf) {
+        foreach (var schema in model.Schemas)
+        {
+            if (schema.Kind is SchemaKind.Object or SchemaKind.Enum or SchemaKind.OneOf)
+            {
                 declared.Add(schema.Name);
             }
         }
 
-        foreach (var schema in model.Schemas) {
-            if (schema.Kind != SchemaKind.OneOf) {
+        foreach (var schema in model.Schemas)
+        {
+            if (schema.Kind != SchemaKind.OneOf)
+            {
                 continue;
             }
 
@@ -349,19 +426,27 @@ internal static class OpenApiSpecParser {
             // converter would name a type that does not exist - CS0234 in a generated file.
             // Checked for every choice, discriminated or not: a discriminator says which branch a
             // payload is, not that the branch was generated.
-            schema.OneOf.RemoveAll(
-                branch => branch.Ref != null && !declared.Contains(TypeMapper.GetRefName(branch.Ref)));
-            schema.DiscriminatorMapping.RemoveAll(
-                mapping => !declared.Contains(TypeMapper.GetRefName(mapping.Ref)));
+            schema.OneOf.RemoveAll(branch =>
+                branch.Ref != null && !declared.Contains(TypeMapper.GetRefName(branch.Ref))
+            );
+            schema.DiscriminatorMapping.RemoveAll(mapping =>
+                !declared.Contains(TypeMapper.GetRefName(mapping.Ref))
+            );
 
-            if (schema.OneOf.Count < 2 ||
-                (schema.DiscriminatorPropertyName == null &&
-                 !ChoiceResolution.Resolve(schema.OneOf, model.Schemas).Usable)) {
+            if (
+                schema.OneOf.Count < 2
+                || (
+                    schema.DiscriminatorPropertyName == null
+                    && !ChoiceResolution.Resolve(schema.OneOf, model.Schemas).Usable
+                )
+            )
+            {
                 dropped.Add(schema.Name);
             }
         }
 
-        if (dropped.Count == 0) {
+        if (dropped.Count == 0)
+        {
             return;
         }
 
@@ -369,9 +454,10 @@ internal static class OpenApiSpecParser {
 
         // The property keeps its OneOfRefs, so the branches stay reachable and the diagnostic can
         // still say which schemas it was choosing between.
-        foreach (var reference in ModelRefs.All(model)) {
-            if (reference.Value != null &&
-                dropped.Contains(TypeMapper.GetRefName(reference.Value))) {
+        foreach (var reference in ModelRefs.All(model))
+        {
+            if (reference.Value != null && dropped.Contains(TypeMapper.GetRefName(reference.Value)))
+            {
                 reference.Set(null);
             }
         }
@@ -396,10 +482,12 @@ internal static class OpenApiSpecParser {
     /// what this is looking for is a name the document does not contain.
     /// </para>
     /// </remarks>
-    private static void RecordDanglingReferences(ServiceSpecModel model) {
+    private static void RecordDanglingReferences(ServiceSpecModel model)
+    {
         var declared = new HashSet<string>();
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             declared.Add(schema.Name);
         }
 
@@ -408,19 +496,25 @@ internal static class OpenApiSpecParser {
         // edit look like two.
         var reported = new HashSet<string>();
 
-        foreach (var reference in ModelRefs.All(model)) {
-            if (string.IsNullOrEmpty(reference.Value) ||
-                declared.Contains(TypeMapper.GetRefName(reference.Value!)) ||
-                !reported.Add(reference.Location + "\u0000" + reference.Value)) {
+        foreach (var reference in ModelRefs.All(model))
+        {
+            if (
+                string.IsNullOrEmpty(reference.Value)
+                || declared.Contains(TypeMapper.GetRefName(reference.Value!))
+                || !reported.Add(reference.Location + "\u0000" + reference.Value)
+            )
+            {
                 continue;
             }
 
             model.DanglingReferences.Add(
-                new DanglingReferenceModel(reference.Value!, reference.Location));
+                new DanglingReferenceModel(reference.Value!, reference.Location)
+            );
         }
     }
 
-    private static void InlineNonObjectRefs(ServiceSpecModel model) {
+    private static void InlineNonObjectRefs(ServiceSpecModel model)
+    {
         // Only objects, enums and choice types become types. A reference to anything else - a
         // top-level array alias, an anyOf with no shape of its own, a schema this parser could not
         // read - was still typed by the reference's name, naming something nothing declares.
@@ -429,13 +523,19 @@ internal static class OpenApiSpecParser {
         var emittable = new HashSet<string>();
         var arrays = new Dictionary<string, SchemaModel>();
 
-        foreach (var schema in model.Schemas) {
-            if (schema.Kind == SchemaKind.Object || schema.Kind == SchemaKind.Enum ||
-                schema.Kind == SchemaKind.OneOf) {
+        foreach (var schema in model.Schemas)
+        {
+            if (
+                schema.Kind == SchemaKind.Object
+                || schema.Kind == SchemaKind.Enum
+                || schema.Kind == SchemaKind.OneOf
+            )
+            {
                 emittable.Add(schema.Name);
             }
 
-            if (schema.Kind == SchemaKind.Array) {
+            if (schema.Kind == SchemaKind.Array)
+            {
                 arrays[schema.Name] = schema;
             }
         }
@@ -448,25 +548,32 @@ internal static class OpenApiSpecParser {
                 ? found
                 : null;
 
-        foreach (var schema in model.Schemas) {
-            foreach (var property in schema.Properties) {
+        foreach (var schema in model.Schemas)
+        {
+            foreach (var property in schema.Properties)
+            {
                 var target = Array(property.Ref);
 
-                if (target != null) {
+                if (target != null)
+                {
                     // An alias for a list, so the property becomes that list.
                     property.Ref = null;
                     property.IsArray = true;
                     property.ArrayItemsRef = target.ArrayItemsRef;
                     property.ArrayItemsType = target.ArrayItemsType;
                     property.ArrayItemsFormat = target.ArrayItemsFormat;
-                } else if (Missing(property.Ref)) {
+                }
+                else if (Missing(property.Ref))
+                {
                     property.Ref = null;
                 }
 
                 // Nested arrays and unreadable element types both fall back to JsonElement, which
                 // is what the mapper already does for an element it cannot name.
-                if (Missing(property.ArrayItemsRef)) property.ArrayItemsRef = null;
-                if (Missing(property.DictionaryValueRef)) property.DictionaryValueRef = null;
+                if (Missing(property.ArrayItemsRef))
+                    property.ArrayItemsRef = null;
+                if (Missing(property.DictionaryValueRef))
+                    property.DictionaryValueRef = null;
             }
         }
 
@@ -474,28 +581,39 @@ internal static class OpenApiSpecParser {
         // branch, a parameter and a declared error response all name a type in generated code, and
         // Cloudflare and PagerDuty reference hundreds of schemas that produce none - each one a
         // CS0234 naming something nothing declares.
-        foreach (var schema in model.Schemas) {
-            if (Missing(schema.BaseRef)) schema.BaseRef = null;
+        foreach (var schema in model.Schemas)
+        {
+            if (Missing(schema.BaseRef))
+                schema.BaseRef = null;
 
             schema.DiscriminatorMapping.RemoveAll(mapping => Missing(mapping.Ref));
         }
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                if (Missing(operation.RequestBodyRef)) operation.RequestBodyRef = null;
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                if (Missing(operation.RequestBodyRef))
+                    operation.RequestBodyRef = null;
 
-                foreach (var parameter in operation.Parameters) {
-                    if (Missing(parameter.Ref)) parameter.Ref = null;
-                    if (Missing(parameter.ArrayItemsRef)) parameter.ArrayItemsRef = null;
+                foreach (var parameter in operation.Parameters)
+                {
+                    if (Missing(parameter.Ref))
+                        parameter.Ref = null;
+                    if (Missing(parameter.ArrayItemsRef))
+                        parameter.ArrayItemsRef = null;
                 }
 
                 // A success whose schema does not exist loses its body rather than its status: the
                 // status is declared and still has to be answerable, so the case becomes a bodyless
                 // one. Errors are removed outright because an error case with no body and no status
                 // of its own carries nothing at all.
-                foreach (var success in operation.SuccessResponses) {
-                    if (Missing(success.Ref)) success.Ref = null;
-                    if (Missing(success.ArrayItemsRef)) {
+                foreach (var success in operation.SuccessResponses)
+                {
+                    if (Missing(success.Ref))
+                        success.Ref = null;
+                    if (Missing(success.ArrayItemsRef))
+                    {
                         success.ArrayItemsRef = null;
                         success.IsArray = false;
                     }
@@ -505,17 +623,21 @@ internal static class OpenApiSpecParser {
 
                 var response = Array(operation.ResponseRef);
 
-                if (response != null) {
+                if (response != null)
+                {
                     operation.ResponseRef = null;
                     operation.ResponseIsArray = true;
                     operation.ResponseArrayItemsRef = response.ArrayItemsRef;
                     operation.ResponseArrayItemsType = response.ArrayItemsType;
                     operation.ResponseArrayItemsFormat = response.ArrayItemsFormat;
-                } else if (Missing(operation.ResponseRef)) {
+                }
+                else if (Missing(operation.ResponseRef))
+                {
                     operation.ResponseRef = null;
                 }
 
-                if (Missing(operation.ResponseArrayItemsRef)) {
+                if (Missing(operation.ResponseArrayItemsRef))
+                {
                     operation.ResponseArrayItemsRef = null;
                     operation.ResponseIsArray = false;
                 }
@@ -547,30 +669,39 @@ internal static class OpenApiSpecParser {
     /// <see cref="ServerBasePath"/> refuses one and this does not.
     /// </para>
     /// </remarks>
-    private static void ReadServers(OpenApiDocument document, string basePath, ServiceSpecModel model) {
-        if (document.Servers == null) {
+    private static void ReadServers(
+        OpenApiDocument document,
+        string basePath,
+        ServiceSpecModel model
+    )
+    {
+        if (document.Servers == null)
+        {
             return;
         }
 
-        foreach (var server in document.Servers) {
-            if (server?.Url is not { } url || string.IsNullOrWhiteSpace(url)) {
+        foreach (var server in document.Servers)
+        {
+            if (server?.Url is not { } url || string.IsNullOrWhiteSpace(url))
+            {
                 continue;
             }
 
             url = url.TrimEnd('/');
 
-            if (basePath.Length > 0 && url.EndsWith(basePath, StringComparison.Ordinal)) {
+            if (basePath.Length > 0 && url.EndsWith(basePath, StringComparison.Ordinal))
+            {
                 url = url.Substring(0, url.Length - basePath.Length);
             }
 
-            if (url.Length == 0) {
+            if (url.Length == 0)
+            {
                 continue;
             }
 
-            model.Servers.Add(new ServerModel {
-                Url = url,
-                Description = FirstNonEmpty(server.Description)
-            });
+            model.Servers.Add(
+                new ServerModel { Url = url, Description = FirstNonEmpty(server.Description) }
+            );
         }
     }
 
@@ -590,21 +721,26 @@ internal static class OpenApiSpecParser {
     /// with declared defaults are substituted first.
     /// </para>
     /// </remarks>
-    private static string ServerBasePath(OpenApiDocument document) {
+    private static string ServerBasePath(OpenApiDocument document)
+    {
         var server = document.Servers?.FirstOrDefault();
 
         // Pattern-matched rather than a null check on Url: .NET Framework's reference assemblies
         // do not carry the NotNullWhen annotation on string.IsNullOrWhiteSpace, so guarding with it
         // alone leaves url nullable on that leg and the build warns where the other does not.
-        if (server?.Url is not { } url || string.IsNullOrWhiteSpace(url)) {
+        if (server?.Url is not { } url || string.IsNullOrWhiteSpace(url))
+        {
             return "";
         }
 
-        if (server.Variables != null) {
-            foreach (var variable in server.Variables) {
+        if (server.Variables != null)
+        {
+            foreach (var variable in server.Variables)
+            {
                 var value = variable.Value?.Default;
 
-                if (!string.IsNullOrEmpty(value)) {
+                if (!string.IsNullOrEmpty(value))
+                {
                     url = url.Replace("{" + variable.Key + "}", value);
                 }
             }
@@ -613,7 +749,8 @@ internal static class OpenApiSpecParser {
         // An absolute URL contributes only its path.
         var schemeEnd = url.IndexOf("://", StringComparison.Ordinal);
 
-        if (schemeEnd >= 0) {
+        if (schemeEnd >= 0)
+        {
             var afterAuthority = url.IndexOf('/', schemeEnd + 3);
 
             url = afterAuthority < 0 ? "" : url.Substring(afterAuthority);
@@ -623,7 +760,8 @@ internal static class OpenApiSpecParser {
 
         // A server that is only a host contributes nothing, and prefixing "/" would produce "//".
         // A variable nobody gave a default to would reach the route tree as a literal brace.
-        if (url.Length == 0 || url.IndexOf('{') >= 0) {
+        if (url.Length == 0 || url.IndexOf('{') >= 0)
+        {
             return "";
         }
 
@@ -631,10 +769,15 @@ internal static class OpenApiSpecParser {
     }
 
     private static SchemaModel? ParseSchema(
-        string name, IOpenApiSchema schema, SchemaCollector collector) {
+        string name,
+        IOpenApiSchema schema,
+        SchemaCollector collector
+    )
+    {
         var model = ParseSchemaKind(name, schema, collector);
 
-        if (model != null) {
+        if (model != null)
+        {
             model.Description = FirstNonEmpty(schema.Description);
             model.IsDeprecated = schema.Deprecated;
 
@@ -661,39 +804,57 @@ internal static class OpenApiSpecParser {
     /// code took an untyped blob.
     /// </para>
     /// </remarks>
-    private static void ParsePolymorphism(IOpenApiSchema schema, SchemaModel model) {
-        if (schema.Discriminator != null &&
-            !string.IsNullOrEmpty(schema.Discriminator.PropertyName)) {
+    private static void ParsePolymorphism(IOpenApiSchema schema, SchemaModel model)
+    {
+        if (
+            schema.Discriminator != null
+            && !string.IsNullOrEmpty(schema.Discriminator.PropertyName)
+        )
+        {
             model.DiscriminatorPropertyName = schema.Discriminator.PropertyName;
 
-            if (schema.Discriminator.Mapping != null) {
-                foreach (var mapping in schema.Discriminator.Mapping) {
-                    model.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
-                        Value = mapping.Key,
-                        Ref = mapping.Value?.Reference?.ReferenceV3 ?? ""
-                    });
+            if (schema.Discriminator.Mapping != null)
+            {
+                foreach (var mapping in schema.Discriminator.Mapping)
+                {
+                    model.DiscriminatorMapping.Add(
+                        new DiscriminatorMappingModel
+                        {
+                            Value = mapping.Key,
+                            Ref = mapping.Value?.Reference?.ReferenceV3 ?? "",
+                        }
+                    );
                 }
             }
 
             // No explicit mapping means the branches are the derived types, keyed by their own
             // names - which is what the specification says a bare discriminator implies.
-            if (model.DiscriminatorMapping.Count == 0 && schema.OneOf is { Count: > 0 }) {
-                foreach (var branch in schema.OneOf) {
+            if (model.DiscriminatorMapping.Count == 0 && schema.OneOf is { Count: > 0 })
+            {
+                foreach (var branch in schema.OneOf)
+                {
                     var reference = SchemaRef(branch);
 
-                    if (reference != null) {
-                        model.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
-                            Value = TypeMapper.GetRefName(reference),
-                            Ref = reference
-                        });
+                    if (reference != null)
+                    {
+                        model.DiscriminatorMapping.Add(
+                            new DiscriminatorMappingModel
+                            {
+                                Value = TypeMapper.GetRefName(reference),
+                                Ref = reference,
+                            }
+                        );
                     }
                 }
             }
         }
 
-        if (schema.AllOf is { Count: > 0 }) {
-            foreach (var branch in schema.AllOf) {
-                if (SchemaRef(branch) != null && branch.Discriminator != null) {
+        if (schema.AllOf is { Count: > 0 })
+        {
+            foreach (var branch in schema.AllOf)
+            {
+                if (SchemaRef(branch) != null && branch.Discriminator != null)
+                {
                     model.BaseRef = SchemaRef(branch);
                     break;
                 }
@@ -702,9 +863,15 @@ internal static class OpenApiSpecParser {
     }
 
     private static SchemaModel? ParseSchemaKind(
-        string name, IOpenApiSchema schema, SchemaCollector collector) {
-        if (schema.Enum is { Count: > 0 }) {
-            var enumModel = new SchemaModel {
+        string name,
+        IOpenApiSchema schema,
+        SchemaCollector collector
+    )
+    {
+        if (schema.Enum is { Count: > 0 })
+        {
+            var enumModel = new SchemaModel
+            {
                 Name = name,
                 Kind = SchemaKind.Enum,
 
@@ -712,16 +879,17 @@ internal static class OpenApiSpecParser {
                 // quoted member from an unquoted one without it - a string enum writes
                 // "science-fiction" and an integer enum writes 3.
                 Type = EnumMemberType(schema.Enum),
-                EnumValues = schema.Enum
-                    .Select(EnumMember)
-                        .Where(value => value != null)
-                        .Select(value => value!)
-                    .ToList()
+                EnumValues = schema
+                    .Enum.Select(EnumMember)
+                    .Where(value => value != null)
+                    .Select(value => value!)
+                    .ToList(),
             };
 
             var declaredNames = EnumMemberNames(schema);
 
-            if (declaredNames != null && declaredNames.Count == enumModel.EnumValues.Count) {
+            if (declaredNames != null && declaredNames.Count == enumModel.EnumValues.Count)
+            {
                 enumModel.EnumMemberNames.AddRange(declaredNames);
                 enumModel.EnumMemberNamesAreDeclared = true;
             }
@@ -729,7 +897,8 @@ internal static class OpenApiSpecParser {
             return enumModel;
         }
 
-        if (schema.AllOf is { Count: > 0 }) {
+        if (schema.AllOf is { Count: > 0 })
+        {
             return ParseAllOf(name, schema, collector);
         }
 
@@ -745,11 +914,15 @@ internal static class OpenApiSpecParser {
         //
         // Properties of its own are the case that is still an object. A oneOf beside properties is
         // a base carrying shared members, which is a hierarchy rather than a choice.
-        if (schema.OneOf is { Count: > 0 } &&
-            (schema.Properties == null || schema.Properties.Count == 0)) {
+        if (
+            schema.OneOf is { Count: > 0 }
+            && (schema.Properties == null || schema.Properties.Count == 0)
+        )
+        {
             var choice = ParseComponentChoice(name, schema);
 
-            if (choice != null) {
+            if (choice != null)
+            {
                 return choice;
             }
         }
@@ -757,26 +930,34 @@ internal static class OpenApiSpecParser {
         // A oneOf naming its branches, with a discriminator to choose between them, is the base of
         // a hierarchy. Reached now only when the schema declares properties of its own, or when the
         // branches left no choice to make.
-        if (schema.OneOf is { Count: > 0 } && schema.Discriminator != null) {
+        if (schema.OneOf is { Count: > 0 } && schema.Discriminator != null)
+        {
             return ParseObjectSchema(name, schema, collector);
         }
 
-        if (SchemaType(schema) == "object" || schema.Properties is { Count: > 0 }) {
-            if (schema.AdditionalProperties != null && (schema.Properties == null || schema.Properties.Count == 0)) {
+        if (SchemaType(schema) == "object" || schema.Properties is { Count: > 0 })
+        {
+            if (
+                schema.AdditionalProperties != null
+                && (schema.Properties == null || schema.Properties.Count == 0)
+            )
+            {
                 return ParseDictionarySchema(name, schema);
             }
             return ParseObjectSchema(name, schema, collector);
         }
 
-        if (SchemaType(schema) == "array") {
+        if (SchemaType(schema) == "array")
+        {
             return ParseArraySchema(name, schema);
         }
 
-        return new SchemaModel {
+        return new SchemaModel
+        {
             Name = name,
             Kind = SchemaKind.Primitive,
             Type = SchemaType(schema),
-            Format = schema.Format
+            Format = schema.Format,
         };
     }
 
@@ -804,34 +985,51 @@ internal static class OpenApiSpecParser {
     /// same as for a synthesized choice.
     /// </para>
     /// </remarks>
-    private static SchemaModel? ParseComponentChoice(string name, IOpenApiSchema schema) {
+    private static SchemaModel? ParseComponentChoice(string name, IOpenApiSchema schema)
+    {
         var branches = new List<ChoiceBranchModel>();
 
         CollectBranches(schema.OneOf, branches);
 
-        if (branches.Count < 2) {
+        if (branches.Count < 2)
+        {
             return null;
         }
 
-        return new SchemaModel {
+        return new SchemaModel
+        {
             Name = name,
             Kind = SchemaKind.OneOf,
-            OneOf = branches
+            OneOf = branches,
         };
     }
 
     private static SchemaModel ParseObjectSchema(
-        string name, IOpenApiSchema schema, SchemaCollector collector) {
-        var model = new SchemaModel {
+        string name,
+        IOpenApiSchema schema,
+        SchemaCollector collector
+    )
+    {
+        var model = new SchemaModel
+        {
             Name = name,
             Kind = SchemaKind.Object,
-            Required = schema.Required?.ToList() ?? new List<string>()
+            Required = schema.Required?.ToList() ?? new List<string>(),
         };
 
-        if (schema.Properties != null) {
-            foreach (var propKvp in schema.Properties) {
-                model.Properties.Add(ParseProperty(propKvp.Key, propKvp.Value,
-                    model.Required.Contains(propKvp.Key), name, collector));
+        if (schema.Properties != null)
+        {
+            foreach (var propKvp in schema.Properties)
+            {
+                model.Properties.Add(
+                    ParseProperty(
+                        propKvp.Key,
+                        propKvp.Value,
+                        model.Required.Contains(propKvp.Key),
+                        name,
+                        collector
+                    )
+                );
             }
         }
 
@@ -839,11 +1037,16 @@ internal static class OpenApiSpecParser {
     }
 
     private static SchemaModel ParseAllOf(
-        string name, IOpenApiSchema schema, SchemaCollector collector) {
-        var model = new SchemaModel {
+        string name,
+        IOpenApiSchema schema,
+        SchemaCollector collector
+    )
+    {
+        var model = new SchemaModel
+        {
             Name = name,
             Kind = SchemaKind.Object,
-            Required = schema.Required?.ToList() ?? new List<string>()
+            Required = schema.Required?.ToList() ?? new List<string>(),
         };
 
         MergeBranches(schema, model, name, collector, new HashSet<string>(StringComparer.Ordinal));
@@ -871,34 +1074,47 @@ internal static class OpenApiSpecParser {
     /// </para>
     /// </remarks>
     private static void MergeBranches(
-        IOpenApiSchema schema, SchemaModel model, string name, SchemaCollector collector,
-        HashSet<string> visited) {
-        foreach (var branch in schema.AllOf ?? Enumerable.Empty<IOpenApiSchema>()) {
+        IOpenApiSchema schema,
+        SchemaModel model,
+        string name,
+        SchemaCollector collector,
+        HashSet<string> visited
+    )
+    {
+        foreach (var branch in schema.AllOf ?? Enumerable.Empty<IOpenApiSchema>())
+        {
             // A composition may name itself somewhere up its own chain, and a document is not
             // required to be acyclic just because a type system is.
             var reference = SchemaRef(branch);
 
-            if (reference != null && !visited.Add(reference)) {
+            if (reference != null && !visited.Add(reference))
+            {
                 continue;
             }
 
             MergeBranches(branch, model, name, collector, visited);
 
-            if (branch.Required != null) {
-                foreach (var required in branch.Required) {
-                    if (!model.Required.Contains(required)) {
+            if (branch.Required != null)
+            {
+                foreach (var required in branch.Required)
+                {
+                    if (!model.Required.Contains(required))
+                    {
                         model.Required.Add(required);
                     }
                 }
             }
 
-            if (branch.Properties == null) {
+            if (branch.Properties == null)
+            {
                 continue;
             }
 
-            foreach (var propKvp in branch.Properties) {
-                var isRequired = model.Required.Contains(propKvp.Key) ||
-                                 (branch.Required?.Contains(propKvp.Key) ?? false);
+            foreach (var propKvp in branch.Properties)
+            {
+                var isRequired =
+                    model.Required.Contains(propKvp.Key)
+                    || (branch.Required?.Contains(propKvp.Key) ?? false);
                 var parsed = ParseProperty(propKvp.Key, propKvp.Value, isRequired, name, collector);
 
                 // allOf is an intersection, so a property named by more than one branch is one
@@ -907,9 +1123,12 @@ internal static class OpenApiSpecParser {
                 // the same name: CS0100 and CS0102, from a document that is entirely legal.
                 var existing = model.Properties.FindIndex(p => p.Name == parsed.Name);
 
-                if (existing >= 0) {
+                if (existing >= 0)
+                {
                     model.Properties[existing] = MergeProperty(model.Properties[existing], parsed);
-                } else {
+                }
+                else
+                {
                     model.Properties.Add(parsed);
                 }
             }
@@ -925,8 +1144,10 @@ internal static class OpenApiSpecParser {
     /// it. Anything the later branch is silent about keeps the earlier value, so the type and
     /// description a base declared survive a branch that only tightens a bound.
     /// </remarks>
-    private static PropertyModel MergeProperty(PropertyModel first, PropertyModel second) {
-        return new PropertyModel {
+    private static PropertyModel MergeProperty(PropertyModel first, PropertyModel second)
+    {
+        return new PropertyModel
+        {
             Name = first.Name,
             Type = second.Type ?? first.Type,
             Format = second.Format ?? first.Format,
@@ -960,30 +1181,34 @@ internal static class OpenApiSpecParser {
             MinItems = second.MinItems ?? first.MinItems,
             MaxItems = second.MaxItems ?? first.MaxItems,
             MessagePackIndex = second.MessagePackIndex ?? first.MessagePackIndex,
-            EnumValues = second.EnumValues is { Count: > 0 } ? second.EnumValues : first.EnumValues
+            EnumValues = second.EnumValues is { Count: > 0 } ? second.EnumValues : first.EnumValues,
         };
     }
 
-    private static SchemaModel ParseDictionarySchema(string name, IOpenApiSchema schema) {
+    private static SchemaModel ParseDictionarySchema(string name, IOpenApiSchema schema)
+    {
         var addlProps = schema.AdditionalProperties;
-        return new SchemaModel {
+        return new SchemaModel
+        {
             Name = name,
             Kind = SchemaKind.Dictionary,
             DictionaryValueType = SchemaType(addlProps),
             DictionaryValueRef = GetNonPrimitiveRef(addlProps),
-            DictionaryValueFormat = addlProps?.Format
+            DictionaryValueFormat = addlProps?.Format,
         };
     }
 
-    private static SchemaModel ParseArraySchema(string name, IOpenApiSchema schema) {
-        return new SchemaModel {
+    private static SchemaModel ParseArraySchema(string name, IOpenApiSchema schema)
+    {
+        return new SchemaModel
+        {
             Name = name,
             Kind = SchemaKind.Array,
             ArrayItemsRef = GetNonPrimitiveRef(schema.Items),
             ArrayItemsType = SchemaType(schema.Items),
             ArrayItemsFormat = schema.Items?.Format,
             MinItems = schema.MinItems,
-            MaxItems = schema.MaxItems
+            MaxItems = schema.MaxItems,
         };
     }
 
@@ -1010,23 +1235,32 @@ internal static class OpenApiSpecParser {
     /// they spell the same words in the same order and nothing readable separates them. Same rule
     /// as NameAllocator - a number appears only where the scope distinguishes nothing.
     /// </remarks>
-    private static string Unique(string name, SchemaCollector collector) {
-        if (!collector.IsTaken(name)) {
+    private static string Unique(string name, SchemaCollector collector)
+    {
+        if (!collector.IsTaken(name))
+        {
             return name;
         }
 
-        for (var suffix = 2; ; suffix++) {
+        for (var suffix = 2; ; suffix++)
+        {
             var candidate =
                 name + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-            if (!collector.IsTaken(candidate)) {
+            if (!collector.IsTaken(candidate))
+            {
                 return candidate;
             }
         }
     }
 
     private static string SynthesizeSchema(
-        string parentName, string propertyName, IOpenApiSchema schema, SchemaCollector collector) {
+        string parentName,
+        string propertyName,
+        IOpenApiSchema schema,
+        SchemaCollector collector
+    )
+    {
         // `title` is OpenAPI's own way to name a schema and would give far better names than this
         // concatenation - Stripe carries 4,700 of them, GitHub 2,175. It is not usable yet: titles
         // are not unique, and checking one against every name already taken needs the reserved set
@@ -1086,39 +1320,54 @@ internal static class OpenApiSpecParser {
     /// which is one type and a flag, not a choice between two.
     /// </para>
     /// </remarks>
-    private static void CollectTypeUnion(IOpenApiSchema prop, PropertyModel model) {
-        if (prop.Type is not { } declared) {
+    private static void CollectTypeUnion(IOpenApiSchema prop, PropertyModel model)
+    {
+        if (prop.Type is not { } declared)
+        {
             return;
         }
 
         var types = declared & ~JsonSchemaType.Null;
 
-        foreach (var candidate in new[] {
-                     JsonSchemaType.String, JsonSchemaType.Integer, JsonSchemaType.Number,
-                     JsonSchemaType.Boolean, JsonSchemaType.Array, JsonSchemaType.Object
-                 }) {
-            if ((types & candidate) != candidate) {
+        foreach (
+            var candidate in new[]
+            {
+                JsonSchemaType.String,
+                JsonSchemaType.Integer,
+                JsonSchemaType.Number,
+                JsonSchemaType.Boolean,
+                JsonSchemaType.Array,
+                JsonSchemaType.Object,
+            }
+        )
+        {
+            if ((types & candidate) != candidate)
+            {
                 continue;
             }
 
             // One bit is an ordinary type, not a choice - left alone so nothing changes for the
             // documents that were always read correctly.
-            if (types == candidate) {
+            if (types == candidate)
+            {
                 return;
             }
 
-            var branch = new ChoiceBranchModel {
-                Type = candidate switch {
+            var branch = new ChoiceBranchModel
+            {
+                Type = candidate switch
+                {
                     JsonSchemaType.String => "string",
                     JsonSchemaType.Integer => "integer",
                     JsonSchemaType.Number => "number",
                     JsonSchemaType.Boolean => "boolean",
                     JsonSchemaType.Array => "array",
-                    _ => "object"
-                }
+                    _ => "object",
+                },
             };
 
-            if (!model.OneOf.Contains(branch)) {
+            if (!model.OneOf.Contains(branch))
+            {
                 model.OneOf.Add(branch);
             }
         }
@@ -1134,15 +1383,21 @@ internal static class OpenApiSpecParser {
     /// method is what keeps them from disagreeing about which branches count.
     /// </remarks>
     private static void CollectBranches(
-        IList<IOpenApiSchema>? branches, List<ChoiceBranchModel> into) {
-        if (branches == null) {
+        IList<IOpenApiSchema>? branches,
+        List<ChoiceBranchModel> into
+    )
+    {
+        if (branches == null)
+        {
             return;
         }
 
-        foreach (var branch in branches) {
+        foreach (var branch in branches)
+        {
             var reference = GetNonPrimitiveRef(branch);
 
-            if (reference == null && SchemaType(branch) == null) {
+            if (reference == null && SchemaType(branch) == null)
+            {
                 // A branch that types to nothing. Two spellings reach here and neither is a choice
                 // between anything: `{type: "null"}`, which is 3.1 for "and it may be null" and is
                 // how OpenAI writes every optional string, and `{}`, which permits any value at all
@@ -1151,11 +1406,13 @@ internal static class OpenApiSpecParser {
                 continue;
             }
 
-            var described = reference != null
-                ? new ChoiceBranchModel { Ref = reference }
-                : new ChoiceBranchModel { Type = SchemaType(branch), Format = branch.Format };
+            var described =
+                reference != null
+                    ? new ChoiceBranchModel { Ref = reference }
+                    : new ChoiceBranchModel { Type = SchemaType(branch), Format = branch.Format };
 
-            if (!into.Contains(described)) {
+            if (!into.Contains(described))
+            {
                 into.Add(described);
             }
         }
@@ -1179,43 +1436,62 @@ internal static class OpenApiSpecParser {
     /// </para>
     /// </remarks>
     private static string? SynthesizeOneOf(
-        string parentName, string propertyName, IOpenApiSchema prop, PropertyModel property,
-        SchemaCollector collector) {
+        string parentName,
+        string propertyName,
+        IOpenApiSchema prop,
+        PropertyModel property,
+        SchemaCollector collector
+    )
+    {
         var discriminator = prop.Discriminator;
 
         var name = Unique(
             NamingHelper.ToPascalCase(parentName) + NamingHelper.ToPascalCase(propertyName),
-            collector);
+            collector
+        );
 
         collector.Reserve(name);
 
-        var model = new SchemaModel {
+        var model = new SchemaModel
+        {
             Name = name,
             Kind = SchemaKind.OneOf,
             OneOf = new List<ChoiceBranchModel>(property.OneOf),
             Description = FirstNonEmpty(prop.Description),
-            DiscriminatorPropertyName = discriminator?.PropertyName
+            DiscriminatorPropertyName = discriminator?.PropertyName,
         };
 
         // Explicit mapping if the document gives one; otherwise the specification says a value maps
         // to the schema it names, which is what most descriptions rely on.
-        if (discriminator?.Mapping is { Count: > 0 }) {
-            foreach (var mapping in discriminator.Mapping) {
-                model.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
-                    Value = mapping.Key,
-                    Ref = mapping.Value?.Reference?.ReferenceV3 ?? ""
-                });
+        if (discriminator?.Mapping is { Count: > 0 })
+        {
+            foreach (var mapping in discriminator.Mapping)
+            {
+                model.DiscriminatorMapping.Add(
+                    new DiscriminatorMappingModel
+                    {
+                        Value = mapping.Key,
+                        Ref = mapping.Value?.Reference?.ReferenceV3 ?? "",
+                    }
+                );
             }
-        } else if (model.DiscriminatorPropertyName != null) {
-            foreach (var branch in model.OneOf) {
-                if (branch.Ref == null) {
+        }
+        else if (model.DiscriminatorPropertyName != null)
+        {
+            foreach (var branch in model.OneOf)
+            {
+                if (branch.Ref == null)
+                {
                     continue;
                 }
 
-                model.DiscriminatorMapping.Add(new DiscriminatorMappingModel {
-                    Value = TypeMapper.GetRefName(branch.Ref),
-                    Ref = branch.Ref
-                });
+                model.DiscriminatorMapping.Add(
+                    new DiscriminatorMappingModel
+                    {
+                        Value = TypeMapper.GetRefName(branch.Ref),
+                        Ref = branch.Ref,
+                    }
+                );
             }
         }
 
@@ -1225,14 +1501,21 @@ internal static class OpenApiSpecParser {
     }
 
     private static PropertyModel ParseProperty(
-        string name, IOpenApiSchema prop, bool isRequired, string parentName, SchemaCollector collector) {
-        var model = new PropertyModel {
+        string name,
+        IOpenApiSchema prop,
+        bool isRequired,
+        string parentName,
+        SchemaCollector collector
+    )
+    {
+        var model = new PropertyModel
+        {
             Name = name,
             IsRequired = isRequired,
             IsNullable = IsNullable(prop),
             Default = GetOpenApiPrimitiveValue(prop.Default),
             Description = FirstNonEmpty(prop.Description),
-            MessagePackIndex = MessagePackIndex(prop)
+            MessagePackIndex = MessagePackIndex(prop),
         };
 
         // Extract validation constraints
@@ -1251,10 +1534,12 @@ internal static class OpenApiSpecParser {
         // A choice between named schemas becomes a type that holds exactly one of them, rather than
         // a JsonElement the caller has to take apart. Only where the document says which branch a
         // payload is - see SynthesizeOneOf.
-        if (model.OneOf.Count > 1 && SchemaRef(prop) == null) {
+        if (model.OneOf.Count > 1 && SchemaRef(prop) == null)
+        {
             var choice = SynthesizeOneOf(parentName, name, prop, model, collector);
 
-            if (choice != null) {
+            if (choice != null)
+            {
                 model.Ref = choice;
                 return model;
             }
@@ -1263,7 +1548,8 @@ internal static class OpenApiSpecParser {
         // Only keep $ref when it points to an object or enum that gets a generated C# type.
         // Primitive refs (e.g. CustomId → string) are inlined to their underlying type.
         var nonPrimitiveRef = GetNonPrimitiveRef(prop);
-        if (nonPrimitiveRef != null) {
+        if (nonPrimitiveRef != null)
+        {
             model.Ref = nonPrimitiveRef;
             return model;
         }
@@ -1272,10 +1558,12 @@ internal static class OpenApiSpecParser {
         // single-member enum. Read as neither, a property pinned to one value looked unconstrained -
         // and the choice resolution that uses a pinned value to tell branches apart could never
         // fire, because nothing ever put one in the model.
-        if (prop.Const is { } constant && prop.Enum is not { Count: > 0 }) {
+        if (prop.Const is { } constant && prop.Enum is not { Count: > 0 })
+        {
             var value = EnumMember(constant);
 
-            if (value != null) {
+            if (value != null)
+            {
                 model.Type = SchemaType(prop) ?? "string";
                 model.EnumValues = new List<string> { value };
 
@@ -1283,7 +1571,8 @@ internal static class OpenApiSpecParser {
             }
         }
 
-        if (prop.Enum is { Count: > 0 }) {
+        if (prop.Enum is { Count: > 0 })
+        {
             // The members' own type, not "string" unconditionally. An inline enum on a property
             // generates no C# enum - it stays a primitive constrained by [AllowedValues] - so this
             // is the type that member is emitted as. Forcing "string" made an integer enum a string
@@ -1292,15 +1581,16 @@ internal static class OpenApiSpecParser {
             var memberType = EnumMemberType(prop.Enum);
 
             model.Type = memberType == "integer" ? SchemaType(prop) ?? "integer" : "string";
-            model.EnumValues = prop.Enum
-                .Select(EnumMember)
-                    .Where(value => value != null)
-                    .Select(value => value!)
+            model.EnumValues = prop
+                .Enum.Select(EnumMember)
+                .Where(value => value != null)
+                .Select(value => value!)
                 .ToList();
             return model;
         }
 
-        if (SchemaType(prop) == "array") {
+        if (SchemaType(prop) == "array")
+        {
             model.IsArray = true;
             model.ArrayItemsRef = GetNonPrimitiveRef(prop.Items);
             model.ArrayItemsType = SchemaType(prop.Items);
@@ -1308,7 +1598,8 @@ internal static class OpenApiSpecParser {
             return model;
         }
 
-        if (SchemaType(prop) == "object" && prop.AdditionalProperties != null) {
+        if (SchemaType(prop) == "object" && prop.AdditionalProperties != null)
+        {
             model.IsDictionary = true;
             model.DictionaryValueType = SchemaType(prop.AdditionalProperties);
             model.DictionaryValueRef = GetNonPrimitiveRef(prop.AdditionalProperties);
@@ -1318,7 +1609,8 @@ internal static class OpenApiSpecParser {
 
         // An object with properties but no name of its own. Lifted into one rather than left to
         // fall through to JsonElement, which discarded the nested shape entirely.
-        if (prop.Properties is { Count: > 0 }) {
+        if (prop.Properties is { Count: > 0 })
+        {
             model.Ref = SynthesizeSchema(parentName, name, prop, collector);
             return model;
         }
@@ -1346,21 +1638,29 @@ internal static class OpenApiSpecParser {
     /// </para>
     /// </remarks>
     private static void NoteUnmappedConstraints(
-        IOpenApiSchema schema, string location, ICollection<UnmappedKeywordModel>? unmapped) {
-        if (unmapped == null) {
+        IOpenApiSchema schema,
+        string location,
+        ICollection<UnmappedKeywordModel>? unmapped
+    )
+    {
+        if (unmapped == null)
+        {
             return;
         }
 
-        if (schema.MultipleOf.HasValue) {
+        if (schema.MultipleOf.HasValue)
+        {
             unmapped.Add(new UnmappedKeywordModel("multipleOf", location));
         }
 
         // True is the declaration; false is the default and says nothing.
-        if (schema.UniqueItems == true) {
+        if (schema.UniqueItems == true)
+        {
             unmapped.Add(new UnmappedKeywordModel("uniqueItems", location));
         }
 
-        if (schema.Not != null) {
+        if (schema.Not != null)
+        {
             unmapped.Add(new UnmappedKeywordModel("not", location));
         }
 
@@ -1389,8 +1689,13 @@ internal static class OpenApiSpecParser {
     /// </para>
     /// </remarks>
     private static void NoteUnmappedNullable(
-        IOpenApiSchema schema, string location, ICollection<UnmappedKeywordModel> unmapped) {
-        if (schema.UnrecognizedKeywords is { } keywords && keywords.ContainsKey("nullable")) {
+        IOpenApiSchema schema,
+        string location,
+        ICollection<UnmappedKeywordModel> unmapped
+    )
+    {
+        if (schema.UnrecognizedKeywords is { } keywords && keywords.ContainsKey("nullable"))
+        {
             unmapped.Add(new UnmappedKeywordModel("nullable", location));
         }
     }
@@ -1421,75 +1726,99 @@ internal static class OpenApiSpecParser {
     /// </para>
     /// </remarks>
     private static void NoteUnmappedItemConstraints(
-        IOpenApiSchema schema, string location, ICollection<UnmappedKeywordModel> unmapped) {
-        if (SchemaType(schema) != "array" || schema.Items is not { } items) {
+        IOpenApiSchema schema,
+        string location,
+        ICollection<UnmappedKeywordModel> unmapped
+    )
+    {
+        if (SchemaType(schema) != "array" || schema.Items is not { } items)
+        {
             return;
         }
 
         // A referenced item schema is generated as a type and constrained through its own
         // properties, so nothing is lost there and reporting it would be a false positive.
-        if (GetNonPrimitiveRef(items) != null) {
+        if (GetNonPrimitiveRef(items) != null)
+        {
             return;
         }
 
         var at = location + "[]";
 
-        if (items.MinLength.HasValue) {
+        if (items.MinLength.HasValue)
+        {
             unmapped.Add(new UnmappedKeywordModel("minLength", at));
         }
 
-        if (items.MaxLength.HasValue) {
+        if (items.MaxLength.HasValue)
+        {
             unmapped.Add(new UnmappedKeywordModel("maxLength", at));
         }
 
-        if (!string.IsNullOrEmpty(items.Pattern)) {
+        if (!string.IsNullOrEmpty(items.Pattern))
+        {
             unmapped.Add(new UnmappedKeywordModel("pattern", at));
         }
 
-        if (Bound(items.Minimum) is not null || Bound(items.ExclusiveMinimum) is not null) {
+        if (Bound(items.Minimum) is not null || Bound(items.ExclusiveMinimum) is not null)
+        {
             unmapped.Add(new UnmappedKeywordModel("minimum", at));
         }
 
-        if (Bound(items.Maximum) is not null || Bound(items.ExclusiveMaximum) is not null) {
+        if (Bound(items.Maximum) is not null || Bound(items.ExclusiveMaximum) is not null)
+        {
             unmapped.Add(new UnmappedKeywordModel("maximum", at));
         }
 
-        if (items.MultipleOf.HasValue) {
+        if (items.MultipleOf.HasValue)
+        {
             unmapped.Add(new UnmappedKeywordModel("multipleOf", at));
         }
     }
 
-    private static void ExtractValidationConstraints(IOpenApiSchema schema, PropertyModel model) {
+    private static void ExtractValidationConstraints(IOpenApiSchema schema, PropertyModel model)
+    {
         // Not constraints, but read here because this is the one place a property's own schema is in
         // hand. They shape the generated type rather than validating it - see PropertyModel.
         model.IsReadOnly = schema.ReadOnly;
         model.IsWriteOnly = schema.WriteOnly;
 
-        if (schema.MinLength.HasValue) model.MinLength = schema.MinLength;
-        if (schema.MaxLength.HasValue) model.MaxLength = schema.MaxLength;
-        if (Bound(schema.Minimum) is { } minimum) model.Minimum = minimum;
-        if (Bound(schema.Maximum) is { } maximum) model.Maximum = maximum;
+        if (schema.MinLength.HasValue)
+            model.MinLength = schema.MinLength;
+        if (schema.MaxLength.HasValue)
+            model.MaxLength = schema.MaxLength;
+        if (Bound(schema.Minimum) is { } minimum)
+            model.Minimum = minimum;
+        if (Bound(schema.Maximum) is { } maximum)
+            model.Maximum = maximum;
         // 3.1 states the bound on the keyword itself - exclusiveMinimum: 5 - where 3.0 set a
         // flag beside `minimum`. Either way the model keeps a bound plus a flag.
-        if (Bound(schema.ExclusiveMinimum) is { } exclusiveMinimum) {
+        if (Bound(schema.ExclusiveMinimum) is { } exclusiveMinimum)
+        {
             model.Minimum = exclusiveMinimum;
             model.ExclusiveMinimum = true;
         }
-        if (Bound(schema.ExclusiveMaximum) is { } exclusiveMaximum) {
+        if (Bound(schema.ExclusiveMaximum) is { } exclusiveMaximum)
+        {
             model.Maximum = exclusiveMaximum;
             model.ExclusiveMaximum = true;
         }
-        if (!string.IsNullOrEmpty(schema.Pattern)) model.Pattern = schema.Pattern;
-        if (schema.MinItems.HasValue) model.MinItems = schema.MinItems;
-        if (schema.MaxItems.HasValue) model.MaxItems = schema.MaxItems;
+        if (!string.IsNullOrEmpty(schema.Pattern))
+            model.Pattern = schema.Pattern;
+        if (schema.MinItems.HasValue)
+            model.MinItems = schema.MinItems;
+        if (schema.MaxItems.HasValue)
+            model.MaxItems = schema.MaxItems;
 
         // minProperties and maxProperties bound an object's entry count, which for a schema that
         // becomes a Dictionary<string, T> is the same thing MinItems bounds for a List<T> - and
         // [ItemCount] emits `.Count` either way. Collapsed onto the same fields rather than carried
         // separately because a schema is an object or an array, never both, so the two pairs cannot
         // both apply to one property.
-        if (schema.MinProperties.HasValue) model.MinItems = (int?)schema.MinProperties;
-        if (schema.MaxProperties.HasValue) model.MaxItems = (int?)schema.MaxProperties;
+        if (schema.MinProperties.HasValue)
+            model.MinItems = (int?)schema.MinProperties;
+        if (schema.MaxProperties.HasValue)
+            model.MaxItems = (int?)schema.MaxProperties;
     }
 
     /// <summary>
@@ -1497,21 +1826,28 @@ internal static class OpenApiSpecParser {
     /// (types that get generated C# classes). Returns null for primitive type refs
     /// so that the caller inlines the underlying type instead.
     /// </summary>
-    private static string? GetNonPrimitiveRef(IOpenApiSchema? schema) {
-        if (schema is null || SchemaRef(schema) == null) return null;
+    private static string? GetNonPrimitiveRef(IOpenApiSchema? schema)
+    {
+        if (schema is null || SchemaRef(schema) == null)
+            return null;
 
         // Enums and objects get generated C# types — keep the ref.
-        if (schema.Enum is { Count: > 0 }) return SchemaRef(schema);
-        if (SchemaType(schema) == "object" || schema.Properties is { Count: > 0 }) return SchemaRef(schema);
-        if (SchemaType(schema) == "array") return SchemaRef(schema);
-        if (schema.AllOf is { Count: > 0 }) return SchemaRef(schema);
+        if (schema.Enum is { Count: > 0 })
+            return SchemaRef(schema);
+        if (SchemaType(schema) == "object" || schema.Properties is { Count: > 0 })
+            return SchemaRef(schema);
+        if (SchemaType(schema) == "array")
+            return SchemaRef(schema);
+        if (schema.AllOf is { Count: > 0 })
+            return SchemaRef(schema);
 
         // The base of a polymorphic hierarchy gets a generated type like any other object, and so
         // does a component that is a choice between branches - see ParseComponentChoice. Both are
         // covered by the same test: a oneOf declares a type either way, and neither has a `type` of
         // its own for the primitive check below to see. Without this the reference was dropped and
         // the property inlined to JsonElement, which is the type it was trying not to be.
-        if (schema.OneOf is { Count: > 0 }) return SchemaRef(schema);
+        if (schema.OneOf is { Count: > 0 })
+            return SchemaRef(schema);
 
         // Primitive types (string, integer, number, boolean) — inline them.
         return null;
@@ -1523,26 +1859,36 @@ internal static class OpenApiSpecParser {
     /// already resolves these into the same schema object graph, so
     /// properties/required are on the same object.
     /// </summary>
-    private static IOpenApiSchema? ResolveSchema(IOpenApiSchema? schema) {
-        if (schema == null) return null;
+    private static IOpenApiSchema? ResolveSchema(IOpenApiSchema? schema)
+    {
+        if (schema == null)
+            return null;
 
         // If the schema has properties directly, use it
-        if (schema.Properties is { Count: > 0 }) return schema;
+        if (schema.Properties is { Count: > 0 })
+            return schema;
 
         // For allOf, merge properties
-        if (schema.AllOf is { Count: > 0 }) {
-            var merged = new OpenApiSchema {
-                Required = new HashSet<string>(schema.Required ?? Enumerable.Empty<string>())
+        if (schema.AllOf is { Count: > 0 })
+        {
+            var merged = new OpenApiSchema
+            {
+                Required = new HashSet<string>(schema.Required ?? Enumerable.Empty<string>()),
             };
-            foreach (var allOfSchema in schema.AllOf ?? Enumerable.Empty<IOpenApiSchema>()) {
-                if (allOfSchema.Required != null) {
-                    foreach (var req in allOfSchema.Required) {
+            foreach (var allOfSchema in schema.AllOf ?? Enumerable.Empty<IOpenApiSchema>())
+            {
+                if (allOfSchema.Required != null)
+                {
+                    foreach (var req in allOfSchema.Required)
+                    {
                         merged.Required.Add(req);
                     }
                 }
-                if (allOfSchema.Properties != null) {
+                if (allOfSchema.Properties != null)
+                {
                     merged.Properties ??= new Dictionary<string, IOpenApiSchema>();
-                    foreach (var kvp in allOfSchema.Properties) {
+                    foreach (var kvp in allOfSchema.Properties)
+                    {
                         merged.Properties[kvp.Key] = kvp.Value;
                     }
                 }
@@ -1572,30 +1918,41 @@ internal static class OpenApiSpecParser {
     /// </para>
     /// </remarks>
     private static IEnumerable<IOpenApiParameter> MergeParameters(
-        IList<IOpenApiParameter>? pathItemParameters, IList<IOpenApiParameter>? operationParameters) {
-        if (pathItemParameters == null || pathItemParameters.Count == 0) {
+        IList<IOpenApiParameter>? pathItemParameters,
+        IList<IOpenApiParameter>? operationParameters
+    )
+    {
+        if (pathItemParameters == null || pathItemParameters.Count == 0)
+        {
             return operationParameters ?? (IList<IOpenApiParameter>)new List<IOpenApiParameter>();
         }
 
-        if (operationParameters == null || operationParameters.Count == 0) {
+        if (operationParameters == null || operationParameters.Count == 0)
+        {
             return pathItemParameters;
         }
 
         var merged = new List<IOpenApiParameter>();
         var overridden = new List<IOpenApiParameter>();
 
-        foreach (var shared in pathItemParameters) {
-            var operationVersion = operationParameters.FirstOrDefault(candidate => SameParameter(candidate, shared));
+        foreach (var shared in pathItemParameters)
+        {
+            var operationVersion = operationParameters.FirstOrDefault(candidate =>
+                SameParameter(candidate, shared)
+            );
 
-            if (operationVersion != null) {
+            if (operationVersion != null)
+            {
                 overridden.Add(operationVersion);
             }
 
             merged.Add(operationVersion ?? shared);
         }
 
-        foreach (var own in operationParameters) {
-            if (!overridden.Contains(own)) {
+        foreach (var own in operationParameters)
+        {
+            if (!overridden.Contains(own))
+            {
                 merged.Add(own);
             }
         }
@@ -1628,28 +1985,42 @@ internal static class OpenApiSpecParser {
     /// </para>
     /// </remarks>
     private static void ReadResponseHeaders(
-        IOpenApiResponse? response, List<ResponseHeaderModel> into) {
-        if (response?.Headers == null) {
+        IOpenApiResponse? response,
+        List<ResponseHeaderModel> into
+    )
+    {
+        if (response?.Headers == null)
+        {
             return;
         }
 
-        foreach (var header in response.Headers) {
-            if (string.IsNullOrWhiteSpace(header.Key) ||
-                string.Equals(header.Key, "Content-Type", StringComparison.OrdinalIgnoreCase)) {
+        foreach (var header in response.Headers)
+        {
+            if (
+                string.IsNullOrWhiteSpace(header.Key)
+                || string.Equals(header.Key, "Content-Type", StringComparison.OrdinalIgnoreCase)
+            )
+            {
                 continue;
             }
 
-            into.Add(new ResponseHeaderModel {
-                Name = header.Key,
-                ParameterName = NamingHelper.ToPascalCase(header.Key),
-                Description = FirstNonEmpty(header.Value?.Description)
-            });
+            into.Add(
+                new ResponseHeaderModel
+                {
+                    Name = header.Key,
+                    ParameterName = NamingHelper.ToPascalCase(header.Key),
+                    Description = FirstNonEmpty(header.Value?.Description),
+                }
+            );
         }
     }
 
-    private static string? FirstNonEmpty(params string?[] candidates) {
-        foreach (var candidate in candidates) {
-            if (!string.IsNullOrWhiteSpace(candidate)) {
+    private static string? FirstNonEmpty(params string?[] candidates)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (!string.IsNullOrWhiteSpace(candidate))
+            {
                 return candidate;
             }
         }
@@ -1664,16 +2035,21 @@ internal static class OpenApiSpecParser {
     private static bool SameParameter(IOpenApiParameter left, IOpenApiParameter right) =>
         string.Equals(left.Name, right.Name, StringComparison.Ordinal) && left.In == right.In;
 
-    private static ParameterModel? ParseParameter(IOpenApiParameter param) {
+    private static ParameterModel? ParseParameter(IOpenApiParameter param)
+    {
         // Skip parameters marked with x-codegen-exclude
-        if (param.Extensions != null &&
-            param.Extensions.TryGetValue("x-codegen-exclude", out var excludeExt) &&
-            excludeExt is JsonNodeExtension { Node: JsonValue excludeValue } &&
-            excludeValue.GetValueKind() == JsonValueKind.True) {
+        if (
+            param.Extensions != null
+            && param.Extensions.TryGetValue("x-codegen-exclude", out var excludeExt)
+            && excludeExt is JsonNodeExtension { Node: JsonValue excludeValue }
+            && excludeValue.GetValueKind() == JsonValueKind.True
+        )
+        {
             return null;
         }
 
-        var paramModel = new ParameterModel {
+        var paramModel = new ParameterModel
+        {
             Name = param.Name ?? "",
             In = param.In?.ToString()?.ToLowerInvariant() ?? "query",
             IsNullable = IsNullable(param.Schema),
@@ -1686,34 +2062,45 @@ internal static class OpenApiSpecParser {
             IsArray = SchemaType(param.Schema) == "array",
             ArrayItemsType = SchemaType(param.Schema?.Items),
             ArrayItemsRef = GetNonPrimitiveRef(param.Schema?.Items),
-            ArrayItemsFormat = param.Schema?.Items?.Format
+            ArrayItemsFormat = param.Schema?.Items?.Format,
         };
 
         // Extract validation constraints from parameter schema
-        if (param.Schema != null) {
-            if (param.Schema.MinLength.HasValue) paramModel.MinLength = param.Schema.MinLength;
-            if (param.Schema.MaxLength.HasValue) paramModel.MaxLength = param.Schema.MaxLength;
-            if (Bound(param.Schema.Minimum) is { } min) paramModel.Minimum = min;
-            if (Bound(param.Schema.Maximum) is { } max) paramModel.Maximum = max;
+        if (param.Schema != null)
+        {
+            if (param.Schema.MinLength.HasValue)
+                paramModel.MinLength = param.Schema.MinLength;
+            if (param.Schema.MaxLength.HasValue)
+                paramModel.MaxLength = param.Schema.MaxLength;
+            if (Bound(param.Schema.Minimum) is { } min)
+                paramModel.Minimum = min;
+            if (Bound(param.Schema.Maximum) is { } max)
+                paramModel.Maximum = max;
 
             // As with schemas: 3.1 puts the bound on the exclusive keyword itself.
-            if (Bound(param.Schema.ExclusiveMinimum) is { } exclusiveMin) {
+            if (Bound(param.Schema.ExclusiveMinimum) is { } exclusiveMin)
+            {
                 paramModel.Minimum = exclusiveMin;
                 paramModel.ExclusiveMinimum = true;
             }
 
-            if (Bound(param.Schema.ExclusiveMaximum) is { } exclusiveMax) {
+            if (Bound(param.Schema.ExclusiveMaximum) is { } exclusiveMax)
+            {
                 paramModel.Maximum = exclusiveMax;
                 paramModel.ExclusiveMaximum = true;
             }
-            if (!string.IsNullOrEmpty(param.Schema.Pattern)) paramModel.Pattern = param.Schema.Pattern;
-            if (param.Schema.MinItems.HasValue) paramModel.MinItems = param.Schema.MinItems;
-            if (param.Schema.MaxItems.HasValue) paramModel.MaxItems = param.Schema.MaxItems;
-            if (param.Schema.Enum is { Count: > 0 }) {
-                paramModel.EnumValues = param.Schema.Enum
-                    .Select(EnumMember)
-                        .Where(value => value != null)
-                        .Select(value => value!)
+            if (!string.IsNullOrEmpty(param.Schema.Pattern))
+                paramModel.Pattern = param.Schema.Pattern;
+            if (param.Schema.MinItems.HasValue)
+                paramModel.MinItems = param.Schema.MinItems;
+            if (param.Schema.MaxItems.HasValue)
+                paramModel.MaxItems = param.Schema.MaxItems;
+            if (param.Schema.Enum is { Count: > 0 })
+            {
+                paramModel.EnumValues = param
+                    .Schema.Enum.Select(EnumMember)
+                    .Where(value => value != null)
+                    .Select(value => value!)
                     .ToList();
             }
         }
@@ -1757,18 +2144,22 @@ internal static class OpenApiSpecParser {
     /// line whatever package version parses the document - this string rides the serialized model
     /// and the incremental cache, where formatting churn is a rebuild.
     /// </remarks>
-    private static string? SecuritySchemeJson(IOpenApiSecurityScheme scheme) {
+    private static string? SecuritySchemeJson(IOpenApiSecurityScheme scheme)
+    {
         var builder = new System.Text.StringBuilder("{");
 
-        switch (scheme.Type) {
+        switch (scheme.Type)
+        {
             case SecuritySchemeType.Http:
                 builder.Append("\"type\":\"http\"");
 
-                if (!string.IsNullOrEmpty(scheme.Scheme)) {
+                if (!string.IsNullOrEmpty(scheme.Scheme))
+                {
                     builder.Append(",\"scheme\":").Append(JsonText(scheme.Scheme!));
                 }
 
-                if (!string.IsNullOrEmpty(scheme.BearerFormat)) {
+                if (!string.IsNullOrEmpty(scheme.BearerFormat))
+                {
                     builder.Append(",\"bearerFormat\":").Append(JsonText(scheme.BearerFormat!));
                 }
 
@@ -1777,13 +2168,17 @@ internal static class OpenApiSpecParser {
             case SecuritySchemeType.ApiKey:
                 builder.Append("\"type\":\"apiKey\"");
 
-                if (!string.IsNullOrEmpty(scheme.Name)) {
+                if (!string.IsNullOrEmpty(scheme.Name))
+                {
                     builder.Append(",\"name\":").Append(JsonText(scheme.Name!));
                 }
 
-                if (scheme.In != null) {
-                    builder.Append(",\"in\":\"")
-                        .Append(scheme.In.Value.ToString().ToLowerInvariant()).Append('"');
+                if (scheme.In != null)
+                {
+                    builder
+                        .Append(",\"in\":\"")
+                        .Append(scheme.In.Value.ToString().ToLowerInvariant())
+                        .Append('"');
                 }
 
                 break;
@@ -1796,8 +2191,10 @@ internal static class OpenApiSpecParser {
             case SecuritySchemeType.OpenIdConnect:
                 builder.Append("\"type\":\"openIdConnect\"");
 
-                if (scheme.OpenIdConnectUrl != null) {
-                    builder.Append(",\"openIdConnectUrl\":")
+                if (scheme.OpenIdConnectUrl != null)
+                {
+                    builder
+                        .Append(",\"openIdConnectUrl\":")
                         .Append(JsonText(scheme.OpenIdConnectUrl.ToString()));
                 }
 
@@ -1807,15 +2204,18 @@ internal static class OpenApiSpecParser {
                 return null;
         }
 
-        if (!string.IsNullOrEmpty(scheme.Description)) {
+        if (!string.IsNullOrEmpty(scheme.Description))
+        {
             builder.Append(",\"description\":").Append(JsonText(scheme.Description!));
         }
 
         return builder.Append('}').ToString();
     }
 
-    private static void AppendFlows(System.Text.StringBuilder builder, OpenApiOAuthFlows? flows) {
-        if (flows == null) {
+    private static void AppendFlows(System.Text.StringBuilder builder, OpenApiOAuthFlows? flows)
+    {
+        if (flows == null)
+        {
             return;
         }
 
@@ -1832,12 +2232,19 @@ internal static class OpenApiSpecParser {
     }
 
     private static void AppendFlow(
-        System.Text.StringBuilder builder, string name, OpenApiOAuthFlow? flow, ref bool first) {
-        if (flow == null) {
+        System.Text.StringBuilder builder,
+        string name,
+        OpenApiOAuthFlow? flow,
+        ref bool first
+    )
+    {
+        if (flow == null)
+        {
             return;
         }
 
-        if (!first) {
+        if (!first)
+        {
             builder.Append(',');
         }
 
@@ -1846,18 +2253,29 @@ internal static class OpenApiSpecParser {
 
         var inner = true;
 
-        if (flow.AuthorizationUrl != null) {
-            builder.Append("\"authorizationUrl\":").Append(JsonText(flow.AuthorizationUrl.ToString()));
+        if (flow.AuthorizationUrl != null)
+        {
+            builder
+                .Append("\"authorizationUrl\":")
+                .Append(JsonText(flow.AuthorizationUrl.ToString()));
             inner = false;
         }
 
-        if (flow.TokenUrl != null) {
-            builder.Append(inner ? "" : ",").Append("\"tokenUrl\":").Append(JsonText(flow.TokenUrl.ToString()));
+        if (flow.TokenUrl != null)
+        {
+            builder
+                .Append(inner ? "" : ",")
+                .Append("\"tokenUrl\":")
+                .Append(JsonText(flow.TokenUrl.ToString()));
             inner = false;
         }
 
-        if (flow.RefreshUrl != null) {
-            builder.Append(inner ? "" : ",").Append("\"refreshUrl\":").Append(JsonText(flow.RefreshUrl.ToString()));
+        if (flow.RefreshUrl != null)
+        {
+            builder
+                .Append(inner ? "" : ",")
+                .Append("\"refreshUrl\":")
+                .Append(JsonText(flow.RefreshUrl.ToString()));
             inner = false;
         }
 
@@ -1865,9 +2283,12 @@ internal static class OpenApiSpecParser {
 
         var firstScope = true;
 
-        if (flow.Scopes != null) {
-            foreach (var scope in flow.Scopes) {
-                if (!firstScope) {
+        if (flow.Scopes != null)
+        {
+            foreach (var scope in flow.Scopes)
+            {
+                if (!firstScope)
+                {
                     builder.Append(',');
                 }
 
@@ -1880,20 +2301,36 @@ internal static class OpenApiSpecParser {
     }
 
     /// <summary>A string as a quoted JSON value, control characters escaped.</summary>
-    private static string JsonText(string value) {
+    private static string JsonText(string value)
+    {
         var builder = new System.Text.StringBuilder(value.Length + 2).Append('"');
 
-        foreach (var ch in value) {
-            switch (ch) {
-                case '\\': builder.Append("\\\\"); break;
-                case '"': builder.Append("\\\""); break;
-                case '\n': builder.Append("\\n"); break;
-                case '\r': builder.Append("\\r"); break;
-                case '\t': builder.Append("\\t"); break;
+        foreach (var ch in value)
+        {
+            switch (ch)
+            {
+                case '\\':
+                    builder.Append("\\\\");
+                    break;
+                case '"':
+                    builder.Append("\\\"");
+                    break;
+                case '\n':
+                    builder.Append("\\n");
+                    break;
+                case '\r':
+                    builder.Append("\\r");
+                    break;
+                case '\t':
+                    builder.Append("\\t");
+                    break;
                 default:
-                    if (ch < ' ') {
+                    if (ch < ' ')
+                    {
                         builder.Append("\\u").Append(((int)ch).ToString("x4"));
-                    } else {
+                    }
+                    else
+                    {
                         builder.Append(ch);
                     }
 
@@ -1915,42 +2352,54 @@ internal static class OpenApiSpecParser {
     /// the dangling reference is already reported there.
     /// </remarks>
     private static List<string> SecurityRequirementJson(
-        OpenApiOperation operation, OpenApiDocument document) {
+        OpenApiOperation operation,
+        OpenApiDocument document
+    )
+    {
         var declared = operation.Security ?? document.Security;
         var requirements = new List<string>();
 
-        if (declared == null) {
+        if (declared == null)
+        {
             return requirements;
         }
 
         var schemes = document.Components?.SecuritySchemes;
 
-        foreach (var requirement in declared) {
+        foreach (var requirement in declared)
+        {
             var builder = new System.Text.StringBuilder("{");
             var first = true;
 
-            foreach (var entry in requirement) {
+            foreach (var entry in requirement)
+            {
                 var name = entry.Key?.Reference?.Id;
 
-                if (string.IsNullOrEmpty(name) || !Declares(schemes, name!)) {
+                if (string.IsNullOrEmpty(name) || !Declares(schemes, name!))
+                {
                     continue;
                 }
 
-                if (!first) {
+                if (!first)
+                {
                     builder.Append(',');
                 }
 
                 builder.Append(JsonText(name!)).Append(":[");
 
-                if (entry.Value is { Count: > 0 } scopes) {
+                if (entry.Value is { Count: > 0 } scopes)
+                {
                     var firstScope = true;
 
-                    foreach (var scope in scopes) {
-                        if (string.IsNullOrEmpty(scope)) {
+                    foreach (var scope in scopes)
+                    {
+                        if (string.IsNullOrEmpty(scope))
+                        {
                             continue;
                         }
 
-                        if (!firstScope) {
+                        if (!firstScope)
+                        {
                             builder.Append(',');
                         }
 
@@ -1963,7 +2412,8 @@ internal static class OpenApiSpecParser {
                 first = false;
             }
 
-            if (!first) {
+            if (!first)
+            {
                 requirements.Add(builder.Append('}').ToString());
             }
         }
@@ -1972,22 +2422,29 @@ internal static class OpenApiSpecParser {
     }
 
     private static List<AuthorizationBranchModel> ParseSecurity(
-        OpenApiOperation operation, OpenApiDocument document, string operationId,
-        ICollection<string>? diagnostics) {
+        OpenApiOperation operation,
+        OpenApiDocument document,
+        string operationId,
+        ICollection<string>? diagnostics
+    )
+    {
         // Null is "declared nothing, inherit the default"; empty is "declared none, and means it".
         var declared = operation.Security ?? document.Security;
 
-        if (declared == null || declared.Count == 0) {
+        if (declared == null || declared.Count == 0)
+        {
             return new List<AuthorizationBranchModel>();
         }
 
         var schemes = document.Components?.SecuritySchemes;
         var branches = new List<AuthorizationBranchModel>();
 
-        foreach (var requirement in declared) {
+        foreach (var requirement in declared)
+        {
             var branch = new AuthorizationBranchModel();
 
-            foreach (var entry in requirement) {
+            foreach (var entry in requirement)
+            {
                 var name = entry.Key?.Reference?.Id;
                 var scopes = entry.Value;
 
@@ -1995,23 +2452,32 @@ internal static class OpenApiSpecParser {
                 // fallback to "be authenticated" is a downgrade nobody asked for: the operation
                 // stops requiring the permission it named. Reported so the misspelling is a build
                 // message rather than a discovery in production.
-                if (!string.IsNullOrEmpty(name) && !Declares(schemes, name!)) {
+                if (!string.IsNullOrEmpty(name) && !Declares(schemes, name!))
+                {
                     diagnostics?.Add(
-                        $"operation '{operationId}' requires security scheme '{name}', which " +
-                        "'components.securitySchemes' does not declare. Its scopes were not read, " +
-                        "so the operation requires an authenticated caller and none of the " +
-                        "permissions it names.");
+                        $"operation '{operationId}' requires security scheme '{name}', which "
+                            + "'components.securitySchemes' does not declare. Its scopes were not read, "
+                            + "so the operation requires an authenticated caller and none of the "
+                            + "permissions it names."
+                    );
                 }
 
-                if (!string.IsNullOrEmpty(name) &&
-                    scopes is { Count: > 0 } &&
-                    CarriesScopes(schemes, name!)) {
-                    foreach (var scope in scopes) {
-                        if (!string.IsNullOrEmpty(scope) && !branch.Grants.Contains(scope)) {
+                if (
+                    !string.IsNullOrEmpty(name)
+                    && scopes is { Count: > 0 }
+                    && CarriesScopes(schemes, name!)
+                )
+                {
+                    foreach (var scope in scopes)
+                    {
+                        if (!string.IsNullOrEmpty(scope) && !branch.Grants.Contains(scope))
+                        {
                             branch.Grants.Add(scope);
                         }
                     }
-                } else {
+                }
+                else
+                {
                     // Naming permissions on a scheme that has nowhere to put them is a document
                     // error, and a silent one in the worst direction: the operation keeps only
                     // "be authenticated", so every caller who can log in passes a check the
@@ -2022,16 +2488,20 @@ internal static class OpenApiSpecParser {
                     // obvious reading. Reported rather than honoured because OpenAPI gives the
                     // array no meaning outside oauth2 and openIdConnect, and inventing one here
                     // would make Hardened enforce something no other tool reads.
-                    if (!string.IsNullOrEmpty(name) &&
-                        scopes is { Count: > 0 } &&
-                        Declares(schemes, name!)) {
+                    if (
+                        !string.IsNullOrEmpty(name)
+                        && scopes is { Count: > 0 }
+                        && Declares(schemes, name!)
+                    )
+                    {
                         diagnostics?.Add(
-                            $"operation '{operationId}' names {DescribeScopes(scopes)} on security " +
-                            $"scheme '{name}', which is declared as " +
-                            $"'{TypeOf(schemes, name!)}' and cannot carry them. They were not read, " +
-                            "so the operation requires an authenticated caller and none of the " +
-                            "permissions it names. Declare the scheme as 'oauth2' or " +
-                            "'openIdConnect' to keep them, or move the check into the handler.");
+                            $"operation '{operationId}' names {DescribeScopes(scopes)} on security "
+                                + $"scheme '{name}', which is declared as "
+                                + $"'{TypeOf(schemes, name!)}' and cannot carry them. They were not read, "
+                                + "so the operation requires an authenticated caller and none of the "
+                                + "permissions it names. Declare the scheme as 'oauth2' or "
+                                + "'openIdConnect' to keep them, or move the check into the handler."
+                        );
                     }
 
                     // Either a scheme that cannot carry scopes, or one that can and declared none.
@@ -2042,7 +2512,8 @@ internal static class OpenApiSpecParser {
 
             // An entry naming no schemes at all is not a way in. Dropping it rather than admitting
             // an empty AND, which would be satisfied by anyone and would take the whole OR with it.
-            if (branch.Grants.Count > 0 || branch.RequiresAuthentication) {
+            if (branch.Grants.Count > 0 || branch.RequiresAuthentication)
+            {
                 branches.Add(branch);
             }
         }
@@ -2059,8 +2530,12 @@ internal static class OpenApiSpecParser {
     /// authorization out of a name that resolves to nothing.
     /// </remarks>
     private static bool CarriesScopes(
-        IDictionary<string, IOpenApiSecurityScheme>? schemes, string name) {
-        if (schemes == null || !schemes.TryGetValue(name, out var scheme)) {
+        IDictionary<string, IOpenApiSecurityScheme>? schemes,
+        string name
+    )
+    {
+        if (schemes == null || !schemes.TryGetValue(name, out var scheme))
+        {
             return false;
         }
 
@@ -2069,14 +2544,17 @@ internal static class OpenApiSpecParser {
 
     /// <summary>Whether the document declares the named scheme at all.</summary>
     private static bool Declares(
-        IDictionary<string, IOpenApiSecurityScheme>? schemes, string name) =>
-        schemes != null && schemes.ContainsKey(name);
+        IDictionary<string, IOpenApiSecurityScheme>? schemes,
+        string name
+    ) => schemes != null && schemes.ContainsKey(name);
 
     /// <summary>
     /// How a declared scheme names its own type, for a message that quotes the document back.
     /// </summary>
     private static string TypeOf(
-        IDictionary<string, IOpenApiSecurityScheme>? schemes, string name) =>
+        IDictionary<string, IOpenApiSecurityScheme>? schemes,
+        string name
+    ) =>
         schemes != null && schemes.TryGetValue(name, out var scheme)
             ? scheme.Type?.ToString() ?? "unknown"
             : "unknown";
@@ -2089,54 +2567,72 @@ internal static class OpenApiSpecParser {
     /// on the wrong scheme has one mistake, not eight, and a message that prints all of them buries
     /// the sentence explaining what happened.
     /// </remarks>
-    private static string DescribeScopes(IList<string> scopes) {
+    private static string DescribeScopes(IList<string> scopes)
+    {
         var named = new List<string>();
 
-        foreach (var scope in scopes) {
-            if (!string.IsNullOrEmpty(scope)) {
+        foreach (var scope in scopes)
+        {
+            if (!string.IsNullOrEmpty(scope))
+            {
                 named.Add("'" + scope + "'");
             }
         }
 
-        if (named.Count == 0) {
+        if (named.Count == 0)
+        {
             return "scopes";
         }
 
-        if (named.Count <= 3) {
+        if (named.Count <= 3)
+        {
             return (named.Count == 1 ? "scope " : "scopes ") + string.Join(", ", named.ToArray());
         }
 
-        return "scopes " + string.Join(", ", named.GetRange(0, 3).ToArray()) +
-               $" and {named.Count - 3} more";
+        return "scopes "
+            + string.Join(", ", named.GetRange(0, 3).ToArray())
+            + $" and {named.Count - 3} more";
     }
 
-    private static void ParsePath(string path, IOpenApiPathItem pathItem,
-        Dictionary<string, List<OperationModel>> operationsByTag, SchemaCollector collector,
-        bool groupUntaggedByPath, OpenApiDocument document, ICollection<string>? diagnostics) {
-        if (pathItem.Operations == null) {
+    private static void ParsePath(
+        string path,
+        IOpenApiPathItem pathItem,
+        Dictionary<string, List<OperationModel>> operationsByTag,
+        SchemaCollector collector,
+        bool groupUntaggedByPath,
+        OpenApiDocument document,
+        ICollection<string>? diagnostics
+    )
+    {
+        if (pathItem.Operations == null)
+        {
             return;
         }
 
         // Guarded rather than coalesced to an empty sequence: naming the element type would mean
         // naming System.Net.Http.HttpMethod, which .NET Framework does not have in scope here.
-        foreach (var opKvp in pathItem.Operations) {
+        foreach (var opKvp in pathItem.Operations)
+        {
             var operation = opKvp.Value;
             var httpMethod = opKvp.Key.ToString().ToUpperInvariant();
 
-            var tag = operation.Tags?.FirstOrDefault()?.Name
-                      ?? UntaggedGroup(path, groupUntaggedByPath);
+            var tag =
+                operation.Tags?.FirstOrDefault()?.Name ?? UntaggedGroup(path, groupUntaggedByPath);
             var operationId = operation.OperationId ?? GenerateOperationId(httpMethod, path);
 
-            var opModel = new OperationModel {
+            var opModel = new OperationModel
+            {
                 OperationId = operationId,
                 Path = path,
                 HttpMethod = httpMethod,
                 Tag = tag,
-                Tags = operation.Tags?.Select(t => t.Name)
-                           .Where(name => !string.IsNullOrWhiteSpace(name))
-                           .Select(name => name!)
-                           .ToList()
-                       ?? new List<string>(),
+                Tags =
+                    operation
+                        .Tags?.Select(t => t.Name)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Select(name => name!)
+                        .ToList()
+                    ?? new List<string>(),
                 // Both, separately. This was FirstNonEmpty(summary, description), which kept the
                 // summary and discarded the description outright - correct while a doc comment was
                 // the only reader, and a silent loss once the model is what a document is rendered
@@ -2144,22 +2640,31 @@ internal static class OpenApiSpecParser {
                 Summary = FirstNonEmpty(operation.Summary),
                 Description = FirstNonEmpty(operation.Description),
                 IsDeprecated = operation.Deprecated,
-                AuthorizationBranches = ParseSecurity(operation, document, operationId, diagnostics),
-                SecurityRequirements = SecurityRequirementJson(operation, document)
+                AuthorizationBranches = ParseSecurity(
+                    operation,
+                    document,
+                    operationId,
+                    diagnostics
+                ),
+                SecurityRequirements = SecurityRequirementJson(operation, document),
             };
 
-            foreach (var param in MergeParameters(pathItem.Parameters, operation.Parameters)) {
+            foreach (var param in MergeParameters(pathItem.Parameters, operation.Parameters))
+            {
                 var paramModel = ParseParameter(param);
 
-                if (paramModel != null) {
+                if (paramModel != null)
+                {
                     opModel.Parameters.Add(paramModel);
                 }
             }
 
-            if (operation.RequestBody?.Content != null) {
+            if (operation.RequestBody?.Content != null)
+            {
                 var bodyContent = SelectMediaType(operation.RequestBody.Content);
 
-                if (bodyContent.Value?.Schema != null) {
+                if (bodyContent.Value?.Schema != null)
+                {
                     var bodySchema = bodyContent.Value.Schema;
                     opModel.RequestBodyContentType = bodyContent.Key;
                     opModel.RequestBodyRef = SchemaRef(bodySchema);
@@ -2167,50 +2672,70 @@ internal static class OpenApiSpecParser {
 
                     // Resolve body schema properties for validation
                     var resolvedSchema = ResolveSchema(bodySchema);
-                    if (resolvedSchema != null) {
-                        opModel.RequestBodyRequired = resolvedSchema.Required?.ToList() ?? new List<string>();
-                        if (resolvedSchema.Properties != null) {
-                            foreach (var propKvp in resolvedSchema.Properties) {
+                    if (resolvedSchema != null)
+                    {
+                        opModel.RequestBodyRequired =
+                            resolvedSchema.Required?.ToList() ?? new List<string>();
+                        if (resolvedSchema.Properties != null)
+                        {
+                            foreach (var propKvp in resolvedSchema.Properties)
+                            {
                                 var isRequired = opModel.RequestBodyRequired.Contains(propKvp.Key);
                                 opModel.RequestBodyProperties.Add(
-                                    ParseProperty(propKvp.Key, propKvp.Value, isRequired,
-                                        opModel.OperationId, collector));
+                                    ParseProperty(
+                                        propKvp.Key,
+                                        propKvp.Value,
+                                        isRequired,
+                                        opModel.OperationId,
+                                        collector
+                                    )
+                                );
                             }
                         }
                     }
                 }
             }
 
-            if (operation.Responses != null) {
+            if (operation.Responses != null)
+            {
                 var errorContentTypes = new List<string>();
 
                 // Everything the specification says the operation can answer with, other than the
                 // success case. All of it used to be discarded, so a document could describe a 404
                 // and its payload in detail and generate no trace of either.
-                foreach (var respKvp in operation.Responses
-                             .Where(r => !r.Key.StartsWith("2") && r.Key != "default")
-                             .OrderBy(r => r.Key, StringComparer.Ordinal)) {
-                    if (!int.TryParse(respKvp.Key, out var errorStatus)) {
+                foreach (
+                    var respKvp in operation
+                        .Responses.Where(r => !r.Key.StartsWith("2") && r.Key != "default")
+                        .OrderBy(r => r.Key, StringComparer.Ordinal)
+                )
+                {
+                    if (!int.TryParse(respKvp.Key, out var errorStatus))
+                    {
                         continue;
                     }
 
-                    if (respKvp.Value?.Content != null) {
-                        foreach (var declared in respKvp.Value.Content.Keys) {
-                            if (!errorContentTypes.Contains(declared)) {
+                    if (respKvp.Value?.Content != null)
+                    {
+                        foreach (var declared in respKvp.Value.Content.Keys)
+                        {
+                            if (!errorContentTypes.Contains(declared))
+                            {
                                 errorContentTypes.Add(declared);
                             }
                         }
                     }
 
-                    var errorContent = respKvp.Value?.Content != null
-                        ? SelectMediaType(respKvp.Value.Content)
-                        : default;
+                    var errorContent =
+                        respKvp.Value?.Content != null
+                            ? SelectMediaType(respKvp.Value.Content)
+                            : default;
 
-                    var errorResponse = new ErrorResponseModel {
+                    var errorResponse = new ErrorResponseModel
+                    {
                         StatusCode = errorStatus,
                         Ref = SchemaRef(errorContent.Value?.Schema),
                         Description = FirstNonEmpty(respKvp.Value?.Description),
-                        Name = ResponseRefName(respKvp.Value)
+                        Name = ResponseRefName(respKvp.Value),
                     };
 
                     ReadResponseHeaders(respKvp.Value, errorResponse.Headers);
@@ -2231,39 +2756,51 @@ internal static class OpenApiSpecParser {
                 // success needs, because its extra statuses cannot be thrown.
                 var isPrimarySuccess = true;
 
-                foreach (var respKvp in operation.Responses.Where(r => r.Key.StartsWith("2")).OrderBy(r => r.Key, StringComparer.Ordinal)) {
+                foreach (
+                    var respKvp in operation
+                        .Responses.Where(r => r.Key.StartsWith("2"))
+                        .OrderBy(r => r.Key, StringComparer.Ordinal)
+                )
+                {
                     var response = respKvp.Value;
 
                     // A non-numeric 2xx key - the "2XX" range form - names no single status, so it
                     // cannot become a case. Skipped rather than guessed at, and skipped before the
                     // flat fields are touched so it cannot claim the primary slot either.
-                    if (!int.TryParse(respKvp.Key, out var statusCode)) {
+                    if (!int.TryParse(respKvp.Key, out var statusCode))
+                    {
                         continue;
                     }
 
-                    var success = new SuccessResponseModel {
+                    var success = new SuccessResponseModel
+                    {
                         StatusCode = statusCode,
-                        Description = FirstNonEmpty(response?.Description)
+                        Description = FirstNonEmpty(response?.Description),
                     };
 
-                    if (isPrimarySuccess) {
+                    if (isPrimarySuccess)
+                    {
                         opModel.SuccessStatusCode = statusCode;
                     }
 
-                    if (response?.Content != null) {
+                    if (response?.Content != null)
+                    {
                         // Every media type the response declares, in document order - the set the
                         // response is negotiated against. SelectMediaType below picks one of these
                         // to read the schema from, which is a different question: that one decides
                         // the C# return type, this one decides what may go on the wire.
-                        foreach (var declared in response.Content.Keys) {
-                            if (!opModel.ProducedContentTypes.Contains(declared)) {
+                        foreach (var declared in response.Content.Keys)
+                        {
+                            if (!opModel.ProducedContentTypes.Contains(declared))
+                            {
                                 opModel.ProducedContentTypes.Add(declared);
                             }
 
                             // Beside it, and only the successes. The list above gains the error
                             // representations below so an error can be produced at all; this one is
                             // what the document says the success is.
-                            if (!opModel.SuccessContentTypes.Contains(declared)) {
+                            if (!opModel.SuccessContentTypes.Contains(declared))
+                            {
                                 opModel.SuccessContentTypes.Add(declared);
                             }
                         }
@@ -2274,13 +2811,16 @@ internal static class OpenApiSpecParser {
                         // media type carrying itemSchema is a stream whatever else it says. OpenAPI
                         // 3.2 added it for exactly this; Microsoft.OpenApi surfaces it directly, so
                         // there is nothing to hand-parse.
-                        if (responseContent.Value?.ItemSchema != null) {
-                            if (isPrimarySuccess) {
+                        if (responseContent.Value?.ItemSchema != null)
+                        {
+                            if (isPrimarySuccess)
+                            {
                                 opModel.ResponseContentType = responseContent.Key;
                                 opModel.ItemSchemaRef = SchemaRef(responseContent.Value.ItemSchema);
                             }
                         }
-                        else if (responseContent.Value?.Schema != null) {
+                        else if (responseContent.Value?.Schema != null)
+                        {
                             var responseSchema = responseContent.Value.Schema;
 
                             success.ContentType = responseContent.Key;
@@ -2291,7 +2831,8 @@ internal static class OpenApiSpecParser {
                             success.ArrayItemsRef = SchemaRef(responseSchema.Items);
                             success.ArrayItemsType = SchemaType(responseSchema.Items);
 
-                            if (isPrimarySuccess) {
+                            if (isPrimarySuccess)
+                            {
                                 opModel.ResponseContentType = responseContent.Key;
                                 opModel.ResponseRef = SchemaRef(responseSchema);
                                 opModel.ResponseType = SchemaType(responseSchema);
@@ -2322,44 +2863,57 @@ internal static class OpenApiSpecParser {
                 // the 2xx responses alone, a text/plain operation declared a set no error model
                 // could travel as, and every declared 404 and framework 400 on it reached the
                 // caller as an empty 500.
-                foreach (var errorContentType in errorContentTypes) {
-                    if (!opModel.ProducedContentTypes.Contains(errorContentType)) {
+                foreach (var errorContentType in errorContentTypes)
+                {
+                    if (!opModel.ProducedContentTypes.Contains(errorContentType))
+                    {
                         opModel.ProducedContentTypes.Add(errorContentType);
                     }
 
-                    if (!opModel.ErrorContentTypes.Contains(errorContentType)) {
+                    if (!opModel.ErrorContentTypes.Contains(errorContentType))
+                    {
                         opModel.ErrorContentTypes.Add(errorContentType);
                     }
                 }
             }
 
             // Parse x-filters extension on the operation
-            if (operation.Extensions != null &&
-                operation.Extensions.TryGetValue("x-filters", out var filtersExt) &&
-                filtersExt is JsonNodeExtension { Node: JsonObject filtersObj }) {
+            if (
+                operation.Extensions != null
+                && operation.Extensions.TryGetValue("x-filters", out var filtersExt)
+                && filtersExt is JsonNodeExtension { Node: JsonObject filtersObj }
+            )
+            {
                 opModel.FilterInstances = ParseFilterInstances(filtersObj);
             }
 
             // x-hardened-raw-bytes opts the signature into byte[] for a response the spec types as
             // a string. Also not something the content map can say: text/plain describes the wire,
             // not whether the application holds the payload already encoded.
-            if (operation.Extensions != null &&
-                operation.Extensions.TryGetValue("x-hardened-raw-bytes", out var rawBytesExt) &&
-                rawBytesExt is JsonNodeExtension { Node: JsonValue rawBytesValue } &&
-                rawBytesValue.GetValueKind() == JsonValueKind.True) {
+            if (
+                operation.Extensions != null
+                && operation.Extensions.TryGetValue("x-hardened-raw-bytes", out var rawBytesExt)
+                && rawBytesExt is JsonNodeExtension { Node: JsonValue rawBytesValue }
+                && rawBytesValue.GetValueKind() == JsonValueKind.True
+            )
+            {
                 opModel.RawBytesResponse = true;
             }
 
             // x-hardened-timeout is how a description bounds an operation. Not something OpenAPI
             // can say on its own: the specification describes the exchange, and how long a server
             // may take over it is a property of the server that only its own vocabulary can carry.
-            if (operation.Extensions != null &&
-                operation.Extensions.TryGetValue("x-hardened-timeout", out var timeoutExt) &&
-                timeoutExt is JsonNodeExtension { Node: { } timeoutNode }) {
+            if (
+                operation.Extensions != null
+                && operation.Extensions.TryGetValue("x-hardened-timeout", out var timeoutExt)
+                && timeoutExt is JsonNodeExtension { Node: { } timeoutNode }
+            )
+            {
                 opModel.Timeout = ParseTimeout(timeoutNode, opModel.OperationId);
             }
 
-            if (!operationsByTag.TryGetValue(tag, out var list)) {
+            if (!operationsByTag.TryGetValue(tag, out var list))
+            {
                 list = new List<OperationModel>();
                 operationsByTag[tag] = list;
             }
@@ -2384,18 +2938,19 @@ internal static class OpenApiSpecParser {
     /// description is the one place that can say so before anything is generated at all.
     /// </para>
     /// </remarks>
-    private static TimeoutModel? ParseTimeout(JsonNode node, string operationId) {
-        if (node is JsonObject declared) {
+    private static TimeoutModel? ParseTimeout(JsonNode node, string operationId)
+    {
+        if (node is JsonObject declared)
+        {
             return Bounded(
                 Member(declared, "milliseconds") ?? 0,
                 Member(declared, "status") ?? 504,
                 Member(declared, "retryAfterSeconds") ?? 0,
-                operationId);
+                operationId
+            );
         }
 
-        return Number(node) is { } milliseconds
-            ? Bounded(milliseconds, 504, 0, operationId)
-            : null;
+        return Number(node) is { } milliseconds ? Bounded(milliseconds, 504, 0, operationId) : null;
     }
 
     private static int? Member(JsonObject declared, string name) =>
@@ -2420,31 +2975,46 @@ internal static class OpenApiSpecParser {
     /// <c>x-hardened-timeout: "2000"</c> means what it says.
     /// </para>
     /// </remarks>
-    private static int? Number(JsonNode node) {
-        if (node is not JsonValue value) {
+    private static int? Number(JsonNode node)
+    {
+        if (node is not JsonValue value)
+        {
             return null;
         }
 
         var written = value.ToJsonString().Trim('"');
 
-        return int.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)
+        return int.TryParse(
+            written,
+            NumberStyles.Integer,
+            CultureInfo.InvariantCulture,
+            out var parsed
+        )
             ? parsed
             : null;
     }
 
     private static TimeoutModel Bounded(
-        int milliseconds, int status, int retryAfterSeconds, string operationId) {
-        if (milliseconds <= 0) {
+        int milliseconds,
+        int status,
+        int retryAfterSeconds,
+        string operationId
+    )
+    {
+        if (milliseconds <= 0)
+        {
             throw new InvalidOperationException(
-                $"'{operationId}' declares an x-hardened-timeout of {milliseconds} milliseconds. " +
-                "A budget has to be greater than zero; an operation that should not be bounded " +
-                "declares no timeout instead.");
+                $"'{operationId}' declares an x-hardened-timeout of {milliseconds} milliseconds. "
+                    + "A budget has to be greater than zero; an operation that should not be bounded "
+                    + "declares no timeout instead."
+            );
         }
 
-        return new TimeoutModel {
+        return new TimeoutModel
+        {
             Milliseconds = milliseconds,
             Status = status,
-            RetryAfterSeconds = retryAfterSeconds
+            RetryAfterSeconds = retryAfterSeconds,
         };
     }
 
@@ -2471,14 +3041,19 @@ internal static class OpenApiSpecParser {
     /// </para>
     /// </remarks>
     private static KeyValuePair<string, IOpenApiMediaType> SelectMediaType(
-        IDictionary<string, IOpenApiMediaType> content) {
-        foreach (var entry in content) {
-            if (entry.Key.Contains("json")) {
+        IDictionary<string, IOpenApiMediaType> content
+    )
+    {
+        foreach (var entry in content)
+        {
+            if (entry.Key.Contains("json"))
+            {
                 return entry;
             }
         }
 
-        foreach (var entry in content) {
+        foreach (var entry in content)
+        {
             return entry;
         }
 
@@ -2510,13 +3085,17 @@ internal static class OpenApiSpecParser {
     /// with every method on it is not what anyone implements, so
     /// <c>HardenedOpenApiGroupUntaggedByPath</c> groups them by first path segment instead.
     /// </remarks>
-    private static string UntaggedGroup(string path, bool byPath) {
-        if (!byPath) {
+    private static string UntaggedGroup(string path, bool byPath)
+    {
+        if (!byPath)
+        {
             return "Default";
         }
 
-        foreach (var segment in path.Split('/')) {
-            if (segment.Length > 0 && segment[0] != '{') {
+        foreach (var segment in path.Split('/'))
+        {
+            if (segment.Length > 0 && segment[0] != '{')
+            {
                 return segment;
             }
         }
@@ -2526,24 +3105,37 @@ internal static class OpenApiSpecParser {
 
     // ── x-filter-types parsing ─────────────────────────────────────────
 
-    private static FilterTypeModel? ParseFilterType(string name, JsonNode? value) {
-        if (value is not JsonObject obj) return null;
+    private static FilterTypeModel? ParseFilterType(string name, JsonNode? value)
+    {
+        if (value is not JsonObject obj)
+            return null;
 
         var model = new FilterTypeModel { Name = name };
 
-        if (StringValue(obj, "namespace") is { } ns) {
+        if (StringValue(obj, "namespace") is { } ns)
+        {
             model.Namespace = ns;
         }
 
-        if (obj.TryGetPropertyValue("generate", out var genValue) &&
-            genValue is JsonValue gen && gen.GetValueKind() is JsonValueKind.True or JsonValueKind.False) {
+        if (
+            obj.TryGetPropertyValue("generate", out var genValue)
+            && genValue is JsonValue gen
+            && gen.GetValueKind() is JsonValueKind.True or JsonValueKind.False
+        )
+        {
             model.Generate = gen.GetValueKind() == JsonValueKind.True;
         }
 
-        if (obj.TryGetPropertyValue("properties", out var propsValue) && propsValue is JsonObject propsObj) {
-            foreach (var propKvp in propsObj) {
+        if (
+            obj.TryGetPropertyValue("properties", out var propsValue)
+            && propsValue is JsonObject propsObj
+        )
+        {
+            foreach (var propKvp in propsObj)
+            {
                 var prop = ParseFilterTypeProperty(propKvp.Key, propKvp.Value);
-                if (prop != null) {
+                if (prop != null)
+                {
                     model.Properties.Add(prop);
                 }
             }
@@ -2552,20 +3144,25 @@ internal static class OpenApiSpecParser {
         return model.Namespace.Length > 0 ? model : null;
     }
 
-    private static FilterTypePropertyModel? ParseFilterTypeProperty(string name, JsonNode? value) {
-        if (value is not JsonObject obj) return null;
+    private static FilterTypePropertyModel? ParseFilterTypeProperty(string name, JsonNode? value)
+    {
+        if (value is not JsonObject obj)
+            return null;
 
         var prop = new FilterTypePropertyModel { Name = name };
 
-        if (StringValue(obj, "type") is { } type) {
+        if (StringValue(obj, "type") is { } type)
+        {
             prop.CSharpType = MapFilterPropertyType(type);
         }
 
-        if (obj.TryGetPropertyValue("default", out var defaultValue)) {
+        if (obj.TryGetPropertyValue("default", out var defaultValue))
+        {
             prop.Default = GetOpenApiPrimitiveValue(defaultValue);
         }
 
-        if (obj.TryGetPropertyValue("enum", out var enumValue) && enumValue is JsonArray enumArr) {
+        if (obj.TryGetPropertyValue("enum", out var enumValue) && enumValue is JsonArray enumArr)
+        {
             prop.EnumValues = enumArr
                 .Select(GetOpenApiPrimitiveValue)
                 .Where(v => v != null)
@@ -2573,7 +3170,8 @@ internal static class OpenApiSpecParser {
                 .ToList();
         }
 
-        if (StringValue(obj, "enumType") is { } enumType) {
+        if (StringValue(obj, "enumType") is { } enumType)
+        {
             prop.EnumType = enumType;
         }
 
@@ -2597,12 +3195,15 @@ internal static class OpenApiSpecParser {
     /// <see cref="JsonSchemaType.Null"/> leaves the shape, which is what every caller is asking
     /// about; <see cref="IsNullable"/> answers the other half.
     /// </remarks>
-    private static string? SchemaType(IOpenApiSchema? schema) {
-        if (schema?.Type is not { } type) {
+    private static string? SchemaType(IOpenApiSchema? schema)
+    {
+        if (schema?.Type is not { } type)
+        {
             return null;
         }
 
-        return (type & ~JsonSchemaType.Null) switch {
+        return (type & ~JsonSchemaType.Null) switch
+        {
             JsonSchemaType.String => "string",
             JsonSchemaType.Integer => "integer",
             JsonSchemaType.Number => "number",
@@ -2611,7 +3212,7 @@ internal static class OpenApiSpecParser {
             JsonSchemaType.Object => "object",
 
             // Either nothing, or a union of real types that no single C# type stands for.
-            _ => null
+            _ => null,
         };
     }
 
@@ -2656,9 +3257,13 @@ internal static class OpenApiSpecParser {
 
     /// <summary>A numeric bound, which the library now hands over as a string.</summary>
     private static decimal? Bound(string? value) =>
-        value != null && decimal.TryParse(
-            value, System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+        value != null
+        && decimal.TryParse(
+            value,
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var parsed
+        )
             ? parsed
             : null;
 
@@ -2683,12 +3288,15 @@ internal static class OpenApiSpecParser {
     /// <c>deleted: {type: boolean, enum: [true]}</c> is a constant rather than a type.
     /// </para>
     /// </remarks>
-    private static string? EnumMember(JsonNode? value) {
-        if (value is not JsonValue jsonValue) {
+    private static string? EnumMember(JsonNode? value)
+    {
+        if (value is not JsonValue jsonValue)
+        {
             return null;
         }
 
-        switch (jsonValue.GetValueKind()) {
+        switch (jsonValue.GetValueKind())
+        {
             case JsonValueKind.String:
                 return jsonValue.GetValue<string>();
             case JsonValueKind.Number:
@@ -2706,16 +3314,20 @@ internal static class OpenApiSpecParser {
     /// Reading it from the values is what the emitters need anyway - the wire form is what the
     /// members are, whatever the schema says about them.
     /// </remarks>
-    private static string? EnumMemberType(IList<JsonNode> members) {
+    private static string? EnumMemberType(IList<JsonNode> members)
+    {
         var sawString = false;
         var sawNumber = false;
 
-        foreach (var member in members) {
-            if (member is not JsonValue jsonValue) {
+        foreach (var member in members)
+        {
+            if (member is not JsonValue jsonValue)
+            {
                 continue;
             }
 
-            switch (jsonValue.GetValueKind()) {
+            switch (jsonValue.GetValueKind())
+            {
                 case JsonValueKind.String:
                     sawString = true;
                     break;
@@ -2728,11 +3340,14 @@ internal static class OpenApiSpecParser {
         // Both is not a C# enum in either direction, and guessing which half to honour would put
         // half the document's values out of reach. Reported rather than resolved - see
         // MixedEnumDiagnostics.
-        if (sawString && sawNumber) {
+        if (sawString && sawNumber)
+        {
             return MixedEnumType;
         }
 
-        return sawNumber ? "integer" : sawString ? "string" : null;
+        return sawNumber ? "integer"
+            : sawString ? "string"
+            : null;
     }
 
     /// <summary>
@@ -2750,26 +3365,35 @@ internal static class OpenApiSpecParser {
     /// without this its members are <c>Value1</c>, <c>Value2</c>, and those appear at every call
     /// site.
     /// </remarks>
-    private static List<string>? EnumMemberNames(IOpenApiSchema schema) {
-        if (schema.Extensions == null) {
+    private static List<string>? EnumMemberNames(IOpenApiSchema schema)
+    {
+        if (schema.Extensions == null)
+        {
             return null;
         }
 
-        foreach (var key in new[] { "x-enum-varnames", "x-enumNames" }) {
-            if (!schema.Extensions.TryGetValue(key, out var extension) ||
-                extension is not JsonNodeExtension { Node: JsonArray array }) {
+        foreach (var key in new[] { "x-enum-varnames", "x-enumNames" })
+        {
+            if (
+                !schema.Extensions.TryGetValue(key, out var extension)
+                || extension is not JsonNodeExtension { Node: JsonArray array }
+            )
+            {
                 continue;
             }
 
             var names = new List<string>(array.Count);
 
-            foreach (var node in array) {
-                if (node is JsonValue value && value.GetValueKind() == JsonValueKind.String) {
+            foreach (var node in array)
+            {
+                if (node is JsonValue value && value.GetValueKind() == JsonValueKind.String)
+                {
                     names.Add(NamingHelper.ToPascalCase(value.GetValue<string>()));
                 }
             }
 
-            if (names.Count == array.Count && names.Count > 0) {
+            if (names.Count == array.Count && names.Count > 0)
+            {
                 return names;
             }
         }
@@ -2792,11 +3416,15 @@ internal static class OpenApiSpecParser {
     /// missing key sends the author to the property that has to change.
     /// </para>
     /// </remarks>
-    private static int? MessagePackIndex(IOpenApiSchema schema) {
-        if (schema.Extensions == null ||
-            !schema.Extensions.TryGetValue("x-message-pack-index", out var extension) ||
-            extension is not JsonNodeExtension { Node: JsonValue value } ||
-            value.GetValueKind() != JsonValueKind.Number) {
+    private static int? MessagePackIndex(IOpenApiSchema schema)
+    {
+        if (
+            schema.Extensions == null
+            || !schema.Extensions.TryGetValue("x-message-pack-index", out var extension)
+            || extension is not JsonNodeExtension { Node: JsonValue value }
+            || value.GetValueKind() != JsonValueKind.Number
+        )
+        {
             return null;
         }
 
@@ -2807,12 +3435,21 @@ internal static class OpenApiSpecParser {
         // a JsonElement, which does convert, so both spellings are tried.
         int index;
 
-        if (value.TryGetValue<int>(out var direct)) {
+        if (value.TryGetValue<int>(out var direct))
+        {
             index = direct;
-        } else if (value.TryGetValue<decimal>(out var number) && decimal.Truncate(number) == number &&
-                   number >= int.MinValue && number <= int.MaxValue) {
+        }
+        else if (
+            value.TryGetValue<decimal>(out var number)
+            && decimal.Truncate(number) == number
+            && number >= int.MinValue
+            && number <= int.MaxValue
+        )
+        {
             index = (int)number;
-        } else {
+        }
+        else
+        {
             return null;
         }
 
@@ -2821,35 +3458,42 @@ internal static class OpenApiSpecParser {
 
     /// <summary>A string-valued member of a JSON object, or null.</summary>
     private static string? StringValue(JsonObject obj, string name) =>
-        obj.TryGetPropertyValue(name, out var node) &&
-        node is JsonValue value &&
-        value.GetValueKind() == JsonValueKind.String
+        obj.TryGetPropertyValue(name, out var node)
+        && node is JsonValue value
+        && value.GetValueKind() == JsonValueKind.String
             ? value.GetValue<string>()
             : null;
 
-    private static string MapFilterPropertyType(string openApiType) {
-        return openApiType.ToLowerInvariant() switch {
+    private static string MapFilterPropertyType(string openApiType)
+    {
+        return openApiType.ToLowerInvariant() switch
+        {
             "integer" or "int" => "int",
             "long" => "long",
             "boolean" or "bool" => "bool",
             "number" or "double" => "double",
             "float" => "float",
-            _ => "string"
+            _ => "string",
         };
     }
 
     // ── x-filters parsing ──────────────────────────────────────────────
 
-    private static List<FilterInstanceModel> ParseFilterInstances(JsonObject filtersObj) {
+    private static List<FilterInstanceModel> ParseFilterInstances(JsonObject filtersObj)
+    {
         var instances = new List<FilterInstanceModel>();
 
-        foreach (var kvp in filtersObj) {
+        foreach (var kvp in filtersObj)
+        {
             var instance = new FilterInstanceModel { FilterTypeName = kvp.Key };
 
-            if (kvp.Value is JsonObject propsObj) {
-                foreach (var propKvp in propsObj) {
+            if (kvp.Value is JsonObject propsObj)
+            {
+                foreach (var propKvp in propsObj)
+                {
                     var propValue = GetOpenApiPrimitiveValue(propKvp.Value);
-                    if (propValue != null) {
+                    if (propValue != null)
+                    {
                         instance.PropertyValues[propKvp.Key] = propValue;
                     }
                 }
@@ -2865,12 +3509,15 @@ internal static class OpenApiSpecParser {
     /// Extracts a string representation of a primitive OpenAPI value
     /// suitable for emitting as a C# literal.
     /// </summary>
-    private static string? GetOpenApiPrimitiveValue(JsonNode? value) {
-        if (value is not JsonValue jsonValue) {
+    private static string? GetOpenApiPrimitiveValue(JsonNode? value)
+    {
+        if (value is not JsonValue jsonValue)
+        {
             return null;
         }
 
-        return jsonValue.GetValueKind() switch {
+        return jsonValue.GetValueKind() switch
+        {
             JsonValueKind.String => jsonValue.GetValue<string>(),
 
             // Written back exactly as the document had it. Going through a numeric type first would
@@ -2878,7 +3525,7 @@ internal static class OpenApiSpecParser {
             JsonValueKind.Number => jsonValue.ToJsonString(),
             JsonValueKind.True => "true",
             JsonValueKind.False => "false",
-            _ => null
+            _ => null,
         };
     }
 }

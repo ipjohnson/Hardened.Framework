@@ -1,6 +1,6 @@
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.Idl;
-using Hardened.Generation;
 using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
@@ -13,9 +13,10 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// <c>type: integer, enum: [1, 2, 3]</c> as an enum, so it arrived with every member filtered away
 /// and emitted an empty C# enum whose converter threw on every value - on a clean, silent build.
 /// </remarks>
-public class EnumParsingTests {
-
-    private static ServiceSpecModel Parse(string yaml) {
+public class EnumParsingTests
+{
+    private static ServiceSpecModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "test", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -43,16 +44,21 @@ public class EnumParsingTests {
             components:
               schemas:
             {{members}}
-            """).Schemas.Single(schema => schema.Name == name);
+            """
+        )
+            .Schemas.Single(schema => schema.Name == name);
 
     [Fact]
-    public void AStringEnumKeepsItsValuesAndItsType() {
-        var schema = Enum("PetStatus",
+    public void AStringEnumKeepsItsValuesAndItsType()
+    {
+        var schema = Enum(
+            "PetStatus",
             """
                 PetStatus:
                   type: string
                   enum: [available, pending, sold]
-            """);
+            """
+        );
 
         Assert.Equal(SchemaKind.Enum, schema.Kind);
         Assert.Equal("string", schema.Type);
@@ -60,13 +66,16 @@ public class EnumParsingTests {
     }
 
     [Fact]
-    public void AnIntegerEnumKeepsItsValuesAndItsType() {
-        var schema = Enum("PetSize",
+    public void AnIntegerEnumKeepsItsValuesAndItsType()
+    {
+        var schema = Enum(
+            "PetSize",
             """
                 PetSize:
                   type: integer
                   enum: [1, 5, 25]
-            """);
+            """
+        );
 
         Assert.Equal(SchemaKind.Enum, schema.Kind);
         Assert.Equal("integer", schema.Type);
@@ -78,26 +87,32 @@ public class EnumParsingTests {
     /// <c>type:</c> beside its <c>enum:</c> and plenty do not.
     /// </summary>
     [Fact]
-    public void AnEnumWithNoDeclaredTypeIsReadFromItsMembers() {
-        var schema = Enum("PetSize",
+    public void AnEnumWithNoDeclaredTypeIsReadFromItsMembers()
+    {
+        var schema = Enum(
+            "PetSize",
             """
                 PetSize:
                   enum: [1, 5, 25]
-            """);
+            """
+        );
 
         Assert.Equal("integer", schema.Type);
         Assert.Equal(new[] { "1", "5", "25" }, schema.EnumValues);
     }
 
     [Fact]
-    public void XEnumVarnamesNamesTheMembers() {
-        var schema = Enum("PetSize",
+    public void XEnumVarnamesNamesTheMembers()
+    {
+        var schema = Enum(
+            "PetSize",
             """
                 PetSize:
                   type: integer
                   enum: [1, 5, 25]
                   x-enum-varnames: [Small, Medium, Large]
-            """);
+            """
+        );
 
         Assert.True(schema.EnumMemberNamesAreDeclared);
         Assert.Equal(new[] { "Small", "Medium", "Large" }, schema.EnumMemberNames);
@@ -105,14 +120,17 @@ public class EnumParsingTests {
 
     /// <summary>NSwag's spelling of the same thing.</summary>
     [Fact]
-    public void XEnumNamesNamesTheMembersToo() {
-        var schema = Enum("PetSize",
+    public void XEnumNamesNamesTheMembersToo()
+    {
+        var schema = Enum(
+            "PetSize",
             """
                 PetSize:
                   type: integer
                   enum: [1, 5]
                   x-enumNames: [Small, Large]
-            """);
+            """
+        );
 
         Assert.True(schema.EnumMemberNamesAreDeclared);
         Assert.Equal(new[] { "Small", "Large" }, schema.EnumMemberNames);
@@ -122,14 +140,17 @@ public class EnumParsingTests {
     /// A name list that does not line up with the values is ignored rather than half-applied.
     /// </summary>
     [Fact]
-    public void AMismatchedNameListIsIgnored() {
-        var schema = Enum("PetSize",
+    public void AMismatchedNameListIsIgnored()
+    {
+        var schema = Enum(
+            "PetSize",
             """
                 PetSize:
                   type: integer
                   enum: [1, 5, 25]
                   x-enum-varnames: [Small, Large]
-            """);
+            """
+        );
 
         Assert.False(schema.EnumMemberNamesAreDeclared);
     }
@@ -139,13 +160,16 @@ public class EnumParsingTests {
     /// a parser hint rather than a request - out of the allocator's way.
     /// </summary>
     [Fact]
-    public void AnEnumWithNoNamesDeclaredSaysSo() {
-        var schema = Enum("PetStatus",
+    public void AnEnumWithNoNamesDeclaredSaysSo()
+    {
+        var schema = Enum(
+            "PetStatus",
             """
                 PetStatus:
                   type: string
                   enum: [available, sold]
-            """);
+            """
+        );
 
         Assert.False(schema.EnumMemberNamesAreDeclared);
     }
@@ -158,12 +182,15 @@ public class EnumParsingTests {
     /// strings out of reach, so either choice silently drops half of what a caller may send.
     /// </remarks>
     [Fact]
-    public void AMixedEnumIsMarkedRatherThanResolved() {
-        var schema = Enum("Muddle",
+    public void AMixedEnumIsMarkedRatherThanResolved()
+    {
+        var schema = Enum(
+            "Muddle",
             """
                 Muddle:
                   enum: [available, 1]
-            """);
+            """
+        );
 
         Assert.Equal("mixed-enum", schema.Type);
     }
@@ -173,13 +200,16 @@ public class EnumParsingTests {
     /// <c>deleted: {type: boolean, enum: [true]}</c> is a constant rather than a type.
     /// </summary>
     [Fact]
-    public void ABooleanEnumContributesNoMembers() {
-        var schema = Enum("Deleted",
+    public void ABooleanEnumContributesNoMembers()
+    {
+        var schema = Enum(
+            "Deleted",
             """
                 Deleted:
                   type: boolean
                   enum: [true]
-            """);
+            """
+        );
 
         Assert.Empty(schema.EnumValues);
     }

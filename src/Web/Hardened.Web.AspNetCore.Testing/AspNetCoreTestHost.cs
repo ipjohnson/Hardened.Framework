@@ -15,10 +15,12 @@ namespace Hardened.Web.AspNetCore.Testing;
 /// being disposed, which is safe only because the container's own dispose is guarded against
 /// re-entry.
 /// </remarks>
-public sealed class AspNetCoreTestHost : SocketHost {
+public sealed class AspNetCoreTestHost : SocketHost
+{
     private WebApplication? _app;
 
-    internal AspNetCoreTestHost(IAspNetCoreTestComposition composition, string environmentName) {
+    internal AspNetCoreTestHost(IAspNetCoreTestComposition composition, string environmentName)
+    {
         Composition = composition;
         EnvironmentName = environmentName;
     }
@@ -30,13 +32,20 @@ public sealed class AspNetCoreTestHost : SocketHost {
 
     /// <summary>The application, once <see cref="AspNetCoreTestingAttribute"/> has built it.</summary>
     public WebApplication Application =>
-        _app ?? throw new InvalidOperationException("The application has not been built; [assembly: AspNetCoreTesting] builds it when the runner asks for the container.");
+        _app
+        ?? throw new InvalidOperationException(
+            "The application has not been built; [assembly: AspNetCoreTesting] builds it when the runner asks for the container."
+        );
 
     public override bool IsTerminal => false;
 
     internal void Attach(WebApplication app) => _app = app;
 
-    protected override async Task<Uri> Listen(IServiceProvider provider, CancellationToken cancellationToken) {
+    protected override async Task<Uri> Listen(
+        IServiceProvider provider,
+        CancellationToken cancellationToken
+    )
+    {
         var app = Application;
 
         // UseHardened runs the startup services through the guarded ApplicationLogic.Start, so a
@@ -49,8 +58,10 @@ public sealed class AspNetCoreTestHost : SocketHost {
         return new Uri(app.Urls.First());
     }
 
-    protected override async Task StopAsync(CancellationToken bounded) {
-        if (_app == null) {
+    protected override async Task StopAsync(CancellationToken bounded)
+    {
+        if (_app == null)
+        {
             return;
         }
 

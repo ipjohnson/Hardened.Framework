@@ -3,8 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Web.StaticContent;
 
-public static class StaticContentServiceCollectionExtensions {
-
+public static class StaticContentServiceCollectionExtensions
+{
     /// <summary>
     /// Configures the static content mount.
     /// </summary>
@@ -41,18 +41,26 @@ public static class StaticContentServiceCollectionExtensions {
     /// </para>
     /// </remarks>
     public static IServiceCollection ConfigureStaticContent(
-        this IServiceCollection services, Action<StaticContentConfiguration> configure) {
+        this IServiceCollection services,
+        Action<StaticContentConfiguration> configure
+    )
+    {
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
                 Array.Empty<IConfigurationValueProvider>(),
-                new IConfigurationValueAmender[] {
+                new IConfigurationValueAmender[]
+                {
                     new SimpleConfigurationValueAmender<StaticContentConfiguration>(
-                        (_, configuration) => {
+                        (_, configuration) =>
+                        {
                             configure(configuration);
 
                             return configuration;
-                        })
-                }));
+                        }
+                    ),
+                }
+            )
+        );
 
         return services;
     }

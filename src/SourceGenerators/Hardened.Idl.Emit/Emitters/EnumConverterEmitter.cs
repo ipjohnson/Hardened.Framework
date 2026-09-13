@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using CSharpAuthor;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 
 namespace Hardened.Idl.Emitters;
 
@@ -29,14 +29,18 @@ namespace Hardened.Idl.Emitters;
 /// becomes an attribute on the member and the converter goes away.
 /// </para>
 /// </remarks>
-internal static class EnumConverterEmitter {
-
+internal static class EnumConverterEmitter
+{
     /// <summary>The converter's type name, which the allocator reserves alongside the type.</summary>
     public static string ConverterName(string schemaName) =>
         NamingHelper.ToPascalCase(schemaName) + "Converter";
 
     public static ClassDefinition Emit(
-        IConstructContainer container, SchemaModel schema, string modelsNamespace) {
+        IConstructContainer container,
+        SchemaModel schema,
+        string modelsNamespace
+    )
+    {
         var name = NamingHelper.ToPascalCase(schema.Name);
         var converterName = ConverterName(schema.Name);
         var enumType = TypeDefinition.Get(modelsNamespace, name);
@@ -50,12 +54,16 @@ internal static class EnumConverterEmitter {
                 TypeDefinitionEnum.ClassDefinition,
                 "System.Text.Json.Serialization",
                 "JsonConverter",
-                new[] { enumType }));
+                new[] { enumType }
+            )
+        );
 
         converter.Comment = $"Reads and writes {name} as the values the description declares.";
 
         var instance = converter.AddField(
-            TypeDefinition.Get(modelsNamespace, converterName), "Instance");
+            TypeDefinition.Get(modelsNamespace, converterName),
+            "Instance"
+        );
 
         instance.Modifiers |=
             ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
@@ -86,7 +94,12 @@ internal static class EnumConverterEmitter {
     /// </para>
     /// </remarks>
     private static void EmitTryParseWire(
-        ClassDefinition converter, SchemaModel schema, ITypeDefinition enumType, string qualified) {
+        ClassDefinition converter,
+        SchemaModel schema,
+        ITypeDefinition enumType,
+        string qualified
+    )
+    {
         var method = converter.AddMethod("TryParseWire");
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
@@ -95,13 +108,14 @@ internal static class EnumConverterEmitter {
         method.AddParameter(enumType, "parsed").Modifier = ParameterModifier.Out;
 
         method.Comment =
-            $"Parses one of {NamingHelper.ToPascalCase(schema.Name)}'s declared values from text, " +
-            "as a parameter carries it.";
+            $"Parses one of {NamingHelper.ToPascalCase(schema.Name)}'s declared values from text, "
+            + "as a parameter carries it.";
 
         var numeric = EnumWireForm.IsNumeric(schema);
         var lines = new List<string>();
 
-        if (numeric) {
+        if (numeric)
+        {
             lines.Add("if (!long.TryParse(");
             lines.Add("        value,");
             lines.Add("        global::System.Globalization.NumberStyles.Integer,");
@@ -113,13 +127,15 @@ internal static class EnumConverterEmitter {
             lines.Add("");
             lines.Add("switch (number)");
         }
-        else {
+        else
+        {
             lines.Add("switch (value)");
         }
 
         lines.Add("{");
 
-        for (var index = 0; index < schema.EnumValues.Count; index++) {
+        for (var index = 0; index < schema.EnumValues.Count; index++)
+        {
             lines.Add($"    case {EnumWireForm.Literal(schema, index)}:");
             lines.Add($"        parsed = {qualified}.{Member(schema, index)};");
             lines.Add("        return true;");
@@ -134,56 +150,72 @@ internal static class EnumConverterEmitter {
     }
 
     private static void EmitRead(
-        ClassDefinition converter, SchemaModel schema, ITypeDefinition enumType, string qualified) {
+        ClassDefinition converter,
+        SchemaModel schema,
+        ITypeDefinition enumType,
+        string qualified
+    )
+    {
         var method = converter.AddMethod("Read");
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
         method.SetReturnType(enumType);
-        method.AddParameter(
-            TypeDefinition.Get("System.Text.Json", "Utf8JsonReader"), "reader").Modifier =
-            ParameterModifier.Ref;
+        method
+            .AddParameter(TypeDefinition.Get("System.Text.Json", "Utf8JsonReader"), "reader")
+            .Modifier = ParameterModifier.Ref;
         method.AddParameter(TypeDefinition.Get(typeof(System.Type)), "typeToConvert");
         method.AddParameter(
-            TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"), "options");
+            TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"),
+            "options"
+        );
 
         var numeric = EnumWireForm.IsNumeric(schema);
 
         // The wire type is the description's. A string enum reads a string and an integer enum reads
         // a number; reading the wrong one throws before the switch is reached, which is the same
         // JsonException an undeclared value produces and lands as a 400 either way.
-        var lines = new List<string> {
-            numeric
-                ? "var value = reader.GetInt64();"
-                : "var value = reader.GetString();",
+        var lines = new List<string>
+        {
+            numeric ? "var value = reader.GetInt64();" : "var value = reader.GetString();",
             "",
             "return value switch",
-            "{"
+            "{",
         };
 
-        for (var index = 0; index < schema.EnumValues.Count; index++) {
-            lines.Add($"    {EnumWireForm.Literal(schema, index)} => {qualified}.{Member(schema, index)},");
+        for (var index = 0; index < schema.EnumValues.Count; index++)
+        {
+            lines.Add(
+                $"    {EnumWireForm.Literal(schema, index)} => {qualified}.{Member(schema, index)},"
+            );
         }
 
         // A value the description does not declare is the server saying something the contract does
         // not allow, and guessing at it would put an arbitrary member into the model.
         lines.Add("    _ => throw new global::System.Text.Json.JsonException(");
         lines.Add(
-            $"        \"'\" + value + \"' is not a value {NamingHelper.ToPascalCase(schema.Name)} declares.\")");
+            $"        \"'\" + value + \"' is not a value {NamingHelper.ToPascalCase(schema.Name)} declares.\")"
+        );
         lines.Add("};");
 
         Write(method, lines);
     }
 
     private static void EmitWrite(
-        ClassDefinition converter, SchemaModel schema, ITypeDefinition enumType, string qualified) {
+        ClassDefinition converter,
+        SchemaModel schema,
+        ITypeDefinition enumType,
+        string qualified
+    )
+    {
         var method = converter.AddMethod("Write");
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
-        method.AddParameter(
-            TypeDefinition.Get("System.Text.Json", "Utf8JsonWriter"), "writer");
+        method.AddParameter(TypeDefinition.Get("System.Text.Json", "Utf8JsonWriter"), "writer");
         method.AddParameter(enumType, "value");
         method.AddParameter(
-            TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"), "options");
+            TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"),
+            "options"
+        );
 
         var numeric = EnumWireForm.IsNumeric(schema);
 
@@ -193,18 +225,25 @@ internal static class EnumConverterEmitter {
         // This used to carry a note that a document may declare an enum with no values at all,
         // which was that defect wearing a workaround: an integer enum reached here with every member
         // filtered away by the parser. It cannot now - a members-less enum is not emitted.
-        var lines = new List<string> {
-            numeric ? "long wire = value switch" : "string wire = value switch", "{" };
+        var lines = new List<string>
+        {
+            numeric ? "long wire = value switch" : "string wire = value switch",
+            "{",
+        };
 
-        for (var index = 0; index < schema.EnumValues.Count; index++) {
-            lines.Add($"    {qualified}.{Member(schema, index)} => {EnumWireForm.Literal(schema, index)},");
+        for (var index = 0; index < schema.EnumValues.Count; index++)
+        {
+            lines.Add(
+                $"    {qualified}.{Member(schema, index)} => {EnumWireForm.Literal(schema, index)},"
+            );
         }
 
         // Reachable by casting an undeclared number to the enum, which writes a value the contract
         // does not describe - worth refusing rather than putting on the wire.
         lines.Add("    _ => throw new global::System.Text.Json.JsonException(");
         lines.Add(
-            $"        \"The value is not one {NamingHelper.ToPascalCase(schema.Name)} declares.\")");
+            $"        \"The value is not one {NamingHelper.ToPascalCase(schema.Name)} declares.\")"
+        );
         lines.Add("};");
         lines.Add("");
         lines.Add(numeric ? "writer.WriteNumberValue(wire);" : "writer.WriteStringValue(wire);");
@@ -218,12 +257,13 @@ internal static class EnumConverterEmitter {
     private static string Member(SchemaModel schema, int index) =>
         EnumWireForm.MemberNames(schema)[index];
 
-    private static void Write(MethodDefinition method, List<string> lines) {
-        foreach (var line in lines) {
+    private static void Write(MethodDefinition method, List<string> lines)
+    {
+        foreach (var line in lines)
+        {
             method.Add(new CodeOutputComponent(line) { Indented = true });
         }
     }
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

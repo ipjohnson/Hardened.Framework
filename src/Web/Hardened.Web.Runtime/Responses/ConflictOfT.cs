@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(409)]
 public sealed record Conflict<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<Conflict<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<Conflict<T>>
+{
     public string Type => ProblemTypes.Conflict;
 
     public string Title => "Conflict";
@@ -38,6 +40,7 @@ public sealed record Conflict<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static Conflict<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

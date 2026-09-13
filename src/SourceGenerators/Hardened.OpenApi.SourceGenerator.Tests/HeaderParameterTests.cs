@@ -7,10 +7,9 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// Header parameters, end to end: on the interface, bound by the handler, and constrained like any
 /// other.
 /// </summary>
-public class HeaderParameterTests {
-
-    private const string Spec =
-        """
+public class HeaderParameterTests
+{
+    private const string Spec = """
         openapi: "3.0.0"
         info: { title: Things, version: "1.0" }
         paths:
@@ -39,8 +38,10 @@ public class HeaderParameterTests {
     /// extracting and had nowhere to put.
     /// </summary>
     [Fact]
-    public void AHandlerCanReceiveAHeader() {
-        OpenApiGenerator.Run(
+    public void AHandlerCanReceiveAHeader()
+    {
+        OpenApiGenerator
+            .Run(
                 Spec,
                 OpenApiGenerator.EntryPointWithHandler(
                     """
@@ -49,12 +50,15 @@ public class HeaderParameterTests {
                         public Task GetThing(string id, string xTenant, string? xTrace) =>
                             Task.FromResult(xTenant + xTrace);
                     }
-                    """))
+                    """
+                )
+            )
             .AssertNoErrors();
     }
 
     [Fact]
-    public void TheHeaderIsBoundFromTheHeaderCollection() {
+    public void TheHeaderIsBoundFromTheHeaderCollection()
+    {
         var result = OpenApiGenerator.Run(Spec).AssertNoErrors();
 
         var handler = result.SourceContaining("ThingController_GetThing");
@@ -68,7 +72,8 @@ public class HeaderParameterTests {
     /// parameter was missing from the interface the validator is typed on.
     /// </summary>
     [Fact]
-    public void AConstraintOnAHeaderIsCompiled() {
+    public void AConstraintOnAHeaderIsCompiled()
+    {
         var result = OpenApiGenerator.Run(Spec).AssertNoErrors();
 
         var generated = result.SourceContaining("petstore.g.cs");

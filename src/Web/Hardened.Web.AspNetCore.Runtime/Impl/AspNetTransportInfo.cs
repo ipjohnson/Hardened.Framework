@@ -20,8 +20,10 @@ namespace Hardened.Web.AspNetCore.Runtime.Impl;
 /// not rewritten.
 /// </para>
 /// </remarks>
-public sealed class AspNetTransportInfo : ITransportInfo {
-    private static readonly string[] KeyList = [
+public sealed class AspNetTransportInfo : ITransportInfo
+{
+    private static readonly string[] KeyList =
+    [
         KnownTransportKeys.ClientAddress,
         KnownTransportKeys.ClientPort,
         KnownTransportKeys.NetworkPeerAddress,
@@ -29,26 +31,30 @@ public sealed class AspNetTransportInfo : ITransportInfo {
         KnownTransportKeys.ServerAddress,
         KnownTransportKeys.ServerPort,
         KnownTransportKeys.NetworkProtocolVersion,
-        KnownTransportKeys.UrlScheme
+        KnownTransportKeys.UrlScheme,
     ];
 
     private readonly HttpRequest _request;
 
-    public AspNetTransportInfo(HttpRequest request) {
+    public AspNetTransportInfo(HttpRequest request)
+    {
         _request = request;
     }
 
     public IReadOnlyList<string> Keys => KeyList;
 
-    public string? Get(string key) {
+    public string? Get(string key)
+    {
         var connection = _request.HttpContext.Connection;
 
-        return key switch {
+        return key switch
+        {
             KnownTransportKeys.ClientAddress or KnownTransportKeys.NetworkPeerAddress =>
                 connection.RemoteIpAddress?.ToString(),
 
-            KnownTransportKeys.ClientPort or KnownTransportKeys.NetworkPeerPort =>
-                Port(connection.RemotePort),
+            KnownTransportKeys.ClientPort or KnownTransportKeys.NetworkPeerPort => Port(
+                connection.RemotePort
+            ),
 
             KnownTransportKeys.ServerAddress => connection.LocalIpAddress?.ToString(),
             KnownTransportKeys.ServerPort => Port(connection.LocalPort),
@@ -58,7 +64,7 @@ public sealed class AspNetTransportInfo : ITransportInfo {
 
             KnownTransportKeys.UrlScheme => _request.Scheme,
 
-            _ => null
+            _ => null,
         };
     }
 
@@ -66,8 +72,10 @@ public sealed class AspNetTransportInfo : ITransportInfo {
     private static string? Port(int port) =>
         port == 0 ? null : port.ToString(CultureInfo.InvariantCulture);
 
-    private static string? Version(string? protocol) {
-        if (string.IsNullOrEmpty(protocol)) {
+    private static string? Version(string? protocol)
+    {
+        if (string.IsNullOrEmpty(protocol))
+        {
             return null;
         }
 

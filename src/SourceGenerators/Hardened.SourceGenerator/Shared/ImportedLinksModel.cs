@@ -23,8 +23,8 @@ namespace Hardened.SourceGenerator.Shared;
 /// a property per import without checking would name types that do not exist.
 /// </para>
 /// </remarks>
-public record ImportedLinksModel(string PropertyName, ITypeDefinition LinksType) {
-
+public record ImportedLinksModel(string PropertyName, ITypeDefinition LinksType)
+{
     /// <summary>
     /// The imported modules that have links, in a stable order.
     /// </summary>
@@ -35,17 +35,21 @@ public record ImportedLinksModel(string PropertyName, ITypeDefinition LinksType)
     public static IReadOnlyList<ImportedLinksModel> Read(
         GeneratorSyntaxContext syntaxContext,
         ClassDeclarationSyntax entryPoint,
-        IReadOnlyList<AttributeModel> attributes) {
+        IReadOnlyList<AttributeModel> attributes
+    )
+    {
         var entryPointName = entryPoint.Identifier.Text;
 
         List<ImportedLinksModel>? found = null;
 
-        foreach (var attribute in attributes) {
+        foreach (var attribute in attributes)
+        {
             var moduleName = ModuleName(attribute.TypeDefinition.Name);
 
             // The entry point imports itself in no useful sense, and its own links are already the
             // type this property would hang off.
-            if (moduleName == entryPointName) {
+            if (moduleName == entryPointName)
+            {
                 continue;
             }
 
@@ -57,23 +61,30 @@ public record ImportedLinksModel(string PropertyName, ITypeDefinition LinksType)
 
             // The one question that cannot be answered from syntax: does that module actually
             // publish links?
-            if (syntaxContext.SemanticModel.Compilation.GetTypeByMetadataName(metadataName) == null) {
+            if (syntaxContext.SemanticModel.Compilation.GetTypeByMetadataName(metadataName) == null)
+            {
                 continue;
             }
 
             found ??= new List<ImportedLinksModel>();
 
-            found.Add(new ImportedLinksModel(
-                moduleName,
-                TypeDefinition.Get(attribute.TypeDefinition.Namespace, linksName)));
+            found.Add(
+                new ImportedLinksModel(
+                    moduleName,
+                    TypeDefinition.Get(attribute.TypeDefinition.Namespace, linksName)
+                )
+            );
         }
 
-        if (found == null) {
+        if (found == null)
+        {
             return Array.Empty<ImportedLinksModel>();
         }
 
-        found.Sort((left, right) =>
-            string.Compare(left.PropertyName, right.PropertyName, StringComparison.Ordinal));
+        found.Sort(
+            (left, right) =>
+                string.Compare(left.PropertyName, right.PropertyName, StringComparison.Ordinal)
+        );
 
         return found;
     }

@@ -1,8 +1,8 @@
+using System.CodeDom.Compiler;
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Text;
 using CSharpAuthor;
-using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Links;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
@@ -11,13 +11,16 @@ using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Authorization;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
-using System.CodeDom.Compiler;
+using static CSharpAuthor.SyntaxHelpers;
 
 namespace Hardened.SourceGenerator.Web;
 
-public static class RoutingTableGenerator {
-    private static readonly IOutputComponent EmptyTokens =
-        Property(KnownTypes.Requests.PathTokenCollection, "Empty");
+public static class RoutingTableGenerator
+{
+    private static readonly IOutputComponent EmptyTokens = Property(
+        KnownTypes.Requests.PathTokenCollection,
+        "Empty"
+    );
 
     /// <summary>
     /// Whether this table matches without regard to case, from <c>[CaseInsensitiveRoutes]</c> on
@@ -56,10 +59,13 @@ public static class RoutingTableGenerator {
     [ThreadStatic]
     private static string? _basePath;
 
-    public static void GenerateRoute(SourceProductionContext context,
+    public static void GenerateRoute(
+        SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
         WebGeneratorOptions? options = null,
-        IReadOnlyList<RouteConstraintModel>? constraints = null) {
+        IReadOnlyList<RouteConstraintModel>? constraints = null
+    )
+    {
         _constraints = constraints;
 
         options ??= WebGeneratorOptions.Default;
@@ -68,9 +74,7 @@ public static class RoutingTableGenerator {
         // table referencing a handler class that does not exist - uncompilable output, which is
         // worse than the missing route. Skipped silently: WebExecutionHandlerCodeGenerator has
         // already reported each one, and it runs per handler rather than per table.
-        var routable = models.Right
-            .Where(handler => !handler.CannotBeEmitted())
-            .ToList();
+        var routable = models.Right.Where(handler => !handler.CannotBeEmitted()).ToList();
 
         // Before anything is emitted. An ambiguous pair still produces a table - one of the two
         // routes simply becomes unreachable for some values - so reporting is the only thing that
@@ -79,23 +83,31 @@ public static class RoutingTableGenerator {
             context,
             routable,
             GetBasePath(models.Left),
-            AmbiguousRouteDiagnostics.Severity(options.AmbiguousRoutes));
+            AmbiguousRouteDiagnostics.Severity(options.AmbiguousRoutes)
+        );
 
         // Per handler, and before its dispatch is emitted. A case set the document cannot describe
         // unambiguously still produces a switch that compiles and runs - the ambiguity is in the
         // shipped contract rather than in the generated code, which is exactly why nothing else
         // would ever surface it.
-        foreach (var handler in routable) {
+        foreach (var handler in routable)
+        {
             var name = handler.ControllerType.Name + "." + handler.HandlerMethod;
 
             ResponseModelDiagnostics.ReportCaseSetFindings(
-                context, name, handler.ResponseInformation.UnionDiagnostic);
+                context,
+                name,
+                handler.ResponseInformation.UnionDiagnostic
+            );
 
             // A framing on a handler with nothing to frame compiles and runs too, as a buffered
             // JSON response, which is why the attribute's promise of a build error is kept here
             // rather than left to be found in an environment.
             StreamFramingDiagnostics.Report(
-                context, name, handler.ResponseInformation.StreamFramingDiagnostic);
+                context,
+                name,
+                handler.ResponseInformation.StreamFramingDiagnostic
+            );
 
             // What the operation says it produces, against what could produce it. Bytes with no
             // declaration is an error; a model declared as something nothing here writes is a
@@ -105,7 +117,8 @@ public static class RoutingTableGenerator {
                 name,
                 handler.ResponseInformation.MissingContentTypeDiagnostic,
                 handler.ResponseInformation.UnproducibleContentTypeDiagnostic,
-                options.WritableContentTypes);
+                options.WritableContentTypes
+            );
         }
 
         // Per application, because the store is: [CacheResponse] on a handler and the module
@@ -117,17 +130,23 @@ public static class RoutingTableGenerator {
         // green, nothing published, and the author had no way to learn the working spelling.
         SecuritySchemeDiagnostics.ReportMisplacedSchemes(
             context,
-            MisplacedSchemeFindings(models.Left, routable));
+            MisplacedSchemeFindings(models.Left, routable)
+        );
 
         // Before the document is written, because an unrecognised version has no answer to fall
         // back to - see OpenApiVersionDiagnostics.ReportUnknownVersion.
         var version = OpenApiVersionFacts.Parse(options.OpenApiVersion);
 
-        if (version == null) {
+        if (version == null)
+        {
             OpenApiVersionDiagnostics.ReportUnknownVersion(context, options.OpenApiVersion!);
         }
 
-        var outputString = GenerateCSharpRouteFile(models.Left, routable, context.CancellationToken);
+        var outputString = GenerateCSharpRouteFile(
+            models.Left,
+            routable,
+            context.CancellationToken
+        );
 
         var fileName = models.Left.EntryPointType.Name + ".Routing";
 
@@ -141,33 +160,50 @@ public static class RoutingTableGenerator {
         OpenApiDocumentDiagnostics.ReportDuplicateOperationIds(context, routable);
         OpenApiDocumentDiagnostics.ReportSchemaNameCollisions(context, routable);
 
-        if (OpenApiDocumentFeature.Path(models.Left) is { } documentPath) {
+        if (OpenApiDocumentFeature.Path(models.Left) is { } documentPath)
+        {
             // An empty document is the one outcome that looks like success from every angle: the
             // build is clean, the route answers 200, and the reference page renders an API with no
             // operations. Said out loud, because the alternative is discovering it from a client
             // generator that produced nothing.
-            if (routable.Count == 0) {
+            if (routable.Count == 0)
+            {
                 OpenApiDocumentDiagnostics.ReportEmptyDocument(
-                    context, models.Left.EntryPointType.Name, documentPath);
+                    context,
+                    models.Left.EntryPointType.Name,
+                    documentPath
+                );
             }
 
             // Before 3.2 the document can say a streamed response is many of the item, as an array
             // under schema, but not that they arrive one after another. The handler is named so the
             // trade is not silent.
-            if (!OpenApiVersionFacts.SupportsItemSchema(documentVersion)) {
-                foreach (var handler in routable) {
-                    if (handler.ResponseInformation.IsAsyncEnumerable) {
+            if (!OpenApiVersionFacts.SupportsItemSchema(documentVersion))
+            {
+                foreach (var handler in routable)
+                {
+                    if (handler.ResponseInformation.IsAsyncEnumerable)
+                    {
                         OpenApiVersionDiagnostics.ReportStreamNeedsItemSchema(
                             context,
                             handler.ControllerType.Name + "." + handler.HandlerMethod,
-                            documentVersion);
+                            documentVersion
+                        );
                     }
                 }
             }
 
-            context.AddSource(models.Left.EntryPointType.Name + ".OpenApiDocument",
+            context.AddSource(
+                models.Left.EntryPointType.Name + ".OpenApiDocument",
                 GeneratedSource.Header(
-                    OpenApiDocumentSource.Write(models.Left, routable, GetBasePath(models.Left), documentVersion)));
+                    OpenApiDocumentSource.Write(
+                        models.Left,
+                        routable,
+                        GetBasePath(models.Left),
+                        documentVersion
+                    )
+                )
+            );
         }
 
         // From the same models the table came from, and unconditionally: links have no third-party
@@ -175,41 +211,56 @@ public static class RoutingTableGenerator {
         // Location headers - which are exactly the strings that rot.
         LinkGenerator.Generate(context, models.Left, routable, GetBasePath(models.Left));
     }
-    
+
     /// <summary>
     /// Every misplaced scheme-shape attribute in this table's reach: each handler's findings, and
     /// the entry point's own attribute list - the module position, which no handler transform
     /// sees.
     /// </summary>
     private static IEnumerable<IReadOnlyList<string>> MisplacedSchemeFindings(
-        EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> handlers) {
-        foreach (var handler in handlers) {
-            if (handler.MisplacedSchemeAttributes.Count > 0) {
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers
+    )
+    {
+        foreach (var handler in handlers)
+        {
+            if (handler.MisplacedSchemeAttributes.Count > 0)
+            {
                 yield return handler.MisplacedSchemeAttributes;
             }
         }
 
-        if (appModel.AttributeModels == null) {
+        if (appModel.AttributeModels == null)
+        {
             yield break;
         }
 
-        foreach (var attribute in appModel.AttributeModels) {
+        foreach (var attribute in appModel.AttributeModels)
+        {
             var name = attribute.TypeDefinition.Name;
 
-            if (name.StartsWith("HttpAuthenticationScheme", System.StringComparison.Ordinal) ||
-                name.StartsWith("ApiKeyAuthenticationScheme", System.StringComparison.Ordinal) ||
-                name.StartsWith("OAuth2AuthenticationScheme", System.StringComparison.Ordinal)) {
+            if (
+                name.StartsWith("HttpAuthenticationScheme", System.StringComparison.Ordinal)
+                || name.StartsWith("ApiKeyAuthenticationScheme", System.StringComparison.Ordinal)
+                || name.StartsWith("OAuth2AuthenticationScheme", System.StringComparison.Ordinal)
+            )
+            {
                 yield return new[] { appModel.EntryPointType.Name + "|" + name };
             }
         }
     }
 
-    public static string GenerateCSharpRouteFile(EntryPointSelector.Model appModel,
-        IReadOnlyList<RequestHandlerModel> handlers, CancellationToken cancellationToken,
-        RoutingTableOptions? options = null) {
+    public static string GenerateCSharpRouteFile(
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers,
+        CancellationToken cancellationToken,
+        RoutingTableOptions? options = null
+    )
+    {
         options ??= RoutingTableOptions.Default;
 
-        if (options.Constraints != null) {
+        if (options.Constraints != null)
+        {
             _constraints = options.Constraints;
         }
 
@@ -220,7 +271,9 @@ public static class RoutingTableGenerator {
 
         // AddSingleton/AddTransient are extension methods, and an extension method is reachable
         // only through a using of its namespace - global:: cannot name one.
-        applicationFile.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+        applicationFile.AddUsingNamespace(
+            KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection
+        );
 
         CreateRoutingTable(appModel, handlers, applicationFile, cancellationToken, options);
 
@@ -233,10 +286,14 @@ public static class RoutingTableGenerator {
         return outputContext.Output();
     }
 
-    private static void CreateRoutingTable(EntryPointSelector.Model appModel,
+    private static void CreateRoutingTable(
+        EntryPointSelector.Model appModel,
         IReadOnlyList<RequestHandlerModel> endPointModels,
-        CSharpFileDefinition applicationFile, CancellationToken cancellationToken,
-        RoutingTableOptions options) {
+        CSharpFileDefinition applicationFile,
+        CancellationToken cancellationToken,
+        RoutingTableOptions options
+    )
+    {
         cancellationToken.ThrowIfCancellationRequested();
 
         var appClass = applicationFile.AddClass(appModel.EntryPointType.Name);
@@ -251,15 +308,19 @@ public static class RoutingTableGenerator {
 
         routingClass.AddBaseType(KnownTypes.Web.IWebExecutionRequestHandlerProvider);
 
-        if (options.ExcludeFromCodeCoverage) {
+        if (options.ExcludeFromCodeCoverage)
+        {
             routingClass.AddAttribute(
-                TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "ExcludeFromCodeCoverage"));
+                TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "ExcludeFromCodeCoverage")
+            );
         }
 
         ImplementHandlerMethod(appModel, routingClass, endPointModels, cancellationToken);
 
-        var routingType = TypeDefinition.Get(appModel.EntryPointType.Namespace,
-            appModel.EntryPointType.Name + "." + options.ClassName);
+        var routingType = TypeDefinition.Get(
+            appModel.EntryPointType.Namespace,
+            appModel.EntryPointType.Name + "." + options.ClassName
+        );
 
         // Before the DI method, which registers what these emit.
         var enums = EnumWireConverterEmitter.Collect(endPointModels);
@@ -273,11 +334,19 @@ public static class RoutingTableGenerator {
         ApplicationFilterEmitter.Emit(appClass, appModel.FilterDeclarations);
 
         GenerateDependencyInjection(
-            appClass, routingType, appModel, endPointModels, enums, eventStreams, cancellationToken,
-            options);
+            appClass,
+            routingType,
+            appModel,
+            endPointModels,
+            enums,
+            eventStreams,
+            cancellationToken,
+            options
+        );
     }
 
-    private static void CreateConstructor(ClassDefinition appClass) {
+    private static void CreateConstructor(ClassDefinition appClass)
+    {
         var field = appClass.AddField(typeof(IServiceProvider), "_rootServiceProvider");
 
         var constructor = appClass.AddConstructor();
@@ -287,75 +356,116 @@ public static class RoutingTableGenerator {
         constructor.Assign(parameter).To(field.Instance);
     }
 
-    private static void GenerateDependencyInjection(ClassDefinition classDefinition,
+    private static void GenerateDependencyInjection(
+        ClassDefinition classDefinition,
         ITypeDefinition routingTableType,
-        EntryPointSelector.Model applicationModel, IReadOnlyList<RequestHandlerModel> webEndPointModels,
+        EntryPointSelector.Model applicationModel,
+        IReadOnlyList<RequestHandlerModel> webEndPointModels,
         IReadOnlyList<EnumVocabulary> enums,
         IReadOnlyList<string> eventStreams,
         CancellationToken cancellationToken,
-        RoutingTableOptions options) {
+        RoutingTableOptions options
+    )
+    {
         cancellationToken.ThrowIfCancellationRequested();
 
         var templateField = classDefinition.AddField(typeof(int), options.DependencyFieldName);
 
         templateField.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
         templateField.AddUsingNamespace(KnownTypes.Namespace.DependencyModules.Runtime.Helpers);
-        templateField.InitializeValue = new CodeOutputComponent($"DependencyRegistry<{classDefinition.Name}>.Add({options.DependencyMethodName})");
-        templateField.AddAttribute(TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"), $"nameof({options.DependencyMethodName})");
+        templateField.InitializeValue = new CodeOutputComponent(
+            $"DependencyRegistry<{classDefinition.Name}>.Add({options.DependencyMethodName})"
+        );
+        templateField.AddAttribute(
+            TypeDefinition.Get("System.Diagnostics.CodeAnalysis", "DynamicDependency"),
+            $"nameof({options.DependencyMethodName})"
+        );
 
         var diMethod = classDefinition.AddMethod(options.DependencyMethodName);
 
         diMethod.Modifiers |= ComponentModifier.Static | ComponentModifier.Private;
 
-        var serviceCollection = diMethod.AddParameter(KnownTypes.DI.IServiceCollection, "serviceCollection");
+        var serviceCollection = diMethod.AddParameter(
+            KnownTypes.DI.IServiceCollection,
+            "serviceCollection"
+        );
 
-        diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-            new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }));
+        diMethod.AddIndentedStatement(
+            serviceCollection.InvokeGeneric(
+                "AddSingleton",
+                new[] { KnownTypes.Web.IWebExecutionRequestHandlerProvider, routingTableType }
+            )
+        );
 
         // Only where the entry point declares a filter. Registered rather than handed to each
         // handler, because ExecutionHelper composes every chain and a handler class is generated
         // from its own declarations and cannot name its entry point.
-        if (applicationModel.FilterDeclarations.Count > 0) {
-            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-                new[] {
-                    KnownTypes.Requests.IApplicationFilterDeclarations,
-                    TypeDefinition.Get(applicationModel.EntryPointType.Namespace,
-                        applicationModel.EntryPointType.Name + "." +
-                        ApplicationFilterEmitter.ContainerName)
-                }));
+        if (applicationModel.FilterDeclarations.Count > 0)
+        {
+            diMethod.AddIndentedStatement(
+                serviceCollection.InvokeGeneric(
+                    "AddSingleton",
+                    new[]
+                    {
+                        KnownTypes.Requests.IApplicationFilterDeclarations,
+                        TypeDefinition.Get(
+                            applicationModel.EntryPointType.Namespace,
+                            applicationModel.EntryPointType.Name
+                                + "."
+                                + ApplicationFilterEmitter.ContainerName
+                        ),
+                    }
+                )
+            );
         }
 
         // Only where a handler is framed as events, so an application with none generates exactly
         // what it generated before this existed.
-        if (eventStreams.Count > 0) {
-            diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddSingleton",
-                new[] {
-                    KnownTypes.Requests.IServerSentEventManifest,
-                    TypeDefinition.Get(applicationModel.EntryPointType.Namespace,
-                        applicationModel.EntryPointType.Name + "." +
-                        ServerSentEventManifestEmitter.ContainerName)
-                }));
+        if (eventStreams.Count > 0)
+        {
+            diMethod.AddIndentedStatement(
+                serviceCollection.InvokeGeneric(
+                    "AddSingleton",
+                    new[]
+                    {
+                        KnownTypes.Requests.IServerSentEventManifest,
+                        TypeDefinition.Get(
+                            applicationModel.EntryPointType.Namespace,
+                            applicationModel.EntryPointType.Name
+                                + "."
+                                + ServerSentEventManifestEmitter.ContainerName
+                        ),
+                    }
+                )
+            );
         }
 
         // The service-wide negotiation policy, from [ContentNegotiation] on the entry point. There
         // is no description to consult here; the spec-first table reads both. Same helper either
         // way, so an application says it once and means the same thing.
         var negotiation = Routing.ContentNegotiationRegistration.Statement(
-            applicationModel.AttributeModels, "");
+            applicationModel.AttributeModels,
+            ""
+        );
 
-        if (negotiation != null) {
+        if (negotiation != null)
+        {
             diMethod.AddIndentedStatement(new CodeOutputComponent(negotiation));
         }
 
         // And what a failed request answers with, from [ErrorBodies] in the same place.
         var errorBodies = Routing.ErrorBodyRegistration.Statement(
-            applicationModel.AttributeModels, "");
+            applicationModel.AttributeModels,
+            ""
+        );
 
-        if (errorBodies != null) {
+        if (errorBodies != null)
+        {
             diMethod.AddIndentedStatement(new CodeOutputComponent(errorBodies));
         }
 
-        if (options.RegisterControllerTypes) {
+        if (options.RegisterControllerTypes)
+        {
             // Static handlers excluded rather than their declaring types, which is what makes a
             // controller holding both kinds still register: its instance handlers keep it in the
             // list. A type left with only static handlers is registered by nobody and resolved by
@@ -365,11 +475,13 @@ public static class RoutingTableGenerator {
                 .Select(model => model.ControllerType)
                 .Distinct();
 
-            foreach (var controllerType in distinctControllers) {
+            foreach (var controllerType in distinctControllers)
+            {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
-                    new[] { controllerType }));
+                diMethod.AddIndentedStatement(
+                    serviceCollection.InvokeGeneric("AddTransient", new[] { controllerType })
+                );
             }
         }
 
@@ -384,11 +496,16 @@ public static class RoutingTableGenerator {
         RegisterEnumWireConverters(diMethod, serviceCollection, applicationModel, enums);
 
         Validation.ParameterValidatorRegistration.Write(
-            diMethod, serviceCollection, webEndPointModels, cancellationToken);
+            diMethod,
+            serviceCollection,
+            webEndPointModels,
+            cancellationToken
+        );
 
         // Last, and already emitted by the caller. See RoutingTableOptions for why this is a list
         // of statements rather than a hook.
-        foreach (var registration in options.AdditionalRegistrations) {
+        foreach (var registration in options.AdditionalRegistrations)
+        {
             diMethod.AddIndentedStatement(registration);
         }
     }
@@ -406,25 +523,41 @@ public static class RoutingTableGenerator {
         MethodDefinition diMethod,
         ParameterDefinition serviceCollection,
         EntryPointSelector.Model applicationModel,
-        IReadOnlyList<EnumVocabulary> enums) {
-        if (enums.Count == 0) {
+        IReadOnlyList<EnumVocabulary> enums
+    )
+    {
+        if (enums.Count == 0)
+        {
             return;
         }
 
-        var container = "global::" + applicationModel.EntryPointType.Namespace + "." +
-                        applicationModel.EntryPointType.Name + "." +
-                        EnumWireConverterEmitter.ContainerName;
+        var container =
+            "global::"
+            + applicationModel.EntryPointType.Namespace
+            + "."
+            + applicationModel.EntryPointType.Name
+            + "."
+            + EnumWireConverterEmitter.ContainerName;
 
-        diMethod.AddIndentedStatement(new CodeOutputComponent(
-            serviceCollection.Name +
-            ".AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), " +
-            container + ".Resolver.Instance)"));
+        diMethod.AddIndentedStatement(
+            new CodeOutputComponent(
+                serviceCollection.Name
+                    + ".AddSingleton(typeof(global::System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver), "
+                    + container
+                    + ".Resolver.Instance)"
+            )
+        );
 
-        diMethod.AddIndentedStatement(new CodeOutputComponent(
-            "foreach (var stringConverter in " + container + ".StringConverters) { " +
-            serviceCollection.Name +
-            ".AddSingleton(typeof(global::Hardened.Requests.Abstract.Serializer.IStringConverter), " +
-            "stringConverter); }"));
+        diMethod.AddIndentedStatement(
+            new CodeOutputComponent(
+                "foreach (var stringConverter in "
+                    + container
+                    + ".StringConverters) { "
+                    + serviceCollection.Name
+                    + ".AddSingleton(typeof(global::Hardened.Requests.Abstract.Serializer.IStringConverter), "
+                    + "stringConverter); }"
+            )
+        );
     }
 
     /// <summary>
@@ -438,16 +571,24 @@ public static class RoutingTableGenerator {
     private static void RegisterAuthorizationPosture(
         MethodDefinition diMethod,
         ParameterDefinition serviceCollection,
-        EntryPointSelector.Model applicationModel) {
-        if (!RequireAuthorizationDiagnostics.IsRequired(applicationModel)) {
+        EntryPointSelector.Model applicationModel
+    )
+    {
+        if (!RequireAuthorizationDiagnostics.IsRequired(applicationModel))
+        {
             return;
         }
 
         // The extension called statically, because generated code carries none of the consumer's
         // using directives - the same reason RegisterEnabledModules spells its call out in full.
-        diMethod.AddIndentedStatement(CodeOutputComponent.Get(
-            "global::Hardened.Requests.Runtime.Authorization.AuthorizationServiceCollectionExtensions" +
-            ".RequireAuthorization(" + serviceCollection.Name + ")"));
+        diMethod.AddIndentedStatement(
+            CodeOutputComponent.Get(
+                "global::Hardened.Requests.Runtime.Authorization.AuthorizationServiceCollectionExtensions"
+                    + ".RequireAuthorization("
+                    + serviceCollection.Name
+                    + ")"
+            )
+        );
     }
 
     /// <summary>
@@ -463,9 +604,15 @@ public static class RoutingTableGenerator {
         MethodDefinition diMethod,
         ParameterDefinition serviceCollection,
         EntryPointSelector.Model applicationModel,
-        IReadOnlyList<RequestHandlerModel> webEndPointModels) {
-        diMethod.AddIndentedStatement(serviceCollection.InvokeGeneric("AddTransient",
-            new[] { LinkGenerator.LinksType(applicationModel) }));
+        IReadOnlyList<RequestHandlerModel> webEndPointModels
+    )
+    {
+        diMethod.AddIndentedStatement(
+            serviceCollection.InvokeGeneric(
+                "AddTransient",
+                new[] { LinkGenerator.LinksType(applicationModel) }
+            )
+        );
     }
 
     /// <summary>
@@ -488,10 +635,13 @@ public static class RoutingTableGenerator {
         MethodDefinition diMethod,
         ParameterDefinition serviceCollection,
         EntryPointSelector.Model applicationModel,
-        ClassDefinition classDefinition) {
+        ClassDefinition classDefinition
+    )
+    {
         var path = OpenApiDocumentFeature.Path(applicationModel);
 
-        if (path == null) {
+        if (path == null)
+        {
             return;
         }
 
@@ -503,10 +653,17 @@ public static class RoutingTableGenerator {
                     // A factory rather than an instance. The provider builds its chain through
                     // ExecutionHelper - which is where conventions are applied and the global filter
                     // registry is asked for this handler's guard - and that needs the container.
-                    "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider(" +
-                    "serviceProvider, " +
-                    classDefinition.Name + "." + OpenApiDocumentSource.DocumentMemberPath +
-                    ", \"" + path.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\")")));
+                    "serviceProvider => new global::Hardened.Web.Runtime.OpenApi.OpenApiDocumentProvider("
+                        + "serviceProvider, "
+                        + classDefinition.Name
+                        + "."
+                        + OpenApiDocumentSource.DocumentMemberPath
+                        + ", \""
+                        + path.Replace("\\", "\\\\").Replace("\"", "\\\"")
+                        + "\")"
+                )
+            )
+        );
     }
 
     /// <summary>
@@ -529,24 +686,40 @@ public static class RoutingTableGenerator {
     private static void RegisterEnabledModules(
         MethodDefinition diMethod,
         ParameterDefinition serviceCollection,
-        EntryPointSelector.Model applicationModel) {
-        foreach (var feature in applicationModel.EnabledFeatures) {
-            if (!feature.IsDependencyModule) {
+        EntryPointSelector.Model applicationModel
+    )
+    {
+        foreach (var feature in applicationModel.EnabledFeatures)
+        {
+            if (!feature.IsDependencyModule)
+            {
                 continue;
             }
 
             // The extension called statically, because generated code carries none of the
             // consumer's using directives and DependencyModules.Runtime is not one of the few this
             // file imports.
-            diMethod.AddIndentedStatement(CodeOutputComponent.Get(
-                "global::DependencyModules.Runtime.ServiceCollectionExtensions.AddModule(" +
-                serviceCollection.Name + ", new global::" +
-                feature.MarkerType.Namespace + "." + feature.MarkerType.Name + "())"));
+            diMethod.AddIndentedStatement(
+                CodeOutputComponent.Get(
+                    "global::DependencyModules.Runtime.ServiceCollectionExtensions.AddModule("
+                        + serviceCollection.Name
+                        + ", new global::"
+                        + feature.MarkerType.Namespace
+                        + "."
+                        + feature.MarkerType.Name
+                        + "())"
+                )
+            );
         }
     }
 
-    private static void ImplementHandlerMethod(EntryPointSelector.Model appModel, ClassDefinition routingClass,
-        IReadOnlyList<RequestHandlerModel> endPointModels, CancellationToken cancellationToken) {
+    private static void ImplementHandlerMethod(
+        EntryPointSelector.Model appModel,
+        ClassDefinition routingClass,
+        IReadOnlyList<RequestHandlerModel> endPointModels,
+        CancellationToken cancellationToken
+    )
+    {
         var handlerMethod = routingClass.AddMethod("GetExecutionRequestHandler");
 
         handlerMethod.SetReturnType(KnownTypes.Web.RequestHandlerInfo.MakeNullable());
@@ -557,28 +730,39 @@ public static class RoutingTableGenerator {
         var dispatched = new List<RequestHandlerModel>();
         var routed = new List<RequestHandlerModel>();
 
-        foreach (var model in endPointModels) {
+        foreach (var model in endPointModels)
+        {
             (model.Name.IsDispatched ? dispatched : routed).Add(model);
         }
 
         // Header dispatch first, and that order is a decision rather than an accident: an awsJson
         // service sends every operation to POST /, so a path tree consulted first would match that
         // route for one of them and answer the wrong handler for all the others.
-        if (dispatched.Count > 0) {
+        if (dispatched.Count > 0)
+        {
             WriteDispatchTable(routingClass, handlerMethod, context, dispatched);
         }
 
         // Nothing left to route: no tree is built over an empty list.
-        if (routed.Count == 0) {
+        if (routed.Count == 0)
+        {
             handlerMethod.Return(Null());
 
             return;
         }
 
-        handlerMethod.Assign(context.Property("Request").Property("Path").Invoke("AsSpan")).ToVar("pathSpan");
+        handlerMethod
+            .Assign(context.Property("Request").Property("Path").Invoke("AsSpan"))
+            .ToVar("pathSpan");
 
-        WriteRoutingTable(appModel, routingClass, handlerMethod, routed,
-            context.Property("Request").Property("Method"), cancellationToken);
+        WriteRoutingTable(
+            appModel,
+            routingClass,
+            handlerMethod,
+            routed,
+            context.Property("Request").Property("Method"),
+            cancellationToken
+        );
     }
 
     /// <summary>
@@ -606,27 +790,36 @@ public static class RoutingTableGenerator {
         ClassDefinition routingClass,
         MethodDefinition handlerMethod,
         ParameterDefinition context,
-        IReadOnlyList<RequestHandlerModel> dispatched) {
+        IReadOnlyList<RequestHandlerModel> dispatched
+    )
+    {
         var headers = new List<string>();
 
-        foreach (var model in dispatched) {
-            if (!headers.Contains(model.Name.DispatchHeader!)) {
+        foreach (var model in dispatched)
+        {
+            if (!headers.Contains(model.Name.DispatchHeader!))
+            {
                 headers.Add(model.Name.DispatchHeader!);
             }
         }
 
-        for (var i = 0; i < headers.Count; i++) {
+        for (var i = 0; i < headers.Count; i++)
+        {
             var header = headers[i];
             var values = "dispatchValues" + (i == 0 ? "" : i.ToString());
 
             var ifHeader = handlerMethod.If(
-                $"{context.Name}.Request.Headers.TryGetValue(\"{header}\", out var {values})");
+                $"{context.Name}.Request.Headers.TryGetValue(\"{header}\", out var {values})"
+            );
 
             var switchBlock = ifHeader.Switch(
-                new CodeOutputComponent($"{values}.ToString()") { Indented = false });
+                new CodeOutputComponent($"{values}.ToString()") { Indented = false }
+            );
 
-            foreach (var model in dispatched) {
-                if (model.Name.DispatchHeader != header) {
+            foreach (var model in dispatched)
+            {
+                if (model.Name.DispatchHeader != header)
+                {
                     continue;
                 }
 
@@ -636,23 +829,32 @@ public static class RoutingTableGenerator {
                 // handler and a routed one are built and reused identically.
                 var field = routingClass.AddField(
                     model.InvokeHandlerType.MakeNullable(),
-                    "_field" + model.InvokeHandlerType.Name);
+                    "_field" + model.InvokeHandlerType.Name
+                );
 
-                var coalesceHandler = NullCoalesceEqual(field.Instance,
-                    New(model.InvokeHandlerType, "_rootServiceProvider"));
+                var coalesceHandler = NullCoalesceEqual(
+                    field.Instance,
+                    New(model.InvokeHandlerType, "_rootServiceProvider")
+                );
                 coalesceHandler.PrintParentheses = false;
 
                 // No path tokens by construction: the route carries no template.
                 caseStatement.Return(
-                    New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, EmptyTokens));
+                    New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, EmptyTokens)
+                );
             }
         }
     }
 
-    private static void WriteRoutingTable(EntryPointSelector.Model appModel, ClassDefinition routingClass,
+    private static void WriteRoutingTable(
+        EntryPointSelector.Model appModel,
+        ClassDefinition routingClass,
         MethodDefinition handlerMethod,
         IReadOnlyList<RequestHandlerModel> endPointModels,
-        InstanceDefinition methodString, CancellationToken cancellationToken) {
+        InstanceDefinition methodString,
+        CancellationToken cancellationToken
+    )
+    {
         var routeNode = GetRoutingNodes(appModel, endPointModels, cancellationToken);
 
         var routeTestMethod = WriteRouteNode(routingClass, routeNode, 0, cancellationToken);
@@ -660,17 +862,25 @@ public static class RoutingTableGenerator {
         handlerMethod.Return(Invoke(routeTestMethod, "pathSpan", 0, methodString));
     }
 
-    private static string WriteRouteNode(ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode,
-        int pathIndex, CancellationToken cancellationToken) {
+    private static string WriteRouteNode(
+        ClassDefinition routingClass,
+        RouteTreeNode<RequestHandlerModel> routeNode,
+        int pathIndex,
+        CancellationToken cancellationToken
+    )
+    {
         cancellationToken.ThrowIfCancellationRequested();
 
         var path = routeNode.Path;
 
-        if (pathIndex > 0) {
-            if (path.Length < 2) {
+        if (pathIndex > 0)
+        {
+            if (path.Length < 2)
+            {
                 path = "";
             }
-            else {
+            else
+            {
                 path = path.Substring(1);
             }
         }
@@ -684,12 +894,14 @@ public static class RoutingTableGenerator {
         var index = testMethod.AddParameter(typeof(int), "index");
         var methodString = testMethod.AddParameter(typeof(string), "methodString");
 
-        var handler =
-            testMethod.Assign(Null()).ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handlerInfo");
+        var handler = testMethod
+            .Assign(Null())
+            .ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handlerInfo");
 
         BaseBlockDefinition block = testMethod;
 
-        if (!string.IsNullOrEmpty(path)) {
+        if (!string.IsNullOrEmpty(path))
+        {
             var pathIfStatement = CreatePathIfStatement(span, routeNode.Path, cancellationToken);
 
             block = testMethod.If(And(pathIfStatement));
@@ -697,16 +909,45 @@ public static class RoutingTableGenerator {
             block.AddIndentedStatement("index += " + path.Length);
         }
 
-        if (routeNode.LeafNodes.Count > 0) {
-            ProcessLeafNodes(routingClass, routeNode, block, span, index, methodString, cancellationToken);
+        if (routeNode.LeafNodes.Count > 0)
+        {
+            ProcessLeafNodes(
+                routingClass,
+                routeNode,
+                block,
+                span,
+                index,
+                methodString,
+                cancellationToken
+            );
         }
 
-        if (routeNode.ChildNodes.Count > 0) {
-            ProcessChildNodes(routingClass, routeNode, block, span, index, methodString, handler, cancellationToken);
+        if (routeNode.ChildNodes.Count > 0)
+        {
+            ProcessChildNodes(
+                routingClass,
+                routeNode,
+                block,
+                span,
+                index,
+                methodString,
+                handler,
+                cancellationToken
+            );
         }
 
-        if (routeNode.WildCardNodes.Count > 0) {
-            ProcessWildCardNodes(routingClass, routeNode, block, span, index, methodString, handler, cancellationToken);
+        if (routeNode.WildCardNodes.Count > 0)
+        {
+            ProcessWildCardNodes(
+                routingClass,
+                routeNode,
+                block,
+                span,
+                index,
+                methodString,
+                handler,
+                cancellationToken
+            );
         }
 
         testMethod.Return(handler);
@@ -714,28 +955,42 @@ public static class RoutingTableGenerator {
         return routeMethodName;
     }
 
-    private static void ProcessChildNodes(ClassDefinition routingClass,
+    private static void ProcessChildNodes(
+        ClassDefinition routingClass,
         RouteTreeNode<RequestHandlerModel> routeNode,
         BaseBlockDefinition block,
         ParameterDefinition span,
         IOutputComponent index,
         ParameterDefinition methodString,
         InstanceDefinition handler,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var childMethod = "";
 
-        if (routeNode.ChildNodes.Count == 1) {
-            childMethod = WriteRouteNode(routingClass, routeNode.ChildNodes.First(), 0, cancellationToken);
+        if (routeNode.ChildNodes.Count == 1)
+        {
+            childMethod = WriteRouteNode(
+                routingClass,
+                routeNode.ChildNodes.First(),
+                0,
+                cancellationToken
+            );
         }
-        else {
+        else
+        {
             childMethod = WriteSwitchChildNode(routingClass, routeNode, cancellationToken);
         }
 
         block.Assign(Invoke(childMethod, span, index, methodString)).To(handler);
     }
 
-    private static string WriteSwitchChildNode(ClassDefinition routingClass,
-        RouteTreeNode<RequestHandlerModel> routeNode, CancellationToken cancellationToken) {
+    private static string WriteSwitchChildNode(
+        ClassDefinition routingClass,
+        RouteTreeNode<RequestHandlerModel> routeNode,
+        CancellationToken cancellationToken
+    )
+    {
         var switchMethodName = GetRouteMethodName(routingClass, routeNode.Path, "CaseStatement");
 
         var switchMethod = routingClass.AddMethod(switchMethodName);
@@ -748,7 +1003,8 @@ public static class RoutingTableGenerator {
 
         var switchStatement = ifStatement.Switch("charSpan[index]");
 
-        foreach (var childNode in routeNode.ChildNodes) {
+        foreach (var childNode in routeNode.ChildNodes)
+        {
             cancellationToken.ThrowIfCancellationRequested();
 
             var character = childNode.Path.First();
@@ -756,10 +1012,12 @@ public static class RoutingTableGenerator {
             // A second label only where the module asked for case-insensitive matching. It used to
             // be unconditional, which is half of what made every request compare each character
             // twice.
-            if (_caseInsensitive) {
+            if (_caseInsensitive)
+            {
                 var upperChar = char.ToUpperInvariant(character);
 
-                if (upperChar != character) {
+                if (upperChar != character)
+                {
                     switchStatement.AddCase($"'{upperChar}'");
                 }
             }
@@ -778,14 +1036,17 @@ public static class RoutingTableGenerator {
         return switchMethodName;
     }
 
-    private static void ProcessWildCardNodes(ClassDefinition routingClass,
+    private static void ProcessWildCardNodes(
+        ClassDefinition routingClass,
         RouteTreeNode<RequestHandlerModel> routeNode,
         BaseBlockDefinition block,
         ParameterDefinition span,
         IOutputComponent index,
         ParameterDefinition methodString,
         InstanceDefinition handler,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var ifBlock = block.If("handlerInfo == null");
 
         var wildCardMethod = WriteWildCardMethod(routingClass, routeNode, cancellationToken);
@@ -796,8 +1057,11 @@ public static class RoutingTableGenerator {
     }
 
     private static string WriteWildCardMethod(
-        ClassDefinition routingClass, RouteTreeNode<RequestHandlerModel> routeNode,
-        CancellationToken cancellationToken) {
+        ClassDefinition routingClass,
+        RouteTreeNode<RequestHandlerModel> routeNode,
+        CancellationToken cancellationToken
+    )
+    {
         var methodName = GetRouteMethodName(routingClass, routeNode.Path, "WildCard");
 
         var wildCardMethod = routingClass.AddMethod(methodName);
@@ -807,23 +1071,29 @@ public static class RoutingTableGenerator {
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
 
-        var handler =
-            wildCardMethod.Assign(Null()).ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handlerInfo");
+        var handler = wildCardMethod
+            .Assign(Null())
+            .ToLocal(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), "handlerInfo");
 
-        var orderedList =
-            routeNode.WildCardNodes.OrderByDescending(n => n.Path).ToList();
+        var orderedList = routeNode.WildCardNodes.OrderByDescending(n => n.Path).ToList();
 
-        for (var i = 0; i < orderedList.Count; i++) {
+        for (var i = 0; i < orderedList.Count; i++)
+        {
             cancellationToken.ThrowIfCancellationRequested();
 
             var wildCardNode = orderedList[i];
             BaseBlockDefinition currentBlock = wildCardMethod;
 
-            if (i > 0) {
+            if (i > 0)
+            {
                 currentBlock = wildCardMethod.If("handlerInfo == null");
             }
 
-            var matchWildCardMethod = WriteWildCardMatchMethod(routingClass, wildCardNode, cancellationToken);
+            var matchWildCardMethod = WriteWildCardMatchMethod(
+                routingClass,
+                wildCardNode,
+                cancellationToken
+            );
 
             currentBlock.Assign(Invoke(matchWildCardMethod, span, index, methodString)).To(handler);
         }
@@ -833,8 +1103,12 @@ public static class RoutingTableGenerator {
         return methodName;
     }
 
-    private static string WriteWildCardMatchMethod(ClassDefinition routingClass,
-        RouteTreeNode<RequestHandlerModel> wildCardNode, CancellationToken cancellationToken) {
+    private static string WriteWildCardMatchMethod(
+        ClassDefinition routingClass,
+        RouteTreeNode<RequestHandlerModel> wildCardNode,
+        CancellationToken cancellationToken
+    )
+    {
         var methodName = GetRouteMethodName(routingClass, wildCardNode.Path, "WildCardMatch");
 
         var wildCardMethod = routingClass.AddMethod(methodName);
@@ -844,30 +1118,57 @@ public static class RoutingTableGenerator {
         var index = wildCardMethod.AddParameter(typeof(int), "index");
         var methodString = wildCardMethod.AddParameter(typeof(string), "methodString");
 
-        if (wildCardNode.ChildNodes.Count > 0) {
+        if (wildCardNode.ChildNodes.Count > 0)
+        {
             GenerateWildCardChildMatch(
-                routingClass, wildCardNode, wildCardMethod, methodString, span, index, cancellationToken);
+                routingClass,
+                wildCardNode,
+                wildCardMethod,
+                methodString,
+                span,
+                index,
+                cancellationToken
+            );
         }
 
-        if (wildCardNode.WildCardNodes.Count > 0) {
+        if (wildCardNode.WildCardNodes.Count > 0)
+        {
             GenerateWildCardChildMatch(
-                routingClass, wildCardNode, wildCardMethod, methodString, span, index, cancellationToken);
+                routingClass,
+                wildCardNode,
+                wildCardMethod,
+                methodString,
+                span,
+                index,
+                cancellationToken
+            );
         }
 
-        GenerateWildCardLeafNode(routingClass, wildCardNode, wildCardMethod, methodString, span, index);
+        GenerateWildCardLeafNode(
+            routingClass,
+            wildCardNode,
+            wildCardMethod,
+            methodString,
+            span,
+            index
+        );
 
         return methodName;
     }
 
-    private static void GenerateWildCardChildMatch(ClassDefinition routingClass,
+    private static void GenerateWildCardChildMatch(
+        ClassDefinition routingClass,
         RouteTreeNode<RequestHandlerModel> wildCardNode,
         MethodDefinition wildCardMethod,
         ParameterDefinition methodString,
         ParameterDefinition span,
         ParameterDefinition index,
-        CancellationToken cancellationToken) {
-        var handlerInfo = wildCardMethod.Assign(StaticCast(
-            KnownTypes.Web.RequestHandlerInfo.MakeNullable(), Null())).ToVar("handlerInfo");
+        CancellationToken cancellationToken
+    )
+    {
+        var handlerInfo = wildCardMethod
+            .Assign(StaticCast(KnownTypes.Web.RequestHandlerInfo.MakeNullable(), Null()))
+            .ToVar("handlerInfo");
 
         var currentIndex = wildCardMethod.Assign(index).ToVar("currentIndex");
 
@@ -889,42 +1190,53 @@ public static class RoutingTableGenerator {
         // character at a time whenever the match fails.
         IOutputComponent whileLimit = span.Property("Length");
 
-        if (!wildCardNode.WildCardIsCatchAll) {
-            wildCardMethod.Assign(
-                    CodeOutputComponent.Get($"{span.Name}.Slice({index.Name}).IndexOf('/')"))
+        if (!wildCardNode.WildCardIsCatchAll)
+        {
+            wildCardMethod
+                .Assign(CodeOutputComponent.Get($"{span.Name}.Slice({index.Name}).IndexOf('/')"))
                 .ToVar("segmentEnd");
 
-            wildCardMethod.Assign(CodeOutputComponent.Get(
-                    $"segmentEnd < 0 ? {span.Name}.Length : {index.Name} + segmentEnd + 1"))
+            wildCardMethod
+                .Assign(
+                    CodeOutputComponent.Get(
+                        $"segmentEnd < 0 ? {span.Name}.Length : {index.Name} + segmentEnd + 1"
+                    )
+                )
                 .ToVar("segmentLimit");
 
             whileLimit = CodeOutputComponent.Get("segmentLimit");
         }
 
-        var whileBlock =
-            wildCardMethod.While(LessThan(currentIndex, whileLimit));
+        var whileBlock = wildCardMethod.While(LessThan(currentIndex, whileLimit));
 
         var pathCheck = CreatePathIfStatement(
-            span, wildCardNode.Path, cancellationToken, currentIndex.Name);
+            span,
+            wildCardNode.Path,
+            cancellationToken,
+            currentIndex.Name
+        );
 
         // The token has to have consumed something. Without this the scan accepts a boundary at the
         // position it started from, which is what let //items match /{id}/items with id bound to ""
         // - the same defect the terminal case had at the end of a path. First in the conjunction
         // because it is an integer compare and the rest is character work.
-        pathCheck = new[] {
-                (IOutputComponent)CodeOutputComponent.Get(
-                    $"{currentIndex.Name} > {index.Name}")
-            }
-            .Concat(pathCheck).ToList();
+        pathCheck = new[]
+        {
+            (IOutputComponent)CodeOutputComponent.Get($"{currentIndex.Name} > {index.Name}"),
+        }
+            .Concat(pathCheck)
+            .ToList();
 
         // The constraint is part of whether the token matched, not something checked afterwards:
         // failing it has to leave the scan free to try the next boundary, exactly as a literal
         // mismatch does.
         var constraintCheck = ConstraintTest(
             wildCardNode,
-            $"{span.Name}.Slice({index.Name}, {currentIndex.Name} - {index.Name})");
+            $"{span.Name}.Slice({index.Name}, {currentIndex.Name} - {index.Name})"
+        );
 
-        if (constraintCheck != null) {
+        if (constraintCheck != null)
+        {
             pathCheck = pathCheck.Concat(new[] { constraintCheck }).ToList();
         }
 
@@ -932,7 +1244,8 @@ public static class RoutingTableGenerator {
 
         var currentPlusOne = Add(currentIndex, 1);
 
-        if (wildCardNode.ChildNodes.Count > 0) {
+        if (wildCardNode.ChildNodes.Count > 0)
+        {
             ProcessChildNodes(
                 routingClass,
                 wildCardNode,
@@ -941,10 +1254,12 @@ public static class RoutingTableGenerator {
                 currentPlusOne,
                 methodString,
                 handlerInfo,
-                cancellationToken);
+                cancellationToken
+            );
         }
 
-        if (wildCardNode.WildCardNodes.Count > 0) {
+        if (wildCardNode.WildCardNodes.Count > 0)
+        {
             ProcessWildCardNodes(
                 routingClass,
                 wildCardNode,
@@ -957,8 +1272,7 @@ public static class RoutingTableGenerator {
             );
         }
 
-        var matchIfHandlerBlock =
-            ifStatement.If(NotEquals(handlerInfo, Null()));
+        var matchIfHandlerBlock = ifStatement.If(NotEquals(handlerInfo, Null()));
 
         // Only a real match has somewhere to put the value. A path that matched under another verb
         // comes back as a RequestHandlerInfo too - non-null, with a null Handler - and it carries
@@ -966,31 +1280,38 @@ public static class RoutingTableGenerator {
         // takes down a request that was on its way to an ordinary 405. That info is also a static
         // field shared by every leaf allowing the same verbs, so the write would be cross-request
         // mutation of shared state if the collection had been long enough to accept it.
-        var realMatchBlock =
-            matchIfHandlerBlock.If(NotEquals(handlerInfo.Property("Handler"), Null()));
+        var realMatchBlock = matchIfHandlerBlock.If(
+            NotEquals(handlerInfo.Property("Handler"), Null())
+        );
 
         // The value is positional. Its name belongs to whichever route matched, which is
         // only known further down, so the collection was created with that route's names.
         realMatchBlock.AddIndentedStatement(
-            handlerInfo.Property("PathTokens").Invoke(
-                "SetValue",
-                wildCardNode.WildCardDepth - 1,
-                span.Invoke(
-                    "Slice",
-                    index,
-                    Subtract(currentIndex, index)).Invoke("ToString")
-            ));
+            handlerInfo
+                .Property("PathTokens")
+                .Invoke(
+                    "SetValue",
+                    wildCardNode.WildCardDepth - 1,
+                    span.Invoke("Slice", index, Subtract(currentIndex, index)).Invoke("ToString")
+                )
+        );
 
         matchIfHandlerBlock.Return(handlerInfo);
 
         whileBlock.AddIndentedStatement(Increment(currentIndex));
     }
 
-    private static void GenerateWildCardLeafNode(ClassDefinition routingClass,
+    private static void GenerateWildCardLeafNode(
+        ClassDefinition routingClass,
         RouteTreeNode<RequestHandlerModel> wildCardNode,
-        MethodDefinition wildCardMethod, ParameterDefinition methodString, ParameterDefinition span,
-        ParameterDefinition index) {
-        if (wildCardNode.LeafNodes.Count > 0) {
+        MethodDefinition wildCardMethod,
+        ParameterDefinition methodString,
+        ParameterDefinition span,
+        ParameterDefinition index
+    )
+    {
+        if (wildCardNode.LeafNodes.Count > 0)
+        {
             // A token that ends the route takes the rest of the path as its value. For {name} that
             // has to stop at the first separator, or the route matches paths deeper than it
             // declares: /users/{id} answered /users/42/anything/at/all with id = "42/anything/at/
@@ -1001,8 +1322,9 @@ public static class RoutingTableGenerator {
             // Read across the leaves rather than from one: they are the routes ending here, and a
             // node carrying both forms is a duplicate route either way. Permissive, so the
             // catch-all stays reachable - see RouteTreeNode.WildCardIsCatchAll.
-            var catchAll = wildCardNode.LeafNodes.Any(
-                leaf => RouteTokens.IsCatchAll(leaf.WildCardTokens, wildCardNode.WildCardDepth));
+            var catchAll = wildCardNode.LeafNodes.Any(leaf =>
+                RouteTokens.IsCatchAll(leaf.WildCardTokens, wildCardNode.WildCardDepth)
+            );
 
             // A token names at least one character. Nothing is left to name when the path ended on
             // the separator, so /collection/ is not a match for /collection/{id}. It used to bind
@@ -1014,71 +1336,87 @@ public static class RoutingTableGenerator {
             // Catch-alls included. {*name} means the rest of the path, and /assets/ has no rest.
             wildCardMethod.If($"{span.Name}.Length <= {index.Name}").Return(Null());
 
-            if (!catchAll) {
-                wildCardMethod.If($"{span.Name}.Slice({index.Name}).IndexOf('/') >= 0").Return(Null());
+            if (!catchAll)
+            {
+                wildCardMethod
+                    .If($"{span.Name}.Slice({index.Name}).IndexOf('/') >= 0")
+                    .Return(Null());
             }
 
             // A value that fails the constraint is not a match at all, so the answer is null rather
             // than a 405: there is no resource at that URL, which is the whole point of writing
             // {id:int} instead of letting the binder answer 400.
-            var constraintTest = ConstraintTest(wildCardNode, $"{span.Name}.Slice({index.Name})", negate: true);
+            var constraintTest = ConstraintTest(
+                wildCardNode,
+                $"{span.Name}.Slice({index.Name})",
+                negate: true
+            );
 
-            if (constraintTest != null) {
+            if (constraintTest != null)
+            {
                 wildCardMethod.If(constraintTest).Return(Null());
             }
 
             var switchBlock = wildCardMethod.Switch(methodString);
 
-            foreach (var leafNode in wildCardNode.LeafNodes) {
-                if (RouteMethods.AddsHeadFallThrough(wildCardNode.LeafNodes, leafNode)) {
+            foreach (var leafNode in wildCardNode.LeafNodes)
+            {
+                if (RouteMethods.AddsHeadFallThrough(wildCardNode.LeafNodes, leafNode))
+                {
                     switchBlock.AddCase(QuoteString(RouteMethods.Head));
                 }
 
                 var caseStatement = switchBlock.AddCase(QuoteString(leafNode.Method));
 
-                var field =
-                    routingClass.AddField(leafNode.Value.InvokeHandlerType.MakeNullable(),
-                        "_field" + leafNode.Value.InvokeHandlerType.Name);
+                var field = routingClass.AddField(
+                    leafNode.Value.InvokeHandlerType.MakeNullable(),
+                    "_field" + leafNode.Value.InvokeHandlerType.Name
+                );
 
-                var coalesceHandler = NullCoalesceEqual(field.Instance,
-                    NewHandler(leafNode));
+                var coalesceHandler = NullCoalesceEqual(field.Instance, NewHandler(leafNode));
 
                 coalesceHandler.PrintParentheses = false;
 
-                IOutputComponent pathTokensCollection =
-                    New(KnownTypes.Requests.PathTokenCollection,
-                        wildCardNode.WildCardDepth,
-                        PathTokenNamesField(routingClass, leafNode),
-                        span.Invoke("Slice", index).Invoke("ToString")
-                    );
+                IOutputComponent pathTokensCollection = New(
+                    KnownTypes.Requests.PathTokenCollection,
+                    wildCardNode.WildCardDepth,
+                    PathTokenNamesField(routingClass, leafNode),
+                    span.Invoke("Slice", index).Invoke("ToString")
+                );
 
                 caseStatement.Return(
-                    New(KnownTypes.Web.RequestHandlerInfo,
-                        coalesceHandler,
-                        pathTokensCollection));
+                    New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, pathTokensCollection)
+                );
             }
 
             switchBlock.AddDefault().Return(MethodNotAllowed(routingClass, wildCardNode.LeafNodes));
         }
-        else {
+        else
+        {
             wildCardMethod.Return(Null());
         }
     }
 
-    private static void ProcessLeafNodes(ClassDefinition routingClass,
+    private static void ProcessLeafNodes(
+        ClassDefinition routingClass,
         RouteTreeNode<RequestHandlerModel> routeNode,
         BaseBlockDefinition block,
         ParameterDefinition span,
         ParameterDefinition index,
-        ParameterDefinition methodString, CancellationToken cancellationToken) {
+        ParameterDefinition methodString,
+        CancellationToken cancellationToken
+    )
+    {
         var ifLengthMatch = block.If("charSpan.Length == index");
 
         var switchStatement = ifLengthMatch.Switch(methodString);
 
-        foreach (var leafNode in routeNode.LeafNodes) {
+        foreach (var leafNode in routeNode.LeafNodes)
+        {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (RouteMethods.AddsHeadFallThrough(routeNode.LeafNodes, leafNode)) {
+            if (RouteMethods.AddsHeadFallThrough(routeNode.LeafNodes, leafNode))
+            {
                 switchStatement.AddCase(QuoteString(RouteMethods.Head));
             }
 
@@ -1088,16 +1426,17 @@ public static class RoutingTableGenerator {
             // the handler is already cached, and the token collection is the shared empty one.
             // Caching the record itself rather than rebuilding it drops an allocation per
             // request and collapses the leaf to a single field read.
-            if (routeNode.WildCardDepth == 0) {
+            if (routeNode.WildCardDepth == 0)
+            {
                 var infoField = routingClass.AddField(
                     KnownTypes.Web.RequestHandlerInfo.MakeNullable(),
-                    "_info" + leafNode.Value.InvokeHandlerType.Name);
+                    "_info" + leafNode.Value.InvokeHandlerType.Name
+                );
 
-                var cachedInfo = NullCoalesceEqual(infoField.Instance,
-                    New(
-                        KnownTypes.Web.RequestHandlerInfo,
-                        NewHandler(leafNode),
-                        EmptyTokens));
+                var cachedInfo = NullCoalesceEqual(
+                    infoField.Instance,
+                    New(KnownTypes.Web.RequestHandlerInfo, NewHandler(leafNode), EmptyTokens)
+                );
 
                 cachedInfo.PrintParentheses = false;
 
@@ -1106,25 +1445,25 @@ public static class RoutingTableGenerator {
                 continue;
             }
 
-            var field =
-                routingClass.AddField(leafNode.Value.InvokeHandlerType.MakeNullable(),
-                    "_field" + leafNode.Value.InvokeHandlerType.Name);
+            var field = routingClass.AddField(
+                leafNode.Value.InvokeHandlerType.MakeNullable(),
+                "_field" + leafNode.Value.InvokeHandlerType.Name
+            );
 
-            var coalesceHandler = NullCoalesceEqual(field.Instance,
-                NewHandler(leafNode));
+            var coalesceHandler = NullCoalesceEqual(field.Instance, NewHandler(leafNode));
 
             coalesceHandler.PrintParentheses = false;
 
             // Token values are per request, so only the handler can be reused here.
-            var pathTokensCollection = New(KnownTypes.Requests.PathTokenCollection,
+            var pathTokensCollection = New(
+                KnownTypes.Requests.PathTokenCollection,
                 routeNode.WildCardDepth,
-                PathTokenNamesField(routingClass, leafNode));
+                PathTokenNamesField(routingClass, leafNode)
+            );
 
             caseStatement.Return(
-                New(
-                    KnownTypes.Web.RequestHandlerInfo,
-                    coalesceHandler,
-                    pathTokensCollection));
+                New(KnownTypes.Web.RequestHandlerInfo, coalesceHandler, pathTokensCollection)
+            );
         }
 
         switchStatement.AddDefault().Return(MethodNotAllowed(routingClass, routeNode.LeafNodes));
@@ -1140,21 +1479,29 @@ public static class RoutingTableGenerator {
     /// most of an application's do.
     /// </remarks>
     private static IOutputComponent MethodNotAllowed<T>(
-        ClassDefinition routingClass, IReadOnlyList<RouteTreeLeafNode<T>> leaves) {
+        ClassDefinition routingClass,
+        IReadOnlyList<RouteTreeLeafNode<T>> leaves
+    )
+    {
         var allow = RouteMethods.Allow(leaves);
         var fieldName = "_methodNotAllowed" + allow.Replace(", ", "");
 
         var existing = routingClass.Fields.FirstOrDefault(field => field.Name == fieldName);
 
-        if (existing != null) {
+        if (existing != null)
+        {
             return existing.Instance;
         }
 
         var newField = routingClass.AddField(KnownTypes.Web.RequestHandlerInfo, fieldName);
 
-        newField.Modifiers |= ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+        newField.Modifiers |=
+            ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
         newField.InitializeValue = new CodeOutputComponent(
-            "global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed(\"" + allow + "\")");
+            "global::Hardened.Web.Runtime.Handlers.RequestHandlerInfo.MethodNotAllowed(\""
+                + allow
+                + "\")"
+        );
 
         return newField.Instance;
     }
@@ -1164,16 +1511,22 @@ public static class RoutingTableGenerator {
     /// the token declares none.
     /// </summary>
     private static IOutputComponent? ConstraintTest<T>(
-        RouteTreeNode<T> node, string value, bool negate = false) {
+        RouteTreeNode<T> node,
+        string value,
+        bool negate = false
+    )
+    {
         var constraint = node.WildCardConstraint;
 
-        if (string.IsNullOrEmpty(constraint)) {
+        if (string.IsNullOrEmpty(constraint))
+        {
             return null;
         }
 
         var terms = RouteConstraintFacts.Terms(constraint!);
 
-        if (terms == null) {
+        if (terms == null)
+        {
             return null;
         }
 
@@ -1181,20 +1534,23 @@ public static class RoutingTableGenerator {
         // first and the wider ones never run on a value the first has already rejected.
         var calls = new List<string>();
 
-        foreach (var term in terms) {
+        foreach (var term in terms)
+        {
             var test = RouteConstraintFacts.Call(term) ?? Custom(term.Name);
 
             // Null only for a name no built-in and no [RouteConstraint] declares, or one used at an
             // arity it does not have - both already reported by RouteTokenDiagnostics. Emitting a
             // call to nothing would bury that under a CS0103.
-            if (test == null) {
+            if (test == null)
+            {
                 return null;
             }
 
             calls.Add(test + "(" + value + Arguments(term) + ")");
         }
 
-        if (calls.Count == 0) {
+        if (calls.Count == 0)
+        {
             return null;
         }
 
@@ -1204,7 +1560,8 @@ public static class RoutingTableGenerator {
         // a bare conjunction joined into a larger one binds wrong. A single term needs neither, and
         // the single term is the overwhelmingly common route - so the generated code stays the shape
         // it was before chains existed.
-        if (calls.Count == 1) {
+        if (calls.Count == 1)
+        {
             return CodeOutputComponent.Get((negate ? "!" : "") + conjunction);
         }
 
@@ -1212,14 +1569,17 @@ public static class RoutingTableGenerator {
     }
 
     /// <summary>The literal arguments a term carries, ready to append after the span.</summary>
-    private static string Arguments(RouteConstraintFacts.Term term) {
-        if (term.Arguments.Count == 0) {
+    private static string Arguments(RouteConstraintFacts.Term term)
+    {
+        if (term.Arguments.Count == 0)
+        {
             return "";
         }
 
         var builder = new StringBuilder();
 
-        foreach (var argument in term.Arguments) {
+        foreach (var argument in term.Arguments)
+        {
             builder.Append(", ").Append(argument.ToString(CultureInfo.InvariantCulture));
         }
 
@@ -1234,13 +1594,20 @@ public static class RoutingTableGenerator {
     /// method that is not a <c>static bool(ReadOnlySpan&lt;char&gt;)</c> would bury the diagnostic
     /// that says so under a compiler error in generated code.
     /// </remarks>
-    private static string? Custom(string constraint) {
-        if (_constraints == null) {
+    private static string? Custom(string constraint)
+    {
+        if (_constraints == null)
+        {
             return null;
         }
 
-        foreach (var declared in _constraints) {
-            if (declared.SignatureIsValid && string.Equals(declared.Name, constraint, StringComparison.Ordinal)) {
+        foreach (var declared in _constraints)
+        {
+            if (
+                declared.SignatureIsValid
+                && string.Equals(declared.Name, constraint, StringComparison.Ordinal)
+            )
+            {
                 return declared.Call;
             }
         }
@@ -1252,27 +1619,43 @@ public static class RoutingTableGenerator {
         ParameterDefinition span,
         string routeNodePath,
         CancellationToken cancellationToken,
-        string indexName = "index") {
+        string indexName = "index"
+    )
+    {
         var returnList = new List<IOutputComponent>();
 
-        returnList.Add(GreaterThanOrEquals(span.Property("Length"), indexName + " + " + routeNodePath.Length));
+        returnList.Add(
+            GreaterThanOrEquals(span.Property("Length"), indexName + " + " + routeNodePath.Length)
+        );
 
         int index = 0;
-        foreach (var pathChar in routeNodePath) {
+        foreach (var pathChar in routeNodePath)
+        {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var equalStatement = EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + pathChar + "'");
+            var equalStatement = EqualsStatement(
+                $"{span.Name}[{indexName} + {index}]",
+                "'" + pathChar + "'"
+            );
 
             // One comparison per character, unless the module asked for case-insensitive matching.
             // The second was emitted for every letter of every literal in every route, and ran on
             // every request.
-            if (_caseInsensitive) {
+            if (_caseInsensitive)
+            {
                 var upperChar = char.ToUpperInvariant(pathChar);
 
-                if (upperChar != pathChar) {
-                    returnList.Add(Or(
-                        equalStatement,
-                        EqualsStatement($"{span.Name}[{indexName} + {index}]", "'" + upperChar + "'")));
+                if (upperChar != pathChar)
+                {
+                    returnList.Add(
+                        Or(
+                            equalStatement,
+                            EqualsStatement(
+                                $"{span.Name}[{indexName} + {index}]",
+                                "'" + upperChar + "'"
+                            )
+                        )
+                    );
 
                     index++;
 
@@ -1288,36 +1671,54 @@ public static class RoutingTableGenerator {
         return returnList;
     }
 
-    private static string GetRouteMethodName(ClassDefinition routingClass,
-        string path, string? postfix = null) {
-        if (string.IsNullOrEmpty(path)) {
+    private static string GetRouteMethodName(
+        ClassDefinition routingClass,
+        string path,
+        string? postfix = null
+    )
+    {
+        if (string.IsNullOrEmpty(path))
+        {
             path = "NoPath";
         }
 
-        var baseName = "TestPath_" +
-                       path.Replace("/", "Slash").Replace("-", "Dash").Replace(".", "Period").Replace("%", "Per");
+        var baseName =
+            "TestPath_"
+            + path.Replace("/", "Slash")
+                .Replace("-", "Dash")
+                .Replace(".", "Period")
+                .Replace("%", "Per");
 
         var testMethodName = baseName + postfix;
         var count = 1;
-        while (routingClass.Methods.Any(m => m.Name == testMethodName)) {
+        while (routingClass.Methods.Any(m => m.Name == testMethodName))
+        {
             testMethodName = baseName + (++count);
         }
 
         return testMethodName;
     }
 
-    private static RouteTreeNode<RequestHandlerModel> GetRoutingNodes(EntryPointSelector.Model appModel, IReadOnlyList<RequestHandlerModel> endPointModels, CancellationToken cancellationToken) {
+    private static RouteTreeNode<RequestHandlerModel> GetRoutingNodes(
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> endPointModels,
+        CancellationToken cancellationToken
+    )
+    {
         var generator = new RouteTreeGenerator<RequestHandlerModel>(cancellationToken);
 
         var basePath = GetBasePath(appModel);
-        
-        return generator.GenerateTree(endPointModels.Select(
-            m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
-                RoutePath.Combine(basePath, m.Name.Path),
-                m.Name.Method,
-                m,
-                _caseInsensitive
-            )).ToList());
+
+        return generator.GenerateTree(
+            endPointModels
+                .Select(m => new RouteTreeGenerator<RequestHandlerModel>.Entry(
+                    RoutePath.Combine(basePath, m.Name.Path),
+                    m.Name.Method,
+                    m,
+                    _caseInsensitive
+                ))
+                .ToList()
+        );
     }
 
     /// <summary>
@@ -1325,9 +1726,10 @@ public static class RoutingTableGenerator {
     /// get whether it wanted it or not.
     /// </summary>
     private static bool IsCaseInsensitive(EntryPointSelector.Model appModel) =>
-        appModel.AttributeModels != null &&
-        appModel.AttributeModels.Any(model =>
-            model.TypeDefinition.Name.StartsWith("CaseInsensitiveRoutes", StringComparison.Ordinal));
+        appModel.AttributeModels != null
+        && appModel.AttributeModels.Any(model =>
+            model.TypeDefinition.Name.StartsWith("CaseInsensitiveRoutes", StringComparison.Ordinal)
+        );
 
     /// <summary>
     /// Constructs the handler, telling it the path it is being routed at.
@@ -1339,22 +1741,30 @@ public static class RoutingTableGenerator {
     /// entirely when the entry point declares no base path, which keeps the generated table
     /// unchanged for every application that has none.
     /// </remarks>
-    private static IOutputComponent NewHandler(RouteTreeLeafNode<RequestHandlerModel> leafNode) {
-        if (string.IsNullOrEmpty(_basePath)) {
+    private static IOutputComponent NewHandler(RouteTreeLeafNode<RequestHandlerModel> leafNode)
+    {
+        if (string.IsNullOrEmpty(_basePath))
+        {
             return New(leafNode.Value.InvokeHandlerType, "_rootServiceProvider");
         }
 
         return New(
             leafNode.Value.InvokeHandlerType,
             "_rootServiceProvider",
-            QuoteString(RoutePath.Combine(_basePath, leafNode.Value.Name.Path)));
+            QuoteString(RoutePath.Combine(_basePath, leafNode.Value.Name.Path))
+        );
     }
 
-    private static string GetBasePath(EntryPointSelector.Model appModel) {
-        if (appModel.AttributeModels != null) {
-            var basePathAttribute = appModel.AttributeModels.FirstOrDefault(model => model.TypeDefinition.Name.StartsWith("BasePath"));
+    private static string GetBasePath(EntryPointSelector.Model appModel)
+    {
+        if (appModel.AttributeModels != null)
+        {
+            var basePathAttribute = appModel.AttributeModels.FirstOrDefault(model =>
+                model.TypeDefinition.Name.StartsWith("BasePath")
+            );
 
-            if (basePathAttribute != null) {
+            if (basePathAttribute != null)
+            {
                 var basePath = basePathAttribute.Arguments.Split(',').First();
 
                 return basePath.Trim('"');
@@ -1370,27 +1780,33 @@ public static class RoutingTableGenerator {
     /// array serves every request rather than allocating a PathToken per token per request.
     /// </summary>
     private static IOutputComponent PathTokenNamesField(
-        ClassDefinition routingClass, RouteTreeLeafNode<RequestHandlerModel> leafNode) {
+        ClassDefinition routingClass,
+        RouteTreeLeafNode<RequestHandlerModel> leafNode
+    )
+    {
         var fieldName = "_pathTokenNames" + leafNode.Value.InvokeHandlerType.Name;
 
         var existing = routingClass.Fields.FirstOrDefault(f => f.Name == fieldName);
 
-        if (existing != null) {
+        if (existing != null)
+        {
             return existing.Instance;
         }
 
         var field = routingClass.AddField(typeof(string).MakeArrayType(), fieldName);
 
-        field.Modifiers |= ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+        field.Modifiers |=
+            ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
 
         // Without the marker: {*path} binds to a parameter called path. The asterisk says how much
         // of the path to take, not what to call it.
-        var names = string.Join(", ",
-            leafNode.WildCardTokens.Select(t => "\"" + RouteTokens.Name(t) + "\""));
+        var names = string.Join(
+            ", ",
+            leafNode.WildCardTokens.Select(t => "\"" + RouteTokens.Name(t) + "\"")
+        );
 
         field.InitializeValue = new CodeOutputComponent("new string[] { " + names + " }");
 
         return field.Instance;
     }
-
 }

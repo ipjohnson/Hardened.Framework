@@ -30,8 +30,8 @@ namespace Hardened.OpenApiDocument.BuildTask;
 /// thing under each. The table is docs/design/generator-diagnostics.md.
 /// </para>
 /// </remarks>
-public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
-
+public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task
+{
     /// <summary>The compiled assembly, which is <c>@(IntermediateAssembly)</c> from the targets.</summary>
     [Required]
     public string Assembly { get; set; } = "";
@@ -81,8 +81,11 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
 
     private const string PublishingAttribute = "[Enable<OpenApiDocumentPublishing>]";
 
-    public override bool Execute() {
-        var prefix = string.IsNullOrWhiteSpace(DiagnosticPrefix) ? "HRDOA" : DiagnosticPrefix.Trim();
+    public override bool Execute()
+    {
+        var prefix = string.IsNullOrWhiteSpace(DiagnosticPrefix)
+            ? "HRDOA"
+            : DiagnosticPrefix.Trim();
         var outputPath = ResolveOutput();
         var assemblyName = Path.GetFileName(Assembly);
 
@@ -90,23 +93,30 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
 
         var yaml = IsYaml(outputPath);
 
-        if (!yaml && !HasExtension(outputPath, ".json")) {
-            Error(prefix + UnknownExtensionCode,
-                $"<HardenedOpenApiOutput> is '{Output}', whose extension names no format. " +
-                "Use .json for indented JSON, or .yaml or .yml for YAML.");
+        if (!yaml && !HasExtension(outputPath, ".json"))
+        {
+            Error(
+                prefix + UnknownExtensionCode,
+                $"<HardenedOpenApiOutput> is '{Output}', whose extension names no format. "
+                    + "Use .json for indented JSON, or .yaml or .yml for YAML."
+            );
 
             return false;
         }
 
         string? version = null;
 
-        if (!string.IsNullOrWhiteSpace(Version)) {
+        if (!string.IsNullOrWhiteSpace(Version))
+        {
             version = OpenApiDocumentLowering.Normalise(Version);
 
-            if (version == null) {
-                Error(prefix + UnknownVersionCode,
-                    $"<HardenedOpenApiOutputVersion> is '{Version}', which is not a version the export can write. " +
-                    "Use 3.0.0 or 3.1.0, or remove the property to write the version the application serves.");
+            if (version == null)
+            {
+                Error(
+                    prefix + UnknownVersionCode,
+                    $"<HardenedOpenApiOutputVersion> is '{Version}', which is not a version the export can write. "
+                        + "Use 3.0.0 or 3.1.0, or remove the property to write the version the application serves."
+                );
 
                 return false;
             }
@@ -114,84 +124,132 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
 
         IReadOnlyList<ServedDocumentReader.ServedDocument> documents;
 
-        try {
+        try
+        {
             documents = ServedDocumentReader.Read(Assembly);
         }
-        catch (ServedDocumentException failure) {
-            Error(prefix + NoDocumentCode, Unreadable(assemblyName, failure.EntryPoint, failure.Message));
+        catch (ServedDocumentException failure)
+        {
+            Error(
+                prefix + NoDocumentCode,
+                Unreadable(assemblyName, failure.EntryPoint, failure.Message)
+            );
 
             return false;
         }
 
-        if (documents.Count == 0) {
+        if (documents.Count == 0)
+        {
             Error(prefix + NoDocumentCode, NoDocument(prefix, assemblyName));
 
             return false;
         }
 
-        if (documents.Count > 1) {
+        if (documents.Count > 1)
+        {
             var entryPoints = string.Join(", ", documents.Select(document => document.EntryPoint));
 
-            Error(prefix + MoreThanOneDocumentCode,
-                $"{assemblyName} carries {documents.Count} served OpenAPI documents ({entryPoints}), and " +
-                "<HardenedOpenApiOutput> names one file. This release exports one document per project. " +
-                $"Keep one module with {PublishingAttribute} in this project and move the others to " +
-                "projects of their own, or remove the property.");
+            Error(
+                prefix + MoreThanOneDocumentCode,
+                $"{assemblyName} carries {documents.Count} served OpenAPI documents ({entryPoints}), and "
+                    + "<HardenedOpenApiOutput> names one file. This release exports one document per project. "
+                    + $"Keep one module with {PublishingAttribute} in this project and move the others to "
+                    + "projects of their own, or remove the property."
+            );
 
             return false;
         }
 
         var inflated = ServedDocumentReader.Inflate(documents[0].Compressed);
 
-        if (!StartsWith(inflated, ServedDocumentReader.ExpectedPrefix)) {
-            Error(prefix + NoDocumentCode,
-                Unreadable(assemblyName, documents[0].EntryPoint,
-                    "the bytes under the getter do not inflate to an OpenAPI document"));
+        if (!StartsWith(inflated, ServedDocumentReader.ExpectedPrefix))
+        {
+            Error(
+                prefix + NoDocumentCode,
+                Unreadable(
+                    assemblyName,
+                    documents[0].EntryPoint,
+                    "the bytes under the getter do not inflate to an OpenAPI document"
+                )
+            );
 
             return false;
         }
 
         JsonObject document;
 
-        try {
-            document = JsonTree.Parse(Encoding.UTF8.GetString(inflated)) as JsonObject
-                       ?? throw new FormatException("the document is not a JSON object");
+        try
+        {
+            document =
+                JsonTree.Parse(Encoding.UTF8.GetString(inflated)) as JsonObject
+                ?? throw new FormatException("the document is not a JSON object");
         }
-        catch (FormatException failure) {
-            Error(prefix + NoDocumentCode, Unreadable(assemblyName, documents[0].EntryPoint, failure.Message));
+        catch (FormatException failure)
+        {
+            Error(
+                prefix + NoDocumentCode,
+                Unreadable(assemblyName, documents[0].EntryPoint, failure.Message)
+            );
 
             return false;
         }
 
-        foreach (var path in RepeatedOperationKeys(document)) {
-            Log.LogWarning(null, prefix + RepeatedOperationKeyCode, null, ProjectFile(), 0, 0, 0, 0,
-                $"The served document puts more than one operation at '{path}' under the same method, " +
-                "so the exported file repeats a key that OpenAPI has no way to tell apart. Readers " +
-                "refuse it and no client can be generated from it. This is what an RPC protocol " +
-                "looks like in OpenAPI - awsJson1_0 and awsJson1_1 put every operation at POST / and " +
-                "dispatch on X-Amz-Target - and the service itself is unaffected. Give each operation " +
-                "its own method and path with Smithy's @http trait for a document a generator can " +
-                $"read, or set <NoWarn>$(NoWarn);{prefix}{RepeatedOperationKeyCode}</NoWarn> to keep " +
-                "exporting the file as it is.");
+        foreach (var path in RepeatedOperationKeys(document))
+        {
+            Log.LogWarning(
+                null,
+                prefix + RepeatedOperationKeyCode,
+                null,
+                ProjectFile(),
+                0,
+                0,
+                0,
+                0,
+                $"The served document puts more than one operation at '{path}' under the same method, "
+                    + "so the exported file repeats a key that OpenAPI has no way to tell apart. Readers "
+                    + "refuse it and no client can be generated from it. This is what an RPC protocol "
+                    + "looks like in OpenAPI - awsJson1_0 and awsJson1_1 put every operation at POST / and "
+                    + "dispatch on X-Amz-Target - and the service itself is unaffected. Give each operation "
+                    + "its own method and path with Smithy's @http trait for a document a generator can "
+                    + $"read, or set <NoWarn>$(NoWarn);{prefix}{RepeatedOperationKeyCode}</NoWarn> to keep "
+                    + "exporting the file as it is."
+            );
         }
 
-        if (version != null) {
-            foreach (var operation in OpenApiDocumentLowering.Lower(document, version)) {
-                Log.LogWarning(null, prefix + StreamLostItemSchemaCode, null, ProjectFile(), 0, 0, 0, 0,
-                    $"'{operation}' streams its response, and OpenAPI {version} has no itemSchema - it arrived " +
-                    "in 3.2. The exported file keeps the item type as an array under schema, so a client " +
-                    "generated from it reads a list rather than a stream. Remove <HardenedOpenApiOutputVersion> " +
-                    "to export the 3.2 document the application serves.");
+        if (version != null)
+        {
+            foreach (var operation in OpenApiDocumentLowering.Lower(document, version))
+            {
+                Log.LogWarning(
+                    null,
+                    prefix + StreamLostItemSchemaCode,
+                    null,
+                    ProjectFile(),
+                    0,
+                    0,
+                    0,
+                    0,
+                    $"'{operation}' streams its response, and OpenAPI {version} has no itemSchema - it arrived "
+                        + "in 3.2. The exported file keeps the item type as an array under schema, so a client "
+                        + "generated from it reads a list rather than a stream. Remove <HardenedOpenApiOutputVersion> "
+                        + "to export the 3.2 document the application serves."
+                );
             }
         }
 
-        var content = yaml ? YamlTreeWriter.Write(document) : JsonTreeWriter.WriteIndented(document);
+        var content = yaml
+            ? YamlTreeWriter.Write(document)
+            : JsonTreeWriter.WriteIndented(document);
         var bytes = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(content);
 
-        if (File.Exists(outputPath) && SameBytes(outputPath, bytes)) {
+        if (File.Exists(outputPath) && SameBytes(outputPath, bytes))
+        {
             Changed = false;
 
-            Log.LogMessage(MessageImportance.Low, $"{outputPath} already holds the served document.");
+            Log.LogMessage(
+                MessageImportance.Low,
+                $"{outputPath} already holds the served document."
+            );
 
             return true;
         }
@@ -201,22 +259,30 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
 
         Changed = true;
 
-        Log.LogMessage(MessageImportance.Normal, $"Wrote the OpenAPI document {assemblyName} serves to {outputPath}.");
+        Log.LogMessage(
+            MessageImportance.Normal,
+            $"Wrote the OpenAPI document {assemblyName} serves to {outputPath}."
+        );
 
         return true;
     }
 
-    private string ResolveOutput() {
-        if (Path.IsPathRooted(Output)) {
+    private string ResolveOutput()
+    {
+        if (Path.IsPathRooted(Output))
+        {
             return Path.GetFullPath(Output);
         }
 
-        var root = string.IsNullOrEmpty(ProjectDirectory) ? Directory.GetCurrentDirectory() : ProjectDirectory;
+        var root = string.IsNullOrEmpty(ProjectDirectory)
+            ? Directory.GetCurrentDirectory()
+            : ProjectDirectory;
 
         return Path.GetFullPath(Path.Combine(root, Output));
     }
 
-    private static bool IsYaml(string path) => HasExtension(path, ".yaml") || HasExtension(path, ".yml");
+    private static bool IsYaml(string path) =>
+        HasExtension(path, ".yaml") || HasExtension(path, ".yml");
 
     private static bool HasExtension(string path, string extension) =>
         string.Equals(Path.GetExtension(path), extension, StringComparison.OrdinalIgnoreCase);
@@ -238,21 +304,27 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
     /// fails the build like every other warning here, which is where it matters.
     /// </para>
     /// </remarks>
-    private static IEnumerable<string> RepeatedOperationKeys(JsonObject document) {
-        if (document.Get("paths") is not JsonObject paths) {
+    private static IEnumerable<string> RepeatedOperationKeys(JsonObject document)
+    {
+        if (document.Get("paths") is not JsonObject paths)
+        {
             yield break;
         }
 
-        foreach (var path in paths.Members) {
-            if (path.Value is not JsonObject item) {
+        foreach (var path in paths.Members)
+        {
+            if (path.Value is not JsonObject item)
+            {
                 continue;
             }
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
             var reported = false;
 
-            foreach (var operation in item.Members) {
-                if (!seen.Add(operation.Key) && !reported) {
+            foreach (var operation in item.Members)
+            {
+                if (!seen.Add(operation.Key) && !reported)
+                {
                     reported = true;
 
                     yield return path.Key;
@@ -261,13 +333,17 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
         }
     }
 
-    private static bool StartsWith(byte[] bytes, string prefix) {
-        if (bytes.Length < prefix.Length) {
+    private static bool StartsWith(byte[] bytes, string prefix)
+    {
+        if (bytes.Length < prefix.Length)
+        {
             return false;
         }
 
-        for (var index = 0; index < prefix.Length; index++) {
-            if (bytes[index] != prefix[index]) {
+        for (var index = 0; index < prefix.Length; index++)
+        {
+            if (bytes[index] != prefix[index])
+            {
                 return false;
             }
         }
@@ -275,15 +351,19 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
         return true;
     }
 
-    private static bool SameBytes(string path, byte[] bytes) {
+    private static bool SameBytes(string path, byte[] bytes)
+    {
         var existing = File.ReadAllBytes(path);
 
-        if (existing.Length != bytes.Length) {
+        if (existing.Length != bytes.Length)
+        {
             return false;
         }
 
-        for (var index = 0; index < bytes.Length; index++) {
-            if (existing[index] != bytes[index]) {
+        for (var index = 0; index < bytes.Length; index++)
+        {
+            if (existing[index] != bytes[index])
+            {
                 return false;
             }
         }
@@ -296,32 +376,36 @@ public sealed class WriteOpenApiDocument : Microsoft.Build.Utilities.Task {
     /// the module opted out; spec-first the generator did not run, which the front end's own
     /// 004 and 005 already describe.
     /// </summary>
-    private string NoDocument(string prefix, string assemblyName) {
-        var lead = $"<HardenedOpenApiOutput> is set to '{Output}', but {assemblyName} carries no served OpenAPI document. ";
+    private string NoDocument(string prefix, string assemblyName)
+    {
+        var lead =
+            $"<HardenedOpenApiOutput> is set to '{Output}', but {assemblyName} carries no served OpenAPI document. ";
 
-        if (prefix == "HRDOA") {
-            return lead +
-                   "The document is written only for a module that enables publishing, and the export reads " +
-                   $"that one copy. Add {PublishingAttribute} to the module that declares the routes, or " +
-                   "remove the property.";
+        if (prefix == "HRDOA")
+        {
+            return lead
+                + "The document is written only for a module that enables publishing, and the export reads "
+                + $"that one copy. Add {PublishingAttribute} to the module that declares the routes, or "
+                + "remove the property.";
         }
 
-        return lead +
-               "A specification-first project carries one once its generator has run over the model the " +
-               $"build task wrote; {prefix}004 reports the model or generated source missing and {prefix}005 " +
-               "the targets imported before the specs were declared. Fix whichever of those the build " +
-               "reported, or remove the property.";
+        return lead
+            + "A specification-first project carries one once its generator has run over the model the "
+            + $"build task wrote; {prefix}004 reports the model or generated source missing and {prefix}005 "
+            + "the targets imported before the specs were declared. Fix whichever of those the build "
+            + "reported, or remove the property.";
     }
 
     private string Unreadable(string assemblyName, string entryPoint, string detail) =>
-        $"<HardenedOpenApiOutput> is set to '{Output}', but the served OpenAPI document {assemblyName} carries " +
-        $"under {entryPoint}.{ServedDocumentReader.DocumentTypeName}.{ServedDocumentReader.PropertyName} is not " +
-        $"in a shape the export can read: {detail}. The C# compiler lowers the literal, and this build's " +
-        "compiler lowered it in a shape the export does not know. Report it with the SDK version; the " +
-        "fallback is a second copy of the document in an assembly attribute, which OpenApiDocumentSource " +
-        "describes and this release does not ship.";
+        $"<HardenedOpenApiOutput> is set to '{Output}', but the served OpenAPI document {assemblyName} carries "
+        + $"under {entryPoint}.{ServedDocumentReader.DocumentTypeName}.{ServedDocumentReader.PropertyName} is not "
+        + $"in a shape the export can read: {detail}. The C# compiler lowers the literal, and this build's "
+        + "compiler lowered it in a shape the export does not know. Report it with the SDK version; the "
+        + "fallback is a second copy of the document in an assembly attribute, which OpenApiDocumentSource "
+        + "describes and this release does not ship.";
 
-    private void Error(string code, string message) {
+    private void Error(string code, string message)
+    {
         Log.LogError(null, code, null, ProjectFile(), 0, 0, 0, 0, message);
     }
 

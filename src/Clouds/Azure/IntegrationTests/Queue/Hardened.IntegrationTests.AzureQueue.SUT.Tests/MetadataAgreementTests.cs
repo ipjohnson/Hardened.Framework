@@ -16,52 +16,63 @@ namespace Hardened.IntegrationTests.AzureQueue.SUT.Tests;
 /// is not what the build described. This is the assertion spike S1 was written to make.
 /// </para>
 /// </summary>
-public class MetadataAgreementTests {
-
+public class MetadataAgreementTests
+{
     /// <summary>
     /// What the generated provider returns, which is what the worker answers the host with.
     /// </summary>
     private static async Task<IReadOnlyList<IFunctionMetadata>> Declared() =>
-        await new AzureQueueTestAppAzureFunctionMetadataProvider()
-            .GetFunctionMetadataAsync(AppContext.BaseDirectory);
+        await new AzureQueueTestAppAzureFunctionMetadataProvider().GetFunctionMetadataAsync(
+            AppContext.BaseDirectory
+        );
 
     /// <summary>
     /// What the build task wrote. It reaches this directory because the application copies it to
     /// its output and a referenced project's copied files flow to the referencing one.
     /// </summary>
     private static JsonDocument Written() =>
-        JsonDocument.Parse(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "functions.metadata")));
+        JsonDocument.Parse(
+            File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "functions.metadata"))
+        );
 
     [Fact]
-    public async Task TheProviderAndTheBuildTaskListTheSameFunctions() {
+    public async Task TheProviderAndTheBuildTaskListTheSameFunctions()
+    {
         var declared = await Declared();
 
         using var written = Written();
 
         Assert.Equal(
-            written.RootElement.EnumerateArray().Select(function => function.GetProperty("name").GetString()).Order(),
-            declared.Select(function => function.Name).Order());
+            written
+                .RootElement.EnumerateArray()
+                .Select(function => function.GetProperty("name").GetString())
+                .Order(),
+            declared.Select(function => function.Name).Order()
+        );
     }
 
     [Theory]
     [InlineData("entryPoint")]
     [InlineData("scriptFile")]
     [InlineData("language")]
-    public async Task EveryFunctionAgreesOn(string property) {
+    public async Task EveryFunctionAgreesOn(string property)
+    {
         var declared = await Declared();
 
         using var written = Written();
 
-        foreach (var function in written.RootElement.EnumerateArray()) {
+        foreach (var function in written.RootElement.EnumerateArray())
+        {
             var name = function.GetProperty("name").GetString();
             var ours = Assert.Single(declared, one => one.Name == name);
 
             var expected = function.GetProperty(property).GetString();
 
-            var actual = property switch {
+            var actual = property switch
+            {
                 "entryPoint" => ours.EntryPoint,
                 "scriptFile" => ours.ScriptFile,
-                _ => ours.Language
+                _ => ours.Language,
             };
 
             Assert.Equal(expected, actual);
@@ -73,21 +84,26 @@ public class MetadataAgreementTests {
     /// and spacing are not part of the contract, and the values are.
     /// </summary>
     [Fact]
-    public async Task EveryFunctionAgreesOnItsBindings() {
+    public async Task EveryFunctionAgreesOnItsBindings()
+    {
         var declared = await Declared();
 
         using var written = Written();
 
-        foreach (var function in written.RootElement.EnumerateArray()) {
+        foreach (var function in written.RootElement.EnumerateArray())
+        {
             var name = function.GetProperty("name").GetString();
             var ours = Assert.Single(declared, one => one.Name == name);
 
-            var expected = function.GetProperty("bindings").EnumerateArray()
+            var expected = function
+                .GetProperty("bindings")
+                .EnumerateArray()
                 .Select(binding => Canonical(binding))
                 .ToList();
 
             var actual = (ours.RawBindings ?? new List<string>())
-                .Select(binding => {
+                .Select(binding =>
+                {
                     using var document = JsonDocument.Parse(binding);
 
                     return Canonical(document.RootElement);
@@ -101,22 +117,31 @@ public class MetadataAgreementTests {
     /// <summary>
     /// The element with its object keys sorted, so two documents that mean the same compare equal.
     /// </summary>
-    private static string Canonical(JsonElement element) {
+    private static string Canonical(JsonElement element)
+    {
         using var buffer = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(buffer)) {
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
             Write(element, writer);
         }
 
         return System.Text.Encoding.UTF8.GetString(buffer.ToArray());
     }
 
-    private static void Write(JsonElement element, Utf8JsonWriter writer) {
-        switch (element.ValueKind) {
+    private static void Write(JsonElement element, Utf8JsonWriter writer)
+    {
+        switch (element.ValueKind)
+        {
             case JsonValueKind.Object:
                 writer.WriteStartObject();
 
-                foreach (var property in element.EnumerateObject().OrderBy(one => one.Name, StringComparer.Ordinal)) {
+                foreach (
+                    var property in element
+                        .EnumerateObject()
+                        .OrderBy(one => one.Name, StringComparer.Ordinal)
+                )
+                {
                     writer.WritePropertyName(property.Name);
                     Write(property.Value, writer);
                 }
@@ -128,7 +153,8 @@ public class MetadataAgreementTests {
             case JsonValueKind.Array:
                 writer.WriteStartArray();
 
-                foreach (var item in element.EnumerateArray()) {
+                foreach (var item in element.EnumerateArray())
+                {
                     Write(item, writer);
                 }
 

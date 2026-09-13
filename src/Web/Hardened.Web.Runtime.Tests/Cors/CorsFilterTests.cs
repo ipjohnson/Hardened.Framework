@@ -8,11 +8,11 @@ using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Web.Runtime.Cors;
 using Hardened.Web.Runtime.Handlers;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Cors;
 
@@ -27,15 +27,17 @@ namespace Hardened.Web.Runtime.Tests.Cors;
 /// seventeen tests elsewhere in this repository.
 /// </para>
 /// </summary>
-public class CorsFilterTests {
-
+public class CorsFilterTests
+{
     private const string Allowed = "https://app.example.com";
     private const string Denied = "https://evil.example.com";
 
-    private static CorsConfiguration ConfigAllowing(params string[] origins) {
+    private static CorsConfiguration ConfigAllowing(params string[] origins)
+    {
         var config = new CorsConfiguration();
 
-        foreach (var origin in origins) {
+        foreach (var origin in origins)
+        {
             config.AllowOrigin(origin);
         }
 
@@ -43,58 +45,81 @@ public class CorsFilterTests {
     }
 
     private static IExecutionContext Context(
-        string method, string? origin, string? requestMethod = null, string? requestHeaders = null) {
+        string method,
+        string? origin,
+        string? requestMethod = null,
+        string? requestHeaders = null
+    )
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        if (origin != null) {
+        if (origin != null)
+        {
             headers[KnownHeaders.Origin] = origin;
         }
 
-        if (requestMethod != null) {
+        if (requestMethod != null)
+        {
             headers[KnownHeaders.Cors.AccessControlRequestMethod] = requestMethod;
         }
 
-        if (requestHeaders != null) {
+        if (requestHeaders != null)
+        {
             headers[KnownHeaders.Cors.AccessControlRequestHeaders] = requestHeaders;
         }
 
         var request = new TestExecutionRequest(
-            method, "/orders", "application/json",
-            new SimpleQueryStringCollection(new Dictionary<string, string>())) {
-            Headers = headers
+            method,
+            "/orders",
+            "application/json",
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        )
+        {
+            Headers = headers,
         };
 
         var services = new ServiceCollection().BuildServiceProvider();
 
         return new TestExecutionContext(
-            services, services, Substitute.For<IKnownServices>(), request,
-            new TestExecutionResponse(new MemoryStream()), CancellationToken.None);
+            services,
+            services,
+            Substitute.For<IKnownServices>(),
+            request,
+            new TestExecutionResponse(new MemoryStream()),
+            CancellationToken.None
+        );
     }
 
     /// <summary>Runs the filter and reports whether the chain continued past it.</summary>
-    private static async Task<bool> Run(CorsFilter filter, IExecutionContext context) {
+    private static async Task<bool> Run(CorsFilter filter, IExecutionContext context)
+    {
         var continued = false;
 
         var chain = new ExecutionChain(
-            new Func<IExecutionContext, IExecutionFilter>[] {
+            new Func<IExecutionContext, IExecutionFilter>[]
+            {
                 _ => filter,
-                _ => new Terminal(() => continued = true)
+                _ => new Terminal(() => continued = true),
             },
-            context);
+            context
+        );
 
         await chain.Next();
 
         return continued;
     }
 
-    private sealed class Terminal : IExecutionFilter {
+    private sealed class Terminal : IExecutionFilter
+    {
         private readonly Action _onRun;
 
-        public Terminal(Action onRun) {
+        public Terminal(Action onRun)
+        {
             _onRun = onRun;
         }
 
-        public Task Execute(IExecutionChain chain) {
+        public Task Execute(IExecutionChain chain)
+        {
             _onRun();
 
             return Task.CompletedTask;
@@ -102,23 +127,30 @@ public class CorsFilterTests {
     }
 
     /// <summary>A routing table that answers for one path under a fixed set of verbs.</summary>
-    private sealed class Routes : IWebExecutionRequestHandlerProvider {
+    private sealed class Routes : IWebExecutionRequestHandlerProvider
+    {
         private readonly string _path;
         private readonly HashSet<string> _methods;
 
-        public Routes(string path, params string[] methods) {
+        public Routes(string path, params string[] methods)
+        {
             _path = path;
             _methods = new HashSet<string>(methods, StringComparer.OrdinalIgnoreCase);
         }
 
-        public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context) {
-            if (!string.Equals(context.Request.Path, _path, StringComparison.Ordinal)) {
+        public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)
+        {
+            if (!string.Equals(context.Request.Path, _path, StringComparison.Ordinal))
+            {
                 return null;
             }
 
-            if (_methods.Contains(context.Request.Method)) {
+            if (_methods.Contains(context.Request.Method))
+            {
                 return new RequestHandlerInfo(
-                    Substitute.For<IExecutionRequestHandler>(), PathTokenCollection.Empty);
+                    Substitute.For<IExecutionRequestHandler>(),
+                    PathTokenCollection.Empty
+                );
             }
 
             return RequestHandlerInfo.MethodNotAllowed(string.Join(", ", _methods));
@@ -135,7 +167,8 @@ public class CorsFilterTests {
     [Theory]
     [InlineData(Allowed)]
     [InlineData(Denied)]
-    public async Task Execute_SetsVaryOriginWhicheverWayTheOriginIsDecided(string origin) {
+    public async Task Execute_SetsVaryOriginWhicheverWayTheOriginIsDecided(string origin)
+    {
         var context = Context("GET", origin);
 
         await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
@@ -145,7 +178,8 @@ public class CorsFilterTests {
 
     /// <summary>A request that is not cross-origin is not varied on, and is not annotated.</summary>
     [Fact]
-    public async Task Execute_LeavesARequestWithNoOriginEntirelyAlone() {
+    public async Task Execute_LeavesARequestWithNoOriginEntirelyAlone()
+    {
         var context = Context("GET", origin: null);
 
         var continued = await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
@@ -156,7 +190,8 @@ public class CorsFilterTests {
 
     /// <summary>An empty Origin header is not an origin.</summary>
     [Fact]
-    public async Task Execute_LeavesAnEmptyOriginHeaderAlone() {
+    public async Task Execute_LeavesAnEmptyOriginHeaderAlone()
+    {
         var context = Context("GET", origin: "");
 
         var continued = await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
@@ -168,24 +203,30 @@ public class CorsFilterTests {
     // ------------------------------------------------------- actual requests
 
     [Fact]
-    public async Task Execute_AnnotatesAnAllowedCrossOriginRequestAndContinues() {
+    public async Task Execute_AnnotatesAnAllowedCrossOriginRequestAndContinues()
+    {
         var context = Context("GET", Allowed);
 
         var continued = await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.True(continued);
         Assert.Equal(
-            Allowed, context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString());
+            Allowed,
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString()
+        );
     }
 
     [Fact]
-    public async Task Execute_DoesNotAnnotateADisallowedOrigin() {
+    public async Task Execute_DoesNotAnnotateADisallowedOrigin()
+    {
         var context = Context("GET", Denied);
 
         var continued = await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.True(continued);
-        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin));
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin)
+        );
     }
 
     /// <summary>
@@ -193,13 +234,18 @@ public class CorsFilterTests {
     /// the previous version attached all three to every cross-origin response.
     /// </summary>
     [Fact]
-    public async Task Execute_DoesNotPutPreflightHeadersOnAnActualResponse() {
+    public async Task Execute_DoesNotPutPreflightHeadersOnAnActualResponse()
+    {
         var context = Context("GET", Allowed);
 
         await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
-        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowMethods));
-        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowHeaders));
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowMethods)
+        );
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowHeaders)
+        );
         Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlMaxAge));
     }
 
@@ -208,7 +254,8 @@ public class CorsFilterTests {
     /// id, not a pagination header, not <c>RateLimit-*</c>.
     /// </summary>
     [Fact]
-    public async Task Execute_ExposesTheConfiguredResponseHeaders() {
+    public async Task Execute_ExposesTheConfiguredResponseHeaders()
+    {
         var config = ConfigAllowing(Allowed);
 
         config.ClearExposedHeaders();
@@ -221,7 +268,8 @@ public class CorsFilterTests {
 
         Assert.Equal(
             "X-Request-Id, X-Total-Count",
-            context.Response.Headers[KnownHeaders.Cors.AccessControlExposeHeaders].ToString());
+            context.Response.Headers[KnownHeaders.Cors.AccessControlExposeHeaders].ToString()
+        );
     }
 
     /// <summary>
@@ -230,19 +278,22 @@ public class CorsFilterTests {
     /// unreadable to exactly the browser client most likely to want to report it.
     /// </summary>
     [Fact]
-    public async Task Execute_ExposesTheCorrelationHeaderByDefault() {
+    public async Task Execute_ExposesTheCorrelationHeaderByDefault()
+    {
         var context = Context("GET", Allowed);
 
         await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.Contains(
             CorrelationHeaderFilter.HeaderName,
-            context.Response.Headers[KnownHeaders.Cors.AccessControlExposeHeaders].ToString());
+            context.Response.Headers[KnownHeaders.Cors.AccessControlExposeHeaders].ToString()
+        );
     }
 
     /// <summary>An application that wants none of it can say so.</summary>
     [Fact]
-    public async Task Execute_ExposesNothingOnceTheListIsCleared() {
+    public async Task Execute_ExposesNothingOnceTheListIsCleared()
+    {
         var config = ConfigAllowing(Allowed);
 
         config.ClearExposedHeaders();
@@ -252,7 +303,8 @@ public class CorsFilterTests {
         await Run(new CorsFilter(config), context);
 
         Assert.False(
-            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlExposeHeaders));
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlExposeHeaders)
+        );
     }
 
     // ------------------------------------------------------------- preflight
@@ -263,7 +315,8 @@ public class CorsFilterTests {
     /// <c>OPTIONS</c>, so such a handler was unreachable.
     /// </summary>
     [Fact]
-    public async Task Execute_TreatsAnOptionsWithoutARequestMethodAsAnOrdinaryRequest() {
+    public async Task Execute_TreatsAnOptionsWithoutARequestMethodAsAnOrdinaryRequest()
+    {
         var context = Context("OPTIONS", Allowed);
 
         var continued = await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
@@ -274,7 +327,8 @@ public class CorsFilterTests {
 
     /// <summary>A preflight is answered here and goes no further.</summary>
     [Fact]
-    public async Task Execute_AnswersAPreflightWithoutContinuing() {
+    public async Task Execute_AnswersAPreflightWithoutContinuing()
+    {
         var context = Context("OPTIONS", Allowed, requestMethod: "GET");
 
         var continued = await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
@@ -285,7 +339,8 @@ public class CorsFilterTests {
     }
 
     [Fact]
-    public async Task Execute_AnswersAnAllowedPreflightWithTheCorsHeaders() {
+    public async Task Execute_AnswersAnAllowedPreflightWithTheCorsHeaders()
+    {
         var context = Context("OPTIONS", Allowed, requestMethod: "GET");
 
         await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
@@ -301,14 +356,17 @@ public class CorsFilterTests {
     /// the browser not to send the real request.
     /// </summary>
     [Fact]
-    public async Task Execute_AnswersAPreflightFromADeniedOriginWithNoCorsHeaders() {
+    public async Task Execute_AnswersAPreflightFromADeniedOriginWithNoCorsHeaders()
+    {
         var context = Context("OPTIONS", Denied, requestMethod: "GET");
 
         var continued = await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.False(continued);
         Assert.Equal(204, context.Response.Status);
-        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin));
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin)
+        );
     }
 
     /// <summary>
@@ -316,15 +374,21 @@ public class CorsFilterTests {
     /// specification asks for and keeps the header from growing with the configuration.
     /// </summary>
     [Fact]
-    public async Task Execute_EchoesTheRequestedHeadersOnAnAllowedPreflight() {
+    public async Task Execute_EchoesTheRequestedHeadersOnAnAllowedPreflight()
+    {
         var context = Context(
-            "OPTIONS", Allowed, requestMethod: "POST", requestHeaders: "Content-Type, Authorization");
+            "OPTIONS",
+            Allowed,
+            requestMethod: "POST",
+            requestHeaders: "Content-Type, Authorization"
+        );
 
         await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.Equal(
             "Content-Type, Authorization",
-            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowHeaders].ToString());
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowHeaders].ToString()
+        );
     }
 
     /// <summary>
@@ -332,30 +396,43 @@ public class CorsFilterTests {
     /// have the browser block the real request anyway, having been told the preflight succeeded.
     /// </summary>
     [Fact]
-    public async Task Execute_RefusesAPreflightAskingForAnUnallowedHeader() {
+    public async Task Execute_RefusesAPreflightAskingForAnUnallowedHeader()
+    {
         var context = Context(
-            "OPTIONS", Allowed, requestMethod: "POST", requestHeaders: "X-Custom-Thing");
+            "OPTIONS",
+            Allowed,
+            requestMethod: "POST",
+            requestHeaders: "X-Custom-Thing"
+        );
 
         await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.Equal(204, context.Response.Status);
-        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin));
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin)
+        );
     }
 
     [Fact]
-    public async Task Execute_AllowsAnExplicitlyConfiguredRequestHeader() {
+    public async Task Execute_AllowsAnExplicitlyConfiguredRequestHeader()
+    {
         var config = ConfigAllowing(Allowed);
 
         config.AllowHeader("X-Custom-Thing");
 
         var context = Context(
-            "OPTIONS", Allowed, requestMethod: "POST", requestHeaders: "X-Custom-Thing");
+            "OPTIONS",
+            Allowed,
+            requestMethod: "POST",
+            requestHeaders: "X-Custom-Thing"
+        );
 
         await Run(new CorsFilter(config), context);
 
         Assert.Equal(
             Allowed,
-            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString());
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString()
+        );
     }
 
     // --------------------------------------------------- routing-aware verbs
@@ -365,14 +442,19 @@ public class CorsFilterTests {
     /// <c>GET</c> must not advertise <c>DELETE</c>.
     /// </summary>
     [Fact]
-    public async Task Execute_AdvertisesTheVerbsTheRouteActuallyHas() {
+    public async Task Execute_AdvertisesTheVerbsTheRouteActuallyHas()
+    {
         var context = Context("OPTIONS", Allowed, requestMethod: "GET");
 
         await Run(
-            new CorsFilter(ConfigAllowing(Allowed), new[] { new Routes("/orders", "GET") }), context);
+            new CorsFilter(ConfigAllowing(Allowed), new[] { new Routes("/orders", "GET") }),
+            context
+        );
 
         Assert.Equal(
-            "GET", context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString());
+            "GET",
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString()
+        );
     }
 
     /// <summary>
@@ -380,15 +462,19 @@ public class CorsFilterTests {
     /// listed it.
     /// </summary>
     [Fact]
-    public async Task Execute_RefusesAPreflightForAVerbTheRouteDoesNotHave() {
+    public async Task Execute_RefusesAPreflightForAVerbTheRouteDoesNotHave()
+    {
         var context = Context("OPTIONS", Allowed, requestMethod: "DELETE");
 
         await Run(
             new CorsFilter(ConfigAllowing(Allowed), new[] { new Routes("/orders", "GET", "POST") }),
-            context);
+            context
+        );
 
         Assert.Equal(204, context.Response.Status);
-        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin));
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin)
+        );
     }
 
     /// <summary>
@@ -396,28 +482,33 @@ public class CorsFilterTests {
     /// request for static content looks like.
     /// </summary>
     [Fact]
-    public async Task Execute_FallsBackToTheConfiguredVerbsForAnUnroutedPath() {
+    public async Task Execute_FallsBackToTheConfiguredVerbsForAnUnroutedPath()
+    {
         var context = Context("OPTIONS", Allowed, requestMethod: "GET");
 
         await Run(
             new CorsFilter(ConfigAllowing(Allowed), new[] { new Routes("/somewhere-else", "GET") }),
-            context);
+            context
+        );
 
         Assert.Equal(
             "GET, POST, PUT, DELETE, OPTIONS",
-            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString());
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString()
+        );
     }
 
     /// <summary>An application with no web routing at all still answers preflights.</summary>
     [Fact]
-    public async Task Execute_FallsBackToTheConfiguredVerbsWhenThereIsNoRouting() {
+    public async Task Execute_FallsBackToTheConfiguredVerbsWhenThereIsNoRouting()
+    {
         var context = Context("OPTIONS", Allowed, requestMethod: "GET");
 
         await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.Equal(
             "GET, POST, PUT, DELETE, OPTIONS",
-            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString());
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString()
+        );
     }
 
     /// <summary>
@@ -427,19 +518,25 @@ public class CorsFilterTests {
     /// 405.
     /// </summary>
     [Fact]
-    public async Task Execute_MergesTheVerbsFromEveryTableThatRecognisesThePath() {
+    public async Task Execute_MergesTheVerbsFromEveryTableThatRecognisesThePath()
+    {
         var context = Context("OPTIONS", Allowed, requestMethod: "POST");
 
         await Run(
             new CorsFilter(
                 ConfigAllowing(Allowed),
-                new IWebExecutionRequestHandlerProvider[] {
+                new IWebExecutionRequestHandlerProvider[]
+                {
                     new Routes("/orders", "GET"),
-                    new Routes("/orders", "POST")
-                }),
-            context);
+                    new Routes("/orders", "POST"),
+                }
+            ),
+            context
+        );
 
-        var methods = context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString();
+        var methods = context
+            .Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods]
+            .ToString();
 
         Assert.Contains("GET", methods);
         Assert.Contains("POST", methods);
@@ -450,20 +547,26 @@ public class CorsFilterTests {
     /// than an empty entry in the advertised list.
     /// </summary>
     [Fact]
-    public async Task Execute_IgnoresATableThatNamesNoAllowedVerbs() {
+    public async Task Execute_IgnoresATableThatNamesNoAllowedVerbs()
+    {
         var context = Context("OPTIONS", Allowed, requestMethod: "GET");
 
         await Run(
             new CorsFilter(
                 ConfigAllowing(Allowed),
-                new IWebExecutionRequestHandlerProvider[] {
+                new IWebExecutionRequestHandlerProvider[]
+                {
                     new SilentRoutes("/orders"),
-                    new Routes("/orders", "GET")
-                }),
-            context);
+                    new Routes("/orders", "GET"),
+                }
+            ),
+            context
+        );
 
         Assert.Equal(
-            "GET", context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString());
+            "GET",
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowMethods].ToString()
+        );
     }
 
     /// <summary>
@@ -471,13 +574,16 @@ public class CorsFilterTests {
     /// configured list, which would advertise verbs nobody asked about.
     /// </summary>
     [Fact]
-    public async Task Execute_RefusesAPreflightThatNamesNoVerb() {
+    public async Task Execute_RefusesAPreflightThatNamesNoVerb()
+    {
         var context = Context("OPTIONS", Allowed, requestMethod: "");
 
         await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.Equal(204, context.Response.Status);
-        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin));
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowOrigin)
+        );
     }
 
     /// <summary>
@@ -486,23 +592,28 @@ public class CorsFilterTests {
     /// request for an unnamed header would fail every such preflight.
     /// </summary>
     [Fact]
-    public async Task Execute_TreatsABlankRequestHeadersListAsNone() {
-        var context = Context(
-            "OPTIONS", Allowed, requestMethod: "GET", requestHeaders: "   ");
+    public async Task Execute_TreatsABlankRequestHeadersListAsNone()
+    {
+        var context = Context("OPTIONS", Allowed, requestMethod: "GET", requestHeaders: "   ");
 
         await Run(new CorsFilter(ConfigAllowing(Allowed)), context);
 
         Assert.Equal(
             Allowed,
-            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString());
-        Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowHeaders));
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString()
+        );
+        Assert.False(
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowHeaders)
+        );
     }
 
     /// <summary>Recognises a path and reports no allowed verbs.</summary>
-    private sealed class SilentRoutes : IWebExecutionRequestHandlerProvider {
+    private sealed class SilentRoutes : IWebExecutionRequestHandlerProvider
+    {
         private readonly string _path;
 
-        public SilentRoutes(string path) {
+        public SilentRoutes(string path)
+        {
             _path = path;
         }
 
@@ -515,7 +626,8 @@ public class CorsFilterTests {
     // ----------------------------------------------------------- credentials
 
     [Fact]
-    public async Task Execute_EmitsAllowCredentialsWhenConfigured() {
+    public async Task Execute_EmitsAllowCredentialsWhenConfigured()
+    {
         var config = ConfigAllowing(Allowed);
 
         config.AllowCredentials = true;
@@ -526,7 +638,8 @@ public class CorsFilterTests {
 
         Assert.Equal(
             "true",
-            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowCredentials].ToString());
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowCredentials].ToString()
+        );
     }
 
     /// <summary>
@@ -535,7 +648,8 @@ public class CorsFilterTests {
     /// setting entirely.
     /// </summary>
     [Fact]
-    public async Task Execute_EmitsAllowCredentialsOnThePreflightAsWell() {
+    public async Task Execute_EmitsAllowCredentialsOnThePreflightAsWell()
+    {
         var config = ConfigAllowing(Allowed);
 
         config.AllowCredentials = true;
@@ -546,7 +660,8 @@ public class CorsFilterTests {
 
         Assert.Equal(
             "true",
-            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowCredentials].ToString());
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowCredentials].ToString()
+        );
     }
 
     /// <summary>
@@ -554,27 +669,34 @@ public class CorsFilterTests {
     /// emits neither the wildcard nor the credentials header rather than an unusable combination.
     /// </summary>
     [Fact]
-    public async Task Execute_NeverPairsCredentialsWithAWildcardOrigin() {
+    public async Task Execute_NeverPairsCredentialsWithAWildcardOrigin()
+    {
         var config = new CorsConfiguration { AllowAnyOrigin = true, AllowCredentials = true };
         var context = Context("GET", Denied);
 
         await Run(new CorsFilter(config), context);
 
         Assert.Equal(
-            Denied, context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString());
+            Denied,
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString()
+        );
         Assert.False(
-            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowCredentials));
+            context.Response.Headers.ContainsKey(KnownHeaders.Cors.AccessControlAllowCredentials)
+        );
     }
 
     /// <summary>Any origin, without credentials, answers with the cacheable wildcard.</summary>
     [Fact]
-    public async Task Execute_AnswersAnyOriginWithAWildcard() {
+    public async Task Execute_AnswersAnyOriginWithAWildcard()
+    {
         var config = new CorsConfiguration { AllowAnyOrigin = true };
         var context = Context("GET", Denied);
 
         await Run(new CorsFilter(config), context);
 
         Assert.Equal(
-            "*", context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString());
+            "*",
+            context.Response.Headers[KnownHeaders.Cors.AccessControlAllowOrigin].ToString()
+        );
     }
 }

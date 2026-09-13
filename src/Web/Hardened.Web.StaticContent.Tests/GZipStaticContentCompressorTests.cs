@@ -4,15 +4,18 @@ using Xunit;
 
 namespace Hardened.Web.StaticContent.Tests;
 
-public class GZipStaticContentCompressorTests {
+public class GZipStaticContentCompressorTests
+{
     private readonly GZipStaticContentCompressor _compressor;
 
-    public GZipStaticContentCompressorTests() {
+    public GZipStaticContentCompressorTests()
+    {
         _compressor = new GZipStaticContentCompressor(new MemoryStreamPool());
     }
 
     [Fact]
-    public void CompressedOutput_CanBeDecompressed_ToOriginalContent() {
+    public void CompressedOutput_CanBeDecompressed_ToOriginalContent()
+    {
         var original = "Hello, World! This is a test of GZip compression."u8.ToArray();
 
         var compressed = _compressor.CompressContent(original, CompressionLevel.Fastest);
@@ -26,7 +29,8 @@ public class GZipStaticContentCompressorTests {
     }
 
     [Fact]
-    public void EmptyInput_ProducesValidGzipOutput() {
+    public void EmptyInput_ProducesValidGzipOutput()
+    {
         var compressed = _compressor.CompressContent(Array.Empty<byte>(), CompressionLevel.Fastest);
 
         using var compressedStream = new MemoryStream(compressed);
@@ -41,7 +45,8 @@ public class GZipStaticContentCompressorTests {
     [InlineData(CompressionLevel.Fastest)]
     [InlineData(CompressionLevel.Optimal)]
     [InlineData(CompressionLevel.SmallestSize)]
-    public void DifferentCompressionLevels_ProduceValidOutput(CompressionLevel level) {
+    public void DifferentCompressionLevels_ProduceValidOutput(CompressionLevel level)
+    {
         var original = "Test content for compression level validation."u8.ToArray();
 
         var compressed = _compressor.CompressContent(original, level);

@@ -19,13 +19,18 @@
 /// the generator would serve one handler for both.
 /// </para>
 /// </remarks>
-public class RequestHandlerNameModel {
-
+public class RequestHandlerNameModel
+{
     public RequestHandlerNameModel(string path, string method)
         : this(path, method, null, null) { }
 
     public RequestHandlerNameModel(
-        string path, string method, string? dispatchHeader, string? dispatchKey) {
+        string path,
+        string method,
+        string? dispatchHeader,
+        string? dispatchKey
+    )
+    {
         Path = path;
         Method = method;
         DispatchHeader = dispatchHeader;
@@ -45,15 +50,17 @@ public class RequestHandlerNameModel {
     /// <summary>Whether this handler is selected by an exact token rather than by route.</summary>
     public bool IsDispatched => DispatchKey != null && DispatchHeader != null;
 
-    public override bool Equals(object obj) {
-        if (obj is not RequestHandlerNameModel requestHandlerNameModel) {
+    public override bool Equals(object obj)
+    {
+        if (obj is not RequestHandlerNameModel requestHandlerNameModel)
+        {
             return false;
         }
 
-        return Path.Equals(requestHandlerNameModel.Path) &&
-               Method.Equals(requestHandlerNameModel.Method) &&
-               DispatchHeader == requestHandlerNameModel.DispatchHeader &&
-               DispatchKey == requestHandlerNameModel.DispatchKey;
+        return Path.Equals(requestHandlerNameModel.Path)
+            && Method.Equals(requestHandlerNameModel.Method)
+            && DispatchHeader == requestHandlerNameModel.DispatchHeader
+            && DispatchKey == requestHandlerNameModel.DispatchKey;
     }
 
     /// <summary>
@@ -63,12 +70,15 @@ public class RequestHandlerNameModel {
     /// A dispatched handler reads as its token, because that is what names it - <c>PetStore.GetPet</c>
     /// rather than <c>POST:/</c>, which every operation in an awsJson service would share.
     /// </remarks>
-    public override string ToString() {
+    public override string ToString()
+    {
         return DispatchKey ?? Method + ":" + Path;
     }
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hashCode = (Path.GetHashCode() * 397) ^ Method.GetHashCode();
 
             return (hashCode * 397) ^ (DispatchKey?.GetHashCode() ?? 0);

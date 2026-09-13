@@ -13,14 +13,21 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// the sync-with-parameters one was ever compiled.
 /// </para>
 /// </summary>
-public class HandlerShapeCompilesTests {
-
+public class HandlerShapeCompilesTests
+{
     [Fact]
-    public void AVoidHandlerAssignsNoResponseValue() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/ping")]
-                public void Ping() { }
-            """)).AssertNoErrors();
+    public void AVoidHandlerAssignsNoResponseValue()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/ping")]
+                        public void Ping() { }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Ping");
 
@@ -29,13 +36,23 @@ public class HandlerShapeCompilesTests {
     }
 
     [Fact]
-    public void AValueReturningHandlerAssignsTheResponseValue() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/name")]
-                public string Name() => "x";
-            """)).AssertNoErrors();
+    public void AValueReturningHandlerAssignsTheResponseValue()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/name")]
+                        public string Name() => "x";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Response.ResponseValue = controller.Name();", result.SourceContaining("Name"));
+        Assert.Contains(
+            "context.Response.ResponseValue = controller.Name();",
+            result.SourceContaining("Name")
+        );
     }
 
     /// <summary>
@@ -43,11 +60,18 @@ public class HandlerShapeCompilesTests {
     /// marking the handler async, so it must await without assigning a response value.
     /// </summary>
     [Fact]
-    public void ATaskReturningHandlerIsAwaitedAndAssignsNoResponseValue() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/task")]
-                public Task Work() => Task.CompletedTask;
-            """)).AssertNoErrors();
+    public void ATaskReturningHandlerIsAwaitedAndAssignsNoResponseValue()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/task")]
+                        public Task Work() => Task.CompletedTask;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Work");
 
@@ -56,36 +80,61 @@ public class HandlerShapeCompilesTests {
     }
 
     [Fact]
-    public void ATaskOfTReturningHandlerIsAwaitedIntoTheResponseValue() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/task")]
-                public Task<string> Work() => Task.FromResult("x");
-            """)).AssertNoErrors();
+    public void ATaskOfTReturningHandlerIsAwaitedIntoTheResponseValue()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/task")]
+                        public Task<string> Work() => Task.FromResult("x");
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Response.ResponseValue = await controller.Work();",
-            result.SourceContaining("Work"));
+        Assert.Contains(
+            "context.Response.ResponseValue = await controller.Work();",
+            result.SourceContaining("Work")
+        );
     }
 
     [Fact]
-    public void AValueTaskOfTReturningHandlerIsAwaitedIntoTheResponseValue() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/valuetask")]
-                public ValueTask<string> Work() => new ValueTask<string>("x");
-            """)).AssertNoErrors();
+    public void AValueTaskOfTReturningHandlerIsAwaitedIntoTheResponseValue()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/valuetask")]
+                        public ValueTask<string> Work() => new ValueTask<string>("x");
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Response.ResponseValue = await controller.Work();",
-            result.SourceContaining("Work"));
+        Assert.Contains(
+            "context.Response.ResponseValue = await controller.Work();",
+            result.SourceContaining("Work")
+        );
     }
 
     [Fact]
-    public void AnAsyncHandlerCompiles() {
-        RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/async")]
-                public async Task<string> Work() {
-                    await Task.Yield();
-                    return "x";
-                }
-            """)).AssertNoErrors();
+    public void AnAsyncHandlerCompiles()
+    {
+        RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/async")]
+                        public async Task<string> Work() {
+                            await Task.Yield();
+                            return "x";
+                        }
+                    """
+                )
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -93,27 +142,41 @@ public class HandlerShapeCompilesTests {
     /// is the fourth corner of that matrix rather than a repeat of either.
     /// </summary>
     [Fact]
-    public void AnAsyncHandlerWithParametersUsesTheAsyncParameterisedConstructor() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/async/{id}")]
-                public async Task<string> Work(string id) {
-                    await Task.Yield();
-                    return id;
-                }
-            """)).AssertNoErrors();
+    public void AnAsyncHandlerWithParametersUsesTheAsyncParameterisedConstructor()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/async/{id}")]
+                        public async Task<string> Work(string id) {
+                            await Task.Yield();
+                            return id;
+                        }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("AsyncStandardFilterWithParameters", result.SourceContaining("Work"));
     }
 
     [Fact]
-    public void AnAsyncHandlerWithNoParametersUsesTheAsyncEmptyParameterConstructor() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/async")]
-                public async Task<string> Work() {
-                    await Task.Yield();
-                    return "x";
-                }
-            """)).AssertNoErrors();
+    public void AnAsyncHandlerWithNoParametersUsesTheAsyncEmptyParameterConstructor()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/async")]
+                        public async Task<string> Work() {
+                            await Task.Yield();
+                            return "x";
+                        }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Work");
 
@@ -122,11 +185,18 @@ public class HandlerShapeCompilesTests {
     }
 
     [Fact]
-    public void ASyncHandlerWithNoParametersUsesTheSyncEmptyParameterConstructor() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/health")]
-                public string Health() => "ok";
-            """)).AssertNoErrors();
+    public void ASyncHandlerWithNoParametersUsesTheSyncEmptyParameterConstructor()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/health")]
+                        public string Health() => "ok";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Health");
 
@@ -139,11 +209,18 @@ public class HandlerShapeCompilesTests {
     /// referring to either would not compile, which is how the metadata-slot defect surfaced.
     /// </summary>
     [Fact]
-    public void AZeroParameterHandlerEmitsNoParametersClass() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/health")]
-                public string Health() => "ok";
-            """)).AssertNoErrors();
+    public void AZeroParameterHandlerEmitsNoParametersClass()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/health")]
+                        public string Health() => "ok";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Health");
 
@@ -152,51 +229,70 @@ public class HandlerShapeCompilesTests {
     }
 
     [Fact]
-    public void AnAsyncEnumerableHandlerUsesTheAsyncEnumerableConstructor() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/stream")]
-                public async IAsyncEnumerable<string> Stream() {
-                    yield return "a";
-                    await Task.Yield();
-                }
-            """)).AssertNoErrors();
+    public void AnAsyncEnumerableHandlerUsesTheAsyncEnumerableConstructor()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/stream")]
+                        public async IAsyncEnumerable<string> Stream() {
+                            yield return "a";
+                            await Task.Yield();
+                        }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("AsyncEnumerableFilterEmptyParameters", result.SourceContaining("Stream"));
     }
 
     [Fact]
-    public void AnAsyncEnumerableHandlerWithParametersUsesTheParameterisedConstructor() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/stream/{id}")]
-                public async IAsyncEnumerable<string> Stream(string id) {
-                    yield return id;
-                    await Task.Yield();
-                }
-            """)).AssertNoErrors();
+    public void AnAsyncEnumerableHandlerWithParametersUsesTheParameterisedConstructor()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/stream/{id}")]
+                        public async IAsyncEnumerable<string> Stream(string id) {
+                            yield return id;
+                            await Task.Yield();
+                        }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("AsyncEnumerableFilterWithParameters", result.SourceContaining("Stream"));
     }
 
     /// <summary>A record return type, the shape most handlers actually have.</summary>
     [Fact]
-    public void AComplexReturnTypeCompiles() {
-        RequestGeneratorHarness.Generate("""
-            using System.Collections.Generic;
-            using System.Threading.Tasks;
-            using Hardened.Web.Runtime.Attributes;
+    public void AComplexReturnTypeCompiles()
+    {
+        RequestGeneratorHarness
+            .Generate(
+                """
+                using System.Collections.Generic;
+                using System.Threading.Tasks;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public record OrderModel(string Sku, int Quantity);
+                public record OrderModel(string Sku, int Quantity);
 
-            public class OrderController {
-                [Get("/orders")]
-                public IReadOnlyList<OrderModel> All() => new List<OrderModel>();
+                public class OrderController {
+                    [Get("/orders")]
+                    public IReadOnlyList<OrderModel> All() => new List<OrderModel>();
 
-                [Get("/orders/{id}")]
-                public Task<OrderModel?> One(string id) => Task.FromResult<OrderModel?>(null);
-            }
-            """).AssertNoErrors();
+                    [Get("/orders/{id}")]
+                    public Task<OrderModel?> One(string id) => Task.FromResult<OrderModel?>(null);
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -204,35 +300,42 @@ public class HandlerShapeCompilesTests {
     /// or a shared static would surface here and nowhere else.
     /// </summary>
     [Fact]
-    public void EveryHandlerShapeCoexistsOnOneController() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/void")]
-                public void Nothing() { }
+    public void EveryHandlerShapeCoexistsOnOneController()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/void")]
+                        public void Nothing() { }
 
-                [Get("/task")]
-                public Task Work() => Task.CompletedTask;
+                        [Get("/task")]
+                        public Task Work() => Task.CompletedTask;
 
-                [Get("/value")]
-                public string Value() => "x";
+                        [Get("/value")]
+                        public string Value() => "x";
 
-                [Get("/task-of-t")]
-                public Task<string> TaskOfT() => Task.FromResult("x");
+                        [Get("/task-of-t")]
+                        public Task<string> TaskOfT() => Task.FromResult("x");
 
-                [Get("/value-task")]
-                public ValueTask<string> ValueTaskOfT() => new ValueTask<string>("x");
+                        [Get("/value-task")]
+                        public ValueTask<string> ValueTaskOfT() => new ValueTask<string>("x");
 
-                [Get("/async/{id}")]
-                public async Task<string> AsyncWithParameter(string id) {
-                    await Task.Yield();
-                    return id;
-                }
+                        [Get("/async/{id}")]
+                        public async Task<string> AsyncWithParameter(string id) {
+                            await Task.Yield();
+                            return id;
+                        }
 
-                [Get("/stream")]
-                public async IAsyncEnumerable<string> Stream() {
-                    yield return "a";
-                    await Task.Yield();
-                }
-            """)).AssertNoErrors();
+                        [Get("/stream")]
+                        public async IAsyncEnumerable<string> Stream() {
+                            yield return "a";
+                            await Task.Yield();
+                        }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Equal(7, result.GeneratedSources.Count);
     }
@@ -248,12 +351,19 @@ public class HandlerShapeCompilesTests {
     /// template path, and what two copies of a suppression special case existed to work around.
     /// </remarks>
     [Fact]
-    public void ARawResponseHandlerCommitsTheResponseContentType() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/raw")]
-                [RawResponse("text/csv")]
-                public string Raw() => "a,b";
-            """)).AssertNoErrors();
+    public void ARawResponseHandlerCommitsTheResponseContentType()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/raw")]
+                        [RawResponse("text/csv")]
+                        public string Raw() => "a,b";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Raw");
 
@@ -262,16 +372,22 @@ public class HandlerShapeCompilesTests {
     }
 
     [Fact]
-    public void ARawResponseHandlerWithNoContentTypeDefaultsToPlainText() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/raw")]
-                [RawResponse]
-                public string Raw() => "text";
-            """)).AssertNoErrors();
+    public void ARawResponseHandlerWithNoContentTypeDefaultsToPlainText()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/raw")]
+                        [RawResponse]
+                        public string Raw() => "text";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("Response.ContentType = \"text/plain\"", result.SourceContaining("Raw"));
     }
-
 
     /// <summary>
     /// <c>[RawResponse]</c> is read as response information, not as a filter, so it does not reach
@@ -279,12 +395,19 @@ public class HandlerShapeCompilesTests {
     /// shape that broke the parameters slot.
     /// </summary>
     [Fact]
-    public void RawResponseIsNotTreatedAsAFilter() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/page")]
-                [RawResponse("text/html")]
-                public string Page() => "x";
-            """)).AssertNoErrors();
+    public void RawResponseIsNotTreatedAsAFilter()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/page")]
+                        [RawResponse("text/html")]
+                        public string Page() => "x";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain("_metadata", result.SourceContaining("Page"));
     }
@@ -294,11 +417,18 @@ public class HandlerShapeCompilesTests {
     /// for the overwhelming majority of handlers and the template serializer declines them.
     /// </summary>
     [Fact]
-    public void AHandlerWithoutATemplateAssignsNothing() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/plain")]
-                public string Plain() => "x";
-            """)).AssertNoErrors();
+    public void AHandlerWithoutATemplateAssignsNothing()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/plain")]
+                        public string Plain() => "x";
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain("TemplateFactory", result.SourceContaining("Plain"));
     }

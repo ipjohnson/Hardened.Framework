@@ -29,7 +29,8 @@ namespace Hardened.Aws.Lambda.Sqs;
 /// </remarks>
 [DependencyModule]
 [LambdaRuntimeModule]
-public partial class SqsModule : IServiceCollectionConfiguration {
+public partial class SqsModule : IServiceCollectionConfiguration
+{
     /// <summary>
     /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>, letting a
     /// failed message be returned on its own instead of failing the whole invocation.
@@ -50,9 +51,9 @@ public partial class SqsModule : IServiceCollectionConfiguration {
     /// </remarks>
     public bool? ReportBatchItemFailures { get; set; }
 
-    public void ConfigureServices(IServiceCollection services) {
-        services.AddSingleton<IPayloadAdapter>(
-            new SqsAdapter(ReportBatchItemFailures ?? false));
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton<IPayloadAdapter>(new SqsAdapter(ReportBatchItemFailures ?? false));
 
         services.AddBatchExecutionFilter();
     }

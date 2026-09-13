@@ -9,11 +9,10 @@
 /// against a spec that cannot occur. Every document here is one a real project could ship.
 /// </para>
 /// </summary>
-internal static class Specs {
-
+internal static class Specs
+{
     /// <summary>One tag, one operation, one schema — the smallest spec that generates everything.</summary>
-    internal const string Minimal =
-        """
+    internal const string Minimal = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -41,8 +40,7 @@ internal static class Specs {
     /// Every schema shape the type mapper knows: primitives with formats, an enum by reference, an
     /// inline enum, an array of references, and a dictionary from <c>additionalProperties</c>.
     /// </summary>
-    internal const string EverySchemaShape =
-        """
+    internal const string EverySchemaShape = """
         openapi: "3.0.0"
         info: { title: Widgets, version: "1.0" }
         paths:
@@ -99,8 +97,7 @@ internal static class Specs {
     /// A body and a query parameter carrying every constraint the validation emitter understands, so
     /// the emitted filter provider exercises all six rule types.
     /// </summary>
-    internal const string EveryValidationConstraint =
-        """
+    internal const string EveryValidationConstraint = """
         openapi: "3.0.0"
         info: { title: Orders, version: "1.0" }
         paths:
@@ -176,8 +173,7 @@ internal static class Specs {
     /// <c>allOf</c> composition: the derived schema takes its base's properties and required list as
     /// well as its own.
     /// </summary>
-    internal const string AllOfComposition =
-        """
+    internal const string AllOfComposition = """
         openapi: "3.0.0"
         info: { title: Animals, version: "1.0" }
         paths:
@@ -213,8 +209,7 @@ internal static class Specs {
     /// Every verb the generator routes, on two paths, so the route tree has a literal node, a
     /// wildcard node and several methods per node.
     /// </summary>
-    internal const string EveryVerb =
-        """
+    internal const string EveryVerb = """
         openapi: "3.0.0"
         info: { title: Items, version: "1.0" }
         paths:
@@ -276,8 +271,7 @@ internal static class Specs {
     /// <c>x-filter-types</c> declares an attribute for the generator to emit; <c>x-filters</c> puts an
     /// instance of it on an operation with property values overridden.
     /// </summary>
-    internal const string FilterTypes =
-        """
+    internal const string FilterTypes = """
         openapi: "3.0.0"
         info: { title: Things, version: "1.0" }
         x-filter-types:
@@ -308,8 +302,7 @@ internal static class Specs {
         """;
 
     /// <summary>A tagged operation whose parameter is excluded from generation.</summary>
-    internal const string CodegenExcludedParameter =
-        """
+    internal const string CodegenExcludedParameter = """
         openapi: "3.0.0"
         info: { title: Things, version: "1.0" }
         paths:
@@ -339,8 +332,7 @@ internal static class Specs {
     /// its own alongside (<c>listPetToys</c>).
     /// </para>
     /// </summary>
-    internal const string PathItemLevelParameters =
-        """
+    internal const string PathItemLevelParameters = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -393,8 +385,7 @@ internal static class Specs {
     /// the same way. Whichever fix that gets, this stays the parser's answer.
     /// </para>
     /// </summary>
-    internal const string ParametersSharingANameAcrossLocations =
-        """
+    internal const string ParametersSharingANameAcrossLocations = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -421,8 +412,7 @@ internal static class Specs {
     /// they can go after a <c>///</c>: a multi-line description, and one containing characters that
     /// are markup inside an XML doc comment.
     /// </summary>
-    internal const string DescribedOperations =
-        """
+    internal const string DescribedOperations = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -493,8 +483,7 @@ internal static class Specs {
     /// out. Before this was supported the base parsed as a primitive with no type at all and every
     /// property referencing it became a <c>JsonElement</c>.
     /// </remarks>
-    internal const string DiscriminatedHierarchy =
-        """
+    internal const string DiscriminatedHierarchy = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -548,8 +537,7 @@ internal static class Specs {
     /// The four combinations of <c>required</c> and <c>nullable</c>, which are orthogonal in
     /// OpenAPI 3.0 and used to be conflated into one flag.
     /// </summary>
-    internal const string RequiredAndNullable =
-        """
+    internal const string RequiredAndNullable = """
         openapi: "3.0.0"
         info: { title: Things, version: "1.0" }
         paths:
@@ -589,8 +577,7 @@ internal static class Specs {
         """;
 
     /// <summary>A deprecated operation and a deprecated schema.</summary>
-    internal const string Deprecated =
-        """
+    internal const string Deprecated = """
         openapi: "3.0.0"
         info: { title: Things, version: "1.0" }
         paths:
@@ -619,8 +606,7 @@ internal static class Specs {
     /// <summary>
     /// Declared <c>default</c> values, including a type whose default has no constant form in C#.
     /// </summary>
-    internal const string DeclaredDefaults =
-        """
+    internal const string DeclaredDefaults = """
         openapi: "3.0.0"
         info: { title: Things, version: "1.0" }
         paths:
@@ -664,8 +650,7 @@ internal static class Specs {
     /// Objects written inline rather than declared in <c>components/schemas</c>, including one
     /// nested inside another.
     /// </summary>
-    internal const string InlineObjects =
-        """
+    internal const string InlineObjects = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -715,8 +700,7 @@ internal static class Specs {
     /// <c>Retry-After</c> on a 429 is the case RFC 9110 names and an error case is the one place a
     /// header needed no new decision.
     /// </remarks>
-    internal const string DeclaredResponseHeaders =
-        """
+    internal const string DeclaredResponseHeaders = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -795,8 +779,7 @@ internal static class Specs {
                 message: { type: string }
         """;
 
-    internal const string DeclaredErrors =
-        """
+    internal const string DeclaredErrors = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -857,8 +840,7 @@ internal static class Specs {
     /// would put one type behind two names again. <c>Throttled</c> has a schema of its own, which
     /// is the case that gets the throwing shorthand, and <c>Draining</c> has no body at all.
     /// </remarks>
-    internal const string NamedErrorResponses =
-        """
+    internal const string NamedErrorResponses = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -947,8 +929,7 @@ internal static class Specs {
     /// <summary>
     /// <c>minProperties</c> and <c>maxProperties</c> on a schema that becomes a dictionary.
     /// </summary>
-    internal const string PropertyCountBounds =
-        """
+    internal const string PropertyCountBounds = """
         openapi: "3.0.0"
         info: { title: Things, version: "1.0" }
         paths:
@@ -982,8 +963,7 @@ internal static class Specs {
         """;
 
     /// <summary>A store-tagged spec, for the multiple-specification cases.</summary>
-    internal const string SecondSpecWithADifferentTag =
-        """
+    internal const string SecondSpecWithADifferentTag = """
         openapi: "3.0.0"
         info: { title: Stores, version: "1.0" }
         paths:
@@ -1016,8 +996,7 @@ internal static class Specs {
     /// The <c>Dog</c> hierarchy is here because <c>allOf</c> merges a base's properties into the
     /// derived schema, so a read-only property would otherwise be declared twice.
     /// </remarks>
-    internal const string ReadOnlyAndWriteOnly =
-        """
+    internal const string ReadOnlyAndWriteOnly = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -1071,8 +1050,7 @@ internal static class Specs {
         """;
 
     /// <summary>A schema whose only property is read-only, so its record has no constructor.</summary>
-    internal const string ReadOnlyOnly =
-        """
+    internal const string ReadOnlyOnly = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -1097,8 +1075,7 @@ internal static class Specs {
         """;
 
     /// <summary>Valid YAML that is not an OpenAPI document at all.</summary>
-    internal const string NotOpenApiYaml =
-        """
+    internal const string NotOpenApiYaml = """
         version: "3.9"
         services:
           web:
@@ -1108,14 +1085,12 @@ internal static class Specs {
         """;
 
     /// <summary>Valid JSON that is not an OpenAPI document at all.</summary>
-    internal const string NotOpenApiJson =
-        """
+    internal const string NotOpenApiJson = """
         { "Logging": { "LogLevel": { "Default": "Information" } } }
         """;
 
     /// <summary>An OpenAPI document written as JSON rather than YAML.</summary>
-    internal const string MinimalJson =
-        """
+    internal const string MinimalJson = """
         {
           "openapi": "3.0.0",
           "info": { "title": "Pets", "version": "1.0" },
@@ -1135,8 +1110,7 @@ internal static class Specs {
     /// A choice declared as a component of its own, discriminated, plus one on a property so both
     /// declaration sites are generated from one document.
     /// </summary>
-    internal const string ComponentChoice =
-        """
+    internal const string ComponentChoice = """
         openapi: "3.0.0"
         info: { title: Pets, version: "1.0" }
         paths:

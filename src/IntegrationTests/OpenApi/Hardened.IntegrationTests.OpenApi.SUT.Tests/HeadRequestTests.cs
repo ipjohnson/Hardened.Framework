@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -12,36 +13,38 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// exactly as one written with attributes does.
 /// </para>
 /// </summary>
-public class HeadRequestTests {
-
+public class HeadRequestTests
+{
     [HardenedTest]
-    public async Task Head_ReachesTheGetHandlerBehindAPathParameter(ITestWebApp testWebApp) {
+    public async Task Head_ReachesTheGetHandlerBehindAPathParameter(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("HEAD", null, "/pets/42");
 
         response.Assert.Ok();
     }
 
     [HardenedTest]
-    public async Task Head_ReachesTheGetHandlerOnATokenlessRoute(ITestWebApp testWebApp) {
+    public async Task Head_ReachesTheGetHandlerOnATokenlessRoute(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("HEAD", null, "/pets");
 
         response.Assert.Ok();
     }
 
     [HardenedTest]
-    public async Task Head_WritesNoBody(ITestWebApp testWebApp) {
+    public async Task Head_WritesNoBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Request("HEAD", null, "/pets");
 
         Assert.Equal(0, response.Body.Length);
     }
 
     [HardenedTest]
-    public async Task Head_ReportsTheLengthTheGetWouldHaveWritten(ITestWebApp testWebApp) {
+    public async Task Head_ReportsTheLengthTheGetWouldHaveWritten(ITestWebApp testWebApp)
+    {
         var get = await testWebApp.Get("/pets");
         var head = await testWebApp.Request("HEAD", null, "/pets");
 
-        Assert.Equal(
-            get.Body.Length.ToString(),
-            head.Headers["Content-Length"].ToString());
+        Assert.Equal(get.Body.Length.ToString(), head.Headers["Content-Length"].ToString());
     }
 }

@@ -14,10 +14,11 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 /// so this file is what a Kestrel suite would look like, which is the point.
 /// </para>
 /// </summary>
-public class HttpFunctionTests {
-
+public class HttpFunctionTests
+{
     [HardenedTest]
-    public async Task AGetReachesItsHandlerWithThePathToken(ITestWebApp app) {
+    public async Task AGetReachesItsHandlerWithThePathToken(ITestWebApp app)
+    {
         var response = await app.Get("/orders/o-1");
 
         Assert.Equal(200, response.StatusCode);
@@ -39,7 +40,8 @@ public class HttpFunctionTests {
     /// resolved it.
     /// </remarks>
     [HardenedTest]
-    public async Task ALiteralSegmentBeatsTheWildcardBesideIt(ITestWebApp app) {
+    public async Task ALiteralSegmentBeatsTheWildcardBesideIt(ITestWebApp app)
+    {
         var response = await app.Get("/orders/live");
 
         Assert.Equal(200, response.StatusCode);
@@ -48,7 +50,8 @@ public class HttpFunctionTests {
     }
 
     [HardenedTest]
-    public async Task APostBindsItsBody(ITestWebApp app) {
+    public async Task APostBindsItsBody(ITestWebApp app)
+    {
         var response = await app.Post(new Order { Id = "o-2", Quantity = 3 }, "/orders");
 
         var order = response.Deserialize<Order>();
@@ -62,7 +65,8 @@ public class HttpFunctionTests {
     /// handler - and a void one answers without a body.
     /// </summary>
     [HardenedTest]
-    public async Task ADeleteOnTheSamePathReachesADifferentHandler(ITestWebApp app) {
+    public async Task ADeleteOnTheSamePathReachesADifferentHandler(ITestWebApp app)
+    {
         var response = await app.Delete("/orders/o-1");
 
         Assert.Equal(200, response.StatusCode);
@@ -74,7 +78,8 @@ public class HttpFunctionTests {
     /// unmatched path came back as an empty 200.
     /// </summary>
     [HardenedTest]
-    public async Task AnUnmatchedPathIsA404(ITestWebApp app) {
+    public async Task AnUnmatchedPathIsA404(ITestWebApp app)
+    {
         var response = await app.Get("/nothing-here");
 
         Assert.Equal(404, response.StatusCode);

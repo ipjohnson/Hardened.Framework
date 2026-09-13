@@ -27,8 +27,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// into a container the test merely happened to hold would reach none of the ones that ran.
 /// </para>
 /// </remarks>
-public class HandlerInfoPathTests {
-
+public class HandlerInfoPathTests
+{
     /// <summary>
     /// Every handler's declared path is one the router would match.
     /// </summary>
@@ -39,7 +39,10 @@ public class HandlerInfoPathTests {
     /// </remarks>
     [HardenedTest]
     public async Task EveryHandlerReportsThePathItIsServedAt(
-        ITestWebApp testWebApp, IGlobalFilterRegistry registry) {
+        ITestWebApp testWebApp,
+        IGlobalFilterRegistry registry
+    )
+    {
         var seen = PathsSeenByAPerHandlerFilter(registry);
 
         await testWebApp.Get("/web-library/string-methods/concat/a/b");
@@ -53,17 +56,22 @@ public class HandlerInfoPathTests {
     /// </summary>
     [HardenedTest]
     public async Task APathPrefixFilterMatchesRoutesUnderAModuleBasePath(
-        ITestWebApp testWebApp, IGlobalFilterRegistry registry) {
+        ITestWebApp testWebApp,
+        IGlobalFilterRegistry registry
+    )
+    {
         registry.RegisterFilter(handlerInfo =>
             handlerInfo.Path.StartsWith("/web-library", StringComparison.Ordinal)
                 ? new RequestFilterInfo(_ => new StampFilter(), FilterOrder.HandlerCreation)
-                : null);
+                : null
+        );
 
         var underLibrary = await testWebApp.Get("/web-library/string-methods/concat/a/b");
 
         Assert.True(
             underLibrary.Headers.ContainsKey(StampFilter.HeaderName),
-            "a filter gated on the module's base path did not run for a route under it");
+            "a filter gated on the module's base path did not run for a route under it"
+        );
     }
 
     /// <summary>
@@ -72,7 +80,10 @@ public class HandlerInfoPathTests {
     /// </summary>
     [HardenedTest]
     public async Task AHandlerOutsideAnyModuleBasePathIsUnaffected(
-        ITestWebApp testWebApp, IGlobalFilterRegistry registry) {
+        ITestWebApp testWebApp,
+        IGlobalFilterRegistry registry
+    )
+    {
         var seen = PathsSeenByAPerHandlerFilter(registry);
 
         await testWebApp.Get("/binding/path/42");
@@ -80,10 +91,12 @@ public class HandlerInfoPathTests {
         Assert.Contains("/binding/path/{id}", seen);
     }
 
-    private static List<string> PathsSeenByAPerHandlerFilter(IGlobalFilterRegistry registry) {
+    private static List<string> PathsSeenByAPerHandlerFilter(IGlobalFilterRegistry registry)
+    {
         var seen = new List<string>();
 
-        registry.RegisterFilter(handlerInfo => {
+        registry.RegisterFilter(handlerInfo =>
+        {
             seen.Add(handlerInfo.Path);
 
             return null;
@@ -92,10 +105,12 @@ public class HandlerInfoPathTests {
         return seen;
     }
 
-    private class StampFilter : IExecutionFilter {
+    private class StampFilter : IExecutionFilter
+    {
         public const string HeaderName = "X-Under-Library";
 
-        public Task Execute(IExecutionChain chain) {
+        public Task Execute(IExecutionChain chain)
+        {
             chain.Context.Response.Headers[HeaderName] = "yes";
 
             return chain.Next();

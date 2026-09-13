@@ -40,13 +40,12 @@ internal record SpecRegistration(
     string SourceUrl,
     string UiUrl,
     string UiEnvironments,
-
     /// <summary>
     /// <c>x-hardened-content-negotiation</c> from this description's root, or empty.
     /// </summary>
     string ContentNegotiation,
-
     /// <summary>
     /// <c>x-hardened-error-bodies</c> from this description's root, or empty.
     /// </summary>
-    string ErrorBodies);
+    string ErrorBodies
+);

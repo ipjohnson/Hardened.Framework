@@ -21,12 +21,15 @@ namespace Hardened.Requests.Runtime.Caching;
 /// reached the log and the caller got a 500 with nothing in it.
 /// </para>
 /// </remarks>
-public class ResponseCacheStoreMissingException : InvalidOperationException {
-
+public class ResponseCacheStoreMissingException : InvalidOperationException
+{
     public ResponseCacheStoreMissingException(string handler)
-        : base($"{handler} declares [CacheResponse] and no IResponseCacheStore is registered. " +
-               "Reference Hardened.Requests.Caching.Memory and add [HardenedMemoryResponseCache] " +
-               "to the application module, or register a store of your own.") {
+        : base(
+            $"{handler} declares [CacheResponse] and no IResponseCacheStore is registered. "
+                + "Reference Hardened.Requests.Caching.Memory and add [HardenedMemoryResponseCache] "
+                + "to the application module, or register a store of your own."
+        )
+    {
         Handler = handler;
     }
 

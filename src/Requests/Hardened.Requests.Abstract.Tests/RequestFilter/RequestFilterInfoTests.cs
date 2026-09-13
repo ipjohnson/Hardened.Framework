@@ -6,9 +6,10 @@ namespace Hardened.Requests.Abstract.Tests.RequestFilter;
 /// <summary>
 /// The name a registration may give its filter, for the composed-chain log.
 /// </summary>
-public class RequestFilterInfoTests {
-
-    private sealed class Noop : IExecutionFilter {
+public class RequestFilterInfoTests
+{
+    private sealed class Noop : IExecutionFilter
+    {
         public Task Execute(IExecutionChain chain) => chain.Next();
     }
 
@@ -17,7 +18,8 @@ public class RequestFilterInfoTests {
     /// left for the log to derive.
     /// </summary>
     [Fact]
-    public void ARegistrationThatGivesNoNameHasNone() {
+    public void ARegistrationThatGivesNoNameHasNone()
+    {
         var info = new RequestFilterInfo(_ => new Noop(), 5);
 
         Assert.Null(info.Name);
@@ -26,7 +28,8 @@ public class RequestFilterInfoTests {
     }
 
     [Fact]
-    public void ANamedRegistrationKeepsItsNameAndItsOrder() {
+    public void ANamedRegistrationKeepsItsNameAndItsOrder()
+    {
         var info = new RequestFilterInfo(_ => new Noop(), 5, "Noop");
 
         Assert.Equal("Noop", info.Name);

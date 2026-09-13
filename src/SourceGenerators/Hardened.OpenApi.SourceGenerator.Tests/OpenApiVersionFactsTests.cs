@@ -21,19 +21,21 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// exercise the copy, not to restate the contract.
 /// </para>
 /// </remarks>
-public class OpenApiVersionFactsTests {
-
+public class OpenApiVersionFactsTests
+{
     [Theory]
     [InlineData(null, OpenApiVersion.V3_2)]
     [InlineData("3.0.0", OpenApiVersion.V3_0)]
     [InlineData("3.1.0", OpenApiVersion.V3_1)]
     [InlineData("3.2.0", OpenApiVersion.V3_2)]
-    public void ARecognisedVersionParses(string? configured, OpenApiVersion expected) {
+    public void ARecognisedVersionParses(string? configured, OpenApiVersion expected)
+    {
         Assert.Equal(expected, OpenApiVersionFacts.Parse(configured));
     }
 
     [Fact]
-    public void AnUnrecognisedVersionHasNoAnswer() {
+    public void AnUnrecognisedVersionHasNoAnswer()
+    {
         Assert.Null(OpenApiVersionFacts.Parse("3.9.9"));
     }
 
@@ -41,19 +43,22 @@ public class OpenApiVersionFactsTests {
     [InlineData(OpenApiVersion.V3_0, "3.0.0")]
     [InlineData(OpenApiVersion.V3_1, "3.1.0")]
     [InlineData(OpenApiVersion.V3_2, "3.2.0")]
-    public void TheDocumentDeclaresThePatchVersion(OpenApiVersion version, string expected) {
+    public void TheDocumentDeclaresThePatchVersion(OpenApiVersion version, string expected)
+    {
         Assert.Equal(expected, OpenApiVersionFacts.VersionString(version));
     }
 
     [Fact]
-    public void OnlyThreeTwoCanDescribeAStream() {
+    public void OnlyThreeTwoCanDescribeAStream()
+    {
         Assert.False(OpenApiVersionFacts.SupportsItemSchema(OpenApiVersion.V3_0));
         Assert.False(OpenApiVersionFacts.SupportsItemSchema(OpenApiVersion.V3_1));
         Assert.True(OpenApiVersionFacts.SupportsItemSchema(OpenApiVersion.V3_2));
     }
 
     [Fact]
-    public void ExclusiveBoundsBecomeNumericAtThreeOne() {
+    public void ExclusiveBoundsBecomeNumericAtThreeOne()
+    {
         Assert.False(OpenApiVersionFacts.ExclusiveBoundsAreNumeric(OpenApiVersion.V3_0));
         Assert.True(OpenApiVersionFacts.ExclusiveBoundsAreNumeric(OpenApiVersion.V3_1));
         Assert.True(OpenApiVersionFacts.ExclusiveBoundsAreNumeric(OpenApiVersion.V3_2));
@@ -69,7 +74,8 @@ public class OpenApiVersionFactsTests {
     /// and no generator in this project reports either.
     /// </remarks>
     [Fact]
-    public void TheDiagnosticIdsAreStable() {
+    public void TheDiagnosticIdsAreStable()
+    {
         Assert.Equal("HRDOA001", OpenApiVersionDiagnostics.UnknownVersionId);
         Assert.Equal("HRDOA002", OpenApiVersionDiagnostics.StreamNeedsItemSchemaId);
     }
@@ -86,7 +92,8 @@ public class OpenApiVersionFactsTests {
     /// document describes the operation.
     /// </remarks>
     [Fact]
-    public void TheSeveritiesSayWhichOneStopsABuild() {
+    public void TheSeveritiesSayWhichOneStopsABuild()
+    {
         var unknown = OpenApiVersionDiagnostics.UnknownVersionDescriptor();
         var stream = OpenApiVersionDiagnostics.StreamNeedsItemSchemaDescriptor();
 
@@ -100,8 +107,14 @@ public class OpenApiVersionFactsTests {
         Assert.True(stream.IsEnabledByDefault);
 
         // The message names the property, because the reader of it has to know what to change.
-        Assert.Contains(OpenApiVersionFacts.PropertyName, string.Format(
-            unknown.MessageFormat.ToString(),
-            OpenApiVersionFacts.PropertyName, "3.9.9", "3.2.0"));
+        Assert.Contains(
+            OpenApiVersionFacts.PropertyName,
+            string.Format(
+                unknown.MessageFormat.ToString(),
+                OpenApiVersionFacts.PropertyName,
+                "3.9.9",
+                "3.2.0"
+            )
+        );
     }
 }

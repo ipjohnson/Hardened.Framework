@@ -2,7 +2,8 @@ using Hardened.Functions.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.AzureChange.SUT;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
@@ -16,13 +17,15 @@ public class Order {
 /// <remarks>
 /// Injected rather than static, for the reason the queue fixture records.
 /// </remarks>
-public interface IOrderProjection {
+public interface IOrderProjection
+{
     void Apply(Order order);
 
     void Audit(Order order);
 }
 
-public class OrderChangeHandlers {
+public class OrderChangeHandlers
+{
     /// <summary>
     /// A document, bound like any other message.
     /// </summary>

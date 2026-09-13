@@ -20,18 +20,24 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// row is not the property worth pinning; the three reasons a type still has to be generated are.
 /// </para>
 /// </remarks>
-public class ShippedResponsesTests {
-
+public class ShippedResponsesTests
+{
     private static ErrorResponseModel Error(
-        int statusCode, string? bodyRef = null, string? name = null,
-        params string[] headers) {
-        var error = new ErrorResponseModel {
+        int statusCode,
+        string? bodyRef = null,
+        string? name = null,
+        params string[] headers
+    )
+    {
+        var error = new ErrorResponseModel
+        {
             StatusCode = statusCode,
             Ref = bodyRef,
-            Name = name
+            Name = name,
         };
 
-        foreach (var header in headers) {
+        foreach (var header in headers)
+        {
             error.Headers.Add(new ResponseHeaderModel { Name = header, ParameterName = header });
         }
 
@@ -54,7 +60,8 @@ public class ShippedResponsesTests {
     [InlineData(422, "UnprocessableContent")]
     [InlineData(429, "RateLimited")]
     [InlineData(500, "InternalServerError")]
-    public void ADeclaredBodyBindsToTheGenericShippedRecord(int statusCode, string expected) {
+    public void ADeclaredBodyBindsToTheGenericShippedRecord(int statusCode, string expected)
+    {
         var binding = ShippedResponses.For(Error(statusCode, "#/components/schemas/Problem"));
 
         Assert.NotNull(binding);
@@ -70,7 +77,8 @@ public class ShippedResponsesTests {
     /// exception class.
     /// </summary>
     [Fact]
-    public void ADeclaredResponseWithNoContentBindsToTheBareForm() {
+    public void ADeclaredResponseWithNoContentBindsToTheBareForm()
+    {
         var binding = ShippedResponses.For(Error(403));
 
         Assert.NotNull(binding);
@@ -85,7 +93,8 @@ public class ShippedResponsesTests {
     [Theory]
     [InlineData(304, "NotModified")]
     [InlineData(406, "NotAcceptable")]
-    public void ABodylessStatusBindsAndSerializesNothing(int statusCode, string expected) {
+    public void ABodylessStatusBindsAndSerializesNothing(int statusCode, string expected)
+    {
         var binding = ShippedResponses.For(Error(statusCode));
 
         Assert.NotNull(binding);
@@ -103,7 +112,8 @@ public class ShippedResponsesTests {
     [InlineData(423, "Locked")]
     [InlineData(451, "UnavailableForLegalReasons")]
     [InlineData(507, "InsufficientStorage")]
-    public void AStatusWithNoRecordBindsToAClosedStatusGeneric(int statusCode, string marker) {
+    public void AStatusWithNoRecordBindsToAClosedStatusGeneric(int statusCode, string marker)
+    {
         var binding = ShippedResponses.For(Error(statusCode, "#/components/schemas/Problem"));
 
         Assert.NotNull(binding);
@@ -120,10 +130,13 @@ public class ShippedResponsesTests {
     [Theory]
     [InlineData(429)]
     [InlineData(503)]
-    public void AShippedRecordThatWritesAHeaderSaysSo(int statusCode) {
+    public void AShippedRecordThatWritesAHeaderSaysSo(int statusCode)
+    {
         Assert.True(
-            ShippedResponses.For(Error(statusCode, "#/components/schemas/Problem"))!
-                .Value.AppliesHeaders);
+            ShippedResponses
+                .For(Error(statusCode, "#/components/schemas/Problem"))!
+                .Value.AppliesHeaders
+        );
     }
 
     /// <summary>
@@ -131,16 +144,18 @@ public class ShippedResponsesTests {
     /// forbids a body, so nothing binds a declared 304 that names a schema.
     /// </summary>
     [Fact]
-    public void NotModifiedWritesItsETag() {
+    public void NotModifiedWritesItsETag()
+    {
         Assert.True(ShippedResponses.For(Error(304))!.Value.AppliesHeaders);
         Assert.Null(ShippedResponses.For(Error(304, "#/components/schemas/Problem")));
     }
 
     [Fact]
-    public void AShippedRecordWithNoHeaderOfItsOwnSaysSo() {
+    public void AShippedRecordWithNoHeaderOfItsOwnSaysSo()
+    {
         Assert.False(
-            ShippedResponses.For(Error(404, "#/components/schemas/Problem"))!
-                .Value.AppliesHeaders);
+            ShippedResponses.For(Error(404, "#/components/schemas/Problem"))!.Value.AppliesHeaders
+        );
     }
 
     #endregion
@@ -152,10 +167,13 @@ public class ShippedResponsesTests {
     /// A Smithy error is a named shape and no shipped record can carry that name.
     /// </summary>
     [Fact]
-    public void AnErrorTheDescriptionNamedIsNotBound() {
+    public void AnErrorTheDescriptionNamedIsNotBound()
+    {
         Assert.Null(
             ShippedResponses.For(
-                Error(400, "#/components/schemas/AccountNotFound", name: "AccountNotFound")));
+                Error(400, "#/components/schemas/AccountNotFound", name: "AccountNotFound")
+            )
+        );
     }
 
     /// <summary>
@@ -163,10 +181,11 @@ public class ShippedResponsesTests {
     /// a header the document declares and nothing sends is worse than an extra type.
     /// </summary>
     [Fact]
-    public void AnErrorDeclaringAHeaderIsNotBound() {
+    public void AnErrorDeclaringAHeaderIsNotBound()
+    {
         Assert.Null(
-            ShippedResponses.For(
-                Error(429, "#/components/schemas/Problem", null, "Retry-After")));
+            ShippedResponses.For(Error(429, "#/components/schemas/Problem", null, "Retry-After"))
+        );
     }
 
     /// <summary>
@@ -177,7 +196,8 @@ public class ShippedResponsesTests {
     [Theory]
     [InlineData(529)]
     [InlineData(599)]
-    public void AnUnregisteredStatusIsNotBound(int statusCode) {
+    public void AnUnregisteredStatusIsNotBound(int statusCode)
+    {
         Assert.Null(ShippedResponses.For(Error(statusCode, "#/components/schemas/Problem")));
     }
 
@@ -189,11 +209,14 @@ public class ShippedResponsesTests {
     /// The declared name where there is one, which is what keying by identity means.
     /// </summary>
     [Fact]
-    public void ANamedErrorWantsItsOwnName() {
+    public void ANamedErrorWantsItsOwnName()
+    {
         Assert.Equal(
             "AccountNotFound",
             ShippedResponses.GeneratedName(
-                Error(400, "#/components/schemas/AccountNotFound", name: "AccountNotFound")));
+                Error(400, "#/components/schemas/AccountNotFound", name: "AccountNotFound")
+            )
+        );
     }
 
     /// <summary>
@@ -202,14 +225,17 @@ public class ShippedResponsesTests {
     /// one type.
     /// </summary>
     [Fact]
-    public void AnAnonymousErrorWantsTheStatusAndItsSchema() {
+    public void AnAnonymousErrorWantsTheStatusAndItsSchema()
+    {
         Assert.Equal(
             "NotFoundProblem",
-            ShippedResponses.GeneratedName(Error(404, "#/components/schemas/Problem")));
+            ShippedResponses.GeneratedName(Error(404, "#/components/schemas/Problem"))
+        );
     }
 
     [Fact]
-    public void AnAnonymousErrorWithNoBodyWantsJustTheStatus() {
+    public void AnAnonymousErrorWithNoBodyWantsJustTheStatus()
+    {
         Assert.Equal("Status529", ShippedResponses.GeneratedName(Error(529)));
     }
 
@@ -219,10 +245,12 @@ public class ShippedResponsesTests {
     /// reference it for both.
     /// </summary>
     [Fact]
-    public void TwoErrorsWithOneNameAndDifferentPayloadsAreDifferentKeys() {
+    public void TwoErrorsWithOneNameAndDifferentPayloadsAreDifferentKeys()
+    {
         Assert.NotEqual(
             ShippedResponses.GeneratedKey(Error(529, "#/components/schemas/Problem")),
-            ShippedResponses.GeneratedKey(Error(529, "#/components/schemas/ApiError")));
+            ShippedResponses.GeneratedKey(Error(529, "#/components/schemas/ApiError"))
+        );
     }
 
     /// <summary>
@@ -230,10 +258,12 @@ public class ShippedResponsesTests {
     /// distinct rather than one entry per operation.
     /// </summary>
     [Fact]
-    public void TwoDeclarationsOfOneErrorAreOneKey() {
+    public void TwoDeclarationsOfOneErrorAreOneKey()
+    {
         Assert.Equal(
             ShippedResponses.GeneratedKey(Error(529, "#/components/schemas/Problem")),
-            ShippedResponses.GeneratedKey(Error(529, "#/components/schemas/Problem")));
+            ShippedResponses.GeneratedKey(Error(529, "#/components/schemas/Problem"))
+        );
     }
 
     /// <summary>
@@ -241,11 +271,14 @@ public class ShippedResponsesTests {
     /// they are different types.
     /// </summary>
     [Fact]
-    public void ADeclaredHeaderIsPartOfTheKey() {
+    public void ADeclaredHeaderIsPartOfTheKey()
+    {
         Assert.NotEqual(
             ShippedResponses.GeneratedKey(Error(529, "#/components/schemas/Problem")),
             ShippedResponses.GeneratedKey(
-                Error(529, "#/components/schemas/Problem", null, "Retry-After")));
+                Error(529, "#/components/schemas/Problem", null, "Retry-After")
+            )
+        );
     }
 
     #endregion
@@ -263,9 +296,12 @@ public class ShippedResponsesTests {
     /// generating that shape.
     /// </remarks>
     [Fact]
-    public void NoStatusHasBothARecordAndAMarker() {
-        for (var status = 100; status < 600; status++) {
-            if (ShippedResponses.BareForm(status) != null) {
+    public void NoStatusHasBothARecordAndAMarker()
+    {
+        for (var status = 100; status < 600; status++)
+        {
+            if (ShippedResponses.BareForm(status) != null)
+            {
                 Assert.Null(ShippedResponses.Marker(status));
             }
         }
@@ -281,9 +317,12 @@ public class ShippedResponsesTests {
     /// here makes.
     /// </remarks>
     [Fact]
-    public void EveryGenericFormHasABareForm() {
-        for (var status = 100; status < 600; status++) {
-            if (ShippedResponses.GenericForm(status) != null) {
+    public void EveryGenericFormHasABareForm()
+    {
+        for (var status = 100; status < 600; status++)
+        {
+            if (ShippedResponses.GenericForm(status) != null)
+            {
                 Assert.NotNull(ShippedResponses.BareForm(status));
             }
         }
@@ -298,11 +337,13 @@ public class ShippedResponsesTests {
     /// status still generates are asserted above.
     /// </remarks>
     [Fact]
-    public void BindingFollowsTheTables() {
-        for (var status = 100; status < 600; status++) {
+    public void BindingFollowsTheTables()
+    {
+        for (var status = 100; status < 600; status++)
+        {
             var hasSomething =
-                ShippedResponses.BareForm(status) != null ||
-                ShippedResponses.Marker(status) != null;
+                ShippedResponses.BareForm(status) != null
+                || ShippedResponses.Marker(status) != null;
 
             Assert.Equal(hasSomething, ShippedResponses.For(Error(status)) != null);
         }
@@ -316,8 +357,10 @@ public class ShippedResponsesTests {
     /// be a compiler error in generated code rather than a bad name.
     /// </remarks>
     [Fact]
-    public void EveryStatusNameIsAnIdentifier() {
-        for (var status = 100; status < 600; status++) {
+    public void EveryStatusNameIsAnIdentifier()
+    {
+        for (var status = 100; status < 600; status++)
+        {
             var name = ShippedResponses.StatusName(status);
 
             Assert.NotEmpty(name);
@@ -340,7 +383,8 @@ public class ShippedResponsesTests {
     [InlineData(413, "ContentTooLarge")]
     [InlineData(422, "UnprocessableContent")]
     [InlineData(428, "PreconditionRequired")]
-    public void TheStatusNameIsRfc9110s(int statusCode, string expected) {
+    public void TheStatusNameIsRfc9110s(int statusCode, string expected)
+    {
         Assert.Equal(expected, ShippedResponses.StatusName(statusCode));
     }
 
@@ -350,12 +394,14 @@ public class ShippedResponsesTests {
     /// generators called <c>TooManyRequests</c> and the framework calls <c>RateLimited</c>.
     /// </summary>
     [Fact]
-    public void TheStatusNameIsTheShippedRecordsWhereThereIsOne() {
+    public void TheStatusNameIsTheShippedRecordsWhereThereIsOne()
+    {
         Assert.Equal("RateLimited", ShippedResponses.StatusName(429));
     }
 
     [Fact]
-    public void AStatusWithNoRegisteredNameKeepsItsNumber() {
+    public void AStatusWithNoRegisteredNameKeepsItsNumber()
+    {
         Assert.Equal("Status529", ShippedResponses.StatusName(529));
     }
 

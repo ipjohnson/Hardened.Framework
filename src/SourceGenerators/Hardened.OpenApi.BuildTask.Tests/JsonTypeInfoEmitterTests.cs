@@ -1,23 +1,43 @@
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
-public class JsonTypeInfoEmitterTests {
+public class JsonTypeInfoEmitterTests
+{
     [Fact]
-    public void Emit_SimpleRecord_GeneratesResolver() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_SimpleRecord_GeneratesResolver()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Pet",
                 Kind = SchemaKind.Object,
                 Required = new List<string> { "id", "name" },
-                Properties = new List<PropertyModel> {
-                    new() { Name = "id", Type = "string", IsRequired = true },
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() { Name = "tag", Type = "string", IsRequired = false }
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "id",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "tag",
+                        Type = "string",
+                        IsRequired = false,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -25,8 +45,14 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("namespace Test.Api.Models\n{", result);
         Assert.Contains("class PetstoreJsonTypeInfoResolver : IJsonTypeInfoResolver", result);
         // static readonly, not readonly static: the conventional order, which V1 wrote backwards.
-        Assert.Contains("public static readonly PetstoreJsonTypeInfoResolver Instance = new();", result);
-        Assert.Contains("if (type == typeof(global::Test.Api.Models.Pet)) return CreatePetTypeInfo(options);", result);
+        Assert.Contains(
+            "public static readonly PetstoreJsonTypeInfoResolver Instance = new();",
+            result
+        );
+        Assert.Contains(
+            "if (type == typeof(global::Test.Api.Models.Pet)) return CreatePetTypeInfo(options);",
+            result
+        );
         Assert.Contains("ObjectWithParameterizedConstructorCreator", result);
         Assert.Contains("(string)args[0]", result);
         Assert.Contains("(string)args[1]", result);
@@ -34,18 +60,37 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_SimpleRecord_GeneratesPropertyInfos() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_SimpleRecord_GeneratesPropertyInfos()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Pet",
                 Kind = SchemaKind.Object,
                 Required = new List<string> { "id", "name" },
-                Properties = new List<PropertyModel> {
-                    new() { Name = "id", Type = "string", IsRequired = true },
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() { Name = "tag", Type = "string", IsRequired = false }
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "id",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "tag",
+                        Type = "string",
+                        IsRequired = false,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -62,18 +107,37 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_SimpleRecord_GeneratesConstructorParameters() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_SimpleRecord_GeneratesConstructorParameters()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Pet",
                 Kind = SchemaKind.Object,
                 Required = new List<string> { "id", "name" },
-                Properties = new List<PropertyModel> {
-                    new() { Name = "id", Type = "string", IsRequired = true },
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() { Name = "tag", Type = "string", IsRequired = false }
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "id",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "tag",
+                        Type = "string",
+                        IsRequired = false,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -89,20 +153,57 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_PrimitiveTypes_MapsCorrectly() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_PrimitiveTypes_MapsCorrectly()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "AllTypes",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "text", Type = "string", IsRequired = true },
-                    new() { Name = "count", Type = "integer", IsRequired = true },
-                    new() { Name = "bigCount", Type = "integer", Format = "int64", IsRequired = true },
-                    new() { Name = "ratio", Type = "number", Format = "float", IsRequired = true },
-                    new() { Name = "amount", Type = "number", Format = "double", IsRequired = true },
-                    new() { Name = "flag", Type = "boolean", IsRequired = true },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "text",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "count",
+                        Type = "integer",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "bigCount",
+                        Type = "integer",
+                        Format = "int64",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "ratio",
+                        Type = "number",
+                        Format = "float",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "amount",
+                        Type = "number",
+                        Format = "double",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "flag",
+                        Type = "boolean",
+                        IsRequired = true,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -124,19 +225,53 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_StringFormats_MapsCorrectly() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_StringFormats_MapsCorrectly()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Formatted",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "createdAt", Type = "string", Format = "date-time", IsRequired = true },
-                    new() { Name = "birthDate", Type = "string", Format = "date", IsRequired = true },
-                    new() { Name = "avatar", Type = "string", Format = "byte", IsRequired = true },
-                    new() { Name = "file", Type = "string", Format = "binary", IsRequired = true },
-                    new() { Name = "uuid", Type = "string", Format = "uuid", IsRequired = true },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "createdAt",
+                        Type = "string",
+                        Format = "date-time",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "birthDate",
+                        Type = "string",
+                        Format = "date",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "avatar",
+                        Type = "string",
+                        Format = "byte",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "file",
+                        Type = "string",
+                        Format = "binary",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "uuid",
+                        Type = "string",
+                        Format = "uuid",
+                        IsRequired = true,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -151,23 +286,44 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_ObjectRef_GeneratesCorrectTypeInfo() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_ObjectRef_GeneratesCorrectTypeInfo()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Owner",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
             },
-            new() {
+            new()
+            {
                 Name = "Pet",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() { Name = "owner", Ref = "#/components/schemas/Owner", IsRequired = true },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "owner",
+                        Ref = "#/components/schemas/Owner",
+                        IsRequired = true,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -179,80 +335,120 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_ArrayOfPrimitives_GeneratesList() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_ArrayOfPrimitives_GeneratesList()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "TagList",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
                         Name = "tags",
                         IsArray = true,
                         ArrayItemsType = "string",
                         IsRequired = true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<string>>(options", result);
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Collections.Generic.List<string>>(options",
+            result
+        );
         Assert.Contains("(global::System.Collections.Generic.List<string>)args[0]", result);
-        Assert.Contains("ParameterType = typeof(global::System.Collections.Generic.List<string>)", result);
+        Assert.Contains(
+            "ParameterType = typeof(global::System.Collections.Generic.List<string>)",
+            result
+        );
     }
 
     [Fact]
-    public void Emit_ArrayOfObjects_GeneratesListOfRef() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_ArrayOfObjects_GeneratesListOfRef()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Pet",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
             },
-            new() {
+            new()
+            {
                 Name = "PetList",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
                         Name = "items",
                         IsArray = true,
                         ArrayItemsRef = "#/components/schemas/Pet",
                         IsRequired = true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Pet>>(options", result);
-        Assert.Contains("(global::System.Collections.Generic.List<global::Test.Api.Models.Pet>)args[0]", result);
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Pet>>(options",
+            result
+        );
+        Assert.Contains(
+            "(global::System.Collections.Generic.List<global::Test.Api.Models.Pet>)args[0]",
+            result
+        );
     }
 
     [Fact]
-    public void Emit_Dictionary_GeneratesDictionaryType() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_Dictionary_GeneratesDictionaryType()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Metadata",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
                         Name = "labels",
                         IsDictionary = true,
                         DictionaryValueType = "string",
                         IsRequired = true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,string>>(options", result);
-        Assert.Contains("(global::System.Collections.Generic.Dictionary<string,string>)args[0]", result);
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,string>>(options",
+            result
+        );
+        Assert.Contains(
+            "(global::System.Collections.Generic.Dictionary<string,string>)args[0]",
+            result
+        );
     }
 
     /// <summary>
@@ -261,95 +457,138 @@ public class JsonTypeInfoEmitterTests {
     /// against a property typed <c>Dictionary&lt;string, decimal&gt;</c>.
     /// </summary>
     [Fact]
-    public void Emit_DecimalValuedDictionary_KeepsTheValueFormat() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_DecimalValuedDictionary_KeepsTheValueFormat()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Rates",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
                         Name = "quotes",
                         IsDictionary = true,
                         DictionaryValueType = "number",
                         DictionaryValueFormat = "decimal",
                         IsRequired = true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "rates");
 
-        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,decimal>>(options", result);
-        Assert.Contains("JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,decimal>, string, decimal>(", result);
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,decimal>>(options",
+            result
+        );
+        Assert.Contains(
+            "JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,decimal>, string, decimal>(",
+            result
+        );
         Assert.DoesNotContain("Dictionary<string,double>", result);
     }
 
     [Fact]
-    public void Emit_DictionaryWithObjectRef_GeneratesDictionaryOfRef() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_DictionaryWithObjectRef_GeneratesDictionaryOfRef()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Pet",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
             },
-            new() {
+            new()
+            {
                 Name = "PetMap",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
                         Name = "pets",
                         IsDictionary = true,
                         DictionaryValueRef = "#/components/schemas/Pet",
                         IsRequired = true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>>(options", result);
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>>(options",
+            result
+        );
     }
 
     [Fact]
-    public void Emit_EnumSchema_GeneratesGetEnumTypeInfo() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_EnumSchema_GeneratesGetEnumTypeInfo()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "PetStatus",
                 Kind = SchemaKind.Enum,
-                EnumValues = new List<string> { "available", "pending", "sold" }
-            }
+                EnumValues = new List<string> { "available", "pending", "sold" },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("if (type == typeof(global::Test.Api.Models.PetStatus)) return CreatePetStatusTypeInfo(options);", result);
+        Assert.Contains(
+            "if (type == typeof(global::Test.Api.Models.PetStatus)) return CreatePetStatusTypeInfo(options);",
+            result
+        );
         Assert.Contains("CreateValueInfo<global::Test.Api.Models.PetStatus>(options", result);
     }
 
     [Fact]
-    public void Emit_EnumRef_TreatsAsValueType() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_EnumRef_TreatsAsValueType()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "PetStatus",
                 Kind = SchemaKind.Enum,
-                EnumValues = new List<string> { "available", "pending", "sold" }
+                EnumValues = new List<string> { "available", "pending", "sold" },
             },
-            new() {
+            new()
+            {
                 Name = "Pet",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
                         Name = "status",
                         Ref = "#/components/schemas/PetStatus",
-                        IsRequired = false
+                        IsRequired = false,
                     },
-                }
-            }
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -361,18 +600,43 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_NullableValueTypes_AddsNullableSuffix() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_NullableValueTypes_AddsNullableSuffix()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Stats",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "requiredCount", Type = "integer", IsRequired = true },
-                    new() { Name = "optionalCount", Type = "integer", IsRequired = false },
-                    new() { Name = "optionalFlag", Type = "boolean", IsRequired = false },
-                    new() { Name = "optionalDate", Type = "string", Format = "date-time", IsRequired = false },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "requiredCount",
+                        Type = "integer",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "optionalCount",
+                        Type = "integer",
+                        IsRequired = false,
+                    },
+                    new()
+                    {
+                        Name = "optionalFlag",
+                        Type = "boolean",
+                        IsRequired = false,
+                    },
+                    new()
+                    {
+                        Name = "optionalDate",
+                        Type = "string",
+                        Format = "date-time",
+                        IsRequired = false,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -395,16 +659,30 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_NullableReferenceTypes_NoChangeToGenericType() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_NullableReferenceTypes_NoChangeToGenericType()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Item",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() { Name = "description", Type = "string", IsRequired = false },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "description",
+                        Type = "string",
+                        IsRequired = false,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -420,16 +698,30 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_RequiredVsOptional_CorrectHasDefaultValue() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_RequiredVsOptional_CorrectHasDefaultValue()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Mixed",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "required", Type = "string", IsRequired = true },
-                    new() { Name = "optional", Type = "string", IsRequired = false },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "required",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "optional",
+                        Type = "string",
+                        IsRequired = false,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -440,57 +732,83 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_EmptyRecord_UsesObjectCreator() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_EmptyRecord_UsesObjectCreator()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "EmptyModel",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel>()
-            }
+                Properties = new List<PropertyModel>(),
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("ObjectCreator = static () => new global::Test.Api.Models.EmptyModel()", result);
+        Assert.Contains(
+            "ObjectCreator = static () => new global::Test.Api.Models.EmptyModel()",
+            result
+        );
         Assert.DoesNotContain("ObjectWithParameterizedConstructorCreator", result);
         Assert.DoesNotContain("ConstructorParameterMetadataInitializer", result);
     }
 
     [Fact]
-    public void Emit_NestedObjectsWithArrays_GeneratesCorrectly() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_NestedObjectsWithArrays_GeneratesCorrectly()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Tag",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
             },
-            new() {
+            new()
+            {
                 Name = "Pet",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
                         Name = "tags",
                         IsArray = true,
                         ArrayItemsRef = "#/components/schemas/Tag",
-                        IsRequired = false
+                        IsRequired = false,
                     },
-                }
+                },
             },
-            new() {
+            new()
+            {
                 Name = "PetStore",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
                         Name = "pets",
                         IsArray = true,
                         ArrayItemsRef = "#/components/schemas/Pet",
                         IsRequired = true,
                     },
-                }
-            }
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -501,40 +819,63 @@ public class JsonTypeInfoEmitterTests {
         Assert.Contains("typeof(global::Test.Api.Models.PetStore)", result);
 
         // Nested list types
-        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Tag>>(options", result);
-        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Pet>>(options", result);
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Tag>>(options",
+            result
+        );
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Pet>>(options",
+            result
+        );
     }
 
     [Fact]
-    public void Emit_MixedObjectsAndEnums_DispatchesCorrectly() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_MixedObjectsAndEnums_DispatchesCorrectly()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Color",
                 Kind = SchemaKind.Enum,
-                EnumValues = new List<string> { "red", "green", "blue" }
+                EnumValues = new List<string> { "red", "green", "blue" },
             },
-            new() {
+            new()
+            {
                 Name = "Shape",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
                         Name = "color",
                         Ref = "#/components/schemas/Color",
-                        IsRequired = true
+                        IsRequired = true,
                     },
-                }
-            }
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // Enum dispatch
-        Assert.Contains("if (type == typeof(global::Test.Api.Models.Color)) return CreateColorTypeInfo(options);", result);
+        Assert.Contains(
+            "if (type == typeof(global::Test.Api.Models.Color)) return CreateColorTypeInfo(options);",
+            result
+        );
         Assert.Contains("CreateValueInfo<global::Test.Api.Models.Color>(options", result);
 
         // Object dispatch
-        Assert.Contains("if (type == typeof(global::Test.Api.Models.Shape)) return CreateShapeTypeInfo(options);", result);
+        Assert.Contains(
+            "if (type == typeof(global::Test.Api.Models.Shape)) return CreateShapeTypeInfo(options);",
+            result
+        );
 
         // Required enum ref is a value type, no nullable
         Assert.Contains("CreatePropertyInfo<global::Test.Api.Models.Color>(options", result);
@@ -542,16 +883,30 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_PreservesOriginalJsonPropertyNames() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_PreservesOriginalJsonPropertyNames()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "user-profile",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "first_name", Type = "string", IsRequired = true },
-                    new() { Name = "last-name", Type = "string", IsRequired = true },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "first_name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "last-name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -567,7 +922,8 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_NoSchemas_GeneratesEmptyResolver() {
+    public void Emit_NoSchemas_GeneratesEmptyResolver()
+    {
         var schemas = new List<SchemaModel>();
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -578,18 +934,22 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_OnlyPrimitiveAndArraySchemas_SkipsNonObjectNonEnum() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_OnlyPrimitiveAndArraySchemas_SkipsNonObjectNonEnum()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "StringArray",
                 Kind = SchemaKind.Array,
                 ArrayItemsType = "string",
             },
-            new() {
+            new()
+            {
                 Name = "MyString",
                 Kind = SchemaKind.Primitive,
                 Type = "string",
-            }
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -600,15 +960,24 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_Header_IncludesRequiredUsings() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_Header_IncludesRequiredUsings()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Foo",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "id", Type = "string", IsRequired = true },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "id",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -622,27 +991,44 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_OptionalObjectRef_NullableReferenceType() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_OptionalObjectRef_NullableReferenceType()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Address",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "city", Type = "string", IsRequired = true },
-                }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "city",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
             },
-            new() {
+            new()
+            {
                 Name = "Person",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
                         Name = "address",
                         Ref = "#/components/schemas/Address",
-                        IsRequired = false
+                        IsRequired = false,
                     },
-                }
-            }
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -665,15 +1051,24 @@ public class JsonTypeInfoEmitterTests {
     /// runtime resolver is last in the chain, so a duplicate here only shadows it.
     /// </remarks>
     [Fact]
-    public void Emit_OmitsPrimitiveTypeEntries() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_OmitsPrimitiveTypeEntries()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Minimal",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "id", Type = "string", IsRequired = true },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "id",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -699,7 +1094,10 @@ public class JsonTypeInfoEmitterTests {
         Assert.DoesNotContain("GetNullableConverter<int>", result);
 
         // What the resolver is still for: its own schema types, and the fallthrough.
-        Assert.Contains("if (type == typeof(global::Test.Api.Models.Minimal)) return CreateMinimalTypeInfo(options);", result);
+        Assert.Contains(
+            "if (type == typeof(global::Test.Api.Models.Minimal)) return CreateMinimalTypeInfo(options);",
+            result
+        );
         Assert.Contains("return null;", result);
 
         // using directive
@@ -707,127 +1105,206 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_IncludesCollectionTypeEntries() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_IncludesCollectionTypeEntries()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Pet",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
             },
-            new() {
+            new()
+            {
                 Name = "PetStore",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
                         Name = "pets",
                         IsArray = true,
                         ArrayItemsRef = "#/components/schemas/Pet",
                         IsRequired = true,
                     },
-                    new() {
+                    new()
+                    {
                         Name = "tags",
                         IsArray = true,
                         ArrayItemsType = "string",
                         IsRequired = true,
                     },
-                    new() {
+                    new()
+                    {
                         Name = "metadata",
                         IsDictionary = true,
                         DictionaryValueType = "string",
                         IsRequired = true,
                     },
-                    new() {
+                    new()
+                    {
                         Name = "petMap",
                         IsDictionary = true,
                         DictionaryValueRef = "#/components/schemas/Pet",
                         IsRequired = true,
                     },
-                }
-            }
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // List dispatch entries
-        Assert.Contains("if (type == typeof(global::System.Collections.Generic.List<global::Test.Api.Models.Pet>)) return JsonMetadataServices.CreateListInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Pet>, global::Test.Api.Models.Pet>(", result);
-        Assert.Contains("if (type == typeof(global::System.Collections.Generic.List<string>)) return JsonMetadataServices.CreateListInfo<global::System.Collections.Generic.List<string>, string>(", result);
-        Assert.Contains("ObjectCreator = static () => new global::System.Collections.Generic.List<global::Test.Api.Models.Pet>()", result);
-        Assert.Contains("ObjectCreator = static () => new global::System.Collections.Generic.List<string>()", result);
+        Assert.Contains(
+            "if (type == typeof(global::System.Collections.Generic.List<global::Test.Api.Models.Pet>)) return JsonMetadataServices.CreateListInfo<global::System.Collections.Generic.List<global::Test.Api.Models.Pet>, global::Test.Api.Models.Pet>(",
+            result
+        );
+        Assert.Contains(
+            "if (type == typeof(global::System.Collections.Generic.List<string>)) return JsonMetadataServices.CreateListInfo<global::System.Collections.Generic.List<string>, string>(",
+            result
+        );
+        Assert.Contains(
+            "ObjectCreator = static () => new global::System.Collections.Generic.List<global::Test.Api.Models.Pet>()",
+            result
+        );
+        Assert.Contains(
+            "ObjectCreator = static () => new global::System.Collections.Generic.List<string>()",
+            result
+        );
 
         // Dictionary dispatch entries
-        Assert.Contains("if (type == typeof(global::System.Collections.Generic.Dictionary<string,string>)) return JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,string>, string, string>(", result);
-        Assert.Contains("ObjectCreator = static () => new global::System.Collections.Generic.Dictionary<string,string>()", result);
-        Assert.Contains("if (type == typeof(global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>)) return JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>, string, global::Test.Api.Models.Pet>(", result);
-        Assert.Contains("ObjectCreator = static () => new global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>()", result);
+        Assert.Contains(
+            "if (type == typeof(global::System.Collections.Generic.Dictionary<string,string>)) return JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,string>, string, string>(",
+            result
+        );
+        Assert.Contains(
+            "ObjectCreator = static () => new global::System.Collections.Generic.Dictionary<string,string>()",
+            result
+        );
+        Assert.Contains(
+            "if (type == typeof(global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>)) return JsonMetadataServices.CreateDictionaryInfo<global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>, string, global::Test.Api.Models.Pet>(",
+            result
+        );
+        Assert.Contains(
+            "ObjectCreator = static () => new global::System.Collections.Generic.Dictionary<string,global::Test.Api.Models.Pet>()",
+            result
+        );
     }
 
     [Fact]
-    public void Emit_UntypedProperty_MapsToJsonElement() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_UntypedProperty_MapsToJsonElement()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Flexible",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
                     new() { Name = "details", IsRequired = false },
-                }
-            }
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
         // Untyped property maps to JsonElement (value type), optional => nullable
-        Assert.Contains("CreatePropertyInfo<global::System.Text.Json.JsonElement?>(options", result);
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Text.Json.JsonElement?>(options",
+            result
+        );
         Assert.Contains("(global::System.Text.Json.JsonElement?)args[1]", result);
         Assert.Contains("ParameterType = typeof(global::System.Text.Json.JsonElement?)", result);
     }
 
     [Fact]
-    public void Emit_UntypedDictionary_MapsToJsonElementValues() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_UntypedDictionary_MapsToJsonElementValues()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Metadata",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
                         Name = "data",
                         IsDictionary = true,
                         IsRequired = true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,global::System.Text.Json.JsonElement>>(options", result);
-        Assert.Contains("(global::System.Collections.Generic.Dictionary<string,global::System.Text.Json.JsonElement>)args[0]", result);
-        Assert.Contains("if (type == typeof(global::System.Collections.Generic.Dictionary<string,global::System.Text.Json.JsonElement>))", result);
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Collections.Generic.Dictionary<string,global::System.Text.Json.JsonElement>>(options",
+            result
+        );
+        Assert.Contains(
+            "(global::System.Collections.Generic.Dictionary<string,global::System.Text.Json.JsonElement>)args[0]",
+            result
+        );
+        Assert.Contains(
+            "if (type == typeof(global::System.Collections.Generic.Dictionary<string,global::System.Text.Json.JsonElement>))",
+            result
+        );
     }
 
     [Fact]
-    public void Emit_UntypedArray_MapsToJsonElementList() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_UntypedArray_MapsToJsonElementList()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Container",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
                         Name = "items",
                         IsArray = true,
                         IsRequired = true,
-                    }
-                }
-            }
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
 
-        Assert.Contains("CreatePropertyInfo<global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>>(options", result);
-        Assert.Contains("(global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>)args[0]", result);
-        Assert.Contains("if (type == typeof(global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>))", result);
+        Assert.Contains(
+            "CreatePropertyInfo<global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>>(options",
+            result
+        );
+        Assert.Contains(
+            "(global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>)args[0]",
+            result
+        );
+        Assert.Contains(
+            "if (type == typeof(global::System.Collections.Generic.List<global::System.Text.Json.JsonElement>))",
+            result
+        );
     }
 
     /// <summary>
@@ -835,15 +1312,24 @@ public class JsonTypeInfoEmitterTests {
     /// appear without anyone asking for it - and it moved to the runtime resolver with the rest.
     /// </summary>
     [Fact]
-    public void Emit_OmitsJsonElementPrimitiveEntries() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_OmitsJsonElementPrimitiveEntries()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Minimal",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "id", Type = "string", IsRequired = true },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "id",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -854,27 +1340,39 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_RequiredValueTypes_DefaultValueIsTypeDefault() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_RequiredValueTypes_DefaultValueIsTypeDefault()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "SyncRequest",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "lastSyncTimestamp", Type = "integer", Format = "int64", IsRequired = true },
-                    new() {
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "lastSyncTimestamp",
+                        Type = "integer",
+                        Format = "int64",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
                         Name = "entityTypes",
                         IsArray = true,
                         ArrayItemsType = "string",
                         IsRequired = true,
                     },
-                    new() {
+                    new()
+                    {
                         Name = "etags",
                         IsDictionary = true,
                         DictionaryValueType = "string",
                         IsRequired = false,
                     },
-                }
-            }
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");
@@ -889,16 +1387,31 @@ public class JsonTypeInfoEmitterTests {
     }
 
     [Fact]
-    public void Emit_OptionalDateOnly_NullableValueType() {
-        var schemas = new List<SchemaModel> {
-            new() {
+    public void Emit_OptionalDateOnly_NullableValueType()
+    {
+        var schemas = new List<SchemaModel>
+        {
+            new()
+            {
                 Name = "Event",
                 Kind = SchemaKind.Object,
-                Properties = new List<PropertyModel> {
-                    new() { Name = "name", Type = "string", IsRequired = true },
-                    new() { Name = "eventDate", Type = "string", Format = "date", IsRequired = false },
-                }
-            }
+                Properties = new List<PropertyModel>
+                {
+                    new()
+                    {
+                        Name = "name",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                    new()
+                    {
+                        Name = "eventDate",
+                        Type = "string",
+                        Format = "date",
+                        IsRequired = false,
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.JsonTypeInfo(schemas, "petstore");

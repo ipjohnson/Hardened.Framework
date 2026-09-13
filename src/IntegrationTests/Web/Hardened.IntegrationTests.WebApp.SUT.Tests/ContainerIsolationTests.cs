@@ -18,13 +18,14 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// production and never here. Under the pipeline host it now fails here first.
 /// </para>
 /// </remarks>
-public class ContainerIsolationTests {
-
+public class ContainerIsolationTests
+{
     /// <summary>
     /// Two requests, two containers, so the singleton behind the second has never been used.
     /// </summary>
     [HardenedTest]
-    public async Task ARequestKeepsNothingFromTheOneBefore(ITestWebApp testWebApp) {
+    public async Task ARequestKeepsNothingFromTheOneBefore(ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Get("/response-cache/uncached");
         var second = await testWebApp.Get("/response-cache/uncached");
 
@@ -42,7 +43,8 @@ public class ContainerIsolationTests {
     /// environment rather than two cold ones.
     /// </remarks>
     [HardenedTest]
-    public async Task SharedPutsEveryRequestOnOneContainer([Shared] ITestWebApp testWebApp) {
+    public async Task SharedPutsEveryRequestOnOneContainer([Shared] ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Get("/response-cache/uncached");
         var second = await testWebApp.Get("/response-cache/uncached");
 
@@ -56,7 +58,10 @@ public class ContainerIsolationTests {
     /// </summary>
     [HardenedTest]
     public async Task TwoSharedClientsReachTheSameContainer(
-        [Shared] ITestWebApp first, [Shared] ITestWebApp second) {
+        [Shared] ITestWebApp first,
+        [Shared] ITestWebApp second
+    )
+    {
         await first.Get("/response-cache/uncached");
 
         var seen = await second.Get("/response-cache/uncached");

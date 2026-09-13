@@ -19,8 +19,8 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Hosting;
 /// The signal itself is proven in the container tier, where a real <c>SIGTERM</c> reaches a real
 /// process with a request in flight; here the token stands in for it.
 /// </remarks>
-public class CloudRunHostTests {
-
+public class CloudRunHostTests
+{
     [Theory]
     [InlineData(null, 8080)]
     [InlineData("", 8080)]
@@ -29,24 +29,29 @@ public class CloudRunHostTests {
     [InlineData("0", 8080)]
     [InlineData("70000", 8080)]
     [InlineData("-1", 8080)]
-    public void ThePortIsWhatCloudRunSaidOrEightyEighty(string? configured, int expected) {
+    public void ThePortIsWhatCloudRunSaidOrEightyEighty(string? configured, int expected)
+    {
         Assert.Equal(expected, CloudRunHost.Port(configured));
     }
 
     [Fact]
-    public void TheEnvironmentIsReadForThePort() {
+    public void TheEnvironmentIsReadForThePort()
+    {
         Environment.SetEnvironmentVariable(CloudRunHost.PortVariable, "9191");
 
-        try {
+        try
+        {
             Assert.Equal(9191, CloudRunHost.Port());
         }
-        finally {
+        finally
+        {
             Environment.SetEnvironmentVariable(CloudRunHost.PortVariable, null);
         }
     }
 
     [Fact]
-    public async Task RunAsyncStartsTheApplicationAndReturnsWhenTheTokenIsCancelled() {
+    public async Task RunAsyncStartsTheApplicationAndReturnsWhenTheTokenIsCancelled()
+    {
         var startup = Substitute.For<IStartupService>();
         startup.Startup(Arg.Any<IServiceProvider>()).Returns(true);
 
@@ -55,10 +60,14 @@ public class CloudRunHostTests {
         services.AddSingleton(startup);
         services.AddSingleton(Substitute.For<IMiddlewareService>());
         services.AddSingleton(Substitute.For<IWebExecutionHandlerService>());
-        services.AddSingleton(Substitute.For<IHttpApplication<HardenedHttpApplication.RequestContext>>());
+        services.AddSingleton(
+            Substitute.For<IHttpApplication<HardenedHttpApplication.RequestContext>>()
+        );
 
         await using var app = HardenedKestrelApplication.Create(
-            services, kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+            services,
+            kestrel => kestrel.Listen(IPAddress.Loopback, 0)
+        );
 
         using var shutdown = new CancellationTokenSource();
 

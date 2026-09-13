@@ -8,15 +8,19 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Envelopes;
 /// A push with payload unwrapping and metadata writing on: the data is the body, everything else
 /// is a header already.
 /// </summary>
-public class PubSubUnwrappedPushEnvelopeTests {
+public class PubSubUnwrappedPushEnvelopeTests
+{
     private static readonly PubSubUnwrappedPushEnvelope Envelope = new();
 
     [Fact]
-    public void TheSubscriptionHeaderRoutesAndTheBodyIsHandedOnAsItArrived() {
-        var delivery = Deliveries.Post("/",
+    public void TheSubscriptionHeaderRoutesAndTheBodyIsHandedOnAsItArrived()
+    {
+        var delivery = Deliveries.Post(
+            "/",
             (PubSubPushBody.SubscriptionHeader, "projects/p/subscriptions/orders"),
             (PubSubPushBody.MessageIdHeader, "9"),
-            ("tenant", "acme"));
+            ("tenant", "acme")
+        );
 
         var request = Deliveries.Unwrap(Envelope, delivery, "{\"id\":\"u-1\"}")!;
 
@@ -30,13 +34,23 @@ public class PubSubUnwrappedPushEnvelopeTests {
 
     /// <summary>Without metadata writing there is nothing to recognise an unwrapped push by.</summary>
     [Fact]
-    public void APostWithoutTheSubscriptionHeaderIsNotRecognised() {
+    public void APostWithoutTheSubscriptionHeaderIsNotRecognised()
+    {
         Assert.False(Envelope.Recognises(Deliveries.Post("/", ("tenant", "acme"))));
     }
 
     [Fact]
-    public void OnlyAPostIsRecognised() {
-        Assert.False(Envelope.Recognises(Deliveries.Request("GET", "/", null,
-            (PubSubPushBody.SubscriptionHeader, "projects/p/subscriptions/orders"))));
+    public void OnlyAPostIsRecognised()
+    {
+        Assert.False(
+            Envelope.Recognises(
+                Deliveries.Request(
+                    "GET",
+                    "/",
+                    null,
+                    (PubSubPushBody.SubscriptionHeader, "projects/p/subscriptions/orders")
+                )
+            )
+        );
     }
 }

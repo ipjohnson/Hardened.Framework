@@ -18,7 +18,8 @@ namespace Hardened.Aws.Lambda.S3;
 /// </remarks>
 [DependencyModule]
 [LambdaRuntimeModule]
-public partial class S3Module : IServiceCollectionConfiguration {
+public partial class S3Module : IServiceCollectionConfiguration
+{
     /// <summary>
     /// No settings, unlike its siblings.
     /// </summary>
@@ -28,7 +29,8 @@ public partial class S3Module : IServiceCollectionConfiguration {
     /// response, so a failed notification fails the invocation and Lambda's own retry and failure
     /// destination take it from there. A flag here would be a setting that changed nothing.
     /// </remarks>
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IPayloadAdapter>(new S3Adapter());
 
         services.AddBatchExecutionFilter();

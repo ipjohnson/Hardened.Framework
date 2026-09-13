@@ -34,14 +34,16 @@ namespace Hardened.Azure.Functions.ServiceBus;
 /// <c>[Queue("orders")]</c> is invoked for nothing else and its route is the honest one.
 /// </para>
 /// </remarks>
-public sealed class ServiceBusAdapter : ITriggerAdapter {
+public sealed class ServiceBusAdapter : ITriggerAdapter
+{
     private readonly bool _reportsItemFailures;
 
     /// <param name="reportsItemFailures">
     /// Whether the module settles messages one by one. Off by default; see
     /// <see cref="ServiceBusModule.ReportsItemFailures"/>.
     /// </param>
-    public ServiceBusAdapter(bool reportsItemFailures = false) {
+    public ServiceBusAdapter(bool reportsItemFailures = false)
+    {
         _reportsItemFailures = reportsItemFailures;
     }
 
@@ -49,14 +51,17 @@ public sealed class ServiceBusAdapter : ITriggerAdapter {
     public bool Handles(FunctionsTrigger trigger) =>
         trigger.Data is ServiceBusDelivery || trigger.Data is ServiceBusReceivedMessage[];
 
-    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context) {
-        var delivery = trigger.Data switch {
+    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context)
+    {
+        var delivery = trigger.Data switch
+        {
             ServiceBusDelivery bound => bound,
             ServiceBusReceivedMessage[] messages => new ServiceBusDelivery(messages),
             _ => throw new InvalidOperationException(
-                $"The Service Bus adapter was handed {trigger.Data.GetType().Name} for " +
-                $"{trigger.Scheme} {trigger.Path}. Its shims bind ServiceBusReceivedMessage[], " +
-                "so this shim was generated for another family.")
+                $"The Service Bus adapter was handed {trigger.Data.GetType().Name} for "
+                    + $"{trigger.Scheme} {trigger.Path}. Its shims bind ServiceBusReceivedMessage[], "
+                    + "so this shim was generated for another family."
+            ),
         };
 
         return new ServiceBusRequest(
@@ -68,7 +73,8 @@ public sealed class ServiceBusAdapter : ITriggerAdapter {
             new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
             delivery.Messages,
             _reportsItemFailures,
-            delivery.Actions);
+            delivery.Actions
+        );
     }
 
     public IExecutionResponse CreateResponse(Stream output) => new FunctionsPayloadResponse(output);
@@ -95,21 +101,39 @@ public sealed class ServiceBusAdapter : ITriggerAdapter {
     /// locks expire and the messages come back together, which is what the host would have done.
     /// </para>
     /// </remarks>
-    public async ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext) {
-        if (!_reportsItemFailures || context.Request is not ServiceBusRequest batch || batch.Actions == null) {
+    public async ValueTask<object?> WriteResponse(
+        IExecutionContext context,
+        FunctionContext functionContext
+    )
+    {
+        if (
+            !_reportsItemFailures
+            || context.Request is not ServiceBusRequest batch
+            || batch.Actions == null
+        )
+        {
             return null;
         }
 
         var failed = new HashSet<int>(batch.FailedItems);
 
-        for (var index = 0; index < batch.Count; index++) {
+        for (var index = 0; index < batch.Count; index++)
+        {
             var message = batch.Messages[index];
 
-            if (failed.Contains(index)) {
-                await batch.Actions.AbandonMessageAsync(message, cancellationToken: functionContext.CancellationToken);
+            if (failed.Contains(index))
+            {
+                await batch.Actions.AbandonMessageAsync(
+                    message,
+                    cancellationToken: functionContext.CancellationToken
+                );
             }
-            else {
-                await batch.Actions.CompleteMessageAsync(message, functionContext.CancellationToken);
+            else
+            {
+                await batch.Actions.CompleteMessageAsync(
+                    message,
+                    functionContext.CancellationToken
+                );
             }
         }
 

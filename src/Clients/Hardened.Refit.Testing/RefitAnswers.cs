@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Reflection;
 using Hardened.Requests.Abstract.Responses;
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Refit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Refit.Testing;
 
@@ -27,30 +27,39 @@ namespace Hardened.Refit.Testing;
 /// the client's serializer cannot read fails here as it would there.
 /// </para>
 /// </remarks>
-internal static class RefitAnswers {
-
-    private static readonly MethodInfo Reader =
-        typeof(RefitAnswers).GetMethod(nameof(ReadAs), BindingFlags.NonPublic | BindingFlags.Static)!;
+internal static class RefitAnswers
+{
+    private static readonly MethodInfo Reader = typeof(RefitAnswers).GetMethod(
+        nameof(ReadAs),
+        BindingFlags.NonPublic | BindingFlags.Static
+    )!;
 
     private static readonly ConcurrentDictionary<Type, MethodInfo> Readers = new();
 
     private static readonly ConcurrentDictionary<Type, PropertyInfo?> Contents = new();
 
-    public static async Task<ClientAnswer?> Read(object? result, Exception? thrown, Type? bodyType) {
-        if (thrown is ApiException refusal) {
+    public static async Task<ClientAnswer?> Read(object? result, Exception? thrown, Type? bodyType)
+    {
+        if (thrown is ApiException refusal)
+        {
             return new ClientAnswer(
                 (int)refusal.StatusCode,
                 await ErrorBody(refusal, bodyType),
-                Flatten(refusal.Headers, refusal.ContentHeaders));
+                Flatten(refusal.Headers, refusal.ContentHeaders)
+            );
         }
 
-        if (thrown == null && result is IApiResponse response) {
+        if (thrown == null && result is IApiResponse response)
+        {
             var body = response.Error is { } error
                 ? await ErrorBody(error, bodyType)
                 : Content(response);
 
             return new ClientAnswer(
-                (int)response.StatusCode, body, Flatten(response.Headers, response.ContentHeaders));
+                (int)response.StatusCode,
+                body,
+                Flatten(response.Headers, response.ContentHeaders)
+            );
         }
 
         return null;
@@ -61,51 +70,73 @@ internal static class RefitAnswers {
     /// it arrived where there is no type to read it as, so a status mismatch can still say what
     /// came back.
     /// </summary>
-    private static async Task<object?> ErrorBody(ApiException error, Type? bodyType) {
-        if (!error.HasContent) {
+    private static async Task<object?> ErrorBody(ApiException error, Type? bodyType)
+    {
+        if (!error.HasContent)
+        {
             return null;
         }
 
-        if (bodyType == null) {
+        if (bodyType == null)
+        {
             return error.Content;
         }
 
         var reader = Readers.GetOrAdd(bodyType, type => Reader.MakeGenericMethod(type));
 
-        try {
+        try
+        {
             return await (Task<object?>)reader.Invoke(null, [error])!;
-        } catch (Exception failure) {
+        }
+        catch (Exception failure)
+        {
             throw new InvalidOperationException(
-                $"The {(int)error.StatusCode} body could not be read as " +
-                $"{ResponseExpectation.Name(bodyType)} through the client's serializer: " +
-                failure.Message, failure);
+                $"The {(int)error.StatusCode} body could not be read as "
+                    + $"{ResponseExpectation.Name(bodyType)} through the client's serializer: "
+                    + failure.Message,
+                failure
+            );
         }
     }
 
-    private static async Task<object?> ReadAs<T>(ApiException error) => await error.GetContentAsAsync<T>();
+    private static async Task<object?> ReadAs<T>(ApiException error) =>
+        await error.GetContentAsAsync<T>();
 
     /// <summary>The envelope's content for an <see cref="IApiResponse{T}"/>; null for the bare envelope.</summary>
     private static object? Content(IApiResponse response) =>
-        Contents.GetOrAdd(response.GetType(), type => type
-                .GetInterfaces()
-                .FirstOrDefault(contract =>
-                    contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IApiResponse<>))
-                ?.GetProperty(nameof(IApiResponse<object>.Content)))
+        Contents
+            .GetOrAdd(
+                response.GetType(),
+                type =>
+                    type.GetInterfaces()
+                        .FirstOrDefault(contract =>
+                            contract.IsGenericType
+                            && contract.GetGenericTypeDefinition() == typeof(IApiResponse<>)
+                        )
+                        ?.GetProperty(nameof(IApiResponse<object>.Content))
+            )
             ?.GetValue(response);
 
     /// <summary>
     /// Response headers and content headers together, because both are headers on the response and
     /// only the transport draws the line between them.
     /// </summary>
-    private static IReadOnlyDictionary<string, string> Flatten(HttpHeaders headers, HttpHeaders? contentHeaders) {
+    private static IReadOnlyDictionary<string, string> Flatten(
+        HttpHeaders headers,
+        HttpHeaders? contentHeaders
+    )
+    {
         var flattened = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var header in headers) {
+        foreach (var header in headers)
+        {
             flattened[header.Key] = string.Join(", ", header.Value);
         }
 
-        if (contentHeaders != null) {
-            foreach (var header in contentHeaders) {
+        if (contentHeaders != null)
+        {
+            foreach (var header in contentHeaders)
+            {
                 flattened[header.Key] = string.Join(", ", header.Value);
             }
         }

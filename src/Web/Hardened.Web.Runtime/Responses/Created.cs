@@ -1,7 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -29,21 +28,28 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(201)]
 public sealed record Created<T>(T Value, string Location)
-    : IHttpStatusResponse, IProvidesResponseHeaders, ICarriesResponseBody,
-        IResponseExpectation<Created<T>> {
-
+    : IHttpStatusResponse,
+        IProvidesResponseHeaders,
+        ICarriesResponseBody,
+        IResponseExpectation<Created<T>>
+{
     public static int StatusCode => 201;
 
     public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Value;
 
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
         headers[KnownHeaders.Location] = Location;
     }
 
     public static Created<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body),
-            ResponseExpectation.RequiredHeader(headers, KnownHeaders.Location));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) =>
+        new(
+            ResponseExpectation.Body<T>(body),
+            ResponseExpectation.RequiredHeader(headers, KnownHeaders.Location)
+        );
 }

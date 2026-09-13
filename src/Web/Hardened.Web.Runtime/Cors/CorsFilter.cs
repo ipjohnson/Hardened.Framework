@@ -1,9 +1,9 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.Runtime.Handlers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Cors;
 
@@ -31,7 +31,8 @@ namespace Hardened.Web.Runtime.Cors;
 /// Answering from a configured string instead advertises <c>DELETE</c> on read-only resources.
 /// </para>
 /// </remarks>
-public class CorsFilter : IExecutionFilter {
+public class CorsFilter : IExecutionFilter
+{
     private readonly CorsConfiguration _config;
     private readonly IEnumerable<IWebExecutionRequestHandlerProvider> _routing;
 
@@ -41,22 +42,27 @@ public class CorsFilter : IExecutionFilter {
     /// </param>
     public CorsFilter(
         CorsConfiguration config,
-        IEnumerable<IWebExecutionRequestHandlerProvider>? routing = null) {
+        IEnumerable<IWebExecutionRequestHandlerProvider>? routing = null
+    )
+    {
         _config = config;
         _routing = routing ?? Array.Empty<IWebExecutionRequestHandlerProvider>();
     }
 
-    public Task Execute(IExecutionChain chain) {
+    public Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
         var request = context.Request;
 
-        if (!request.Headers.TryGetValue(KnownHeaders.Origin, out var originValues)) {
+        if (!request.Headers.TryGetValue(KnownHeaders.Origin, out var originValues))
+        {
             return chain.Next();
         }
 
         var origin = originValues.ToString();
 
-        if (string.IsNullOrEmpty(origin)) {
+        if (string.IsNullOrEmpty(origin))
+        {
             return chain.Next();
         }
 
@@ -68,8 +74,10 @@ public class CorsFilter : IExecutionFilter {
 
         var allowed = _config.IsOriginAllowed(origin);
 
-        if (!IsPreflight(request)) {
-            if (allowed) {
+        if (!IsPreflight(request))
+        {
+            if (allowed)
+            {
                 WriteActualHeaders(context, origin);
             }
 
@@ -87,29 +95,35 @@ public class CorsFilter : IExecutionFilter {
     /// preflight from an ordinary <c>OPTIONS</c>, which a handler may want.
     /// </summary>
     private static bool IsPreflight(IExecutionRequest request) =>
-        string.Equals(request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase) &&
-        request.Headers.ContainsKey(KnownHeaders.Cors.AccessControlRequestMethod);
+        string.Equals(request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase)
+        && request.Headers.ContainsKey(KnownHeaders.Cors.AccessControlRequestMethod);
 
     /// <summary>
     /// What an allowed cross-origin response carries. Not the preflight set: <c>Allow-Methods</c>,
     /// <c>Allow-Headers</c> and <c>Max-Age</c> mean nothing here and were only ever noise.
     /// </summary>
-    private void WriteActualHeaders(IExecutionContext context, string origin) {
+    private void WriteActualHeaders(IExecutionContext context, string origin)
+    {
         var headers = context.Response.Headers;
 
         headers[KnownHeaders.Cors.AccessControlAllowOrigin] = AllowOriginValue(origin);
 
-        if (_config.AllowCredentials && !_config.AllowAnyOrigin) {
+        if (_config.AllowCredentials && !_config.AllowAnyOrigin)
+        {
             headers[KnownHeaders.Cors.AccessControlAllowCredentials] = "true";
         }
 
-        if (_config.ExposedHeaders.Count > 0) {
-            headers[KnownHeaders.Cors.AccessControlExposeHeaders] =
-                string.Join(", ", _config.ExposedHeaders);
+        if (_config.ExposedHeaders.Count > 0)
+        {
+            headers[KnownHeaders.Cors.AccessControlExposeHeaders] = string.Join(
+                ", ",
+                _config.ExposedHeaders
+            );
         }
     }
 
-    private Task Preflight(IExecutionContext context, string origin, bool originAllowed) {
+    private Task Preflight(IExecutionContext context, string origin, bool originAllowed)
+    {
         var response = context.Response;
 
         // 204 either way, with no body. A preflight is a question about a future request; the
@@ -117,25 +131,29 @@ public class CorsFilter : IExecutionFilter {
         response.Status = 204;
         response.ShouldSerialize = false;
 
-        if (!originAllowed) {
+        if (!originAllowed)
+        {
             return Task.CompletedTask;
         }
 
-        var requestedMethod =
-            context.Request.Headers[KnownHeaders.Cors.AccessControlRequestMethod].ToString();
+        var requestedMethod = context
+            .Request.Headers[KnownHeaders.Cors.AccessControlRequestMethod]
+            .ToString();
 
         var requestedHeaders = RequestedHeaders(context);
 
         // Asking for a header that is not allowed fails the whole preflight rather than being
         // trimmed from the answer. Echoing a subset would have the browser block the real request
         // anyway, having been told the preflight succeeded.
-        if (!_config.AreHeadersAllowed(requestedHeaders)) {
+        if (!_config.AreHeadersAllowed(requestedHeaders))
+        {
             return Task.CompletedTask;
         }
 
         var allowedMethods = AllowedMethods(context, requestedMethod);
 
-        if (allowedMethods == null) {
+        if (allowedMethods == null)
+        {
             return Task.CompletedTask;
         }
 
@@ -147,11 +165,16 @@ public class CorsFilter : IExecutionFilter {
 
         // Echoed rather than listing everything configured, which is what the specification asks
         // for and keeps the header from growing with the configuration.
-        if (requestedHeaders.Count > 0) {
-            headers[KnownHeaders.Cors.AccessControlAllowHeaders] = string.Join(", ", requestedHeaders);
+        if (requestedHeaders.Count > 0)
+        {
+            headers[KnownHeaders.Cors.AccessControlAllowHeaders] = string.Join(
+                ", ",
+                requestedHeaders
+            );
         }
 
-        if (_config.AllowCredentials && !_config.AllowAnyOrigin) {
+        if (_config.AllowCredentials && !_config.AllowAnyOrigin)
+        {
             headers[KnownHeaders.Cors.AccessControlAllowCredentials] = "true";
         }
 
@@ -167,24 +190,28 @@ public class CorsFilter : IExecutionFilter {
     /// to the configured list, because "no route" is also what a request for static content looks
     /// like.
     /// </remarks>
-    private string? AllowedMethods(IExecutionContext context, string requestedMethod) {
-        if (string.IsNullOrEmpty(requestedMethod)) {
+    private string? AllowedMethods(IExecutionContext context, string requestedMethod)
+    {
+        if (string.IsNullOrEmpty(requestedMethod))
+        {
             return null;
         }
 
-        var probe = context.Clone(
-            request: context.Request.Clone(method: requestedMethod));
+        var probe = context.Clone(request: context.Request.Clone(method: requestedMethod));
 
         string? pathVerbs = null;
 
-        foreach (var provider in _routing) {
+        foreach (var provider in _routing)
+        {
             var match = provider.GetExecutionRequestHandler(probe);
 
-            if (match == null) {
+            if (match == null)
+            {
                 continue;
             }
 
-            if (match.Handler != null) {
+            if (match.Handler != null)
+            {
                 // The requested verb routes. Advertise it alongside whatever else the path has.
                 return Merge(pathVerbs, requestedMethod);
             }
@@ -193,22 +220,30 @@ public class CorsFilter : IExecutionFilter {
         }
 
         // The path exists under other verbs but not this one: a real answer, and a refusal.
-        if (pathVerbs != null) {
+        if (pathVerbs != null)
+        {
             return null;
         }
 
         return _config.FallbackMethods;
     }
 
-    private static List<string> RequestedHeaders(IExecutionContext context) {
-        if (!context.Request.Headers.TryGetValue(
-                KnownHeaders.Cors.AccessControlRequestHeaders, out var value)) {
+    private static List<string> RequestedHeaders(IExecutionContext context)
+    {
+        if (
+            !context.Request.Headers.TryGetValue(
+                KnownHeaders.Cors.AccessControlRequestHeaders,
+                out var value
+            )
+        )
+        {
             return new List<string>();
         }
 
         var requested = value.ToString();
 
-        if (string.IsNullOrWhiteSpace(requested)) {
+        if (string.IsNullOrWhiteSpace(requested))
+        {
             return new List<string>();
         }
 
@@ -227,12 +262,15 @@ public class CorsFilter : IExecutionFilter {
     private StringValues AllowOriginValue(string origin) =>
         _config.AllowAnyOrigin && !_config.AllowCredentials ? "*" : origin;
 
-    private static string? Merge(string? existing, string? addition) {
-        if (string.IsNullOrEmpty(addition)) {
+    private static string? Merge(string? existing, string? addition)
+    {
+        if (string.IsNullOrEmpty(addition))
+        {
             return existing;
         }
 
-        if (string.IsNullOrEmpty(existing)) {
+        if (string.IsNullOrEmpty(existing))
+        {
             return addition;
         }
 

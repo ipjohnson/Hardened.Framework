@@ -19,7 +19,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// <c>IReadOnlySet</c> backed by a live <c>HashSet</c> could still cast it back and edit it.
 /// </para>
 /// </remarks>
-public sealed class CallerPrincipal : ICallerPrincipal {
+public sealed class CallerPrincipal : ICallerPrincipal
+{
     private readonly FrozenDictionary<string, string> _claims;
 
     public CallerPrincipal(
@@ -27,13 +28,19 @@ public sealed class CallerPrincipal : ICallerPrincipal {
         IEnumerable<string>? grants = null,
         string? subject = null,
         string? issuer = null,
-        IEnumerable<KeyValuePair<string, string>>? claims = null) {
-        if (string.IsNullOrEmpty(authenticationScheme)) {
+        IEnumerable<KeyValuePair<string, string>>? claims = null
+    )
+    {
+        if (string.IsNullOrEmpty(authenticationScheme))
+        {
             throw new ArgumentException(
-                "An authenticated principal must name the scheme that authenticated it. Use " +
-                nameof(AnonymousCallerPrincipal) + "." + nameof(AnonymousCallerPrincipal.Instance) +
-                " for a caller that presented no credential.",
-                nameof(authenticationScheme));
+                "An authenticated principal must name the scheme that authenticated it. Use "
+                    + nameof(AnonymousCallerPrincipal)
+                    + "."
+                    + nameof(AnonymousCallerPrincipal.Instance)
+                    + " for a caller that presented no credential.",
+                nameof(authenticationScheme)
+            );
         }
 
         AuthenticationScheme = authenticationScheme;

@@ -9,18 +9,20 @@ namespace Hardened.Shared.Runtime.Tests.Collections;
 /// The two pools the framework ships, and the stream wrapper that puts a pooled
 /// <see cref="MemoryStream"/> behind an ordinary <see cref="Stream"/>.
 /// </summary>
-public class PooledResourceTests {
-
+public class PooledResourceTests
+{
     /// <summary>
     /// A returned stream is rewound and emptied, so the next borrower does not inherit the previous
     /// response's bytes. Getting this wrong appends one response to another.
     /// </summary>
     [Fact]
-    public void AReturnedMemoryStreamIsRewoundAndEmptied() {
+    public void AReturnedMemoryStreamIsRewoundAndEmptied()
+    {
         using var pool = new MemoryStreamPool();
         MemoryStream stream;
 
-        using (var reservation = pool.Get()) {
+        using (var reservation = pool.Get())
+        {
             stream = reservation.Item;
             stream.Write("some content"u8);
 
@@ -33,11 +35,13 @@ public class PooledResourceTests {
     }
 
     [Fact]
-    public void AMemoryStreamComesBackOutOfThePool() {
+    public void AMemoryStreamComesBackOutOfThePool()
+    {
         using var pool = new MemoryStreamPool();
         MemoryStream first;
 
-        using (var reservation = pool.Get()) {
+        using (var reservation = pool.Get())
+        {
             first = reservation.Item;
         }
 
@@ -51,11 +55,13 @@ public class PooledResourceTests {
     /// leaving it to the finaliser is what the pool exists to avoid.
     /// </summary>
     [Fact]
-    public void DisposingTheMemoryStreamPoolDisposesItsStreams() {
+    public void DisposingTheMemoryStreamPoolDisposesItsStreams()
+    {
         var pool = new MemoryStreamPool();
         MemoryStream stream;
 
-        using (var reservation = pool.Get()) {
+        using (var reservation = pool.Get())
+        {
             stream = reservation.Item;
         }
 
@@ -65,11 +71,13 @@ public class PooledResourceTests {
     }
 
     [Fact]
-    public void AReturnedStringBuilderIsCleared() {
+    public void AReturnedStringBuilderIsCleared()
+    {
         using var pool = new StringBuilderPool();
         StringBuilder builder;
 
-        using (var reservation = pool.Get()) {
+        using (var reservation = pool.Get())
+        {
             builder = reservation.Item;
             builder.Append("some content");
         }
@@ -82,7 +90,8 @@ public class PooledResourceTests {
     /// is the whole reason the overload exists.
     /// </summary>
     [Fact]
-    public void ASizedStringBuilderPoolBuildsBuildersOfThatCapacity() {
+    public void ASizedStringBuilderPoolBuildsBuildersOfThatCapacity()
+    {
         using var pool = new StringBuilderPool(1024);
         using var reservation = pool.Get();
 
@@ -91,7 +100,8 @@ public class PooledResourceTests {
 
     /// <summary>The parameterless constructor is the sized one with the framework's default.</summary>
     [Fact]
-    public void TheDefaultStringBuilderPoolStillProducesUsableBuilders() {
+    public void TheDefaultStringBuilderPoolStillProducesUsableBuilders()
+    {
         using var pool = new StringBuilderPool();
         using var reservation = pool.Get();
 
@@ -102,7 +112,8 @@ public class PooledResourceTests {
 
     /// <summary>Both pools satisfy the interface the rest of the framework injects.</summary>
     [Fact]
-    public void ThePoolsSatisfyTheInterfacesTheyAreInjectedAs() {
+    public void ThePoolsSatisfyTheInterfacesTheyAreInjectedAs()
+    {
         using var streams = new MemoryStreamPool();
         using var builders = new StringBuilderPool();
 
@@ -117,7 +128,8 @@ public class PooledResourceTests {
     /// cannot tell it apart from a stream it owns.
     /// </summary>
     [Fact]
-    public void TheWrapperForwardsReadsAndWritesToThePooledStream() {
+    public void TheWrapperForwardsReadsAndWritesToThePooledStream()
+    {
         using var pool = new MemoryStreamPool();
         var reservation = pool.Get();
 
@@ -138,7 +150,8 @@ public class PooledResourceTests {
     }
 
     [Fact]
-    public void TheWrapperReportsThePooledStreamsCapabilities() {
+    public void TheWrapperReportsThePooledStreamsCapabilities()
+    {
         using var pool = new MemoryStreamPool();
         using var wrapper = new MemoryStreamPoolWrapper(pool.Get());
 
@@ -148,7 +161,8 @@ public class PooledResourceTests {
     }
 
     [Fact]
-    public void TheWrapperForwardsPositionAndLengthChanges() {
+    public void TheWrapperForwardsPositionAndLengthChanges()
+    {
         using var pool = new MemoryStreamPool();
         using var wrapper = new MemoryStreamPoolWrapper(pool.Get());
 
@@ -164,7 +178,8 @@ public class PooledResourceTests {
     /// makes a pooled stream safe to hand to code that owns whatever stream it is given.
     /// </summary>
     [Fact]
-    public void DisposingTheWrapperReturnsTheStreamToThePool() {
+    public void DisposingTheWrapperReturnsTheStreamToThePool()
+    {
         using var pool = new MemoryStreamPool();
         var reservation = pool.Get();
         var stream = reservation.Item;

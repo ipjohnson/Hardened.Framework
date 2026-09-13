@@ -1,10 +1,10 @@
 using CSharpAuthor;
+using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
-using Hardened.Idl;
-using Hardened.Generation;
 
 namespace Hardened.Idl.SourceGenerator;
 
@@ -17,30 +17,41 @@ namespace Hardened.Idl.SourceGenerator;
 /// build task found - so the two methods below cannot move to the spine with the rest. The bridge
 /// itself has no idea they exist.
 /// </remarks>
-internal static class RequestModelBuilder {
-
+internal static class RequestModelBuilder
+{
     public static List<RequestHandlerModel> BuildModels(
         ServiceSpecModel spec,
         string modelsNamespace,
         string servicesNamespace,
         string generatedNamespace,
-        string validationNamespace) =>
+        string validationNamespace
+    ) =>
         SpecHandlerModelBuilder.BuildModels(
-            spec, modelsNamespace, servicesNamespace, generatedNamespace, validationNamespace);
+            spec,
+            modelsNamespace,
+            servicesNamespace,
+            generatedNamespace,
+            validationNamespace
+        );
 
     internal static string DeriveControllerName(string interfaceName) =>
         SpecHandlerModelBuilder.DeriveControllerName(interfaceName);
 
     public static List<RequestHandlerModel> EnrichWithHandlerFilters(
         List<RequestHandlerModel> models,
-        IReadOnlyList<HandlerInfo> handlerInfos) {
-        if (handlerInfos.Count == 0) return models;
+        IReadOnlyList<HandlerInfo> handlerInfos
+    )
+    {
+        if (handlerInfos.Count == 0)
+            return models;
 
         var result = new List<RequestHandlerModel>(models.Count);
 
-        foreach (var model in models) {
+        foreach (var model in models)
+        {
             var handlerInfo = FindHandlerInfo(model, handlerInfos);
-            if (handlerInfo != null) {
+            if (handlerInfo != null)
+            {
                 var filters = new List<AttributeModel>(model.Filters);
                 filters.AddRange(handlerInfo.ClassFilters);
 
@@ -49,26 +60,39 @@ internal static class RequestModelBuilder {
                 var responseSchemas = model.ResponseSchemas;
                 OperationDeclarations? declared = null;
 
-                foreach (var methodFilter in handlerInfo.MethodFilters) {
-                    if (string.Equals(methodFilter.MethodName, model.HandlerMethod,
-                            StringComparison.Ordinal)) {
+                foreach (var methodFilter in handlerInfo.MethodFilters)
+                {
+                    if (
+                        string.Equals(
+                            methodFilter.MethodName,
+                            model.HandlerMethod,
+                            StringComparison.Ordinal
+                        )
+                    )
+                    {
                         filters.AddRange(methodFilter.Filters);
 
                         // Which view renders a response is how the operation is fulfilled, not part
                         // of the contract it publishes - so it is read from the implementation and
                         // there is nothing in the document to override or be overridden by.
-                        if (methodFilter.OutputType != null) {
-                            responseInformation =
-                                responseInformation with { OutputType = methodFilter.OutputType };
+                        if (methodFilter.OutputType != null)
+                        {
+                            responseInformation = responseInformation with
+                            {
+                                OutputType = methodFilter.OutputType,
+                            };
                         }
 
                         // Narrowed here, where the operation's verb and response shape are known.
                         // HandlerSelector read the implementation's syntax and had neither.
                         declared = methodFilter.Declared.For(
-                            model.Name.Method, responseInformation.IsAsyncEnumerable);
+                            model.Name.Method,
+                            responseInformation.IsAsyncEnumerable
+                        );
 
-                        responseSchemas =
-                            declared.WithHeaders(WithRefusals(responseSchemas, declared.Refusals));
+                        responseSchemas = declared.WithHeaders(
+                            WithRefusals(responseSchemas, declared.Refusals)
+                        );
 
                         break;
                     }
@@ -80,7 +104,8 @@ internal static class RequestModelBuilder {
                 // description was the latest. One copy site is the fix, not a longer list.
                 var enriched = model.WithFilters(filters, responseInformation, responseSchemas);
 
-                if (declared != null) {
+                if (declared != null)
+                {
                     enriched.DeclaredHeaderParameters = declared.HeaderParameters();
 
                     // For the same reason the attribute-routed path sets it: a success the
@@ -89,11 +114,14 @@ internal static class RequestModelBuilder {
                     // usually empty - and symmetry is cheaper than working out when it is not.
                     enriched.SingleResponseHeaders = declared.Headers(
                         enriched.ResponseInformation.DefaultStatusCode ?? 200,
-                        System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>());
+                        System.Array.Empty<Hardened.Generation.Models.ResponseHeaderModel>()
+                    );
                 }
 
                 result.Add(enriched);
-            } else {
+            }
+            else
+            {
                 result.Add(model);
             }
         }
@@ -124,25 +152,32 @@ internal static class RequestModelBuilder {
     /// </remarks>
     private static IReadOnlyList<ResponseSchemaModel> WithRefusals(
         IReadOnlyList<ResponseSchemaModel> declared,
-        IReadOnlyList<ResponseSchemaModel> refusals) {
-        if (refusals.Count == 0) {
+        IReadOnlyList<ResponseSchemaModel> refusals
+    )
+    {
+        if (refusals.Count == 0)
+        {
             return declared;
         }
 
         var merged = new List<ResponseSchemaModel>(declared);
 
-        foreach (var refusal in refusals) {
+        foreach (var refusal in refusals)
+        {
             var already = false;
 
-            foreach (var response in declared) {
-                if (response.Status == refusal.Status) {
+            foreach (var response in declared)
+            {
+                if (response.Status == refusal.Status)
+                {
                     already = true;
 
                     break;
                 }
             }
 
-            if (!already) {
+            if (!already)
+            {
                 merged.Add(refusal);
             }
         }
@@ -160,10 +195,15 @@ internal static class RequestModelBuilder {
     /// </remarks>
     private static HandlerInfo? FindHandlerInfo(
         RequestHandlerModel model,
-        IReadOnlyList<HandlerInfo> handlerInfos) {
-        foreach (var info in handlerInfos) {
-            foreach (var candidate in info.InterfaceCandidates) {
-                if (candidate.Name == model.ControllerType.Name) {
+        IReadOnlyList<HandlerInfo> handlerInfos
+    )
+    {
+        foreach (var info in handlerInfos)
+        {
+            foreach (var candidate in info.InterfaceCandidates)
+            {
+                if (candidate.Name == model.ControllerType.Name)
+                {
                     return info;
                 }
             }

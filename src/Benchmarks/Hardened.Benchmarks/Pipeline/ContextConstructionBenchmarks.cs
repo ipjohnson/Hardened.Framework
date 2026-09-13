@@ -17,7 +17,8 @@ namespace Hardened.Benchmarks.Pipeline;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.Pipeline)]
-public class ContextConstructionBenchmarks {
+public class ContextConstructionBenchmarks
+{
     private HardenedNativeHarness _native = null!;
     private HardenedAspNetHarness _aspNet = null!;
     private MemoryStream _responseBody = null!;
@@ -28,7 +29,8 @@ public class ContextConstructionBenchmarks {
     public RequestScenario Scenario { get; set; } = null!;
 
     [GlobalSetup]
-    public void Setup() {
+    public void Setup()
+    {
         _native = new HardenedNativeHarness();
         _aspNet = new HardenedAspNetHarness();
         _responseBody = new MemoryStream();
@@ -36,28 +38,32 @@ public class ContextConstructionBenchmarks {
 
     /// <summary>Scope creation alone, common to every pipeline.</summary>
     [Benchmark(Baseline = true)]
-    public int ScopeOnly() {
+    public int ScopeOnly()
+    {
         using var scope = _native.CreateScope();
 
         return scope.ServiceProvider.GetHashCode();
     }
 
     [Benchmark]
-    public object HardenedContext() {
+    public object HardenedContext()
+    {
         using var scope = _native.CreateScope();
 
         return _native.CreateContext(Scenario, scope, _responseBody);
     }
 
     [Benchmark]
-    public object AspNetHttpContext() {
+    public object AspNetHttpContext()
+    {
         using var scope = _aspNet.Provider.CreateScope();
 
         return HttpContextFactory.Create(Scenario, scope.ServiceProvider, _responseBody);
     }
 
     [GlobalCleanup]
-    public void Cleanup() {
+    public void Cleanup()
+    {
         _native.Dispose();
         _aspNet.Dispose();
         _responseBody.Dispose();

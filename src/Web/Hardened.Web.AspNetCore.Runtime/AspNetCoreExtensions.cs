@@ -8,7 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Web.AspNetCore.Runtime;
 
-public static class AspNetCoreExtensions {
+public static class AspNetCoreExtensions
+{
     /// <summary>The seconds <see cref="UseHardened"/> gives startup services to finish.</summary>
     private const int StartupTimeoutInSeconds = 15;
 
@@ -22,7 +23,8 @@ public static class AspNetCoreExtensions {
     /// the other way round leaves every one of them unreachable.
     /// </para>
     /// </summary>
-    public static IApplicationBuilder UseHardened(this IApplicationBuilder builder) {
+    public static IApplicationBuilder UseHardened(this IApplicationBuilder builder)
+    {
         builder.Use(HardenedMiddleware);
         var service = builder.ApplicationServices.GetRequiredService<IMiddlewareService>();
         var webFilter =
@@ -35,7 +37,8 @@ public static class AspNetCoreExtensions {
         return builder;
     }
 
-    public static Task HardenedMiddleware(HttpContext context, RequestDelegate next) {
+    public static Task HardenedMiddleware(HttpContext context, RequestDelegate next)
+    {
         var handler = context.RequestServices.GetRequiredService<IAspNetCoreRequestHandler>();
 
         return handler.HandleRequest(context, next);

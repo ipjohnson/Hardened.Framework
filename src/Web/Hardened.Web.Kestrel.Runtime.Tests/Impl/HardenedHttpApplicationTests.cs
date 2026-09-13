@@ -2,14 +2,14 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Shared.Runtime.Metrics;
 using Hardened.Web.Kestrel.Runtime.Impl;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Xunit;
-using Hardened.Requests.Runtime.Execution;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 
@@ -21,10 +21,11 @@ namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 /// carries here — the per-request scope, request logging, the duration metric, and turning an
 /// escaped exception into a response rather than a dropped connection.
 /// </summary>
-public class HardenedHttpApplicationTests {
-
+public class HardenedHttpApplicationTests
+{
     [Fact]
-    public void CreateContext_BuildsAnExecutionContextFromTheServerFeatures() {
+    public void CreateContext_BuildsAnExecutionContextFromTheServerFeatures()
+    {
         var harness = new Harness();
         var features = new ServerFeatures("POST", "/orders", "?page=2");
 
@@ -36,7 +37,8 @@ public class HardenedHttpApplicationTests {
     }
 
     [Fact]
-    public void CreateContext_LogsTheRequestBeginning() {
+    public void CreateContext_LogsTheRequestBeginning()
+    {
         var harness = new Harness();
 
         harness.Application.CreateContext(new ServerFeatures().Collection);
@@ -49,7 +51,8 @@ public class HardenedHttpApplicationTests {
     /// working on a response nobody will read.
     /// </summary>
     [Fact]
-    public void CreateContext_TakesItsCancellationTokenFromTheRequestLifetime() {
+    public void CreateContext_TakesItsCancellationTokenFromTheRequestLifetime()
+    {
         var harness = new Harness();
         var features = new ServerFeatures();
 
@@ -63,22 +66,26 @@ public class HardenedHttpApplicationTests {
     }
 
     [Fact]
-    public async Task ProcessRequestAsync_RunsTheMiddlewareChain() {
+    public async Task ProcessRequestAsync_RunsTheMiddlewareChain()
+    {
         var harness = new Harness();
 
         await harness.Application.ProcessRequestAsync(
-            harness.Application.CreateContext(new ServerFeatures().Collection));
+            harness.Application.CreateContext(new ServerFeatures().Collection)
+        );
 
         await harness.Chain.Received(1).Next();
     }
 
     [Fact]
-    public async Task ProcessRequestAsync_CompletesTheResponse() {
+    public async Task ProcessRequestAsync_CompletesTheResponse()
+    {
         var harness = new Harness();
         var features = new ServerFeatures();
 
         await harness.Application.ProcessRequestAsync(
-            harness.Application.CreateContext(features.Collection));
+            harness.Application.CreateContext(features.Collection)
+        );
 
         Assert.Equal(1, features.ResponseBody.CompleteCount);
     }
@@ -90,27 +97,32 @@ public class HardenedHttpApplicationTests {
     /// logger and still sends a 500.
     /// </summary>
     [Fact]
-    public async Task ProcessRequestAsync_SendsFiveHundredWhenTheChainThrows() {
+    public async Task ProcessRequestAsync_SendsFiveHundredWhenTheChainThrows()
+    {
         var harness = new Harness();
         var features = new ServerFeatures();
         harness.Chain.Next().Throws(new InvalidOperationException("boom"));
 
         await harness.Application.ProcessRequestAsync(
-            harness.Application.CreateContext(features.Collection));
+            harness.Application.CreateContext(features.Collection)
+        );
 
         Assert.Equal(500, features.Response.StatusCode);
-        harness.RequestLogger.Received(1).RequestFailed(
-            Arg.Any<IExecutionContext>(), Arg.Any<InvalidOperationException>());
+        harness
+            .RequestLogger.Received(1)
+            .RequestFailed(Arg.Any<IExecutionContext>(), Arg.Any<InvalidOperationException>());
     }
 
     [Fact]
-    public async Task ProcessRequestAsync_CompletesTheResponseEvenWhenTheChainThrows() {
+    public async Task ProcessRequestAsync_CompletesTheResponseEvenWhenTheChainThrows()
+    {
         var harness = new Harness();
         var features = new ServerFeatures();
         harness.Chain.Next().Throws(new InvalidOperationException("boom"));
 
         await harness.Application.ProcessRequestAsync(
-            harness.Application.CreateContext(features.Collection));
+            harness.Application.CreateContext(features.Collection)
+        );
 
         Assert.Equal(1, features.ResponseBody.CompleteCount);
     }
@@ -120,31 +132,38 @@ public class HardenedHttpApplicationTests {
     /// after the headers have gone out is an error rather than a correction.
     /// </summary>
     [Fact]
-    public async Task ProcessRequestAsync_LeavesTheStatusAloneWhenTheResponseHasAlreadyStarted() {
+    public async Task ProcessRequestAsync_LeavesTheStatusAloneWhenTheResponseHasAlreadyStarted()
+    {
         var harness = new Harness();
         var features = new ServerFeatures();
         features.Response.StatusCode = 200;
-        harness.Chain.Next().Returns(_ => {
-            features.Response.HasStarted = true;
-            throw new InvalidOperationException("boom");
-        });
+        harness
+            .Chain.Next()
+            .Returns(_ =>
+            {
+                features.Response.HasStarted = true;
+                throw new InvalidOperationException("boom");
+            });
 
         await harness.Application.ProcessRequestAsync(
-            harness.Application.CreateContext(features.Collection));
+            harness.Application.CreateContext(features.Collection)
+        );
 
         Assert.Equal(200, features.Response.StatusCode);
     }
 
     [Fact]
-    public void DisposeContext_LogsTheRequestEndingAndRecordsItsDuration() {
+    public void DisposeContext_LogsTheRequestEndingAndRecordsItsDuration()
+    {
         var harness = new Harness();
         var context = harness.Application.CreateContext(new ServerFeatures().Collection);
 
         harness.Application.DisposeContext(context, null);
 
         harness.RequestLogger.Received(1).RequestEnd(Arg.Any<IExecutionContext>());
-        harness.MetricLogger.Received(1).Record(
-            RequestMetrics.TotalRequestDuration, Arg.Any<double>());
+        harness
+            .MetricLogger.Received(1)
+            .Record(RequestMetrics.TotalRequestDuration, Arg.Any<double>());
     }
 
     /// <summary>
@@ -154,7 +173,8 @@ public class HardenedHttpApplicationTests {
     /// any provider that emits on completion.
     /// </summary>
     [Fact]
-    public void DisposeContext_FlushesTheMetricLogger() {
+    public void DisposeContext_FlushesTheMetricLogger()
+    {
         var harness = new Harness();
         var context = harness.Application.CreateContext(new ServerFeatures().Collection);
 
@@ -168,7 +188,8 @@ public class HardenedHttpApplicationTests {
     /// would show up as scoped services accumulating for the life of the process.
     /// </summary>
     [Fact]
-    public void DisposeContext_DisposesThePerRequestScope() {
+    public void DisposeContext_DisposesThePerRequestScope()
+    {
         var harness = new Harness();
         var context = harness.Application.CreateContext(new ServerFeatures().Collection);
 
@@ -180,14 +201,17 @@ public class HardenedHttpApplicationTests {
         Assert.True(scoped.Disposed);
     }
 
-    public sealed class TrackedScopedService : IDisposable {
+    public sealed class TrackedScopedService : IDisposable
+    {
         public bool Disposed { get; private set; }
 
         public void Dispose() => Disposed = true;
     }
 
-    private class Harness {
-        public Harness() {
+    private class Harness
+    {
+        public Harness()
+        {
             RequestLogger = Substitute.For<IRequestLogger>();
             MetricLogger = Substitute.For<IMetricLogger>();
             Chain = Substitute.For<IExecutionChain>();
@@ -208,7 +232,8 @@ public class HardenedHttpApplicationTests {
             Application = new HardenedHttpApplication(
                 services.BuildServiceProvider(),
                 new RequestExecutor(middlewareService, RequestLogger),
-                metricLoggerProvider);
+                metricLoggerProvider
+            );
         }
 
         public IRequestLogger RequestLogger { get; }

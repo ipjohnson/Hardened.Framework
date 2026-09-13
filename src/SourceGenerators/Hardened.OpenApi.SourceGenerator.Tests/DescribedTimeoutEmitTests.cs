@@ -1,6 +1,6 @@
 using Hardened.SourceGeneration.Testing;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -20,38 +20,44 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// not the question - whether the spec bridge writes something the runtime recognises is.
 /// </para>
 /// </remarks>
-public class DescribedTimeoutEmitTests {
-
-    private static string Handler(string operationExtras) {
-        var result = OpenApiGenerator.Run(
-            $$"""
-              openapi: "3.0.0"
-              info: { title: Rates, version: "1.0" }
-              paths:
-                /rates:
-                  get:
-                    tags: [Rate]
-                    operationId: readRates
-              {{operationExtras}}
-                    responses:
-                      '200':
-                        description: A rate
-                        content:
-                          application/json:
-                            schema: { type: string }
-              """).AssertNoErrors();
+public class DescribedTimeoutEmitTests
+{
+    private static string Handler(string operationExtras)
+    {
+        var result = OpenApiGenerator
+            .Run(
+                $$"""
+                openapi: "3.0.0"
+                info: { title: Rates, version: "1.0" }
+                paths:
+                  /rates:
+                    get:
+                      tags: [Rate]
+                      operationId: readRates
+                {{operationExtras}}
+                      responses:
+                        '200':
+                          description: A rate
+                          content:
+                            application/json:
+                              schema: { type: string }
+                """
+            )
+            .AssertNoErrors();
 
         return string.Join(
             "\n",
-            result.GeneratedSources
-                .Where(pair => pair.Key.Contains("ReadRates"))
-                .Select(pair => pair.Value));
+            result
+                .GeneratedSources.Where(pair => pair.Key.Contains("ReadRates"))
+                .Select(pair => pair.Value)
+        );
     }
 
     private const string Attribute = "global::Hardened.Requests.Runtime.Filters.TimeoutAttribute";
 
     [Fact]
-    public void ADescribedBudgetBecomesTheAttributeTheRuntimeReads() {
+    public void ADescribedBudgetBecomesTheAttributeTheRuntimeReads()
+    {
         var handler = Handler("      x-hardened-timeout: 2000");
 
         Assert.Contains($"new {Attribute}(){{ Milliseconds = 2000 }}", handler);
@@ -62,7 +68,8 @@ public class DescribedTimeoutEmitTests {
     /// generated handler, and a reader could not tell which of them the model had asked for.
     /// </summary>
     [Fact]
-    public void ADefaultStatusIsNotWrittenOut() {
+    public void ADefaultStatusIsNotWrittenOut()
+    {
         var handler = Handler("      x-hardened-timeout: 2000");
 
         Assert.DoesNotContain("Status =", handler);
@@ -74,17 +81,21 @@ public class DescribedTimeoutEmitTests {
     /// to.
     /// </summary>
     [Fact]
-    public void AShedStatusAndItsRetryAfterAreWrittenOut() {
-        var handler = Handler("""
+    public void AShedStatusAndItsRetryAfterAreWrittenOut()
+    {
+        var handler = Handler(
+            """
                   x-hardened-timeout:
                     milliseconds: 500
                     status: 503
                     retryAfterSeconds: 30
-            """);
+            """
+        );
 
         Assert.Contains(
             $"new {Attribute}(){{ Milliseconds = 500, Status = 503, RetryAfterSeconds = 30 }}",
-            handler);
+            handler
+        );
     }
 
     /// <summary>
@@ -92,7 +103,8 @@ public class DescribedTimeoutEmitTests {
     /// code-first front end follows: what declares no budget is bounded by no filter and no timer.
     /// </summary>
     [Fact]
-    public void AnOperationDescribingNoDeadlineCarriesNoAttribute() {
+    public void AnOperationDescribingNoDeadlineCarriesNoAttribute()
+    {
         Assert.DoesNotContain(Attribute, Handler(""));
     }
 }

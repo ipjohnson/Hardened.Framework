@@ -16,7 +16,8 @@ namespace Hardened.Requests.Runtime.PathTokens;
 /// matched route's leaf supplies the names, and the values are filled in positionally as the
 /// match unwinds.
 /// </summary>
-public class PathTokenCollection : IPathTokenCollection {
+public class PathTokenCollection : IPathTokenCollection
+{
     private readonly string[] _names;
     private readonly string?[] _values;
 
@@ -31,12 +32,14 @@ public class PathTokenCollection : IPathTokenCollection {
     /// <summary>
     /// Names come from the matched route and are expected to be a static, shared array.
     /// </summary>
-    public PathTokenCollection(int count, string[] names, string? lastValue = null) {
+    public PathTokenCollection(int count, string[] names, string? lastValue = null)
+    {
         _values = new string?[count];
         _names = names;
         _ownsNames = false;
 
-        if (lastValue != null && count > 0) {
+        if (lastValue != null && count > 0)
+        {
             _values[count - 1] = lastValue;
         }
     }
@@ -45,12 +48,14 @@ public class PathTokenCollection : IPathTokenCollection {
     /// Retained for generated code produced before names moved to the route. Such code
     /// supplies a name with every value, so this allocates a names array to write into.
     /// </summary>
-    public PathTokenCollection(int count, PathToken? lastToken = null) {
+    public PathTokenCollection(int count, PathToken? lastToken = null)
+    {
         _values = new string?[count];
         _names = count == 0 ? Array.Empty<string>() : new string[count];
         _ownsNames = true;
 
-        if (lastToken != null && count > 0) {
+        if (lastToken != null && count > 0)
+        {
             _names[count - 1] = lastToken.TokenName;
             _values[count - 1] = lastToken.TokenValue;
         }
@@ -59,7 +64,8 @@ public class PathTokenCollection : IPathTokenCollection {
     public int Count => _values.Length;
 
     /// <summary>Sets a value positionally; the name comes from the matched route.</summary>
-    public void SetValue(int index, string value) {
+    public void SetValue(int index, string value)
+    {
         GuardIndex(index);
 
         _values[index] = value;
@@ -70,25 +76,31 @@ public class PathTokenCollection : IPathTokenCollection {
     /// recorded when this collection owns its names array - a route-supplied array is shared
     /// across requests and its names already describe the matched route.
     /// </summary>
-    public void Set(int index, PathToken pathToken) {
+    public void Set(int index, PathToken pathToken)
+    {
         GuardIndex(index);
 
-        if (_ownsNames) {
+        if (_ownsNames)
+        {
             _names[index] = pathToken.TokenName;
         }
 
         _values[index] = pathToken.TokenValue;
     }
 
-    public PathToken Get(int index) {
+    public PathToken Get(int index)
+    {
         GuardIndex(index);
 
         return new PathToken(NameAt(index), _values[index] ?? "");
     }
 
-    public StringValues Get(string id) {
-        for (var i = 0; i < _values.Length; i++) {
-            if (NameAt(i) == id) {
+    public StringValues Get(string id)
+    {
+        for (var i = 0; i < _values.Length; i++)
+        {
+            if (NameAt(i) == id)
+            {
                 return _values[i] ?? StringValues.Empty;
             }
         }
@@ -96,13 +108,15 @@ public class PathTokenCollection : IPathTokenCollection {
         return StringValues.Empty;
     }
 
-    private string NameAt(int index) =>
-        index < _names.Length ? _names[index] ?? "" : "";
+    private string NameAt(int index) => index < _names.Length ? _names[index] ?? "" : "";
 
-    private void GuardIndex(int index) {
-        if (index < 0 || index >= _values.Length) {
+    private void GuardIndex(int index)
+    {
+        if (index < 0 || index >= _values.Length)
+        {
             throw new IndexOutOfRangeException(
-                $"Index {index} is outside the expected path token length {_values.Length}");
+                $"Index {index} is outside the expected path token length {_values.Length}"
+            );
         }
     }
 }

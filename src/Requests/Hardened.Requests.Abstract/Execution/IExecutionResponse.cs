@@ -4,7 +4,8 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Abstract.Execution;
 
-public interface IExecutionResponse {
+public interface IExecutionResponse
+{
     IExecutionResponse Clone(IHeaderCollection? headerCollection = null);
 
     string? ContentType { get; set; }

@@ -8,13 +8,14 @@ namespace Hardened.Requests.Serializers.MessagePack.Tests;
 /// <summary>
 /// What the pair declares about itself, which is how the locator finds them.
 /// </summary>
-public class RegistrationTests {
-
+public class RegistrationTests
+{
     [Fact]
     public void TheSerializerRegistersUnderTheMessagePackMediaType() =>
         Assert.Equal(
             MessagePackContentType.Value,
-            Pipeline.ResponseSerializer(Pipeline.Pool()).ContentType);
+            Pipeline.ResponseSerializer(Pipeline.Pool()).ContentType
+        );
 
     /// <summary>
     /// Installing the package does not change what an operation produces. A service that imports it
@@ -31,7 +32,8 @@ public class RegistrationTests {
     /// directly, and only <c>SerializationLocatorService.FindDeclaredProducer</c> assigns one.
     /// </summary>
     [Fact]
-    public async Task SerializingCommitsTheContentType() {
+    public async Task SerializingCommitsTheContentType()
+    {
         var context = Pipeline.Context();
 
         context.Response.ResponseValue = new Pipeline.Payload("first", 2);
@@ -43,7 +45,8 @@ public class RegistrationTests {
 
     /// <summary>An empty response still says what it would have been.</summary>
     [Fact]
-    public async Task ANullResponseStillCommitsTheContentType() {
+    public async Task ANullResponseStillCommitsTheContentType()
+    {
         var context = Pipeline.Context();
 
         context.Response.ResponseValue = null;
@@ -56,8 +59,10 @@ public class RegistrationTests {
     [Fact]
     public void AMessagePackBodyIsClaimed() =>
         Assert.True(
-            Pipeline.Deserializer(Pipeline.Pool())
-                .CanProcessContext(Pipeline.Context(contentType: MessagePackContentType.Value)));
+            Pipeline
+                .Deserializer(Pipeline.Pool())
+                .CanProcessContext(Pipeline.Context(contentType: MessagePackContentType.Value))
+        );
 
     /// <summary>
     /// Parameters and all. A client sending <c>application/x-msgpack; charset=binary</c> is sending
@@ -66,22 +71,28 @@ public class RegistrationTests {
     [Fact]
     public void AMediaTypeWithParametersIsClaimed() =>
         Assert.True(
-            Pipeline.Deserializer(Pipeline.Pool())
+            Pipeline
+                .Deserializer(Pipeline.Pool())
                 .CanProcessContext(
-                    Pipeline.Context(contentType: MessagePackContentType.Value + "; charset=binary")));
+                    Pipeline.Context(contentType: MessagePackContentType.Value + "; charset=binary")
+                )
+        );
 
     [Fact]
     public void AJsonBodyIsLeftToTheJsonReader() =>
         Assert.False(
-            Pipeline.Deserializer(Pipeline.Pool())
-                .CanProcessContext(Pipeline.Context(contentType: KnownContentType.Json)));
+            Pipeline
+                .Deserializer(Pipeline.Pool())
+                .CanProcessContext(Pipeline.Context(contentType: KnownContentType.Json))
+        );
 
     /// <summary>
     /// A body with no content type is not MessagePack. It is a JSON body from a client that did not
     /// say so, which is what the default reader is for - and this reader is not one.
     /// </summary>
     [Fact]
-    public void ABodyWithNoContentTypeIsNotClaimed() {
+    public void ABodyWithNoContentTypeIsNotClaimed()
+    {
         var deserializer = Pipeline.Deserializer(Pipeline.Pool());
 
         Assert.False(deserializer.CanProcessContext(Pipeline.Context(contentType: null)));
@@ -95,5 +106,6 @@ public class RegistrationTests {
     public void ItIsAskedBeforeTheGeneralPurposeReaders() =>
         Assert.Equal(
             (int)RequestDeserializerOrder.Specialized,
-            Pipeline.Deserializer(Pipeline.Pool()).Order);
+            Pipeline.Deserializer(Pipeline.Pool()).Order
+        );
 }

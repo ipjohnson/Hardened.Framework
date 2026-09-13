@@ -17,8 +17,10 @@ namespace Hardened.Aws.Lambda.EventBridge;
 /// </remarks>
 [DependencyModule]
 [LambdaRuntimeModule]
-public partial class EventBridgeModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class EventBridgeModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IPayloadAdapter, EventBridgeAdapter>();
     }
 }

@@ -24,9 +24,10 @@ namespace Hardened.Requests.Runtime.Validation;
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public sealed class ValidateAttribute<TValidated> : Attribute, IRequestFilterProvider
-    where TValidated : class {
-
-    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
+    where TValidated : class
+{
+    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+    {
         // Built on the first request rather than here: GetFilters runs in the handler's constructor,
         // which has no service provider. The filter it builds is kept, so this is once per handler.
         ValidationFilter<TValidated>? filter = null;
@@ -34,7 +35,8 @@ public sealed class ValidateAttribute<TValidated> : Attribute, IRequestFilterPro
         yield return new RequestFilterInfo(
             context => filter ??= new ValidationFilter<TValidated>(Resolve(context)),
             FilterOrder.Validation,
-            nameof(ValidationFilter<TValidated>));
+            nameof(ValidationFilter<TValidated>)
+        );
     }
 
     /// <summary>
@@ -45,19 +47,20 @@ public sealed class ValidateAttribute<TValidated> : Attribute, IRequestFilterPro
     /// constraints, so an empty set means registration did not happen - and treating that as
     /// "nothing to check" would turn validation off silently on a build that is otherwise fine.
     /// </remarks>
-    private static IReadOnlyList<IValidatorFor<TValidated>> Resolve(IExecutionContext context) {
-        var validators = context.RequestServices
-            .GetServices<IValidatorFor<TValidated>>()
-            .ToArray();
+    private static IReadOnlyList<IValidatorFor<TValidated>> Resolve(IExecutionContext context)
+    {
+        var validators = context.RequestServices.GetServices<IValidatorFor<TValidated>>().ToArray();
 
-        if (validators.Length == 0) {
+        if (validators.Length == 0)
+        {
             throw new InvalidOperationException(
-                $"No IValidatorFor<{typeof(TValidated).Name}> is registered, but the handler declares " +
-                "constraints. Check the build log for a source generator failure first - a generator " +
-                "that throws is reported as warning CS8785 and leaves the build green having emitted " +
-                "no validators at all. Failing that, the generated validators register themselves " +
-                "through the application's entry point, so the entry point may not be the one built " +
-                "against.");
+                $"No IValidatorFor<{typeof(TValidated).Name}> is registered, but the handler declares "
+                    + "constraints. Check the build log for a source generator failure first - a generator "
+                    + "that throws is reported as warning CS8785 and leaves the build green having emitted "
+                    + "no validators at all. Failing that, the generated validators register themselves "
+                    + "through the application's entry point, so the entry point may not be the one built "
+                    + "against."
+            );
         }
 
         return validators;

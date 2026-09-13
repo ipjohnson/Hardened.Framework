@@ -17,8 +17,8 @@ namespace Hardened.SourceGenerator.Tests.Shared;
 /// chosen.
 /// </para>
 /// </summary>
-public class ApplicationRootEmitTests {
-
+public class ApplicationRootEmitTests
+{
     private const string Startup =
         "    private static Task<bool> Startup(IServiceProvider provider) => Task.FromResult(true);";
 
@@ -27,17 +27,21 @@ public class ApplicationRootEmitTests {
     /// emitter chose — a call with more than two arguments is written one argument per line, and a
     /// test that pinned that would fail on a formatting change rather than on a behaviour one.
     /// </summary>
-    private static void AssertEmits(string source, string expected) {
+    private static void AssertEmits(string source, string expected)
+    {
         static string Compact(string value) =>
             new(value.Where(character => !char.IsWhiteSpace(character)).ToArray());
 
-        Assert.True(Compact(source).Contains(Compact(expected), StringComparison.Ordinal),
-            $"the generated application root does not contain:{Environment.NewLine}  {expected}" +
-            $"{Environment.NewLine}{Environment.NewLine}{source}");
+        Assert.True(
+            Compact(source).Contains(Compact(expected), StringComparison.Ordinal),
+            $"the generated application root does not contain:{Environment.NewLine}  {expected}"
+                + $"{Environment.NewLine}{Environment.NewLine}{source}"
+        );
     }
 
     [Fact]
-    public void TheApplicationRootImplementsIApplicationRoot() {
+    public void TheApplicationRootImplementsIApplicationRoot()
+    {
         var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application());
 
         Assert.Contains("Hardened.Shared.Runtime.Application.IApplicationRoot", root);
@@ -52,7 +56,8 @@ public class ApplicationRootEmitTests {
     /// CS0260 in every consumer.
     /// </summary>
     [Fact]
-    public void TheApplicationRootIsAPartialOfTheEntryPointClass() {
+    public void TheApplicationRootIsAPartialOfTheEntryPointClass()
+    {
         var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application());
 
         Assert.Contains("public partial class Application", root);
@@ -66,18 +71,26 @@ public class ApplicationRootEmitTests {
     /// <c>?? throw</c> in the <c>Provider</c> getter beside it.
     /// </summary>
     [Fact]
-    public void DisposingTheRootClearsItsProviderWithoutANullableWarning() {
-        var result = ApplicationRootHarness.GenerateWithDiagnostics(ApplicationRootHarness.Application());
+    public void DisposingTheRootClearsItsProviderWithoutANullableWarning()
+    {
+        var result = ApplicationRootHarness.GenerateWithDiagnostics(
+            ApplicationRootHarness.Application()
+        );
 
         Assert.Contains("RootServiceProvider = null!;", result.SourceContaining("ApplicationRoot"));
 
-        var nullableWarnings = result.CompilationDiagnostics
-            .Where(diagnostic => diagnostic.Id == "CS8625")
+        var nullableWarnings = result
+            .CompilationDiagnostics.Where(diagnostic => diagnostic.Id == "CS8625")
             .ToArray();
 
-        Assert.True(nullableWarnings.Length == 0,
-            "the generated application root assigns null to a non-nullable field: " +
-            string.Join(Environment.NewLine, nullableWarnings.Select(diagnostic => diagnostic.GetMessage())));
+        Assert.True(
+            nullableWarnings.Length == 0,
+            "the generated application root assigns null to a non-nullable field: "
+                + string.Join(
+                    Environment.NewLine,
+                    nullableWarnings.Select(diagnostic => diagnostic.GetMessage())
+                )
+        );
     }
 
     /// <summary>
@@ -85,14 +98,21 @@ public class ApplicationRootEmitTests {
     /// finds the field already null and skips the dispose rather than disposing twice.
     /// </summary>
     [Fact]
-    public void DisposalCapturesTheProviderBeforeClearingTheField() {
+    public void DisposalCapturesTheProviderBeforeClearingTheField()
+    {
         var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application());
 
-        var capture = root.IndexOf("currentRootServiceProvider = RootServiceProvider", StringComparison.Ordinal);
+        var capture = root.IndexOf(
+            "currentRootServiceProvider = RootServiceProvider",
+            StringComparison.Ordinal
+        );
         var clear = root.IndexOf("RootServiceProvider = null!", StringComparison.Ordinal);
 
         Assert.True(capture >= 0, "the provider is never captured before being cleared");
-        Assert.True(clear > capture, "the field is cleared before it is captured, so nothing is disposed");
+        Assert.True(
+            clear > capture,
+            "the field is cleared before it is captured, so nothing is disposed"
+        );
         Assert.Contains("if (RootServiceProvider != null)", root);
     }
 
@@ -101,14 +121,16 @@ public class ApplicationRootEmitTests {
     /// group. Miss it and the application starts without ever running the user's startup task.
     /// </summary>
     [Fact]
-    public void AStartupMethodOnTheEntryPointIsWaitedOnAtConstruction() {
+    public void AStartupMethodOnTheEntryPointIsWaitedOnAtConstruction()
+    {
         var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application(Startup));
 
         AssertEmits(root, "StartWithWait(RootServiceProvider, Startup, 15)");
     }
 
     [Fact]
-    public void AnEntryPointWithoutAStartupMethodStartsWithNoStartupTask() {
+    public void AnEntryPointWithoutAStartupMethodStartsWithNoStartupTask()
+    {
         var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application());
 
         AssertEmits(root, "StartWithWait(RootServiceProvider, null, 15)");
@@ -119,10 +141,14 @@ public class ApplicationRootEmitTests {
     /// chains to the environment overload with a default environment and no dependency overrides.
     /// </summary>
     [Fact]
-    public void TheParameterlessConstructorSuppliesADefaultEnvironment() {
+    public void TheParameterlessConstructorSuppliesADefaultEnvironment()
+    {
         var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application());
 
-        AssertEmits(root, ": this(new global::Hardened.Shared.Runtime.Application.EnvironmentImpl(), null)");
+        AssertEmits(
+            root,
+            ": this(new global::Hardened.Shared.Runtime.Application.EnvironmentImpl(), null)"
+        );
     }
 
     /// <summary>
@@ -130,13 +156,20 @@ public class ApplicationRootEmitTests {
     /// through as a method group.
     /// </summary>
     [Fact]
-    public void AConfigureLoggingMethodTakingOnlyTheBuilderIsPassedAsAMethodGroup() {
-        var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application("""
-                private static void ConfigureLogging(ILoggingBuilder builder) { }
-            """));
+    public void AConfigureLoggingMethodTakingOnlyTheBuilderIsPassedAsAMethodGroup()
+    {
+        var root = ApplicationRootHarness.Generate(
+            ApplicationRootHarness.Application(
+                """
+                    private static void ConfigureLogging(ILoggingBuilder builder) { }
+                """
+            )
+        );
 
-        AssertEmits(root,
-            "CreateServiceProvider(environment, overrideDependencies, ConfigureLogging, RegisterInitDi)");
+        AssertEmits(
+            root,
+            "CreateServiceProvider(environment, overrideDependencies, ConfigureLogging, RegisterInitDi)"
+        );
     }
 
     /// <summary>
@@ -144,21 +177,35 @@ public class ApplicationRootEmitTests {
     /// <c>Action&lt;ILoggingBuilder&gt;</c>, so the environment is closed over in a lambda first.
     /// </summary>
     [Fact]
-    public void AConfigureLoggingMethodTakingTheEnvironmentIsClosedOverInALambda() {
-        var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application("""
-                private static void ConfigureLogging(IHardenedEnvironment environment, ILoggingBuilder builder) { }
-            """));
+    public void AConfigureLoggingMethodTakingTheEnvironmentIsClosedOverInALambda()
+    {
+        var root = ApplicationRootHarness.Generate(
+            ApplicationRootHarness.Application(
+                """
+                    private static void ConfigureLogging(IHardenedEnvironment environment, ILoggingBuilder builder) { }
+                """
+            )
+        );
 
-        AssertEmits(root, "loggingBuilderAction = builder => ConfigureLogging(environment, builder)");
-        AssertEmits(root,
-            "CreateServiceProvider(environment, overrideDependencies, loggingBuilderAction, RegisterInitDi)");
+        AssertEmits(
+            root,
+            "loggingBuilderAction = builder => ConfigureLogging(environment, builder)"
+        );
+        AssertEmits(
+            root,
+            "CreateServiceProvider(environment, overrideDependencies, loggingBuilderAction, RegisterInitDi)"
+        );
     }
 
     [Fact]
-    public void AnEntryPointWithNoLoggingConfigurationPassesNoLoggingAction() {
+    public void AnEntryPointWithNoLoggingConfigurationPassesNoLoggingAction()
+    {
         var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application());
 
-        AssertEmits(root, "CreateServiceProvider(environment, overrideDependencies, null, RegisterInitDi)");
+        AssertEmits(
+            root,
+            "CreateServiceProvider(environment, overrideDependencies, null, RegisterInitDi)"
+        );
     }
 
     /// <summary>
@@ -166,7 +213,8 @@ public class ApplicationRootEmitTests {
     /// module generators write registrations into, and the constructor already passes it.
     /// </summary>
     [Fact]
-    public void TheRegisterInitDiSeamIsAlwaysEmitted() {
+    public void TheRegisterInitDiSeamIsAlwaysEmitted()
+    {
         var root = ApplicationRootHarness.Generate(ApplicationRootHarness.Application());
 
         Assert.Contains("private static void RegisterInitDi(", root);
@@ -177,9 +225,12 @@ public class ApplicationRootEmitTests {
     /// application class. Both shipped writers in <c>Hardened.Amz</c> use both.
     /// </summary>
     [Fact]
-    public void ADerivedWriterAddsItsOwnConstructorLogicAndDomainMethods() {
+    public void ADerivedWriterAddsItsOwnConstructorLogicAndDomainMethods()
+    {
         var root = ApplicationRootHarness.Generate(
-            ApplicationRootHarness.Application(), new DomainWriter());
+            ApplicationRootHarness.Application(),
+            new DomainWriter()
+        );
 
         Assert.Contains("_handler = RootServiceProvider.GetRequiredService", root);
         Assert.Contains("Invoke()", root);
@@ -191,9 +242,9 @@ public class ApplicationRootEmitTests {
     /// whose root is not disposable-shaped can opt out.
     /// </summary>
     [Fact]
-    public void ADerivedWriterCanReplaceTheApplicationRootImplementation() {
-        var root = ApplicationRootHarness.Generate(
-            NoRootHarnessSource, new NoRootWriter());
+    public void ADerivedWriterCanReplaceTheApplicationRootImplementation()
+    {
+        var root = ApplicationRootHarness.Generate(NoRootHarnessSource, new NoRootWriter());
 
         Assert.DoesNotContain("IApplicationRoot", root);
         Assert.DoesNotContain("DisposeAsync", root);
@@ -239,46 +290,67 @@ public class ApplicationRootEmitTests {
     /// </summary>
     [Theory]
     [InlineData("", "LoggerHelper.CreateAction(environment, \"TestApp\")")]
-    [InlineData("    private static void ConfigureLogging(IHardenedEnvironment environment, ILoggingBuilder builder) { }",
-        "LoggerFactory.Create(builder => ConfigureLogging(environment, builder))")]
-    [InlineData("    private static LogLevel ConfigureLogLevel(IHardenedEnvironment environment) => LogLevel.Warning;",
-        "LoggerHelper.CreateAction(ConfigureLogLevel(environment), \"TestApp\")")]
+    [InlineData(
+        "    private static void ConfigureLogging(IHardenedEnvironment environment, ILoggingBuilder builder) { }",
+        "LoggerFactory.Create(builder => ConfigureLogging(environment, builder))"
+    )]
+    [InlineData(
+        "    private static LogLevel ConfigureLogLevel(IHardenedEnvironment environment) => LogLevel.Warning;",
+        "LoggerHelper.CreateAction(ConfigureLogLevel(environment), \"TestApp\")"
+    )]
     public void TheLoggerFactoryIsBuiltFromWhicheverLoggingMethodTheEntryPointDeclares(
-        string member, string expected) {
+        string member,
+        string expected
+    )
+    {
         var root = ApplicationRootHarness.Generate(
             ApplicationRootHarness.Application(member),
             new LoggerFactoryWriter(),
-            ApplicationRootHarness.LoggerHelper);
+            ApplicationRootHarness.LoggerHelper
+        );
 
         AssertEmits(root, expected);
     }
 
     /// <summary>A writer of the shape both Lambda runtimes use: a field, a service resolve, a method.</summary>
-    private class DomainWriter : ApplicationEntryPointFileWriter {
-
+    private class DomainWriter : ApplicationEntryPointFileWriter
+    {
         protected override ITypeDefinition LoggerHelper { get; } =
             TypeDefinition.Get("TestApp.Logging", "LoggerHelper");
 
         protected override void CustomConstructorLogic(
-            EntryPointSelector.Model entryPoint, ClassDefinition appClass,
-            ConstructorDefinition constructor, ParameterDefinition environment) {
-            var provider = appClass.Fields.First(field => field.Name == "RootServiceProvider").Instance;
+            EntryPointSelector.Model entryPoint,
+            ClassDefinition appClass,
+            ConstructorDefinition constructor,
+            ParameterDefinition environment
+        )
+        {
+            var provider = appClass
+                .Fields.First(field => field.Name == "RootServiceProvider")
+                .Instance;
 
             var handler = appClass.AddField(KnownTypes.Requests.IMiddlewareService, "_handler");
 
-            var resolve = provider.InvokeGeneric("GetRequiredService",
-                new[] { KnownTypes.Requests.IMiddlewareService });
+            var resolve = provider.InvokeGeneric(
+                "GetRequiredService",
+                new[] { KnownTypes.Requests.IMiddlewareService }
+            );
 
             // GetRequiredService is an extension method, and an extension method is reachable only
             // through a using of its namespace - global:: cannot name one. Every derived writer that
             // resolves a service has to say this, the four in Hardened.Amz included.
-            resolve.AddUsingNamespace(KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection);
+            resolve.AddUsingNamespace(
+                KnownTypes.Namespace.Microsoft.Extensions.DependencyInjection
+            );
 
             constructor.Assign(resolve).To(handler.Instance);
         }
 
         protected override void CreateDomainMethods(
-            EntryPointSelector.Model model, ClassDefinition classDefinition) {
+            EntryPointSelector.Model model,
+            ClassDefinition classDefinition
+        )
+        {
             var invoke = classDefinition.AddMethod("Invoke");
 
             invoke.Modifiers = ComponentModifier.Public;
@@ -287,23 +359,29 @@ public class ApplicationRootEmitTests {
         }
     }
 
-    private class NoRootWriter : ApplicationEntryPointFileWriter {
-
+    private class NoRootWriter : ApplicationEntryPointFileWriter
+    {
         protected override ITypeDefinition LoggerHelper { get; } =
             TypeDefinition.Get("TestApp.Logging", "LoggerHelper");
 
         protected override void ImplementApplicationRoot(
-            EntryPointSelector.Model model, ClassDefinition classDefinition) { }
+            EntryPointSelector.Model model,
+            ClassDefinition classDefinition
+        ) { }
     }
 
-    private class LoggerFactoryWriter : ApplicationEntryPointFileWriter {
-
+    private class LoggerFactoryWriter : ApplicationEntryPointFileWriter
+    {
         protected override ITypeDefinition LoggerHelper { get; } =
             TypeDefinition.Get("TestApp.Logging", "LoggerHelper");
 
         protected override void CustomConstructorLogic(
-            EntryPointSelector.Model entryPoint, ClassDefinition appClass,
-            ConstructorDefinition constructor, ParameterDefinition environment) {
+            EntryPointSelector.Model entryPoint,
+            ClassDefinition appClass,
+            ConstructorDefinition constructor,
+            ParameterDefinition environment
+        )
+        {
             SetupLoggerFactory(entryPoint, constructor, environment);
         }
     }

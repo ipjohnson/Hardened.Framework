@@ -17,18 +17,19 @@ namespace Hardened.Web.Runtime.Tests.DependencyInjection;
 /// or logging filter an application believes it installed is simply absent.
 /// </para>
 /// </summary>
-public class FilterRegistryStartupServiceTests {
-
+public class FilterRegistryStartupServiceTests
+{
     [Fact]
-    public async Task TheRegistrationActionRunsAgainstTheResolvedRegistry() {
+    public async Task TheRegistrationActionRunsAgainstTheResolvedRegistry()
+    {
         var registry = Substitute.For<IGlobalFilterRegistry>();
         var filter = Substitute.For<IExecutionFilter>();
 
-        var provider = new ServiceCollection()
-            .AddSingleton(registry)
-            .BuildServiceProvider();
+        var provider = new ServiceCollection().AddSingleton(registry).BuildServiceProvider();
 
-        await new FilterRegistryStartupService(r => r.RegisterFilter(filter, 100)).Startup(provider);
+        await new FilterRegistryStartupService(r => r.RegisterFilter(filter, 100)).Startup(
+            provider
+        );
 
         registry.Received(1).RegisterFilter(filter, 100);
     }
@@ -38,7 +39,8 @@ public class FilterRegistryStartupServiceTests {
     /// action that ran at construction would see a registry that does not exist yet.
     /// </summary>
     [Fact]
-    public void TheRegistrationActionDoesNotRunAtConstruction() {
+    public void TheRegistrationActionDoesNotRunAtConstruction()
+    {
         var calls = 0;
 
         _ = new FilterRegistryStartupService(_ => calls++);
@@ -48,7 +50,8 @@ public class FilterRegistryStartupServiceTests {
 
     /// <summary>Startup reports success, which is what lets the rest of the sequence continue.</summary>
     [Fact]
-    public async Task StartupReportsSuccess() {
+    public async Task StartupReportsSuccess()
+    {
         var provider = new ServiceCollection()
             .AddSingleton(Substitute.For<IGlobalFilterRegistry>())
             .BuildServiceProvider();
@@ -62,11 +65,13 @@ public class FilterRegistryStartupServiceTests {
     /// silently ran without its global filters.
     /// </summary>
     [Fact]
-    public async Task AMissingRegistryFailsStartupRatherThanSkippingTheFilters() {
+    public async Task AMissingRegistryFailsStartupRatherThanSkippingTheFilters()
+    {
         var provider = new ServiceCollection().BuildServiceProvider();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => new FilterRegistryStartupService(_ => { }).Startup(provider));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new FilterRegistryStartupService(_ => { }).Startup(provider)
+        );
     }
 
     /// <summary>
@@ -74,16 +79,16 @@ public class FilterRegistryStartupServiceTests {
     /// own order.
     /// </summary>
     [Fact]
-    public async Task EveryFilterTheActionRegistersReachesTheRegistry() {
+    public async Task EveryFilterTheActionRegistersReachesTheRegistry()
+    {
         var registry = Substitute.For<IGlobalFilterRegistry>();
         var first = Substitute.For<IExecutionFilter>();
         var second = Substitute.For<IExecutionFilter>();
 
-        var provider = new ServiceCollection()
-            .AddSingleton(registry)
-            .BuildServiceProvider();
+        var provider = new ServiceCollection().AddSingleton(registry).BuildServiceProvider();
 
-        await new FilterRegistryStartupService(r => {
+        await new FilterRegistryStartupService(r =>
+        {
             r.RegisterFilter(first, 10);
             r.RegisterFilter(second, 20);
         }).Startup(provider);

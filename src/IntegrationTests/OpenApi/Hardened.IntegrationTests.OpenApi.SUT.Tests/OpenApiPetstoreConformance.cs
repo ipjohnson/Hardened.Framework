@@ -5,7 +5,8 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// <summary>
 /// The shared front-end conformance suite, run against the OpenAPI petstore.
 /// </summary>
-public class OpenApiPetstoreConformance : PetstoreConformanceTests {
+public class OpenApiPetstoreConformance : PetstoreConformanceTests
+{
     protected override string FrontEnd => "OpenAPI";
 
     /// <summary>

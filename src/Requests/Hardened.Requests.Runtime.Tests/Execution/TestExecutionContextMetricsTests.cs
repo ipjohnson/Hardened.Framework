@@ -23,12 +23,13 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// what those tests would be written against.
 /// </para>
 /// </remarks>
-public class TestExecutionContextMetricsTests {
-
+public class TestExecutionContextMetricsTests
+{
     // Typed as the interface because the implementations do not repeat Clone's optional parameters
     // - the defaults live on IExecutionContext - so a caller holding the concrete type has to pass
     // all four.
-    private static IExecutionContext Create(IMetricLogger? metricLogger = null) {
+    private static IExecutionContext Create(IMetricLogger? metricLogger = null)
+    {
         var provider = Substitute.For<IServiceProvider>();
 
         return new TestExecutionContext(
@@ -38,11 +39,13 @@ public class TestExecutionContextMetricsTests {
             Substitute.For<IExecutionRequest>(),
             Substitute.For<IExecutionResponse>(),
             CancellationToken.None,
-            metricLogger);
+            metricLogger
+        );
     }
 
     [Fact]
-    public void TheContextRecordsIntoTheLoggerItWasGiven() {
+    public void TheContextRecordsIntoTheLoggerItWasGiven()
+    {
         var metricLogger = Substitute.For<IMetricLogger>();
 
         Assert.Same(metricLogger, Create(metricLogger).RequestMetrics);
@@ -53,12 +56,14 @@ public class TestExecutionContextMetricsTests {
     /// used to hardcode.
     /// </summary>
     [Fact]
-    public void OmittingALoggerFallsBackToTheNullSink() {
+    public void OmittingALoggerFallsBackToTheNullSink()
+    {
         Assert.IsType<NullMetricsLogger>(Create().RequestMetrics);
     }
 
     [Fact]
-    public void CloneKeepsTheParentsLoggerWhenGivenNone() {
+    public void CloneKeepsTheParentsLoggerWhenGivenNone()
+    {
         var metricLogger = Substitute.For<IMetricLogger>();
         var clone = Create(metricLogger).Clone();
 
@@ -69,7 +74,8 @@ public class TestExecutionContextMetricsTests {
     /// The one that was broken. A fork exists to be measured separately.
     /// </summary>
     [Fact]
-    public void CloneTakesTheLoggerItIsGiven() {
+    public void CloneTakesTheLoggerItIsGiven()
+    {
         var parent = Substitute.For<IMetricLogger>();
         var fork = Substitute.For<IMetricLogger>();
 

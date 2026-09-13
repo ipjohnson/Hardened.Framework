@@ -23,9 +23,10 @@ namespace Hardened.Web.Runtime.Tests.Attributes;
 /// application; this covers the narrower claim that the attribute types themselves are usable.
 /// </para>
 /// </summary>
-public class RouteAttributeTests {
-
-    private class VerbController {
+public class RouteAttributeTests
+{
+    private class VerbController
+    {
         [Get("/get")]
         public string Get() => "get";
 
@@ -48,7 +49,8 @@ public class RouteAttributeTests {
     [BasePath("/api")]
     private class BasePathController;
 
-    private static class ConstraintController {
+    private static class ConstraintController
+    {
         [RouteConstraint("isbn")]
         public static bool IsIsbn(ReadOnlySpan<char> value) => value.Length == 13;
     }
@@ -63,14 +65,15 @@ public class RouteAttributeTests {
     [CaseInsensitiveRoutes]
     private class LenientApplication;
 
-    private class BindingController {
+    private class BindingController
+    {
         public string Named(
             [FromHeader("X-Tenant")] string tenant,
-            [FromQueryString("q")] string term) => tenant + term;
+            [FromQueryString("q")] string term
+        ) => tenant + term;
 
-        public string Unnamed(
-            [FromHeader] string tenant,
-            [FromQueryString] string term) => tenant + term;
+        public string Unnamed([FromHeader] string tenant, [FromQueryString] string term) =>
+            tenant + term;
     }
 
     [Theory]
@@ -79,9 +82,13 @@ public class RouteAttributeTests {
     [InlineData(typeof(PutAttribute))]
     [InlineData(typeof(DeleteAttribute))]
     [InlineData(typeof(PatchAttribute))]
-    public void EveryVerbAttributeIsPublicAndDerivesFromAttribute(Type attributeType) {
+    public void EveryVerbAttributeIsPublicAndDerivesFromAttribute(Type attributeType)
+    {
         Assert.True(attributeType.IsPublic, $"{attributeType.Name} is not public");
-        Assert.True(attributeType.IsSubclassOf(typeof(Attribute)), $"{attributeType.Name} is not an Attribute");
+        Assert.True(
+            attributeType.IsSubclassOf(typeof(Attribute)),
+            $"{attributeType.Name} is not an Attribute"
+        );
     }
 
     [Theory]
@@ -91,8 +98,15 @@ public class RouteAttributeTests {
     [InlineData("Delete", typeof(DeleteAttribute), "/delete")]
     [InlineData("Patch", typeof(PatchAttribute), "/patch")]
     public void EveryVerbAttributeCanBeAppliedAndItsPathReadBack(
-        string methodName, Type attributeType, string expectedPath) {
-        var method = typeof(VerbController).GetMethod(methodName, BindingFlags.Instance | BindingFlags.Public)!;
+        string methodName,
+        Type attributeType,
+        string expectedPath
+    )
+    {
+        var method = typeof(VerbController).GetMethod(
+            methodName,
+            BindingFlags.Instance | BindingFlags.Public
+        )!;
 
         var attribute = method.GetCustomAttributes(attributeType, inherit: false).Single();
 
@@ -105,8 +119,12 @@ public class RouteAttributeTests {
     /// attribute back sees that rather than the route the handler is reachable at.
     /// </summary>
     [Fact]
-    public void AVerbAttributeAppliedWithNoArgumentCarriesAnEmptyPath() {
-        var method = typeof(VerbController).GetMethod("NoPath", BindingFlags.Instance | BindingFlags.Public)!;
+    public void AVerbAttributeAppliedWithNoArgumentCarriesAnEmptyPath()
+    {
+        var method = typeof(VerbController).GetMethod(
+            "NoPath",
+            BindingFlags.Instance | BindingFlags.Public
+        )!;
 
         Assert.Equal("", PathOf(method.GetCustomAttribute<GetAttribute>()!));
     }
@@ -137,9 +155,10 @@ public class RouteAttributeTests {
     [InlineData(typeof(PutAttribute))]
     [InlineData(typeof(DeleteAttribute))]
     [InlineData(typeof(PatchAttribute))]
-    public void EveryVerbDeclaresSuccessStatusAndNoOtherStatus(Type attributeType) {
-        var declared = attributeType.GetProperties(
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+    public void EveryVerbDeclaresSuccessStatusAndNoOtherStatus(Type attributeType)
+    {
+        var declared = attributeType
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
             .Select(property => property.Name)
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray();
@@ -162,15 +181,20 @@ public class RouteAttributeTests {
     [InlineData(typeof(PutAttribute))]
     [InlineData(typeof(DeleteAttribute))]
     [InlineData(typeof(PatchAttribute))]
-    public void SuccessStatusDefaultsToUnset(Type attributeType) {
+    public void SuccessStatusDefaultsToUnset(Type attributeType)
+    {
         var attribute = Activator.CreateInstance(attributeType, "")!;
 
         Assert.Equal(0, attribute.GetType().GetProperty("SuccessStatus")!.GetValue(attribute));
     }
 
     [Fact]
-    public void BasePathCanBeAppliedToAClassAndItsPathReadBack() {
-        Assert.Equal("/api", typeof(BasePathController).GetCustomAttribute<BasePathAttribute>()!.Path);
+    public void BasePathCanBeAppliedToAClassAndItsPathReadBack()
+    {
+        Assert.Equal(
+            "/api",
+            typeof(BasePathController).GetCustomAttribute<BasePathAttribute>()!.Path
+        );
     }
 
     /// <summary>
@@ -178,7 +202,8 @@ public class RouteAttributeTests {
     /// both positions — on a controller and on the <c>[HardenedModule]</c> entry point.
     /// </summary>
     [Fact]
-    public void BasePathIsDeclaredForClassesAndAssemblies() {
+    public void BasePathIsDeclaredForClassesAndAssemblies()
+    {
         var usage = typeof(BasePathAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
 
         Assert.Equal(AttributeTargets.Class | AttributeTargets.Assembly, usage.ValidOn);
@@ -190,7 +215,8 @@ public class RouteAttributeTests {
     /// with, so they are part of the contract rather than an implementation detail.
     /// </summary>
     [Fact]
-    public void CacheControlDefaultsToAPublicMaxAgeOfZero() {
+    public void CacheControlDefaultsToAPublicMaxAgeOfZero()
+    {
         var attribute = new CacheControlAttribute();
 
         Assert.Equal(0, attribute.MaxAge);
@@ -198,8 +224,13 @@ public class RouteAttributeTests {
     }
 
     [Fact]
-    public void CacheControlValuesSurviveBeingSet() {
-        var attribute = new CacheControlAttribute { MaxAge = 86400, Type = CacheControlEnum.NoStore };
+    public void CacheControlValuesSurviveBeingSet()
+    {
+        var attribute = new CacheControlAttribute
+        {
+            MaxAge = 86400,
+            Type = CacheControlEnum.NoStore,
+        };
 
         Assert.Equal(86400, attribute.MaxAge);
         Assert.Equal(CacheControlEnum.NoStore, attribute.Type);
@@ -212,7 +243,8 @@ public class RouteAttributeTests {
     /// generator fix — code that could not compile in any project using it.
     /// </summary>
     [Fact]
-    public void TheWebBindingAttributesCarryTheNameTheyWereGiven() {
+    public void TheWebBindingAttributesCarryTheNameTheyWereGiven()
+    {
         var parameters = typeof(BindingController)
             .GetMethod("Named", BindingFlags.Instance | BindingFlags.Public)!
             .GetParameters();
@@ -226,7 +258,8 @@ public class RouteAttributeTests {
     /// which the generator supplies — the attribute itself carries null.
     /// </summary>
     [Fact]
-    public void AnUnnamedWebBindingAttributeCarriesNoName() {
+    public void AnUnnamedWebBindingAttributeCarriesNoName()
+    {
         var parameters = typeof(BindingController)
             .GetMethod("Unnamed", BindingFlags.Instance | BindingFlags.Public)!
             .GetParameters();
@@ -242,8 +275,12 @@ public class RouteAttributeTests {
     /// wrote.
     /// </summary>
     [Fact]
-    public void RouteConstraintCarriesTheNameARouteTemplateUses() {
-        var method = typeof(ConstraintController).GetMethod("IsIsbn", BindingFlags.Static | BindingFlags.Public)!;
+    public void RouteConstraintCarriesTheNameARouteTemplateUses()
+    {
+        var method = typeof(ConstraintController).GetMethod(
+            "IsIsbn",
+            BindingFlags.Static | BindingFlags.Public
+        )!;
 
         Assert.Equal("isbn", method.GetCustomAttribute<RouteConstraintAttribute>()!.Name);
     }
@@ -253,7 +290,8 @@ public class RouteAttributeTests {
     /// named constraint and a class may declare several.
     /// </summary>
     [Fact]
-    public void RouteConstraintIsDeclaredForMethodsAndRepeats() {
+    public void RouteConstraintIsDeclaredForMethodsAndRepeats()
+    {
         var usage = typeof(RouteConstraintAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
 
         Assert.Equal(AttributeTargets.Method, usage.ValidOn);
@@ -266,7 +304,8 @@ public class RouteAttributeTests {
     /// common form, and the description is what tells two servers apart.
     /// </summary>
     [Fact]
-    public void ServerCarriesItsUrlAndOptionalDescription() {
+    public void ServerCarriesItsUrlAndOptionalDescription()
+    {
         var servers = typeof(ServedApplication)
             .GetCustomAttributes<ServerAttribute>(inherit: false)
             .OrderBy(server => server.Url)
@@ -284,7 +323,8 @@ public class RouteAttributeTests {
     /// several places names each one, and the entry point is where it goes.
     /// </summary>
     [Fact]
-    public void ServerIsDeclaredForClassesAndAssembliesAndRepeats() {
+    public void ServerIsDeclaredForClassesAndAssembliesAndRepeats()
+    {
         var usage = typeof(ServerAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
 
         Assert.Equal(AttributeTargets.Class | AttributeTargets.Assembly, usage.ValidOn);
@@ -297,8 +337,12 @@ public class RouteAttributeTests {
     /// the round trip would collapse the controller structure rather than merely mislabel it.
     /// </summary>
     [Fact]
-    public void TagCarriesTheGroupNameItWasGiven() {
-        Assert.Equal("Products", typeof(V2ProductsController).GetCustomAttribute<TagAttribute>()!.Name);
+    public void TagCarriesTheGroupNameItWasGiven()
+    {
+        Assert.Equal(
+            "Products",
+            typeof(V2ProductsController).GetCustomAttribute<TagAttribute>()!.Name
+        );
     }
 
     /// <summary>
@@ -306,7 +350,8 @@ public class RouteAttributeTests {
     /// asking the document to put the same operations in two places.
     /// </summary>
     [Fact]
-    public void TagIsDeclaredForOneClassAtATime() {
+    public void TagIsDeclaredForOneClassAtATime()
+    {
         var usage = typeof(TagAttribute).GetCustomAttribute<AttributeUsageAttribute>()!;
 
         Assert.Equal(AttributeTargets.Class, usage.ValidOn);
@@ -319,11 +364,17 @@ public class RouteAttributeTests {
     /// reason the verb attributes are: a marker nothing can apply is a marker that does nothing.
     /// </summary>
     [Fact]
-    public void CaseInsensitiveRoutesIsAMarkerAConsumerCanApply() {
-        Assert.NotNull(typeof(LenientApplication).GetCustomAttribute<CaseInsensitiveRoutesAttribute>());
+    public void CaseInsensitiveRoutesIsAMarkerAConsumerCanApply()
+    {
+        Assert.NotNull(
+            typeof(LenientApplication).GetCustomAttribute<CaseInsensitiveRoutesAttribute>()
+        );
 
-        Assert.Empty(typeof(CaseInsensitiveRoutesAttribute).GetProperties(
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly));
+        Assert.Empty(
+            typeof(CaseInsensitiveRoutesAttribute).GetProperties(
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly
+            )
+        );
     }
 
     private static string PathOf(object attribute) =>

@@ -4,23 +4,38 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Shared.Testing.Impl;
 
-public class TestApplication : IApplicationRoot {
+public class TestApplication : IApplicationRoot
+{
     private readonly ServiceProvider _rootServiceProvider;
 
-    public TestApplication(IApplicationModule testModule, string logNs, IHardenedEnvironment environment,
-        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies) {
+    public TestApplication(
+        IApplicationModule testModule,
+        string logNs,
+        IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies
+    )
+    {
         _rootServiceProvider = CreateServiceProvider(testModule, environment, overrideDependencies);
         ApplicationLogic.StartWithWait(Provider, null, 15);
     }
 
-    public TestApplication(IDependencyModule testModule, string logNs, IHardenedEnvironment environment,
-        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies) {
+    public TestApplication(
+        IDependencyModule testModule,
+        string logNs,
+        IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies
+    )
+    {
         _rootServiceProvider = CreateServiceProvider(testModule, environment, overrideDependencies);
         ApplicationLogic.StartWithWait(Provider, null, 15);
     }
 
-    private ServiceProvider CreateServiceProvider(IApplicationModule applicationModule, IHardenedEnvironment environment,
-        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies) {
+    private ServiceProvider CreateServiceProvider(
+        IApplicationModule applicationModule,
+        IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies
+    )
+    {
         var serviceCollection = new ServiceCollection();
 
         serviceCollection.AddLogging();
@@ -38,8 +53,12 @@ public class TestApplication : IApplicationRoot {
         return serviceCollection.BuildServiceProvider();
     }
 
-    private ServiceProvider CreateServiceProvider(IDependencyModule dependencyModule, IHardenedEnvironment environment,
-        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies) {
+    private ServiceProvider CreateServiceProvider(
+        IDependencyModule dependencyModule,
+        IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, IServiceCollection>? overrideDependencies
+    )
+    {
         var serviceCollection = new ServiceCollection();
 
         serviceCollection.AddLogging();
@@ -59,7 +78,8 @@ public class TestApplication : IApplicationRoot {
 
     public IServiceProvider Provider => _rootServiceProvider;
 
-    public async ValueTask DisposeAsync() {
+    public async ValueTask DisposeAsync()
+    {
         await _rootServiceProvider.DisposeAsync();
     }
 }

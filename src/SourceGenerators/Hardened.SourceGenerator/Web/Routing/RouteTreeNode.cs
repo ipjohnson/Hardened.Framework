@@ -1,12 +1,15 @@
 ﻿namespace Hardened.SourceGenerator.Web.Routing;
 
-public class RouteTreeNode<T> {
+public class RouteTreeNode<T>
+{
     public RouteTreeNode(
         string path,
         IReadOnlyList<RouteTreeNode<T>> childNodes,
         IReadOnlyList<RouteTreeNode<T>> wildCardNodes,
         IReadOnlyList<RouteTreeLeafNode<T>> leafNodes,
-        int wildCardDepth) {
+        int wildCardDepth
+    )
+    {
         Path = path == "\0" ? "" : path;
         ChildNodes = childNodes;
         WildCardNodes = wildCardNodes;

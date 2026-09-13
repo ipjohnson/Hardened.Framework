@@ -28,7 +28,8 @@ namespace Hardened.Aws.Lambda.Runtime.Hosting;
 /// that are genuinely different.
 /// </para>
 /// </remarks>
-public class LambdaInvocationHandler {
+public class LambdaInvocationHandler
+{
     /// <summary>
     /// What a streamed response with an empty body sends instead of nothing.
     /// </summary>
@@ -52,7 +53,9 @@ public class LambdaInvocationHandler {
         IMetricLoggerProvider metricLoggerProvider,
         IEnumerable<IPayloadAdapter> adapters,
         IResponseStreamFactory streams,
-        IOptions<ILambdaResponseModeConfiguration> mode) {
+        IOptions<ILambdaResponseModeConfiguration> mode
+    )
+    {
         _rootServiceProvider = rootServiceProvider;
         _executor = executor;
         _metricLoggerProvider = metricLoggerProvider;
@@ -80,7 +83,8 @@ public class LambdaInvocationHandler {
     /// in it differs per source: a proxy response for API Gateway, a batch failure report for SQS,
     /// nothing at all for SNS and a scheduled rule.
     /// </remarks>
-    public async Task<Stream> Invoke(Stream input, ILambdaContext lambdaContext) {
+    public async Task<Stream> Invoke(Stream input, ILambdaContext lambdaContext)
+    {
         Install();
 
         using var payload = await Buffer(input);
@@ -107,11 +111,20 @@ public class LambdaInvocationHandler {
         LambdaPayload payload,
         ILambdaContext lambdaContext,
         IServiceScope scope,
-        CancellationToken deadline) {
+        CancellationToken deadline
+    )
+    {
         var body = new MemoryStream();
         var output = new MemoryStream();
 
-        var context = Context(adapter, payload, lambdaContext, scope, deadline, adapter.CreateResponse(body));
+        var context = Context(
+            adapter,
+            payload,
+            lambdaContext,
+            scope,
+            deadline,
+            adapter.CreateResponse(body)
+        );
 
         await _executor.Run(context, adapter.FailurePolicy);
 
@@ -121,8 +134,11 @@ public class LambdaInvocationHandler {
         // item; nothing read it for an unbatched one, and a scheduled rule or a bus event whose
         // handler threw was reported to Lambda as handled - no retry, no dead letter, no failed
         // invocation. Found on 2026-09-08 from the Azure line, whose worker met the same shape.
-        if (adapter.FailurePolicy == HostFailurePolicy.Rethrow &&
-            context.Response.ExceptionValue is { } failure) {
+        if (
+            adapter.FailurePolicy == HostFailurePolicy.Rethrow
+            && context.Response.ExceptionValue is { } failure
+        )
+        {
             ExceptionDispatchInfo.Capture(failure).Throw();
         }
 
@@ -155,34 +171,43 @@ public class LambdaInvocationHandler {
         LambdaPayload payload,
         ILambdaContext lambdaContext,
         IServiceScope scope,
-        CancellationToken deadline) {
+        CancellationToken deadline
+    )
+    {
         IExecutionResponse? response = null;
 
         // Built when the stream opens rather than when the response is created, so the prelude
         // carries whatever the pipeline had decided by the first byte.
-        var body = new ResponseStream(() => _streams.CreateHttpStream(adapter.CreatePrelude(response!)));
+        var body = new ResponseStream(() =>
+            _streams.CreateHttpStream(adapter.CreatePrelude(response!))
+        );
 
         response = adapter.CreateResponse(body);
 
         var context = Context(adapter, payload, lambdaContext, scope, deadline, response);
 
-        try {
+        try
+        {
             await _executor.Run(context, adapter.FailurePolicy);
 
-            if (body.Length == 0) {
+            if (body.Length == 0)
+            {
                 await body.WriteAsync(EmptyStreamedBody);
             }
 
             await body.CompleteAsync();
         }
-        catch {
+        catch
+        {
             // What was written before the failure still goes, so the client's view of the stream is
             // the handler's up to the point it broke. A failure completing is second to the one
             // already in flight.
-            try {
+            try
+            {
                 await body.CompleteAsync();
             }
-            catch {
+            catch
+            {
                 // The exception in flight is the one to surface.
             }
 
@@ -200,14 +225,17 @@ public class LambdaInvocationHandler {
         ILambdaContext lambdaContext,
         IServiceScope scope,
         CancellationToken deadline,
-        IExecutionResponse response) =>
-        new(_rootServiceProvider,
+        IExecutionResponse response
+    ) =>
+        new(
+            _rootServiceProvider,
             scope.ServiceProvider,
             scope.ServiceProvider.GetRequiredService<IKnownServices>(),
             adapter.CreateRequest(payload, lambdaContext),
             response,
             deadline,
-            _metricLoggerProvider.CreateLogger("lambda-invocation"));
+            _metricLoggerProvider.CreateLogger("lambda-invocation")
+        );
 
     private bool _installed;
 
@@ -234,8 +262,10 @@ public class LambdaInvocationHandler {
     /// the other, and which is a property of the handlers rather than of the host.
     /// </para>
     /// </remarks>
-    private void Install() {
-        if (_installed) {
+    private void Install()
+    {
+        if (_installed)
+        {
             return;
         }
 
@@ -243,13 +273,16 @@ public class LambdaInvocationHandler {
 
         var dispatch = _rootServiceProvider.GetServices<IHandlerDispatch>().ToArray();
 
-        if (dispatch.Length == 0) {
+        if (dispatch.Length == 0)
+        {
             throw new InvalidOperationException(
-                "This function declares no handlers. A verb attribute or a trigger attribute on a " +
-                "method is what compiles one.");
+                "This function declares no handlers. A verb attribute or a trigger attribute on a "
+                    + "method is what compiles one."
+            );
         }
 
-        if (dispatch.Length > 1) {
+        if (dispatch.Length > 1)
+        {
             // Refused rather than ordered. Web dispatch answers 404 for anything its table does not
             // match, so putting it in front of function dispatch swallows every queue message, and
             // putting it behind means a web request meets the not-found handler of a table that
@@ -262,15 +295,16 @@ public class LambdaInvocationHandler {
                     // Same kind twice means two applications in one container, which is what a
                     // second entry point does: it is added to the first rather than replacing it,
                     // and both handler tables end up registered.
-                    ? "This container holds two applications, so there are two handler tables and " +
-                      "nothing says which one a message routes through. One application per " +
-                      "container - a test comparing two of them has to build each its own."
-                    : "This function declares more than one kind of handler - " +
-                      string.Join(", ", kinds) +
-                      ". Web routes and function triggers are separate families and cannot share " +
-                      "one function: an HTTP route answers a caller waiting on a connection, and a " +
-                      "trigger fails the invocation to make its source redeliver. Split them into " +
-                      "two functions.");
+                    ? "This container holds two applications, so there are two handler tables and "
+                        + "nothing says which one a message routes through. One application per "
+                        + "container - a test comparing two of them has to build each its own."
+                    : "This function declares more than one kind of handler - "
+                        + string.Join(", ", kinds)
+                        + ". Web routes and function triggers are separate families and cannot share "
+                        + "one function: an HTTP route answers a caller waiting on a connection, and a "
+                        + "trigger fails the invocation to make its source redeliver. Split them into "
+                        + "two functions."
+            );
         }
 
         _rootServiceProvider.GetRequiredService<IMiddlewareService>().Use(_ => dispatch[0]);
@@ -285,7 +319,8 @@ public class LambdaInvocationHandler {
     /// binds its event from the bytes, the peek parses them, and a direct invocation hands the same
     /// bytes on as a body - none of which a forward-only stream can serve more than once.
     /// </remarks>
-    private static async Task<LambdaPayload> Buffer(Stream input) {
+    private static async Task<LambdaPayload> Buffer(Stream input)
+    {
         var buffer = new MemoryStream();
 
         await input.CopyToAsync(buffer);
@@ -309,27 +344,34 @@ public class LambdaInvocationHandler {
     /// written for a different shape.
     /// </para>
     /// </remarks>
-    private IPayloadAdapter Select(LambdaPayload payload) {
-        if (_adapters.Length == 0) {
+    private IPayloadAdapter Select(LambdaPayload payload)
+    {
+        if (_adapters.Length == 0)
+        {
             throw new InvalidOperationException(
-                "This function registered no payload adapter, so nothing can turn an invocation " +
-                "into a request. A trigger attribute on a handler is what registers one.");
+                "This function registered no payload adapter, so nothing can turn an invocation "
+                    + "into a request. A trigger attribute on a handler is what registers one."
+            );
         }
 
-        if (_adapters.Length == 1) {
+        if (_adapters.Length == 1)
+        {
             return _adapters[0];
         }
 
-        foreach (var adapter in _adapters) {
-            if (adapter.Handles(payload.Json)) {
+        foreach (var adapter in _adapters)
+        {
+            if (adapter.Handles(payload.Json))
+            {
                 return adapter;
             }
         }
 
         throw new InvalidOperationException(
-            "No adapter recognised this payload. The function is built for " +
-            string.Join(", ", _adapters.Select(adapter => adapter.GetType().Name)) +
-            ", so either an event source is wired to it that no handler asked for, or a handler's " +
-            "trigger has no adapter registered.");
+            "No adapter recognised this payload. The function is built for "
+                + string.Join(", ", _adapters.Select(adapter => adapter.GetType().Name))
+                + ", so either an event source is wired to it that no handler asked for, or a handler's "
+                + "trigger has no adapter registered."
+        );
     }
 }

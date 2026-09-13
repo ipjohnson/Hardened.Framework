@@ -9,12 +9,12 @@ using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Tests.Support;
 using Hardened.Shared.Runtime.Json;
-using IRequestsJsonConfiguration = Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration;
-using RequestsJsonConfiguration = Hardened.Requests.Runtime.Configuration.JsonSerializerConfiguration;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
+using IRequestsJsonConfiguration = Hardened.Requests.Runtime.Configuration.IJsonSerializerConfiguration;
+using RequestsJsonConfiguration = Hardened.Requests.Runtime.Configuration.JsonSerializerConfiguration;
 
 namespace Hardened.Requests.Runtime.Tests.Serializer;
 
@@ -37,15 +37,16 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// correctly while the tests covering it did not.
 /// </para>
 /// </remarks>
-public class ResolverPrecedenceTests {
-
+public class ResolverPrecedenceTests
+{
     // Aliased because two public types share this name - see D10. Hardened.Shared.Runtime.Json
     // has an IJsonSerializerConfiguration too, and importing both namespaces is enough to stop the
     // file compiling.
     private static IOptions<IRequestsJsonConfiguration> Config() =>
         Options.Create<IRequestsJsonConfiguration>(new RequestsJsonConfiguration());
 
-    private static IExecutionContext ResponseContext(object value, out MemoryStream body) {
+    private static IExecutionContext ResponseContext(object value, out MemoryStream body)
+    {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
         var response = Substitute.For<IExecutionResponse>();
@@ -60,7 +61,8 @@ public class ResolverPrecedenceTests {
         return context;
     }
 
-    private static IExecutionContext RequestContext(string json) {
+    private static IExecutionContext RequestContext(string json)
+    {
         var context = Pipeline.Context(method: "POST", body: Encoding.UTF8.GetBytes(json));
 
         context.Request.Headers[KnownHeaders.ContentType] = new StringValues("application/json");
@@ -68,31 +70,38 @@ public class ResolverPrecedenceTests {
         return context;
     }
 
-    public static TheoryData<string> ResponseSerializers => new() {
-        nameof(SystemTextJsonResponseSerializer),
-        nameof(AotResponseSerializer),
-        nameof(StreamingJsonResponseSerializer)
-    };
+    public static TheoryData<string> ResponseSerializers =>
+        new()
+        {
+            nameof(SystemTextJsonResponseSerializer),
+            nameof(AotResponseSerializer),
+            nameof(StreamingJsonResponseSerializer),
+        };
 
     /// <summary>
     /// The two that carry a reflection tail. <see cref="AotResponseSerializer"/> is absent by
     /// design - it resolves only out of registered contexts, on every host.
     /// </summary>
-    public static TheoryData<string> ReflectingResponseSerializers => new() {
-        nameof(SystemTextJsonResponseSerializer),
-        nameof(StreamingJsonResponseSerializer)
-    };
+    public static TheoryData<string> ReflectingResponseSerializers =>
+        new() { nameof(SystemTextJsonResponseSerializer), nameof(StreamingJsonResponseSerializer) };
 
     private static IResponseSerializer ResponseSerializerNamed(
-        string name, params IJsonTypeInfoResolver[] resolvers) => name switch {
-        nameof(SystemTextJsonResponseSerializer) =>
-            new SystemTextJsonResponseSerializer(Config(), resolvers),
-        nameof(AotResponseSerializer) =>
-            new AotResponseSerializer(Config(), resolvers),
-        nameof(StreamingJsonResponseSerializer) =>
-            new StreamingJsonResponseSerializer(Config(), resolvers),
-        _ => throw new ArgumentOutOfRangeException(nameof(name), name, "unknown serializer")
-    };
+        string name,
+        params IJsonTypeInfoResolver[] resolvers
+    ) =>
+        name switch
+        {
+            nameof(SystemTextJsonResponseSerializer) => new SystemTextJsonResponseSerializer(
+                Config(),
+                resolvers
+            ),
+            nameof(AotResponseSerializer) => new AotResponseSerializer(Config(), resolvers),
+            nameof(StreamingJsonResponseSerializer) => new StreamingJsonResponseSerializer(
+                Config(),
+                resolvers
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(name), name, "unknown serializer"),
+        };
 
     /// <summary>
     /// The D10 case: an enum reaches the wire as a name rather than as its ordinal.
@@ -106,7 +115,8 @@ public class ResolverPrecedenceTests {
     /// </remarks>
     [Theory]
     [MemberData(nameof(ResponseSerializers))]
-    public async Task SerializeResponse_HonoursTheRegisteredContextForAnEnum(string serializerName) {
+    public async Task SerializeResponse_HonoursTheRegisteredContextForAnEnum(string serializerName)
+    {
         var serializer = ResponseSerializerNamed(serializerName, CatalogContext.Default);
         var context = ResponseContext(new Listing(Category.ScienceFiction), out var body);
 
@@ -123,13 +133,16 @@ public class ResolverPrecedenceTests {
     /// is how this surfaced, as a test host posting a body the application under test refused.
     /// </summary>
     [Fact]
-    public async Task DeserializeRequestBody_HonoursTheRegisteredContextForAnEnum() {
+    public async Task DeserializeRequestBody_HonoursTheRegisteredContextForAnEnum()
+    {
         var deserializer = new SystemTextJsonRequestDeserializer(
             Config(),
-            new IJsonTypeInfoResolver[] { CatalogContext.Default });
+            new IJsonTypeInfoResolver[] { CatalogContext.Default }
+        );
 
         var listing = await deserializer.DeserializeRequestBody<Listing>(
-            RequestContext("""{"category":"ScienceFiction"}"""));
+            RequestContext("""{"category":"ScienceFiction"}""")
+        );
 
         Assert.Equal(Category.ScienceFiction, listing!.Category);
     }
@@ -140,7 +153,8 @@ public class ResolverPrecedenceTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(ReflectingResponseSerializers))]
-    public async Task SerializeResponse_StillReflectsATypeNoContextDeclares(string serializerName) {
+    public async Task SerializeResponse_StillReflectsATypeNoContextDeclares(string serializerName)
+    {
         var serializer = ResponseSerializerNamed(serializerName, CatalogContext.Default);
         var context = ResponseContext(new Undeclared("only reflection knows this"), out var body);
 
@@ -154,7 +168,10 @@ public class ResolverPrecedenceTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(ReflectingResponseSerializers))]
-    public async Task SerializeResponse_FallsBackToReflectionWhenNothingIsRegistered(string serializerName) {
+    public async Task SerializeResponse_FallsBackToReflectionWhenNothingIsRegistered(
+        string serializerName
+    )
+    {
         var serializer = ResponseSerializerNamed(serializerName);
         var context = ResponseContext(new Undeclared("reflection"), out var body);
 
@@ -174,22 +191,28 @@ public class ResolverPrecedenceTests {
     /// fail here too, which is what this asserts.
     /// </remarks>
     [Fact]
-    public async Task AotResponseSerializer_RefusesATypeNoContextDeclares() {
+    public async Task AotResponseSerializer_RefusesATypeNoContextDeclares()
+    {
         var serializer = new AotResponseSerializer(
-            Config(), new IJsonTypeInfoResolver[] { CatalogContext.Default });
+            Config(),
+            new IJsonTypeInfoResolver[] { CatalogContext.Default }
+        );
         var context = ResponseContext(new Undeclared("nothing declares this"), out _);
 
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => serializer.SerializeResponse(context));
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            serializer.SerializeResponse(context)
+        );
     }
 
     [Fact]
-    public async Task AotResponseSerializer_RefusesEvenWithNoResolversRegistered() {
+    public async Task AotResponseSerializer_RefusesEvenWithNoResolversRegistered()
+    {
         var serializer = new AotResponseSerializer(Config(), Array.Empty<IJsonTypeInfoResolver>());
         var context = ResponseContext(new Undeclared("nothing declares this"), out _);
 
-        await Assert.ThrowsAsync<NotSupportedException>(
-            () => serializer.SerializeResponse(context));
+        await Assert.ThrowsAsync<NotSupportedException>(() =>
+            serializer.SerializeResponse(context)
+        );
     }
 
     /// <summary>
@@ -198,7 +221,8 @@ public class ResolverPrecedenceTests {
     /// same mutated instance.
     /// </summary>
     [Fact]
-    public void SharedJsonSerializerConfiguration_CarriesNoReflectionResolver() {
+    public void SharedJsonSerializerConfiguration_CarriesNoReflectionResolver()
+    {
         var options = new Hardened.Shared.Runtime.Json.JsonSerializerConfiguration().Options;
 
         Assert.DoesNotContain(options.TypeInfoResolverChain, r => r is DefaultJsonTypeInfoResolver);
@@ -208,10 +232,12 @@ public class ResolverPrecedenceTests {
     /// The ordering rule itself, stated once where the serializers get it from.
     /// </summary>
     [Fact]
-    public void WithResolvers_PutsRegisteredResolversAheadOfReflection() {
+    public void WithResolvers_PutsRegisteredResolversAheadOfReflection()
+    {
         var options = JsonTypeInfoLookup.WithResolvers(
             new JsonSerializerOptions(JsonSerializerDefaults.Web),
-            new IJsonTypeInfoResolver[] { CatalogContext.Default });
+            new IJsonTypeInfoResolver[] { CatalogContext.Default }
+        );
 
         var chain = options.TypeInfoResolverChain;
 
@@ -225,13 +251,17 @@ public class ResolverPrecedenceTests {
     /// used to build on, and this pins the difference so the two are not swapped back.
     /// </summary>
     [Fact]
-    public void AppendReflectionFallback_AddsReflectionEvenWhenTheChainIsNotEmpty() {
+    public void AppendReflectionFallback_AddsReflectionEvenWhenTheChainIsNotEmpty()
+    {
         var withGuard = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
         withGuard.TypeInfoResolverChain.Add(CatalogContext.Default);
         JsonTypeInfoLookup.WithReflectionFallback(withGuard);
 
-        Assert.DoesNotContain(withGuard.TypeInfoResolverChain, r => r is DefaultJsonTypeInfoResolver);
+        Assert.DoesNotContain(
+            withGuard.TypeInfoResolverChain,
+            r => r is DefaultJsonTypeInfoResolver
+        );
 
         var appended = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
@@ -242,9 +272,11 @@ public class ResolverPrecedenceTests {
     }
 
     [Fact]
-    public void AppendReflectionFallback_DoesNotAddASecondReflectionResolver() {
+    public void AppendReflectionFallback_DoesNotAddASecondReflectionResolver()
+    {
         var options = JsonTypeInfoLookup.AppendReflectionFallback(
-            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)
+        );
 
         JsonTypeInfoLookup.AppendReflectionFallback(options);
 
@@ -252,7 +284,11 @@ public class ResolverPrecedenceTests {
     }
 }
 
-internal enum Category { ScienceFiction, Tools }
+internal enum Category
+{
+    ScienceFiction,
+    Tools,
+}
 
 internal record Listing(Category Category);
 

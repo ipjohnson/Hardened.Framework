@@ -34,7 +34,8 @@ namespace Hardened.Gcp.CloudRun.Storage;
 /// and <c>bucketId</c>, which then go on to be a queue's.
 /// </para>
 /// </remarks>
-public sealed class StorageEnvelope : ITriggerEnvelope {
+public sealed class StorageEnvelope : ITriggerEnvelope
+{
     /// <summary>The scheme an object store routes under, which <c>[Blob]</c> declares.</summary>
     public const string BlobScheme = "BLOB";
 
@@ -56,27 +57,39 @@ public sealed class StorageEnvelope : ITriggerEnvelope {
     /// <summary>The notification attribute, and header, carrying when the change happened.</summary>
     public const string EventTimeHeader = "eventTime";
 
-    public bool Recognises(IExecutionRequest request) {
-        if (!string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase)) {
+    public bool Recognises(IExecutionRequest request)
+    {
+        if (!string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase))
+        {
             return false;
         }
 
-        if (CloudEventReader.IsStructured(request.ContentType)) {
+        if (CloudEventReader.IsStructured(request.ContentType))
+        {
             return true;
         }
 
-        if (CloudEventReader.IsBinary(request.Headers)) {
+        if (CloudEventReader.IsBinary(request.Headers))
+        {
             var type = TriggerHeaders.Get(request.Headers, CloudEventHeaders.Type);
 
             return type != null && type.StartsWith(ObjectTypePrefix, StringComparison.Ordinal);
         }
 
-        return request.ContentType != null &&
-               request.ContentType.StartsWith("application/json", StringComparison.OrdinalIgnoreCase);
+        return request.ContentType != null
+            && request.ContentType.StartsWith(
+                "application/json",
+                StringComparison.OrdinalIgnoreCase
+            );
     }
 
-    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) {
-        if (CloudEventReader.IsStructured(request.ContentType) || CloudEventReader.IsBinary(request.Headers)) {
+    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload)
+    {
+        if (
+            CloudEventReader.IsStructured(request.ContentType)
+            || CloudEventReader.IsBinary(request.Headers)
+        )
+        {
             return FromEvent(request, payload);
         }
 
@@ -84,17 +97,24 @@ public sealed class StorageEnvelope : ITriggerEnvelope {
     }
 
     /// <summary>The Eventarc form.</summary>
-    private static CloudRunTriggerRequest? FromEvent(IExecutionRequest request, TriggerPayload payload) {
+    private static CloudRunTriggerRequest? FromEvent(
+        IExecutionRequest request,
+        TriggerPayload payload
+    )
+    {
         CloudEvent cloudEvent;
 
-        try {
+        try
+        {
             cloudEvent = CloudEventReader.Read(request.ContentType, request.Headers, payload.Raw);
         }
-        catch (CloudEventFormatException) {
+        catch (CloudEventFormatException)
+        {
             return null;
         }
 
-        if (!cloudEvent.Type.StartsWith(ObjectTypePrefix, StringComparison.Ordinal)) {
+        if (!cloudEvent.Type.StartsWith(ObjectTypePrefix, StringComparison.Ordinal))
+        {
             return null;
         }
 
@@ -107,7 +127,8 @@ public sealed class StorageEnvelope : ITriggerEnvelope {
             eventType,
             cloudEvent.Time,
             bucket: CloudEventRoutes.LastSegment(cloudEvent.Source),
-            name: ObjectName(cloudEvent.Subject));
+            name: ObjectName(cloudEvent.Subject)
+        );
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
@@ -120,12 +141,25 @@ public sealed class StorageEnvelope : ITriggerEnvelope {
         Set(headers, EventTimeHeader, cloudEvent.Time);
 
         return new CloudRunTriggerRequest(
-            BlobScheme, "/" + notification.Bucket, notification.Body(), headers, request);
+            BlobScheme,
+            "/" + notification.Bucket,
+            notification.Body(),
+            headers,
+            request
+        );
     }
 
     /// <summary>The Pub/Sub notification form.</summary>
-    private static CloudRunTriggerRequest? FromNotification(IExecutionRequest request, TriggerPayload payload) {
-        if (payload.Json is not { } root || !PubSubPushBody.TryRead(root, out var message, out var subscription)) {
+    private static CloudRunTriggerRequest? FromNotification(
+        IExecutionRequest request,
+        TriggerPayload payload
+    )
+    {
+        if (
+            payload.Json is not { } root
+            || !PubSubPushBody.TryRead(root, out var message, out var subscription)
+        )
+        {
             return null;
         }
 
@@ -135,7 +169,8 @@ public sealed class StorageEnvelope : ITriggerEnvelope {
         var eventType = TriggerHeaders.Get(headers, EventTypeHeader);
         var bucket = TriggerHeaders.Get(headers, BucketHeader);
 
-        if (string.IsNullOrEmpty(eventType) || string.IsNullOrEmpty(bucket)) {
+        if (string.IsNullOrEmpty(eventType) || string.IsNullOrEmpty(bucket))
+        {
             // A push, but not a Storage notification: it belongs to a queue handler.
             return null;
         }
@@ -147,59 +182,83 @@ public sealed class StorageEnvelope : ITriggerEnvelope {
             eventType!,
             TriggerHeaders.Get(headers, EventTimeHeader),
             bucket: bucket,
-            name: TriggerHeaders.Get(headers, ObjectHeader)) with {
-            Generation = TriggerHeaders.Get(headers, GenerationHeader)
+            name: TriggerHeaders.Get(headers, ObjectHeader)
+        ) with
+        {
+            Generation = TriggerHeaders.Get(headers, GenerationHeader),
         };
 
         return new CloudRunTriggerRequest(
-            BlobScheme, "/" + notification.Bucket, notification.Body(), headers, request);
+            BlobScheme,
+            "/" + notification.Bucket,
+            notification.Body(),
+            headers,
+            request
+        );
     }
 
     /// <summary>
     /// The notification's word for what the CloudEvent's type says: one vocabulary for both forms.
     /// </summary>
     internal static string NotificationEventType(string suffix) =>
-        suffix switch {
+        suffix switch
+        {
             "finalized" => "OBJECT_FINALIZE",
             "deleted" => "OBJECT_DELETE",
             "archived" => "OBJECT_ARCHIVE",
             "metadataUpdated" => "OBJECT_METADATA_UPDATE",
-            _ => suffix
+            _ => suffix,
         };
 
     /// <summary>The object's name off the subject, <c>objects/{name}</c>.</summary>
-    internal static string? ObjectName(string? subject) {
+    internal static string? ObjectName(string? subject)
+    {
         const string prefix = "objects/";
 
-        if (string.IsNullOrEmpty(subject)) {
+        if (string.IsNullOrEmpty(subject))
+        {
             return null;
         }
 
-        return subject!.StartsWith(prefix, StringComparison.Ordinal) ? subject.Substring(prefix.Length) : subject;
+        return subject!.StartsWith(prefix, StringComparison.Ordinal)
+            ? subject.Substring(prefix.Length)
+            : subject;
     }
 
-    private static JsonDocument Metadata(ReadOnlyMemory<byte> json) {
-        try {
+    private static JsonDocument Metadata(ReadOnlyMemory<byte> json)
+    {
+        try
+        {
             return JsonDocument.Parse(json);
         }
-        catch (JsonException exception) {
+        catch (JsonException exception)
+        {
             throw new InvalidOperationException(
-                "The Cloud Storage delivery carries object metadata that is not JSON.", exception);
+                "The Cloud Storage delivery carries object metadata that is not JSON.",
+                exception
+            );
         }
     }
 
-    private static JsonDocument Metadata(Stream json) {
-        try {
+    private static JsonDocument Metadata(Stream json)
+    {
+        try
+        {
             return JsonDocument.Parse(json);
         }
-        catch (JsonException exception) {
+        catch (JsonException exception)
+        {
             throw new InvalidOperationException(
-                "The Cloud Storage notification carries object metadata that is not JSON.", exception);
+                "The Cloud Storage notification carries object metadata that is not JSON.",
+                exception
+            );
         }
     }
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

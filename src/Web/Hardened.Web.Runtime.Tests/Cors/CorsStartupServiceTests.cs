@@ -24,15 +24,17 @@ namespace Hardened.Web.Runtime.Tests.Cors;
 /// it — through <c>HardenedWebModule</c>'s registrations.
 /// </para>
 /// </summary>
-public class CorsStartupServiceTests {
-
+public class CorsStartupServiceTests
+{
     /// <summary>
     /// Builds the module's registrations, replaces the environment-derived CORS configuration with
     /// <paramref name="configuration"/>, and returns the provider along with the middleware
     /// service the startup services will install into.
     /// </summary>
     private static (IServiceProvider provider, IMiddlewareService middleware) Application(
-        CorsConfiguration configuration) {
+        CorsConfiguration configuration
+    )
+    {
         var services = new ServiceCollection();
 
         new HardenedWebModule().ConfigureServices(services);
@@ -47,14 +49,17 @@ public class CorsStartupServiceTests {
         return (services.BuildServiceProvider(), middleware);
     }
 
-    private static async Task RunStartup(IServiceProvider provider) {
-        foreach (var startupService in provider.GetServices<IStartupService>()) {
+    private static async Task RunStartup(IServiceProvider provider)
+    {
+        foreach (var startupService in provider.GetServices<IStartupService>())
+        {
             await startupService.Startup(provider);
         }
     }
 
     [Fact]
-    public void TheWebModuleRegistersAStartupServiceForCors() {
+    public void TheWebModuleRegistersAStartupServiceForCors()
+    {
         var services = new ServiceCollection();
 
         new HardenedWebModule().ConfigureServices(services);
@@ -75,7 +80,8 @@ public class CorsStartupServiceTests {
     /// </para>
     /// </summary>
     [Fact]
-    public async Task NoAllowedOriginStillInstallsTheMiddleware() {
+    public async Task NoAllowedOriginStillInstallsTheMiddleware()
+    {
         var (provider, middleware) = Application(new CorsConfiguration());
 
         await RunStartup(provider);
@@ -84,7 +90,8 @@ public class CorsStartupServiceTests {
     }
 
     [Fact]
-    public async Task AnAllowedOriginInstallsTheMiddleware() {
+    public async Task AnAllowedOriginInstallsTheMiddleware()
+    {
         var configuration = new CorsConfiguration();
 
         configuration.AllowOrigin("https://app.example.com");
@@ -101,7 +108,8 @@ public class CorsStartupServiceTests {
     /// on the spot — so it carries the same configuration the decision was made from.
     /// </summary>
     [Fact]
-    public async Task TheInstalledMiddlewareIsTheContainersCorsFilter() {
+    public async Task TheInstalledMiddlewareIsTheContainersCorsFilter()
+    {
         var configuration = new CorsConfiguration();
 
         configuration.AllowOrigin("https://app.example.com");
@@ -115,7 +123,10 @@ public class CorsStartupServiceTests {
         await RunStartup(provider);
 
         Assert.NotNull(installed);
-        Assert.Same(provider.GetRequiredService<CorsFilter>(), installed!(Substitute.For<IExecutionContext>()));
+        Assert.Same(
+            provider.GetRequiredService<CorsFilter>(),
+            installed!(Substitute.For<IExecutionContext>())
+        );
     }
 
     /// <summary>
@@ -123,23 +134,35 @@ public class CorsStartupServiceTests {
     /// only way an operator can allow an origin without a code change.
     /// </summary>
     [Fact]
-    public void TheModulesCorsConfigurationIsLoadedFromTheEnvironment() {
-        var previous = Environment.GetEnvironmentVariable(CorsConfiguration.DefaultEnvironmentVariable);
+    public void TheModulesCorsConfigurationIsLoadedFromTheEnvironment()
+    {
+        var previous = Environment.GetEnvironmentVariable(
+            CorsConfiguration.DefaultEnvironmentVariable
+        );
 
         Environment.SetEnvironmentVariable(
-            CorsConfiguration.DefaultEnvironmentVariable, "https://from-environment.example.com");
+            CorsConfiguration.DefaultEnvironmentVariable,
+            "https://from-environment.example.com"
+        );
 
-        try {
+        try
+        {
             var services = new ServiceCollection();
 
             new HardenedWebModule().ConfigureServices(services);
 
-            var configuration = services.BuildServiceProvider().GetRequiredService<CorsConfiguration>();
+            var configuration = services
+                .BuildServiceProvider()
+                .GetRequiredService<CorsConfiguration>();
 
             Assert.True(configuration.IsOriginAllowed("https://from-environment.example.com"));
         }
-        finally {
-            Environment.SetEnvironmentVariable(CorsConfiguration.DefaultEnvironmentVariable, previous);
+        finally
+        {
+            Environment.SetEnvironmentVariable(
+                CorsConfiguration.DefaultEnvironmentVariable,
+                previous
+            );
         }
     }
 
@@ -148,10 +171,14 @@ public class CorsStartupServiceTests {
     /// runs through rather than a new one per resolve.
     /// </summary>
     [Fact]
-    public void TheCorsFilterIsASingleton() {
+    public void TheCorsFilterIsASingleton()
+    {
         var (provider, _) = Application(new CorsConfiguration());
 
-        Assert.Same(provider.GetRequiredService<CorsFilter>(), provider.GetRequiredService<CorsFilter>());
+        Assert.Same(
+            provider.GetRequiredService<CorsFilter>(),
+            provider.GetRequiredService<CorsFilter>()
+        );
     }
 
     #region composed twice
@@ -166,7 +193,8 @@ public class CorsStartupServiceTests {
     /// fixing, and which a duplicated log line was the only sign of.
     /// </remarks>
     [Fact]
-    public void TheModuleAppliedTwiceRegistersOneStartupService() {
+    public void TheModuleAppliedTwiceRegistersOneStartupService()
+    {
         var services = new ServiceCollection();
 
         new HardenedWebModule().ConfigureServices(services);
@@ -176,13 +204,16 @@ public class CorsStartupServiceTests {
         // application does - through the module's registrations.
         Assert.Single(
             services,
-            descriptor => descriptor.ServiceType == typeof(IStartupService) &&
-                          descriptor.ImplementationType?.Name == "CorsStartupService");
+            descriptor =>
+                descriptor.ServiceType == typeof(IStartupService)
+                && descriptor.ImplementationType?.Name == "CorsStartupService"
+        );
     }
 
     /// <summary>And so the filter goes into the chain once.</summary>
     [Fact]
-    public async Task TheModuleAppliedTwiceInstallsOneFilter() {
+    public async Task TheModuleAppliedTwiceInstallsOneFilter()
+    {
         var services = new ServiceCollection();
 
         new HardenedWebModule().ConfigureServices(services);

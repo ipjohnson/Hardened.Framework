@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 
@@ -17,9 +17,10 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// names survive being sanitized again, and they do not depend on the order a document lists things
 /// in. Those are what stop the next document finding an eleventh.
 /// </remarks>
-public class NameAllocatorTests {
-
-    private static ServiceSpecModel Parse(string yaml) {
+public class NameAllocatorTests
+{
+    private static ServiceSpecModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "spec", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -27,23 +28,29 @@ public class NameAllocatorTests {
         return model!;
     }
 
-    private static IEnumerable<string> AllNames(ServiceSpecModel model) {
-        foreach (var schema in model.Schemas) {
+    private static IEnumerable<string> AllNames(ServiceSpecModel model)
+    {
+        foreach (var schema in model.Schemas)
+        {
             yield return schema.Name;
 
-            foreach (var property in schema.Properties) {
+            foreach (var property in schema.Properties)
+            {
                 yield return property.MemberName;
             }
 
-            foreach (var member in schema.EnumMembers) {
+            foreach (var member in schema.EnumMembers)
+            {
                 yield return member;
             }
         }
 
-        foreach (var service in model.Services) {
+        foreach (var service in model.Services)
+        {
             yield return service.TypeBaseName;
 
-            foreach (var operation in service.Operations) {
+            foreach (var operation in service.Operations)
+            {
                 yield return operation.MethodName;
                 yield return operation.ResponseContainerName;
             }
@@ -60,10 +67,12 @@ public class NameAllocatorTests {
     /// also why a disambiguating suffix carries no <c>_</c>.
     /// </remarks>
     [Fact]
-    public void EveryAllocatedNameSurvivesBeingSanitizedAgain() {
+    public void EveryAllocatedNameSurvivesBeingSanitizedAgain()
+    {
         var model = Parse(Colliding);
 
-        foreach (var name in AllNames(model)) {
+        foreach (var name in AllNames(model))
+        {
             Assert.Equal(name, NamingHelper.ToPascalCase(name));
         }
     }
@@ -77,7 +86,8 @@ public class NameAllocatorTests {
     /// breaks when a vendor reorders their file.
     /// </remarks>
     [Fact]
-    public void NamesDoNotDependOnTheOrderTheDocumentListsThings() {
+    public void NamesDoNotDependOnTheOrderTheDocumentListsThings()
+    {
         var forward = new List<string>(AllNames(Parse(Colliding)));
         var reversed = new List<string>(AllNames(Parse(CollidingReordered)));
 
@@ -97,18 +107,21 @@ public class NameAllocatorTests {
     /// reachable under the name they were given.
     /// </remarks>
     [Fact]
-    public void CollidingDeclarationsAreRenamedRatherThanDropped() {
+    public void CollidingDeclarationsAreRenamedRatherThanDropped()
+    {
         var model = Parse(Colliding);
 
         Assert.Equal(8, model.Schemas.Count);
 
-        foreach (var declared in new[] { "Monitor", "NullTime", "Commit", "Column" }) {
+        foreach (var declared in new[] { "Monitor", "NullTime", "Commit", "Column" })
+        {
             Assert.Contains(model.Schemas, schema => schema.Name == declared);
         }
 
         // The ones that had to move carry the document's name and then their own, so a reader can
         // still tell which declaration a renamed type came from - see SpecNameQualifiesATypeThatHadToMove.
-        foreach (var moved in new[] { "MonitorValidator", "DateTime", "JsonElement" }) {
+        foreach (var moved in new[] { "MonitorValidator", "DateTime", "JsonElement" })
+        {
             Assert.Contains(model.Schemas, schema => schema.Name == "Spec" + moved);
         }
     }
@@ -123,7 +136,8 @@ public class NameAllocatorTests {
     /// which is the thing that distinguishes it from whatever it collided with.
     /// </remarks>
     [Fact]
-    public void ANameThatHadToMoveIsQualifiedByTheScopeThatOwnsIt() {
+    public void ANameThatHadToMoveIsQualifiedByTheScopeThatOwnsIt()
+    {
         var model = Parse(Colliding);
 
         // A schema is qualified by the document. Zoom's DateTime becomes ZoomDateTime; here the
@@ -147,66 +161,85 @@ public class NameAllocatorTests {
 
         // A parameter is qualified by where it travels - Kubernetes' two called path.
         var operation = Assert.Single(
-            model.Services[0].Operations, candidate => candidate.OperationId == "getThing");
+            model.Services[0].Operations,
+            candidate => candidate.OperationId == "getThing"
+        );
 
         Assert.Contains("queryPath", operation.Parameters.ConvertAll(p => p.MemberName));
 
         // An operation is the one exception: two ids that collide share a tag, so the tag
         // distinguishes nothing and the route does. This is the name it would have had with no id.
-        Assert.Contains(model.Services[0].Operations,
-            candidate => candidate.MethodName == "DeleteThingsByPath");
+        Assert.Contains(
+            model.Services[0].Operations,
+            candidate => candidate.MethodName == "DeleteThingsByPath"
+        );
     }
 
     /// <summary>Nothing carries a hash, which is what this replaced.</summary>
     [Fact]
-    public void NoAllocatedNameIsAHash() {
+    public void NoAllocatedNameIsAHash()
+    {
         var model = Parse(Colliding);
 
-        foreach (var name in AllNames(model)) {
+        foreach (var name in AllNames(model))
+        {
             Assert.DoesNotMatch("N[0-9a-f]{8}$", name);
         }
     }
 
     [Fact]
-    public void EveryNameIsUniqueWithinItsScope() {
+    public void EveryNameIsUniqueWithinItsScope()
+    {
         var model = Parse(Colliding);
 
         var types = new HashSet<string>(System.StringComparer.Ordinal);
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             Assert.True(types.Add(schema.Name), $"duplicate type {schema.Name}");
 
             var members = new HashSet<string>(System.StringComparer.Ordinal);
 
-            foreach (var property in schema.Properties) {
-                Assert.True(members.Add(property.MemberName),
-                    $"duplicate member {schema.Name}.{property.MemberName}");
+            foreach (var property in schema.Properties)
+            {
+                Assert.True(
+                    members.Add(property.MemberName),
+                    $"duplicate member {schema.Name}.{property.MemberName}"
+                );
             }
 
             var values = new HashSet<string>(System.StringComparer.Ordinal);
 
-            foreach (var member in schema.EnumMembers) {
+            foreach (var member in schema.EnumMembers)
+            {
                 Assert.True(values.Add(member), $"duplicate enum member {schema.Name}.{member}");
             }
         }
 
         var methods = new HashSet<string>(System.StringComparer.Ordinal);
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                Assert.True(methods.Add(operation.MethodName),
-                    $"duplicate method {operation.MethodName}");
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                Assert.True(
+                    methods.Add(operation.MethodName),
+                    $"duplicate method {operation.MethodName}"
+                );
             }
         }
     }
 
     /// <summary>A property may not be named after the type declaring it - CS0542.</summary>
     [Fact]
-    public void APropertyIsNeverNamedAfterItsOwnType() {
+    public void APropertyIsNeverNamedAfterItsOwnType()
+    {
         var model = Parse(Colliding);
 
-        foreach (var schema in model.Schemas) {
-            foreach (var property in schema.Properties) {
+        foreach (var schema in model.Schemas)
+        {
+            foreach (var property in schema.Properties)
+            {
                 Assert.NotEqual(schema.Name, property.MemberName);
             }
         }
@@ -214,13 +247,18 @@ public class NameAllocatorTests {
 
     /// <summary>A property may not be named after a member every type already has - CS0102.</summary>
     [Fact]
-    public void APropertyIsNeverNamedAfterAMemberOfObject() {
+    public void APropertyIsNeverNamedAfterAMemberOfObject()
+    {
         var model = Parse(Colliding);
 
-        foreach (var schema in model.Schemas) {
-            foreach (var property in schema.Properties) {
-                Assert.DoesNotContain(property.MemberName,
-                    new[] { "ToString", "Equals", "GetHashCode", "GetType" });
+        foreach (var schema in model.Schemas)
+        {
+            foreach (var property in schema.Properties)
+            {
+                Assert.DoesNotContain(
+                    property.MemberName,
+                    new[] { "ToString", "Equals", "GetHashCode", "GetType" }
+                );
             }
         }
     }
@@ -230,32 +268,38 @@ public class NameAllocatorTests {
     /// called that - see Sentry's Monitor beside MonitorValidator.
     /// </summary>
     [Fact]
-    public void NoTypeIsNamedAfterAnotherTypesGeneratedValidator() {
+    public void NoTypeIsNamedAfterAnotherTypesGeneratedValidator()
+    {
         var model = Parse(Colliding);
 
         var types = new HashSet<string>(System.StringComparer.Ordinal);
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             types.Add(schema.Name);
         }
 
-        foreach (var name in types) {
-            if (name.EndsWith("Validator", System.StringComparison.Ordinal)) {
-                Assert.DoesNotContain(
-                    name.Substring(0, name.Length - "Validator".Length), types);
+        foreach (var name in types)
+        {
+            if (name.EndsWith("Validator", System.StringComparison.Ordinal))
+            {
+                Assert.DoesNotContain(name.Substring(0, name.Length - "Validator".Length), types);
             }
         }
     }
 
     /// <summary>The document's own values are not the allocator's to change.</summary>
     [Fact]
-    public void TheDocumentsOwnIdentifiersAreLeftAlone() {
+    public void TheDocumentsOwnIdentifiersAreLeftAlone()
+    {
         var model = Parse(Colliding);
 
         var ids = new List<string>();
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
                 ids.Add(operation.OperationId);
             }
         }
@@ -285,7 +329,8 @@ public class NameAllocatorTests {
     /// the name, as it does against every other generated wrapper here.
     /// </remarks>
     [Fact]
-    public void TheResponseContainerLosesItsNameToASchema() {
+    public void TheResponseContainerLosesItsNameToASchema()
+    {
         var model = Parse(ContainerCollision);
 
         var schema = Assert.Single(model.Schemas, candidate => candidate.Name == "SyncResponse");
@@ -299,10 +344,14 @@ public class NameAllocatorTests {
         Assert.Equal("UnlockResponse", Operation(model, "Unlock").ResponseContainerName);
     }
 
-    private static OperationModel Operation(ServiceSpecModel model, string methodName) {
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                if (operation.MethodName == methodName) {
+    private static OperationModel Operation(ServiceSpecModel model, string methodName)
+    {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                if (operation.MethodName == methodName)
+                {
                     return operation;
                 }
             }
@@ -427,11 +476,14 @@ public class NameAllocatorTests {
     /// name at all (CS8859). Bitbucket declares a property called <c>clone</c>.
     /// </summary>
     [Fact]
-    public void NoPropertyIsNamedAfterAMemberARecordReserves() {
+    public void NoPropertyIsNamedAfterAMemberARecordReserves()
+    {
         var model = Parse(Colliding);
 
-        foreach (var schema in model.Schemas) {
-            foreach (var property in schema.Properties) {
+        foreach (var schema in model.Schemas)
+        {
+            foreach (var property in schema.Properties)
+            {
                 Assert.NotEqual("Clone", property.MemberName);
                 Assert.NotEqual("Deconstruct", property.MemberName);
                 Assert.NotEqual("PrintMembers", property.MemberName);
@@ -453,10 +505,12 @@ public class NameAllocatorTests {
     [InlineData("DateTime")]
     [InlineData("DateOnly")]
     [InlineData("JsonElement")]
-    public void NoSchemaKeepsANameThePrimitiveMapperAnswersTo(string reserved) {
+    public void NoSchemaKeepsANameThePrimitiveMapperAnswersTo(string reserved)
+    {
         var model = Parse(Colliding);
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             Assert.NotEqual(reserved, schema.Name);
         }
     }
@@ -472,15 +526,18 @@ public class NameAllocatorTests {
     /// that was <c>GetPetNotFoundException</c> beside <c>GetPetLabelNotFoundException</c>.
     /// </remarks>
     [Fact]
-    public void ANamedErrorGetsOneNameForEveryOperationThatDeclaresIt() {
+    public void ANamedErrorGetsOneNameForEveryOperationThatDeclaresIt()
+    {
         var errors = Errors(Parse(NamedErrors));
 
         Assert.All(
             errors.Where(error => error.Name == "PetMissing"),
-            error => {
+            error =>
+            {
                 Assert.Equal("PetMissing", error.TypeName);
                 Assert.Equal("PetMissingException", error.ExceptionTypeName);
-            });
+            }
+        );
 
         Assert.Equal(2, errors.Count(error => error.Name == "PetMissing"));
     }
@@ -495,7 +552,8 @@ public class NameAllocatorTests {
     /// exception asks for a name nothing else wants and is unaffected.
     /// </remarks>
     [Fact]
-    public void AnErrorNamedAfterASchemaMovesAndTheSchemaDoesNot() {
+    public void AnErrorNamedAfterASchemaMovesAndTheSchemaDoesNot()
+    {
         var model = Parse(NamedErrors);
 
         var error = Errors(model).Single(candidate => candidate.Name == "ApiError");
@@ -510,7 +568,8 @@ public class NameAllocatorTests {
     /// for it. A name here would be a type the emitters never wrote.
     /// </summary>
     [Fact]
-    public void AnErrorThatBindsIsAllocatedNoName() {
+    public void AnErrorThatBindsIsAllocatedNoName()
+    {
         var error = Errors(Parse(NamedErrors)).Single(candidate => candidate.StatusCode == 410);
 
         Assert.Null(error.Name);
@@ -519,7 +578,8 @@ public class NameAllocatorTests {
     }
 
     private static IEnumerable<ErrorResponseModel> Errors(ServiceSpecModel model) =>
-        model.Services.SelectMany(service => service.Operations)
+        model
+            .Services.SelectMany(service => service.Operations)
             .SelectMany(operation => operation.ErrorResponses);
 
     /// <summary>

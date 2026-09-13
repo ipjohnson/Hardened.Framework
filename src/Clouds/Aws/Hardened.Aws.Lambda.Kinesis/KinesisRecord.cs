@@ -35,4 +35,5 @@ public sealed record KinesisRecord(
     string SequenceNumber,
     string PartitionKey,
     string EventId,
-    string? ArrivalTime);
+    string? ArrivalTime
+);

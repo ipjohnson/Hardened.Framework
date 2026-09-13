@@ -2,14 +2,21 @@
 
 namespace Hardened.Shared.Runtime.Configuration;
 
-public class FuncConfigurationValueProvider<TInterface, TImpl> : IConfigurationValueProvider where TImpl : class {
+public class FuncConfigurationValueProvider<TInterface, TImpl> : IConfigurationValueProvider
+    where TImpl : class
+{
     private readonly Func<IHardenedEnvironment, TImpl> _provider;
 
-    public FuncConfigurationValueProvider(Func<IHardenedEnvironment, TImpl> provider) {
+    public FuncConfigurationValueProvider(Func<IHardenedEnvironment, TImpl> provider)
+    {
         _provider = provider;
     }
 
-    public object ProvideValue(IHardenedEnvironment environment, Action<IHardenedEnvironment, object> amender) {
+    public object ProvideValue(
+        IHardenedEnvironment environment,
+        Action<IHardenedEnvironment, object> amender
+    )
+    {
         var tValue = _provider(environment);
 
         amender(environment, tValue);

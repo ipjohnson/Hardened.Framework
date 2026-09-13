@@ -24,19 +24,25 @@ public sealed record ParameterProviderMark(string Name);
 /// <summary>
 /// Collects what ran during startup, in the order it ran.
 /// </summary>
-public sealed class StartupLog {
+public sealed class StartupLog
+{
     private readonly List<string> _names = new();
 
-    public IReadOnlyList<string> Names {
-        get {
-            lock (_names) {
+    public IReadOnlyList<string> Names
+    {
+        get
+        {
+            lock (_names)
+            {
                 return _names.ToArray();
             }
         }
     }
 
-    public void Add(string name) {
-        lock (_names) {
+    public void Add(string name)
+    {
+        lock (_names)
+        {
             _names.Add(name);
         }
     }
@@ -45,13 +51,18 @@ public sealed class StartupLog {
 /// <summary>
 /// Configuration an amender can be seen to have touched.
 /// </summary>
-public sealed class ConfigurationLog {
+public sealed class ConfigurationLog
+{
     public List<string> Names { get; } = new();
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public class RecordingRegistrationAttribute : Attribute, IHardenedTestDependencyRegistrationAttribute {
-    public RecordingRegistrationAttribute(string name) {
+public class RecordingRegistrationAttribute
+    : Attribute,
+        IHardenedTestDependencyRegistrationAttribute
+{
+    public RecordingRegistrationAttribute(string name)
+    {
         Name = name;
     }
 
@@ -59,15 +70,22 @@ public class RecordingRegistrationAttribute : Attribute, IHardenedTestDependency
 
     public int Order { get; set; } = 10;
 
-    public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
-        IHardenedEnvironment environment, IServiceCollection serviceCollection) {
+    public void RegisterDependencies(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        IHardenedEnvironment environment,
+        IServiceCollection serviceCollection
+    )
+    {
         serviceCollection.AddSingleton(new RegistrationMark(Name));
     }
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public class RecordingParameterProviderAttribute : Attribute, IHardenedParameterProviderAttribute {
-    public RecordingParameterProviderAttribute(string name) {
+public class RecordingParameterProviderAttribute : Attribute, IHardenedParameterProviderAttribute
+{
+    public RecordingParameterProviderAttribute(string name)
+    {
         Name = name;
     }
 
@@ -75,21 +93,34 @@ public class RecordingParameterProviderAttribute : Attribute, IHardenedParameter
 
     public int Order { get; set; } = 10;
 
-    public void RegisterDependencies(AttributeCollection attributeCollection, MethodInfo methodInfo,
-        ParameterInfo? parameterInfo, IHardenedEnvironment environment, IServiceCollection serviceCollection) {
-        serviceCollection.AddSingleton(new ParameterProviderMark(
-            parameterInfo == null ? Name : $"{Name}:{parameterInfo.Name}"));
+    public void RegisterDependencies(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        ParameterInfo? parameterInfo,
+        IHardenedEnvironment environment,
+        IServiceCollection serviceCollection
+    )
+    {
+        serviceCollection.AddSingleton(
+            new ParameterProviderMark(parameterInfo == null ? Name : $"{Name}:{parameterInfo.Name}")
+        );
     }
 
-    public object? ProvideParameterValue(MethodInfo methodInfo, ParameterInfo parameterInfo,
-        IApplicationRoot applicationRoot) {
+    public object? ProvideParameterValue(
+        MethodInfo methodInfo,
+        ParameterInfo parameterInfo,
+        IApplicationRoot applicationRoot
+    )
+    {
         return null;
     }
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public class RecordingStartupAttribute : Attribute, IHardenedTestStartupAttribute {
-    public RecordingStartupAttribute(string name) {
+public class RecordingStartupAttribute : Attribute, IHardenedTestStartupAttribute
+{
+    public RecordingStartupAttribute(string name)
+    {
         Name = name;
     }
 
@@ -97,8 +128,13 @@ public class RecordingStartupAttribute : Attribute, IHardenedTestStartupAttribut
 
     public int Order { get; set; } = 10;
 
-    public Task Startup(AttributeCollection attributeCollection, MethodInfo methodInfo,
-        IHardenedEnvironment environment, IServiceProvider serviceProvider) {
+    public Task Startup(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        IHardenedEnvironment environment,
+        IServiceProvider serviceProvider
+    )
+    {
         serviceProvider.GetRequiredService<StartupLog>().Add(Name);
 
         return Task.CompletedTask;
@@ -106,8 +142,10 @@ public class RecordingStartupAttribute : Attribute, IHardenedTestStartupAttribut
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public class RecordingEnvironmentAttribute : Attribute, IHardenedTestEnvironmentAttribute {
-    public RecordingEnvironmentAttribute(string variable, string value) {
+public class RecordingEnvironmentAttribute : Attribute, IHardenedTestEnvironmentAttribute
+{
+    public RecordingEnvironmentAttribute(string variable, string value)
+    {
         Variable = variable;
         Value = value;
     }
@@ -118,16 +156,23 @@ public class RecordingEnvironmentAttribute : Attribute, IHardenedTestEnvironment
 
     public int Order { get; set; } = 10;
 
-    public void ConfigureEnvironment(AttributeCollection attributeCollection, MethodInfo methodInfo,
-        string environmentName, IDictionary<string, object> environment) {
+    public void ConfigureEnvironment(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        string environmentName,
+        IDictionary<string, object> environment
+    )
+    {
         environment[Variable] = Value;
         environment["environment-name-seen-by-configure"] = environmentName;
     }
 }
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public class RecordingConfigurationAttribute : Attribute, IHardenedTestConfigurationAttribute {
-    public RecordingConfigurationAttribute(string name) {
+public class RecordingConfigurationAttribute : Attribute, IHardenedTestConfigurationAttribute
+{
+    public RecordingConfigurationAttribute(string name)
+    {
         Name = name;
     }
 
@@ -135,8 +180,13 @@ public class RecordingConfigurationAttribute : Attribute, IHardenedTestConfigura
 
     public int Order { get; set; } = 10;
 
-    public void Configure(AttributeCollection attributeCollection, MethodInfo methodInfo,
-        IHardenedEnvironment environment, IAppConfig appConfig) {
+    public void Configure(
+        AttributeCollection attributeCollection,
+        MethodInfo methodInfo,
+        IHardenedEnvironment environment,
+        IAppConfig appConfig
+    )
+    {
         appConfig.Amend<ConfigurationLog>(log => log.Names.Add(Name));
     }
 }

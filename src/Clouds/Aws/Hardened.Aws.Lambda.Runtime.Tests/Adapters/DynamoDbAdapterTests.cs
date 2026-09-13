@@ -11,15 +11,21 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 /// The DynamoDB Streams adapter: the route it derives, the item a handler binds, and the report a
 /// failure produces.
 /// </summary>
-public class DynamoDbAdapterTests {
-    private static DynamoDbRequest Request(bool reportsItemFailures = false) {
+public class DynamoDbAdapterTests
+{
+    private static DynamoDbRequest Request(bool reportsItemFailures = false)
+    {
         using var payload = Infrastructure.Payloads.Payload(Infrastructure.Payloads.DynamoDbJson);
 
-        return (DynamoDbRequest)new DynamoDbAdapter(reportsItemFailures)
-            .CreateRequest(payload, new TestLambdaContext());
+        return (DynamoDbRequest)
+            new DynamoDbAdapter(reportsItemFailures).CreateRequest(
+                payload,
+                new TestLambdaContext()
+            );
     }
 
-    private static JsonElement Body(IExecutionRequest request) {
+    private static JsonElement Body(IExecutionRequest request)
+    {
         request.Body!.Position = 0;
 
         // leaveOpen, because a StreamReader closes what it wraps and a test may read a
@@ -38,7 +44,10 @@ public class DynamoDbAdapterTests {
     /// was turned off and on.
     /// </remarks>
     [Theory]
-    [InlineData("arn:aws:dynamodb:us-east-1:1:table/orders/stream/2026-01-01T00:00:00.000", "orders")]
+    [InlineData(
+        "arn:aws:dynamodb:us-east-1:1:table/orders/stream/2026-01-01T00:00:00.000",
+        "orders"
+    )]
     [InlineData("arn:aws:dynamodb:eu-west-2:1:table/orders", "orders")]
     [InlineData("not-an-arn", "not-an-arn")]
     [InlineData(null, "")]
@@ -46,7 +55,8 @@ public class DynamoDbAdapterTests {
         Assert.Equal(expected, DynamoDbAdapter.TableName(arn));
 
     [Fact]
-    public void TheBatchRoutesOnTheTableAndTheChangeScheme() {
+    public void TheBatchRoutesOnTheTableAndTheChangeScheme()
+    {
         var request = Request();
 
         Assert.Equal("CHANGE", request.Method);
@@ -69,14 +79,18 @@ public class DynamoDbAdapterTests {
     /// <c>Dictionary&lt;string, AttributeValue&gt;</c> and reads <c>item["total"].N</c> as a string.
     /// </remarks>
     [Fact]
-    public void AChangeBindsTheNewImageAsPlainJson() {
+    public void AChangeBindsTheNewImageAsPlainJson()
+    {
         var body = Body(Request().ForItem(0));
 
         Assert.Equal("order-1", body.GetProperty("id").GetString());
         Assert.Equal(42.5m, body.GetProperty("total").GetDecimal());
         Assert.True(body.GetProperty("paid").GetBoolean());
         Assert.Equal(JsonValueKind.Null, body.GetProperty("cancelled").ValueKind);
-        Assert.Equal(["rush", "gift"], body.GetProperty("tags").EnumerateArray().Select(v => v.GetString()));
+        Assert.Equal(
+            ["rush", "gift"],
+            body.GetProperty("tags").EnumerateArray().Select(v => v.GetString())
+        );
         Assert.Equal([1, 2], body.GetProperty("sizes").EnumerateArray().Select(v => v.GetInt32()));
         Assert.Equal("Leeds", body.GetProperty("shipping").GetProperty("city").GetString());
     }
@@ -85,7 +99,8 @@ public class DynamoDbAdapterTests {
     /// A list keeps its members' own types rather than becoming strings.
     /// </summary>
     [Fact]
-    public void AListBindsItsMembersByTheirOwnTypes() {
+    public void AListBindsItsMembersByTheirOwnTypes()
+    {
         var lines = Body(Request().ForItem(0)).GetProperty("lines").EnumerateArray().ToArray();
 
         Assert.Equal("a", lines[0].GetString());
@@ -100,9 +115,12 @@ public class DynamoDbAdapterTests {
     /// back through a double would round it here, before the handler's own type ever saw it.
     /// </remarks>
     [Fact]
-    public void ANumberKeepsThePrecisionDynamoDbStored() {
+    public void ANumberKeepsThePrecisionDynamoDbStored()
+    {
         var json = Infrastructure.Payloads.DynamoDbJson.Replace(
-            "\"total\":{\"N\":\"42.5\"}", "\"total\":{\"N\":\"123456789012345678901234567890.5\"}");
+            "\"total\":{\"N\":\"42.5\"}",
+            "\"total\":{\"N\":\"123456789012345678901234567890.5\"}"
+        );
 
         using var payload = Infrastructure.Payloads.Payload(json);
 
@@ -110,7 +128,8 @@ public class DynamoDbAdapterTests {
 
         Assert.Equal(
             "123456789012345678901234567890.5",
-            Body(((DynamoDbRequest)request).ForItem(0)).GetProperty("total").GetRawText());
+            Body(((DynamoDbRequest)request).ForItem(0)).GetProperty("total").GetRawText()
+        );
     }
 
     /// <summary>
@@ -118,13 +137,19 @@ public class DynamoDbAdapterTests {
     /// binding the record.
     /// </summary>
     [Fact]
-    public void TheChangeCarriesItsEnvelopeAsHeaders() {
+    public void TheChangeCarriesItsEnvelopeAsHeaders()
+    {
         var headers = Request().ForItem(0).Headers;
 
         Assert.Equal("MODIFY", headers[DynamoDbRequest.EventNameHeader].ToString());
-        Assert.Equal("4421584500000000017450439091",
-            headers[DynamoDbRequest.SequenceNumberHeader].ToString());
-        Assert.Equal("NEW_AND_OLD_IMAGES", headers[DynamoDbRequest.StreamViewTypeHeader].ToString());
+        Assert.Equal(
+            "4421584500000000017450439091",
+            headers[DynamoDbRequest.SequenceNumberHeader].ToString()
+        );
+        Assert.Equal(
+            "NEW_AND_OLD_IMAGES",
+            headers[DynamoDbRequest.StreamViewTypeHeader].ToString()
+        );
     }
 
     /// <summary>
@@ -132,7 +157,8 @@ public class DynamoDbAdapterTests {
     /// <c>[OldImage]</c> read.
     /// </summary>
     [Fact]
-    public void AChangeKeepsBothImagesOnTheRequest() {
+    public void AChangeKeepsBothImagesOnTheRequest()
+    {
         var change = Assert.IsType<DynamoDbChange>(Request().ForItem(0));
 
         Assert.Equal("42.5", change.NewImage!["total"].N);
@@ -148,7 +174,8 @@ public class DynamoDbAdapterTests {
     /// the whole batch - which is the outcome partial batch reporting exists to avoid.
     /// </remarks>
     [Fact]
-    public async Task AFailureIsReportedBySequenceNumber() {
+    public async Task AFailureIsReportedBySequenceNumber()
+    {
         var adapter = new DynamoDbAdapter(reportsItemFailures: true);
         var request = Request(reportsItemFailures: true);
 
@@ -157,7 +184,9 @@ public class DynamoDbAdapterTests {
         var output = new MemoryStream();
 
         await adapter.WriteResponse(
-            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), request), output);
+            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), request),
+            output
+        );
 
         output.Position = 0;
 
@@ -165,21 +194,26 @@ public class DynamoDbAdapterTests {
 
         Assert.Equal(
             "4421584500000000017450439091",
-            failures[0].GetProperty("itemIdentifier").GetString());
+            failures[0].GetProperty("itemIdentifier").GetString()
+        );
     }
 
     [Fact]
-    public async Task ABatchWithNoFailureReportsAnEmptyList() {
+    public async Task ABatchWithNoFailureReportsAnEmptyList()
+    {
         var adapter = new DynamoDbAdapter();
 
         var output = new MemoryStream();
 
         await adapter.WriteResponse(
-            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), Request()), output);
+            new ResponseOnlyContext(adapter.CreateResponse(new MemoryStream()), Request()),
+            output
+        );
 
         output.Position = 0;
 
-        Assert.Empty(JsonDocument.Parse(output).RootElement.GetProperty("batchItemFailures")
-            .EnumerateArray());
+        Assert.Empty(
+            JsonDocument.Parse(output).RootElement.GetProperty("batchItemFailures").EnumerateArray()
+        );
     }
 }

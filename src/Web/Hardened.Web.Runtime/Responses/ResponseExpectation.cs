@@ -1,6 +1,5 @@
 using System.Globalization;
 using Hardened.Requests.Abstract.Headers;
-
 using Hardened.Requests.Abstract.Responses;
 
 namespace Hardened.Web.Runtime.Responses;
@@ -13,8 +12,8 @@ namespace Hardened.Web.Runtime.Responses;
 /// opening the client's generated code, and having them in one place keeps that wording the same
 /// across every response type and every client library reading them.
 /// </remarks>
-public static class ResponseExpectation {
-
+public static class ResponseExpectation
+{
     /// <summary>
     /// The response type a call was expected to answer with, from what the client reported.
     /// </summary>
@@ -28,13 +27,20 @@ public static class ResponseExpectation {
     /// Another status was answered, or the body was not the one the type declares.
     /// </exception>
     public static TExpected Match<TExpected>(
-        int status, object? body, IReadOnlyDictionary<string, string> headers)
-        where TExpected : IResponseExpectation<TExpected> {
-
-        if (status != TExpected.StatusCode) {
+        int status,
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    )
+        where TExpected : IResponseExpectation<TExpected>
+    {
+        if (status != TExpected.StatusCode)
+        {
             throw new InvalidOperationException(
-                $"Expected {TExpected.StatusCode} ({Name(typeof(TExpected))}), the call was answered " +
-                status + Carrying(body) + ".");
+                $"Expected {TExpected.StatusCode} ({Name(typeof(TExpected))}), the call was answered "
+                    + status
+                    + Carrying(body)
+                    + "."
+            );
         }
 
         return TExpected.FromResponse(body, headers);
@@ -51,12 +57,16 @@ public static class ResponseExpectation {
     /// </remarks>
     /// <exception cref="InvalidOperationException">Another status was answered.</exception>
     public static void MatchStatus<TStatus>(int status, object? body = null)
-        where TStatus : IDeclaresStatus {
-
-        if (status != TStatus.StatusCode) {
+        where TStatus : IDeclaresStatus
+    {
+        if (status != TStatus.StatusCode)
+        {
             throw new InvalidOperationException(
-                $"Expected {TStatus.StatusCode} ({Name(typeof(TStatus))}), the call was answered " +
-                status + Carrying(body) + ".");
+                $"Expected {TStatus.StatusCode} ({Name(typeof(TStatus))}), the call was answered "
+                    + status
+                    + Carrying(body)
+                    + "."
+            );
         }
     }
 
@@ -64,38 +74,50 @@ public static class ResponseExpectation {
     /// <exception cref="InvalidOperationException">
     /// The response carried no body, or carried one of another type.
     /// </exception>
-    public static T Body<T>(object? body) => body switch {
-        T typed => typed,
-        null => throw new InvalidOperationException(
-            $"The response declares a body of {typeof(T).Name} and carried none."),
-        _ => throw new InvalidOperationException(
-            $"The response declares a body of {typeof(T).Name} and carried " +
-            $"{body.GetType().Name}. The client deserialised this status into a different model " +
-            "than the one the expectation names."),
-    };
+    public static T Body<T>(object? body) =>
+        body switch
+        {
+            T typed => typed,
+            null => throw new InvalidOperationException(
+                $"The response declares a body of {typeof(T).Name} and carried none."
+            ),
+            _ => throw new InvalidOperationException(
+                $"The response declares a body of {typeof(T).Name} and carried "
+                    + $"{body.GetType().Name}. The client deserialised this status into a different model "
+                    + "than the one the expectation names."
+            ),
+        };
 
     /// <summary>A header the status is required to carry.</summary>
     /// <exception cref="InvalidOperationException">The header was not present.</exception>
-    public static string RequiredHeader(IReadOnlyDictionary<string, string> headers, string name) {
+    public static string RequiredHeader(IReadOnlyDictionary<string, string> headers, string name)
+    {
         ArgumentNullException.ThrowIfNull(headers);
 
-        return OptionalHeader(headers, name) ?? throw new InvalidOperationException(
-            $"The response declares a {name} header and carried none. Present: " +
-            (headers.Count == 0 ? "nothing" : string.Join(", ", headers.Keys)) + ".");
+        return OptionalHeader(headers, name)
+            ?? throw new InvalidOperationException(
+                $"The response declares a {name} header and carried none. Present: "
+                    + (headers.Count == 0 ? "nothing" : string.Join(", ", headers.Keys))
+                    + "."
+            );
     }
 
     /// <summary>A header the status may carry, or null.</summary>
-    public static string? OptionalHeader(IReadOnlyDictionary<string, string> headers, string name) {
+    public static string? OptionalHeader(IReadOnlyDictionary<string, string> headers, string name)
+    {
         ArgumentNullException.ThrowIfNull(headers);
 
-        if (headers.TryGetValue(name, out var value)) {
+        if (headers.TryGetValue(name, out var value))
+        {
             return value;
         }
 
         // The caller's dictionary need not be case-insensitive, and header names on the wire are
         // not. A client that reports "location" would otherwise read as one that sent no header.
-        foreach (var header in headers) {
-            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var header in headers)
+        {
+            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase))
+            {
                 return header.Value;
             }
         }
@@ -131,8 +153,10 @@ public static class ResponseExpectation {
     /// </remarks>
     public static string Name(Type type) =>
         type.IsGenericType
-            ? type.Name[..type.Name.IndexOf('`')] +
-              "<" + string.Join(", ", type.GetGenericArguments().Select(Name)) + ">"
+            ? type.Name[..type.Name.IndexOf('`')]
+                + "<"
+                + string.Join(", ", type.GetGenericArguments().Select(Name))
+                + ">"
             : type.Name;
 
     // Seconds only, which is what RetryAfter writes. The HTTP-date form is legal and is not read
@@ -142,6 +166,7 @@ public static class ResponseExpectation {
         int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
             ? TimeSpan.FromSeconds(seconds)
             : throw new InvalidOperationException(
-                $"The {KnownHeaders.RetryAfter} header read \"{value}\", which is not a number of " +
-                "seconds. Only the delta-seconds form is read back.");
+                $"The {KnownHeaders.RetryAfter} header read \"{value}\", which is not a number of "
+                    + "seconds. Only the delta-seconds form is read back."
+            );
 }

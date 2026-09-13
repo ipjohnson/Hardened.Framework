@@ -8,8 +8,8 @@ namespace Hardened.Requests.Runtime.Tests.Diagnostics;
 /// The two objects the request pipeline reports through, and the one string that reaches them.
 /// </summary>
 [Collection(DiagnosticsListenerCollection.Name)]
-public class HardenedDiagnosticsTests {
-
+public class HardenedDiagnosticsTests
+{
     /// <summary>
     /// A published contract, not an implementation detail. This is the literal an application passes
     /// to <c>AddSource</c> and <c>AddMeter</c>, so changing it does not break a build anywhere — it
@@ -17,7 +17,8 @@ public class HardenedDiagnosticsTests {
     /// only thing that turns that into a failure someone sees.
     /// </summary>
     [Fact]
-    public void TheSourceNameIsTheStringApplicationsSubscribeTo() {
+    public void TheSourceNameIsTheStringApplicationsSubscribeTo()
+    {
         Assert.Equal("Hardened.Requests", HardenedDiagnostics.SourceName);
     }
 
@@ -26,7 +27,8 @@ public class HardenedDiagnosticsTests {
     /// literal rather than discovering that one of the two was spelled differently.
     /// </summary>
     [Fact]
-    public void TheMeterAndTheActivitySourceShareThatName() {
+    public void TheMeterAndTheActivitySourceShareThatName()
+    {
         Assert.Equal(HardenedDiagnostics.SourceName, HardenedDiagnostics.ActivitySource.Name);
         Assert.Equal(HardenedDiagnostics.SourceName, HardenedDiagnostics.Meter.Name);
     }
@@ -38,7 +40,8 @@ public class HardenedDiagnosticsTests {
     /// so it is worth an assertion rather than a comment.
     /// </summary>
     [Fact]
-    public void NothingIsProducedWhenNothingIsListening() {
+    public void NothingIsProducedWhenNothingIsListening()
+    {
         Assert.Null(HardenedDiagnostics.ActivitySource.StartActivity("GET /orders"));
     }
 
@@ -48,13 +51,16 @@ public class HardenedDiagnosticsTests {
     /// instrumented side needs no package either.
     /// </summary>
     [Fact]
-    public void AListenerSubscribedByNameSeesActivities() {
+    public void AListenerSubscribedByNameSeesActivities()
+    {
         var started = new List<Activity>();
 
-        using var listener = new ActivityListener {
+        using var listener = new ActivityListener
+        {
             ShouldListenTo = source => source.Name == HardenedDiagnostics.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
-            ActivityStarted = started.Add
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) =>
+                ActivitySamplingResult.AllData,
+            ActivityStarted = started.Add,
         };
 
         ActivitySource.AddActivityListener(listener);

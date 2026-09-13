@@ -35,35 +35,44 @@ namespace Hardened.Aws.Lambda.Runtime.Streaming;
 /// but intact, because nothing about NDJSON depends on when a line reaches the reader.
 /// </para>
 /// </remarks>
-internal class ServerSentEventsResponseModeStartupService : IStartupService {
-    public Task<bool> Startup(IServiceProvider rootProvider) {
+internal class ServerSentEventsResponseModeStartupService : IStartupService
+{
+    public Task<bool> Startup(IServiceProvider rootProvider)
+    {
         // Empty for every application without an event stream, which is the ordinary case: the
         // routing generator emits no manifest at all when no handler is framed as events.
-        var handlers = rootProvider.GetServices<IServerSentEventManifest>()
+        var handlers = rootProvider
+            .GetServices<IServerSentEventManifest>()
             .SelectMany(manifest => manifest.Handlers)
             .ToArray();
 
-        if (handlers.Length == 0) {
+        if (handlers.Length == 0)
+        {
             return Task.FromResult(true);
         }
 
-        if (rootProvider.GetRequiredService<IOptions<ILambdaResponseModeConfiguration>>().Value.Mode ==
-            LambdaResponseMode.Stream) {
+        if (
+            rootProvider.GetRequiredService<IOptions<ILambdaResponseModeConfiguration>>().Value.Mode
+            == LambdaResponseMode.Stream
+        )
+        {
             return Task.FromResult(true);
         }
 
-        var logger = rootProvider.GetService<ILoggerFactory>()
+        var logger = rootProvider
+            .GetService<ILoggerFactory>()
             ?.CreateLogger(typeof(ServerSentEventsResponseModeStartupService).FullName!);
 
         logger?.LogWarning(
-            "{Variable} is buffered and {Count} handler(s) answer text/event-stream: {Handlers}. " +
-            "Their events are delivered when the invocation ends, or never if it times out first. " +
-            "Deploy behind a function URL in RESPONSE_STREAM invoke mode with {Variable}=stream, or " +
-            "remove [ServerSentEvents].",
+            "{Variable} is buffered and {Count} handler(s) answer text/event-stream: {Handlers}. "
+                + "Their events are delivered when the invocation ends, or never if it times out first. "
+                + "Deploy behind a function URL in RESPONSE_STREAM invoke mode with {Variable}=stream, or "
+                + "remove [ServerSentEvents].",
             LambdaResponseModeConfiguration.EnvironmentVariable,
             handlers.Length,
             string.Join(", ", handlers),
-            LambdaResponseModeConfiguration.EnvironmentVariable);
+            LambdaResponseModeConfiguration.EnvironmentVariable
+        );
 
         return Task.FromResult(true);
     }

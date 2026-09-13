@@ -29,9 +29,10 @@ namespace Hardened.Shared.Testing.Tests.Attributes;
 /// then the entry point.
 /// </para>
 /// </remarks>
-public class ParameterInjectionTests {
-
-    private class InjectionTargets {
+public class ParameterInjectionTests
+{
+    private class InjectionTargets
+    {
         public void AService(IGreetingService greetingService) { }
 
         public void TheTestContext(ITestContext context) { }
@@ -41,14 +42,18 @@ public class ParameterInjectionTests {
         public void ServiceContextAndMockTogether(
             ITestContext context,
             GreetingConsumer consumer,
-            [Mock] IGreetingService greetingService) { }
+            [Mock] IGreetingService greetingService
+        ) { }
 
         public void SomethingNothingCanSupply(INeverRegisteredService service) { }
 
         public void TheContainerItself(IServiceProvider provider) { }
     }
 
-    private static (TestParameterResolver Resolver, ServiceProvider Provider) BuildContainer<T>(string methodName) {
+    private static (TestParameterResolver Resolver, ServiceProvider Provider) BuildContainer<T>(
+        string methodName
+    )
+    {
         var context = FakeTestMethodContext.For<T>(methodName);
         var collection = new ServiceCollection();
 
@@ -60,28 +65,34 @@ public class ParameterInjectionTests {
         resolver.SetupServiceCollection(collection);
 
         // 3. the harness's own registrations
-        new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule))
-            .SetupServiceCollection(context, collection);
+        new HardenedTestEntryPointAttribute(
+            typeof(AssemblyEntryPointModule)
+        ).SetupServiceCollection(context, collection);
 
         return (resolver, collection.BuildServiceProvider());
     }
 
-    private static async Task<object?[]> BuildArguments<T>(string methodName) {
+    private static async Task<object?[]> BuildArguments<T>(string methodName)
+    {
         var (resolver, provider) = BuildContainer<T>(methodName);
 
         return await resolver.ResolveArgumentsAsync(provider, []);
     }
 
     [Fact]
-    public async Task AServiceParameterComesFromTheApplicationsOwnRegistration() {
+    public async Task AServiceParameterComesFromTheApplicationsOwnRegistration()
+    {
         var arguments = await BuildArguments<InjectionTargets>(nameof(InjectionTargets.AService));
 
         Assert.IsType<RealGreetingService>(Assert.Single(arguments));
     }
 
     [Fact]
-    public async Task TheTestContextIsInjectableLikeAnyOtherService() {
-        var arguments = await BuildArguments<InjectionTargets>(nameof(InjectionTargets.TheTestContext));
+    public async Task TheTestContextIsInjectableLikeAnyOtherService()
+    {
+        var arguments = await BuildArguments<InjectionTargets>(
+            nameof(InjectionTargets.TheTestContext)
+        );
 
         var context = Assert.IsType<HardenedTestContext>(Assert.Single(arguments));
 
@@ -89,8 +100,11 @@ public class ParameterInjectionTests {
     }
 
     [Fact]
-    public async Task AMockParameterIsASubstituteAndNotTheRealService() {
-        var arguments = await BuildArguments<InjectionTargets>(nameof(InjectionTargets.AMockedService));
+    public async Task AMockParameterIsASubstituteAndNotTheRealService()
+    {
+        var arguments = await BuildArguments<InjectionTargets>(
+            nameof(InjectionTargets.AMockedService)
+        );
 
         var greeting = Assert.IsAssignableFrom<IGreetingService>(Assert.Single(arguments));
 
@@ -107,9 +121,11 @@ public class ParameterInjectionTests {
     /// would leave the service under test talking to the real implementation.
     /// </summary>
     [Fact]
-    public async Task AMockReplacesTheApplicationsServiceForEverythingElseInTheContainer() {
+    public async Task AMockReplacesTheApplicationsServiceForEverythingElseInTheContainer()
+    {
         var arguments = await BuildArguments<InjectionTargets>(
-            nameof(InjectionTargets.ServiceContextAndMockTogether));
+            nameof(InjectionTargets.ServiceContextAndMockTogether)
+        );
 
         var consumer = Assert.IsType<GreetingConsumer>(arguments[1]);
         var greeting = Assert.IsAssignableFrom<IGreetingService>(arguments[2]);
@@ -119,9 +135,11 @@ public class ParameterInjectionTests {
     }
 
     [Fact]
-    public async Task AMockedDependencyDrivesTheServiceUnderTest() {
+    public async Task AMockedDependencyDrivesTheServiceUnderTest()
+    {
         var arguments = await BuildArguments<InjectionTargets>(
-            nameof(InjectionTargets.ServiceContextAndMockTogether));
+            nameof(InjectionTargets.ServiceContextAndMockTogether)
+        );
 
         var consumer = Assert.IsType<GreetingConsumer>(arguments[1]);
         var greeting = Assert.IsAssignableFrom<IGreetingService>(arguments[2]);
@@ -133,9 +151,11 @@ public class ParameterInjectionTests {
     }
 
     [Fact]
-    public async Task ContextServiceAndMockParametersAreEachSuppliedInOneCall() {
+    public async Task ContextServiceAndMockParametersAreEachSuppliedInOneCall()
+    {
         var arguments = await BuildArguments<InjectionTargets>(
-            nameof(InjectionTargets.ServiceContextAndMockTogether));
+            nameof(InjectionTargets.ServiceContextAndMockTogether)
+        );
 
         Assert.Equal(3, arguments.Length);
         Assert.IsType<HardenedTestContext>(arguments[0]);
@@ -154,14 +174,19 @@ public class ParameterInjectionTests {
     /// break this test.
     /// </remarks>
     [Fact]
-    public async Task AParameterNothingCanSupplyFailsRatherThanArrivingAsNull() {
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => BuildArguments<InjectionTargets>(nameof(InjectionTargets.SomethingNothingCanSupply)));
+    public async Task AParameterNothingCanSupplyFailsRatherThanArrivingAsNull()
+    {
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            BuildArguments<InjectionTargets>(nameof(InjectionTargets.SomethingNothingCanSupply))
+        );
     }
 
     [Fact]
-    public async Task TheContainerItselfCanBeAskedForByParameter() {
-        var (resolver, provider) = BuildContainer<InjectionTargets>(nameof(InjectionTargets.TheContainerItself));
+    public async Task TheContainerItselfCanBeAskedForByParameter()
+    {
+        var (resolver, provider) = BuildContainer<InjectionTargets>(
+            nameof(InjectionTargets.TheContainerItself)
+        );
 
         var arguments = await resolver.ResolveArgumentsAsync(provider, []);
 
@@ -174,11 +199,14 @@ public class ParameterInjectionTests {
     /// real service — so the resolver refuses instead.
     /// </summary>
     [Fact]
-    public async Task ResolvingWithoutTheRegistrationPassIsRefused() {
+    public async Task ResolvingWithoutTheRegistrationPassIsRefused()
+    {
         var resolver = new TestParameterResolver(
-            FakeTestMethodContext.For<InjectionTargets>(nameof(InjectionTargets.AMockedService)));
+            FakeTestMethodContext.For<InjectionTargets>(nameof(InjectionTargets.AMockedService))
+        );
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => resolver.ResolveArgumentsAsync(new ServiceCollection().BuildServiceProvider(), []));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            resolver.ResolveArgumentsAsync(new ServiceCollection().BuildServiceProvider(), [])
+        );
     }
 }

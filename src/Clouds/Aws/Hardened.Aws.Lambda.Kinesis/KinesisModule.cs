@@ -29,7 +29,8 @@ namespace Hardened.Aws.Lambda.Kinesis;
 /// </remarks>
 [DependencyModule]
 [LambdaRuntimeModule]
-public partial class KinesisModule : IServiceCollectionConfiguration {
+public partial class KinesisModule : IServiceCollectionConfiguration
+{
     /// <summary>
     /// Whether the event source mapping was deployed with <c>ReportBatchItemFailures</c>, letting a
     /// failed message be returned on its own instead of failing the whole invocation.
@@ -50,9 +51,11 @@ public partial class KinesisModule : IServiceCollectionConfiguration {
     /// </remarks>
     public bool? ReportBatchItemFailures { get; set; }
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IPayloadAdapter>(
-            new KinesisAdapter(ReportBatchItemFailures ?? false));
+            new KinesisAdapter(ReportBatchItemFailures ?? false)
+        );
 
         services.AddBatchExecutionFilter();
     }

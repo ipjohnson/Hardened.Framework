@@ -20,8 +20,8 @@ namespace Hardened.Web.Testing;
 /// when the test has run under NUnit, and when the case has run under xUnit.
 /// </para>
 /// </remarks>
-public interface ITestHost : IAsyncDisposable {
-
+public interface ITestHost : IAsyncDisposable
+{
     /// <summary>
     /// Whether a request here runs against a container of its own.
     /// </summary>
@@ -91,20 +91,22 @@ public interface ITestHost : IAsyncDisposable {
 
     /// <summary>The same, for a caller whose requests are meant to reach one container.</summary>
     Task<TestWebResponse> SendAsync(
-        TestHostRequest request, CancellationToken cancellationToken, bool reuseContainer) =>
-        SendAsync(request, cancellationToken);
+        TestHostRequest request,
+        CancellationToken cancellationToken,
+        bool reuseContainer
+    ) => SendAsync(request, cancellationToken);
 }
 
 /// <summary>
 /// Whether a host runs each request against its own container.
 /// </summary>
-public enum TestContainerPolicy {
-
+public enum TestContainerPolicy
+{
     /// <summary>One container for every request the host serves.</summary>
     Reused,
 
     /// <summary>A container per request, built from the test's own composition.</summary>
-    PerInvocation
+    PerInvocation,
 }
 
 /// <summary>
@@ -117,4 +119,5 @@ public sealed record TestHostRequest(
     string PathAndQuery,
     IDictionary<string, StringValues> Headers,
     Stream Body,
-    TestCredential? Credential);
+    TestCredential? Credential
+);

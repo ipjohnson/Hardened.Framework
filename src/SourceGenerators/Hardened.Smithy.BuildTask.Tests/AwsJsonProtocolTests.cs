@@ -1,6 +1,6 @@
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.Smithy.BuildTask.Parsing;
 using Xunit;
 
@@ -23,12 +23,13 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// for, and it only occurs with a dependency.
 /// </para>
 /// </remarks>
-public class AwsJsonProtocolTests {
-
+public class AwsJsonProtocolTests
+{
     private static string Fixture(string name) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
 
-    private static ServiceSpecModel Parse() {
+    private static ServiceSpecModel Parse()
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(Fixture("bank-awsjson.json"), "bank", diagnostics);
 
@@ -41,7 +42,8 @@ public class AwsJsonProtocolTests {
         Assert.Single(model.Services[0].Operations, o => o.OperationId == operationId);
 
     [Fact]
-    public void Parse_AcceptsAwsJsonRatherThanRefusingIt() {
+    public void Parse_AcceptsAwsJsonRatherThanRefusingIt()
+    {
         var model = Parse();
 
         Assert.Equal("Bank", Assert.Single(model.Services).Tag);
@@ -49,7 +51,8 @@ public class AwsJsonProtocolTests {
     }
 
     [Fact]
-    public void Parse_PutsTheDispatchHeaderOnTheService() {
+    public void Parse_PutsTheDispatchHeaderOnTheService()
+    {
         Assert.Equal("X-Amz-Target", Assert.Single(Parse().Services).DispatchHeader);
     }
 
@@ -58,10 +61,12 @@ public class AwsJsonProtocolTests {
     /// dispatch key has to.
     /// </summary>
     [Fact]
-    public void Parse_SendsEveryOperationToOneRoute() {
+    public void Parse_SendsEveryOperationToOneRoute()
+    {
         var model = Parse();
 
-        foreach (var operation in model.Services[0].Operations) {
+        foreach (var operation in model.Services[0].Operations)
+        {
             Assert.Equal("/", operation.Path);
             Assert.Equal("POST", operation.HttpMethod);
         }
@@ -69,7 +74,8 @@ public class AwsJsonProtocolTests {
 
     /// <summary>The header value the protocol specifies: <c>Service.Operation</c>.</summary>
     [Fact]
-    public void Parse_NamesEachOperationByServiceAndOperation() {
+    public void Parse_NamesEachOperationByServiceAndOperation()
+    {
         var model = Parse();
 
         Assert.Equal("Bank.GetBalance", Operation(model, "GetBalance").DispatchKey);
@@ -77,7 +83,8 @@ public class AwsJsonProtocolTests {
     }
 
     [Fact]
-    public void Parse_UsesTheProtocolsContentType() {
+    public void Parse_UsesTheProtocolsContentType()
+    {
         var transfer = Operation(Parse(), "Transfer");
 
         Assert.Equal("application/x-amz-json-1.0", transfer.RequestBodyContentType);
@@ -89,7 +96,8 @@ public class AwsJsonProtocolTests {
     /// simpler than restJson1 rather than harder.
     /// </summary>
     [Fact]
-    public void Parse_MakesTheWholeInputStructureTheBody() {
+    public void Parse_MakesTheWholeInputStructureTheBody()
+    {
         var transfer = Operation(Parse(), "Transfer");
 
         Assert.Empty(transfer.Parameters);
@@ -98,9 +106,12 @@ public class AwsJsonProtocolTests {
     }
 
     [Fact]
-    public void Parse_ReadsConstraintsTheSameWayUnderEitherProtocol() {
+    public void Parse_ReadsConstraintsTheSameWayUnderEitherProtocol()
+    {
         var amount = Assert.Single(
-            Operation(Parse(), "Transfer").RequestBodyProperties, p => p.Name == "amountCents");
+            Operation(Parse(), "Transfer").RequestBodyProperties,
+            p => p.Name == "amountCents"
+        );
 
         Assert.Equal(1m, amount.Minimum);
     }
@@ -110,7 +121,8 @@ public class AwsJsonProtocolTests {
     /// becomes a generated type.
     /// </summary>
     [Fact]
-    public void Parse_GeneratesNothingForDependencyTraitShapes() {
+    public void Parse_GeneratesNothingForDependencyTraitShapes()
+    {
         var model = Parse();
 
         Assert.DoesNotContain(model.Schemas, s => s.Name is "arn" or "clientEndpointDiscovery");
@@ -124,26 +136,27 @@ public class AwsJsonProtocolTests {
     /// ignoring them means, rather than a conflict to report.
     /// </summary>
     [Fact]
-    public void Parse_IgnoresHttpBindingTraitsUnderADispatchProtocol() {
+    public void Parse_IgnoresHttpBindingTraitsUnderADispatchProtocol()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "operations": [ { "target": "com.example#Op" } ],
-                        "traits": { "aws.protocols#awsJson1_0": {} } },
-                      "com.example#Op": {
-                        "type": "operation",
-                        "input": { "target": "com.example#In" },
-                        "traits": { "smithy.api#http": { "method": "GET", "uri": "/ignored/{id}", "code": 204 } } },
-                      "com.example#In": {
-                        "type": "structure",
-                        "members": {
-                          "id": {
-                            "target": "smithy.api#String",
-                            "traits": { "smithy.api#httpLabel": {}, "smithy.api#required": {} } } } } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Op" } ],
+                  "traits": { "aws.protocols#awsJson1_0": {} } },
+                "com.example#Op": {
+                  "type": "operation",
+                  "input": { "target": "com.example#In" },
+                  "traits": { "smithy.api#http": { "method": "GET", "uri": "/ignored/{id}", "code": 204 } } },
+                "com.example#In": {
+                  "type": "structure",
+                  "members": {
+                    "id": {
+                      "target": "smithy.api#String",
+                      "traits": { "smithy.api#httpLabel": {}, "smithy.api#required": {} } } } } } }
+            """;
 
         var model = SmithySpecParser.Parse(ast, "ignored", diagnostics);
 
@@ -162,7 +175,8 @@ public class AwsJsonProtocolTests {
     /// models working unchanged.
     /// </summary>
     [Fact]
-    public void Parse_LeavesRoutedOperationsWithoutADispatchKey() {
+    public void Parse_LeavesRoutedOperationsWithoutADispatchKey()
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(Fixture("petstore.json"), "petstore", diagnostics);
 
@@ -180,7 +194,8 @@ public class AwsJsonProtocolTests {
     /// takes only what follows a <c>#</c> - so the qualified form is what both halves agree on.
     /// </remarks>
     [Fact]
-    public void Parse_GivesErrorShapesATypeDiscriminator() {
+    public void Parse_GivesErrorShapesATypeDiscriminator()
+    {
         var notFound = Assert.Single(Parse().Schemas, s => s.Name == "AccountNotFound");
 
         var discriminator = Assert.Single(notFound.Properties, p => p.Name == "__type");
@@ -195,7 +210,8 @@ public class AwsJsonProtocolTests {
     /// positional constructor and the resolver's parameter metadata agreeing by index.
     /// </summary>
     [Fact]
-    public void Parse_PutsTheDiscriminatorAfterTheRequiredMembers() {
+    public void Parse_PutsTheDiscriminatorAfterTheRequiredMembers()
+    {
         var notFound = Assert.Single(Parse().Schemas, s => s.Name == "AccountNotFound");
 
         Assert.True(notFound.Properties.Find(p => p.Name == "__type")!.HasDefault);
@@ -204,7 +220,8 @@ public class AwsJsonProtocolTests {
 
     /// <summary>One error shape is routinely thrown by several operations; each reaches this.</summary>
     [Fact]
-    public void Parse_AddsTheDiscriminatorOnlyOnce() {
+    public void Parse_AddsTheDiscriminatorOnlyOnce()
+    {
         var notFound = Assert.Single(Parse().Schemas, s => s.Name == "AccountNotFound");
 
         Assert.Single(notFound.Properties, p => p.Name == "__type");
@@ -214,7 +231,8 @@ public class AwsJsonProtocolTests {
     /// A routed protocol says which error it is with a status code, so the field would be noise.
     /// </summary>
     [Fact]
-    public void Parse_LeavesRoutedErrorShapesAlone() {
+    public void Parse_LeavesRoutedErrorShapesAlone()
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(Fixture("petstore.json"), "petstore", diagnostics);
 
@@ -228,24 +246,25 @@ public class AwsJsonProtocolTests {
     /// @error's client/server is what decides the status.
     /// </summary>
     [Fact]
-    public void Parse_IgnoresHttpErrorUnderADispatchProtocol() {
+    public void Parse_IgnoresHttpErrorUnderADispatchProtocol()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "operations": [ { "target": "com.example#Op" } ],
-                        "traits": { "aws.protocols#awsJson1_0": {} } },
-                      "com.example#Op": {
-                        "type": "operation",
-                        "errors": [ { "target": "com.example#Boom" } ] },
-                      "com.example#Boom": {
-                        "type": "structure", "members": {},
-                        "traits": {
-                          "smithy.api#error": "client",
-                          "smithy.api#httpError": 418 } } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Op" } ],
+                  "traits": { "aws.protocols#awsJson1_0": {} } },
+                "com.example#Op": {
+                  "type": "operation",
+                  "errors": [ { "target": "com.example#Boom" } ] },
+                "com.example#Boom": {
+                  "type": "structure", "members": {},
+                  "traits": {
+                    "smithy.api#error": "client",
+                    "smithy.api#httpError": 418 } } } }
+            """;
 
         var model = SmithySpecParser.Parse(ast, "httperror", diagnostics);
 
@@ -257,15 +276,16 @@ public class AwsJsonProtocolTests {
     }
 
     [Fact]
-    public void Parse_StillRefusesAProtocolItCannotSerialise() {
+    public void Parse_StillRefusesAProtocolItCannotSerialise()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "traits": { "aws.protocols#restXml": {} } } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "traits": { "aws.protocols#restXml": {} } } } }
+            """;
 
         Assert.Null(SmithySpecParser.Parse(ast, "restxml", diagnostics));
         Assert.Contains(diagnostics, d => d.Contains("XML"));
@@ -276,7 +296,8 @@ public class AwsJsonProtocolTests {
     /// generator reads that, not the AST.
     /// </summary>
     [Fact]
-    public void Parse_CarriesDispatchThroughTheSerializedModel() {
+    public void Parse_CarriesDispatchThroughTheSerializedModel()
+    {
         var written = SpecModelSerializer.Write(Parse());
         var round = SpecModelSerializer.Read(written);
 

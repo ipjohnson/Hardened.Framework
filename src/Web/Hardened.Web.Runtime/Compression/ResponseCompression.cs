@@ -36,12 +36,14 @@ namespace Hardened.Web.Runtime.Compression;
 /// </para>
 /// </summary>
 [DependencyModule]
-public partial class ResponseCompression : IServiceCollectionConfiguration {
-
-    public void ConfigureServices(IServiceCollection services) {
+public partial class ResponseCompression : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddGlobalFilter(
             new CompressAttribute(),
-            when: handlerInfo => !CompressAttribute.Declares(handlerInfo));
+            when: handlerInfo => !CompressAttribute.Declares(handlerInfo)
+        );
     }
 
     /// <summary>

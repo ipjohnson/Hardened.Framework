@@ -8,8 +8,8 @@ namespace Hardened.Web.Testing;
 /// runner: xUnit and NUnit both report any exception a test throws as that test's failure, with
 /// this message.
 /// </remarks>
-public sealed class WebAssertionException : Exception {
-
-    public WebAssertionException(string message) : base(message) {
-    }
+public sealed class WebAssertionException : Exception
+{
+    public WebAssertionException(string message)
+        : base(message) { }
 }

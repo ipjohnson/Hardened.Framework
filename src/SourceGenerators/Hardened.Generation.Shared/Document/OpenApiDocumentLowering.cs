@@ -29,8 +29,8 @@ namespace Hardened.Generation.Document;
 /// <c>nullable: true</c>, because a 3.0 reader takes <c>type</c> as a string and nothing else.
 /// </para>
 /// </remarks>
-internal static class OpenApiDocumentLowering {
-
+internal static class OpenApiDocumentLowering
+{
     /// <summary>The versions the property accepts, as the file will declare them.</summary>
     public static readonly string[] AcceptedVersions = { "3.0.0", "3.1.0" };
 
@@ -38,8 +38,10 @@ internal static class OpenApiDocumentLowering {
     /// The three-part banner for a property value, or null when the value is not one the export
     /// can write.
     /// </summary>
-    public static string? Normalise(string? version) {
-        switch ((version ?? "").Trim()) {
+    public static string? Normalise(string? version)
+    {
+        switch ((version ?? "").Trim())
+        {
             case "3.0":
             case "3.0.0":
                 return "3.0.0";
@@ -56,26 +58,33 @@ internal static class OpenApiDocumentLowering {
     /// of <see cref="AcceptedVersions"/>, and returns the operations whose streamed response lost
     /// its item schema, as <c>GET /events</c>.
     /// </summary>
-    public static IReadOnlyList<string> Lower(JsonObject document, string version) {
+    public static IReadOnlyList<string> Lower(JsonObject document, string version)
+    {
         document.Set("openapi", new JsonString(version));
 
         var lost = new List<string>();
 
-        if (document.Get("paths") is JsonObject paths) {
-            foreach (var path in paths.Members) {
-                if (!(path.Value is JsonObject operations)) {
+        if (document.Get("paths") is JsonObject paths)
+        {
+            foreach (var path in paths.Members)
+            {
+                if (!(path.Value is JsonObject operations))
+                {
                     continue;
                 }
 
-                foreach (var operation in operations.Members) {
-                    if (operation.Value is JsonObject body && RemoveItemSchemas(body)) {
+                foreach (var operation in operations.Members)
+                {
+                    if (operation.Value is JsonObject body && RemoveItemSchemas(body))
+                    {
                         lost.Add(operation.Key.ToUpperInvariant() + " " + path.Key);
                     }
                 }
             }
         }
 
-        if (version == "3.0.0") {
+        if (version == "3.0.0")
+        {
             RewriteForThreeZero(document);
         }
 
@@ -83,20 +92,29 @@ internal static class OpenApiDocumentLowering {
     }
 
     /// <summary>Drops every <c>itemSchema</c> under an operation's responses.</summary>
-    private static bool RemoveItemSchemas(JsonObject operation) {
+    private static bool RemoveItemSchemas(JsonObject operation)
+    {
         var removed = false;
 
-        if (!(operation.Get("responses") is JsonObject responses)) {
+        if (!(operation.Get("responses") is JsonObject responses))
+        {
             return false;
         }
 
-        foreach (var response in responses.Members) {
-            if (!(response.Value is JsonObject responseBody) || !(responseBody.Get("content") is JsonObject content)) {
+        foreach (var response in responses.Members)
+        {
+            if (
+                !(response.Value is JsonObject responseBody)
+                || !(responseBody.Get("content") is JsonObject content)
+            )
+            {
                 continue;
             }
 
-            foreach (var mediaType in content.Members) {
-                if (mediaType.Value is JsonObject media && media.Remove("itemSchema")) {
+            foreach (var mediaType in content.Members)
+            {
+                if (mediaType.Value is JsonObject media && media.Remove("itemSchema"))
+                {
                     removed = true;
                 }
             }
@@ -110,8 +128,10 @@ internal static class OpenApiDocumentLowering {
     /// parameters, request bodies and responses alike, so this walks everything rather than
     /// knowing where a schema may sit.
     /// </summary>
-    private static void RewriteForThreeZero(JsonNode node) {
-        switch (node) {
+    private static void RewriteForThreeZero(JsonNode node)
+    {
+        switch (node)
+        {
             case JsonObject obj:
                 RewriteExclusiveBound(obj, "exclusiveMinimum", "minimum");
                 RewriteExclusiveBound(obj, "exclusiveMaximum", "maximum");
@@ -119,13 +139,15 @@ internal static class OpenApiDocumentLowering {
                 RewriteNullableRef(obj);
                 obj.Remove("propertyNames");
 
-                foreach (var member in obj.Members) {
+                foreach (var member in obj.Members)
+                {
                     RewriteForThreeZero(member.Value);
                 }
 
                 break;
             case JsonArray array:
-                foreach (var item in array.Items) {
+                foreach (var item in array.Items)
+                {
                     RewriteForThreeZero(item);
                 }
 
@@ -137,16 +159,29 @@ internal static class OpenApiDocumentLowering {
     /// <c>"exclusiveMinimum": 5</c> becomes <c>"minimum": 5, "exclusiveMinimum": true</c>, in the
     /// exclusive keyword's position so the order a reader sees is stable.
     /// </summary>
-    private static void RewriteExclusiveBound(JsonObject schema, string exclusiveKey, string boundKey) {
-        for (var index = 0; index < schema.Members.Count; index++) {
+    private static void RewriteExclusiveBound(
+        JsonObject schema,
+        string exclusiveKey,
+        string boundKey
+    )
+    {
+        for (var index = 0; index < schema.Members.Count; index++)
+        {
             var member = schema.Members[index];
 
-            if (!string.Equals(member.Key, exclusiveKey, StringComparison.Ordinal) || !(member.Value is JsonNumber bound)) {
+            if (
+                !string.Equals(member.Key, exclusiveKey, StringComparison.Ordinal)
+                || !(member.Value is JsonNumber bound)
+            )
+            {
                 continue;
             }
 
             schema.Members[index] = new KeyValuePair<string, JsonNode>(boundKey, bound);
-            schema.Members.Insert(index + 1, new KeyValuePair<string, JsonNode>(exclusiveKey, JsonBoolean.True));
+            schema.Members.Insert(
+                index + 1,
+                new KeyValuePair<string, JsonNode>(exclusiveKey, JsonBoolean.True)
+            );
 
             return;
         }
@@ -163,32 +198,43 @@ internal static class OpenApiDocumentLowering {
     /// for the same reason. Left alone, the lowered document carried a branch typed <c>null</c>
     /// that a 3.0 reader has no rule for.
     /// </remarks>
-    private static void RewriteNullableRef(JsonObject schema) {
-        for (var index = 0; index < schema.Members.Count; index++) {
+    private static void RewriteNullableRef(JsonObject schema)
+    {
+        for (var index = 0; index < schema.Members.Count; index++)
+        {
             var member = schema.Members[index];
 
-            if (!string.Equals(member.Key, "anyOf", StringComparison.Ordinal) ||
-                !(member.Value is JsonArray branches) || branches.Items.Count != 2) {
+            if (
+                !string.Equals(member.Key, "anyOf", StringComparison.Ordinal)
+                || !(member.Value is JsonArray branches)
+                || branches.Items.Count != 2
+            )
+            {
                 continue;
             }
 
             JsonNode? referenced = null;
             var sawNull = false;
 
-            foreach (var branch in branches.Items) {
-                if (!(branch is JsonObject option)) {
+            foreach (var branch in branches.Items)
+            {
+                if (!(branch is JsonObject option))
+                {
                     return;
                 }
 
-                if (option.Get("$ref") is { } _) {
+                if (option.Get("$ref") is { } _)
+                {
                     referenced = option;
                 }
-                else if (option.Get("type") is JsonString type && type.Value == "null") {
+                else if (option.Get("type") is JsonString type && type.Value == "null")
+                {
                     sawNull = true;
                 }
             }
 
-            if (!sawNull || referenced == null) {
+            if (!sawNull || referenced == null)
+            {
                 return;
             }
 
@@ -197,7 +243,10 @@ internal static class OpenApiDocumentLowering {
             wrapped.Items.Add(referenced);
 
             schema.Members[index] = new KeyValuePair<string, JsonNode>("allOf", wrapped);
-            schema.Members.Insert(index + 1, new KeyValuePair<string, JsonNode>("nullable", JsonBoolean.True));
+            schema.Members.Insert(
+                index + 1,
+                new KeyValuePair<string, JsonNode>("nullable", JsonBoolean.True)
+            );
 
             return;
         }
@@ -206,34 +255,52 @@ internal static class OpenApiDocumentLowering {
     /// <summary>
     /// <c>"type": ["string", "null"]</c> becomes <c>"type": "string", "nullable": true</c>.
     /// </summary>
-    private static void RewriteNullableTypeArray(JsonObject schema) {
-        for (var index = 0; index < schema.Members.Count; index++) {
+    private static void RewriteNullableTypeArray(JsonObject schema)
+    {
+        for (var index = 0; index < schema.Members.Count; index++)
+        {
             var member = schema.Members[index];
 
-            if (!string.Equals(member.Key, "type", StringComparison.Ordinal) || !(member.Value is JsonArray types) || types.Items.Count != 2) {
+            if (
+                !string.Equals(member.Key, "type", StringComparison.Ordinal)
+                || !(member.Value is JsonArray types)
+                || types.Items.Count != 2
+            )
+            {
                 continue;
             }
 
             string? remaining = null;
             var sawNull = false;
 
-            foreach (var item in types.Items) {
-                if (item is JsonString text) {
-                    if (text.Value == "null") {
+            foreach (var item in types.Items)
+            {
+                if (item is JsonString text)
+                {
+                    if (text.Value == "null")
+                    {
                         sawNull = true;
                     }
-                    else {
+                    else
+                    {
                         remaining = text.Value;
                     }
                 }
             }
 
-            if (!sawNull || remaining == null) {
+            if (!sawNull || remaining == null)
+            {
                 return;
             }
 
-            schema.Members[index] = new KeyValuePair<string, JsonNode>("type", new JsonString(remaining));
-            schema.Members.Insert(index + 1, new KeyValuePair<string, JsonNode>("nullable", JsonBoolean.True));
+            schema.Members[index] = new KeyValuePair<string, JsonNode>(
+                "type",
+                new JsonString(remaining)
+            );
+            schema.Members.Insert(
+                index + 1,
+                new KeyValuePair<string, JsonNode>("nullable", JsonBoolean.True)
+            );
 
             return;
         }

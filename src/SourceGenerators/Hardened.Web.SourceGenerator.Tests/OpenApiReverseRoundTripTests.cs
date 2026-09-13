@@ -1,15 +1,15 @@
 extern alias buildtask;
-
 // The build task's copy of the shared generation model, reached through its alias: this
 // project also links the web generator's copy, and both in the global namespace is CS0433.
+
 using System.Text.RegularExpressions;
-using buildtask::Hardened.OpenApi.SourceGenerator;
+using buildtask::Hardened.Generation;
 using buildtask::Hardened.Generation.Models;
+using buildtask::Hardened.Idl;
+using buildtask::Hardened.OpenApi.SourceGenerator;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.SourceGenerator.Tests.Routing;
 using Xunit;
-using buildtask::Hardened.Idl;
-using buildtask::Hardened.Generation;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -32,10 +32,9 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// either side did.
 /// </para>
 /// </remarks>
-public class OpenApiReverseRoundTripTests {
-
-    private const string Application =
-        """
+public class OpenApiReverseRoundTripTests
+{
+    private const string Application = """
         using System.Collections.Generic;
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Attributes;
@@ -95,18 +94,23 @@ public class OpenApiReverseRoundTripTests {
     /// The document the web generator emits, parsed by the build task exactly as it would parse a
     /// hand-written specification.
     /// </summary>
-    private static ServiceSpecModel Reparsed() {
+    private static ServiceSpecModel Reparsed()
+    {
         var result = GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = Application },
             new[] { new WebLibrarySourceGenerator() },
-            GeneratedRoutingTable.Anchors);
+            GeneratedRoutingTable.Anchors
+        );
 
         result.AssertNoErrors();
 
         var source = result.SourceContaining("OpenApiDocument");
 
         var model = OpenApiSpecParser.Parse(
-            GeneratedOpenApiDocument.Extract(source), "round-trip.json", CancellationToken.None);
+            GeneratedOpenApiDocument.Extract(source),
+            "round-trip.json",
+            CancellationToken.None
+        );
 
         Assert.True(model != null, "The build task's reader rejected the emitted document.");
 
@@ -123,10 +127,15 @@ public class OpenApiReverseRoundTripTests {
     /// client is generated from - so the export, the indentation and the read-back are all in the
     /// path, and a client's input is proven to reconstruct the application it was exported from.
     /// </remarks>
-    private static ServiceSpecModel ReparsedExport() {
+    private static ServiceSpecModel ReparsedExport()
+    {
         var path = Path.Combine(AppContext.BaseDirectory, "Exported", "Application.json");
 
-        var model = OpenApiSpecParser.Parse(File.ReadAllText(path), "Application.json", CancellationToken.None);
+        var model = OpenApiSpecParser.Parse(
+            File.ReadAllText(path),
+            "Application.json",
+            CancellationToken.None
+        );
 
         Assert.True(model != null, "The build task's reader rejected the exported file.");
 
@@ -138,14 +147,25 @@ public class OpenApiReverseRoundTripTests {
     /// exported file, and its streaming operations survive the round trip with the routes.
     /// </summary>
     [Fact]
-    public void TheExportedFileReconstructsTheWebApplication() {
+    public void TheExportedFileReconstructsTheWebApplication()
+    {
         var model = ReparsedExport();
 
-        var interfaces = model.Services
-            .Select(service => NamingHelper.ToInterfaceName(service.Tag))
+        var interfaces = model
+            .Services.Select(service => NamingHelper.ToInterfaceName(service.Tag))
             .ToHashSet(StringComparer.Ordinal);
 
-        foreach (var expected in new[] { "IAuthorizationService", "IBindingService", "IStreamingService", "IRegistrationService", "IFormService" }) {
+        foreach (
+            var expected in new[]
+            {
+                "IAuthorizationService",
+                "IBindingService",
+                "IStreamingService",
+                "IRegistrationService",
+                "IFormService",
+            }
+        )
+        {
             Assert.Contains(expected, interfaces);
         }
 
@@ -160,9 +180,10 @@ public class OpenApiReverseRoundTripTests {
     /// service tagged <c>Default</c> holding every operation in the application.
     /// </summary>
     [Fact]
-    public void EachControllerComesBackAsItsOwnService() {
-        var interfaces = Reparsed().Services
-            .Select(service => NamingHelper.ToInterfaceName(service.Tag))
+    public void EachControllerComesBackAsItsOwnService()
+    {
+        var interfaces = Reparsed()
+            .Services.Select(service => NamingHelper.ToInterfaceName(service.Tag))
             .OrderBy(name => name, StringComparer.Ordinal);
 
         Assert.Equal(new[] { "ICartService", "IFeedService", "IProductService" }, interfaces);
@@ -174,11 +195,12 @@ public class OpenApiReverseRoundTripTests {
     /// original name is what a specification-first build declares on the interface.
     /// </summary>
     [Fact]
-    public void MethodNamesSurviveTheRoundTrip() {
+    public void MethodNamesSurviveTheRoundTrip()
+    {
         var products = Assert.Single(Reparsed().Services, service => service.Tag == "Product");
 
-        var methods = products.Operations
-            .Select(operation => NamingHelper.ToMethodName(operation.OperationId))
+        var methods = products
+            .Operations.Select(operation => NamingHelper.ToMethodName(operation.OperationId))
             .OrderBy(name => name, StringComparer.Ordinal);
 
         Assert.Equal(new[] { "List", "ProductGet" }, methods);
@@ -190,11 +212,12 @@ public class OpenApiReverseRoundTripTests {
     /// <c>Add</c> keep theirs.
     /// </summary>
     [Fact]
-    public void OnlyTheClashingNamesAreQualified() {
+    public void OnlyTheClashingNamesAreQualified()
+    {
         var cart = Assert.Single(Reparsed().Services, service => service.Tag == "Cart");
 
-        var methods = cart.Operations
-            .Select(operation => NamingHelper.ToMethodName(operation.OperationId))
+        var methods = cart
+            .Operations.Select(operation => NamingHelper.ToMethodName(operation.OperationId))
             .OrderBy(name => name, StringComparer.Ordinal);
 
         Assert.Equal(new[] { "Add", "CartGet" }, methods);
@@ -210,20 +233,26 @@ public class OpenApiReverseRoundTripTests {
     /// what a generated client calls and the trailing slash was a URL the application did not serve.
     /// </remarks>
     [Fact]
-    public void RoutesSurviveTheRoundTrip() {
-        var paths = Reparsed().Services
-            .SelectMany(service => service.Operations)
+    public void RoutesSurviveTheRoundTrip()
+    {
+        var paths = Reparsed()
+            .Services.SelectMany(service => service.Operations)
             .Select(operation => operation.HttpMethod + " " + operation.Path)
             .OrderBy(route => route, StringComparer.Ordinal);
 
         Assert.Equal(
-            new[] {
-                "GET /baskets/{id}", "GET /feeds/events", "GET /feeds/ndjson",
-                "GET /products", "GET /products/{id}", "POST /baskets"
+            new[]
+            {
+                "GET /baskets/{id}",
+                "GET /feeds/events",
+                "GET /feeds/ndjson",
+                "GET /products",
+                "GET /products/{id}",
+                "POST /baskets",
             },
-            paths);
+            paths
+        );
     }
-
 
     /// <summary>
     /// A streamed handler comes back as a stream, not as one of what it streams.
@@ -245,15 +274,17 @@ public class OpenApiReverseRoundTripTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void AStreamedHandlerComesBackAsAStream() {
-        var operations = Reparsed().Services
-            .SelectMany(service => service.Operations)
+    public void AStreamedHandlerComesBackAsAStream()
+    {
+        var operations = Reparsed()
+            .Services.SelectMany(service => service.Operations)
             .Where(operation => operation.Path.StartsWith("/feeds"))
             .ToDictionary(operation => operation.Path);
 
         Assert.Equal(2, operations.Count);
 
-        foreach (var operation in operations.Values) {
+        foreach (var operation in operations.Values)
+        {
             Assert.NotNull(operation.ItemSchemaRef);
             Assert.Contains("Product", operation.ItemSchemaRef!);
 
@@ -270,9 +301,10 @@ public class OpenApiReverseRoundTripTests {
     /// wire formats, and the one that got it wrong would fail on the first byte.
     /// </remarks>
     [Fact]
-    public void TheFramingSurvivesAsTheMediaType() {
-        var operations = Reparsed().Services
-            .SelectMany(service => service.Operations)
+    public void TheFramingSurvivesAsTheMediaType()
+    {
+        var operations = Reparsed()
+            .Services.SelectMany(service => service.Operations)
             .Where(operation => operation.Path.StartsWith("/feeds"))
             .ToDictionary(operation => operation.Path);
 

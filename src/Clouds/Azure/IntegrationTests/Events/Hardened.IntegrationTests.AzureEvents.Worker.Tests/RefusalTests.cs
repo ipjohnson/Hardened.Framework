@@ -21,17 +21,26 @@ namespace Hardened.IntegrationTests.AzureEvents.SUT.Tests;
 /// this rung hands the invocation handler the data.
 /// </para>
 /// </summary>
-public class RefusalTests {
-
+public class RefusalTests
+{
     [HardenedTest]
     public async Task DataNoAdapterClaimsFailsTheInvocation(
-        IServiceProvider provider, [Mock] ITriggerLog log) {
+        IServiceProvider provider,
+        [Mock] ITriggerLog log
+    )
+    {
         var handler = provider.GetRequiredService<FunctionsInvocationHandler>();
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.Invoke(
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Invoke(
                 new FunctionsTrigger("STREAM", "/clickstream", Array.Empty<byte>()),
-                new TestFunctionContext("Stream_clickstream", new Dictionary<string, object?>(), provider)));
+                new TestFunctionContext(
+                    "Stream_clickstream",
+                    new Dictionary<string, object?>(),
+                    provider
+                )
+            )
+        );
 
         Assert.Contains(nameof(ServiceBusAdapter), failure.Message);
 

@@ -22,7 +22,8 @@ namespace Hardened.Requests.Abstract.Outputs;
 /// their internal identifiers and whatever else the model was carrying.
 /// </para>
 /// </remarks>
-public interface IHardenedResponseOutput {
+public interface IHardenedResponseOutput
+{
     /// <summary>
     /// Whether this output can answer a client asking for <paramref name="accept"/>.
     /// </summary>

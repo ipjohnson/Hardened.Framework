@@ -31,8 +31,8 @@ namespace Hardened.SourceGenerator.Templates;
 /// from them, which is what lets another package supply a template engine without a change here.
 /// </para>
 /// </remarks>
-public static class TemplateBaseGenerator {
-
+public static class TemplateBaseGenerator
+{
     /// <summary>The facet naming the class a generated base derives from.</summary>
     public const string BaseFacet = "TemplateBase";
 
@@ -41,20 +41,25 @@ public static class TemplateBaseGenerator {
 
     private const string ModelParameter = "TModel";
 
-    public static void Generate(SourceProductionContext context, EntryPointSelector.Model appModel) {
-        foreach (var feature in appModel.EnabledFeatures) {
+    public static void Generate(SourceProductionContext context, EntryPointSelector.Model appModel)
+    {
+        foreach (var feature in appModel.EnabledFeatures)
+        {
             context.CancellationToken.ThrowIfCancellationRequested();
 
             var baseType = feature.Facet(BaseFacet)?.TypeValue;
 
             // A marker with no template base is some other kind of feature. Not an error: one
             // attribute name serves every optional feature, which is the point of it.
-            if (baseType == null) {
+            if (baseType == null)
+            {
                 continue;
             }
 
-            context.AddSource(appModel.EntryPointType.Name + "." + TypeName(appModel, feature),
-                GeneratedSource.Header(Write(appModel, feature, baseType)));
+            context.AddSource(
+                appModel.EntryPointType.Name + "." + TypeName(appModel, feature),
+                GeneratedSource.Header(Write(appModel, feature, baseType))
+            );
         }
     }
 
@@ -66,7 +71,11 @@ public static class TemplateBaseGenerator {
         appModel.EntryPointType.Name + feature.MarkerType.Name;
 
     private static string Write(
-        EntryPointSelector.Model appModel, EnabledFeatureModel feature, ITypeDefinition baseType) {
+        EntryPointSelector.Model appModel,
+        EnabledFeatureModel feature,
+        ITypeDefinition baseType
+    )
+    {
         var file = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
 
         var definition = file.AddClass(TypeName(appModel, feature));
@@ -74,17 +83,20 @@ public static class TemplateBaseGenerator {
         definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Abstract;
         definition.AddGenericParameter(ModelParameter);
         definition.Comment =
-            $"The base a {appModel.EntryPointType.Name} view derives from with @inherits. " +
-            $"Generated from [Enable<{feature.MarkerType.Name}>].";
+            $"The base a {appModel.EntryPointType.Name} view derives from with @inherits. "
+            + $"Generated from [Enable<{feature.MarkerType.Name}>].";
 
         // Closed over this class's own parameter, so a view writing
         // @inherits ApplicationRazorTemplates<FortunePage> gets HardenedHtmlTemplate<FortunePage>
         // and its typed Model.
-        definition.AddBaseType(new GenericTypeDefinition(
-            TypeDefinitionEnum.ClassDefinition,
-            baseType.Namespace,
-            baseType.Name,
-            new ITypeDefinition[] { new TypeParameterDefinition(ModelParameter) }));
+        definition.AddBaseType(
+            new GenericTypeDefinition(
+                TypeDefinitionEnum.ClassDefinition,
+                baseType.Namespace,
+                baseType.Name,
+                new ITypeDefinition[] { new TypeParameterDefinition(ModelParameter) }
+            )
+        );
 
         WriteLinks(appModel, definition);
 
@@ -92,18 +104,21 @@ public static class TemplateBaseGenerator {
 
         // Only when the marker states one. The base class already answers with what it produces,
         // and overriding it with the same string would be noise.
-        if (!string.IsNullOrEmpty(contentType)) {
+        if (!string.IsNullOrEmpty(contentType))
+        {
             var property = definition.AddProperty(typeof(string), "ContentType");
 
             property.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
             property.Set = null;
             property.Get.LambdaSyntax = true;
-            property.Get.AddCode("\"" + contentType!.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\";");
+            property.Get.AddCode(
+                "\"" + contentType!.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\";"
+            );
         }
 
-        var outputContext = new OutputContext(new OutputContextOptions {
-            TypeOutputMode = TypeOutputMode.Global
-        });
+        var outputContext = new OutputContext(
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
 
         file.WriteOutput(outputContext);
 
@@ -129,7 +144,8 @@ public static class TemplateBaseGenerator {
     /// most views do not link.
     /// </para>
     /// </remarks>
-    private static void WriteLinks(EntryPointSelector.Model appModel, ClassDefinition definition) {
+    private static void WriteLinks(EntryPointSelector.Model appModel, ClassDefinition definition)
+    {
         var linksType = LinkGenerator.LinksType(appModel);
         var qualified = "global::" + linksType.Namespace + "." + linksType.Name;
 
@@ -143,7 +159,10 @@ public static class TemplateBaseGenerator {
         property.Set = null;
         property.Get.LambdaSyntax = true;
         property.Get.AddCode(
-            "_links ??= global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions" +
-            ".GetRequiredService<" + qualified + ">(Context.RequestServices);");
+            "_links ??= global::Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions"
+                + ".GetRequiredService<"
+                + qualified
+                + ">(Context.RequestServices);"
+        );
     }
 }

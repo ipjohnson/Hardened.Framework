@@ -20,8 +20,8 @@ namespace Hardened.Web.StaticContent;
 /// once against this.
 /// </para>
 /// </remarks>
-public interface IStaticContentSource {
-
+public interface IStaticContentSource
+{
     /// <summary>
     /// Whether this source has anything to serve at all.
     /// </summary>
@@ -76,4 +76,5 @@ public readonly record struct StaticContentLocation(
     string FilePath,
     string? ContentEncoding,
     StaticContentEntry? Cached,
-    bool IsFallback);
+    bool IsFallback
+);

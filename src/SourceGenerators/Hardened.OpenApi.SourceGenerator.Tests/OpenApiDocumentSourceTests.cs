@@ -5,8 +5,8 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
@@ -25,19 +25,22 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// wrong rather than on the writer having put a comma somewhere new.
 /// </para>
 /// </remarks>
-public class OpenApiDocumentSourceTests {
-
+public class OpenApiDocumentSourceTests
+{
     private static ITypeDefinition Type(string name) => TypeDefinition.Get("TestApp", name);
 
     private static EntryPointSelector.Model EntryPoint() =>
-        new() {
+        new()
+        {
             EntryPointType = Type("Application"),
-            AttributeModels = System.Array.Empty<AttributeModel>()
+            AttributeModels = System.Array.Empty<AttributeModel>(),
         };
 
     private static HandlerSchema Schema(string name) =>
-        new($"{{\"$ref\":\"#/components/schemas/{name}\"}}",
-            new[] { new SchemaComponent(name, "{\"type\":\"object\"}") });
+        new(
+            $"{{\"$ref\":\"#/components/schemas/{name}\"}}",
+            new[] { new SchemaComponent(name, "{\"type\":\"object\"}") }
+        );
 
     private static RequestHandlerModel Handler(
         string path = "/todos/{id}",
@@ -46,30 +49,33 @@ public class OpenApiDocumentSourceTests {
         HandlerSchema? response = null,
         IReadOnlyList<ResponseSchemaModel>? responses = null,
         string? produces = null,
-        bool returnsBytesOrText = false) =>
+        bool returnsBytesOrText = false
+    ) =>
         new(
             new RequestHandlerNameModel(path, method),
             Type("TodoController"),
             "GetTodo",
             TypeDefinition.Get("TestApp.Generated", "TodoController_GetTodo"),
             [],
-            new ResponseInformationModel {
+            new ResponseInformationModel
+            {
                 ReturnType = Type("Todo"),
                 DefaultStatusCode = successStatus,
                 ProducedContentTypes = produces,
-                ReturnsBytesOrText = returnsBytesOrText
+                ReturnsBytesOrText = returnsBytesOrText,
             },
-            []) {
+            []
+        )
+        {
             ResponseSchema = response,
-            ResponseSchemas = responses ?? System.Array.Empty<ResponseSchemaModel>()
+            ResponseSchemas = responses ?? System.Array.Empty<ResponseSchemaModel>(),
         };
 
     private static string[] ContentKeys(JsonElement response) =>
         response.GetProperty("content").EnumerateObject().Select(p => p.Name).ToArray();
 
     private static JsonElement Document(params RequestHandlerModel[] handlers) =>
-        JsonDocument.Parse(
-            OpenApiDocumentGenerator.Write(EntryPoint(), handlers, "")).RootElement;
+        JsonDocument.Parse(OpenApiDocumentGenerator.Write(EntryPoint(), handlers, "")).RootElement;
 
     private static JsonElement Responses(JsonElement document, string path, string verb) =>
         document.GetProperty("paths").GetProperty(path).GetProperty(verb).GetProperty("responses");
@@ -81,10 +87,13 @@ public class OpenApiDocumentSourceTests {
     /// handler declaring 201 published a contract promising 200.
     /// </summary>
     [Fact]
-    public void ADeclaredSuccessStatusReachesTheDocument() {
+    public void ADeclaredSuccessStatusReachesTheDocument()
+    {
         var responses = Responses(
             Document(Handler(method: "POST", successStatus: 201, response: Schema("Todo"))),
-            "/todos/{id}", "post");
+            "/todos/{id}",
+            "post"
+        );
 
         Assert.True(responses.TryGetProperty("201", out var created));
         Assert.Equal("Created", created.GetProperty("description").GetString());
@@ -92,9 +101,13 @@ public class OpenApiDocumentSourceTests {
     }
 
     [Fact]
-    public void AnUndeclaredSuccessStatusIsStillTwoHundred() {
+    public void AnUndeclaredSuccessStatusIsStillTwoHundred()
+    {
         var responses = Responses(
-            Document(Handler(response: Schema("Todo"))), "/todos/{id}", "get");
+            Document(Handler(response: Schema("Todo"))),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.True(responses.TryGetProperty("200", out var ok));
         Assert.Equal("OK", ok.GetProperty("description").GetString());
@@ -106,7 +119,8 @@ public class OpenApiDocumentSourceTests {
     /// responses object.
     /// </summary>
     [Fact]
-    public void AHandlerWithNoBodyStillDeclaresItsStatus() {
+    public void AHandlerWithNoBodyStillDeclaresItsStatus()
+    {
         var responses = Responses(Document(Handler(successStatus: 204)), "/todos/{id}", "get");
 
         Assert.True(responses.TryGetProperty("204", out var noContent));
@@ -122,15 +136,23 @@ public class OpenApiDocumentSourceTests {
     /// set reached the model and the writer took the substring before the first comma.
     /// </summary>
     [Fact]
-    public void EveryDeclaredMediaTypeGetsAContentKey() {
+    public void EveryDeclaredMediaTypeGetsAContentKey()
+    {
         var responses = Responses(
-            Document(Handler(response: Schema("Todo"),
-                produces: "application/json,application/x-msgpack")),
-            "/todos/{id}", "get");
+            Document(
+                Handler(
+                    response: Schema("Todo"),
+                    produces: "application/json,application/x-msgpack"
+                )
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(
             ["application/json", "application/x-msgpack"],
-            ContentKeys(responses.GetProperty("200")));
+            ContentKeys(responses.GetProperty("200"))
+        );
     }
 
     /// <summary>
@@ -140,43 +162,67 @@ public class OpenApiDocumentSourceTests {
     /// round trip change what the operation prefers.
     /// </summary>
     [Fact]
-    public void TheDeclaredOrderIsTheDocumentOrder() {
+    public void TheDeclaredOrderIsTheDocumentOrder()
+    {
         var responses = Responses(
-            Document(Handler(response: Schema("Todo"),
-                produces: "application/x-msgpack,application/json")),
-            "/todos/{id}", "get");
+            Document(
+                Handler(
+                    response: Schema("Todo"),
+                    produces: "application/x-msgpack,application/json"
+                )
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(
             ["application/x-msgpack", "application/json"],
-            ContentKeys(responses.GetProperty("200")));
+            ContentKeys(responses.GetProperty("200"))
+        );
     }
 
     /// <summary>Each key names the same schema: one body, described several ways.</summary>
     [Fact]
-    public void EveryKeyNamesTheSameSchema() {
+    public void EveryKeyNamesTheSameSchema()
+    {
         var ok = Responses(
-            Document(Handler(response: Schema("Todo"),
-                produces: "application/json,application/x-msgpack")),
-            "/todos/{id}", "get").GetProperty("200");
+                Document(
+                    Handler(
+                        response: Schema("Todo"),
+                        produces: "application/json,application/x-msgpack"
+                    )
+                ),
+                "/todos/{id}",
+                "get"
+            )
+            .GetProperty("200");
 
         var content = ok.GetProperty("content");
 
         Assert.Equal(
             content.GetProperty("application/json").GetProperty("schema").GetRawText(),
-            content.GetProperty("application/x-msgpack").GetProperty("schema").GetRawText());
+            content.GetProperty("application/x-msgpack").GetProperty("schema").GetRawText()
+        );
     }
 
     [Fact]
-    public void ADeclaredSetAlsoReachesADeclaredResponse() {
+    public void ADeclaredSetAlsoReachesADeclaredResponse()
+    {
         var responses = Responses(
-            Document(Handler(
-                responses: [Response(200, "Todo")],
-                produces: "application/json,application/x-msgpack")),
-            "/todos/{id}", "get");
+            Document(
+                Handler(
+                    responses: [Response(200, "Todo")],
+                    produces: "application/json,application/x-msgpack"
+                )
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(
             ["application/json", "application/x-msgpack"],
-            ContentKeys(responses.GetProperty("200")));
+            ContentKeys(responses.GetProperty("200"))
+        );
     }
 
     #endregion
@@ -190,16 +236,23 @@ public class OpenApiDocumentSourceTests {
     /// operation, and the runtime did not.
     /// </summary>
     [Fact]
-    public void AnErrorIsDescribedAsTheDeclaredSet() {
+    public void AnErrorIsDescribedAsTheDeclaredSet()
+    {
         var responses = Responses(
-            Document(Handler(
-                responses: [Response(200, "Todo"), Response(404, "NotFound")],
-                produces: "application/x-msgpack")),
-            "/todos/{id}", "get");
+            Document(
+                Handler(
+                    responses: [Response(200, "Todo"), Response(404, "NotFound")],
+                    produces: "application/x-msgpack"
+                )
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(
             ["application/x-msgpack", "application/json"],
-            ContentKeys(responses.GetProperty("404")));
+            ContentKeys(responses.GetProperty("404"))
+        );
     }
 
     /// <summary>
@@ -208,12 +261,18 @@ public class OpenApiDocumentSourceTests {
     /// any declared type, and what a host registers is not readable from this compilation.
     /// </summary>
     [Fact]
-    public void JsonIsListedBesideItBecauseTheFallbackIsReachable() {
+    public void JsonIsListedBesideItBecauseTheFallbackIsReachable()
+    {
         var responses = Responses(
-            Document(Handler(
-                responses: [Response(200, "Todo"), Response(404, "NotFound")],
-                produces: "application/x-msgpack")),
-            "/todos/{id}", "get");
+            Document(
+                Handler(
+                    responses: [Response(200, "Todo"), Response(404, "NotFound")],
+                    produces: "application/x-msgpack"
+                )
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Contains("application/json", ContentKeys(responses.GetProperty("404")));
     }
@@ -223,12 +282,18 @@ public class OpenApiDocumentSourceTests {
     /// adds no noise to the documents that have always been right.
     /// </summary>
     [Fact]
-    public void AJsonOperationStillDescribesJsonErrorsAlone() {
+    public void AJsonOperationStillDescribesJsonErrorsAlone()
+    {
         var responses = Responses(
-            Document(Handler(
-                responses: [Response(200, "Todo"), Response(404, "NotFound")],
-                produces: "application/json")),
-            "/todos/{id}", "get");
+            Document(
+                Handler(
+                    responses: [Response(200, "Todo"), Response(404, "NotFound")],
+                    produces: "application/json"
+                )
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(["application/json"], ContentKeys(responses.GetProperty("404")));
     }
@@ -240,13 +305,19 @@ public class OpenApiDocumentSourceTests {
     /// here was always right for.
     /// </summary>
     [Fact]
-    public void ARawHandlerKeepsJsonErrorBodies() {
+    public void ARawHandlerKeepsJsonErrorBodies()
+    {
         var responses = Responses(
-            Document(Handler(
-                responses: [Response(200, "Todo"), Response(404, "NotFound")],
-                produces: "image/png",
-                returnsBytesOrText: true)),
-            "/todos/{id}", "get");
+            Document(
+                Handler(
+                    responses: [Response(200, "Todo"), Response(404, "NotFound")],
+                    produces: "image/png",
+                    returnsBytesOrText: true
+                )
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(["application/json"], ContentKeys(responses.GetProperty("404")));
         Assert.Equal(["image/png"], ContentKeys(responses.GetProperty("200")));
@@ -260,23 +331,37 @@ public class OpenApiDocumentSourceTests {
         new(status, HttpResponseDescription.For(status), schema == null ? null : Schema(schema));
 
     [Fact]
-    public void EveryDeclaredResponseBecomesAStatus() {
+    public void EveryDeclaredResponseBecomesAStatus()
+    {
         var responses = Responses(
-            Document(Handler(responses: [
-                Response(200, "Todo"), Response(404, "NotFound"), Response(409, "Conflict")
-            ])),
-            "/todos/{id}", "get");
+            Document(
+                Handler(
+                    responses:
+                    [
+                        Response(200, "Todo"),
+                        Response(404, "NotFound"),
+                        Response(409, "Conflict"),
+                    ]
+                )
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(
             ["200", "404", "409"],
-            responses.EnumerateObject().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
+            responses.EnumerateObject().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal)
+        );
     }
 
     [Fact]
-    public void EachResponseCarriesItsDescription() {
+    public void EachResponseCarriesItsDescription()
+    {
         var responses = Responses(
             Document(Handler(responses: [Response(200, "Todo"), Response(410, "Gone")])),
-            "/todos/{id}", "get");
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal("OK", responses.GetProperty("200").GetProperty("description").GetString());
         Assert.Equal("Gone", responses.GetProperty("410").GetProperty("description").GetString());
@@ -287,10 +372,13 @@ public class OpenApiDocumentSourceTests {
     /// body that is not coming.
     /// </summary>
     [Fact]
-    public void ABodylessResponseDeclaresNoContent() {
+    public void ABodylessResponseDeclaresNoContent()
+    {
         var responses = Responses(
             Document(Handler(responses: [Response(204), Response(404, "NotFound")])),
-            "/todos/{id}", "get");
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.False(responses.GetProperty("204").TryGetProperty("content", out _));
         Assert.True(responses.GetProperty("404").TryGetProperty("content", out _));
@@ -301,15 +389,28 @@ public class OpenApiDocumentSourceTests {
     /// not silently win.
     /// </summary>
     [Fact]
-    public void TwoResponsesSharingAStatusBecomeAOneOf() {
+    public void TwoResponsesSharingAStatusBecomeAOneOf()
+    {
         var responses = Responses(
-            Document(Handler(responses: [
-                Response(200, "Todo"), Response(200, "Archived"), Response(404, "NotFound")
-            ])),
-            "/todos/{id}", "get");
+            Document(
+                Handler(
+                    responses:
+                    [
+                        Response(200, "Todo"),
+                        Response(200, "Archived"),
+                        Response(404, "NotFound"),
+                    ]
+                )
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
-        var schema = responses.GetProperty("200").GetProperty("content")
-            .GetProperty("application/json").GetProperty("schema");
+        var schema = responses
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
 
         Assert.True(schema.TryGetProperty("oneOf", out var oneOf));
         Assert.Equal(2, oneOf.GetArrayLength());
@@ -321,29 +422,34 @@ public class OpenApiDocumentSourceTests {
     /// work out is empty.
     /// </summary>
     [Fact]
-    public void ResponsesAreWrittenInStatusOrder() {
+    public void ResponsesAreWrittenInStatusOrder()
+    {
         var json = OpenApiDocumentGenerator.Write(
             EntryPoint(),
             [Handler(responses: [Response(503), Response(200, "Todo"), Response(404, "NotFound")])],
-            "");
+            ""
+        );
 
         Assert.True(
-            json.IndexOf("\"200\"", StringComparison.Ordinal) <
-            json.IndexOf("\"404\"", StringComparison.Ordinal));
+            json.IndexOf("\"200\"", StringComparison.Ordinal)
+                < json.IndexOf("\"404\"", StringComparison.Ordinal)
+        );
 
         Assert.True(
-            json.IndexOf("\"404\"", StringComparison.Ordinal) <
-            json.IndexOf("\"503\"", StringComparison.Ordinal));
+            json.IndexOf("\"404\"", StringComparison.Ordinal)
+                < json.IndexOf("\"503\"", StringComparison.Ordinal)
+        );
     }
 
     /// <summary>
     /// Every schema a response reaches lands in components, so a $ref in the document resolves.
     /// </summary>
     [Fact]
-    public void EveryResponseSchemaReachesComponents() {
-        var document = Document(Handler(responses: [
-            Response(200, "Todo"), Response(404, "NotFound")
-        ]));
+    public void EveryResponseSchemaReachesComponents()
+    {
+        var document = Document(
+            Handler(responses: [Response(200, "Todo"), Response(404, "NotFound")])
+        );
 
         var schemas = document.GetProperty("components").GetProperty("schemas");
 
@@ -356,7 +462,8 @@ public class OpenApiDocumentSourceTests {
     #region the document itself
 
     [Fact]
-    public void TheDocumentNamesItsVersionAndTitle() {
+    public void TheDocumentNamesItsVersionAndTitle()
+    {
         var document = Document(Handler(response: Schema("Todo")));
 
         Assert.Equal("3.2.0", document.GetProperty("openapi").GetString());
@@ -364,10 +471,12 @@ public class OpenApiDocumentSourceTests {
     }
 
     [Fact]
-    public void OperationsAreGroupedUnderTheirPath() {
+    public void OperationsAreGroupedUnderTheirPath()
+    {
         var document = Document(
             Handler(path: "/todos", method: "GET", response: Schema("Todo")),
-            Handler(path: "/todos", method: "POST", successStatus: 201, response: Schema("Todo")));
+            Handler(path: "/todos", method: "POST", successStatus: 201, response: Schema("Todo"))
+        );
 
         var todos = document.GetProperty("paths").GetProperty("/todos");
 
@@ -380,9 +489,13 @@ public class OpenApiDocumentSourceTests {
     /// answers rather than where its handlers were declared.
     /// </summary>
     [Fact]
-    public void ABasePathIsComposedOntoEveryRoute() {
+    public void ABasePathIsComposedOntoEveryRoute()
+    {
         var json = OpenApiDocumentGenerator.Write(
-            EntryPoint(), [Handler(path: "/todos", response: Schema("Todo"))], "/api");
+            EntryPoint(),
+            [Handler(path: "/todos", response: Schema("Todo"))],
+            "/api"
+        );
 
         Assert.Contains("\"/api/todos\"", json);
     }
@@ -393,9 +506,16 @@ public class OpenApiDocumentSourceTests {
 
     private static RequestParameterInformation Bound(ParameterModel? spec) =>
         new(
-            TypeDefinition.Get(typeof(string)), "limit", false, null,
-            ParameterBindType.QueryString, "limit", 0) {
-            SpecParameter = spec
+            TypeDefinition.Get(typeof(string)),
+            "limit",
+            false,
+            null,
+            ParameterBindType.QueryString,
+            "limit",
+            0
+        )
+        {
+            SpecParameter = spec,
         };
 
     private static RequestHandlerModel WithParameter(RequestParameterInformation parameter) =>
@@ -406,15 +526,25 @@ public class OpenApiDocumentSourceTests {
             TypeDefinition.Get("TestApp.Generated", "TodoController_GetTodo"),
             [parameter],
             new ResponseInformationModel { ReturnType = Type("Todo") },
-            []) {
-            ResponseSchema = Schema("Todo")
+            []
+        )
+        {
+            ResponseSchema = Schema("Todo"),
         };
 
-    private static JsonElement LimitSchema(JsonElement document) {
-        foreach (var parameter in document
-                     .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get")
-                     .GetProperty("parameters").EnumerateArray()) {
-            if (parameter.GetProperty("name").GetString() == "limit") {
+    private static JsonElement LimitSchema(JsonElement document)
+    {
+        foreach (
+            var parameter in document
+                .GetProperty("paths")
+                .GetProperty("/todos/{id}")
+                .GetProperty("get")
+                .GetProperty("parameters")
+                .EnumerateArray()
+        )
+        {
+            if (parameter.GetProperty("name").GetString() == "limit")
+            {
                 return parameter.GetProperty("schema");
             }
         }
@@ -427,11 +557,24 @@ public class OpenApiDocumentSourceTests {
     /// boolean-in-a-3.2-document spelling is the defect this replaces.
     /// </summary>
     [Fact]
-    public void AnExclusiveBoundIsTheNumberFromThreeOne() {
-        var schema = LimitSchema(Document(WithParameter(Bound(new ParameterModel {
-            Name = "limit", In = "query", Type = "number",
-            Minimum = 0, ExclusiveMinimum = true
-        }))));
+    public void AnExclusiveBoundIsTheNumberFromThreeOne()
+    {
+        var schema = LimitSchema(
+            Document(
+                WithParameter(
+                    Bound(
+                        new ParameterModel
+                        {
+                            Name = "limit",
+                            In = "query",
+                            Type = "number",
+                            Minimum = 0,
+                            ExclusiveMinimum = true,
+                        }
+                    )
+                )
+            )
+        );
 
         Assert.Equal(0, schema.GetProperty("exclusiveMinimum").GetDecimal());
         Assert.False(schema.TryGetProperty("minimum", out _));
@@ -439,15 +582,31 @@ public class OpenApiDocumentSourceTests {
 
     /// <summary>3.0 keeps the boolean spelling beside the bound.</summary>
     [Fact]
-    public void AnExclusiveBoundIsTheBooleanInThreeZero() {
-        var document = JsonDocument.Parse(OpenApiDocumentGenerator.Write(
-            EntryPoint(),
-            [WithParameter(Bound(new ParameterModel {
-                Name = "limit", In = "query", Type = "number",
-                Minimum = 0, ExclusiveMinimum = true
-            }))],
-            "",
-            OpenApiVersion.V3_0)).RootElement;
+    public void AnExclusiveBoundIsTheBooleanInThreeZero()
+    {
+        var document = JsonDocument
+            .Parse(
+                OpenApiDocumentGenerator.Write(
+                    EntryPoint(),
+                    [
+                        WithParameter(
+                            Bound(
+                                new ParameterModel
+                                {
+                                    Name = "limit",
+                                    In = "query",
+                                    Type = "number",
+                                    Minimum = 0,
+                                    ExclusiveMinimum = true,
+                                }
+                            )
+                        ),
+                    ],
+                    "",
+                    OpenApiVersion.V3_0
+                )
+            )
+            .RootElement;
 
         var schema = LimitSchema(document);
 
@@ -457,11 +616,25 @@ public class OpenApiDocumentSourceTests {
 
     /// <summary>A declared array parameter keeps its item type and bounds.</summary>
     [Fact]
-    public void ADeclaredArrayParameterKeepsItsShape() {
-        var schema = LimitSchema(Document(WithParameter(Bound(new ParameterModel {
-            Name = "limit", In = "query",
-            IsArray = true, ArrayItemsType = "string", MinItems = 1, MaxItems = 20
-        }))));
+    public void ADeclaredArrayParameterKeepsItsShape()
+    {
+        var schema = LimitSchema(
+            Document(
+                WithParameter(
+                    Bound(
+                        new ParameterModel
+                        {
+                            Name = "limit",
+                            In = "query",
+                            IsArray = true,
+                            ArrayItemsType = "string",
+                            MinItems = 1,
+                            MaxItems = 20,
+                        }
+                    )
+                )
+            )
+        );
 
         Assert.Equal("array", schema.GetProperty("type").GetString());
         Assert.Equal("string", schema.GetProperty("items").GetProperty("type").GetString());
@@ -474,11 +647,23 @@ public class OpenApiDocumentSourceTests {
     /// never had a contract publishes exactly what it did before.
     /// </summary>
     [Fact]
-    public void AnUndeclaredParameterStillReadsTheCSharpType() {
-        var schema = LimitSchema(Document(WithParameter(
-            new RequestParameterInformation(
-                TypeDefinition.Get("System", "Int32"), "limit", false, null,
-                ParameterBindType.QueryString, "limit", 0))));
+    public void AnUndeclaredParameterStillReadsTheCSharpType()
+    {
+        var schema = LimitSchema(
+            Document(
+                WithParameter(
+                    new RequestParameterInformation(
+                        TypeDefinition.Get("System", "Int32"),
+                        "limit",
+                        false,
+                        null,
+                        ParameterBindType.QueryString,
+                        "limit",
+                        0
+                    )
+                )
+            )
+        );
 
         Assert.Equal("integer", schema.GetProperty("type").GetString());
         Assert.Equal("int32", schema.GetProperty("format").GetString());
@@ -498,14 +683,18 @@ public class OpenApiDocumentSourceTests {
     /// so reaching the assertions at all is most of the test.
     /// </remarks>
     [Fact]
-    public void MultiLineDescriptionsSurviveStrictParsing() {
+    public void MultiLineDescriptionsSurviveStrictParsing()
+    {
         var handler = Handler(
-            responses: [
+            responses:
+            [
                 new ResponseSchemaModel(
                     404,
                     "Which one is in the code member,\nbecause one status carries one body.",
-                    Schema("Problem"))
-            ]);
+                    Schema("Problem")
+                ),
+            ]
+        );
 
         handler.Description = "Line one.\nLine two.\r\n\tIndented, with a tab.";
 
@@ -514,22 +703,30 @@ public class OpenApiDocumentSourceTests {
 
         Assert.Equal(
             "Line one.\nLine two.\r\n\tIndented, with a tab.",
-            operation.GetProperty("description").GetString());
+            operation.GetProperty("description").GetString()
+        );
         Assert.Equal(
             "Which one is in the code member,\nbecause one status carries one body.",
-            operation.GetProperty("responses").GetProperty("404")
-                .GetProperty("description").GetString());
+            operation
+                .GetProperty("responses")
+                .GetProperty("404")
+                .GetProperty("description")
+                .GetString()
+        );
     }
 
     /// <summary>Anything below U+0020 without a short escape goes out as <c>\u</c>.</summary>
     [Fact]
-    public void BareControlCharactersAreUnicodeEscaped() {
+    public void BareControlCharactersAreUnicodeEscaped()
+    {
         var handler = Handler(response: Schema("Todo"));
 
         handler.Description = "before\u0001after";
 
         var operation = Document(handler)
-            .GetProperty("paths").GetProperty("/todos/{id}").GetProperty("get");
+            .GetProperty("paths")
+            .GetProperty("/todos/{id}")
+            .GetProperty("get");
 
         Assert.Equal("before\u0001after", operation.GetProperty("description").GetString());
     }

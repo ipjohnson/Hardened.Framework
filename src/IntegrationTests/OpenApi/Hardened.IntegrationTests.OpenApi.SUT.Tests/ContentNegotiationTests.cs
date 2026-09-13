@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
@@ -19,12 +19,13 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// answer for the whole service rather than something each operation restates.
 /// </para>
 /// </remarks>
-public class ContentNegotiationTests {
-
+public class ContentNegotiationTests
+{
     private static Action<TestWebRequest> Accepting(string accept) =>
         request => request.Headers["Accept"] = new StringValues(accept);
 
-    private static async Task<string> Body(TestWebResponse response) {
+    private static async Task<string> Body(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
         using var reader = new StreamReader(response.Body, leaveOpen: true);
@@ -36,7 +37,8 @@ public class ContentNegotiationTests {
     /// No <c>Accept</c> means "whatever you have", and what this operation has is text.
     /// </summary>
     [HardenedTest]
-    public async Task NoAcceptHeaderAnswersTheFirstDeclaredType(ITestWebApp testWebApp) {
+    public async Task NoAcceptHeaderAnswersTheFirstDeclaredType(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/plain");
 
         response.Assert.Ok();
@@ -47,7 +49,8 @@ public class ContentNegotiationTests {
 
     /// <summary>And <c>*/*</c> says the same thing explicitly.</summary>
     [HardenedTest]
-    public async Task AnyMediaTypeAnswersTheFirstDeclaredType(ITestWebApp testWebApp) {
+    public async Task AnyMediaTypeAnswersTheFirstDeclaredType(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/plain", Accepting("*/*"));
 
         response.Assert.Ok();
@@ -56,7 +59,8 @@ public class ContentNegotiationTests {
     }
 
     [HardenedTest]
-    public async Task AnExplicitMatchIsHonoured(ITestWebApp testWebApp) {
+    public async Task AnExplicitMatchIsHonoured(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/plain", Accepting("text/plain"));
 
         response.Assert.Ok();
@@ -73,9 +77,12 @@ public class ContentNegotiationTests {
     /// refuse a client that said outright it could read the answer.
     /// </remarks>
     [HardenedTest]
-    public async Task AClientListingSeveralGetsTheOneOnOffer(ITestWebApp testWebApp) {
+    public async Task AClientListingSeveralGetsTheOneOnOffer(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/pets/plain", Accepting("application/json, text/plain;q=0.5"));
+            "/pets/plain",
+            Accepting("application/json, text/plain;q=0.5")
+        );
 
         response.Assert.Ok();
 
@@ -91,7 +98,8 @@ public class ContentNegotiationTests {
     /// nothing about it is the document's to declare, which is why it is not derived from one.
     /// </remarks>
     [HardenedTest]
-    public async Task AClientAskingOnlyForSomethingElseGets406(ITestWebApp testWebApp) {
+    public async Task AClientAskingOnlyForSomethingElseGets406(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/plain", Accepting("application/json"));
 
         Assert.Equal(406, response.StatusCode);
@@ -105,7 +113,8 @@ public class ContentNegotiationTests {
     /// could not read in the document - and saves it a round trip through the document to find out.
     /// </remarks>
     [HardenedTest]
-    public async Task The406NamesWhatTheOperationProduces(ITestWebApp testWebApp) {
+    public async Task The406NamesWhatTheOperationProduces(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/plain", Accepting("application/json"));
 
         var body = await Body(response);
@@ -118,7 +127,8 @@ public class ContentNegotiationTests {
     /// An operation declaring JSON still answers JSON, which is most of them.
     /// </summary>
     [HardenedTest]
-    public async Task AJsonOperationIsUnaffected(ITestWebApp testWebApp) {
+    public async Task AJsonOperationIsUnaffected(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets", Accepting("application/json"));
 
         response.Assert.Ok();
@@ -130,7 +140,8 @@ public class ContentNegotiationTests {
     /// And so does one asked with no preference at all.
     /// </summary>
     [HardenedTest]
-    public async Task AJsonOperationWithNoAcceptHeaderIsUnaffected(ITestWebApp testWebApp) {
+    public async Task AJsonOperationWithNoAcceptHeaderIsUnaffected(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets");
 
         response.Assert.Ok();

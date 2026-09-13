@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Errors;
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.RequestFilter;
 using Hardened.Requests.Abstract.Responses;
 
 namespace Hardened.Requests.Runtime.RateLimiting;
@@ -9,7 +9,8 @@ namespace Hardened.Requests.Runtime.RateLimiting;
 /// <summary>
 /// Whose volume is being limited, which decides where the filter runs.
 /// </summary>
-public enum RateLimitScope {
+public enum RateLimitScope
+{
     /// <summary>
     /// Whatever identifies the connection, before anyone has looked at a credential. Refuses
     /// without reading the request body, which is what makes it useful against a flood.
@@ -20,7 +21,7 @@ public enum RateLimitScope {
     /// The authenticated caller. Runs late enough to know who that is, which means late enough that
     /// the body has already been read.
     /// </summary>
-    Principal
+    Principal,
 }
 
 /// <summary>
@@ -40,14 +41,20 @@ public enum RateLimitScope {
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-[AnswersStatus(429, typeof(ErrorModel),
-    Description = "The caller has spent this operation's allowance. Retry-After says when it returns.")]
+[AnswersStatus(
+    429,
+    typeof(ErrorModel),
+    Description = "The caller has spent this operation's allowance. Retry-After says when it returns."
+)]
 // The headers the limiter writes on every refusal, which the description above already names and
 // the document did not carry.
-[AnswersHeader(429, KnownHeaders.RetryAfter,
-    Description = "How long to wait before the allowance returns, in seconds.")]
-public class RateLimitAttribute : Attribute, IRequestFilterProvider {
-
+[AnswersHeader(
+    429,
+    KnownHeaders.RetryAfter,
+    Description = "How long to wait before the allowance returns, in seconds."
+)]
+public class RateLimitAttribute : Attribute, IRequestFilterProvider
+{
     /// <summary>Requests allowed per <see cref="WindowSeconds"/>.</summary>
     public int PermitLimit { get; set; } = 100;
 
@@ -65,10 +72,12 @@ public class RateLimitAttribute : Attribute, IRequestFilterProvider {
     /// </summary>
     public RateLimitScope Scope { get; set; } = RateLimitScope.Transport;
 
-    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
-        var order = Scope == RateLimitScope.Transport
-            ? FilterOrder.RateLimitTransport
-            : FilterOrder.RateLimitPrincipal;
+    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+    {
+        var order =
+            Scope == RateLimitScope.Transport
+                ? FilterOrder.RateLimitTransport
+                : FilterOrder.RateLimitPrincipal;
 
         var policy = new RateLimitPolicy(PermitLimit, TimeSpan.FromSeconds(WindowSeconds), Name);
 
@@ -77,6 +86,9 @@ public class RateLimitAttribute : Attribute, IRequestFilterProvider {
         var beforeSerialization = order < FilterOrder.Serialization;
 
         yield return new RequestFilterInfo(
-            _ => new RateLimitFilter(policy, beforeSerialization), order, nameof(RateLimitFilter));
+            _ => new RateLimitFilter(policy, beforeSerialization),
+            order,
+            nameof(RateLimitFilter)
+        );
     }
 }

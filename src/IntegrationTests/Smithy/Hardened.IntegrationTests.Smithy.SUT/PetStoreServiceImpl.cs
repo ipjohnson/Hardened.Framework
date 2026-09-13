@@ -23,18 +23,20 @@ namespace Hardened.IntegrationTests.Smithy.SUT;
 /// </para>
 /// </remarks>
 [Handler]
-public class PetStoreServiceImpl : IPetStoreService {
-
-    private static readonly List<Pet> Pets = [
+public class PetStoreServiceImpl : IPetStoreService
+{
+    private static readonly List<Pet> Pets =
+    [
         new Pet("1", "Buddy", PetKind.Dog),
-        new Pet("2", "Luna", PetKind.Cat, "Lu")
+        new Pet("2", "Luna", PetKind.Cat, "Lu"),
     ];
 
     /// <summary>
     /// Takes the whole input structure as the body, which is what an operation whose members carry
     /// no binding trait means.
     /// </summary>
-    public Task<CreatePetOutput> CreatePet(CreatePetInput body) {
+    public Task<CreatePetOutput> CreatePet(CreatePetInput body)
+    {
         var created = new Pet("3", body.Name, body.Kind);
 
         // location carries @httpHeader("Location"), so it is a member of the output like any other
@@ -66,28 +68,33 @@ public class PetStoreServiceImpl : IPetStoreService {
     /// operation, which is the contract saying a null answer is allowed here. Returning null
     /// answers 404; throwing <c>PetNotFoundException</c> is how a handler says more than that.
     /// </remarks>
-    public Task<GetPetOutput?> GetPet(string petId, bool? verbose, string? xTraceId) {
+    public Task<GetPetOutput?> GetPet(string petId, bool? verbose, string? xTraceId)
+    {
         // The declared Throttled error, raised. The exception is named for the error shape the
         // model declares, which is the name every other Smithy code generator gives it - and one
         // type, however many operations bind the shape. AsException() infers it from the body, so
         // the shape is named once.
-        if (petId == "throttled") {
+        if (petId == "throttled")
+        {
             throw new Throttled("Slow down.").AsException();
         }
 
         var pet = Pets.FirstOrDefault(p => p.Id == petId);
 
-        if (pet == null) {
+        if (pet == null)
+        {
             return Task.FromResult<GetPetOutput?>(null);
         }
 
-        return Task.FromResult<GetPetOutput?>(new GetPetOutput(
-            verbose == true ? pet : pet with { Nickname = null }));
+        return Task.FromResult<GetPetOutput?>(
+            new GetPetOutput(verbose == true ? pet : pet with { Nickname = null })
+        );
     }
 
     public Task<ListPetsOutput> ListPets(int? limit, PetKind? kind) =>
-        Task.FromResult(new ListPetsOutput(
-            limit.HasValue ? Pets.Take(limit.Value).ToList() : Pets.ToList()));
+        Task.FromResult(
+            new ListPetsOutput(limit.HasValue ? Pets.Take(limit.Value).ToList() : Pets.ToList())
+        );
 
     /// <summary>
     /// Reached only by an authenticated caller — the service declares @httpBearerAuth and this
@@ -100,8 +107,10 @@ public class PetStoreServiceImpl : IPetStoreService {
     /// The one streamed operation: an event stream declared with a @streaming union. The refusal
     /// is thrown before the first event, which is the only place a stream can refuse.
     /// </summary>
-    public async IAsyncEnumerable<PetEventStream> PetEvents(string petId) {
-        if (petId == "missing") {
+    public async IAsyncEnumerable<PetEventStream> PetEvents(string petId)
+    {
+        if (petId == "missing")
+        {
             throw new NotFound("pet", $"No pet has id {petId}.").AsException();
         }
 

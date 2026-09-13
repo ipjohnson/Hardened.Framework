@@ -30,7 +30,8 @@ namespace Hardened.Aws.Lambda.EventBridge;
 /// rule wired to the wrong target is a missing route rather than an event handled by the wrong code.
 /// </para>
 /// </remarks>
-public sealed class EventBridgeAdapter : IPayloadAdapter {
+public sealed class EventBridgeAdapter : IPayloadAdapter
+{
     private const string DetailType = "detail-type";
     private const string Source = "source";
     private const string Detail = "detail";
@@ -59,13 +60,14 @@ public sealed class EventBridgeAdapter : IPayloadAdapter {
     /// own payload that happens to have a <c>source</c> is not claimed.
     /// </remarks>
     public bool Handles(JsonElement payload) =>
-        payload.ValueKind == JsonValueKind.Object &&
-        payload.TryGetProperty(DetailType, out var detailType) &&
-        detailType.ValueKind == JsonValueKind.String &&
-        payload.TryGetProperty(Source, out var source) &&
-        source.ValueKind == JsonValueKind.String;
+        payload.ValueKind == JsonValueKind.Object
+        && payload.TryGetProperty(DetailType, out var detailType)
+        && detailType.ValueKind == JsonValueKind.String
+        && payload.TryGetProperty(Source, out var source)
+        && source.ValueKind == JsonValueKind.String;
 
-    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context)
+    {
         var root = payload.Json;
 
         var source = String(root, Source) ?? "";
@@ -84,7 +86,8 @@ public sealed class EventBridgeAdapter : IPayloadAdapter {
             scheduled ? TimerScheme : EventScheme,
             scheduled ? "/" + RuleName(root) : "/" + source + "/" + detailType,
             DetailBody(root),
-            headers);
+            headers
+        );
     }
 
     /// <summary>
@@ -96,16 +99,21 @@ public sealed class EventBridgeAdapter : IPayloadAdapter {
     /// either way. A scheduled event with no resources routes to <c>/</c>, which is a missing route
     /// rather than a failure inside the adapter.
     /// </remarks>
-    internal static string RuleName(JsonElement root) {
-        if (!root.TryGetProperty(Resources, out var resources) ||
-            resources.ValueKind != JsonValueKind.Array ||
-            resources.GetArrayLength() == 0) {
+    internal static string RuleName(JsonElement root)
+    {
+        if (
+            !root.TryGetProperty(Resources, out var resources)
+            || resources.ValueKind != JsonValueKind.Array
+            || resources.GetArrayLength() == 0
+        )
+        {
             return "";
         }
 
         var arn = resources[0].GetString();
 
-        if (string.IsNullOrEmpty(arn)) {
+        if (string.IsNullOrEmpty(arn))
+        {
             return "";
         }
 
@@ -122,15 +130,20 @@ public sealed class EventBridgeAdapter : IPayloadAdapter {
     /// <c>GetRawText()</c>, which would materialise the detail as a UTF-16 string on its way to
     /// bytes the binder is about to parse as UTF-8 anyway.
     /// </remarks>
-    private static Stream DetailBody(JsonElement root) {
-        if (!root.TryGetProperty(Detail, out var detail) ||
-            detail.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null) {
+    private static Stream DetailBody(JsonElement root)
+    {
+        if (
+            !root.TryGetProperty(Detail, out var detail)
+            || detail.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null
+        )
+        {
             return Stream.Null;
         }
 
         var buffer = new ArrayBufferWriter<byte>();
 
-        using (var writer = new Utf8JsonWriter(buffer)) {
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
             detail.WriteTo(writer);
         }
 
@@ -155,8 +168,10 @@ public sealed class EventBridgeAdapter : IPayloadAdapter {
             ? element.GetString()
             : null;
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

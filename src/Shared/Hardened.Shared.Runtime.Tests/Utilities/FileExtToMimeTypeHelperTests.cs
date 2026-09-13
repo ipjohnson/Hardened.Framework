@@ -3,7 +3,8 @@ using Xunit;
 
 namespace Hardened.Shared.Runtime.Tests.Utilities;
 
-public class FileExtToMimeTypeHelperTests {
+public class FileExtToMimeTypeHelperTests
+{
     private readonly FileExtToMimeTypeHelper _helper = new();
 
     [Theory]
@@ -14,11 +15,24 @@ public class FileExtToMimeTypeHelperTests {
     [InlineData("png", "image/png", true)]
     [InlineData("jpg", "image/jpeg", true)]
     [InlineData("pdf", "application/pdf", true)]
-    [InlineData("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", true)]
-    [InlineData("pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation", true)]
+    [InlineData(
+        "docx",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        true
+    )]
+    [InlineData(
+        "pptx",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        true
+    )]
     [InlineData("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", true)]
     [InlineData("zip", "application/zip", true)]
-    public void ReturnsCorrectMimeType_ForKnownExtensions(string ext, string expectedMime, bool expectedBinary) {
+    public void ReturnsCorrectMimeType_ForKnownExtensions(
+        string ext,
+        string expectedMime,
+        bool expectedBinary
+    )
+    {
         var (mimeType, isBinary) = _helper.GetMimeTypeInfo(ext);
 
         Assert.Equal(expectedMime, mimeType);
@@ -36,14 +50,16 @@ public class FileExtToMimeTypeHelperTests {
     [InlineData("pdf", true)]
     [InlineData("zip", true)]
     [InlineData("gif", true)]
-    public void ReturnsCorrectIsBinaryFlag(string ext, bool expectedBinary) {
+    public void ReturnsCorrectIsBinaryFlag(string ext, bool expectedBinary)
+    {
         var (_, isBinary) = _helper.GetMimeTypeInfo(ext);
 
         Assert.Equal(expectedBinary, isBinary);
     }
 
     [Fact]
-    public void ReturnsDefault_ForUnknownExtension() {
+    public void ReturnsDefault_ForUnknownExtension()
+    {
         var (mimeType, isBinary) = _helper.GetMimeTypeInfo("xyz");
 
         Assert.Equal("application/bin", mimeType);
@@ -55,7 +71,8 @@ public class FileExtToMimeTypeHelperTests {
     [InlineData("css", "text/css")]
     [InlineData(".json", "application/json")]
     [InlineData("json", "application/json")]
-    public void HandlesExtensions_WithAndWithoutLeadingDot(string ext, string expectedMime) {
+    public void HandlesExtensions_WithAndWithoutLeadingDot(string ext, string expectedMime)
+    {
         var (mimeType, _) = _helper.GetMimeTypeInfo(ext);
 
         Assert.Equal(expectedMime, mimeType);
@@ -65,7 +82,8 @@ public class FileExtToMimeTypeHelperTests {
     [InlineData("CSS")]
     [InlineData("Css")]
     [InlineData("cSs")]
-    public void IsCaseInsensitive(string ext) {
+    public void IsCaseInsensitive(string ext)
+    {
         var (mimeType, _) = _helper.GetMimeTypeInfo(ext);
 
         Assert.Equal("text/css", mimeType);

@@ -12,14 +12,16 @@ namespace Hardened.IntegrationTests.CloudRunWeb.SUT;
 [CloudRunRuntime]
 public partial class CloudRunWebApp;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
 }
 
 /// <summary>Ordinary web handlers, with nothing on them that knows where they are hosted.</summary>
-public class OrderController {
+public class OrderController
+{
     [Get("/orders/{id}")]
     public Order Get(string id) => new() { Id = id, Quantity = 7 };
 

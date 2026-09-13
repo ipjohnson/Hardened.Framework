@@ -10,16 +10,18 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// <summary>
 /// The service that composes contributors, and the contributor that ships with it.
 /// </summary>
-public class AuthorizationServiceTests {
-
+public class AuthorizationServiceTests
+{
     /// <summary>Answers whatever it was told to, and records that it was asked.</summary>
-    private sealed class StubHandler : IActivityAuthorizationHandler {
+    private sealed class StubHandler : IActivityAuthorizationHandler
+    {
         private readonly GrantResolution _resolution;
 
         public StubHandler(AuthorizationDecision decision)
             : this(new GrantResolution(new HashSet<string>(), decision)) { }
 
-        public StubHandler(GrantResolution resolution) {
+        public StubHandler(GrantResolution resolution)
+        {
             _resolution = resolution;
         }
 
@@ -28,7 +30,10 @@ public class AuthorizationServiceTests {
         public IReadOnlyList<string>? LastAsked { get; private set; }
 
         public ValueTask<GrantResolution> Resolve(
-            IExecutionContext context, IReadOnlyList<string> grants) {
+            IExecutionContext context,
+            IReadOnlyList<string> grants
+        )
+        {
             Calls++;
             LastAsked = grants;
 
@@ -37,15 +42,22 @@ public class AuthorizationServiceTests {
     }
 
     private static IExecutionContext ContextWith(params IActivityAuthorizationHandler[] handlers) =>
-        Pipeline.Context(configureServices: services => {
-            foreach (var handler in handlers) {
+        Pipeline.Context(configureServices: services =>
+        {
+            foreach (var handler in handlers)
+            {
                 services.AddSingleton(handler);
             }
         });
 
-    private static IExecutionContext ContextHolding(params string[] grants) {
+    private static IExecutionContext ContextHolding(params string[] grants)
+    {
         var context = Pipeline.Context(configureServices: services =>
-            services.AddSingleton<IActivityAuthorizationHandler, PrincipalGrantAuthorizationHandler>());
+            services.AddSingleton<
+                IActivityAuthorizationHandler,
+                PrincipalGrantAuthorizationHandler
+            >()
+        );
 
         context.CallerPrincipal = new CallerPrincipal("bearer", grants);
 
@@ -55,11 +67,14 @@ public class AuthorizationServiceTests {
     #region the default contributor
 
     [Fact]
-    public async Task PrincipalGrants_VouchesForEveryGrantTheCredentialCarries() {
+    public async Task PrincipalGrants_VouchesForEveryGrantTheCredentialCarries()
+    {
         var context = ContextHolding("pets:read", "pets:write");
 
-        var resolution = await new PrincipalGrantAuthorizationHandler()
-            .Resolve(context, ["pets:read", "pets:write"]);
+        var resolution = await new PrincipalGrantAuthorizationHandler().Resolve(
+            context,
+            ["pets:read", "pets:write"]
+        );
 
         Assert.Equal(["pets:read", "pets:write"], resolution.Granted.Order());
         Assert.Equal(AuthorizationDecision.Abstain, resolution.Decision);
@@ -72,11 +87,14 @@ public class AuthorizationServiceTests {
     /// outrank that and make every resolver useless.
     /// </summary>
     [Fact]
-    public async Task PrincipalGrants_OmitsWhatItDoesNotFindRatherThanRefusing() {
+    public async Task PrincipalGrants_OmitsWhatItDoesNotFindRatherThanRefusing()
+    {
         var context = ContextHolding("pets:read");
 
-        var resolution = await new PrincipalGrantAuthorizationHandler()
-            .Resolve(context, ["pets:read", "pets:write"]);
+        var resolution = await new PrincipalGrantAuthorizationHandler().Resolve(
+            context,
+            ["pets:read", "pets:write"]
+        );
 
         Assert.Equal(["pets:read"], resolution.Granted);
         Assert.Equal(AuthorizationDecision.Abstain, resolution.Decision);
@@ -87,29 +105,38 @@ public class AuthorizationServiceTests {
     /// the one grant that came back, and a contributor that had to answer yes or no could not say so.
     /// </summary>
     [Fact]
-    public async Task PrincipalGrants_AnswersAboutSeveralGrantsInOneCall() {
+    public async Task PrincipalGrants_AnswersAboutSeveralGrantsInOneCall()
+    {
         var context = ContextHolding("b");
 
-        var resolution = await new PrincipalGrantAuthorizationHandler()
-            .Resolve(context, ["a", "b", "c"]);
+        var resolution = await new PrincipalGrantAuthorizationHandler().Resolve(
+            context,
+            ["a", "b", "c"]
+        );
 
         Assert.Equal(["b"], resolution.Granted);
     }
 
     [Fact]
-    public async Task PrincipalGrants_VouchesForNothingForAnAnonymousCaller() {
-        var resolution = await new PrincipalGrantAuthorizationHandler()
-            .Resolve(Pipeline.Context(), ["pets:read"]);
+    public async Task PrincipalGrants_VouchesForNothingForAnAnonymousCaller()
+    {
+        var resolution = await new PrincipalGrantAuthorizationHandler().Resolve(
+            Pipeline.Context(),
+            ["pets:read"]
+        );
 
         Assert.Empty(resolution.Granted);
     }
 
     [Fact]
-    public async Task PrincipalGrants_NeverVouchesForAGrantItWasNotAskedAbout() {
+    public async Task PrincipalGrants_NeverVouchesForAGrantItWasNotAskedAbout()
+    {
         var context = ContextHolding("pets:read", "admin:*");
 
-        var resolution = await new PrincipalGrantAuthorizationHandler()
-            .Resolve(context, ["pets:read"]);
+        var resolution = await new PrincipalGrantAuthorizationHandler().Resolve(
+            context,
+            ["pets:read"]
+        );
 
         Assert.Equal(["pets:read"], resolution.Granted);
         Assert.DoesNotContain("admin:*", resolution.Granted);
@@ -120,12 +147,14 @@ public class AuthorizationServiceTests {
     #region the imperative form
 
     [Fact]
-    public async Task Authorize_PermitsWhenEveryGrantIsHeld() {
+    public async Task Authorize_PermitsWhenEveryGrantIsHeld()
+    {
         var context = ContextHolding("pets:read", "pets:write");
 
         Assert.Equal(
             AuthorizationDecision.Allow,
-            await new ActivityAuthorizationService().Authorize(context, "pets:read", "pets:write"));
+            await new ActivityAuthorizationService().Authorize(context, "pets:read", "pets:write")
+        );
     }
 
     /// <summary>
@@ -133,12 +162,14 @@ public class AuthorizationServiceTests {
     /// part of it and holding some of them is not an answer.
     /// </summary>
     [Fact]
-    public async Task Authorize_DoesNotPermitOnAPartialMatch() {
+    public async Task Authorize_DoesNotPermitOnAPartialMatch()
+    {
         var context = ContextHolding("pets:read");
 
         Assert.Equal(
             AuthorizationDecision.Abstain,
-            await new ActivityAuthorizationService().Authorize(context, "pets:read", "pets:write"));
+            await new ActivityAuthorizationService().Authorize(context, "pets:read", "pets:write")
+        );
     }
 
     /// <summary>
@@ -146,12 +177,14 @@ public class AuthorizationServiceTests {
     /// grants are held, therefore allow" would turn it into a permit.
     /// </summary>
     [Fact]
-    public async Task Authorize_AbstainsWhenAskedAboutNothing() {
+    public async Task Authorize_AbstainsWhenAskedAboutNothing()
+    {
         var context = ContextHolding("pets:read");
 
         Assert.Equal(
             AuthorizationDecision.Abstain,
-            await new ActivityAuthorizationService().Authorize(context));
+            await new ActivityAuthorizationService().Authorize(context)
+        );
     }
 
     /// <summary>
@@ -159,17 +192,22 @@ public class AuthorizationServiceTests {
     /// not overridden by one that vouched for the grant.
     /// </summary>
     [Fact]
-    public async Task Authorize_LetsAVerdictOverrideHeldGrants() {
-        var context = Pipeline.Context(configureServices: services => {
+    public async Task Authorize_LetsAVerdictOverrideHeldGrants()
+    {
+        var context = Pipeline.Context(configureServices: services =>
+        {
             services.AddSingleton<IActivityAuthorizationHandler>(
-                new StubHandler(GrantResolution.Granting("pets:read")));
+                new StubHandler(GrantResolution.Granting("pets:read"))
+            );
             services.AddSingleton<IActivityAuthorizationHandler>(
-                new StubHandler(AuthorizationDecision.DenyInsufficientAuthentication));
+                new StubHandler(AuthorizationDecision.DenyInsufficientAuthentication)
+            );
         });
 
         Assert.Equal(
             AuthorizationDecision.DenyInsufficientAuthentication,
-            await new ActivityAuthorizationService().Authorize(context, "pets:read"));
+            await new ActivityAuthorizationService().Authorize(context, "pets:read")
+        );
     }
 
     #endregion
@@ -181,44 +219,55 @@ public class AuthorizationServiceTests {
     /// because they are the same observable state - and neither permits.
     /// </summary>
     [Fact]
-    public async Task NoHandlersRegisteredAbstains() {
-        var decision = await new ActivityAuthorizationService()
-            .Authorize(Pipeline.Context(), "pets:read");
+    public async Task NoHandlersRegisteredAbstains()
+    {
+        var decision = await new ActivityAuthorizationService().Authorize(
+            Pipeline.Context(),
+            "pets:read"
+        );
 
         Assert.Equal(AuthorizationDecision.Abstain, decision);
         Assert.False(decision.Permits());
     }
 
     [Fact]
-    public async Task OneAllowAmongAbstentionsPermits() {
+    public async Task OneAllowAmongAbstentionsPermits()
+    {
         var context = ContextWith(
             new StubHandler(AuthorizationDecision.Abstain),
-            new StubHandler(AuthorizationDecision.Allow));
+            new StubHandler(AuthorizationDecision.Allow)
+        );
 
         Assert.True((await new ActivityAuthorizationService().Authorize(context, "g")).Permits());
     }
 
     [Fact]
-    public async Task OneDenyOverridesEveryAllow() {
+    public async Task OneDenyOverridesEveryAllow()
+    {
         var context = ContextWith(
             new StubHandler(AuthorizationDecision.Allow),
             new StubHandler(AuthorizationDecision.Deny),
-            new StubHandler(AuthorizationDecision.Allow));
+            new StubHandler(AuthorizationDecision.Allow)
+        );
 
         Assert.Equal(
             AuthorizationDecision.Deny,
-            await new ActivityAuthorizationService().Authorize(context, "g"));
+            await new ActivityAuthorizationService().Authorize(context, "g")
+        );
     }
 
     [Fact]
-    public async Task AStepUpSurvivesAnAllow() {
+    public async Task AStepUpSurvivesAnAllow()
+    {
         var context = ContextWith(
             new StubHandler(AuthorizationDecision.Allow),
-            new StubHandler(AuthorizationDecision.DenyInsufficientAuthentication));
+            new StubHandler(AuthorizationDecision.DenyInsufficientAuthentication)
+        );
 
         Assert.Equal(
             AuthorizationDecision.DenyInsufficientAuthentication,
-            await new ActivityAuthorizationService().Authorize(context, "g"));
+            await new ActivityAuthorizationService().Authorize(context, "g")
+        );
     }
 
     /// <summary>
@@ -227,7 +276,8 @@ public class AuthorizationServiceTests {
     /// could give would change the result.
     /// </summary>
     [Fact]
-    public async Task ADenyStopsLaterContributorsBeingAsked() {
+    public async Task ADenyStopsLaterContributorsBeingAsked()
+    {
         var denying = new StubHandler(AuthorizationDecision.Deny);
         var behind = new StubHandler(AuthorizationDecision.Allow);
 
@@ -242,11 +292,15 @@ public class AuthorizationServiceTests {
     /// further along may yet produce one.
     /// </summary>
     [Fact]
-    public async Task AStepUpDoesNotStopLaterContributorsBeingAsked() {
+    public async Task AStepUpDoesNotStopLaterContributorsBeingAsked()
+    {
         var stepUp = new StubHandler(AuthorizationDecision.DenyInsufficientAuthentication);
         var behind = new StubHandler(AuthorizationDecision.Deny);
 
-        var decision = await new ActivityAuthorizationService().Authorize(ContextWith(stepUp, behind), "g");
+        var decision = await new ActivityAuthorizationService().Authorize(
+            ContextWith(stepUp, behind),
+            "g"
+        );
 
         Assert.Equal(1, behind.Calls);
         Assert.Equal(AuthorizationDecision.Deny, decision);

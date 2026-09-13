@@ -2,7 +2,8 @@ using Hardened.Functions.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.AzureQueue.SUT;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
@@ -17,11 +18,13 @@ public class Order {
 /// a static, for the reason the SQS fixture gives - a static shared by every test class in the
 /// assembly is what made two of them reset each other.
 /// </remarks>
-public interface IOrderStore {
+public interface IOrderStore
+{
     void Place(Order order);
 }
 
-public class OrderHandlers {
+public class OrderHandlers
+{
     /// <remarks>
     /// The store arrives as a parameter rather than through a constructor, which the binder
     /// resolves from the request's services - so the handler stays a plain method and the test

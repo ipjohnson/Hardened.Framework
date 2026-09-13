@@ -27,8 +27,10 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// is the rule serializers themselves follow.
 /// </para>
 /// </remarks>
-public sealed class ResponseContentTypeDefault {
-    public ResponseContentTypeDefault(params string[] contentTypes) {
+public sealed class ResponseContentTypeDefault
+{
+    public ResponseContentTypeDefault(params string[] contentTypes)
+    {
         ContentTypes = contentTypes;
     }
 

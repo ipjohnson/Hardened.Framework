@@ -21,23 +21,28 @@ namespace Hardened.Web.Runtime.Cors;
 /// is the price of the failure being visible.
 /// </para>
 /// </remarks>
-internal class CorsStartupService : IStartupService {
-
-    public Task<bool> Startup(IServiceProvider rootProvider) {
+internal class CorsStartupService : IStartupService
+{
+    public Task<bool> Startup(IServiceProvider rootProvider)
+    {
         var config = rootProvider.GetRequiredService<CorsConfiguration>();
         var middleware = rootProvider.GetRequiredService<IMiddlewareService>();
         var filter = rootProvider.GetRequiredService<CorsFilter>();
 
         middleware.Use(_ => filter);
 
-        if (!config.IsConfigured) {
+        if (!config.IsConfigured)
+        {
             // Resolved rather than injected, and optional: a startup service that cannot be
             // constructed without a logging stack is one that breaks every minimal container for
             // the sake of a message.
-            rootProvider.GetService<ILogger<CorsStartupService>>()?.LogInformation(
-                "CORS is registered with no allowed origins, so every cross-origin request will be " +
-                "refused. Set {EnvironmentVariable} or call AllowOrigin to configure it.",
-                config.EnvironmentVariable);
+            rootProvider
+                .GetService<ILogger<CorsStartupService>>()
+                ?.LogInformation(
+                    "CORS is registered with no allowed origins, so every cross-origin request will be "
+                        + "refused. Set {EnvironmentVariable} or call AllowOrigin to configure it.",
+                    config.EnvironmentVariable
+                );
         }
 
         return Task.FromResult(true);

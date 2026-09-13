@@ -22,10 +22,12 @@ namespace Hardened1.Tests;
 /// either.
 /// </para>
 /// </remarks>
-public class MessagePackClientFactory : ITestClientFactory<ITemplateModuleNameClient> {
-
-    private static readonly RefitSettings Settings =
-        new() { ContentSerializer = new MessagePackContentSerializer() };
+public class MessagePackClientFactory : ITestClientFactory<ITemplateModuleNameClient>
+{
+    private static readonly RefitSettings Settings = new()
+    {
+        ContentSerializer = new MessagePackContentSerializer(),
+    };
 
     /// <summary>
     /// What a consumer of Hardened1.Client writes against their own HttpClient, minus the header -
@@ -37,11 +39,14 @@ public class MessagePackClientFactory : ITestClientFactory<ITemplateModuleNameCl
     /// <summary>
     /// What the harness uses, with a handler in front of the pipeline that states the preference.
     /// </summary>
-    public ITemplateModuleNameClient Create(TestClientContext context) {
+    public ITemplateModuleNameClient Create(TestClientContext context)
+    {
         ArgumentNullException.ThrowIfNull(context);
 
         return RestService.For<ITemplateModuleNameClient>(
-            context.CreateHttpClient(new PrefersMessagePack()), Settings);
+            context.CreateHttpClient(new PrefersMessagePack()),
+            Settings
+        );
     }
 
     /// <summary>
@@ -66,19 +71,25 @@ public class MessagePackClientFactory : ITestClientFactory<ITemplateModuleNameCl
     /// of this package does.
     /// </para>
     /// </remarks>
-    private sealed class PrefersMessagePack : DelegatingHandler {
-
+    private sealed class PrefersMessagePack : DelegatingHandler
+    {
         protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, CancellationToken cancellationToken) {
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
             ArgumentNullException.ThrowIfNull(request);
 
             request.Headers.Accept.Clear();
             request.Headers.Accept.Add(
-                new MediaTypeWithQualityHeaderValue(MessagePackContentSerializer.ContentType));
+                new MediaTypeWithQualityHeaderValue(MessagePackContentSerializer.ContentType)
+            );
 
-            if (request.Content != null) {
-                request.Content.Headers.ContentType =
-                    new MediaTypeHeaderValue(MessagePackContentSerializer.ContentType);
+            if (request.Content != null)
+            {
+                request.Content.Headers.ContentType = new MediaTypeHeaderValue(
+                    MessagePackContentSerializer.ContentType
+                );
             }
 
             return base.SendAsync(request, cancellationToken);

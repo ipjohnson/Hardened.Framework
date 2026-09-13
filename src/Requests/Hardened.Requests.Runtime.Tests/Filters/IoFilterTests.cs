@@ -1,10 +1,10 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Logging;
-using Hardened.Requests.Runtime.Execution;
-using Hardened.Requests.Runtime.Serializer;
-using Hardened.Requests.Runtime.Errors;
 using Hardened.Requests.Abstract.Serializer;
+using Hardened.Requests.Runtime.Errors;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
+using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Tests.Support;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -22,36 +22,40 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// they are worth taking one at a time.
 /// </para>
 /// </summary>
-public class IoFilterTests {
-
-    private static readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> Empty =
-        _ => Task.FromResult(EmptyParameters.Instance);
+public class IoFilterTests
+{
+    private static readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> Empty = _ =>
+        Task.FromResult(EmptyParameters.Instance);
 
     private static IoFilter Filter(
         Func<IExecutionContext, Task<IExecutionRequestParameters>>? deserialize = null,
         Func<IExecutionContext, Task>? serialize = null,
-        Action<IExecutionContext>? headerActions = null) =>
-        new(deserialize ?? Empty, serialize ?? (_ => Task.CompletedTask), headerActions);
+        Action<IExecutionContext>? headerActions = null
+    ) => new(deserialize ?? Empty, serialize ?? (_ => Task.CompletedTask), headerActions);
 
     /// <summary>
     /// The happy path: bind, run the rest of the chain, serialize what came back.
     /// </summary>
     [Fact]
-    public async Task ASuccessfulRequestBindsRunsAndSerializesInThatOrder() {
+    public async Task ASuccessfulRequestBindsRunsAndSerializesInThatOrder()
+    {
         var log = new List<string>();
         var context = Pipeline.Context();
 
         var filter = Filter(
-            deserialize: _ => {
+            deserialize: _ =>
+            {
                 log.Add("bind");
 
                 return Task.FromResult(EmptyParameters.Instance);
             },
-            serialize: _ => {
+            serialize: _ =>
+            {
                 log.Add("serialize");
 
                 return Task.CompletedTask;
-            });
+            }
+        );
 
         await Pipeline.Chain(context, filter, new Pipeline.Recording(log, "handler")).Next();
 
@@ -71,7 +75,8 @@ public class IoFilterTests {
     /// </para>
     /// </summary>
     [Fact]
-    public async Task ARequestAlreadyRefusedIsNeitherBoundNorHandled() {
+    public async Task ARequestAlreadyRefusedIsNeitherBoundNorHandled()
+    {
         var log = new List<string>();
         var context = Pipeline.Context();
         var bound = false;
@@ -79,16 +84,19 @@ public class IoFilterTests {
         context.Response.ExceptionValue = new InvalidOperationException("refused upstream");
 
         var filter = Filter(
-            deserialize: _ => {
+            deserialize: _ =>
+            {
                 bound = true;
 
                 return Task.FromResult(EmptyParameters.Instance);
             },
-            serialize: _ => {
+            serialize: _ =>
+            {
                 log.Add("serialize");
 
                 return Task.CompletedTask;
-            });
+            }
+        );
 
         await Pipeline.Chain(context, filter, new Pipeline.Recording(log, "handler")).Next();
 
@@ -104,13 +112,15 @@ public class IoFilterTests {
     /// left alone rather than deserialized a second time off a stream that has been consumed.
     /// </summary>
     [Fact]
-    public async Task ParametersThatAreAlreadyBoundAreNotBoundAgain() {
+    public async Task ParametersThatAreAlreadyBoundAreNotBoundAgain()
+    {
         var context = Pipeline.Context();
         context.Request.Parameters = EmptyParameters.Instance;
 
         var bindCount = 0;
 
-        var filter = Filter(deserialize: _ => {
+        var filter = Filter(deserialize: _ =>
+        {
             bindCount++;
 
             return Task.FromResult(EmptyParameters.Instance);
@@ -127,23 +137,33 @@ public class IoFilterTests {
     /// handler cannot run without its parameters.
     /// </summary>
     [Fact]
-    public async Task AFailureBindingParametersSkipsTheHandlerAndIsRecordedOnTheResponse() {
+    public async Task AFailureBindingParametersSkipsTheHandlerAndIsRecordedOnTheResponse()
+    {
         var logger = Substitute.For<IRequestLogger>();
         var handlerRan = false;
 
-        var context = Pipeline.Context(
-            configureServices: services => services.AddSingleton(logger));
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton(logger)
+        );
 
         var failure = new FormatException("id was not a number");
 
-        var filter = Filter(deserialize: _ => Task.FromException<IExecutionRequestParameters>(failure));
+        var filter = Filter(deserialize: _ =>
+            Task.FromException<IExecutionRequestParameters>(failure)
+        );
 
-        await Pipeline.Chain(context, filter,
-            new Pipeline.Inline(_ => {
-                handlerRan = true;
+        await Pipeline
+            .Chain(
+                context,
+                filter,
+                new Pipeline.Inline(_ =>
+                {
+                    handlerRan = true;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Same(failure, context.Response.ExceptionValue);
         Assert.False(handlerRan);
@@ -156,19 +176,24 @@ public class IoFilterTests {
     /// empty 200 for a request that never bound.
     /// </summary>
     [Fact]
-    public async Task AFailureBindingParametersStillSerializesAResponse() {
+    public async Task AFailureBindingParametersStillSerializesAResponse()
+    {
         var serialized = false;
 
-        var context = Pipeline.Context(
-            configureServices: services => services.AddSingleton(Substitute.For<IRequestLogger>()));
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton(Substitute.For<IRequestLogger>())
+        );
 
         var filter = Filter(
-            deserialize: _ => Task.FromException<IExecutionRequestParameters>(new Exception("boom")),
-            serialize: _ => {
+            deserialize: _ =>
+                Task.FromException<IExecutionRequestParameters>(new Exception("boom")),
+            serialize: _ =>
+            {
                 serialized = true;
 
                 return Task.CompletedTask;
-            });
+            }
+        );
 
         await Pipeline.Chain(context, filter).Next();
 
@@ -181,26 +206,33 @@ public class IoFilterTests {
     /// the difference from an exception thrown inside the handler.
     /// </summary>
     [Fact]
-    public async Task AnExceptionThrownInAFilterAbortsTheFiltersBelowIt() {
+    public async Task AnExceptionThrownInAFilterAbortsTheFiltersBelowIt()
+    {
         var log = new List<string>();
         var context = Pipeline.Context();
         var failure = new InvalidOperationException("filter refused");
 
-        await Pipeline.Chain(context,
-            Filter(serialize: _ => {
-                log.Add("serialize");
+        await Pipeline
+            .Chain(
+                context,
+                Filter(serialize: _ =>
+                {
+                    log.Add("serialize");
 
-                return Task.CompletedTask;
-            }),
-            new Pipeline.Inline(async c => {
-                log.Add("wrapper-enter");
+                    return Task.CompletedTask;
+                }),
+                new Pipeline.Inline(async c =>
+                {
+                    log.Add("wrapper-enter");
 
-                await c.Next();
+                    await c.Next();
 
-                log.Add("wrapper-exit");
-            }),
-            new Pipeline.Inline(_ => throw failure),
-            new Pipeline.Recording(log, "never")).Next();
+                    log.Add("wrapper-exit");
+                }),
+                new Pipeline.Inline(_ => throw failure),
+                new Pipeline.Recording(log, "never")
+            )
+            .Next();
 
         Assert.Same(failure, context.Response.ExceptionValue);
         Assert.Equal(new[] { "wrapper-enter", "serialize" }, log);
@@ -212,32 +244,40 @@ public class IoFilterTests {
     /// their post-<c>Next</c> code - the opposite of an exception thrown in a filter.
     /// </summary>
     [Fact]
-    public async Task AnExceptionThrownInTheHandlerLetsTheFiltersAroundItFinish() {
+    public async Task AnExceptionThrownInTheHandlerLetsTheFiltersAroundItFinish()
+    {
         var log = new List<string>();
         var failure = new InvalidOperationException("handler failed");
 
         var logger = Substitute.For<IRequestLogger>();
-        var context = Pipeline.Context(
-            configureServices: services => services.AddSingleton(logger));
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton(logger)
+        );
 
         context.HandlerInstance = new Handler();
 
         var invokeFilter = new InvokeNoParametersFilter<Handler>((_, _) => throw failure);
 
-        await Pipeline.Chain(context,
-            Filter(serialize: _ => {
-                log.Add("serialize");
+        await Pipeline
+            .Chain(
+                context,
+                Filter(serialize: _ =>
+                {
+                    log.Add("serialize");
 
-                return Task.CompletedTask;
-            }),
-            new Pipeline.Inline(async c => {
-                log.Add("wrapper-enter");
+                    return Task.CompletedTask;
+                }),
+                new Pipeline.Inline(async c =>
+                {
+                    log.Add("wrapper-enter");
 
-                await c.Next();
+                    await c.Next();
 
-                log.Add("wrapper-exit");
-            }),
-            invokeFilter).Next();
+                    log.Add("wrapper-exit");
+                }),
+                invokeFilter
+            )
+            .Next();
 
         Assert.Same(failure, context.Response.ExceptionValue);
         Assert.Equal(new[] { "wrapper-enter", "wrapper-exit", "serialize" }, log);
@@ -261,21 +301,28 @@ public class IoFilterTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public async Task AnExceptionThrownByAFilterIsReported() {
+    public async Task AnExceptionThrownByAFilterIsReported()
+    {
         var failure = new InvalidOperationException("thrown by a filter");
 
         var logger = Substitute.For<IRequestLogger>();
-        var context = Pipeline.Context(
-            configureServices: services => services.AddSingleton(logger));
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton(logger)
+        );
 
         var responseSerializer = Substitute.For<IResponseSerializer>();
-        responseSerializer.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
+        responseSerializer
+            .SerializeResponse(Arg.Any<IExecutionContext>())
+            .Returns(Task.CompletedTask);
 
         var locator = Substitute.For<ISerializationLocatorService>();
         locator.FindResponseSerializer(Arg.Any<IExecutionContext>()).Returns(responseSerializer);
 
         var exceptions = new ExceptionResponseSerializer(
-            logger, locator, new ExceptionToModelConverter());
+            logger,
+            locator,
+            new ExceptionToModelConverter()
+        );
 
         var filter = Filter(serialize: c => exceptions.Handle(c, c.Response.ExceptionValue!));
 
@@ -293,22 +340,30 @@ public class IoFilterTests {
     /// produces two payloads concatenated.
     /// </summary>
     [Fact]
-    public async Task SerializationIsSkippedWhenTheResponseSaysItShouldNotBeSerialized() {
+    public async Task SerializationIsSkippedWhenTheResponseSaysItShouldNotBeSerialized()
+    {
         var serialized = false;
         var context = Pipeline.Context();
 
-        var filter = Filter(serialize: _ => {
+        var filter = Filter(serialize: _ =>
+        {
             serialized = true;
 
             return Task.CompletedTask;
         });
 
-        await Pipeline.Chain(context, filter,
-            new Pipeline.Inline(c => {
-                c.Context.Response.ShouldSerialize = false;
+        await Pipeline
+            .Chain(
+                context,
+                filter,
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ShouldSerialize = false;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.False(serialized);
     }
@@ -318,13 +373,15 @@ public class IoFilterTests {
     /// cache header configured for the application is present on error responses too.
     /// </summary>
     [Fact]
-    public async Task ConfiguredHeaderActionsRunEvenWhenTheRequestFailed() {
+    public async Task ConfiguredHeaderActionsRunEvenWhenTheRequestFailed()
+    {
         var context = Pipeline.Context();
 
         var filter = Filter(headerActions: c => c.Response.Headers["X-Applied"] = "yes");
 
-        await Pipeline.Chain(context, filter,
-            new Pipeline.Inline(_ => throw new Exception("failed"))).Next();
+        await Pipeline
+            .Chain(context, filter, new Pipeline.Inline(_ => throw new Exception("failed")))
+            .Next();
 
         Assert.Equal("yes", context.Response.Headers["X-Applied"].ToString());
         Assert.NotNull(context.Response.ExceptionValue);
@@ -335,7 +392,8 @@ public class IoFilterTests {
     /// the null rather than assuming one was supplied.
     /// </summary>
     [Fact]
-    public async Task AbsentHeaderActionsAreNotAFailure() {
+    public async Task AbsentHeaderActionsAreNotAFailure()
+    {
         var context = Pipeline.Context();
 
         await Pipeline.Chain(context, Filter(headerActions: null)).Next();

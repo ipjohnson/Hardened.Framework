@@ -35,14 +35,16 @@ namespace Hardened.SourceGenerator.Requests;
 /// to keep it traceable back to the declaration that caused it.
 /// </para>
 /// </remarks>
-public static class OutputFactoryGenerator {
-
+public static class OutputFactoryGenerator
+{
     public const string FactoryField = "_outputFactory";
 
-    public static void Implement(RequestHandlerModel handlerModel, ClassDefinition classDefinition) {
+    public static void Implement(RequestHandlerModel handlerModel, ClassDefinition classDefinition)
+    {
         var output = handlerModel.ResponseInformation.OutputType;
 
-        if (output == null) {
+        if (output == null)
+        {
             return;
         }
 
@@ -51,19 +53,31 @@ public static class OutputFactoryGenerator {
                 TypeDefinitionEnum.ClassDefinition,
                 "System",
                 "Func",
-                new[] { KnownTypes.Requests.IExecutionContext, KnownTypes.Requests.IHardenedResponseOutput }),
-            FactoryField);
+                new[]
+                {
+                    KnownTypes.Requests.IExecutionContext,
+                    KnownTypes.Requests.IHardenedResponseOutput,
+                }
+            ),
+            FactoryField
+        );
 
-        factory.Modifiers = ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+        factory.Modifiers =
+            ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
 
         // static, so the lambda is cached rather than allocated per request - it closes over
         // nothing, which is the whole reason the model is attached afterwards rather than passed in.
         factory.InitializeValue = new CodeOutputComponent(
-            "static _ => new " + TypeName(output) + "()") { Indented = false };
+            "static _ => new " + TypeName(output) + "()"
+        )
+        {
+            Indented = false,
+        };
 
         var model = ModelType(handlerModel);
 
-        if (model == null) {
+        if (model == null)
+        {
             return;
         }
 
@@ -72,11 +86,17 @@ public static class OutputFactoryGenerator {
                 TypeDefinitionEnum.InterfaceDefinition,
                 KnownTypes.Namespace.Hardened.Requests.Abstract.Outputs,
                 "IHardenedResponseOutput",
-                new[] { model }),
-            "_outputCheck_" + handlerModel.HandlerMethod);
+                new[] { model }
+            ),
+            "_outputCheck_" + handlerModel.HandlerMethod
+        );
 
-        check.Modifiers = ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
-        check.InitializeValue = new CodeOutputComponent("new " + TypeName(output) + "()") { Indented = false };
+        check.Modifiers =
+            ComponentModifier.Private | ComponentModifier.Static | ComponentModifier.Readonly;
+        check.InitializeValue = new CodeOutputComponent("new " + TypeName(output) + "()")
+        {
+            Indented = false,
+        };
     }
 
     /// <summary>
@@ -89,16 +109,21 @@ public static class OutputFactoryGenerator {
     /// check: there is no model to match, and the output's own <c>TModel</c> is whatever it
     /// declared.
     /// </remarks>
-    private static ITypeDefinition? ModelType(RequestHandlerModel handlerModel) {
+    private static ITypeDefinition? ModelType(RequestHandlerModel handlerModel)
+    {
         var returnType = handlerModel.ResponseInformation.ReturnType;
 
-        if (returnType == null || returnType.Name == "void" || returnType.Name == "Void") {
+        if (returnType == null || returnType.Name == "void" || returnType.Name == "Void")
+        {
             return null;
         }
 
-        if (returnType is GenericTypeDefinition generic &&
-            generic.Name is "Task" or "ValueTask" &&
-            generic.TypeArguments.Count == 1) {
+        if (
+            returnType is GenericTypeDefinition generic
+            && generic.Name is "Task" or "ValueTask"
+            && generic.TypeArguments.Count == 1
+        )
+        {
             return generic.TypeArguments[0];
         }
 
@@ -111,5 +136,7 @@ public static class OutputFactoryGenerator {
     /// <see cref="TypeOutputMode.Global"/> and carry none of the consumer's using directives.
     /// </summary>
     private static string TypeName(ITypeDefinition type) =>
-        string.IsNullOrEmpty(type.Namespace) ? type.Name : "global::" + type.Namespace + "." + type.Name;
+        string.IsNullOrEmpty(type.Namespace)
+            ? type.Name
+            : "global::" + type.Namespace + "." + type.Name;
 }

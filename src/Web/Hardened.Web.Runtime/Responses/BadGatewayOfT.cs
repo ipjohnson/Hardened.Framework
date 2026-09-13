@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(502)]
 public sealed record BadGateway<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<BadGateway<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<BadGateway<T>>
+{
     public string Type => ProblemTypes.BadGateway;
 
     public string Title => "Bad Gateway";
@@ -38,6 +40,7 @@ public sealed record BadGateway<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static BadGateway<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 
 /// <summary>
@@ -10,10 +11,11 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// the benchmark requires that a non-numeric value be treated as 1 rather than rejected, which
 /// means it has to bind before it is interpreted.
 /// </remarks>
-public class DatabaseRouteTests {
-
+public class DatabaseRouteTests
+{
     [HardenedTest]
-    public async Task Db_ReturnsOneWorldRow(ITestWebApp testWebApp) {
+    public async Task Db_ReturnsOneWorldRow(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/db");
 
         response.Assert.Ok();
@@ -26,7 +28,8 @@ public class DatabaseRouteTests {
     }
 
     [HardenedTest]
-    public async Task Queries_ReturnsTheRequestedCount(ITestWebApp testWebApp) {
+    public async Task Queries_ReturnsTheRequestedCount(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/queries?queries=7");
 
         response.Assert.Ok();
@@ -39,7 +42,8 @@ public class DatabaseRouteTests {
 
     /// <summary>A missing parameter means one row, not zero and not an error.</summary>
     [HardenedTest]
-    public async Task Queries_WithNoParameterReturnsOneRow(ITestWebApp testWebApp) {
+    public async Task Queries_WithNoParameterReturnsOneRow(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/queries");
 
         response.Assert.Ok();
@@ -52,7 +56,8 @@ public class DatabaseRouteTests {
     /// makes this reachable - an int parameter would have failed to bind and returned an error.
     /// </summary>
     [HardenedTest]
-    public async Task Queries_WithANonNumericParameterReturnsOneRow(ITestWebApp testWebApp) {
+    public async Task Queries_WithANonNumericParameterReturnsOneRow(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/queries?queries=foo");
 
         response.Assert.Ok();
@@ -61,7 +66,8 @@ public class DatabaseRouteTests {
     }
 
     [HardenedTest]
-    public async Task Queries_ClampsBelowOneToOne(ITestWebApp testWebApp) {
+    public async Task Queries_ClampsBelowOneToOne(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/queries?queries=0");
 
         response.Assert.Ok();
@@ -70,7 +76,8 @@ public class DatabaseRouteTests {
     }
 
     [HardenedTest]
-    public async Task Queries_ClampsAboveFiveHundredToFiveHundred(ITestWebApp testWebApp) {
+    public async Task Queries_ClampsAboveFiveHundredToFiveHundred(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/queries?queries=1000");
 
         response.Assert.Ok();
@@ -79,7 +86,8 @@ public class DatabaseRouteTests {
     }
 
     [HardenedTest]
-    public async Task Updates_ReturnsTheRequestedCount(ITestWebApp testWebApp) {
+    public async Task Updates_ReturnsTheRequestedCount(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/updates?queries=5");
 
         response.Assert.Ok();
@@ -97,7 +105,8 @@ public class DatabaseRouteTests {
     /// returning rows that are still within range and addressable.
     /// </summary>
     [HardenedTest]
-    public async Task Updates_ReturnsRowsThatRemainAddressable(ITestWebApp testWebApp) {
+    public async Task Updates_ReturnsRowsThatRemainAddressable(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/updates?queries=3");
 
         response.Assert.Ok();

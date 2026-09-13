@@ -35,7 +35,8 @@ namespace Hardened.Azure.Functions.Timer;
 /// schedule, so the function's identity is the route.
 /// </para>
 /// </remarks>
-public sealed class TimerAdapter : ITriggerAdapter {
+public sealed class TimerAdapter : ITriggerAdapter
+{
     /// <summary>The scheme a schedule routes under, which <c>[Timer]</c> declares.</summary>
     public const string TimerScheme = "TIMER";
 
@@ -49,14 +50,17 @@ public sealed class TimerAdapter : ITriggerAdapter {
     public bool Handles(FunctionsTrigger trigger) =>
         trigger.Scheme == TimerScheme && trigger.Data is string;
 
-    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context) {
+    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context)
+    {
         var timer = (string)trigger.Data;
 
-        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) {
-            ["Content-Type"] = "application/json"
+        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Content-Type"] = "application/json",
         };
 
-        if (PastDue(timer) is { } pastDue) {
+        if (PastDue(timer) is { } pastDue)
+        {
             headers[PastDueHeader] = pastDue ? "true" : "false";
         }
 
@@ -66,34 +70,44 @@ public sealed class TimerAdapter : ITriggerAdapter {
             string.IsNullOrEmpty(timer)
                 ? Stream.Null
                 : new MemoryStream(Encoding.UTF8.GetBytes(timer), writable: false),
-            headers);
+            headers
+        );
     }
 
     /// <summary>
     /// The one fact worth lifting out of the timer's JSON into a header: a handler that skips
     /// late runs can read it without binding the body.
     /// </summary>
-    private static bool? PastDue(string timer) {
-        if (string.IsNullOrEmpty(timer)) {
+    private static bool? PastDue(string timer)
+    {
+        if (string.IsNullOrEmpty(timer))
+        {
             return null;
         }
 
-        try {
+        try
+        {
             using var document = JsonDocument.Parse(timer);
 
-            if (document.RootElement.ValueKind != JsonValueKind.Object) {
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
                 return null;
             }
 
-            foreach (var property in document.RootElement.EnumerateObject()) {
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
                 // The host writes IsPastDue; a test may write it camel-cased. Either is the flag.
-                if (string.Equals(property.Name, "IsPastDue", StringComparison.OrdinalIgnoreCase) &&
-                    property.Value.ValueKind is JsonValueKind.True or JsonValueKind.False) {
+                if (
+                    string.Equals(property.Name, "IsPastDue", StringComparison.OrdinalIgnoreCase)
+                    && property.Value.ValueKind is JsonValueKind.True or JsonValueKind.False
+                )
+                {
                     return property.Value.GetBoolean();
                 }
             }
         }
-        catch (JsonException) {
+        catch (JsonException)
+        {
             // Not JSON, which the host never sends; the body carries whatever arrived.
         }
 
@@ -106,6 +120,8 @@ public sealed class TimerAdapter : ITriggerAdapter {
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
 
     /// <summary>Nothing. A timer reads no response.</summary>
-    public ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext) =>
-        new((object?)null);
+    public ValueTask<object?> WriteResponse(
+        IExecutionContext context,
+        FunctionContext functionContext
+    ) => new((object?)null);
 }

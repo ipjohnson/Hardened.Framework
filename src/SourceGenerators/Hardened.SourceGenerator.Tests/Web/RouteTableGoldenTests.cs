@@ -22,7 +22,8 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// and say so in the commit message.
 /// </para>
 /// </summary>
-public class RouteTableGoldenTests {
+public class RouteTableGoldenTests
+{
     /// <summary>
     /// Set <c>HARDENED_RECORD_FIXTURES=1</c> to rewrite every fixture from current output.
     /// </summary>
@@ -35,12 +36,19 @@ public class RouteTableGoldenTests {
     private static readonly bool Recording =
         Environment.GetEnvironmentVariable("HARDENED_RECORD_FIXTURES") == "1";
 
-    private static string FixtureDirectory() {
+    private static string FixtureDirectory()
+    {
         // The fixtures live beside the source rather than in the output directory: they are
         // reviewed in a diff, which only works if they are in the tree the diff covers.
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
 
-        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "Hardened.SourceGenerator.Tests.csproj"))) {
+        while (
+            directory != null
+            && !File.Exists(
+                Path.Combine(directory.FullName, "Hardened.SourceGenerator.Tests.csproj")
+            )
+        )
+        {
             directory = directory.Parent;
         }
 
@@ -51,30 +59,39 @@ public class RouteTableGoldenTests {
 
     [Theory]
     [MemberData(nameof(Corpus))]
-    public void RouteTable_OutputIsByteIdentical(string scenario) {
+    public void RouteTable_OutputIsByteIdentical(string scenario)
+    {
         var (appModel, handlers) = RouteCorpus.Build(scenario);
 
         var generated = RoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, CancellationToken.None);
+            appModel,
+            handlers,
+            CancellationToken.None
+        );
 
         var path = Path.Combine(FixtureDirectory(), scenario + ".cs");
 
-        if (Recording) {
+        if (Recording)
+        {
             Directory.CreateDirectory(FixtureDirectory());
             File.WriteAllText(path, generated);
             return;
         }
 
-        Assert.True(File.Exists(path),
-            $"No fixture for '{scenario}' at {path}. Record it deliberately, then review the diff.");
+        Assert.True(
+            File.Exists(path),
+            $"No fixture for '{scenario}' at {path}. Record it deliberately, then review the diff."
+        );
 
         Assert.Equal(File.ReadAllText(path), generated);
     }
 
-    public static TheoryData<string> Corpus() {
+    public static TheoryData<string> Corpus()
+    {
         var data = new TheoryData<string>();
 
-        foreach (var scenario in RouteCorpus.Scenarios) {
+        foreach (var scenario in RouteCorpus.Scenarios)
+        {
             data.Add(scenario);
         }
 

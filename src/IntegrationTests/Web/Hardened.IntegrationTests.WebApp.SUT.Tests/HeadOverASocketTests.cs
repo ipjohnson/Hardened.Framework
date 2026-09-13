@@ -24,7 +24,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// the 200 half, where <c>Content-Length</c> is actually written.
 /// </para>
 /// </remarks>
-public class HeadOverASocketTests {
+public class HeadOverASocketTests
+{
     private const string Path = "/binding/path/42";
 
     /// <summary>A route whose response the conditional filter wraps to tag what it sent.</summary>
@@ -35,7 +36,8 @@ public class HeadOverASocketTests {
     /// line as a generic transport failure.
     /// </summary>
     [Fact]
-    public async Task AHeadGetsAStatusLine() {
+    public async Task AHeadGetsAStatusLine()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var head = await host.Probe("HEAD", Path, TestContext.Current.CancellationToken);
@@ -44,22 +46,29 @@ public class HeadOverASocketTests {
     }
 
     [Fact]
-    public async Task AHeadCarriesNoBody() {
+    public async Task AHeadCarriesNoBody()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
-        var response = await host.Send(HttpMethod.Head, Path, TestContext.Current.CancellationToken);
+        var response = await host.Send(
+            HttpMethod.Head,
+            Path,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(
             string.Empty,
-            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     /// <summary>
     /// RFC 9110: the HEAD response carries the header fields the GET would have carried.
     /// </summary>
     [Fact]
-    public async Task AHeadReportsTheLengthTheGetWouldHaveWritten() {
+    public async Task AHeadReportsTheLengthTheGetWouldHaveWritten()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var get = await host.Send(HttpMethod.Get, Path, TestContext.Current.CancellationToken);
@@ -71,7 +80,8 @@ public class HeadOverASocketTests {
     }
 
     [Fact]
-    public async Task AHeadCarriesTheContentTypeOfTheGet() {
+    public async Task AHeadCarriesTheContentTypeOfTheGet()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var get = await host.Send(HttpMethod.Get, Path, TestContext.Current.CancellationToken);
@@ -85,7 +95,8 @@ public class HeadOverASocketTests {
     /// down, and the next request on the same connection is what notices.
     /// </summary>
     [Fact]
-    public async Task TheConnectionIsReusableAfterAHead() {
+    public async Task TheConnectionIsReusableAfterAHead()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         await host.Send(HttpMethod.Head, Path, TestContext.Current.CancellationToken);
@@ -104,7 +115,8 @@ public class HeadOverASocketTests {
     /// wrapper before its own close-out runs. The 304 half had a socket test and this half did not.
     /// </summary>
     [Fact]
-    public async Task AHeadOnAConditionalRouteGetsAStatusLine() {
+    public async Task AHeadOnAConditionalRouteGetsAStatusLine()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var head = await host.Probe("HEAD", ConditionalPath, TestContext.Current.CancellationToken);
@@ -113,39 +125,56 @@ public class HeadOverASocketTests {
     }
 
     [Fact]
-    public async Task AHeadOnAConditionalRouteCarriesTheTagTheGetCarried() {
+    public async Task AHeadOnAConditionalRouteCarriesTheTagTheGetCarried()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
-        var get = await host.Send(HttpMethod.Get, ConditionalPath, TestContext.Current.CancellationToken);
-        var head = await host.Send(HttpMethod.Head, ConditionalPath, TestContext.Current.CancellationToken);
+        var get = await host.Send(
+            HttpMethod.Get,
+            ConditionalPath,
+            TestContext.Current.CancellationToken
+        );
+        var head = await host.Send(
+            HttpMethod.Head,
+            ConditionalPath,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.NotNull(get.Headers.ETag);
         Assert.Equal(get.Headers.ETag, head.Headers.ETag);
     }
 
     [Fact]
-    public async Task TheConnectionIsReusableAfterAHeadOnAConditionalRoute() {
+    public async Task TheConnectionIsReusableAfterAHeadOnAConditionalRoute()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         await host.Send(HttpMethod.Head, ConditionalPath, TestContext.Current.CancellationToken);
 
-        var next = await host.Send(HttpMethod.Get, ConditionalPath, TestContext.Current.CancellationToken);
+        var next = await host.Send(
+            HttpMethod.Get,
+            ConditionalPath,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.OK, next.StatusCode);
     }
 
     #endregion
 
-    private sealed class Host : IAsyncDisposable {
+    private sealed class Host : IAsyncDisposable
+    {
         private readonly WebApplication _app;
         private readonly HttpClient _client;
 
-        private Host(WebApplication app, HttpClient client) {
+        private Host(WebApplication app, HttpClient client)
+        {
             _app = app;
             _client = client;
         }
 
-        public static async Task<Host> Start(CancellationToken cancellationToken) {
+        public static async Task<Host> Start(CancellationToken cancellationToken)
+        {
             var builder = Application.CreateBuilder([]);
 
             builder.WebHost.UseUrls("http://127.0.0.1:0");
@@ -156,20 +185,28 @@ public class HeadOverASocketTests {
 
             await app.StartAsync(cancellationToken);
 
-            var client = new HttpClient {
+            var client = new HttpClient
+            {
                 BaseAddress = new Uri(app.Urls.First()),
-                Timeout = TimeSpan.FromSeconds(10)
+                Timeout = TimeSpan.FromSeconds(10),
             };
 
             return new Host(app, client);
         }
 
         public Task<HttpResponseMessage> Send(
-            HttpMethod method, string path, CancellationToken cancellationToken) =>
-            _client.SendAsync(new HttpRequestMessage(method, path), cancellationToken);
+            HttpMethod method,
+            string path,
+            CancellationToken cancellationToken
+        ) => _client.SendAsync(new HttpRequestMessage(method, path), cancellationToken);
 
         /// <summary>The response head, straight off the socket.</summary>
-        public async Task<string> Probe(string method, string path, CancellationToken cancellationToken) {
+        public async Task<string> Probe(
+            string method,
+            string path,
+            CancellationToken cancellationToken
+        )
+        {
             var address = new Uri(_app.Urls.First());
 
             using var socket = new TcpClient();
@@ -179,7 +216,8 @@ public class HeadOverASocketTests {
             await using var stream = socket.GetStream();
 
             var request = Encoding.ASCII.GetBytes(
-                $"{method} {path} HTTP/1.1\r\nHost: {address.Host}\r\nConnection: close\r\n\r\n");
+                $"{method} {path} HTTP/1.1\r\nHost: {address.Host}\r\nConnection: close\r\n\r\n"
+            );
 
             await stream.WriteAsync(request, cancellationToken);
 
@@ -198,7 +236,8 @@ public class HeadOverASocketTests {
             return Encoding.ASCII.GetString(bytes, 0, separator);
         }
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             _client.Dispose();
 
             await _app.DisposeAsync();

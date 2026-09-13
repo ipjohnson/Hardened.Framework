@@ -27,7 +27,8 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// nothing observed in practice sends it. Adding it later changes this file and nothing else.
 /// </para>
 /// </remarks>
-public static class MediaType {
+public static class MediaType
+{
     /// <summary>The wildcard a client sends when it will take anything.</summary>
     public const string Any = "*/*";
 
@@ -38,13 +39,17 @@ public static class MediaType {
     /// The <c>Accept</c> header, unparsed. Null, empty and a header naming no media type all mean
     /// the client will take anything.
     /// </param>
-    public static bool Accepts(string? accept, string? produced) {
-        if (string.IsNullOrEmpty(produced)) {
+    public static bool Accepts(string? accept, string? produced)
+    {
+        if (string.IsNullOrEmpty(produced))
+        {
             return false;
         }
 
-        foreach (var requested in Enumerate(accept)) {
-            if (Matches(requested, produced!)) {
+        foreach (var requested in Enumerate(accept))
+        {
+            if (Matches(requested, produced!))
+            {
                 return true;
             }
         }
@@ -68,10 +73,14 @@ public static class MediaType {
     /// operation declares is the one it leads with, and the one its document lists first.
     /// </para>
     /// </remarks>
-    public static int FirstAccepted(string? accept, IReadOnlyList<string> produced) {
-        foreach (var requested in Enumerate(accept)) {
-            for (var i = 0; i < produced.Count; i++) {
-                if (Matches(requested, produced[i])) {
+    public static int FirstAccepted(string? accept, IReadOnlyList<string> produced)
+    {
+        foreach (var requested in Enumerate(accept))
+        {
+            for (var i = 0; i < produced.Count; i++)
+            {
+                if (Matches(requested, produced[i]))
+                {
                     return i;
                 }
             }
@@ -108,8 +117,8 @@ public static class MediaType {
     /// </param>
     /// <param name="produced">The concrete media type a serializer writes.</param>
     public static bool Matches(string? requested, string? produced) =>
-        !string.IsNullOrEmpty(produced) &&
-        (string.IsNullOrEmpty(requested) || Matches(requested.AsSpan(), produced!));
+        !string.IsNullOrEmpty(produced)
+        && (string.IsNullOrEmpty(requested) || Matches(requested.AsSpan(), produced!));
 
     /// <summary>
     /// One entry of an <c>Accept</c> header, already trimmed and already stripped of its
@@ -117,7 +126,8 @@ public static class MediaType {
     /// </summary>
     /// <param name="requested">An entry from <see cref="Enumerate"/>.</param>
     /// <param name="produced">The concrete media type a serializer writes.</param>
-    public static bool Matches(ReadOnlySpan<char> requested, string produced) {
+    public static bool Matches(ReadOnlySpan<char> requested, string produced)
+    {
         var candidate = produced.AsSpan();
 
         // "text/html; charset=utf-8" is text/html. The requested side arrives stripped, and a
@@ -125,17 +135,20 @@ public static class MediaType {
         // of what it writes - would otherwise match nothing but itself.
         var parameters = candidate.IndexOf(';');
 
-        if (parameters >= 0) {
+        if (parameters >= 0)
+        {
             candidate = candidate.Slice(0, parameters).TrimEnd();
         }
 
         // An absent Accept header means the client will take anything, which is the same answer as
         // */* rather than a reason to refuse.
-        if (requested.IsEmpty || requested.SequenceEqual(Any.AsSpan())) {
+        if (requested.IsEmpty || requested.SequenceEqual(Any.AsSpan()))
+        {
             return true;
         }
 
-        if (requested.Equals(candidate, StringComparison.OrdinalIgnoreCase)) {
+        if (requested.Equals(candidate, StringComparison.OrdinalIgnoreCase))
+        {
             return true;
         }
 
@@ -143,13 +156,16 @@ public static class MediaType {
 
         // "text/*" against "text/html". Anything without a slash is not a media type; treated as no
         // match rather than guessed at.
-        if (slash < 0 || slash != requested.Length - 2 || requested[requested.Length - 1] != '*') {
+        if (slash < 0 || slash != requested.Length - 2 || requested[requested.Length - 1] != '*')
+        {
             return false;
         }
 
-        return candidate.Length > slash &&
-               candidate[slash] == '/' &&
-               requested.Slice(0, slash).Equals(candidate.Slice(0, slash), StringComparison.OrdinalIgnoreCase);
+        return candidate.Length > slash
+            && candidate[slash] == '/'
+            && requested
+                .Slice(0, slash)
+                .Equals(candidate.Slice(0, slash), StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -160,13 +176,15 @@ public static class MediaType {
     /// no iterator object, no boxed enumerator, and no string per entry. Not general-purpose: it is
     /// the header format and only that.
     /// </remarks>
-    public ref struct AcceptEnumerator {
+    public ref struct AcceptEnumerator
+    {
         private readonly ReadOnlySpan<char> _header;
         private int _position;
         private bool _named;
         private bool _finished;
 
-        internal AcceptEnumerator(string? accept) {
+        internal AcceptEnumerator(string? accept)
+        {
             _header = accept.AsSpan();
             _position = 0;
             _named = false;
@@ -178,21 +196,26 @@ public static class MediaType {
 
         public AcceptEnumerator GetEnumerator() => this;
 
-        public bool MoveNext() {
-            if (_finished) {
+        public bool MoveNext()
+        {
+            if (_finished)
+            {
                 return false;
             }
 
-            while (_position < _header.Length) {
+            while (_position < _header.Length)
+            {
                 var remaining = _header.Slice(_position);
                 var comma = remaining.IndexOf(',');
                 ReadOnlySpan<char> entry;
 
-                if (comma < 0) {
+                if (comma < 0)
+                {
                     entry = remaining;
                     _position = _header.Length;
                 }
-                else {
+                else
+                {
                     entry = remaining.Slice(0, comma);
                     _position += comma + 1;
                 }
@@ -202,13 +225,15 @@ public static class MediaType {
                 // removed, so no substring is taken.
                 var semicolon = entry.IndexOf(';');
 
-                if (semicolon >= 0) {
+                if (semicolon >= 0)
+                {
                     entry = entry.Slice(0, semicolon);
                 }
 
                 entry = entry.Trim();
 
-                if (entry.IsEmpty) {
+                if (entry.IsEmpty)
+                {
                     continue;
                 }
 
@@ -222,7 +247,8 @@ public static class MediaType {
 
             // A header naming nothing at all - absent, empty, or "," - is a client that stated no
             // preference rather than one that refused everything.
-            if (_named) {
+            if (_named)
+            {
                 return false;
             }
 

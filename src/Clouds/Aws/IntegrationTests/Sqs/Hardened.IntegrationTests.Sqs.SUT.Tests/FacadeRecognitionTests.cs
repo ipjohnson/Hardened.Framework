@@ -15,10 +15,11 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// happened to have one would be handed a delegate it never asked for and fail somewhere strange.
 /// </para>
 /// </summary>
-public class FacadeRecognitionTests {
-
+public class FacadeRecognitionTests
+{
     [Fact]
-    public void AGeneratedFacadeIsRecognised() {
+    public void AGeneratedFacadeIsRecognised()
+    {
         Assert.NotNull(TriggerInvoker.Constructor(typeof(SqsTestApp.Queues)));
     }
 
@@ -27,12 +28,14 @@ public class FacadeRecognitionTests {
     /// would accept, and it is not a façade.
     /// </summary>
     [Fact]
-    public void AConstructorOfTheSameShapeIsNotAFacade() {
+    public void AConstructorOfTheSameShapeIsNotAFacade()
+    {
         Assert.Null(TriggerInvoker.Constructor(typeof(LooksLikeOne)));
     }
 
     [Fact]
-    public void AnOrdinaryTypeIsNotAFacade() {
+    public void AnOrdinaryTypeIsNotAFacade()
+    {
         Assert.Null(TriggerInvoker.Constructor(typeof(Order)));
     }
 
@@ -40,8 +43,10 @@ public class FacadeRecognitionTests {
     /// Something a test author might plausibly write: a helper taking a send callback. Same three
     /// parameters, same return, and nothing to do with this harness.
     /// </summary>
-    private sealed class LooksLikeOne {
-        public LooksLikeOne(Func<object, string, string, Task> send) {
+    private sealed class LooksLikeOne
+    {
+        public LooksLikeOne(Func<object, string, string, Task> send)
+        {
             Send = send;
         }
 

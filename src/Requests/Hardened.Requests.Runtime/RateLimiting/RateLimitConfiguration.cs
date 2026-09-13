@@ -6,8 +6,8 @@ namespace Hardened.Requests.Runtime.RateLimiting;
 /// Defaults for rate limiting, and the knobs the in-process store needs.
 /// </summary>
 [SingletonService(Using = RegistrationType.Try)]
-public class RateLimitConfiguration {
-
+public class RateLimitConfiguration
+{
     /// <summary>
     /// The header identifying an unauthenticated caller - an API key, a tenant id. Empty means
     /// every unauthenticated request shares one allowance.

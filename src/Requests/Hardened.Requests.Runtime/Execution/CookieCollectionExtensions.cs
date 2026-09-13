@@ -23,35 +23,43 @@ namespace Hardened.Requests.Runtime.Execution;
 /// rather than alongside the cookie abstractions.
 /// </para>
 /// </remarks>
-public static class CookieCollectionExtensions {
-
-    public static StringValues Get(this IReadOnlyList<string> cookies, string name) {
-        if (cookies == null) {
+public static class CookieCollectionExtensions
+{
+    public static StringValues Get(this IReadOnlyList<string> cookies, string name)
+    {
+        if (cookies == null)
+        {
             return StringValues.Empty;
         }
 
-        for (var i = 0; i < cookies.Count; i++) {
+        for (var i = 0; i < cookies.Count; i++)
+        {
             var entry = cookies[i];
 
-            if (string.IsNullOrEmpty(entry)) {
+            if (string.IsNullOrEmpty(entry))
+            {
                 continue;
             }
 
             var start = 0;
 
-            while (start < entry.Length) {
+            while (start < entry.Length)
+            {
                 var end = entry.IndexOf(';', start);
 
-                if (end < 0) {
+                if (end < 0)
+                {
                     end = entry.Length;
                 }
 
                 var separator = entry.IndexOf('=', start);
 
-                if (separator > start && separator < end) {
+                if (separator > start && separator < end)
+                {
                     var key = entry.Substring(start, separator - start).Trim();
 
-                    if (string.Equals(key, name, StringComparison.Ordinal)) {
+                    if (string.Equals(key, name, StringComparison.Ordinal))
+                    {
                         return entry.Substring(separator + 1, end - separator - 1).Trim();
                     }
                 }

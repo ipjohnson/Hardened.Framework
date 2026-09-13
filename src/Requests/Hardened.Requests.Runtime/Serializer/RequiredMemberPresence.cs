@@ -58,10 +58,11 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// from then on.
 /// </para>
 /// </remarks>
-internal static class RequiredMemberPresence {
+internal static class RequiredMemberPresence
+{
     private const string Reason =
-        "Reads a model's nullable annotations by reflection. The source-generated resolvers carry " +
-        "IsRequired from their own generator instead.";
+        "Reads a model's nullable annotations by reflection. The source-generated resolvers carry "
+        + "IsRequired from their own generator instead.";
 
     /// <summary>
     /// Adds the rule to <paramref name="options"/>, over whatever resolvers it already carries.
@@ -72,57 +73,68 @@ internal static class RequiredMemberPresence {
     /// of one thing, and setting the property replaces what the caller spent a constructor building.
     /// </remarks>
     [RequiresUnreferencedCode(Reason)]
-    public static JsonSerializerOptions Enforce(JsonSerializerOptions options) {
+    public static JsonSerializerOptions Enforce(JsonSerializerOptions options)
+    {
         var chain = new IJsonTypeInfoResolver[options.TypeInfoResolverChain.Count];
 
         options.TypeInfoResolverChain.CopyTo(chain, 0);
         options.TypeInfoResolverChain.Clear();
         options.TypeInfoResolverChain.Add(
-            JsonTypeInfoResolver.WithAddedModifier(JsonTypeInfoResolver.Combine(chain), Require));
+            JsonTypeInfoResolver.WithAddedModifier(JsonTypeInfoResolver.Combine(chain), Require)
+        );
 
         return options;
     }
 
     [RequiresUnreferencedCode(Reason)]
-    private static void Require(JsonTypeInfo typeInfo) {
-        if (typeInfo.Kind != JsonTypeInfoKind.Object) {
+    private static void Require(JsonTypeInfo typeInfo)
+    {
+        if (typeInfo.Kind != JsonTypeInfoKind.Object)
+        {
             return;
         }
 
         NullabilityInfoContext? nullability = null;
 
-        foreach (var property in typeInfo.Properties) {
+        foreach (var property in typeInfo.Properties)
+        {
             // Already required, by the `required` modifier, [JsonRequired], or a generator that
             // decided the same thing from a contract.
-            if (property.IsRequired || property.IsExtensionData) {
+            if (property.IsRequired || property.IsExtensionData)
+            {
                 continue;
             }
 
-            if (property.AttributeProvider is not PropertyInfo member) {
+            if (property.AttributeProvider is not PropertyInfo member)
+            {
                 continue;
             }
 
             // Only a member the constructor takes. A settable property's "optional" is an
             // initializer, which is compiled into the constructor body and invisible here, so
             // demanding one would refuse a body its author meant to accept.
-            if (Parameter(typeInfo.Type, member.Name) is not { } parameter) {
+            if (Parameter(typeInfo.Type, member.Name) is not { } parameter)
+            {
                 continue;
             }
 
             // The caller may omit a member the server fills in. This is the one exclusion the
             // document makes too.
-            if (parameter.HasDefaultValue) {
+            if (parameter.HasDefaultValue)
+            {
                 continue;
             }
 
             // A value the server owns is not one to demand of a caller. This is OpenAPI's readOnly,
             // which the specification-first side excludes from required for the same reason -
             // ConstrainedAsRequired reads IsReadOnly.
-            if (member.GetCustomAttribute<ResponseOnlyAttribute>() != null) {
+            if (member.GetCustomAttribute<ResponseOnlyAttribute>() != null)
+            {
                 continue;
             }
 
-            if (!DeclaredAlwaysPresent(member, ref nullability)) {
+            if (!DeclaredAlwaysPresent(member, ref nullability))
+            {
                 continue;
             }
 
@@ -142,8 +154,12 @@ internal static class RequiredMemberPresence {
     /// </remarks>
     [RequiresUnreferencedCode(Reason)]
     private static bool DeclaredAlwaysPresent(
-        PropertyInfo member, ref NullabilityInfoContext? nullability) {
-        if (member.PropertyType.IsValueType) {
+        PropertyInfo member,
+        ref NullabilityInfoContext? nullability
+    )
+    {
+        if (member.PropertyType.IsValueType)
+        {
             return false;
         }
 
@@ -162,10 +178,14 @@ internal static class RequiredMemberPresence {
     /// property's default in the document either.
     /// </remarks>
     [RequiresUnreferencedCode(Reason)]
-    private static ParameterInfo? Parameter(Type type, string name) {
-        foreach (var constructor in type.GetConstructors()) {
-            foreach (var parameter in constructor.GetParameters()) {
-                if (string.Equals(parameter.Name, name, StringComparison.Ordinal)) {
+    private static ParameterInfo? Parameter(Type type, string name)
+    {
+        foreach (var constructor in type.GetConstructors())
+        {
+            foreach (var parameter in constructor.GetParameters())
+            {
+                if (string.Equals(parameter.Name, name, StringComparison.Ordinal))
+                {
                     return parameter;
                 }
             }

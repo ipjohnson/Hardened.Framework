@@ -18,14 +18,15 @@ namespace Hardened1.Tests;
 /// the same handlers run here for the isolation check. See "Testing" in README.md.
 /// </remarks>
 [PipelineHost]
-public class ContainerIsolationTests {
-
+public class ContainerIsolationTests
+{
     private record TodoResponse(int Id, string Title, bool Done);
 
     private record NewTodoRequest(string Title);
 
     [HardenedTest]
-    public async Task ATodoOneRequestCreatesIsGoneByTheNext(ITestWebApp app) {
+    public async Task ATodoOneRequestCreatesIsGoneByTheNext(ITestWebApp app)
+    {
         (await app.Post(new NewTodoRequest("Write a test"), "/todos")).Assert.Ok();
 
         var todos = (await app.Get("/todos")).Deserialize<List<TodoResponse>>();
@@ -47,7 +48,8 @@ public class ContainerIsolationTests {
     /// several attempts, and not to make an ordinary test pass.
     /// </remarks>
     [HardenedTest]
-    public async Task SharedSendsEveryRequestToOneContainer([Shared] ITestWebApp app) {
+    public async Task SharedSendsEveryRequestToOneContainer([Shared] ITestWebApp app)
+    {
         (await app.Post(new NewTodoRequest("Write a test"), "/todos")).Assert.Ok();
 
         var todos = (await app.Get("/todos")).Deserialize<List<TodoResponse>>();

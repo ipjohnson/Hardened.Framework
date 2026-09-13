@@ -1,8 +1,7 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.RateLimiting;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -29,9 +28,11 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(429)]
 public sealed record RateLimited<T>(TimeSpan RetryAfter, T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IProvidesResponseHeaders,
-        IResponseExpectation<RateLimited<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IProvidesResponseHeaders,
+        IResponseExpectation<RateLimited<T>>
+{
     public string Type => ProblemTypes.RateLimited;
 
     public string Title => "Too Many Requests";
@@ -41,11 +42,15 @@ public sealed record RateLimited<T>(TimeSpan RetryAfter, T Body)
     public int Status => StatusCode;
 
     object? ICarriesResponseBody.Body => Body;
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
-        headers[KnownHeaders.RetryAfter] = Hardened.Requests.Runtime.RateLimiting.RetryAfter.HeaderValue(RetryAfter);
+
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
+        headers[KnownHeaders.RetryAfter] =
+            Hardened.Requests.Runtime.RateLimiting.RetryAfter.HeaderValue(RetryAfter);
     }
 
     public static RateLimited<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.RequiredRetryAfter(headers), ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.RequiredRetryAfter(headers), ResponseExpectation.Body<T>(body));
 }

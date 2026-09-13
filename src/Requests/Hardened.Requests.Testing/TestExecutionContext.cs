@@ -6,7 +6,8 @@ using Hardened.Shared.Runtime.Metrics;
 
 namespace Hardened.Requests.Testing;
 
-public class TestExecutionContext : IExecutionContext {
+public class TestExecutionContext : IExecutionContext
+{
     /// <param name="metricLogger">
     /// The sink measurements recorded during the request land in. Optional, and a
     /// <see cref="NullMetricsLogger"/> when omitted, which is what this always used to build.
@@ -23,7 +24,9 @@ public class TestExecutionContext : IExecutionContext {
         IExecutionRequest request,
         IExecutionResponse response,
         CancellationToken cancellationToken,
-        IMetricLogger? metricLogger = null) {
+        IMetricLogger? metricLogger = null
+    )
+    {
         RootServiceProvider = rootServiceProvider;
         RequestServices = requestServices;
         Request = request;
@@ -38,7 +41,9 @@ public class TestExecutionContext : IExecutionContext {
         IExecutionRequest? request,
         IExecutionResponse? response,
         IServiceProvider? serviceProvider,
-        IMetricLogger? metricLogger) {
+        IMetricLogger? metricLogger
+    )
+    {
         return new TestExecutionContext(
             RootServiceProvider,
             serviceProvider ?? RequestServices,
@@ -46,7 +51,9 @@ public class TestExecutionContext : IExecutionContext {
             request ?? Request,
             response ?? Response,
             CancellationToken,
-            metricLogger ?? RequestMetrics) {
+            metricLogger ?? RequestMetrics
+        )
+        {
             HandlerInstance = HandlerInstance,
             HandlerInfo = HandlerInfo,
             // The reference, not a copy: a fork is the same caller.
@@ -71,7 +78,8 @@ public class TestExecutionContext : IExecutionContext {
     private string? _correlationId;
 
     /// <inheritdoc />
-    public string CorrelationId {
+    public string CorrelationId
+    {
         get => _correlationId ??= CorrelationIdentifier.ForCurrentTrace();
         init => _correlationId = value;
     }

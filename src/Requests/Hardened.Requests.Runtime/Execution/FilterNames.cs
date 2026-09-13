@@ -7,13 +7,14 @@ namespace Hardened.Requests.Runtime.Execution;
 /// <summary>
 /// What the composed-chain log calls a filter.
 /// </summary>
-internal static class FilterNames {
-
+internal static class FilterNames
+{
     /// <summary>
     /// The type's name without the arity a generic carries: <c>ValidationFilter</c> rather than
     /// <c>ValidationFilter`1</c>.
     /// </summary>
-    public static string Of(Type type) {
+    public static string Of(Type type)
+    {
         var name = type.Name;
         var arity = name.IndexOf('`');
 
@@ -31,15 +32,18 @@ internal static class FilterNames {
     /// Reflection, and deliberately only here. This runs once per handler, and only when the log
     /// is enabled, so nothing on a request pays for it.
     /// </remarks>
-    public static string Of(RequestFilterInfo filter) {
-        if (filter.Name != null) {
+    public static string Of(RequestFilterInfo filter)
+    {
+        if (filter.Name != null)
+        {
             return filter.Name;
         }
 
         var method = filter.FilterFunc.Method;
         var type = method.DeclaringType;
 
-        while (type != null && type.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false)) {
+        while (type != null && type.IsDefined(typeof(CompilerGeneratedAttribute), inherit: false))
+        {
             type = type.DeclaringType;
         }
 

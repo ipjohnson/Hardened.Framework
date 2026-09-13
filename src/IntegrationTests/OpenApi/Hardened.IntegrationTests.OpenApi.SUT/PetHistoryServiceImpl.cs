@@ -17,10 +17,12 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// <c>[ServerSentEvents]</c> handler takes with <c>[Throws&lt;NotFound&gt;]</c>.
 /// </remarks>
 [Handler]
-public class PetHistoryServiceImpl : IPetHistoryService {
-
-    public async IAsyncEnumerable<PetEvent> PetEvents(string petId) {
-        if (petId == "missing") {
+public class PetHistoryServiceImpl : IPetHistoryService
+{
+    public async IAsyncEnumerable<PetEvent> PetEvents(string petId)
+    {
+        if (petId == "missing")
+        {
             throw new NotFound("pet", $"No pet has id {petId}.").AsException();
         }
 

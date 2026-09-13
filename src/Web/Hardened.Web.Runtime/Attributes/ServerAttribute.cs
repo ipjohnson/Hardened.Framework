@@ -50,9 +50,15 @@ namespace Hardened.Web.Runtime.Attributes;
 /// specification-first build reading the server URL apply it a second time.
 /// </para>
 /// </summary>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = true, Inherited = false)]
-public class ServerAttribute : Attribute {
-    public ServerAttribute(string url, string? description = null) {
+[AttributeUsage(
+    AttributeTargets.Class | AttributeTargets.Assembly,
+    AllowMultiple = true,
+    Inherited = false
+)]
+public class ServerAttribute : Attribute
+{
+    public ServerAttribute(string url, string? description = null)
+    {
         Url = url;
         Description = description;
     }

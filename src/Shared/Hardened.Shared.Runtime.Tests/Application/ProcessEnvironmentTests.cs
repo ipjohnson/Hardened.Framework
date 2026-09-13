@@ -18,17 +18,20 @@ namespace Hardened.Shared.Runtime.Tests.Application;
 ///
 /// <para>Every variable is restored in a <c>finally</c>, including when it was previously unset.</para>
 /// </summary>
-public class ProcessEnvironmentTests {
-
-    private static void WithProcessVariable(string name, string? value, Action body) {
+public class ProcessEnvironmentTests
+{
+    private static void WithProcessVariable(string name, string? value, Action body)
+    {
         var previous = Environment.GetEnvironmentVariable(name);
 
         Environment.SetEnvironmentVariable(name, value);
 
-        try {
+        try
+        {
             body();
         }
-        finally {
+        finally
+        {
             Environment.SetEnvironmentVariable(name, previous);
         }
     }
@@ -38,9 +41,13 @@ public class ProcessEnvironmentTests {
     /// This is how a deployed process knows which environment it is in.
     /// </summary>
     [Fact]
-    public void AnUnnamedEnvironmentTakesItsNameFromHardenedEnvironment() {
-        WithProcessVariable("HARDENED_ENVIRONMENT", "production",
-            () => Assert.Equal("production", new EnvironmentImpl().Name));
+    public void AnUnnamedEnvironmentTakesItsNameFromHardenedEnvironment()
+    {
+        WithProcessVariable(
+            "HARDENED_ENVIRONMENT",
+            "production",
+            () => Assert.Equal("production", new EnvironmentImpl().Name)
+        );
     }
 
     /// <summary>
@@ -48,9 +55,13 @@ public class ProcessEnvironmentTests {
     /// by whatever the developer's shell happens to export.
     /// </summary>
     [Fact]
-    public void AnExplicitNameWinsOverHardenedEnvironment() {
-        WithProcessVariable("HARDENED_ENVIRONMENT", "production",
-            () => Assert.Equal("staging", new EnvironmentImpl("staging").Name));
+    public void AnExplicitNameWinsOverHardenedEnvironment()
+    {
+        WithProcessVariable(
+            "HARDENED_ENVIRONMENT",
+            "production",
+            () => Assert.Equal("staging", new EnvironmentImpl("staging").Name)
+        );
     }
 
     /// <summary>
@@ -58,9 +69,13 @@ public class ProcessEnvironmentTests {
     /// the safe end of the range to default to.
     /// </summary>
     [Fact]
-    public void TheDefaultEnvironmentIsDevelopment() {
-        WithProcessVariable("HARDENED_ENVIRONMENT", null,
-            () => Assert.Equal("development", new EnvironmentImpl().Name));
+    public void TheDefaultEnvironmentIsDevelopment()
+    {
+        WithProcessVariable(
+            "HARDENED_ENVIRONMENT",
+            null,
+            () => Assert.Equal("development", new EnvironmentImpl().Name)
+        );
     }
 
     /// <summary>
@@ -68,11 +83,17 @@ public class ProcessEnvironmentTests {
     /// picks up the variables its function configuration sets.
     /// </summary>
     [Fact]
-    public void AVariableNotInTheDictionaryIsReadFromTheProcess() {
-        WithProcessVariable("HARDENED_TEST_SERVICE_URL", "http://from-process",
-            () => Assert.Equal(
-                "http://from-process",
-                new EnvironmentImpl("test").Value<string>("HARDENED_TEST_SERVICE_URL")));
+    public void AVariableNotInTheDictionaryIsReadFromTheProcess()
+    {
+        WithProcessVariable(
+            "HARDENED_TEST_SERVICE_URL",
+            "http://from-process",
+            () =>
+                Assert.Equal(
+                    "http://from-process",
+                    new EnvironmentImpl("test").Value<string>("HARDENED_TEST_SERVICE_URL")
+                )
+        );
     }
 
     /// <summary>
@@ -80,15 +101,27 @@ public class ProcessEnvironmentTests {
     /// silently overridden by a variable the developer exported.
     /// </summary>
     [Fact]
-    public void ADictionaryValueWinsOverTheProcessVariable() {
-        WithProcessVariable("HARDENED_TEST_SERVICE_URL", "http://from-process", () => {
-            var environment = new EnvironmentImpl("test",
-                environmentValues: new Dictionary<string, string> {
-                    ["HARDENED_TEST_SERVICE_URL"] = "http://from-dictionary"
-                });
+    public void ADictionaryValueWinsOverTheProcessVariable()
+    {
+        WithProcessVariable(
+            "HARDENED_TEST_SERVICE_URL",
+            "http://from-process",
+            () =>
+            {
+                var environment = new EnvironmentImpl(
+                    "test",
+                    environmentValues: new Dictionary<string, string>
+                    {
+                        ["HARDENED_TEST_SERVICE_URL"] = "http://from-dictionary",
+                    }
+                );
 
-            Assert.Equal("http://from-dictionary", environment.Value<string>("HARDENED_TEST_SERVICE_URL"));
-        });
+                Assert.Equal(
+                    "http://from-dictionary",
+                    environment.Value<string>("HARDENED_TEST_SERVICE_URL")
+                );
+            }
+        );
     }
 
     /// <summary>
@@ -96,20 +129,42 @@ public class ProcessEnvironmentTests {
     /// the empty string being taken as an answer.
     /// </summary>
     [Fact]
-    public void AnEmptyDictionaryValueFallsThroughToTheProcessVariable() {
-        WithProcessVariable("HARDENED_TEST_SERVICE_URL", "http://from-process", () => {
-            var environment = new EnvironmentImpl("test",
-                environmentValues: new Dictionary<string, string> { ["HARDENED_TEST_SERVICE_URL"] = "" });
+    public void AnEmptyDictionaryValueFallsThroughToTheProcessVariable()
+    {
+        WithProcessVariable(
+            "HARDENED_TEST_SERVICE_URL",
+            "http://from-process",
+            () =>
+            {
+                var environment = new EnvironmentImpl(
+                    "test",
+                    environmentValues: new Dictionary<string, string>
+                    {
+                        ["HARDENED_TEST_SERVICE_URL"] = "",
+                    }
+                );
 
-            Assert.Equal("http://from-process", environment.Value<string>("HARDENED_TEST_SERVICE_URL"));
-        });
+                Assert.Equal(
+                    "http://from-process",
+                    environment.Value<string>("HARDENED_TEST_SERVICE_URL")
+                );
+            }
+        );
     }
 
     /// <summary>A value read from the process is converted like any other.</summary>
     [Fact]
-    public void AProcessVariableIsConvertedToTheRequestedType() {
-        WithProcessVariable("HARDENED_TEST_RETENTION_DAYS", "90",
-            () => Assert.Equal(90, new EnvironmentImpl("test").Value<int>("HARDENED_TEST_RETENTION_DAYS")));
+    public void AProcessVariableIsConvertedToTheRequestedType()
+    {
+        WithProcessVariable(
+            "HARDENED_TEST_RETENTION_DAYS",
+            "90",
+            () =>
+                Assert.Equal(
+                    90,
+                    new EnvironmentImpl("test").Value<int>("HARDENED_TEST_RETENTION_DAYS")
+                )
+        );
     }
 
     /// <summary>
@@ -117,10 +172,16 @@ public class ProcessEnvironmentTests {
     /// every optional setting takes.
     /// </summary>
     [Fact]
-    public void AVariableSetNowhereFallsBackToTheDefault() {
-        WithProcessVariable("HARDENED_TEST_SERVICE_URL", null,
-            () => Assert.Equal(
-                "fallback",
-                new EnvironmentImpl("test").Value("HARDENED_TEST_SERVICE_URL", "fallback")));
+    public void AVariableSetNowhereFallsBackToTheDefault()
+    {
+        WithProcessVariable(
+            "HARDENED_TEST_SERVICE_URL",
+            null,
+            () =>
+                Assert.Equal(
+                    "fallback",
+                    new EnvironmentImpl("test").Value("HARDENED_TEST_SERVICE_URL", "fallback")
+                )
+        );
     }
 }

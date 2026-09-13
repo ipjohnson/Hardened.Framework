@@ -8,79 +8,107 @@ namespace Hardened.SourceGenerator.Shared;
 public record AttributeModel(
     ITypeDefinition TypeDefinition,
     string Arguments,
-    string PropertyAssignment);
+    string PropertyAssignment
+);
 
-public static class AttributeModelHelper {
+public static class AttributeModelHelper
+{
     public static IEnumerable<AttributeModel> GetAttributes(
         GeneratorSyntaxContext context,
         SyntaxList<AttributeListSyntax> attributeListSyntax,
         CancellationToken cancellationToken,
-        Func<AttributeSyntax, bool>? filter = null) {
-        foreach (var attributeList in attributeListSyntax) {
-            foreach (var attribute in attributeList.Attributes) {
+        Func<AttributeSyntax, bool>? filter = null
+    )
+    {
+        foreach (var attributeList in attributeListSyntax)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var operation = context.SemanticModel.GetTypeInfo(attribute);
 
-                if (filter?.Invoke(attribute) ?? true) {
-                    if (operation.Type != null) {
-                        yield return InternalAttributeModel(context.SemanticModel, attribute, operation);
+                if (filter?.Invoke(attribute) ?? true)
+                {
+                    if (operation.Type != null)
+                    {
+                        yield return InternalAttributeModel(
+                            context.SemanticModel,
+                            attribute,
+                            operation
+                        );
                     }
                 }
             }
         }
     }
 
-    public static AttributeModel? GetAttribute(GeneratorSyntaxContext context, AttributeSyntax attribute) {
+    public static AttributeModel? GetAttribute(
+        GeneratorSyntaxContext context,
+        AttributeSyntax attribute
+    )
+    {
         var operation = context.SemanticModel.GetTypeInfo(attribute);
-        
-        return operation.Type != null ?
-            InternalAttributeModel(context.SemanticModel, attribute, operation) :
-            null;
+
+        return operation.Type != null
+            ? InternalAttributeModel(context.SemanticModel, attribute, operation)
+            : null;
     }
 
     private static AttributeModel InternalAttributeModel(
-        SemanticModel semanticModel, AttributeSyntax attribute, TypeInfo operation) {
+        SemanticModel semanticModel,
+        AttributeSyntax attribute,
+        TypeInfo operation
+    )
+    {
         var arguments = "";
         var propertyAssignment = "";
 
-        if (attribute.ArgumentList != null) {
+        if (attribute.ArgumentList != null)
+        {
             var rewriter = new QualifyNamesRewriter(semanticModel);
 
-            foreach (var attributeArgumentSyntax in
-                     attribute.ArgumentList.Arguments) {
+            foreach (var attributeArgumentSyntax in attribute.ArgumentList.Arguments)
+            {
                 // NameEquals is "Property = value", NameColon is "parameter: value". Distinguishing
                 // them syntactically rather than by looking for an "=" in the text is what keeps a
                 // positional argument that merely contains one - a string "a=b", a comparison, a
                 // lambda - from being emitted as a property initializer the attribute does not have.
                 var value = rewriter.Rewrite(attributeArgumentSyntax.Expression);
 
-                if (attributeArgumentSyntax.NameEquals != null) {
-                    if (propertyAssignment.Length > 0) {
+                if (attributeArgumentSyntax.NameEquals != null)
+                {
+                    if (propertyAssignment.Length > 0)
+                    {
                         propertyAssignment += ", ";
                     }
 
                     propertyAssignment += attributeArgumentSyntax.NameEquals.Name + " = " + value;
                 }
-                else {
-                    if (arguments.Length > 0) {
+                else
+                {
+                    if (arguments.Length > 0)
+                    {
                         arguments += ", ";
                     }
 
-                    arguments += attributeArgumentSyntax.NameColon != null
-                        ? attributeArgumentSyntax.NameColon.Name + ": " + value
-                        : value;
+                    arguments +=
+                        attributeArgumentSyntax.NameColon != null
+                            ? attributeArgumentSyntax.NameColon.Name + ": " + value
+                            : value;
                 }
             }
         }
 
-        if (operation.Type == null) {
+        if (operation.Type == null)
+        {
             throw new ArgumentNullException("operation.Type", "The type argument cannot be null.");
         }
-        
+
         var type = operation.Type.GetTypeDefinition();
 
-        if (!type.Name.EndsWith("Attribute")) {
+        if (!type.Name.EndsWith("Attribute"))
+        {
             type = TypeDefinition.Get(type.Namespace, type.Name + "Attribute");
         }
 
@@ -88,17 +116,17 @@ public static class AttributeModelHelper {
         // name, and the metadata array is emitted as `new TemplateAttribute()` for
         // `[Template<Views.Fortunes>]` - which does not compile, because the attribute is generic
         // and the arguments are not inferable from an object-initialised array.
-        if (operation.Type is INamedTypeSymbol { IsGenericType: true } genericAttribute) {
+        if (operation.Type is INamedTypeSymbol { IsGenericType: true } genericAttribute)
+        {
             type = new GenericTypeDefinition(
                 TypeDefinitionEnum.ClassDefinition,
                 type.Namespace,
                 type.Name,
-                genericAttribute.TypeArguments.Select(GenericArgument).ToArray());
+                genericAttribute.TypeArguments.Select(GenericArgument).ToArray()
+            );
         }
 
-        return new AttributeModel(type,
-            arguments,
-            propertyAssignment);
+        return new AttributeModel(type, arguments, propertyAssignment);
     }
 
     /// <summary>
@@ -135,10 +163,12 @@ public static class AttributeModelHelper {
     /// needs a cast to assign back to the property and reads as nothing at all in generated output.
     /// </para>
     /// </remarks>
-    private class QualifyNamesRewriter : CSharpSyntaxRewriter {
+    private class QualifyNamesRewriter : CSharpSyntaxRewriter
+    {
         private readonly SemanticModel _semanticModel;
 
-        public QualifyNamesRewriter(SemanticModel semanticModel) {
+        public QualifyNamesRewriter(SemanticModel semanticModel)
+        {
             _semanticModel = semanticModel;
         }
 
@@ -150,8 +180,9 @@ public static class AttributeModelHelper {
         public string Rewrite(ExpressionSyntax expression) =>
             Visit(expression)?.ToString() ?? expression.ToString();
 
-        public override SyntaxNode? VisitMemberAccessExpression(MemberAccessExpressionSyntax node) =>
-            Qualify(node) ?? base.VisitMemberAccessExpression(node);
+        public override SyntaxNode? VisitMemberAccessExpression(
+            MemberAccessExpressionSyntax node
+        ) => Qualify(node) ?? base.VisitMemberAccessExpression(node);
 
         public override SyntaxNode? VisitQualifiedName(QualifiedNameSyntax node) =>
             Qualify(node) ?? base.VisitQualifiedName(node);
@@ -166,9 +197,13 @@ public static class AttributeModelHelper {
         /// <c>nameof</c> evaluates to the source spelling of its argument, so qualifying inside it
         /// changes nothing and only makes the generated output harder to read.
         /// </summary>
-        public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node) {
-            if (node.Expression is IdentifierNameSyntax identifier &&
-                identifier.Identifier.ValueText == "nameof") {
+        public override SyntaxNode? VisitInvocationExpression(InvocationExpressionSyntax node)
+        {
+            if (
+                node.Expression is IdentifierNameSyntax identifier
+                && identifier.Identifier.ValueText == "nameof"
+            )
+            {
                 return node;
             }
 
@@ -183,15 +218,17 @@ public static class AttributeModelHelper {
         /// <c>A.global::A.B</c>. The enclosing node is what gets rewritten.
         /// </remarks>
         private static bool IsRightHandOfAName(SimpleNameSyntax node) =>
-            (node.Parent is MemberAccessExpressionSyntax memberAccess && memberAccess.Name == node) ||
-            (node.Parent is QualifiedNameSyntax qualifiedName && qualifiedName.Right == node);
+            (node.Parent is MemberAccessExpressionSyntax memberAccess && memberAccess.Name == node)
+            || (node.Parent is QualifiedNameSyntax qualifiedName && qualifiedName.Right == node);
 
-        private SyntaxNode? Qualify(ExpressionSyntax node) {
+        private SyntaxNode? Qualify(ExpressionSyntax node)
+        {
             var symbol = _semanticModel.GetSymbolInfo(node).Symbol;
 
             string? qualified = null;
 
-            switch (symbol) {
+            switch (symbol)
+            {
                 case ITypeSymbol type:
                     qualified = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                     break;
@@ -204,7 +241,8 @@ public static class AttributeModelHelper {
                     break;
             }
 
-            if (qualified == null) {
+            if (qualified == null)
+            {
                 return null;
             }
 
@@ -218,16 +256,22 @@ public static class AttributeModelHelper {
             // rewriter and failed the whole generator, so any filter attribute carrying a typeof
             // argument took the build down with it. TypeSyntax derives from ExpressionSyntax, so a
             // type is still valid everywhere an expression was.
-            ExpressionSyntax replacement = symbol is ITypeSymbol
-                ? SyntaxFactory.ParseTypeName(qualified)
-                : SyntaxFactory.ParseExpression(qualified);
+            ExpressionSyntax replacement =
+                symbol is ITypeSymbol
+                    ? SyntaxFactory.ParseTypeName(qualified)
+                    : SyntaxFactory.ParseExpression(qualified);
 
             return replacement.WithTriviaFrom(node);
         }
 
-        private static string? FullyQualifiedMember(INamedTypeSymbol? containingType, string name) =>
+        private static string? FullyQualifiedMember(
+            INamedTypeSymbol? containingType,
+            string name
+        ) =>
             containingType == null
                 ? null
-                : containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + name;
+                : containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                    + "."
+                    + name;
     }
 }

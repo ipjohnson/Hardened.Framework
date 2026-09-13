@@ -12,22 +12,26 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Dispatch;
 [CloudRunRuntime]
 public partial class MixedApp;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 }
 
-public interface IOrderStore {
+public interface IOrderStore
+{
     void Place(Order order);
 }
 
-public class OrderHandlers {
+public class OrderHandlers
+{
     [Queue("orders")]
     public void OnOrder(Order order, IOrderStore store) => store.Place(order);
 }
 
 public record Pong(string Answer);
 
-public class PingController {
+public class PingController
+{
     [Get("/ping")]
     public Pong Ping() => new("pong");
 }

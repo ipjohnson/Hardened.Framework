@@ -17,7 +17,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// <see cref="IActivityAuthorizationHandler"/>s rather than being one answer.
 /// </para>
 /// </remarks>
-public interface IActivityAuthorizationService {
+public interface IActivityAuthorizationService
+{
     /// <summary>
     /// Asks every registered handler which of <paramref name="grants"/> the caller holds, and merges
     /// what they say.

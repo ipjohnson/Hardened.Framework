@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
@@ -17,10 +18,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// differently by API Gateway and CloudFront and read differently by a generated client.
 /// </para>
 /// </remarks>
-public class EmptySegmentTests {
-
+public class EmptySegmentTests
+{
     [HardenedTest]
-    public async Task ATrailingSlashDoesNotFillASingleSegmentToken(ITestWebApp testWebApp) {
+    public async Task ATrailingSlashDoesNotFillASingleSegmentToken(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/path/");
 
         response.Assert.NotFound();
@@ -31,7 +33,8 @@ public class EmptySegmentTests {
     /// came from accepting a boundary at the position the scan started from.
     /// </summary>
     [HardenedTest]
-    public async Task AnEmptySegmentDoesNotFillAMidRouteToken(ITestWebApp testWebApp) {
+    public async Task AnEmptySegmentDoesNotFillAMidRouteToken(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/pair//second");
 
         response.Assert.NotFound();
@@ -41,7 +44,8 @@ public class EmptySegmentTests {
     /// A catch-all means the rest of the path, and there is no rest here.
     /// </summary>
     [HardenedTest]
-    public async Task ATrailingSlashDoesNotFillACatchAllToken(ITestWebApp testWebApp) {
+    public async Task ATrailingSlashDoesNotFillACatchAllToken(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/files/");
 
         response.Assert.NotFound();
@@ -52,7 +56,8 @@ public class EmptySegmentTests {
     /// value still binds, including a catch-all spanning separators.
     /// </summary>
     [HardenedTest]
-    public async Task ATokenWithAValueStillBinds(ITestWebApp testWebApp) {
+    public async Task ATokenWithAValueStillBinds(ITestWebApp testWebApp)
+    {
         var single = await testWebApp.Get("/binding/path/abc");
 
         single.Assert.Ok();

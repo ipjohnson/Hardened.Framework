@@ -12,10 +12,15 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// non-nullable and an optional one was nullable-with-a-default, and a spec saying a value must be
 /// present but may be null had no way to say so.
 /// </remarks>
-public class NullabilityTests {
-
-    private static ServiceSpecModel Parse() {
-        var model = OpenApiSpecParser.Parse(Specs.RequiredAndNullable, "test", CancellationToken.None);
+public class NullabilityTests
+{
+    private static ServiceSpecModel Parse()
+    {
+        var model = OpenApiSpecParser.Parse(
+            Specs.RequiredAndNullable,
+            "test",
+            CancellationToken.None
+        );
 
         Assert.NotNull(model);
 
@@ -26,7 +31,8 @@ public class NullabilityTests {
         Parse().Schemas.First(s => s.Name == "Thing").Properties.First(p => p.Name == name);
 
     [Fact]
-    public void RequiredAndNotNullableIsNeitherNullableNorDefaulted() {
+    public void RequiredAndNotNullableIsNeitherNullableNorDefaulted()
+    {
         var property = Property("requiredPlain");
 
         Assert.True(property.IsRequired);
@@ -41,7 +47,8 @@ public class NullabilityTests {
     /// Nullable in C#, but with no default — and no <c>[Required]</c>, which rejects null.
     /// </summary>
     [Fact]
-    public void RequiredAndNullableIsNullableWithoutADefault() {
+    public void RequiredAndNullableIsNullableWithoutADefault()
+    {
         var property = Property("requiredNullable");
 
         Assert.True(property.IsRequired);
@@ -52,8 +59,10 @@ public class NullabilityTests {
     }
 
     [Fact]
-    public void OptionalIsNullableAndDefaultedWhateverNullableSays() {
-        foreach (var name in new[] { "optionalPlain", "optionalNullable" }) {
+    public void OptionalIsNullableAndDefaultedWhateverNullableSays()
+    {
+        foreach (var name in new[] { "optionalPlain", "optionalNullable" })
+        {
             var property = Property(name);
 
             Assert.False(property.IsRequired);
@@ -64,8 +73,12 @@ public class NullabilityTests {
     }
 
     [Fact]
-    public void ParametersFollowTheSameRules() {
-        var parameters = Parse().Services.First(s => s.Tag == "Thing").Operations.Single().Parameters;
+    public void ParametersFollowTheSameRules()
+    {
+        var parameters = Parse()
+            .Services.First(s => s.Tag == "Thing")
+            .Operations.Single()
+            .Parameters;
 
         var requiredNullable = parameters.First(p => p.Name == "requiredNullable");
 
@@ -81,7 +94,8 @@ public class NullabilityTests {
     /// <c>[Required]</c>.
     /// </summary>
     [Fact]
-    public void TheGeneratedRecordReflectsBothAxes() {
+    public void TheGeneratedRecordReflectsBothAxes()
+    {
         var result = OpenApiGenerator.Run(Specs.RequiredAndNullable).AssertNoErrors();
 
         var generated = result.SourceContaining("petstore.g.cs");

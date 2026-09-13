@@ -29,8 +29,8 @@ namespace Hardened.Shared.Runtime.Application;
 /// environment the documentation describes actually be one.
 /// </para>
 /// </remarks>
-public static class HardenedEnvironmentServiceCollectionExtensions {
-
+public static class HardenedEnvironmentServiceCollectionExtensions
+{
     /// <summary>
     /// Registers <paramref name="environment"/> as the application's environment.
     /// </summary>
@@ -39,7 +39,10 @@ public static class HardenedEnvironmentServiceCollectionExtensions {
     /// collection is still being built and there is no provider to run a factory against.
     /// </remarks>
     public static IServiceCollection AddHardenedEnvironment(
-        this IServiceCollection services, IHardenedEnvironment environment) {
+        this IServiceCollection services,
+        IHardenedEnvironment environment
+    )
+    {
         services.AddSingleton(environment);
         services.AddSingleton<IModuleEnvironment>(environment);
 
@@ -56,6 +59,7 @@ public static class HardenedEnvironmentServiceCollectionExtensions {
     /// the arguments it was started with.
     /// </remarks>
     public static IServiceCollection AddHardenedEnvironment(
-        this IServiceCollection services, IReadOnlyList<string>? arguments = null) =>
-        services.AddHardenedEnvironment(new EnvironmentImpl(arguments: arguments));
+        this IServiceCollection services,
+        IReadOnlyList<string>? arguments = null
+    ) => services.AddHardenedEnvironment(new EnvironmentImpl(arguments: arguments));
 }

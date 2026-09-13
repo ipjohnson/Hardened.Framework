@@ -1,11 +1,11 @@
 using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.APIGatewayEvents;
+using Hardened.Aws.Lambda.Http;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Runtime.Execution;
 using Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 using Xunit;
-using Hardened.Aws.Lambda.Http;
 
 namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 
@@ -13,10 +13,12 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Adapters;
 /// The two halves the conformance suite does not reach: what the peek recognises, and what comes
 /// out the far end.
 /// </summary>
-public class LambdaHttpAdapterTests {
+public class LambdaHttpAdapterTests
+{
     private readonly LambdaHttpAdapter _adapter = new();
 
-    private bool Handles(string json) {
+    private bool Handles(string json)
+    {
         using var payload = new LambdaPayload(Encoding.UTF8.GetBytes(json));
 
         return _adapter.Handles(payload.Json);
@@ -25,10 +27,15 @@ public class LambdaHttpAdapterTests {
     // ------------------------------------------------------------------ the peek
 
     [Fact]
-    public void RecognisesPayloadFormatTwo() {
-        Assert.True(Handles("""
-            {"version":"2.0","rawPath":"/orders","requestContext":{"http":{"method":"GET"}}}
-            """));
+    public void RecognisesPayloadFormatTwo()
+    {
+        Assert.True(
+            Handles(
+                """
+                {"version":"2.0","rawPath":"/orders","requestContext":{"http":{"method":"GET"}}}
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -37,11 +44,16 @@ public class LambdaHttpAdapterTests {
     /// which is what happened before, and the function failed on a null RequestContext.Http.
     /// </summary>
     [Fact]
-    public void DeclinesPayloadFormatOne() {
-        Assert.False(Handles("""
-            {"resource":"/orders","httpMethod":"GET","path":"/orders",
-             "requestContext":{"httpMethod":"GET","path":"/orders","stage":"prod"}}
-            """));
+    public void DeclinesPayloadFormatOne()
+    {
+        Assert.False(
+            Handles(
+                """
+                {"resource":"/orders","httpMethod":"GET","path":"/orders",
+                 "requestContext":{"httpMethod":"GET","path":"/orders","stage":"prod"}}
+                """
+            )
+        );
     }
 
     [Theory]
@@ -50,7 +62,8 @@ public class LambdaHttpAdapterTests {
     [InlineData("""{"widgetContext":{"widgetId":"w1"}}""")]
     [InlineData("""{"orderId":"abc","quantity":2}""")]
     [InlineData("{}")]
-    public void DeclinesEverythingElse(string json) {
+    public void DeclinesEverythingElse(string json)
+    {
         Assert.False(Handles(json));
     }
 
@@ -63,7 +76,8 @@ public class LambdaHttpAdapterTests {
     [InlineData("\"a string\"")]
     [InlineData("42")]
     [InlineData("null")]
-    public void DeclinesAPayloadThatIsNotAnObject(string json) {
+    public void DeclinesAPayloadThatIsNotAnObject(string json)
+    {
         Assert.False(Handles(json));
     }
 
@@ -72,7 +86,8 @@ public class LambdaHttpAdapterTests {
     /// what sends it to the direct-invoke adapter, where it belongs.
     /// </summary>
     [Fact]
-    public void DeclinesARequestContextThatIsNotTheGatewaysOwn() {
+    public void DeclinesARequestContextThatIsNotTheGatewaysOwn()
+    {
         Assert.False(Handles("""{"requestContext":{"correlationId":"abc","source":"billing"}}"""));
     }
 
@@ -81,16 +96,24 @@ public class LambdaHttpAdapterTests {
     /// Only a direct property of requestContext counts, which is what the depth check is for.
     /// </summary>
     [Fact]
-    public void DeclinesAnHttpBuriedDeeperInsideSomeoneElsesContext() {
-        Assert.False(Handles(
-            """{"requestContext":{"upstream":{"http":{"method":"GET"}},"source":"billing"}}"""));
+    public void DeclinesAnHttpBuriedDeeperInsideSomeoneElsesContext()
+    {
+        Assert.False(
+            Handles(
+                """{"requestContext":{"upstream":{"http":{"method":"GET"}},"source":"billing"}}"""
+            )
+        );
     }
 
     // ------------------------------------------------------------------ the request
 
     [Fact]
-    public void DecodesABase64Body() {
-        var request = _adapter.CreateRequest(Event(body: "eyJpZCI6MX0=", base64: true), TestLambdaContext.Instance);
+    public void DecodesABase64Body()
+    {
+        var request = _adapter.CreateRequest(
+            Event(body: "eyJpZCI6MX0=", base64: true),
+            TestLambdaContext.Instance
+        );
 
         using var reader = new StreamReader(request.Body);
 
@@ -98,8 +121,12 @@ public class LambdaHttpAdapterTests {
     }
 
     [Fact]
-    public void ReadsAPlainBodyAsItStands() {
-        var request = _adapter.CreateRequest(Event(body: """{"id":1}"""), TestLambdaContext.Instance);
+    public void ReadsAPlainBodyAsItStands()
+    {
+        var request = _adapter.CreateRequest(
+            Event(body: """{"id":1}"""),
+            TestLambdaContext.Instance
+        );
 
         using var reader = new StreamReader(request.Body);
 
@@ -107,7 +134,8 @@ public class LambdaHttpAdapterTests {
     }
 
     [Fact]
-    public void AnAbsentBodyIsEmptyRatherThanNull() {
+    public void AnAbsentBodyIsEmptyRatherThanNull()
+    {
         var request = _adapter.CreateRequest(Event(), TestLambdaContext.Instance);
 
         Assert.NotNull(request.Body);
@@ -117,7 +145,8 @@ public class LambdaHttpAdapterTests {
     // ------------------------------------------------------------------ the response
 
     [Fact]
-    public async Task AnUnsetStatusBecomesTwoHundred() {
+    public async Task AnUnsetStatusBecomesTwoHundred()
+    {
         Assert.Equal(200, (await Answer(_ => { })).StatusCode);
     }
 
@@ -127,33 +156,42 @@ public class LambdaHttpAdapterTests {
     /// while the streaming transport returned 404 for the same application.
     /// </summary>
     [Fact]
-    public async Task AStatusTheHandlerSetSurvives() {
+    public async Task AStatusTheHandlerSetSurvives()
+    {
         Assert.Equal(404, (await Answer(r => r.Status = 404)).StatusCode);
     }
 
     [Fact]
-    public async Task HeadersReachTheGateway() {
+    public async Task HeadersReachTheGateway()
+    {
         var proxy = await Answer(r => r.Headers.Set("X-Trace", "abc"));
 
         Assert.Equal("abc", proxy.Headers["X-Trace"]);
     }
 
     [Fact]
-    public async Task CookiesGoInTheirOwnArrayRatherThanAHeader() {
+    public async Task CookiesGoInTheirOwnArrayRatherThanAHeader()
+    {
         var proxy = await Answer(r => r.Cookies.Append("session", "abc123"));
 
         Assert.Contains(proxy.Cookies, c => c.StartsWith("session=abc123"));
-        Assert.DoesNotContain(proxy.Headers, h => h.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(
+            proxy.Headers,
+            h => h.Key.Equals("Set-Cookie", StringComparison.OrdinalIgnoreCase)
+        );
     }
 
     [Fact]
-    public async Task NoCookiesMeansAnEmptyArray() {
+    public async Task NoCookiesMeansAnEmptyArray()
+    {
         Assert.Empty((await Answer(_ => { })).Cookies);
     }
 
     [Fact]
-    public async Task ABinaryBodyIsBase64Encoded() {
-        var proxy = await Answer(r => {
+    public async Task ABinaryBodyIsBase64Encoded()
+    {
+        var proxy = await Answer(r =>
+        {
             r.IsBinary = true;
             r.Body.Write("hardened"u8);
         });
@@ -174,14 +212,16 @@ public class LambdaHttpAdapterTests {
     /// invocation.
     /// </remarks>
     [Fact]
-    public async Task InvalidUtf8InATextBodyIsReplacedRatherThanThrown() {
+    public async Task InvalidUtf8InATextBodyIsReplacedRatherThanThrown()
+    {
         var proxy = await Answer(r => r.Body.Write([0x41, 0xFF, 0x42]));
 
         Assert.Equal("A\uFFFDB", proxy.Body);
     }
 
     [Fact]
-    public async Task ATextBodyIsNotEncoded() {
+    public async Task ATextBodyIsNotEncoded()
+    {
         var proxy = await Answer(r => r.Body.Write("""{"ok":true}"""u8));
 
         Assert.False(proxy.IsBase64Encoded);
@@ -190,23 +230,35 @@ public class LambdaHttpAdapterTests {
 
     // ------------------------------------------------------------------ helpers
 
-    private static LambdaPayload Event(string? body = null, bool base64 = false) {
-        var proxy = new APIGatewayHttpApiV2ProxyRequest {
+    private static LambdaPayload Event(string? body = null, bool base64 = false)
+    {
+        var proxy = new APIGatewayHttpApiV2ProxyRequest
+        {
             RawPath = "/orders",
             Version = "2.0",
             Body = body,
             IsBase64Encoded = base64,
-            RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext {
-                Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription { Method = "POST", Path = "/orders" }
-            }
+            RequestContext = new APIGatewayHttpApiV2ProxyRequest.ProxyRequestContext
+            {
+                Http = new APIGatewayHttpApiV2ProxyRequest.HttpDescription
+                {
+                    Method = "POST",
+                    Path = "/orders",
+                },
+            },
         };
 
-        return new LambdaPayload(JsonSerializer.SerializeToUtf8Bytes(
-            proxy, TestSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest));
+        return new LambdaPayload(
+            JsonSerializer.SerializeToUtf8Bytes(
+                proxy,
+                TestSerializerContext.Default.APIGatewayHttpApiV2ProxyRequest
+            )
+        );
     }
 
     /// <summary>Runs the response half: build one, let the caller write to it, read the payload.</summary>
-    private async Task<APIGatewayHttpApiV2ProxyResponse> Answer(Action<LambdaHttpResponse> write) {
+    private async Task<APIGatewayHttpApiV2ProxyResponse> Answer(Action<LambdaHttpResponse> write)
+    {
         var response = (LambdaHttpResponse)_adapter.CreateResponse(new MemoryStream());
 
         write(response);
@@ -218,6 +270,8 @@ public class LambdaHttpAdapterTests {
         output.Position = 0;
 
         return JsonSerializer.Deserialize(
-            output, TestSerializerContext.Default.APIGatewayHttpApiV2ProxyResponse)!;
+            output,
+            TestSerializerContext.Default.APIGatewayHttpApiV2ProxyResponse
+        )!;
     }
 }

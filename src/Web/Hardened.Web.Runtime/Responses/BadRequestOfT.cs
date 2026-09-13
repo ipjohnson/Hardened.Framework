@@ -19,8 +19,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(400)]
 public sealed record BadRequest<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<BadRequest<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<BadRequest<T>>
+{
     public string Type => ProblemTypes.BadRequest;
 
     public string Title => "Bad Request";
@@ -32,6 +34,7 @@ public sealed record BadRequest<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static BadRequest<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

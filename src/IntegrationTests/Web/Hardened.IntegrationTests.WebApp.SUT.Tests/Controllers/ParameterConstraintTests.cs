@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Hardened.Requests.Runtime.Validation;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
@@ -14,12 +14,13 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// <c>precision</c> bounded 2..8 was a hand-written check, and the document published an integer
 /// with no bounds. Every handler behind these tests declares the constraint and nothing else.
 /// </remarks>
-public class ParameterConstraintTests {
-
+public class ParameterConstraintTests
+{
     private static Action<TestWebRequest> Header(string name, string value) =>
         request => request.Headers[name] = new StringValues(value);
 
-    private static RequestValidationError Refusal(TestWebResponse response) {
+    private static RequestValidationError Refusal(TestWebResponse response)
+    {
         response.Assert.BadRequest();
 
         var error = response.Deserialize<RequestValidationError>();
@@ -33,7 +34,8 @@ public class ParameterConstraintTests {
     // ---------------------------------------------------------------- query
 
     [HardenedTest]
-    public async Task ABoundOnAQueryValueIsEnforced(ITestWebApp testWebApp) {
+    public async Task ABoundOnAQueryValueIsEnforced(ITestWebApp testWebApp)
+    {
         var refused = Refusal(await testWebApp.Get("/constraints/precision?precision=9"));
 
         Assert.Contains(refused.Errors, e => e.Field == "precision" && e.Code == "range");
@@ -49,8 +51,11 @@ public class ParameterConstraintTests {
 
     /// <summary>Pathed under the header's own name, which is what the caller sent.</summary>
     [HardenedTest]
-    public async Task ALengthOnAHeaderIsPathedUnderTheHeaderName(ITestWebApp testWebApp) {
-        var refused = Refusal(await testWebApp.Get("/constraints/region", Header("X-Region", "EUR")));
+    public async Task ALengthOnAHeaderIsPathedUnderTheHeaderName(ITestWebApp testWebApp)
+    {
+        var refused = Refusal(
+            await testWebApp.Get("/constraints/region", Header("X-Region", "EUR"))
+        );
 
         Assert.Contains(refused.Errors, e => e.Field == "X-Region" && e.Code == "string_length");
 
@@ -69,7 +74,8 @@ public class ParameterConstraintTests {
     /// route and is refused, which is a 400.
     /// </summary>
     [HardenedTest]
-    public async Task ABoundOnAPathTokenSitsBehindItsRouteConstraint(ITestWebApp testWebApp) {
+    public async Task ABoundOnAPathTokenSitsBehindItsRouteConstraint(ITestWebApp testWebApp)
+    {
         var noRoute = await testWebApp.Get("/constraints/page/abc");
 
         noRoute.Assert.NotFound();
@@ -88,7 +94,8 @@ public class ParameterConstraintTests {
     // ---------------------------------------------------------------- required and pattern
 
     [HardenedTest]
-    public async Task AQueryValueTheCallerMustSendIsReportedWhenAbsent(ITestWebApp testWebApp) {
+    public async Task AQueryValueTheCallerMustSendIsReportedWhenAbsent(ITestWebApp testWebApp)
+    {
         var absent = Refusal(await testWebApp.Get("/constraints/tagged"));
 
         Assert.Contains(absent.Errors, e => e.Field == "tag" && e.Code == "required");
@@ -111,7 +118,8 @@ public class ParameterConstraintTests {
     /// came from, so a generated client and a reader are told what the server enforces.
     /// </summary>
     [HardenedTest]
-    public async Task TheDocumentPublishesTheConstraintsAsFacets(ITestWebApp testWebApp) {
+    public async Task TheDocumentPublishesTheConstraintsAsFacets(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.json");
 
         response.Assert.Ok();
@@ -140,11 +148,19 @@ public class ParameterConstraintTests {
         Assert.Equal("^[a-z]+$", tag.GetProperty("schema").GetProperty("pattern").GetString());
     }
 
-    private static JsonElement Parameter(JsonElement document, string path, string name) {
-        foreach (var parameter in document
-                     .GetProperty("paths").GetProperty(path).GetProperty("get")
-                     .GetProperty("parameters").EnumerateArray()) {
-            if (parameter.GetProperty("name").GetString() == name) {
+    private static JsonElement Parameter(JsonElement document, string path, string name)
+    {
+        foreach (
+            var parameter in document
+                .GetProperty("paths")
+                .GetProperty(path)
+                .GetProperty("get")
+                .GetProperty("parameters")
+                .EnumerateArray()
+        )
+        {
+            if (parameter.GetProperty("name").GetString() == name)
+            {
                 return parameter;
             }
         }

@@ -25,14 +25,17 @@ namespace Hardened.Azure.Functions.EventHubs;
 /// <see cref="EventHubsAdapter"/> for what a failure does and does not do to the checkpoint.
 /// </para>
 /// </remarks>
-public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest {
+public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest
+{
     public EventHubsRequest(
         string scheme,
         string path,
         Stream body,
         IDictionary<string, StringValues> headers,
-        IReadOnlyList<EventData> events)
-        : base(scheme, path, body, headers) {
+        IReadOnlyList<EventData> events
+    )
+        : base(scheme, path, body, headers)
+    {
         Events = events;
     }
 
@@ -84,9 +87,10 @@ public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest {
     /// </remarks>
     public void RecordFailure(int index, Exception failure) =>
         throw new NotSupportedException(
-            "The host reads no report from an Event Hubs function, so an individual event cannot " +
-            "be reported as failed. The invocation fails instead, which is what a retry policy on " +
-            "the function app retries.");
+            "The host reads no report from an Event Hubs function, so an individual event cannot "
+                + "be reported as failed. The invocation fails instead, which is what a retry policy on "
+                + "the function app retries."
+        );
 
     /// <summary>
     /// The request for one event, as a handler will see it.
@@ -97,18 +101,23 @@ public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest {
     /// the arrangement Kinesis has. The publisher's properties become headers under their own
     /// names, and the facts the hub carries outside them get prefixed names.
     /// </remarks>
-    public IExecutionRequest ForEvent(EventData eventData) {
+    public IExecutionRequest ForEvent(EventData eventData)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var property in eventData.Properties) {
+        foreach (var property in eventData.Properties)
+        {
             var rendered = Render(property.Value);
 
-            if (rendered != null) {
+            if (rendered != null)
+            {
                 headers[property.Key] = rendered;
             }
         }
 
-        headers[SequenceNumberHeader] = eventData.SequenceNumber.ToString(CultureInfo.InvariantCulture);
+        headers[SequenceNumberHeader] = eventData.SequenceNumber.ToString(
+            CultureInfo.InvariantCulture
+        );
         Set(headers, OffsetHeader, SystemProperty(eventData, OffsetProperty));
         Set(headers, PartitionKeyHeader, eventData.PartitionKey);
         Set(headers, EnqueuedTimeHeader, SystemProperty(eventData, EnqueuedTimeProperty));
@@ -121,7 +130,8 @@ public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest {
             Method,
             Path,
             body == null || body.ToMemory().IsEmpty ? Stream.Null : body.ToStream(),
-            headers);
+            headers
+        );
     }
 
     /// <summary>The AMQP annotations the service stamps on an event, by their wire names.</summary>
@@ -143,18 +153,24 @@ public class EventHubsRequest : FunctionsPayloadRequest, IBatchRequest {
         eventData.SystemProperties.TryGetValue(name, out var value) ? Render(value) : null;
 
     private static string? Render(object? value) =>
-        value switch {
+        value switch
+        {
             null => null,
             string text => text,
             byte[] => null,
             DateTimeOffset time => time.ToString("o", CultureInfo.InvariantCulture),
-            DateTime time => new DateTimeOffset(time.ToUniversalTime(), TimeSpan.Zero).ToString("o", CultureInfo.InvariantCulture),
+            DateTime time => new DateTimeOffset(time.ToUniversalTime(), TimeSpan.Zero).ToString(
+                "o",
+                CultureInfo.InvariantCulture
+            ),
             IFormattable formattable => formattable.ToString(null, CultureInfo.InvariantCulture),
-            _ => value.ToString()
+            _ => value.ToString(),
         };
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

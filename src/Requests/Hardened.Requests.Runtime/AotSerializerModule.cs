@@ -6,8 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime;
 
-public class AotSerializerModule : IDependencyModule {
-    public void PopulateServiceCollection(IServiceCollection services) {
+public class AotSerializerModule : IDependencyModule
+{
+    public void PopulateServiceCollection(IServiceCollection services)
+    {
         // Register AOT serializers first; RequestRuntimeDI uses TryAddSingleton
         // so its reflection-based serializers will be skipped (last in wins).
         services.AddSingleton<IResponseSerializer, AotResponseSerializer>();
@@ -16,9 +18,11 @@ public class AotSerializerModule : IDependencyModule {
     }
 
     public override bool Equals(object? obj) => obj is AotSerializerModule;
+
     public override int GetHashCode() => typeof(AotSerializerModule).GetHashCode();
-    
-    public void InternalApplyServices(IServiceCollection services) {
+
+    public void InternalApplyServices(IServiceCollection services)
+    {
         // Register AOT serializers first; RequestRuntimeDI uses TryAddSingleton
         // so its reflection-based serializers will be skipped (last in wins).
         services.AddSingleton<IResponseSerializer, AotResponseSerializer>();
@@ -28,6 +32,7 @@ public class AotSerializerModule : IDependencyModule {
 }
 
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
-public class AotSerializerModuleAttribute : Attribute, IDependencyModuleProvider {
+public class AotSerializerModuleAttribute : Attribute, IDependencyModuleProvider
+{
     public IDependencyModule GetModule() => new AotSerializerModule();
 }

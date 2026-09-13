@@ -18,7 +18,8 @@ namespace Hardened.Aws.Lambda.Http;
 /// different shape and gets its own adapter when one is written; it is not this class with a branch
 /// in it, which is what the design means by a payload format being a value rather than a fork.
 /// </remarks>
-public class LambdaHttpRequest : IExecutionRequest {
+public class LambdaHttpRequest : IExecutionRequest
+{
     private readonly APIGatewayHttpApiV2ProxyRequest _proxyRequest;
     private readonly string _method;
     private IPathTokenCollection? _pathTokens;
@@ -28,8 +29,7 @@ public class LambdaHttpRequest : IExecutionRequest {
     private ITransportInfo? _transport;
 
     public LambdaHttpRequest(APIGatewayHttpApiV2ProxyRequest request, Stream body)
-        : this(request, body, null, null, null, null, null, null) {
-    }
+        : this(request, body, null, null, null, null, null, null) { }
 
     private LambdaHttpRequest(
         APIGatewayHttpApiV2ProxyRequest request,
@@ -39,7 +39,9 @@ public class LambdaHttpRequest : IExecutionRequest {
         IHeaderCollection? headers,
         IQueryStringCollection? queryString,
         IReadOnlyList<string>? cookies,
-        ITransportInfo? transport) {
+        ITransportInfo? transport
+    )
+    {
         _proxyRequest = request;
         _transport = transport;
         _method = method ?? request.RequestContext.Http.Method;
@@ -54,8 +56,10 @@ public class LambdaHttpRequest : IExecutionRequest {
     /// The stage prefix a REST-style deployment puts on <c>rawPath</c>, removed so a route matches
     /// the same template whatever stage it is deployed to.
     /// </summary>
-    private static string StripStagePath(string rawPath, string? stage) {
-        if (!string.IsNullOrEmpty(stage) && rawPath.StartsWith("/" + stage)) {
+    private static string StripStagePath(string rawPath, string? stage)
+    {
+        if (!string.IsNullOrEmpty(stage) && rawPath.StartsWith("/" + stage))
+        {
             return rawPath.Substring(stage!.Length + 1);
         }
 
@@ -92,10 +96,13 @@ public class LambdaHttpRequest : IExecutionRequest {
     /// arrive as themselves whatever the transport did to carry them, and a transport that parses
     /// its own query string is where that goes wrong.
     /// </remarks>
-    public IQueryStringCollection QueryString => _queryStringCollection ??=
-        new SimpleQueryStringCollection(_proxyRequest.QueryStringParameters);
+    public IQueryStringCollection QueryString =>
+        _queryStringCollection ??= new SimpleQueryStringCollection(
+            _proxyRequest.QueryStringParameters
+        );
 
-    public IPathTokenCollection PathTokens {
+    public IPathTokenCollection PathTokens
+    {
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }
@@ -117,8 +124,7 @@ public class LambdaHttpRequest : IExecutionRequest {
     /// caller. The conformance suite asserts the identity, not just the values, and caught the
     /// framework's own ASP.NET adapter getting this wrong.
     /// </summary>
-    public ITransportInfo Transport =>
-        _transport ??= new LambdaHttpTransportInfo(_proxyRequest);
+    public ITransportInfo Transport => _transport ??= new LambdaHttpTransportInfo(_proxyRequest);
 
     /// <summary>
     /// Every argument is applied.
@@ -135,7 +141,9 @@ public class LambdaHttpRequest : IExecutionRequest {
         string? path = null,
         IDictionary<string, StringValues>? headers = null,
         IQueryStringCollection? queryString = null,
-        IReadOnlyList<string>? cookies = null) {
+        IReadOnlyList<string>? cookies = null
+    )
+    {
         return new LambdaHttpRequest(
             _proxyRequest,
             Body,
@@ -146,11 +154,13 @@ public class LambdaHttpRequest : IExecutionRequest {
             cookies ?? _cookies,
             // Shared rather than rebuilt: a fork is the same request from the same caller, and
             // rebinding its method or path says nothing about where it came from.
-            Transport) {
+            Transport
+        )
+        {
             // Cloned, not shared: a forked chain must be able to rebind without writing through to
             // the request it was forked from.
             Parameters = Parameters?.Clone(),
-            PathTokens = PathTokens
+            PathTokens = PathTokens,
         };
     }
 
@@ -160,14 +170,17 @@ public class LambdaHttpRequest : IExecutionRequest {
     /// Null carries through as null, leaving the clone to build the same collection from the proxy
     /// request the first time it is asked.
     /// </summary>
-    private IHeaderCollection? CloneHeaders(IDictionary<string, StringValues>? headers) {
-        if (headers != null) {
+    private IHeaderCollection? CloneHeaders(IDictionary<string, StringValues>? headers)
+    {
+        if (headers != null)
+        {
             return new HeaderCollectionStringValues(headers);
         }
 
         return _headerCollection == null
             ? null
             : new HeaderCollectionStringValues(
-                new Dictionary<string, StringValues>(_headerCollection));
+                new Dictionary<string, StringValues>(_headerCollection)
+            );
     }
 }

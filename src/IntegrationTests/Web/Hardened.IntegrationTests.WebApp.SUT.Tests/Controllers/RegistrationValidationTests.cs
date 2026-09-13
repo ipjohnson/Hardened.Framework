@@ -22,8 +22,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// three things that fail silently and are invisible to a test that reads generated source.
 /// </para>
 /// </remarks>
-public class RegistrationValidationTests {
-
+public class RegistrationValidationTests
+{
     /// <summary>
     /// The trial's blocker: a member declared present by its nullable annotation and by nothing
     /// else. The document published <c>required: ["memberId"]</c> and the request answered 201 with
@@ -35,7 +35,8 @@ public class RegistrationValidationTests {
     /// name, which is what every other error in this file does.
     /// </remarks>
     [HardenedTest]
-    public async Task AnAbsentMemberDeclaredPresentByItsTypeIsRefused(ITestWebApp testWebApp) {
+    public async Task AnAbsentMemberDeclaredPresentByItsTypeIsRefused(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("{}", "/registration/member");
 
         response.Assert.BadRequest();
@@ -60,13 +61,16 @@ public class RegistrationValidationTests {
     /// object and an absent body were all refused properly.
     /// </remarks>
     [HardenedTest]
-    public async Task ANullBodyIsRefusedRatherThanDereferenced(ITestWebApp testWebApp) {
+    public async Task ANullBodyIsRefusedRatherThanDereferenced(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("null", "/registration/member");
 
         response.Assert.BadRequest();
 
         var field = Assert.Single(
-            response.Deserialize<RequestValidationError>()!.Errors!, e => e.Field == "request");
+            response.Deserialize<RequestValidationError>()!.Errors!,
+            e => e.Field == "request"
+        );
 
         Assert.Equal("required", field.Code);
         Assert.Equal("request is required.", field.Message);
@@ -81,13 +85,16 @@ public class RegistrationValidationTests {
     /// true."</c> - which describes the framework's parser rather than the caller's mistake.
     /// </remarks>
     [HardenedTest]
-    public async Task AnEmptyBodyIsRefusedTheSameWay(ITestWebApp testWebApp) {
+    public async Task AnEmptyBodyIsRefusedTheSameWay(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("", "/registration/member");
 
         response.Assert.BadRequest();
 
         var field = Assert.Single(
-            response.Deserialize<RequestValidationError>()!.Errors!, e => e.Field == "request");
+            response.Deserialize<RequestValidationError>()!.Errors!,
+            e => e.Field == "request"
+        );
 
         Assert.Equal("required", field.Code);
         Assert.Equal("request is required.", field.Message);
@@ -99,7 +106,8 @@ public class RegistrationValidationTests {
     /// present and correct as far as it goes.
     /// </summary>
     [HardenedTest]
-    public async Task AMalformedBodyIsRefusedAgainstTheBody(ITestWebApp testWebApp) {
+    public async Task AMalformedBodyIsRefusedAgainstTheBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("""{"memberId":""", "/registration/member");
 
         response.Assert.BadRequest();
@@ -112,7 +120,8 @@ public class RegistrationValidationTests {
 
     /// <summary>Sent is sent, whatever else is wrong with it.</summary>
     [HardenedTest]
-    public async Task TheSameMemberSentIsAccepted(ITestWebApp testWebApp) {
+    public async Task TheSameMemberSentIsAccepted(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("""{"memberId":"M-0001"}""", "/registration/member");
 
         response.Assert.Ok();
@@ -121,7 +130,8 @@ public class RegistrationValidationTests {
     }
 
     [HardenedTest]
-    public async Task MissingRequiredField_Returns400(ITestWebApp testWebApp) {
+    public async Task MissingRequiredField_Returns400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration");
 
         response.Assert.BadRequest();
@@ -138,7 +148,8 @@ public class RegistrationValidationTests {
     /// same request. Neither the response nor the field path says which vocabulary declared it.
     /// </summary>
     [HardenedTest]
-    public async Task BothConstraintVocabulariesReportTheSameWay(ITestWebApp testWebApp) {
+    public async Task BothConstraintVocabulariesReportTheSameWay(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new { Name = "ab", Age = 7 }, "/registration");
 
         response.Assert.BadRequest();
@@ -154,17 +165,27 @@ public class RegistrationValidationTests {
     /// into the body and calls the validator emitted for that model, which descends again.
     /// </summary>
     [HardenedTest]
-    public async Task NestedModelFailuresCarryTheirPath(ITestWebApp testWebApp) {
+    public async Task NestedModelFailuresCarryTheirPath(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new { Name = "Valid", Age = 30, Address = new { City = "", Country = "USA" } },
-            "/registration");
+            new
+            {
+                Name = "Valid",
+                Age = 30,
+                Address = new { City = "", Country = "USA" },
+            },
+            "/registration"
+        );
 
         response.Assert.BadRequest();
 
         var error = response.Deserialize<RequestValidationError>();
 
         Assert.Contains(error!.Errors, e => e.Field.EndsWith("city"));
-        Assert.Contains(error.Errors, e => e.Field.EndsWith("country") && e.Code == "string_length");
+        Assert.Contains(
+            error.Errors,
+            e => e.Field.EndsWith("country") && e.Code == "string_length"
+        );
     }
 
     /// <summary>
@@ -172,7 +193,8 @@ public class RegistrationValidationTests {
     /// share a name stay distinguishable - the same reason the spec path reports <c>body.name</c>.
     /// </summary>
     [HardenedTest]
-    public async Task BodyErrorsArePathedUnderTheParameterName(ITestWebApp testWebApp) {
+    public async Task BodyErrorsArePathedUnderTheParameterName(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration/for/acme");
 
         response.Assert.BadRequest();
@@ -187,10 +209,17 @@ public class RegistrationValidationTests {
     /// above.
     /// </summary>
     [HardenedTest]
-    public async Task ValidRequestStillSucceeds(ITestWebApp testWebApp) {
+    public async Task ValidRequestStillSucceeds(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new { Name = "Whiskers", Age = 30, Address = new { City = "Boston", Country = "US" } },
-            "/registration");
+            new
+            {
+                Name = "Whiskers",
+                Age = 30,
+                Address = new { City = "Boston", Country = "US" },
+            },
+            "/registration"
+        );
 
         response.Assert.Ok();
     }
@@ -200,7 +229,8 @@ public class RegistrationValidationTests {
     /// the constraints inside it apply to an address that was sent.
     /// </summary>
     [HardenedTest]
-    public async Task OmittingAnOptionalNestedModelIsFine(ITestWebApp testWebApp) {
+    public async Task OmittingAnOptionalNestedModelIsFine(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new { Name = "Whiskers", Age = 30 }, "/registration");
 
         response.Assert.Ok();
@@ -212,8 +242,12 @@ public class RegistrationValidationTests {
     /// on requests with nothing to validate.
     /// </summary>
     [HardenedTest]
-    public async Task AnUnconstrainedHandlerIsUnaffected(ITestWebApp testWebApp) {
-        var response = await testWebApp.Post(new { Values = new[] { 1, 2, 3 } }, "/registration/anonymous");
+    public async Task AnUnconstrainedHandlerIsUnaffected(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            new { Values = new[] { 1, 2, 3 } },
+            "/registration/anonymous"
+        );
 
         response.Assert.Ok();
     }
@@ -226,9 +260,11 @@ public class RegistrationValidationTests {
     /// socket. Bytes go as themselves now.
     /// </summary>
     [HardenedTest]
-    public async Task ABodySentAsBytesGoesOnTheWireAsItself(ITestWebApp testWebApp) {
+    public async Task ABodySentAsBytesGoesOnTheWireAsItself(ITestWebApp testWebApp)
+    {
         var body = System.Text.Encoding.UTF8.GetBytes(
-            """{"name":"Ada","age":36,"address":{"city":"London","country":"GB"}}""");
+            """{"name":"Ada","age":36,"address":{"city":"London","country":"GB"}}"""
+        );
 
         var response = await testWebApp.Post(body, "/registration");
 
@@ -241,9 +277,12 @@ public class RegistrationValidationTests {
     /// what makes the JSON-reader refusal testable in process.
     /// </summary>
     [HardenedTest]
-    public async Task MalformedBytesReachTheDeserializerAsMalformed(ITestWebApp testWebApp) {
+    public async Task MalformedBytesReachTheDeserializerAsMalformed(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            System.Text.Encoding.UTF8.GetBytes("{\"name\":"), "/registration");
+            System.Text.Encoding.UTF8.GetBytes("{\"name\":"),
+            "/registration"
+        );
 
         response.Assert.BadRequest();
         Assert.Equal("ValidationError", response.Deserialize<RequestValidationError>().Type);
@@ -265,20 +304,28 @@ public class RegistrationValidationTests {
     /// the runtime is what closes the gap without a second source of truth on a verb attribute.
     /// </remarks>
     [HardenedTest]
-    public async Task AConstraintFailureAnswersTheDeclaredStatus(ITestWebApp testWebApp) {
+    public async Task AConstraintFailureAnswersTheDeclaredStatus(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new { Name = "", Age = 30 }, "/registration/declared-422");
+            new { Name = "", Age = 30 },
+            "/registration/declared-422"
+        );
 
         Assert.Equal(422, response.StatusCode);
         Assert.Contains(
-            response.Deserialize<RequestValidationError>().Errors, e => e.Field == "model.name");
+            response.Deserialize<RequestValidationError>().Errors,
+            e => e.Field == "model.name"
+        );
     }
 
     /// <summary>A handler validating by hand reaches the same status.</summary>
     [HardenedTest]
-    public async Task AThrownValidationExceptionAnswersTheDeclaredStatus(ITestWebApp testWebApp) {
+    public async Task AThrownValidationExceptionAnswersTheDeclaredStatus(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new { Name = "Ada", Age = 30 }, "/registration/declared-422/by-hand");
+            new { Name = "Ada", Age = 30 },
+            "/registration/declared-422/by-hand"
+        );
 
         Assert.Equal(422, response.StatusCode);
     }
@@ -288,13 +335,15 @@ public class RegistrationValidationTests {
     /// on every spec-first operation declaring 422 until the converter looked it up.
     /// </summary>
     [HardenedTest]
-    public async Task ABodyTheDeserializerRefusesAnswersTheDeclaredStatus(ITestWebApp testWebApp) {
+    public async Task ABodyTheDeserializerRefusesAnswersTheDeclaredStatus(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new { Name = "Ada", Age = "not a number" }, "/registration/declared-422");
+            new { Name = "Ada", Age = "not a number" },
+            "/registration/declared-422"
+        );
 
         Assert.Equal(422, response.StatusCode);
-        Assert.Equal(
-            "ValidationError", response.Deserialize<RequestValidationError>().Type);
+        Assert.Equal("ValidationError", response.Deserialize<RequestValidationError>().Type);
     }
 
     /// <summary>
@@ -302,7 +351,8 @@ public class RegistrationValidationTests {
     /// derivation reaches the operation that asked for it and no other.
     /// </summary>
     [HardenedTest]
-    public async Task AnOperationDeclaringNothingStillAnswers400(ITestWebApp testWebApp) {
+    public async Task AnOperationDeclaringNothingStillAnswers400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new { Name = "", Age = 30 }, "/registration");
 
         response.Assert.BadRequest();

@@ -22,16 +22,20 @@ namespace Hardened.Templates.RazorBlade.Tests;
 /// <c>200</c> with an empty body because the status had already gone out.
 /// </para>
 /// </remarks>
-public class SynchronousWriteRegressionTests {
-
+public class SynchronousWriteRegressionTests
+{
     /// <summary>Long enough that rendering it must cross StreamWriter's 1 KiB buffer.</summary>
     private static FortunePage LongPage() =>
-        new(Enumerable.Range(1, 40)
-            .Select(i => new Fortune(i, $"fortune number {i} with enough text to take up room"))
-            .ToList());
+        new(
+            Enumerable
+                .Range(1, 40)
+                .Select(i => new Fortune(i, $"fortune number {i} with enough text to take up room"))
+                .ToList()
+        );
 
     [Fact]
-    public async Task AViewLargerThanTheWriterBufferStillRenders() {
+    public async Task AViewLargerThanTheWriterBufferStillRenders()
+    {
         var context = Pipeline.ServerLikeContext(out var body);
 
         context.Response.ResponseValue = LongPage();
@@ -44,7 +48,8 @@ public class SynchronousWriteRegressionTests {
         // covering the case.
         Assert.True(
             rendered.Length > 1024,
-            $"fixture must exceed StreamWriter's 1 KiB buffer to cover the regression, was {rendered.Length}");
+            $"fixture must exceed StreamWriter's 1 KiB buffer to cover the regression, was {rendered.Length}"
+        );
 
         Assert.Contains("fortune number 1 with enough text", rendered);
         Assert.Contains("fortune number 40 with enough text", rendered);
@@ -55,7 +60,8 @@ public class SynchronousWriteRegressionTests {
     /// not enough: the closing markup has to be there too.
     /// </summary>
     [Fact]
-    public async Task TheWholeViewArrivesRatherThanTheFirstBufferful() {
+    public async Task TheWholeViewArrivesRatherThanTheFirstBufferful()
+    {
         var context = Pipeline.ServerLikeContext(out var body);
 
         context.Response.ResponseValue = LongPage();
@@ -71,7 +77,8 @@ public class SynchronousWriteRegressionTests {
 
     /// <summary>A short view was never broken; it must not become so.</summary>
     [Fact]
-    public async Task AViewSmallerThanTheWriterBufferStillRenders() {
+    public async Task AViewSmallerThanTheWriterBufferStillRenders()
+    {
         var context = Pipeline.ServerLikeContext(out var body);
 
         context.Response.ResponseValue = new FortunePage([new Fortune(1, "hello")]);
@@ -86,7 +93,8 @@ public class SynchronousWriteRegressionTests {
     /// none is - a container composed by hand has no shared-runtime module in it.
     /// </summary>
     [Fact]
-    public async Task RenderingWorksWithoutAPooledBuffer() {
+    public async Task RenderingWorksWithoutAPooledBuffer()
+    {
         var context = Pipeline.ServerLikeContext(out var body, withPool: false);
 
         context.Response.ResponseValue = LongPage();
@@ -97,7 +105,8 @@ public class SynchronousWriteRegressionTests {
     }
 
     [Fact]
-    public async Task NoByteOrderMarkReachesTheBody() {
+    public async Task NoByteOrderMarkReachesTheBody()
+    {
         var context = Pipeline.ServerLikeContext(out var body);
 
         context.Response.ResponseValue = LongPage();
@@ -108,6 +117,7 @@ public class SynchronousWriteRegressionTests {
 
         Assert.False(
             bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF,
-            "a BOM in the body shows up as stray characters ahead of the markup");
+            "a BOM in the body shows up as stray characters ahead of the markup"
+        );
     }
 }

@@ -33,7 +33,8 @@ namespace Hardened.Aws.Lambda.S3;
 /// need 27.1 KB of models to name them, and the handler binds a flattened projection either way.
 /// </para>
 /// </remarks>
-public sealed class S3Adapter : IPayloadAdapter {
+public sealed class S3Adapter : IPayloadAdapter
+{
     private const string EventSource = "eventSource";
     private const string Records = "Records";
 
@@ -45,45 +46,54 @@ public sealed class S3Adapter : IPayloadAdapter {
     /// for why the array alone recognises nothing.
     /// </remarks>
     public bool Handles(JsonElement payload) =>
-        LambdaPayload.FirstRecord(payload) is { } record &&
-        record.TryGetProperty(EventSource, out var source) &&
-        source.ValueKind == JsonValueKind.String &&
-        source.ValueEquals(EventSourceValue);
+        LambdaPayload.FirstRecord(payload) is { } record
+        && record.TryGetProperty(EventSource, out var source)
+        && source.ValueKind == JsonValueKind.String
+        && source.ValueEquals(EventSourceValue);
 
-    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context)
+    {
         var root = payload.Json;
 
         var records = new List<S3Notification>();
         string? bucket = null;
 
-        if (root.TryGetProperty(Records, out var array) &&
-            array.ValueKind == JsonValueKind.Array) {
-            foreach (var element in array.EnumerateArray()) {
-                if (!element.TryGetProperty("s3", out var s3) ||
-                    s3.ValueKind != JsonValueKind.Object) {
+        if (root.TryGetProperty(Records, out var array) && array.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var element in array.EnumerateArray())
+            {
+                if (
+                    !element.TryGetProperty("s3", out var s3)
+                    || s3.ValueKind != JsonValueKind.Object
+                )
+                {
                     continue;
                 }
 
                 bucket ??= s3.TryGetProperty("bucket", out var b) ? String(b, "name") : null;
 
-                var obj = s3.TryGetProperty("object", out var o) &&
-                          o.ValueKind == JsonValueKind.Object
-                    ? o
-                    : default;
+                var obj =
+                    s3.TryGetProperty("object", out var o) && o.ValueKind == JsonValueKind.Object
+                        ? o
+                        : default;
 
-                records.Add(new S3Notification(
-                    DecodeKey(String(obj, "key") ?? ""),
-                    Size(obj),
-                    String(obj, "eTag"),
-                    String(obj, "sequencer"),
-                    String(element, "eventName") ?? "",
-                    String(element, "eventTime")));
+                records.Add(
+                    new S3Notification(
+                        DecodeKey(String(obj, "key") ?? ""),
+                        Size(obj),
+                        String(obj, "eTag"),
+                        String(obj, "sequencer"),
+                        String(element, "eventName") ?? "",
+                        String(element, "eventTime")
+                    )
+                );
             }
         }
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        if (!string.IsNullOrEmpty(bucket)) {
+        if (!string.IsNullOrEmpty(bucket))
+        {
             headers[S3Request.BucketHeader] = bucket;
         }
 
@@ -91,7 +101,8 @@ public sealed class S3Adapter : IPayloadAdapter {
             bucket ?? "",
             new MemoryStream(payload.Raw.ToArray(), writable: false),
             headers,
-            records);
+            records
+        );
     }
 
     /// <summary>
@@ -119,17 +130,17 @@ public sealed class S3Adapter : IPayloadAdapter {
     /// which a handler could not tell from an empty object.
     /// </remarks>
     private static long? Size(JsonElement obj) =>
-        obj.ValueKind == JsonValueKind.Object &&
-        obj.TryGetProperty("size", out var size) &&
-        size.ValueKind == JsonValueKind.Number &&
-        size.TryGetInt64(out var value)
+        obj.ValueKind == JsonValueKind.Object
+        && obj.TryGetProperty("size", out var size)
+        && size.ValueKind == JsonValueKind.Number
+        && size.TryGetInt64(out var value)
             ? value
             : null;
 
     private static string? String(JsonElement element, string name) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(name, out var value) &&
-        value.ValueKind == JsonValueKind.String
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 

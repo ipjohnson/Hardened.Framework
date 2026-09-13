@@ -1,9 +1,9 @@
 using System.Net;
 using Hardened.Requests.Testing;
 using Hardened.Web.AspNetCore.Runtime;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 
@@ -27,30 +27,43 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// the bypass was invisible to every other test in this project.
 /// </para>
 /// </remarks>
-public class AspNetStartupOverASocketTests {
-
+public class AspNetStartupOverASocketTests
+{
     /// <summary>
     /// The authentication middleware runs, so the caller who presents the grant is recognised as
     /// holding it.
     /// </summary>
     [Fact]
-    public async Task ACallerHoldingTheGrantIsAnswered() {
+    public async Task ACallerHoldingTheGrantIsAnswered()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
-        var response = await host.Get("/authorization/pets", "pets:read", TestContext.Current.CancellationToken);
+        var response = await host.Get(
+            "/authorization/pets",
+            "pets:read",
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("\"pets\"", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            "\"pets\"",
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     /// <summary>
     /// The half that was answering 200. Without the startup services this route was public.
     /// </summary>
     [Fact]
-    public async Task ACallerPresentingNothingIsRefused() {
+    public async Task ACallerPresentingNothingIsRefused()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
-        var response = await host.Get("/authorization/pets", null, TestContext.Current.CancellationToken);
+        var response = await host.Get(
+            "/authorization/pets",
+            null,
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
@@ -60,13 +73,15 @@ public class AspNetStartupOverASocketTests {
     /// than the absence of a principal.
     /// </summary>
     [Fact]
-    public async Task ACallerHoldingNoGrantIsRefused() {
+    public async Task ACallerHoldingNoGrantIsRefused()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var response = await host.Get(
             "/authorization/pets",
             TestGrantsPrincipalSource.AnonymousGrantsValue,
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
@@ -74,16 +89,19 @@ public class AspNetStartupOverASocketTests {
     /// <summary>
     /// The application, started as <c>Program.cs</c> starts it, listening on a port the OS picked.
     /// </summary>
-    private sealed class Host : IAsyncDisposable {
+    private sealed class Host : IAsyncDisposable
+    {
         private readonly WebApplication _app;
         private readonly HttpClient _client;
 
-        private Host(WebApplication app, HttpClient client) {
+        private Host(WebApplication app, HttpClient client)
+        {
             _app = app;
             _client = client;
         }
 
-        public static async Task<Host> Start(CancellationToken cancellationToken) {
+        public static async Task<Host> Start(CancellationToken cancellationToken)
+        {
             var builder = Application.CreateBuilder([]);
 
             builder.WebHost.UseUrls("http://127.0.0.1:0");
@@ -94,25 +112,33 @@ public class AspNetStartupOverASocketTests {
 
             await app.StartAsync(cancellationToken);
 
-            var client = new HttpClient {
+            var client = new HttpClient
+            {
                 BaseAddress = new Uri(app.Urls.First()),
-                Timeout = TimeSpan.FromSeconds(10)
+                Timeout = TimeSpan.FromSeconds(10),
             };
 
             return new Host(app, client);
         }
 
-        public Task<HttpResponseMessage> Get(string path, string? grants, CancellationToken cancellationToken) {
+        public Task<HttpResponseMessage> Get(
+            string path,
+            string? grants,
+            CancellationToken cancellationToken
+        )
+        {
             var request = new HttpRequestMessage(HttpMethod.Get, path);
 
-            if (grants != null) {
+            if (grants != null)
+            {
                 request.Headers.Add(TestGrantsPrincipalSource.GrantsHeader, grants);
             }
 
             return _client.SendAsync(request, cancellationToken);
         }
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             _client.Dispose();
 
             await _app.DisposeAsync();

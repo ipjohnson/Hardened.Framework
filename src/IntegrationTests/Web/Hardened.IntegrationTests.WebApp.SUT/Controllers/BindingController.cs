@@ -9,8 +9,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// generator emits rather than by constructing parameters directly.
 /// </summary>
 [BasePath("/binding")]
-public class BindingController {
-
+public class BindingController
+{
     /// <summary>Echoes a path token back.</summary>
     /// <param name="id">The token to echo, taken from the path.</param>
     [Get("/path/{id}")]
@@ -67,13 +67,17 @@ public class BindingController {
     public string CustomConstrainedToken(string code) => code;
 
     [RouteConstraint("code")]
-    public static bool IsCode(ReadOnlySpan<char> value) {
-        if (value.Length != 3) {
+    public static bool IsCode(ReadOnlySpan<char> value)
+    {
+        if (value.Length != 3)
+        {
             return false;
         }
 
-        foreach (var character in value) {
-            if (character < 'A' || character > 'Z') {
+        foreach (var character in value)
+        {
+            if (character < 'A' || character > 'Z')
+            {
                 return false;
             }
         }
@@ -103,8 +107,7 @@ public class BindingController {
 
     /// <summary>Each item converted, not just the list assembled.</summary>
     [Get("/query-list-typed")]
-    public int QueryListTyped([FromQueryString] List<int>? ids) =>
-        ids == null ? -1 : ids.Sum();
+    public int QueryListTyped([FromQueryString] List<int>? ids) => ids == null ? -1 : ids.Sum();
 
     /// <summary>An array rather than a list, which the binder copies into.</summary>
     [Get("/query-array")]
@@ -144,7 +147,9 @@ public class BindingController {
         string id,
         [FromQueryString] string filter,
         [FromHeader("X-Tenant")] string tenant,
-        IMathService<int> mathService) {
+        IMathService<int> mathService
+    )
+    {
         return $"{id}|{filter}|{tenant}|{mathService.Add(1, 2)}";
     }
 

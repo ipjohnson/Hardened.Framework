@@ -8,7 +8,8 @@ using Hardened.Requests.Abstract.Serializer;
 namespace Hardened.Requests.Runtime.Serializer;
 
 [SingletonService(Using = RegistrationType.Try)]
-public class ExceptionResponseSerializer : IExceptionResponseSerializer {
+public class ExceptionResponseSerializer : IExceptionResponseSerializer
+{
     private readonly IRequestLogger _requestLogger;
     private readonly ISerializationLocatorService _serializationLocatorService;
     private readonly IExceptionToModelConverter _exceptionToModelConverter;
@@ -16,7 +17,9 @@ public class ExceptionResponseSerializer : IExceptionResponseSerializer {
     public ExceptionResponseSerializer(
         IRequestLogger requestLogger,
         ISerializationLocatorService serializationLocatorService,
-        IExceptionToModelConverter exceptionToModelConverter) {
+        IExceptionToModelConverter exceptionToModelConverter
+    )
+    {
         _requestLogger = requestLogger;
         _serializationLocatorService = serializationLocatorService;
         _exceptionToModelConverter = exceptionToModelConverter;
@@ -41,7 +44,8 @@ public class ExceptionResponseSerializer : IExceptionResponseSerializer {
     /// converter has already done.
     /// </para>
     /// </remarks>
-    public Task Handle(IExecutionContext context, Exception exp) {
+    public Task Handle(IExecutionContext context, Exception exp)
+    {
         var (status, model) = _exceptionToModelConverter.ConvertExceptionToModel(context, exp);
 
         context.Response.Status = status;
@@ -81,11 +85,14 @@ public class ExceptionResponseSerializer : IExceptionResponseSerializer {
     /// <c>text/event-stream</c> around a JSON object would be parsed as garbage and reconnected to
     /// forever. <c>StreamingTests</c> pins it through a real refusal.
     /// </remarks>
-    private IResponseSerializer FindErrorSerializer(IExecutionContext context) {
-        try {
+    private IResponseSerializer FindErrorSerializer(IExecutionContext context)
+    {
+        try
+        {
             return _serializationLocatorService.FindResponseSerializer(context);
         }
-        catch (ContentTypeNotProducibleException) {
+        catch (ContentTypeNotProducibleException)
+        {
             context.Response.ContentType = KnownContentType.Json;
 
             return _serializationLocatorService.FindResponseSerializer(context);

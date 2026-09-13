@@ -17,8 +17,8 @@ namespace Hardened.CloudEvents;
 /// RFC 3339 is better carried than refused.
 /// </para>
 /// </remarks>
-public sealed record CloudEvent(string SpecVersion, string Id, string Source, string Type) {
-
+public sealed record CloudEvent(string SpecVersion, string Id, string Source, string Type)
+{
     /// <summary>The subject of the event in the context of the producer, or null.</summary>
     public string? Subject { get; init; }
 

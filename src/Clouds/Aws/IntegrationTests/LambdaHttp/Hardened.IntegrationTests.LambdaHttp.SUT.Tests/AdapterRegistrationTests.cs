@@ -1,5 +1,5 @@
-using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Aws.Lambda.Http;
+using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,13 +17,14 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 /// the HTTP family and every other one.
 /// </para>
 /// </summary>
-public class AdapterRegistrationTests {
-
+public class AdapterRegistrationTests
+{
     /// <summary>
     /// Verbs bound the adapter. Nothing in the application mentions a front door, SQS or Lambda.
     /// </summary>
     [HardenedTest]
-    public void TheVerbsRegisteredTheHttpAdapter(IServiceProvider provider) {
+    public void TheVerbsRegisteredTheHttpAdapter(IServiceProvider provider)
+    {
         Assert.IsType<LambdaHttpAdapter>(Assert.Single(provider.GetServices<IPayloadAdapter>()));
     }
 
@@ -32,7 +33,8 @@ public class AdapterRegistrationTests {
     /// connection, and a failed invocation would give them a 502 with nothing in it.
     /// </summary>
     [HardenedTest]
-    public void TheGatewayAdapterAnswersFailuresRatherThanRethrowing(IServiceProvider provider) {
+    public void TheGatewayAdapterAnswersFailuresRatherThanRethrowing(IServiceProvider provider)
+    {
         var adapter = Assert.Single(provider.GetServices<IPayloadAdapter>());
 
         Assert.Equal(HostFailurePolicy.Answer500, adapter.FailurePolicy);

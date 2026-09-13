@@ -36,12 +36,20 @@ namespace Hardened.Smithy.BuildTask;
 /// passing the text through whole.
 /// </para>
 /// </remarks>
-internal static class SmithyValidationReport {
-
-    internal readonly struct Finding {
+internal static class SmithyValidationReport
+{
+    internal readonly struct Finding
+    {
         public Finding(
-            string severity, string id, string? shape,
-            string file, int line, int column, string message) {
+            string severity,
+            string id,
+            string? shape,
+            string file,
+            int line,
+            int column,
+            string message
+        )
+        {
             Severity = severity;
             Id = id;
             Shape = shape;
@@ -68,8 +76,7 @@ internal static class SmithyValidationReport {
         public string Message { get; }
 
         /// <summary>Whether this finding is one of the two severities that fail validation.</summary>
-        public bool FailedValidation =>
-            Severity == "ERROR" || Severity == "DANGER";
+        public bool FailedValidation => Severity == "ERROR" || Severity == "DANGER";
     }
 
     /// <summary>
@@ -78,19 +85,23 @@ internal static class SmithyValidationReport {
     /// </summary>
     private static readonly Regex Header = new(
         "^──\\s+(NOTE|WARNING|DANGER|ERROR)\\s+─+(?:\\s+(\\S+))?\\s*$",
-        RegexOptions.Compiled);
+        RegexOptions.Compiled
+    );
 
-    internal static IReadOnlyList<Finding> Parse(string standardError) {
+    internal static IReadOnlyList<Finding> Parse(string standardError)
+    {
         var findings = new List<Finding>();
         var lines = standardError.Split('\n');
         var index = 0;
 
-        while (index < lines.Length) {
+        while (index < lines.Length)
+        {
             var header = Header.Match(lines[index].TrimEnd('\r'));
 
             index++;
 
-            if (!header.Success) {
+            if (!header.Success)
+            {
                 continue;
             }
 
@@ -100,28 +111,47 @@ internal static class SmithyValidationReport {
             var column = 0;
             var message = new List<string>();
 
-            for (; index < lines.Length; index++) {
+            for (; index < lines.Length; index++)
+            {
                 var current = lines[index].TrimEnd('\r');
 
-                if (Header.IsMatch(current)) {
+                if (Header.IsMatch(current))
+                {
                     break;
                 }
 
-                if (current.StartsWith("Shape:", StringComparison.Ordinal)) {
+                if (current.StartsWith("Shape:", StringComparison.Ordinal))
+                {
                     shape = current.Substring("Shape:".Length).Trim();
-                } else if (current.StartsWith("File:", StringComparison.Ordinal)) {
+                }
+                else if (current.StartsWith("File:", StringComparison.Ordinal))
+                {
                     ParseLocation(
-                        current.Substring("File:".Length).Trim(), out file, out line, out column);
-                } else if (current.Trim().Length > 0 && !IsExcerpt(current) && !IsSummary(current)) {
+                        current.Substring("File:".Length).Trim(),
+                        out file,
+                        out line,
+                        out column
+                    );
+                }
+                else if (current.Trim().Length > 0 && !IsExcerpt(current) && !IsSummary(current))
+                {
                     message.Add(current.Trim());
                 }
             }
 
             // Joined with spaces because the CLI wraps one sentence across lines at its banner
             // width; the breaks are layout, not content.
-            findings.Add(new Finding(
-                header.Groups[1].Value, header.Groups[2].Value, shape,
-                file, line, column, string.Join(" ", message)));
+            findings.Add(
+                new Finding(
+                    header.Groups[1].Value,
+                    header.Groups[2].Value,
+                    shape,
+                    file,
+                    line,
+                    column,
+                    string.Join(" ", message)
+                )
+            );
         }
 
         return findings;
@@ -131,14 +161,17 @@ internal static class SmithyValidationReport {
     /// A line of the source excerpt: a line number and a pipe, or the pipe alone under it carrying
     /// the caret.
     /// </summary>
-    private static bool IsExcerpt(string line) {
+    private static bool IsExcerpt(string line)
+    {
         var index = 0;
 
-        while (index < line.Length && line[index] == ' ') {
+        while (index < line.Length && line[index] == ' ')
+        {
             index++;
         }
 
-        while (index < line.Length && char.IsDigit(line[index])) {
+        while (index < line.Length && char.IsDigit(line[index]))
+        {
             index++;
         }
 
@@ -147,32 +180,38 @@ internal static class SmithyValidationReport {
 
     /// <summary>The count line after the last finding, whose content the findings already carry.</summary>
     private static bool IsSummary(string line) =>
-        line.StartsWith("FAILURE: Validated ", StringComparison.Ordinal) ||
-        line.StartsWith("SUCCESS: Validated ", StringComparison.Ordinal);
+        line.StartsWith("FAILURE: Validated ", StringComparison.Ordinal)
+        || line.StartsWith("SUCCESS: Validated ", StringComparison.Ordinal);
 
     /// <summary>
     /// <c>path:line:column</c>, taken from the right because a Windows path carries a colon of
     /// its own. A location that does not end in two numbers is kept whole as the file.
     /// </summary>
-    private static void ParseLocation(string text, out string file, out int line, out int column) {
+    private static void ParseLocation(string text, out string file, out int line, out int column)
+    {
         file = text;
         line = 0;
         column = 0;
 
         var last = text.LastIndexOf(':');
 
-        if (last <= 0) {
+        if (last <= 0)
+        {
             return;
         }
 
         var second = text.LastIndexOf(':', last - 1);
 
-        if (second <= 0) {
+        if (second <= 0)
+        {
             return;
         }
 
-        if (int.TryParse(text.Substring(second + 1, last - second - 1), out var parsedLine) &&
-            int.TryParse(text.Substring(last + 1), out var parsedColumn)) {
+        if (
+            int.TryParse(text.Substring(second + 1, last - second - 1), out var parsedLine)
+            && int.TryParse(text.Substring(last + 1), out var parsedColumn)
+        )
+        {
             file = text.Substring(0, second);
             line = parsedLine;
             column = parsedColumn;

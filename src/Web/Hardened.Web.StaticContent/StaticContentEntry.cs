@@ -1,7 +1,7 @@
 using System.Globalization;
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.StaticContent;
 
@@ -21,11 +21,17 @@ namespace Hardened.Web.StaticContent;
 /// and it will hand a client the wrong body on the strength of it.
 /// </para>
 /// </remarks>
-public sealed class StaticContentEntry {
-
+public sealed class StaticContentEntry
+{
     public StaticContentEntry(
-        string contentType, string? contentEncoding, bool isBinary, string hash, byte[] content,
-        DateTimeOffset? lastModified = null) {
+        string contentType,
+        string? contentEncoding,
+        bool isBinary,
+        string hash,
+        byte[] content,
+        DateTimeOffset? lastModified = null
+    )
+    {
         ContentType = contentType;
         ContentEncoding = contentEncoding;
         IsBinary = isBinary;
@@ -33,10 +39,11 @@ public sealed class StaticContentEntry {
 
         IsEncoded = !string.IsNullOrEmpty(contentEncoding);
 
-        ContentEncodingHeader = contentEncoding switch {
+        ContentEncodingHeader = contentEncoding switch
+        {
             KnownEncoding.GZip => KnownEncoding.GZipStringValues,
             KnownEncoding.Br => KnownEncoding.BrStringValues,
-            _ => StringValues.Empty
+            _ => StringValues.Empty,
         };
 
         ETag = EntityTagHeader.Format(hash);

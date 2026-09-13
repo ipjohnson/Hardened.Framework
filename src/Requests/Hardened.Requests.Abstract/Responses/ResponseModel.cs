@@ -17,8 +17,8 @@ namespace Hardened.Requests.Abstract.Responses;
 /// boundary rather than an annotation.
 /// </para>
 /// </remarks>
-public enum ResponseModel {
-
+public enum ResponseModel
+{
     /// <summary>
     /// One return type per handler, other statuses reached by throwing. What an application that
     /// says nothing gets today; new projects scaffold as <see cref="Response"/>.
@@ -67,6 +67,8 @@ public enum ResponseModel {
     /// Same value, so <c>[ResponseModel(ResponseModel.Standard)]</c> keeps meaning what it meant.
     /// Goes away at 1.0.
     /// </remarks>
-    [Obsolete("The Standard response model was renamed Throws in 0.19.0; write ResponseModel.Throws.")]
-    Standard = Throws
+    [Obsolete(
+        "The Standard response model was renamed Throws in 0.19.0; write ResponseModel.Throws."
+    )]
+    Standard = Throws,
 }

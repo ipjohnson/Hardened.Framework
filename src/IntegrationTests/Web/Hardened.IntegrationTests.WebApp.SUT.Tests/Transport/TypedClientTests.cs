@@ -1,18 +1,19 @@
 using System.Net;
 using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
-using NSubstitute;
 using Hardened.Web.Runtime.Responses;
+using NSubstitute;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 
 /// <summary>
 /// Typed clients as test parameters, built over the pipeline by convention or through a factory.
 /// </summary>
-public class TypedClientTests {
-
+public class TypedClientTests
+{
     [HardenedTest]
-    public async Task AClientWithAnHttpClientConstructorIsInjectedWithNoFactory(ProbeClient client) {
+    public async Task AClientWithAnHttpClientConstructorIsInjectedWithNoFactory(ProbeClient client)
+    {
         using var response = await client.Pets(TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -20,7 +21,8 @@ public class TypedClientTests {
     }
 
     [HardenedTest]
-    public async Task AClientWithAnotherConstructorIsInjectedThroughItsFactory(AdaptedClient client) {
+    public async Task AClientWithAnotherConstructorIsInjectedThroughItsFactory(AdaptedClient client)
+    {
         using var response = await client.Pets(TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -31,8 +33,11 @@ public class TypedClientTests {
     /// none of them can build fails naming all of them, so the message says what to add.
     /// </summary>
     [HardenedTest]
-    public void AClientWithNoRouteFailsNamingAllOfThem(ITestWebApp app) {
-        var failure = Assert.Throws<InvalidOperationException>(() => app.CreateClient<OrphanClient>());
+    public void AClientWithNoRouteFailsNamingAllOfThem(ITestWebApp app)
+    {
+        var failure = Assert.Throws<InvalidOperationException>(() =>
+            app.CreateClient<OrphanClient>()
+        );
 
         Assert.Contains("ITestClientFactory<OrphanClient>", failure.Message);
         Assert.Contains("KiotaClientRoute, RefitClientRoute", failure.Message);
@@ -45,18 +50,40 @@ public class TypedClientTests {
     /// </summary>
     [HardenedTest]
     public async Task AMockIsVisibleToAHandlerReachedThroughAClient(
-        ProbeClient client, [Mock] IMathService<int> mathService) {
+        ProbeClient client,
+        [Mock] IMathService<int> mathService
+    )
+    {
         mathService.Add(Arg.Any<int[]>()).Returns(100);
 
-        var sum = await client.Add(new MathAddModel { Values = new List<int> { 1, 2 } }, TestContext.Current.CancellationToken);
+        var sum = await client.Add(
+            new MathAddModel
+            {
+                Values = new List<int> { 1, 2 },
+            },
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal(100, sum);
     }
 
     [HardenedTest]
-    public async Task TheHarnessAndAClientDriveOnePipeline(ITestWebApp app, ProbeClient client) {
-        var direct = await app.Post(new MathAddModel { Values = new List<int> { 10, 20, 30 } }, "/int/add");
-        var viaClient = await client.Add(new MathAddModel { Values = new List<int> { 10, 20, 30 } }, TestContext.Current.CancellationToken);
+    public async Task TheHarnessAndAClientDriveOnePipeline(ITestWebApp app, ProbeClient client)
+    {
+        var direct = await app.Post(
+            new MathAddModel
+            {
+                Values = new List<int> { 10, 20, 30 },
+            },
+            "/int/add"
+        );
+        var viaClient = await client.Add(
+            new MathAddModel
+            {
+                Values = new List<int> { 10, 20, 30 },
+            },
+            TestContext.Current.CancellationToken
+        );
 
         direct.Assert.Ok();
 

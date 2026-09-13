@@ -20,8 +20,8 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// exercise the table where it is compiled, not to restate what the generator tests already prove.
 /// </para>
 /// </remarks>
-public class RouteConstraintFactsTests {
-
+public class RouteConstraintFactsTests
+{
     [Theory]
     [InlineData("int", "IsInt")]
     [InlineData("long", "IsLong")]
@@ -33,7 +33,8 @@ public class RouteConstraintFactsTests {
     [InlineData("alpha", "IsAlpha")]
     [InlineData("slug", "IsSlug")]
     [InlineData("hex", "IsHex")]
-    public void EveryBuiltInCompilesToItsRuntimeTest(string constraint, string method) {
+    public void EveryBuiltInCompilesToItsRuntimeTest(string constraint, string method)
+    {
         var test = RouteConstraintFacts.Test(constraint);
 
         Assert.NotNull(test);
@@ -43,7 +44,8 @@ public class RouteConstraintFactsTests {
     }
 
     [Fact]
-    public void AnUndeclaredNameCompilesToNothing() {
+    public void AnUndeclaredNameCompilesToNothing()
+    {
         Assert.Null(RouteConstraintFacts.Test("isbn"));
     }
 
@@ -68,7 +70,8 @@ public class RouteConstraintFactsTests {
     [InlineData("length", 80)]
     [InlineData("minlength", 80)]
     [InlineData("maxlength", 80)]
-    public void TheRankTableIsWhatItSays(string constraint, int rank) {
+    public void TheRankTableIsWhatItSays(string constraint, int rank)
+    {
         Assert.Equal(rank, RouteConstraintFacts.Rank(constraint));
     }
 
@@ -77,7 +80,8 @@ public class RouteConstraintFactsTests {
     /// route unreachable when an application adds a <c>[RouteConstraint]</c> of its own.
     /// </summary>
     [Fact]
-    public void AnUndeclaredNameRanksAsCustom() {
+    public void AnUndeclaredNameRanksAsCustom()
+    {
         Assert.Equal(RouteConstraintFacts.CustomPrecedence, RouteConstraintFacts.Rank("isbn"));
         Assert.Equal(90, RouteConstraintFacts.CustomPrecedence);
     }
@@ -88,13 +92,16 @@ public class RouteConstraintFactsTests {
     /// diagnostic — a routing decision made by omission either way.
     /// </summary>
     [Fact]
-    public void NamesTestAndRankAgree() {
-        foreach (var name in RouteConstraintFacts.Names) {
+    public void NamesTestAndRankAgree()
+    {
+        foreach (var name in RouteConstraintFacts.Names)
+        {
             Assert.NotNull(RouteConstraintFacts.Test(name));
 
             Assert.True(
                 RouteConstraintFacts.Rank(name) < RouteConstraintFacts.CustomPrecedence,
-                $"'{name}' is built in but ranks as a custom constraint.");
+                $"'{name}' is built in but ranks as a custom constraint."
+            );
         }
     }
 
@@ -125,15 +132,18 @@ public class RouteConstraintFactsTests {
     [InlineData("length")]
     [InlineData("minlength")]
     [InlineData("maxlength")]
-    public void EveryRankedNameIsANameTheTableCompiles(string name) {
+    public void EveryRankedNameIsANameTheTableCompiles(string name)
+    {
         var arities = RouteConstraintFacts.Arities(name);
 
-        if (arities.Count == 0) {
+        if (arities.Count == 0)
+        {
             Assert.NotNull(RouteConstraintFacts.Test(name));
             return;
         }
 
-        foreach (var arity in arities) {
+        foreach (var arity in arities)
+        {
             var term = new RouteConstraintFacts.Term(name, Enumerable.Repeat(1, arity).ToList());
 
             Assert.NotNull(RouteConstraintFacts.Call(term));
@@ -146,7 +156,8 @@ public class RouteConstraintFactsTests {
     [InlineData("length(6)", 1, 1)]
     [InlineData("length(3,9)", 1, 2)]
     [InlineData("alpha:length(3)", 2, 1)]
-    public void TermsParsesAChain(string chain, int terms, int lastArgumentCount) {
+    public void TermsParsesAChain(string chain, int terms, int lastArgumentCount)
+    {
         var parsed = RouteConstraintFacts.Terms(chain);
 
         Assert.NotNull(parsed);
@@ -167,7 +178,8 @@ public class RouteConstraintFactsTests {
     [InlineData("(6)")]
     [InlineData("int::min(1)")]
     [InlineData("int:")]
-    public void TermsRefusesWhatIsNotAChain(string chain) {
+    public void TermsRefusesWhatIsNotAChain(string chain)
+    {
         Assert.Null(RouteConstraintFacts.Terms(chain));
     }
 
@@ -183,11 +195,14 @@ public class RouteConstraintFactsTests {
     [InlineData("min", 1, "IsMin")]
     [InlineData("max", 1, "IsMax")]
     [InlineData("range", 2, "IsRange")]
-    public void AParameterisedNameCompilesAtItsOwnArity(string name, int arity, string method) {
+    public void AParameterisedNameCompilesAtItsOwnArity(string name, int arity, string method)
+    {
         var term = new RouteConstraintFacts.Term(name, Enumerable.Repeat(1, arity).ToList());
 
-        Assert.Equal("global::Hardened.Web.Runtime.Routing.RouteConstraints." + method,
-            RouteConstraintFacts.Call(term));
+        Assert.Equal(
+            "global::Hardened.Web.Runtime.Routing.RouteConstraints." + method,
+            RouteConstraintFacts.Call(term)
+        );
     }
 
     [Theory]
@@ -196,7 +211,8 @@ public class RouteConstraintFactsTests {
     [InlineData("range", 1)]
     [InlineData("min", 2)]
     [InlineData("int", 1)]
-    public void AWrongArityCompilesToNothing(string name, int arity) {
+    public void AWrongArityCompilesToNothing(string name, int arity)
+    {
         var term = new RouteConstraintFacts.Term(name, Enumerable.Repeat(1, arity).ToList());
 
         Assert.Null(RouteConstraintFacts.Call(term));
@@ -245,14 +261,21 @@ public class RouteConstraintFactsTests {
     [InlineData("isbn", "Int32", false)]
     [InlineData("", "Int32", false)]
     public void AConstraintGuaranteesTheConversionsItsOwnTestMakes(
-        string chain, string csType, bool guaranteed) {
+        string chain,
+        string csType,
+        bool guaranteed
+    )
+    {
         Assert.Equal(guaranteed, RouteConstraintFacts.GuaranteesConversion(chain, csType));
     }
 
     /// <summary>Alphabetical, because this list is read by a person in an error message.</summary>
     [Fact]
-    public void NamesAreListedInOrder() {
-        Assert.Equal(RouteConstraintFacts.Names.OrderBy(name => name, System.StringComparer.Ordinal),
-            RouteConstraintFacts.Names);
+    public void NamesAreListedInOrder()
+    {
+        Assert.Equal(
+            RouteConstraintFacts.Names.OrderBy(name => name, System.StringComparer.Ordinal),
+            RouteConstraintFacts.Names
+        );
     }
 }

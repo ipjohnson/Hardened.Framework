@@ -19,7 +19,8 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// encoding anything itself.
 /// </para>
 /// </remarks>
-public interface IStreamFraming {
+public interface IStreamFraming
+{
     /// <summary>
     /// What the response commits to before the first item is written.
     /// </summary>

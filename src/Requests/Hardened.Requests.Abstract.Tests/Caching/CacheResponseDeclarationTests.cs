@@ -12,8 +12,8 @@ namespace Hardened.Requests.Abstract.Tests.Caching;
 /// These pin what that compiles to: nothing said about who the answer is for, which is a failure
 /// naming the handler on anything guarded, and no tag, which is an entry only its duration removes.
 /// </remarks>
-public class CacheResponseDeclarationTests {
-
+public class CacheResponseDeclarationTests
+{
     /// <summary>
     /// Through the interface, which is the only way a default implementation is reachable and the
     /// way everything asking a declaration these questions holds one.
@@ -21,24 +21,28 @@ public class CacheResponseDeclarationTests {
     private static readonly ICacheResponseDeclaration Minimal = new MinimalDeclaration();
 
     [Fact]
-    public void ADeclarationThatSaysNothingAboutItsAudienceIsUnstated() {
+    public void ADeclarationThatSaysNothingAboutItsAudienceIsUnstated()
+    {
         Assert.Equal(CacheScope.Unstated, Minimal.Scope);
     }
 
     [Fact]
-    public void ADeclarationThatNamesNoTagsHasNone() {
+    public void ADeclarationThatNamesNoTagsHasNone()
+    {
         Assert.Empty(Minimal.Tags);
     }
 
     /// <summary>
     /// Everything the interface has always required, and nothing it has since added.
     /// </summary>
-    private sealed class MinimalDeclaration : ICacheResponseDeclaration {
+    private sealed class MinimalDeclaration : ICacheResponseDeclaration
+    {
         public int Duration => 0;
 
         public ICacheKeyProvider CreateKeyProvider() => new EveryRequest();
 
-        private sealed class EveryRequest : ICacheKeyProvider {
+        private sealed class EveryRequest : ICacheKeyProvider
+        {
             public static ICacheKeyProvider Create(string[] values) => new EveryRequest();
 
             public ValueTask<string?> Key(IExecutionContext context) => new("only");

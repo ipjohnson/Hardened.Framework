@@ -19,8 +19,8 @@ namespace Hardened.SourceGenerator.Tests.Shared;
 /// output looked plausible enough that only a character-level assertion would have caught it.
 /// </para>
 /// </remarks>
-public class EnumWireNamingTests {
-
+public class EnumWireNamingTests
+{
     [Theory]
     [InlineData("Low", "low")]
     [InlineData("Standard", "standard")]

@@ -14,12 +14,17 @@ namespace Hardened.Web.AspNetCore.Runtime.Tests.Impl;
 /// <c>client.address</c> must not have to know which host it is running under. Where the two
 /// genuinely differ is noted on the test that shows it.
 /// </remarks>
-public class AspNetTransportInfoTests {
-
+public class AspNetTransportInfoTests
+{
     private static AspNetTransportInfo Info(
-        IPAddress? remote = null, int remotePort = 0,
-        IPAddress? local = null, int localPort = 0,
-        string protocol = "HTTP/1.1", string scheme = "https") {
+        IPAddress? remote = null,
+        int remotePort = 0,
+        IPAddress? local = null,
+        int localPort = 0,
+        string protocol = "HTTP/1.1",
+        string scheme = "https"
+    )
+    {
         var context = new DefaultHttpContext();
 
         context.Connection.RemoteIpAddress = remote;
@@ -33,7 +38,8 @@ public class AspNetTransportInfoTests {
     }
 
     [Fact]
-    public void TheClientAddressComesFromTheConnection() {
+    public void TheClientAddressComesFromTheConnection()
+    {
         var info = Info(remote: IPAddress.Parse("203.0.113.7"), remotePort: 51234);
 
         Assert.Equal("203.0.113.7", info.Get(KnownTransportKeys.ClientAddress));
@@ -51,7 +57,8 @@ public class AspNetTransportInfoTests {
     /// is a real difference between the two adapters rather than an oversight.
     /// </remarks>
     [Fact]
-    public void ThePeerReportsWhateverTheHostBelieves() {
+    public void ThePeerReportsWhateverTheHostBelieves()
+    {
         var info = Info(remote: IPAddress.Parse("203.0.113.7"), remotePort: 51234);
 
         Assert.Equal("203.0.113.7", info.Get(KnownTransportKeys.NetworkPeerAddress));
@@ -59,7 +66,8 @@ public class AspNetTransportInfoTests {
     }
 
     [Fact]
-    public void TheServerAddressComesFromTheLocalEndpoint() {
+    public void TheServerAddressComesFromTheLocalEndpoint()
+    {
         var info = Info(local: IPAddress.Parse("10.0.0.4"), localPort: 443);
 
         Assert.Equal("10.0.0.4", info.Get(KnownTransportKeys.ServerAddress));
@@ -70,18 +78,24 @@ public class AspNetTransportInfoTests {
     [InlineData("HTTP/1.1", "1.1")]
     [InlineData("HTTP/2", "2")]
     [InlineData("HTTP/3", "3")]
-    public void TheProtocolVersionDropsTheScheme(string protocol, string expected) {
-        Assert.Equal(expected, Info(protocol: protocol).Get(KnownTransportKeys.NetworkProtocolVersion));
+    public void TheProtocolVersionDropsTheScheme(string protocol, string expected)
+    {
+        Assert.Equal(
+            expected,
+            Info(protocol: protocol).Get(KnownTransportKeys.NetworkProtocolVersion)
+        );
     }
 
     [Fact]
-    public void TheSchemeIsSurfaced() {
+    public void TheSchemeIsSurfaced()
+    {
         Assert.Equal("http", Info(scheme: "http").Get(KnownTransportKeys.UrlScheme));
     }
 
     /// <summary>A port of zero is an absence, matching the Kestrel adapter.</summary>
     [Fact]
-    public void AZeroPortIsNull() {
+    public void AZeroPortIsNull()
+    {
         var info = Info(remote: IPAddress.Loopback, remotePort: 0, local: IPAddress.Loopback);
 
         Assert.Null(info.Get(KnownTransportKeys.ClientPort));
@@ -90,7 +104,8 @@ public class AspNetTransportInfoTests {
 
     /// <summary>A context with no addresses answers null rather than throwing.</summary>
     [Fact]
-    public void AnUnpopulatedConnectionAnswersNull() {
+    public void AnUnpopulatedConnectionAnswersNull()
+    {
         var info = Info();
 
         Assert.Null(info.Get(KnownTransportKeys.ClientAddress));
@@ -98,19 +113,25 @@ public class AspNetTransportInfoTests {
     }
 
     [Fact]
-    public void AnUnknownKeyIsNull() {
+    public void AnUnknownKeyIsNull()
+    {
         Assert.Null(Info().Get("something.else"));
     }
 
     [Fact]
-    public void EveryPublishedKeyIsAnswerable() {
+    public void EveryPublishedKeyIsAnswerable()
+    {
         var info = Info(
-            remote: IPAddress.Parse("203.0.113.7"), remotePort: 51234,
-            local: IPAddress.Parse("10.0.0.4"), localPort: 443);
+            remote: IPAddress.Parse("203.0.113.7"),
+            remotePort: 51234,
+            local: IPAddress.Parse("10.0.0.4"),
+            localPort: 443
+        );
 
         Assert.NotEmpty(info.Keys);
 
-        foreach (var key in info.Keys) {
+        foreach (var key in info.Keys)
+        {
             Assert.NotNull(info.Get(key));
         }
     }

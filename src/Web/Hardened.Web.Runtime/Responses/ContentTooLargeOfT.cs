@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(413)]
 public sealed record ContentTooLarge<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<ContentTooLarge<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<ContentTooLarge<T>>
+{
     public string Type => ProblemTypes.ContentTooLarge;
 
     public string Title => "Content Too Large";
@@ -38,6 +40,7 @@ public sealed record ContentTooLarge<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static ContentTooLarge<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

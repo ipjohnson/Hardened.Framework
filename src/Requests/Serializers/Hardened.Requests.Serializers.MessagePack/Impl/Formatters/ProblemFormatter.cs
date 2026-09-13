@@ -27,23 +27,35 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl.Formatters;
 /// one document: a caller switching on <c>type</c> reads the same body either way.
 /// </para>
 /// </remarks>
-internal sealed class ProblemFormatter<T> : IMessagePackFormatter<T?> where T : class, IHttpStatusResponse {
-
+internal sealed class ProblemFormatter<T> : IMessagePackFormatter<T?>
+    where T : class, IHttpStatusResponse
+{
     private readonly Func<T, string> _type;
     private readonly Func<T, string> _title;
     private readonly Func<T, string?> _detail;
     private readonly Func<string?, T> _create;
 
     internal ProblemFormatter(
-        Func<T, string> type, Func<T, string> title, Func<T, string?> detail, Func<string?, T> create) {
+        Func<T, string> type,
+        Func<T, string> title,
+        Func<T, string?> detail,
+        Func<string?, T> create
+    )
+    {
         _type = type;
         _title = title;
         _detail = detail;
         _create = create;
     }
 
-    public void Serialize(ref MessagePackWriter writer, T? value, MessagePackSerializerOptions options) {
-        if (value == null) {
+    public void Serialize(
+        ref MessagePackWriter writer,
+        T? value,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (value == null)
+        {
             writer.WriteNil();
 
             return;
@@ -55,15 +67,19 @@ internal sealed class ProblemFormatter<T> : IMessagePackFormatter<T?> where T : 
         Problem.WriteTail(ref writer, _type(value), _title(value), value.Status);
     }
 
-    public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) {
+    public T? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options)
+    {
         var count = Problem.MapHeader(ref reader);
         string? detail = null;
 
-        for (var i = 0; i < count; i++) {
-            if (reader.ReadString() == "detail") {
+        for (var i = 0; i < count; i++)
+        {
+            if (reader.ReadString() == "detail")
+            {
                 detail = reader.ReadString();
             }
-            else {
+            else
+            {
                 // type, title and status are the type's own answers, and a member a later version
                 // added is none of this one's business. Both are skipped rather than refused.
                 reader.Skip();
@@ -75,9 +91,15 @@ internal sealed class ProblemFormatter<T> : IMessagePackFormatter<T?> where T : 
 }
 
 /// <summary>The three members every problem body ends with, and the reader's counterpart.</summary>
-internal static class Problem {
-
-    internal static void WriteTail(ref MessagePackWriter writer, string type, string title, int status) {
+internal static class Problem
+{
+    internal static void WriteTail(
+        ref MessagePackWriter writer,
+        string type,
+        string title,
+        int status
+    )
+    {
         writer.Write("type");
         writer.Write(type);
         writer.Write("title");

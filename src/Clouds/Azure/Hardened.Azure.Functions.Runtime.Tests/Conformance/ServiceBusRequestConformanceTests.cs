@@ -21,28 +21,40 @@ namespace Hardened.Azure.Functions.Runtime.Tests.Conformance;
 /// Service Bus message has, and the body as the message body.
 /// </para>
 /// </remarks>
-public class ServiceBusRequestConformanceTests : PayloadExecutionRequestConformanceTests {
-    protected override IExecutionRequestConformanceAdapter Adapter { get; } = new ServiceBusAdapter_();
+public class ServiceBusRequestConformanceTests : PayloadExecutionRequestConformanceTests
+{
+    protected override IExecutionRequestConformanceAdapter Adapter { get; } =
+        new ServiceBusAdapter_();
 
-    private sealed class ServiceBusAdapter_ : IExecutionRequestConformanceAdapter {
+    private sealed class ServiceBusAdapter_ : IExecutionRequestConformanceAdapter
+    {
         private readonly ServiceBusAdapter _adapter = new();
 
         public string TransportName => "Azure Functions Service Bus";
 
-        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec) {
+        public IExecutionRequest CreateRequest(ConformanceRequestSpec spec)
+        {
             var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
                 body: spec.Body == null ? null : BinaryData.FromBytes(spec.Body),
                 messageId: "conformance",
-                properties: spec.Headers.ToDictionary(header => header.Key, header => (object)header.Value),
-                deliveryCount: 1);
+                properties: spec.Headers.ToDictionary(
+                    header => header.Key,
+                    header => (object)header.Value
+                ),
+                deliveryCount: 1
+            );
 
             var context = new TestFunctionContext(
                 "Queue_conformance",
                 new Dictionary<string, object?>(),
-                new ServiceCollection().BuildServiceProvider());
+                new ServiceCollection().BuildServiceProvider()
+            );
 
-            var batch = (ServiceBusRequest)_adapter.CreateRequest(
-                new FunctionsTrigger("QUEUE", "/conformance", new[] { message }), context);
+            var batch = (ServiceBusRequest)
+                _adapter.CreateRequest(
+                    new FunctionsTrigger("QUEUE", "/conformance", new[] { message }),
+                    context
+                );
 
             // Method and path come off the shim rather than the spec - QUEUE and the queue's name -
             // so the spec's are applied through Clone, the same door a filter uses. The same

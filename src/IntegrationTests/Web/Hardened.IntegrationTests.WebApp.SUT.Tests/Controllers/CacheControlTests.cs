@@ -12,10 +12,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// responses carrying no <c>Cache-Control</c> at all. The generator tests cover what reaches the
 /// metadata; these cover what reaches the client, which is the part that was missing.
 /// </remarks>
-public class CacheControlTests {
-
+public class CacheControlTests
+{
     [HardenedTest]
-    public async Task TheDefaultAttributeSendsAPublicMaxAgeOfZero(ITestWebApp testWebApp) {
+    public async Task TheDefaultAttributeSendsAPublicMaxAgeOfZero(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/cache/default");
 
         response.Assert.Ok();
@@ -24,7 +25,8 @@ public class CacheControlTests {
     }
 
     [HardenedTest]
-    public async Task AMaxAgeReachesTheResponse(ITestWebApp testWebApp) {
+    public async Task AMaxAgeReachesTheResponse(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/cache/long");
 
         response.Assert.Ok();
@@ -37,7 +39,8 @@ public class CacheControlTests {
     /// attribute arguments — the natural spelling of the enum did not compile.
     /// </summary>
     [HardenedTest]
-    public async Task ANoStoreHandlerSendsNoStoreAndNoMaxAge(ITestWebApp testWebApp) {
+    public async Task ANoStoreHandlerSendsNoStoreAndNoMaxAge(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/cache/none");
 
         response.Assert.Ok();
@@ -46,7 +49,8 @@ public class CacheControlTests {
     }
 
     [HardenedTest]
-    public async Task FlagsAndMaxAgeCombine(ITestWebApp testWebApp) {
+    public async Task FlagsAndMaxAgeCombine(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/cache/private");
 
         response.Assert.Ok();
@@ -59,7 +63,8 @@ public class CacheControlTests {
     /// asked for.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerWithoutTheAttributeSendsNoCacheControl(ITestWebApp testWebApp) {
+    public async Task AHandlerWithoutTheAttributeSendsNoCacheControl(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/cache/unset");
 
         response.Assert.Ok();
@@ -71,7 +76,8 @@ public class CacheControlTests {
     /// Declared on the controller, applied to every route on it.
     /// </summary>
     [HardenedTest]
-    public async Task AControllerLevelAttributeReachesEveryRouteOnIt(ITestWebApp testWebApp) {
+    public async Task AControllerLevelAttributeReachesEveryRouteOnIt(ITestWebApp testWebApp)
+    {
         var one = await testWebApp.Get("/cache-all/one");
         var two = await testWebApp.Get("/cache-all/two");
 

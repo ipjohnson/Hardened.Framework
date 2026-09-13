@@ -1,8 +1,7 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Requests.Runtime.RateLimiting;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Responses;
 
@@ -25,13 +24,17 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(503)]
 public sealed record ServiceUnavailable(TimeSpan? After = null, string? Detail = null)
-    : IHttpStatusResponse, IProvidesResponseHeaders, IDeclaresStatus {
-
+    : IHttpStatusResponse,
+        IProvidesResponseHeaders,
+        IDeclaresStatus
+{
     /// <summary>
     /// The ServiceUnavailable with a generic message, for a handler with nothing more to say than the status.
     /// Shared, so returning it allocates nothing.
     /// </summary>
-    public static readonly ServiceUnavailable Default = new(Detail: "The service is temporarily unavailable.");
+    public static readonly ServiceUnavailable Default = new(
+        Detail: "The service is temporarily unavailable."
+    );
 
     public string Type => ProblemTypes.ServiceUnavailable;
 
@@ -41,8 +44,10 @@ public sealed record ServiceUnavailable(TimeSpan? After = null, string? Detail =
 
     public int Status => StatusCode;
 
-    public void ApplyHeaders(IDictionary<string, StringValues> headers) {
-        if (After is { } after) {
+    public void ApplyHeaders(IDictionary<string, StringValues> headers)
+    {
+        if (After is { } after)
+        {
             headers[KnownHeaders.RetryAfter] = RetryAfter.HeaderValue(after);
         }
     }

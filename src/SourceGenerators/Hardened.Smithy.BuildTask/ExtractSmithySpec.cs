@@ -1,5 +1,5 @@
-using Hardened.Idl.BuildTask;
 using Hardened.Generation.Models;
+using Hardened.Idl.BuildTask;
 using Hardened.Smithy.BuildTask.Parsing;
 
 namespace Hardened.Smithy.BuildTask;
@@ -24,8 +24,8 @@ namespace Hardened.Smithy.BuildTask;
 /// description.
 /// </para>
 /// </remarks>
-public sealed class ExtractSmithySpec : ExtractSpecTask {
-
+public sealed class ExtractSmithySpec : ExtractSpecTask
+{
     /// <summary>
     /// The service shape to generate, or empty for every service the model declares.
     /// </summary>
@@ -52,10 +52,15 @@ public sealed class ExtractSmithySpec : ExtractSpecTask {
     /// the file, which is what <c>LoadExternalRefs</c> exists for on the OpenAPI side.
     /// </remarks>
     internal override ServiceSpecModel? Parse(
-        string document, string fileName, string specPath, ICollection<string> diagnostics) =>
+        string document,
+        string fileName,
+        string specPath,
+        ICollection<string> diagnostics
+    ) =>
         SmithySpecParser.Parse(
             document,
             fileName,
             diagnostics,
-            string.IsNullOrWhiteSpace(ServiceShapeId) ? null : ServiceShapeId.Trim());
+            string.IsNullOrWhiteSpace(ServiceShapeId) ? null : ServiceShapeId.Trim()
+        );
 }

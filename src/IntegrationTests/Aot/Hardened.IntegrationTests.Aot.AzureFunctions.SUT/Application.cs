@@ -44,7 +44,8 @@ public partial class AotContext : JsonSerializerContext;
 /// catch-all HTTP function, the host's route prefix taken off, into the web table. Both are
 /// indexed by the host from the generated provider, which is the first thing the probe checks.
 /// </remarks>
-public class OrderHandlers {
+public class OrderHandlers
+{
     [Queue("orders-new")]
     public void OnOrder(Order order, IOrderSink sink) => sink.Seen(order);
 
@@ -53,7 +54,8 @@ public class OrderHandlers {
 }
 
 /// <summary>Where the handler's result goes, so the probe can read it off the host's log.</summary>
-public interface IOrderSink {
+public interface IOrderSink
+{
     void Seen(Order order);
 }
 
@@ -61,6 +63,7 @@ public interface IOrderSink {
 /// Prints rather than stores: the worker runs until the host ends it, so the entry point has no
 /// moment after the handler to print anything itself, and the host relays the worker's output.
 /// </summary>
-public class OrderSink : IOrderSink {
+public class OrderSink : IOrderSink
+{
     public void Seen(Order order) => Console.WriteLine($"HANDLED {order.Id} x{order.Quantity}");
 }

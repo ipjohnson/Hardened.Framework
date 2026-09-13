@@ -30,7 +30,8 @@ namespace Hardened.Azure.Functions.Http;
 /// Kestrel.
 /// </para>
 /// </remarks>
-public sealed class HttpAdapter : ITriggerAdapter {
+public sealed class HttpAdapter : ITriggerAdapter
+{
     /// <summary>Whether the shim was generated for this family, which is a type check.</summary>
     public bool Handles(FunctionsTrigger trigger) => trigger.Data is HttpRequestData;
 
@@ -49,7 +50,8 @@ public sealed class HttpAdapter : ITriggerAdapter {
     /// tier's test host, which then falls back to the URL's own path.
     /// </remarks>
     internal static string? RoutedPath(FunctionContext context) =>
-        context.BindingContext.BindingData.TryGetValue("path", out var path) && path is string routed
+        context.BindingContext.BindingData.TryGetValue("path", out var path)
+        && path is string routed
             ? "/" + routed.TrimStart('/')
             : null;
 
@@ -65,7 +67,11 @@ public sealed class HttpAdapter : ITriggerAdapter {
     /// The response the host sends: status, headers, cookies, and the buffer the pipeline wrote
     /// as the body, without a copy.
     /// </summary>
-    public ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext) {
+    public ValueTask<object?> WriteResponse(
+        IExecutionContext context,
+        FunctionContext functionContext
+    )
+    {
         var response = (HttpFunctionResponse)context.Response;
         var request = ((HttpFunctionRequest)context.Request).Data;
 
@@ -75,11 +81,13 @@ public sealed class HttpAdapter : ITriggerAdapter {
         // by now if the routing table did not match.
         data.StatusCode = (HttpStatusCode)(response.Status ?? 200);
 
-        foreach (var header in response.Headers) {
+        foreach (var header in response.Headers)
+        {
             data.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
         }
 
-        foreach (var cookie in response.Cookies.Cookies) {
+        foreach (var cookie in response.Cookies.Cookies)
+        {
             // Item1 is the value and Item2 the options; see LambdaHttpAdapter for the tuple's history.
             data.Cookies.Append(Cookie(cookie.Key, cookie.Value.Item1, cookie.Value.Item2));
         }
@@ -101,7 +109,8 @@ public sealed class HttpAdapter : ITriggerAdapter {
     /// writes <c>SameSite=None</c>, which is the opposite of what the names suggest.
     /// </remarks>
     private static HttpCookie Cookie(string name, string value, CookieSetOptions options) =>
-        new(name, value) {
+        new(name, value)
+        {
             Expires = options.Expires.HasValue
                 ? new DateTimeOffset(options.Expires.Value.ToUniversalTime(), TimeSpan.Zero)
                 : null,
@@ -110,11 +119,30 @@ public sealed class HttpAdapter : ITriggerAdapter {
             Path = options.Path,
             Secure = options.Secure,
             HttpOnly = options.HttpOnly,
-            SameSite = options.SameSite switch {
-                Hardened.Requests.Abstract.Headers.SameSite.Strict => Microsoft.Azure.Functions.Worker.Http.SameSite.Strict,
-                Hardened.Requests.Abstract.Headers.SameSite.Lax => Microsoft.Azure.Functions.Worker.Http.SameSite.Lax,
-                Hardened.Requests.Abstract.Headers.SameSite.None => Microsoft.Azure.Functions.Worker.Http.SameSite.ExplicitNone,
-                _ => Microsoft.Azure.Functions.Worker.Http.SameSite.None
-            }
+            SameSite = options.SameSite switch
+            {
+                Hardened.Requests.Abstract.Headers.SameSite.Strict => Microsoft
+                    .Azure
+                    .Functions
+                    .Worker
+                    .Http
+                    .SameSite
+                    .Strict,
+                Hardened.Requests.Abstract.Headers.SameSite.Lax => Microsoft
+                    .Azure
+                    .Functions
+                    .Worker
+                    .Http
+                    .SameSite
+                    .Lax,
+                Hardened.Requests.Abstract.Headers.SameSite.None => Microsoft
+                    .Azure
+                    .Functions
+                    .Worker
+                    .Http
+                    .SameSite
+                    .ExplicitNone,
+                _ => Microsoft.Azure.Functions.Worker.Http.SameSite.None,
+            },
         };
 }

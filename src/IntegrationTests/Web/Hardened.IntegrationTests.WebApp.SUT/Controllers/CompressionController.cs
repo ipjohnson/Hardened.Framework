@@ -10,8 +10,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// per-operation declarations that override it.
 /// </summary>
 [BasePath("/compression")]
-public class CompressionController {
-
+public class CompressionController
+{
     /// <summary>
     /// Named apart from <c>MessagePackController.Reading</c> deliberately. A component is named by
     /// the type's own name, so two <c>Reading</c> records in two controllers were published as one
@@ -52,20 +52,25 @@ public class CompressionController {
     public Sample Echo([FromBody] Sample sample) => sample;
 }
 
-public sealed class ListLargerThan : ICompressionPredicate {
+public sealed class ListLargerThan : ICompressionPredicate
+{
     private readonly int _count;
 
     private ListLargerThan(int count) => _count = count;
 
-    public static ICompressionPredicate Create(object[] args) => args is [int count]
-        ? new ListLargerThan(count)
-        : throw new ArgumentException("ListLargerThan takes one integer, the count above which the body is compressed.");
+    public static ICompressionPredicate Create(object[] args) =>
+        args is [int count]
+            ? new ListLargerThan(count)
+            : throw new ArgumentException(
+                "ListLargerThan takes one integer, the count above which the body is compressed."
+            );
 
     public bool ShouldCompress(object value, IExecutionContext context) =>
         value is System.Collections.ICollection { Count: var n } && n > _count;
 }
 
-public sealed class Never : ICompressionPredicate {
+public sealed class Never : ICompressionPredicate
+{
     private static readonly Never _instance = new();
 
     public static ICompressionPredicate Create(object[] args) => _instance;

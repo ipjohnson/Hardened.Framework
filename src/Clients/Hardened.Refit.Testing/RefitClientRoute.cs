@@ -1,7 +1,7 @@
 using System.Reflection;
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Refit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Refit.Testing;
 
@@ -31,19 +31,23 @@ namespace Hardened.Refit.Testing;
 /// dropped its status and is not read at all, which the failure says.
 /// </para>
 /// </remarks>
-public sealed class RefitClientRoute : ITestClientRoute, ITestClientReader {
-
-    public bool CanBuild(Type clientType) {
+public sealed class RefitClientRoute : ITestClientRoute, ITestClientReader
+{
+    public bool CanBuild(Type clientType)
+    {
         ArgumentNullException.ThrowIfNull(clientType);
 
         return clientType.IsInterface && Operations(clientType).Any();
     }
 
-    public object Build(TestClientContext context, Type clientType) {
-        if (!CanBuild(clientType)) {
+    public object Build(TestClientContext context, Type clientType)
+    {
+        if (!CanBuild(clientType))
+        {
             throw new InvalidOperationException(
-                $"{clientType.FullName} is not a Refit client: it is not an interface declaring a " +
-                "method with a Refit verb attribute.");
+                $"{clientType.FullName} is not a Refit client: it is not an interface declaring a "
+                    + "method with a Refit verb attribute."
+            );
         }
 
         ArgumentNullException.ThrowIfNull(context);
@@ -55,13 +59,14 @@ public sealed class RefitClientRoute : ITestClientRoute, ITestClientReader {
         RefitAnswers.Read(result, thrown, bodyType);
 
     public string Unreadable =>
-        "A Refit method declared Task<IApiResponse<T>> returns an envelope that carries the status " +
-        "and the headers, and this call returned the body alone; Refitter's --use-api-response " +
-        "declares the envelope.";
+        "A Refit method declared Task<IApiResponse<T>> returns an envelope that carries the status "
+        + "and the headers, and this call returned the body alone; Refitter's --use-api-response "
+        + "declares the envelope.";
 
     /// <summary>Every method that names a verb, on the interface and on the interfaces it extends.</summary>
     private static IEnumerable<MethodInfo> Operations(Type clientType) =>
-        clientType.GetInterfaces()
+        clientType
+            .GetInterfaces()
             .Prepend(clientType)
             .SelectMany(contract => contract.GetMethods())
             .Where(method => method.GetCustomAttributes<HttpMethodAttribute>(inherit: true).Any());

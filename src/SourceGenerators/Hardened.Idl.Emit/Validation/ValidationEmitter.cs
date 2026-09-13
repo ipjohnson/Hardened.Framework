@@ -22,20 +22,30 @@ namespace Hardened.Idl.Validation;
 /// would fall back to a constructed <c>Regex</c>, at 448 KB on an AOT publish against 33 KB.
 /// </para>
 /// </remarks>
-internal static class ValidationEmitter {
-
+internal static class ValidationEmitter
+{
     public static IReadOnlyList<OperationParameters.Model> Emit(
         NamespaceDefinition validation,
         ServiceSpecModel model,
         string modelsNamespace,
-        PatternRegistry patterns) {
+        PatternRegistry patterns
+    )
+    {
         var operations = new List<OperationParameters.Model>();
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                var parameters = OperationParameters.Build(operation, model, modelsNamespace, patterns);
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                var parameters = OperationParameters.Build(
+                    operation,
+                    model,
+                    modelsNamespace,
+                    patterns
+                );
 
-                if (parameters == null) {
+                if (parameters == null)
+                {
                     continue;
                 }
 
@@ -47,12 +57,17 @@ internal static class ValidationEmitter {
         return operations;
     }
 
-    private static void EmitInterface(NamespaceDefinition validation, OperationParameters.Model model) {
+    private static void EmitInterface(
+        NamespaceDefinition validation,
+        OperationParameters.Model model
+    )
+    {
         var definition = validation.AddInterface(model.InterfaceName);
 
         definition.Modifiers |= ComponentModifier.Public | ComponentModifier.Partial;
 
-        foreach (var member in model.Members) {
+        foreach (var member in model.Members)
+        {
             var property = definition.AddProperty(member.Type, member.Name);
 
             property.Set = null;
@@ -62,13 +77,19 @@ internal static class ValidationEmitter {
             // reports "Idempotency-Key" rather than "idempotencyKey" - a name that appears nowhere
             // in the request or the contract. Nothing serializes this interface; the attribute is
             // here as the field-naming vocabulary the validator already reads.
-            if (member.WireName != null) {
+            if (member.WireName != null)
+            {
                 property.AddAttribute(
-                    TypeDefinition.Get("System.Text.Json.Serialization", "JsonPropertyNameAttribute"),
-                    new CodeOutputComponent($"\"{member.WireName}\"") { Indented = false });
+                    TypeDefinition.Get(
+                        "System.Text.Json.Serialization",
+                        "JsonPropertyNameAttribute"
+                    ),
+                    new CodeOutputComponent($"\"{member.WireName}\"") { Indented = false }
+                );
             }
 
-            foreach (var attribute in member.Attributes) {
+            foreach (var attribute in member.Attributes)
+            {
                 Apply(property, attribute);
             }
         }
@@ -78,11 +99,18 @@ internal static class ValidationEmitter {
     /// Adds one constraint attribute to a member. No target: an interface property is a property,
     /// unlike a positional record parameter.
     /// </summary>
-    public static AttributeDefinition Apply(BaseOutputComponent member, ConstraintAttributes.Model attribute) =>
+    public static AttributeDefinition Apply(
+        BaseOutputComponent member,
+        ConstraintAttributes.Model attribute
+    ) =>
         member.AddAttribute(
             attribute.Type,
-            attribute.Arguments.Select(argument =>
-                (object)new CodeOutputComponent(argument) { Indented = false }).ToArray());
+            attribute
+                .Arguments.Select(argument =>
+                    (object)new CodeOutputComponent(argument) { Indented = false }
+                )
+                .ToArray()
+        );
 
     /// <summary>
     /// The <c>[GeneratedRegex]</c> members, one per distinct pattern in the spec.
@@ -94,8 +122,10 @@ internal static class ValidationEmitter {
     /// produces <c>static Regex P_x() { }</c> and SYSLIB1043. The same escape hatch
     /// SpecRoutingTableGenerator uses for statements CSharpAuthor has no construct for.
     /// </remarks>
-    public static void EmitPatterns(NamespaceDefinition validation, PatternRegistry patterns) {
-        if (patterns.IsEmpty) {
+    public static void EmitPatterns(NamespaceDefinition validation, PatternRegistry patterns)
+    {
+        if (patterns.IsEmpty)
+        {
             return;
         }
 
@@ -104,11 +134,14 @@ internal static class ValidationEmitter {
         builder.AppendLine($"internal static partial class {patterns.ClassName}");
         builder.AppendLine("{");
 
-        foreach (var pair in patterns.Members) {
+        foreach (var pair in patterns.Members)
+        {
             builder.AppendLine(
-                $"    [global::System.Text.RegularExpressions.GeneratedRegex({Quote(pair.Key)})]");
+                $"    [global::System.Text.RegularExpressions.GeneratedRegex({Quote(pair.Key)})]"
+            );
             builder.AppendLine(
-                $"    public static partial global::System.Text.RegularExpressions.Regex {pair.Value}();");
+                $"    public static partial global::System.Text.RegularExpressions.Regex {pair.Value}();"
+            );
         }
 
         builder.Append("}");

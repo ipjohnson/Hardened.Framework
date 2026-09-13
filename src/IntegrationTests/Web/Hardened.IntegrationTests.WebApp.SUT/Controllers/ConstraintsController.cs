@@ -14,8 +14,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// hand-written check throwing <c>ValidationException</c>, and the document said only "an integer".
 /// </remarks>
 [BasePath("/constraints")]
-public class ConstraintsController {
-
+public class ConstraintsController
+{
     /// <summary>A bound on a query value, pathed under the query key.</summary>
     [Get("/precision")]
     public int Precision([FromQueryString] [Range(Min = 2, Max = 8)] int precision) => precision;

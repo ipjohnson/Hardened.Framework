@@ -32,7 +32,8 @@ namespace Hardened.Generation.Models;
 /// of one status would give a union two conversions the compiler cannot tell apart.
 /// </para>
 /// </remarks>
-internal class SuccessResponseModel : IEquatable<SuccessResponseModel> {
+internal class SuccessResponseModel : IEquatable<SuccessResponseModel>
+{
     public int StatusCode { get; set; }
 
     /// <summary>The declared body's schema, or null where the response has no content.</summary>
@@ -90,27 +91,32 @@ internal class SuccessResponseModel : IEquatable<SuccessResponseModel> {
     /// </remarks>
     public bool HeadersOnPayload { get; set; }
 
-    public bool Equals(SuccessResponseModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
+    public bool Equals(SuccessResponseModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
 
-        return StatusCode == other.StatusCode &&
-               Ref == other.Ref &&
-               Type == other.Type &&
-               Format == other.Format &&
-               IsArray == other.IsArray &&
-               ArrayItemsRef == other.ArrayItemsRef &&
-               ArrayItemsType == other.ArrayItemsType &&
-               ContentType == other.ContentType &&
-               Description == other.Description &&
-               HeadersOnPayload == other.HeadersOnPayload &&
-               Headers.SequenceEqual(other.Headers);
+        return StatusCode == other.StatusCode
+            && Ref == other.Ref
+            && Type == other.Type
+            && Format == other.Format
+            && IsArray == other.IsArray
+            && ArrayItemsRef == other.ArrayItemsRef
+            && ArrayItemsType == other.ArrayItemsType
+            && ContentType == other.ContentType
+            && Description == other.Description
+            && HeadersOnPayload == other.HeadersOnPayload
+            && Headers.SequenceEqual(other.Headers);
     }
 
     public override bool Equals(object? obj) => Equals(obj as SuccessResponseModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = StatusCode * 397;
             hash = (hash * 397) ^ (Ref?.GetHashCode() ?? 0);
             hash = (hash * 397) ^ (Type?.GetHashCode() ?? 0);

@@ -17,7 +17,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// the resource-server design independent of how tokens are issued.
 /// </para>
 /// </remarks>
-public interface IActivityAuthorizationHandler {
+public interface IActivityAuthorizationHandler
+{
     /// <summary>
     /// Says which of <paramref name="grants"/> this handler's source of truth gives the caller.
     /// </summary>

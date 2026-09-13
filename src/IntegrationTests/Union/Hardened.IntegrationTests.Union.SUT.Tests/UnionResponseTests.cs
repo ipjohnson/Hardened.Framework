@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.Union.SUT.Tests;
 
 /// <summary>
@@ -18,12 +19,13 @@ namespace Hardened.IntegrationTests.Union.SUT.Tests;
 /// and that is a thing worth failing loudly rather than a thing to discover from a document.
 /// </para>
 /// </remarks>
-public class UnionResponseTests {
-
+public class UnionResponseTests
+{
     private record TodoBody(int Id, string Title);
 
     [HardenedTest]
-    public async Task TheSuccessCaseSendsThePayloadRatherThanTheUnion(ITestWebApp app) {
+    public async Task TheSuccessCaseSendsThePayloadRatherThanTheUnion(ITestWebApp app)
+    {
         var response = await app.Get("/union/1");
 
         response.Assert.Ok();
@@ -32,12 +34,14 @@ public class UnionResponseTests {
     }
 
     [HardenedTest]
-    public async Task AnErrorCaseAnswersItsOwnStatus(ITestWebApp app) {
+    public async Task AnErrorCaseAnswersItsOwnStatus(ITestWebApp app)
+    {
         (await app.Get("/union/404")).Assert.NotFound();
     }
 
     [HardenedTest]
-    public async Task CreatedAnswersTwoHundredAndOneWithItsLocation(ITestWebApp app) {
+    public async Task CreatedAnswersTwoHundredAndOneWithItsLocation(ITestWebApp app)
+    {
         var response = await app.Post(new { Title = "fresh" }, "/union");
 
         Assert.Equal(201, response.StatusCode);
@@ -45,14 +49,16 @@ public class UnionResponseTests {
     }
 
     [HardenedTest]
-    public async Task ADeclaredConflictAnswersFourHundredAndNine(ITestWebApp app) {
+    public async Task ADeclaredConflictAnswersFourHundredAndNine(ITestWebApp app)
+    {
         var response = await app.Post(new { Title = "taken" }, "/union");
 
         Assert.Equal(409, response.StatusCode);
     }
 
     [HardenedTest]
-    public async Task NoContentAnswersTwoHundredAndFourWithAnEmptyBody(ITestWebApp app) {
+    public async Task NoContentAnswersTwoHundredAndFourWithAnEmptyBody(ITestWebApp app)
+    {
         var response = await app.Delete("/union/1");
 
         Assert.Equal(204, response.StatusCode);
@@ -60,7 +66,8 @@ public class UnionResponseTests {
     }
 
     [HardenedTest]
-    public async Task RemoveStillAnswersItsDeclaredNotFound(ITestWebApp app) {
+    public async Task RemoveStillAnswersItsDeclaredNotFound(ITestWebApp app)
+    {
         (await app.Delete("/union/404")).Assert.NotFound();
     }
 }

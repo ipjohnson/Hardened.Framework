@@ -1,9 +1,9 @@
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Web.AspNetCore.Runtime.Impl;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Http;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.AspNetCore.Runtime.Tests.Impl;
 
@@ -15,17 +15,19 @@ namespace Hardened.Web.AspNetCore.Runtime.Tests.Impl;
 /// <c>HttpResponse.StatusCode</c> back — which ASP.NET initialises to 200 — collapses that
 /// distinction and stops the handler ever firing.
 /// </summary>
-public class AspNetExecutionResponseTests {
-
+public class AspNetExecutionResponseTests
+{
     [Fact]
-    public void Status_IsNullBeforeAnythingSetsIt() {
+    public void Status_IsNullBeforeAnythingSetsIt()
+    {
         var response = new AspNetExecutionResponse(new DefaultHttpContext().Response);
 
         Assert.Null(response.Status);
     }
 
     [Fact]
-    public void Status_WritesThroughToTheHttpResponse() {
+    public void Status_WritesThroughToTheHttpResponse()
+    {
         var httpContext = new DefaultHttpContext();
         var response = new AspNetExecutionResponse(httpContext.Response);
 
@@ -37,7 +39,8 @@ public class AspNetExecutionResponseTests {
 
     /// <summary>Clearing the status returns the response to the default rather than to zero.</summary>
     [Fact]
-    public void Status_NullResetsTheHttpResponseToTwoHundred() {
+    public void Status_NullResetsTheHttpResponseToTwoHundred()
+    {
         var httpContext = new DefaultHttpContext();
         var response = new AspNetExecutionResponse(httpContext.Response) { Status = 500 };
 
@@ -53,9 +56,12 @@ public class AspNetExecutionResponseTests {
     /// because nothing sets a status on an ordinary success path.
     /// </summary>
     [Fact]
-    public void Status_ReportsTheResponseStatusOnceTheResponseHasStarted() {
+    public void Status_ReportsTheResponseStatusOnceTheResponseHasStarted()
+    {
         var httpContext = StartableResponseContext.Create(
-            Substitute.For<IServiceProvider>(), out var start);
+            Substitute.For<IServiceProvider>(),
+            out var start
+        );
         var response = new AspNetExecutionResponse(httpContext.Response);
 
         Assert.Null(response.Status);
@@ -67,8 +73,12 @@ public class AspNetExecutionResponseTests {
     }
 
     [Fact]
-    public void Clone_CarriesTheStatus() {
-        var response = new AspNetExecutionResponse(new DefaultHttpContext().Response) { Status = 418 };
+    public void Clone_CarriesTheStatus()
+    {
+        var response = new AspNetExecutionResponse(new DefaultHttpContext().Response)
+        {
+            Status = 418,
+        };
 
         var clone = response.Clone(null);
 
@@ -76,7 +86,8 @@ public class AspNetExecutionResponseTests {
     }
 
     [Fact]
-    public void Clone_LeavesAnUnsetStatusUnset() {
+    public void Clone_LeavesAnUnsetStatusUnset()
+    {
         var response = new AspNetExecutionResponse(new DefaultHttpContext().Response);
 
         var clone = response.Clone(null);
@@ -94,17 +105,22 @@ public class AspNetExecutionResponseTests {
     /// Kestrel host, and the same one Hardened.Amz fixed on 2026-08-11.
     /// </remarks>
     [Fact]
-    public void AppendingACookieWritesASetCookieHeader() {
+    public void AppendingACookieWritesASetCookieHeader()
+    {
         var httpContext = new DefaultHttpContext();
         var response = new AspNetExecutionResponse(httpContext.Response);
 
         response.Cookies.Append("session", "abc123");
 
-        Assert.Equal("session=abc123; HttpOnly; Secure", httpContext.Response.Headers["Set-Cookie"]);
+        Assert.Equal(
+            "session=abc123; HttpOnly; Secure",
+            httpContext.Response.Headers["Set-Cookie"]
+        );
     }
 
     [Fact]
-    public void AppendingSeveralCookiesWritesAHeaderForEach() {
+    public void AppendingSeveralCookiesWritesAHeaderForEach()
+    {
         var httpContext = new DefaultHttpContext();
         var response = new AspNetExecutionResponse(httpContext.Response);
 
@@ -120,7 +136,8 @@ public class AspNetExecutionResponseTests {
 
     /// <summary>Last write for a name wins, matching the other collections.</summary>
     [Fact]
-    public void AppendingTheSameCookieTwiceKeepsOnlyTheLastValue() {
+    public void AppendingTheSameCookieTwiceKeepsOnlyTheLastValue()
+    {
         var httpContext = new DefaultHttpContext();
         var response = new AspNetExecutionResponse(httpContext.Response);
 
@@ -134,12 +151,16 @@ public class AspNetExecutionResponseTests {
     }
 
     [Fact]
-    public void CookieOptionsAreSerialisedOntoTheHeader() {
+    public void CookieOptionsAreSerialisedOntoTheHeader()
+    {
         var httpContext = new DefaultHttpContext();
         var response = new AspNetExecutionResponse(httpContext.Response);
 
-        response.Cookies.Append("session", "abc",
-            new CookieSetOptions(Path: "/api", SameSite: SameSite.Strict));
+        response.Cookies.Append(
+            "session",
+            "abc",
+            new CookieSetOptions(Path: "/api", SameSite: SameSite.Strict)
+        );
 
         var written = httpContext.Response.Headers["Set-Cookie"].ToString();
 
@@ -149,7 +170,8 @@ public class AspNetExecutionResponseTests {
 
     /// <summary>A response that sets no cookie allocates no collection.</summary>
     [Fact]
-    public void AResponseThatSetsNoCookieWritesNoHeader() {
+    public void AResponseThatSetsNoCookieWritesNoHeader()
+    {
         var httpContext = new DefaultHttpContext();
         _ = new AspNetExecutionResponse(httpContext.Response);
 

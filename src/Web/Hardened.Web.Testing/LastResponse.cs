@@ -1,8 +1,8 @@
 using System.Runtime.CompilerServices;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Testing;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Testing;
 
@@ -39,8 +39,8 @@ namespace Hardened.Web.Testing;
 /// another test is the one answer this must never give.
 /// </para>
 /// </remarks>
-public static class LastResponse {
-
+public static class LastResponse
+{
     private static readonly ConditionalWeakTable<object, Recorded> Responses = new();
 
     /// <summary>The status the pipeline answered, 200 where it set none.</summary>
@@ -57,10 +57,12 @@ public static class LastResponse {
     /// <summary>Whether the current test has had a response answered.</summary>
     public static bool IsAvailable => Key() is { } key && Responses.TryGetValue(key, out _);
 
-    internal static void Record(IExecutionResponse response, byte[] body) {
+    internal static void Record(IExecutionResponse response, byte[] body)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var header in response.Headers) {
+        foreach (var header in response.Headers)
+        {
             headers[header.Key] = header.Value;
         }
 
@@ -71,24 +73,36 @@ public static class LastResponse {
     /// What a socket host received, recorded in the client's chain: on a socket the pipeline runs
     /// on the server's threads, where no test is in scope, so the wire is where the answer is read.
     /// </summary>
-    internal static void Record(int status, IReadOnlyDictionary<string, StringValues> headers, string? contentType, byte[] body) {
-        if (Key() is not { } key) {
+    internal static void Record(
+        int status,
+        IReadOnlyDictionary<string, StringValues> headers,
+        string? contentType,
+        byte[] body
+    )
+    {
+        if (Key() is not { } key)
+        {
             return;
         }
 
         Responses.AddOrUpdate(key, new Recorded(status, headers, contentType, body));
     }
 
-    private static Recorded Current() {
-        if (Key() is not { } key) {
+    private static Recorded Current()
+    {
+        if (Key() is not { } key)
+        {
             throw new InvalidOperationException(
-                "LastResponse is kept per running test, and there is no test running.");
+                "LastResponse is kept per running test, and there is no test running."
+            );
         }
 
-        if (!Responses.TryGetValue(key, out var recorded)) {
+        if (!Responses.TryGetValue(key, out var recorded))
+        {
             throw new InvalidOperationException(
-                $"LastResponse has nothing to report: no request has been answered through the pipeline in '{CurrentTest.DisplayName}'. " +
-                "Send one through ITestWebApp, or through a client it built, before reading it.");
+                $"LastResponse has nothing to report: no request has been answered through the pipeline in '{CurrentTest.DisplayName}'. "
+                    + "Send one through ITestWebApp, or through a client it built, before reading it."
+            );
         }
 
         return recorded;
@@ -104,5 +118,6 @@ public static class LastResponse {
         int Status,
         IReadOnlyDictionary<string, StringValues> Headers,
         string? ContentType,
-        byte[] Body);
+        byte[] Body
+    );
 }

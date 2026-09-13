@@ -14,9 +14,10 @@ namespace Hardened.SourceGenerator.Models.Request;
 /// Always optional and always a string, for the reasons <c>[ReadsHeader]</c> gives.
 /// </para>
 /// </remarks>
-public sealed class DeclaredHeaderParameterModel : System.IEquatable<DeclaredHeaderParameterModel> {
-
-    public DeclaredHeaderParameterModel(string name, string? description) {
+public sealed class DeclaredHeaderParameterModel : System.IEquatable<DeclaredHeaderParameterModel>
+{
+    public DeclaredHeaderParameterModel(string name, string? description)
+    {
         Name = name;
         Description = description;
     }

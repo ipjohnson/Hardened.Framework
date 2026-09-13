@@ -31,9 +31,10 @@ namespace Hardened.Requests.Abstract.Responses;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public sealed class ResponseModelAttribute : Attribute {
-
-    public ResponseModelAttribute(ResponseModel model) {
+public sealed class ResponseModelAttribute : Attribute
+{
+    public ResponseModelAttribute(ResponseModel model)
+    {
         Model = model;
     }
 

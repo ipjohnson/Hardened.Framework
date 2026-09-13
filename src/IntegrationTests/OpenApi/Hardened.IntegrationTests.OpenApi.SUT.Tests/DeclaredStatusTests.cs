@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -16,20 +17,24 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// says, so a service that answers something else is wrong in a way no build catches.
 /// </para>
 /// </remarks>
-public class DeclaredStatusTests {
-
+public class DeclaredStatusTests
+{
     [HardenedTest]
-    public async Task CreatePet_AnswersTheDeclaredCreatedStatus(ITestWebApp testWebApp) {
+    public async Task CreatePet_AnswersTheDeclaredCreatedStatus(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            "{\"name\":\"Rex\"}", "/pets",
-            request => request.Headers["Content-Type"] = "application/json");
+            "{\"name\":\"Rex\"}",
+            "/pets",
+            request => request.Headers["Content-Type"] = "application/json"
+        );
 
         Assert.Equal(201, response.StatusCode);
     }
 
     /// <summary>An operation declaring nothing but 200 still answers 200.</summary>
     [HardenedTest]
-    public async Task ListPets_AnswersTheUndeclaredDefault(ITestWebApp testWebApp) {
+    public async Task ListPets_AnswersTheUndeclaredDefault(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets");
 
         Assert.Equal(200, response.StatusCode);
@@ -43,7 +48,8 @@ public class DeclaredStatusTests {
     /// response no conforming client reads the body of and some intermediaries reject outright.
     /// </remarks>
     [HardenedTest]
-    public async Task DeletePet_AnswersTheDeclaredNoContentStatusWithNoBody(ITestWebApp testWebApp) {
+    public async Task DeletePet_AnswersTheDeclaredNoContentStatusWithNoBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Delete("/pets/1");
 
         Assert.Equal(204, response.StatusCode);
@@ -56,7 +62,10 @@ public class DeclaredStatusTests {
     }
 
     [HardenedTest]
-    public async Task GetPet_AnswersTheDeclaredNotFoundWhenTheHandlerReturnsNull(ITestWebApp testWebApp) {
+    public async Task GetPet_AnswersTheDeclaredNotFoundWhenTheHandlerReturnsNull(
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/pets/missing");
 
         Assert.Equal(404, response.StatusCode);
@@ -72,7 +81,8 @@ public class DeclaredStatusTests {
     /// nothing else could be without inventing a domain value.
     /// </remarks>
     [HardenedTest]
-    public async Task GetPet_CarriesTheDeclaredProblemBodyOnTheNotFound(ITestWebApp testWebApp) {
+    public async Task GetPet_CarriesTheDeclaredProblemBodyOnTheNotFound(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/missing");
 
         var problem = response.Deserialize<Problem>();
@@ -89,7 +99,8 @@ public class DeclaredStatusTests {
     /// generated exception type, which carries a body it wrote.
     /// </summary>
     [HardenedTest]
-    public async Task GetPet_TheNotFoundBodySaysNothingAboutTheRequest(ITestWebApp testWebApp) {
+    public async Task GetPet_TheNotFoundBodySaysNothingAboutTheRequest(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/missing");
 
         var problem = response.Deserialize<Problem>();
@@ -99,7 +110,8 @@ public class DeclaredStatusTests {
 
     /// <summary>The same operation still answers normally for an id that resolves.</summary>
     [HardenedTest]
-    public async Task GetPet_AnswersTheResourceWhenThereIsOne(ITestWebApp testWebApp) {
+    public async Task GetPet_AnswersTheResourceWhenThereIsOne(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/7");
 
         response.Assert.Ok();

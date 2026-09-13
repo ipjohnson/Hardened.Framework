@@ -22,8 +22,8 @@ namespace Hardened.Requests.Serializers.Newtonsoft.Tests.Support;
 /// a reservation being taken three times and read once — which a substitute handing back a fresh
 /// stream every call would have hidden completely.
 /// </remarks>
-public static class Pipeline {
-
+public static class Pipeline
+{
     public static MemoryStreamPool Pool() => new();
 
     /// <summary>
@@ -35,31 +35,36 @@ public static class Pipeline {
     /// it, and it needs asserting: the deserializer took three reservations per request and
     /// returned one until 2026-08-18.
     /// </remarks>
-    public sealed class CountingPool : IMemoryStreamPool {
+    public sealed class CountingPool : IMemoryStreamPool
+    {
         private readonly MemoryStreamPool _inner = new();
 
         public int Taken { get; private set; }
 
         public int Returned { get; private set; }
 
-        public IPoolItemReservation<MemoryStream> Get() {
+        public IPoolItemReservation<MemoryStream> Get()
+        {
             Taken++;
 
             return new Reservation(this, _inner.Get());
         }
 
-        private sealed class Reservation : IPoolItemReservation<MemoryStream> {
+        private sealed class Reservation : IPoolItemReservation<MemoryStream>
+        {
             private readonly CountingPool _pool;
             private readonly IPoolItemReservation<MemoryStream> _inner;
 
-            public Reservation(CountingPool pool, IPoolItemReservation<MemoryStream> inner) {
+            public Reservation(CountingPool pool, IPoolItemReservation<MemoryStream> inner)
+            {
                 _pool = pool;
                 _inner = inner;
             }
 
             public MemoryStream Item => _inner.Item;
 
-            public void Dispose() {
+            public void Dispose()
+            {
                 _pool.Returned++;
 
                 _inner.Dispose();
@@ -67,7 +72,8 @@ public static class Pipeline {
         }
     }
 
-    public static ISharedSerializer Serializer(JsonSerializer? serializer = null) {
+    public static ISharedSerializer Serializer(JsonSerializer? serializer = null)
+    {
         var shared = Substitute.For<ISharedSerializer>();
 
         shared.Serializer.Returns(serializer ?? JsonSerializer.CreateDefault());
@@ -76,26 +82,36 @@ public static class Pipeline {
     }
 
     public static NewtonsoftDeserializer Deserializer(
-        IMemoryStreamPool pool, JsonSerializer? serializer = null) =>
-        new(pool, Serializer(serializer), NullLogger<NewtonsoftDeserializer>.Instance);
+        IMemoryStreamPool pool,
+        JsonSerializer? serializer = null
+    ) => new(pool, Serializer(serializer), NullLogger<NewtonsoftDeserializer>.Instance);
 
     public static NewtonsoftSerializer ResponseSerializer(
-        IMemoryStreamPool pool, JsonSerializer? serializer = null) =>
-        new(Serializer(serializer), pool);
+        IMemoryStreamPool pool,
+        JsonSerializer? serializer = null
+    ) => new(Serializer(serializer), pool);
 
     /// <summary>A context whose request body is <paramref name="body"/>.</summary>
     public static IExecutionContext Context(
-        string? body = null, string? contentType = KnownContentType.Json) {
+        string? body = null,
+        string? contentType = KnownContentType.Json
+    )
+    {
         var services = new ServiceCollection();
         var provider = services.BuildServiceProvider();
 
         var request = new TestExecutionRequest(
-            "POST", "/", KnownContentType.Json,
-            new SimpleQueryStringCollection(new Dictionary<string, string>())) {
-            Body = body is null ? Stream.Null : new MemoryStream(Encoding.UTF8.GetBytes(body))
+            "POST",
+            "/",
+            KnownContentType.Json,
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        )
+        {
+            Body = body is null ? Stream.Null : new MemoryStream(Encoding.UTF8.GetBytes(body)),
         };
 
-        if (contentType != null) {
+        if (contentType != null)
+        {
             request.Headers[KnownHeaders.ContentType] = contentType;
         }
 
@@ -106,11 +122,13 @@ public static class Pipeline {
             request,
             new TestExecutionResponse(new MemoryStream()),
             CancellationToken.None,
-            null);
+            null
+        );
     }
 
     /// <summary>Everything written to the response body, as text.</summary>
-    public static string BodyOf(IExecutionContext context) {
+    public static string BodyOf(IExecutionContext context)
+    {
         context.Response.Body.Position = 0;
 
         using var reader = new StreamReader(context.Response.Body, leaveOpen: true);
@@ -119,10 +137,13 @@ public static class Pipeline {
     }
 
     public static IOptions<INewtonsoftSerializerConfiguration> Configuration(
-        Func<IServiceProvider, JsonSerializer>? provider = null) {
+        Func<IServiceProvider, JsonSerializer>? provider = null
+    )
+    {
         var configuration = new NewtonsoftSerializerConfiguration();
 
-        if (provider != null) {
+        if (provider != null)
+        {
             configuration.SerializerProvider = provider;
         }
 

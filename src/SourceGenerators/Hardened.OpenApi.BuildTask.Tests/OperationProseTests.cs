@@ -1,8 +1,8 @@
 using System.Linq;
 using System.Threading;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
 
@@ -31,8 +31,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// groups by every tag an operation declares.
 /// </para>
 /// </remarks>
-public class OperationProseTests {
-
+public class OperationProseTests
+{
     private const string BothForms = """
         openapi: 3.0.0
         info: { title: Depot, version: '1.0' }
@@ -61,7 +61,8 @@ public class OperationProseTests {
                 '200': { description: ok }
         """;
 
-    private static OperationModel Parse(string yaml) {
+    private static OperationModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "depot", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -74,7 +75,8 @@ public class OperationProseTests {
     /// whenever a summary was present.
     /// </summary>
     [Fact]
-    public void AnOperationDeclaringBothKeepsBoth() {
+    public void AnOperationDeclaringBothKeepsBoth()
+    {
         var operation = Parse(BothForms);
 
         Assert.Equal("Create a product", operation.Summary);
@@ -86,7 +88,8 @@ public class OperationProseTests {
     /// fields keep meaning what the document said they meant.
     /// </summary>
     [Fact]
-    public void ADescriptionWithNoSummaryIsNotPromoted() {
+    public void ADescriptionWithNoSummaryIsNotPromoted()
+    {
         var operation = Parse(DescriptionOnly);
 
         Assert.Null(operation.Summary);
@@ -98,16 +101,19 @@ public class OperationProseTests {
     /// and into <c>ServiceInterfaceEmitter</c>, and this is what says it arrived.
     /// </summary>
     [Fact]
-    public void TheDocCommentStillPrefersTheSummary() {
+    public void TheDocCommentStillPrefersTheSummary()
+    {
         var operation = Parse(BothForms);
 
         Assert.Equal(
             "Create a product",
-            string.IsNullOrWhiteSpace(operation.Summary) ? operation.Description : operation.Summary);
+            string.IsNullOrWhiteSpace(operation.Summary) ? operation.Description : operation.Summary
+        );
     }
 
     [Fact]
-    public void TheFirstTagStaysTheGroupingKey() {
+    public void TheFirstTagStaysTheGroupingKey()
+    {
         Assert.Equal("catalogue", Parse(BothForms).Tag);
     }
 
@@ -115,7 +121,8 @@ public class OperationProseTests {
     /// The second assertion that fails against the previous behaviour: only the first tag survived.
     /// </summary>
     [Fact]
-    public void EveryDeclaredTagIsCarried() {
+    public void EveryDeclaredTagIsCarried()
+    {
         Assert.Equal(new[] { "catalogue", "admin" }, Parse(BothForms).Tags);
     }
 
@@ -124,7 +131,8 @@ public class OperationProseTests {
     /// Emitting it into a document would advertise a tag the description never wrote.
     /// </summary>
     [Fact]
-    public void AnUntaggedOperationDeclaresNoTags() {
+    public void AnUntaggedOperationDeclaresNoTags()
+    {
         var operation = Parse(DescriptionOnly);
 
         Assert.Empty(operation.Tags);
@@ -136,7 +144,8 @@ public class OperationProseTests {
     /// the generator - the build task parses, and the generator never opens the specification.
     /// </summary>
     [Fact]
-    public void BothFormsSurviveTheModelFileRoundTrip() {
+    public void BothFormsSurviveTheModelFileRoundTrip()
+    {
         var model = OpenApiSpecParser.Parse(BothForms, "depot", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -154,7 +163,8 @@ public class OperationProseTests {
     /// model. Without this, editing only the summary would leave the previous document in place.
     /// </summary>
     [Fact]
-    public void ChangingOnlyTheSummaryChangesTheModel() {
+    public void ChangingOnlyTheSummaryChangesTheModel()
+    {
         var withSummary = Parse(BothForms);
         var withoutSummary = Parse(BothForms.Replace("Create a product", "Add a product"));
 

@@ -16,16 +16,26 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// generated trees. See docs/design/testing-conventions.md §1.
 /// </para>
 /// </summary>
-public class BindingSourceCompilesTests {
-
+public class BindingSourceCompilesTests
+{
     [Fact]
-    public void PathTokenBinds() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/orders/{id}")]
-                public string GetOrder(string id) => id;
-            """)).AssertNoErrors();
+    public void PathTokenBinds()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/orders/{id}")]
+                        public string GetOrder(string id) => id;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Request.PathTokens.Get(\"id\")", result.SourceContaining("GetOrder"));
+        Assert.Contains(
+            "context.Request.PathTokens.Get(\"id\")",
+            result.SourceContaining("GetOrder")
+        );
     }
 
     /// <summary>
@@ -33,58 +43,88 @@ public class BindingSourceCompilesTests {
     /// body binding. It is the default, so it is the case a regression is least likely to name.
     /// </summary>
     [Fact]
-    public void AnUnattributedComplexParameterBindsFromTheBody() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Web.Runtime.Attributes;
+    public void AnUnattributedComplexParameterBindsFromTheBody()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public record OrderModel(string Sku);
+                public record OrderModel(string Sku);
 
-            public class OrderController {
-                [Post("/orders")]
-                public string Create(OrderModel model) => model.Sku;
-            }
-            """).AssertNoErrors();
+                public class OrderController {
+                    [Post("/orders")]
+                    public string Create(OrderModel model) => model.Sku;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("DeserializeRequestBody", result.SourceContaining("Create"));
     }
 
     [Fact]
-    public void ExplicitFromBodyBinds() {
-        RequestGeneratorHarness.Generate("""
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+    public void ExplicitFromBodyBinds()
+    {
+        RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public record OrderModel(string Sku);
+                public record OrderModel(string Sku);
 
-            public class OrderController {
-                [Post("/orders")]
-                public string Create([FromBody] OrderModel model) => model.Sku;
-            }
-            """).AssertNoErrors();
+                public class OrderController {
+                    [Post("/orders")]
+                    public string Create([FromBody] OrderModel model) => model.Sku;
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     [Fact]
-    public void QueryStringBindsUnderTheParameterName() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/search")]
-                public string Search([FromQueryString] string term) => term;
-            """)).AssertNoErrors();
+    public void QueryStringBindsUnderTheParameterName()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/search")]
+                        public string Search([FromQueryString] string term) => term;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Request.QueryString.Get(\"term\")", result.SourceContaining("Search"));
+        Assert.Contains(
+            "context.Request.QueryString.Get(\"term\")",
+            result.SourceContaining("Search")
+        );
     }
 
     [Fact]
-    public void HeaderBindsUnderTheHeaderName() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/tenant")]
-                public string Tenant([FromHeader("X-Tenant")] string tenant) => tenant;
-            """)).AssertNoErrors();
+    public void HeaderBindsUnderTheHeaderName()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/tenant")]
+                        public string Tenant([FromHeader("X-Tenant")] string tenant) => tenant;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("context.Request.Headers.Get(\"X-Tenant\")", result.SourceContaining("Tenant"));
+        Assert.Contains(
+            "context.Request.Headers.Get(\"X-Tenant\")",
+            result.SourceContaining("Tenant")
+        );
     }
 
     /// <summary>
@@ -93,38 +133,48 @@ public class BindingSourceCompilesTests {
     /// domain service relies on.
     /// </summary>
     [Fact]
-    public void AnInterfaceParameterResolvesFromTheServiceProvider() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Web.Runtime.Attributes;
+    public void AnInterfaceParameterResolvesFromTheServiceProvider()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public interface IClock { string Now(); }
+                public interface IClock { string Now(); }
 
-            public class TimeController {
-                [Get("/time")]
-                public string Now(IClock clock) => clock.Now();
-            }
-            """).AssertNoErrors();
+                public class TimeController {
+                    [Get("/time")]
+                    public string Now(IClock clock) => clock.Now();
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("GetRequiredService", result.SourceContaining("Now"));
     }
 
     [Fact]
-    public void ExplicitFromServicesResolvesFromTheServiceProvider() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+    public void ExplicitFromServicesResolvesFromTheServiceProvider()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public interface IClock { string Now(); }
+                public interface IClock { string Now(); }
 
-            public class TimeController {
-                [Get("/time")]
-                public string Now([FromServices] IClock clock) => clock.Now();
-            }
-            """).AssertNoErrors();
+                public class TimeController {
+                    [Get("/time")]
+                    public string Now([FromServices] IClock clock) => clock.Now();
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("GetRequiredService", result.SourceContaining("Now"));
     }
@@ -134,51 +184,66 @@ public class BindingSourceCompilesTests {
     /// mix-up shows up as a compile error rather than a resolution failure at run time.
     /// </summary>
     [Fact]
-    public void AGenericServiceParameterResolvesFromTheServiceProvider() {
-        RequestGeneratorHarness.Generate("""
-            using Hardened.Web.Runtime.Attributes;
+    public void AGenericServiceParameterResolvesFromTheServiceProvider()
+    {
+        RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public interface IMathService<T> { T Add(T left, T right); }
+                public interface IMathService<T> { T Add(T left, T right); }
 
-            public class MathController {
-                [Get("/math")]
-                public int Add(IMathService<int> mathService) => mathService.Add(1, 2);
-            }
-            """).AssertNoErrors();
+                public class MathController {
+                    [Get("/math")]
+                    public int Add(IMathService<int> mathService) => mathService.Add(1, 2);
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     [Fact]
-    public void NestedGenericServiceParametersResolve() {
-        RequestGeneratorHarness.Generate("""
-            using System.Collections.Generic;
-            using Hardened.Web.Runtime.Attributes;
+    public void NestedGenericServiceParametersResolve()
+    {
+        RequestGeneratorHarness
+            .Generate(
+                """
+                using System.Collections.Generic;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public interface IRepository<T> { IReadOnlyList<T> All(); }
+                public interface IRepository<T> { IReadOnlyList<T> All(); }
 
-            public class ListController {
-                [Get("/lists")]
-                public int Count(IRepository<IReadOnlyList<string>> repository) => repository.All().Count;
-            }
-            """).AssertNoErrors();
+                public class ListController {
+                    [Get("/lists")]
+                    public int Count(IRepository<IReadOnlyList<string>> repository) => repository.All().Count;
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     [Fact]
-    public void TheServiceProviderItselfBinds() {
-        var result = RequestGeneratorHarness.Generate("""
-            using System;
-            using Hardened.Web.Runtime.Attributes;
+    public void TheServiceProviderItselfBinds()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using System;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class RootController {
-                [Get("/root")]
-                public string Root(IServiceProvider serviceProvider) => serviceProvider.ToString()!;
-            }
-            """).AssertNoErrors();
+                public class RootController {
+                    [Get("/root")]
+                    public string Root(IServiceProvider serviceProvider) => serviceProvider.ToString()!;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("context.RequestServices", result.SourceContaining("Root"));
     }
@@ -187,20 +252,28 @@ public class BindingSourceCompilesTests {
     [InlineData("IExecutionContext", "context")]
     [InlineData("IExecutionRequest", "context.Request")]
     [InlineData("IExecutionResponse", "context.Response")]
-    public void ExecutionPipelineTypesBindDirectly(string parameterType, string expectedSource) {
-        var result = RequestGeneratorHarness.Generate($$"""
-            using Hardened.Requests.Abstract.Execution;
-            using Hardened.Web.Runtime.Attributes;
+    public void ExecutionPipelineTypesBindDirectly(string parameterType, string expectedSource)
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                $$"""
+                using Hardened.Requests.Abstract.Execution;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class PipelineController {
-                [Get("/pipeline")]
-                public string Pipeline({{parameterType}} pipeline) => pipeline.ToString()!;
-            }
-            """).AssertNoErrors();
+                public class PipelineController {
+                    [Get("/pipeline")]
+                    public string Pipeline({{parameterType}} pipeline) => pipeline.ToString()!;
+                }
+                """
+            )
+            .AssertNoErrors();
 
-        Assert.Contains($"parameters.pipeline = {expectedSource};", result.SourceContaining("Pipeline"));
+        Assert.Contains(
+            $"parameters.pipeline = {expectedSource};",
+            result.SourceContaining("Pipeline")
+        );
     }
 
     /// <summary>
@@ -211,26 +284,31 @@ public class BindingSourceCompilesTests {
     /// <see cref="GeneratedCodeRegressionTests"/>.
     /// </summary>
     [Fact]
-    public void ACustomBindingAttributeConstructsTheAttributeInTheBinder() {
-        var result = RequestGeneratorHarness.Generate("""
-            using System;
-            using Hardened.Requests.Abstract.Execution;
-            using Hardened.Web.Runtime.Attributes;
+    public void ACustomBindingAttributeConstructsTheAttributeInTheBinder()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using System;
+                using Hardened.Requests.Abstract.Execution;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [AttributeUsage(AttributeTargets.Parameter)]
-            public class FromClaimAttribute : Attribute {
-                public FromClaimAttribute(string claim) { Claim = claim; }
+                [AttributeUsage(AttributeTargets.Parameter)]
+                public class FromClaimAttribute : Attribute {
+                    public FromClaimAttribute(string claim) { Claim = claim; }
 
-                public string Claim { get; }
-            }
+                    public string Claim { get; }
+                }
 
-            public class ClaimController {
-                [Get("/claim")]
-                public string Claim([FromClaim("sub")] string subject) => subject;
-            }
-            """).AssertNoErrors();
+                public class ClaimController {
+                    [Get("/claim")]
+                    public string Claim([FromClaim("sub")] string subject) => subject;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Claim");
 
@@ -251,23 +329,28 @@ public class BindingSourceCompilesTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void APropertyConfiguredCustomBindingAttributeCompiles() {
-        RequestGeneratorHarness.Generate("""
-            using System;
-            using Hardened.Web.Runtime.Attributes;
+    public void APropertyConfiguredCustomBindingAttributeCompiles()
+    {
+        RequestGeneratorHarness
+            .Generate(
+                """
+                using System;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [AttributeUsage(AttributeTargets.Parameter)]
-            public class FromClaimAttribute : Attribute {
-                public string Claim { get; set; } = "";
-            }
+                [AttributeUsage(AttributeTargets.Parameter)]
+                public class FromClaimAttribute : Attribute {
+                    public string Claim { get; set; } = "";
+                }
 
-            public class ClaimController {
-                [Get("/claim")]
-                public string Claim([FromClaim(Claim = "sub")] string subject) => subject;
-            }
-            """).AssertNoErrors();
+                public class ClaimController {
+                    [Get("/claim")]
+                    public string Claim([FromClaim(Claim = "sub")] string subject) => subject;
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -275,31 +358,52 @@ public class BindingSourceCompilesTests {
     /// than binding null into a non-nullable parameter.
     /// </summary>
     [Fact]
-    public void ANonNullableValueBindsAsRequired() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/search")]
-                public string Search([FromQueryString] string term) => term;
-            """)).AssertNoErrors();
+    public void ANonNullableValueBindsAsRequired()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/search")]
+                        public string Search([FromQueryString] string term) => term;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("ParseRequired", result.SourceContaining("Search"));
     }
 
     [Fact]
-    public void ANullableValueBindsAsOptional() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/search")]
-                public string? Search([FromQueryString] string? term) => term;
-            """)).AssertNoErrors();
+    public void ANullableValueBindsAsOptional()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/search")]
+                        public string? Search([FromQueryString] string? term) => term;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("ParseOptional", result.SourceContaining("Search"));
     }
 
     [Fact]
-    public void AParameterWithADefaultBindsWithThatDefault() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/search")]
-                public int Page([FromQueryString] int page = 3) => page;
-            """)).AssertNoErrors();
+    public void AParameterWithADefaultBindsWithThatDefault()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/search")]
+                        public int Page([FromQueryString] int page = 3) => page;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Page");
 
@@ -321,41 +425,58 @@ public class BindingSourceCompilesTests {
     [InlineData("System.DateTime")]
     [InlineData("System.DateTimeOffset")]
     [InlineData("System.TimeSpan")]
-    public void EveryConvertibleValueTypeBindsFromAPathToken(string parameterType) {
-        RequestGeneratorHarness.Generate($$"""
-            using Hardened.Web.Runtime.Attributes;
+    public void EveryConvertibleValueTypeBindsFromAPathToken(string parameterType)
+    {
+        RequestGeneratorHarness
+            .Generate(
+                $$"""
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public class ValueController {
-                [Get("/value/{token}")]
-                public string Value({{parameterType}} token) => token.ToString()!;
-            }
-            """).AssertNoErrors();
+                public class ValueController {
+                    [Get("/value/{token}")]
+                    public string Value({{parameterType}} token) => token.ToString()!;
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     [Fact]
-    public void AnEnumPathTokenBinds() {
-        RequestGeneratorHarness.Generate("""
-            using Hardened.Web.Runtime.Attributes;
+    public void AnEnumPathTokenBinds()
+    {
+        RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public enum OrderState { Open, Closed }
+                public enum OrderState { Open, Closed }
 
-            public class StateController {
-                [Get("/state/{state}")]
-                public string State(OrderState state) => state.ToString();
-            }
-            """).AssertNoErrors();
+                public class StateController {
+                    [Get("/state/{state}")]
+                    public string State(OrderState state) => state.ToString();
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     [Fact]
-    public void MultiplePathTokensBindInOrder() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/pair/{first}/{second}")]
-                public string Pair(string first, string second) => first + second;
-            """)).AssertNoErrors();
+    public void MultiplePathTokensBindInOrder()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/pair/{first}/{second}")]
+                        public string Pair(string first, string second) => first + second;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Pair");
 
@@ -368,45 +489,53 @@ public class BindingSourceCompilesTests {
     /// Parameters class and in _parameterInfo, so mixing sources is where an off-by-one shows up.
     /// </summary>
     [Fact]
-    public void AllBindingSourcesCombineInASingleHandler() {
-        var result = RequestGeneratorHarness.Generate("""
-            using System;
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Requests.Abstract.Execution;
-            using Hardened.Web.Runtime.Attributes;
+    public void AllBindingSourcesCombineInASingleHandler()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using System;
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Requests.Abstract.Execution;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public record OrderModel(string Sku);
+                public record OrderModel(string Sku);
 
-            public interface IMathService<T> { T Add(T left, T right); }
+                public interface IMathService<T> { T Add(T left, T right); }
 
-            [AttributeUsage(AttributeTargets.Parameter)]
-            public class FromClaimAttribute : Attribute {
-                public FromClaimAttribute(string claim) { Claim = claim; }
+                [AttributeUsage(AttributeTargets.Parameter)]
+                public class FromClaimAttribute : Attribute {
+                    public FromClaimAttribute(string claim) { Claim = claim; }
 
-                public string Claim { get; }
-            }
+                    public string Claim { get; }
+                }
 
-            public class MixedController {
-                [Post("/mixed/{id}")]
-                public string Mixed(
-                    string id,
-                    [FromQueryString] string filter,
-                    [FromHeader("X-Tenant")] string tenant,
-                    [FromBody] OrderModel model,
-                    [FromClaim("sub")] string subject,
-                    IMathService<int> mathService,
-                    IServiceProvider serviceProvider,
-                    IExecutionContext context) =>
-                    id + filter + tenant + model.Sku + subject + mathService.Add(1, 2);
-            }
-            """).AssertNoErrors();
+                public class MixedController {
+                    [Post("/mixed/{id}")]
+                    public string Mixed(
+                        string id,
+                        [FromQueryString] string filter,
+                        [FromHeader("X-Tenant")] string tenant,
+                        [FromBody] OrderModel model,
+                        [FromClaim("sub")] string subject,
+                        IMathService<int> mathService,
+                        IServiceProvider serviceProvider,
+                        IExecutionContext context) =>
+                        id + filter + tenant + model.Sku + subject + mathService.Add(1, 2);
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Mixed");
 
         // Every parameter keeps its own slot: index n in _parameterInfo is parameter n.
-        Assert.Contains("new global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[8]", source);
+        Assert.Contains(
+            "new global::Hardened.Requests.Abstract.Execution.IExecutionRequestParameter[8]",
+            source
+        );
         Assert.Contains("_parameterInfo[4]", source);
 
         // ParameterCount is no longer emitted - it comes from ExecutionRequestParameters as
@@ -421,29 +550,34 @@ public class BindingSourceCompilesTests {
     /// combining both is the case where that decision could be made twice.
     /// </summary>
     [Fact]
-    public void BodyAndCustomAttributeBindingShareOneAsyncBinder() {
-        var result = RequestGeneratorHarness.Generate("""
-            using System;
-            using Hardened.Requests.Abstract.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+    public void BodyAndCustomAttributeBindingShareOneAsyncBinder()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using System;
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            public record OrderModel(string Sku);
+                public record OrderModel(string Sku);
 
-            [AttributeUsage(AttributeTargets.Parameter)]
-            public class FromClaimAttribute : Attribute {
-                public FromClaimAttribute(string claim) { Claim = claim; }
+                [AttributeUsage(AttributeTargets.Parameter)]
+                public class FromClaimAttribute : Attribute {
+                    public FromClaimAttribute(string claim) { Claim = claim; }
 
-                public string Claim { get; }
-            }
+                    public string Claim { get; }
+                }
 
-            public class MixedController {
-                [Post("/mixed")]
-                public string Mixed([FromBody] OrderModel model, [FromClaim("sub")] string subject) =>
-                    model.Sku + subject;
-            }
-            """).AssertNoErrors();
+                public class MixedController {
+                    [Post("/mixed")]
+                    public string Mixed([FromBody] OrderModel model, [FromClaim("sub")] string subject) =>
+                        model.Sku + subject;
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("Mixed");
 
@@ -456,11 +590,18 @@ public class BindingSourceCompilesTests {
     /// paying for a state machine on every request.
     /// </summary>
     [Fact]
-    public void ABinderWithNothingToAwaitReturnsACompletedTask() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/orders/{id}")]
-                public string GetOrder(string id) => id;
-            """)).AssertNoErrors();
+    public void ABinderWithNothingToAwaitReturnsACompletedTask()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/orders/{id}")]
+                        public string GetOrder(string id) => id;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var source = result.SourceContaining("GetOrder");
 
@@ -474,28 +615,40 @@ public class BindingSourceCompilesTests {
     /// name twice and silently drop one handler — which AssertNoErrors also checks for.
     /// </summary>
     [Fact]
-    public void OverloadedHandlersGetDistinctInvokeClasses() {
-        var result = RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller("""
-                [Get("/one/{id}")]
-                public string Handle(string id) => id;
+    public void OverloadedHandlersGetDistinctInvokeClasses()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                RequestGeneratorHarness.Controller(
+                    """
+                        [Get("/one/{id}")]
+                        public string Handle(string id) => id;
 
-                [Get("/two/{other}")]
-                public string Handle(string other, [FromQueryString] string filter) => other + filter;
-            """)).AssertNoErrors();
+                        [Get("/two/{other}")]
+                        public string Handle(string other, [FromQueryString] string filter) => other + filter;
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Equal(2, result.GeneratedSources.Count);
     }
 
     /// <summary>A source with nothing to generate from is not an error.</summary>
     [Fact]
-    public void AFileWithNoHandlersGeneratesNothing() {
-        var result = RequestGeneratorHarness.Generate("""
-            namespace TestApp;
+    public void AFileWithNoHandlersGeneratesNothing()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                namespace TestApp;
 
-            public class NotAController {
-                public string Value => "x";
-            }
-            """).AssertNoErrors();
+                public class NotAController {
+                    public string Value => "x";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Empty(result.GeneratedSources);
     }

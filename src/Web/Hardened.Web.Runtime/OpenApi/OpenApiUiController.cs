@@ -16,12 +16,14 @@
 /// chain, conventions included, apply to it unchanged.
 /// </para>
 /// </remarks>
-public class OpenApiUiController {
-
+public class OpenApiUiController
+{
     public OpenApiUiModel Index(IOpenApiUiConfiguration configuration) =>
-        new(configuration.Title,
+        new(
+            configuration.Title,
             configuration.DocumentPath,
             configuration.ScriptUrl,
             configuration.ScriptIntegrity,
-            configuration.MessagePackScriptUrl);
+            configuration.MessagePackScriptUrl
+        );
 }

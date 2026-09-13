@@ -7,8 +7,8 @@ namespace Hardened.Requests.Runtime.Filters;
 /// <summary>
 /// Applying a filter provider to every handler in the application.
 /// </summary>
-public static class GlobalFilterServiceCollectionExtensions {
-
+public static class GlobalFilterServiceCollectionExtensions
+{
     /// <summary>
     /// Asks <paramref name="provider"/> about every handler <paramref name="when"/> admits.
     ///
@@ -41,9 +41,12 @@ public static class GlobalFilterServiceCollectionExtensions {
     public static IServiceCollection AddGlobalFilter(
         this IServiceCollection services,
         IRequestFilterProvider provider,
-        Func<IExecutionRequestHandlerInfo, bool>? when = null) {
+        Func<IExecutionRequestHandlerInfo, bool>? when = null
+    )
+    {
         services.AddSingleton(
-            when == null ? provider : new ConditionalFilterProvider(provider, when));
+            when == null ? provider : new ConditionalFilterProvider(provider, when)
+        );
 
         return services;
     }

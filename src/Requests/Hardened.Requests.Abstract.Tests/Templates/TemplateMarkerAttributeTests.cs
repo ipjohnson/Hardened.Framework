@@ -19,8 +19,8 @@ namespace Hardened.Requests.Abstract.Tests.Templates;
 /// attributes applied to it and read back. The markers below stand in for that package.
 /// </para>
 /// </summary>
-public class TemplateMarkerAttributeTests {
-
+public class TemplateMarkerAttributeTests
+{
     /// <summary>An engine package's marker, as it would ship.</summary>
     [TemplateBase(typeof(FakeTemplateBase<>))]
     [TemplateContentType("text/html")]
@@ -40,7 +40,8 @@ public class TemplateMarkerAttributeTests {
     /// <c>[Enable&lt;HardenedHtmlTemplate&lt;&gt;&gt;]</c> is not.
     /// </summary>
     [Fact]
-    public void TemplateBaseCarriesAnUnboundGenericBackToTheGenerator() {
+    public void TemplateBaseCarriesAnUnboundGenericBackToTheGenerator()
+    {
         var baseType = typeof(HtmlMarker).GetCustomAttribute<TemplateBaseAttribute>()!.BaseType;
 
         Assert.Equal(typeof(FakeTemplateBase<>), baseType);
@@ -55,8 +56,15 @@ public class TemplateMarkerAttributeTests {
     [Theory]
     [InlineData(typeof(HtmlMarker), "text/html")]
     [InlineData(typeof(CalendarMarker), "text/calendar")]
-    public void TemplateContentTypeCarriesWhatTheMarkersTemplatesProduce(Type marker, string expected) {
-        Assert.Equal(expected, marker.GetCustomAttribute<TemplateContentTypeAttribute>()!.ContentType);
+    public void TemplateContentTypeCarriesWhatTheMarkersTemplatesProduce(
+        Type marker,
+        string expected
+    )
+    {
+        Assert.Equal(
+            expected,
+            marker.GetCustomAttribute<TemplateContentTypeAttribute>()!.ContentType
+        );
     }
 
     /// <summary>
@@ -67,7 +75,8 @@ public class TemplateMarkerAttributeTests {
     [Theory]
     [InlineData(typeof(TemplateBaseAttribute))]
     [InlineData(typeof(TemplateContentTypeAttribute))]
-    public void BothMarkerAttributesApplyToOneClassAndAreNotInherited(Type attributeType) {
+    public void BothMarkerAttributesApplyToOneClassAndAreNotInherited(Type attributeType)
+    {
         var usage = attributeType.GetCustomAttribute<AttributeUsageAttribute>()!;
 
         Assert.Equal(AttributeTargets.Class, usage.ValidOn);

@@ -16,7 +16,8 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 /// on the wire in a way no naming policy produces, so a fixture that went through the DTO would
 /// hide a binding that does not work against a real event.
 /// </remarks>
-public static class Payloads {
+public static class Payloads
+{
     public const string SqsJson = """
         {"Records":[{
           "messageId":"11d6ee51-4cc7-4302-9e22-7cd8afdaadf5",
@@ -174,17 +175,22 @@ public static class Payloads {
         {"version":"2.0","rawPath":"/orders","requestContext":{"http":{"method":"GET"}}}
         """;
 
-    public static LambdaPayload Payload(string json) =>
-        new(Encoding.UTF8.GetBytes(json));
+    public static LambdaPayload Payload(string json) => new(Encoding.UTF8.GetBytes(json));
 
     /// <summary>An SQS batch built from the DTO, for a test that needs to vary a record.</summary>
     public static LambdaPayload Sqs(params SQSEvent.SQSMessage[] records) =>
-        new(JsonSerializer.SerializeToUtf8Bytes(
-            new SQSEvent { Records = records.ToList() },
-            TestSerializerContext.Default.SQSEvent));
+        new(
+            JsonSerializer.SerializeToUtf8Bytes(
+                new SQSEvent { Records = records.ToList() },
+                TestSerializerContext.Default.SQSEvent
+            )
+        );
 
     public static LambdaPayload Sns(params SNSEvent.SNSRecord[] records) =>
-        new(JsonSerializer.SerializeToUtf8Bytes(
-            new SNSEvent { Records = records.ToList() },
-            TestSerializerContext.Default.SNSEvent));
+        new(
+            JsonSerializer.SerializeToUtf8Bytes(
+                new SNSEvent { Records = records.ToList() },
+                TestSerializerContext.Default.SNSEvent
+            )
+        );
 }

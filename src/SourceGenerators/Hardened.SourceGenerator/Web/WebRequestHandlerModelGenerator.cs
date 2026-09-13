@@ -1,6 +1,9 @@
-﻿using CSharpAuthor;
-using Hardened.Generation.Models;
+﻿using System.Buffers.Text;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using CSharpAuthor;
+using Hardened.Generation.Models;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Requests;
@@ -9,17 +12,18 @@ using Hardened.SourceGenerator.Validation;
 using Hardened.SourceGenerator.Web.Routing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using System.Buffers.Text;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace Hardened.SourceGenerator.Web;
 
-public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
+public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator
+{
     private static readonly HashSet<string> _attributeNames = GetAttributeNames();
 
     public override RequestHandlerModel GenerateRequestModel(
-        GeneratorSyntaxContext context, CancellationToken cancellationToken) {
+        GeneratorSyntaxContext context,
+        CancellationToken cancellationToken
+    )
+    {
         var model = base.GenerateRequestModel(context, cancellationToken);
 
         var controller = context.Node.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
@@ -35,7 +39,8 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         model.Description = description;
 
         // <param name="x"> is where a developer has already said what a parameter means.
-        foreach (var parameter in model.RequestParameterInformationList) {
+        foreach (var parameter in model.RequestParameterInformationList)
+        {
             parameter.Description = XmlDocumentation.ReadParameter(context.Node, parameter.Name);
         }
 
@@ -53,10 +58,11 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     /// method would deprecate the whole controller.
     /// </summary>
     private static bool HasObsolete(MemberDeclarationSyntax? member) =>
-        member != null &&
-        member.AttributeLists
-            .SelectMany(list => list.Attributes)
-            .Any(attribute => {
+        member != null
+        && member
+            .AttributeLists.SelectMany(list => list.Attributes)
+            .Any(attribute =>
+            {
                 var name = attribute.Name.ToString();
 
                 return name.EndsWith("Obsolete") || name.EndsWith("ObsoleteAttribute");
@@ -71,10 +77,15 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     /// The id <c>[Operation]</c> declares on the method, or null where the document derives one
     /// from the method name.
     /// </summary>
-    private static string? GetOperationId(GeneratorSyntaxContext context, MethodDeclarationSyntax? method) {
-        var attribute = method?.AttributeLists
-            .SelectMany(list => list.Attributes)
-            .FirstOrDefault(candidate => {
+    private static string? GetOperationId(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax? method
+    )
+    {
+        var attribute = method
+            ?.AttributeLists.SelectMany(list => list.Attributes)
+            .FirstOrDefault(candidate =>
+            {
                 var name = candidate.Name.ToString();
                 var simple = name.Substring(name.LastIndexOf('.') + 1);
 
@@ -83,7 +94,8 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
         var argument = attribute?.ArgumentList?.Arguments.FirstOrDefault();
 
-        if (argument == null) {
+        if (argument == null)
+        {
             return null;
         }
 
@@ -98,16 +110,21 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     private static string? GetTagFromController(
         GeneratorSyntaxContext context,
         TypeDeclarationSyntax? classDeclaration,
-        CancellationToken cancellationToken) {
-        if (classDeclaration == null) {
+        CancellationToken cancellationToken
+    )
+    {
+        if (classDeclaration == null)
+        {
             return null;
         }
 
-        var tagAttribute = AttributeModelHelper.GetAttributes(
+        var tagAttribute = AttributeModelHelper
+            .GetAttributes(
                 context,
                 classDeclaration.AttributeLists,
                 cancellationToken,
-                syntax => syntax.Name.ToString().StartsWith("Tag"))
+                syntax => syntax.Name.ToString().StartsWith("Tag")
+            )
             .FirstOrDefault();
 
         var argument = tagAttribute?.Arguments.Split(',').FirstOrDefault()?.Trim().Trim('"');
@@ -115,12 +132,16 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         return string.IsNullOrEmpty(argument) ? null : argument;
     }
 
-    protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context,
+    protected override RequestHandlerNameModel GetRequestNameModel(
+        GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
-        CancellationToken cancellation) {
+        CancellationToken cancellation
+    )
+    {
         var attribute = GetWebAttribute(methodDeclaration, cancellation);
 
-        if (attribute == null) {
+        if (attribute == null)
+        {
             // we should never get here as this check was done in the previous source generator step
             throw new Exception("Could not find attribute");
         }
@@ -132,122 +153,200 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         return new RequestHandlerNameModel(pathTemplate, methodName);
     }
 
-    private static string GetPathFromAttribute(GeneratorSyntaxContext generatorSyntaxContext,
-        AttributeSyntax attribute, CancellationToken cancellation) {
+    private static string GetPathFromAttribute(
+        GeneratorSyntaxContext generatorSyntaxContext,
+        AttributeSyntax attribute,
+        CancellationToken cancellation
+    )
+    {
         var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
         var pathTemplate = "/";
-        if (argument != null) {
-            var constantValue =
-                generatorSyntaxContext.SemanticModel.GetConstantValue(argument.Expression);
+        if (argument != null)
+        {
+            var constantValue = generatorSyntaxContext.SemanticModel.GetConstantValue(
+                argument.Expression
+            );
 
-            if (constantValue.Value != null) {
+            if (constantValue.Value != null)
+            {
                 pathTemplate = constantValue.Value.ToString();
             }
-            else {
+            else
+            {
                 pathTemplate = argument.Expression.ToString().Trim('"');
             }
         }
 
-        var classDeclarationSyntaxes = generatorSyntaxContext.Node.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
+        var classDeclarationSyntaxes = generatorSyntaxContext
+            .Node.Ancestors()
+            .OfType<TypeDeclarationSyntax>()
+            .FirstOrDefault();
 
-        
-        if (classDeclarationSyntaxes != null) {
-            var pathAttribute = 
-                AttributeModelHelper.GetAttributes(generatorSyntaxContext, classDeclarationSyntaxes.AttributeLists, cancellation, syntax => syntax.Name.ToString().StartsWith("BasePath")).FirstOrDefault();
-            
-            if (pathAttribute != null) {
+        if (classDeclarationSyntaxes != null)
+        {
+            var pathAttribute = AttributeModelHelper
+                .GetAttributes(
+                    generatorSyntaxContext,
+                    classDeclarationSyntaxes.AttributeLists,
+                    cancellation,
+                    syntax => syntax.Name.ToString().StartsWith("BasePath")
+                )
+                .FirstOrDefault();
+
+            if (pathAttribute != null)
+            {
                 var path = pathAttribute.Arguments.Split(',').FirstOrDefault()?.ToString();
 
-                if (path != null) {
+                if (path != null)
+                {
                     path = path.Trim('"');
                     pathTemplate = RoutePath.Combine(path, pathTemplate);
                 }
             }
         }
-        
+
         return pathTemplate;
     }
 
-    protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context,
+    protected override ITypeDefinition GetInvokeHandlerType(
+        GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration,
-        CancellationToken cancellation) {
-        var typeDeclarationSyntax =
-            methodDeclaration.Ancestors().OfType<TypeDeclarationSyntax>().First();
+        CancellationToken cancellation
+    )
+    {
+        var typeDeclarationSyntax = methodDeclaration
+            .Ancestors()
+            .OfType<TypeDeclarationSyntax>()
+            .First();
 
-        var namespaceSyntax = typeDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
+        var namespaceSyntax = typeDeclarationSyntax
+            .Ancestors()
+            .OfType<BaseNamespaceDeclarationSyntax>()
+            .First();
 
         var className = typeDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text;
 
-        if (methodDeclaration.ParameterList.Parameters.Count > 0) {
+        if (methodDeclaration.ParameterList.Parameters.Count > 0)
+        {
             var parameterString = "";
 
-            foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
+            foreach (var parameter in methodDeclaration.ParameterList.Parameters)
+            {
                 parameterString += '|' + parameter.Identifier.Text;
             }
 
-            className += "_" + parameterString.Select(c => (int)c).Aggregate((total, c) => total + c);
+            className +=
+                "_" + parameterString.Select(c => (int)c).Aggregate((total, c) => total + c);
         }
 
-
-        return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated", className);
+        return TypeDefinition.Get(
+            namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated",
+            className
+        );
     }
 
     protected override RequestParameterInformation? GetParameterInfoFromAttributes(
-        GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
+        GeneratorSyntaxContext generatorSyntaxContext,
+        MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
         ParameterSyntax parameter,
-        int parameterIndex) {
-        foreach (var attributeList in parameter.AttributeLists) {
-            foreach (var attribute in attributeList.Attributes) {
+        int parameterIndex
+    )
+    {
+        foreach (var attributeList in parameter.AttributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
                 // Some attributes say something other than where the value comes from - a
                 // constraint describes the value, [EnumeratorCancellation] is compiler machinery.
                 // Without this they fall to the default branch below and are emitted as custom
                 // binders, which takes the parameter out of the binding path it was written for.
-                if (NonBindingAttributeFacts.IsNonBinding(generatorSyntaxContext, attribute)) {
+                if (NonBindingAttributeFacts.IsNonBinding(generatorSyntaxContext, attribute))
+                {
                     continue;
                 }
 
                 var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
-                switch (attributeName) {
+                switch (attributeName)
+                {
                     case "FromHeader":
-                        var headerName =
-                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
+                        var headerName = attribute.GetFirstStringArgumentValue(
+                            generatorSyntaxContext
+                        );
 
-                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.Header, headerName,parameterIndex);
+                        return GetParameterInfoWithBinding(
+                            generatorSyntaxContext,
+                            parameter,
+                            ParameterBindType.Header,
+                            headerName,
+                            parameterIndex
+                        );
 
                     case "FromCookie":
-                        var cookieName =
-                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
+                        var cookieName = attribute.GetFirstStringArgumentValue(
+                            generatorSyntaxContext
+                        );
 
-                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.Cookie, cookieName,parameterIndex);
+                        return GetParameterInfoWithBinding(
+                            generatorSyntaxContext,
+                            parameter,
+                            ParameterBindType.Cookie,
+                            cookieName,
+                            parameterIndex
+                        );
 
                     case "FromForm":
-                        var formName =
-                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
+                        var formName = attribute.GetFirstStringArgumentValue(
+                            generatorSyntaxContext
+                        );
 
-                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.Form, formName, parameterIndex);
+                        return GetParameterInfoWithBinding(
+                            generatorSyntaxContext,
+                            parameter,
+                            ParameterBindType.Form,
+                            formName,
+                            parameterIndex
+                        );
 
                     case "FromQueryString":
-                        var queryName =
-                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
+                        var queryName = attribute.GetFirstStringArgumentValue(
+                            generatorSyntaxContext
+                        );
 
-                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.QueryString, queryName,parameterIndex);
+                        return GetParameterInfoWithBinding(
+                            generatorSyntaxContext,
+                            parameter,
+                            ParameterBindType.QueryString,
+                            queryName,
+                            parameterIndex
+                        );
 
                     case "FromServices":
-                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.FromServiceProvider, "",parameterIndex);
+                        return GetParameterInfoWithBinding(
+                            generatorSyntaxContext,
+                            parameter,
+                            ParameterBindType.FromServiceProvider,
+                            "",
+                            parameterIndex
+                        );
 
                     case "FromBody":
-                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.Body, "",parameterIndex);
-                    
+                        return GetParameterInfoWithBinding(
+                            generatorSyntaxContext,
+                            parameter,
+                            ParameterBindType.Body,
+                            "",
+                            parameterIndex
+                        );
+
                     default:
-                        return DefaultGetParameterFromAttribute(attribute, generatorSyntaxContext, parameter, parameterIndex);
+                        return DefaultGetParameterFromAttribute(
+                            attribute,
+                            generatorSyntaxContext,
+                            parameter,
+                            parameterIndex
+                        );
                 }
             }
         }
@@ -256,15 +355,20 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     }
 
     private RequestParameterInformation GetParameterInfoWithBinding(
-        GeneratorSyntaxContext generatorSyntaxContext, ParameterSyntax parameter, ParameterBindType bindingType,
+        GeneratorSyntaxContext generatorSyntaxContext,
+        ParameterSyntax parameter,
+        ParameterBindType bindingType,
         string bindingName,
-        int parameterIndex) {
+        int parameterIndex
+    )
+    {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
         var name = parameter.Identifier.ValueText;
 
         string? defaultValue = null;
 
-        if (parameter.Default != null) {
+        if (parameter.Default != null)
+        {
             defaultValue = parameter.Default.Value.ToFullString();
         }
 
@@ -275,7 +379,8 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
             defaultValue,
             bindingType,
             string.IsNullOrEmpty(bindingName) ? name : bindingName,
-            parameterIndex);
+            parameterIndex
+        );
     }
 
     /// <remarks>
@@ -285,7 +390,8 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     /// so its name here spells as <c>Output&lt;Views.Fortunes&gt;</c> and never matched the case
     /// anyway - and a template a filter can see is useful rather than duplicated.
     /// </remarks>
-    protected override bool IsFilterAttribute(AttributeSyntax attribute) {
+    protected override bool IsFilterAttribute(AttributeSyntax attribute)
+    {
         var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
         // A generic attribute's name carries its arguments - "Throws<RateLimited>" - so the
@@ -294,11 +400,13 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         // somewhere a response declaration belongs.
         var generic = attributeName.IndexOf('<');
 
-        if (generic >= 0) {
+        if (generic >= 0)
+        {
             attributeName = attributeName.Substring(0, generic);
         }
 
-        switch (attributeName) {
+        switch (attributeName)
+        {
             case "RawResponse":
             case "Throws":
                 return false;
@@ -327,10 +435,11 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
     /// <see cref="Routing.InterfaceRouteDiagnostics"/>, which resolves the attribute first.
     /// </para>
     /// </remarks>
-    public bool SelectWebRequestMethods(SyntaxNode arg1, CancellationToken arg2) {
-        return arg1 is MethodDeclarationSyntax methodDeclarationSyntax &&
-               IsCallable(methodDeclarationSyntax) &&
-               GetWebAttribute(methodDeclarationSyntax, arg2) != null;
+    public bool SelectWebRequestMethods(SyntaxNode arg1, CancellationToken arg2)
+    {
+        return arg1 is MethodDeclarationSyntax methodDeclarationSyntax
+            && IsCallable(methodDeclarationSyntax)
+            && GetWebAttribute(methodDeclarationSyntax, arg2) != null;
     }
 
     /// <summary>
@@ -345,18 +454,24 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         method.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault()
             is not (null or InterfaceDeclarationSyntax);
 
-    private static AttributeSyntax? GetWebAttribute(MethodDeclarationSyntax node, CancellationToken cancellationToken) {
-        var attributeNames =
-            node.DescendantNodes().OfType<AttributeSyntax>();
+    private static AttributeSyntax? GetWebAttribute(
+        MethodDeclarationSyntax node,
+        CancellationToken cancellationToken
+    )
+    {
+        var attributeNames = node.DescendantNodes().OfType<AttributeSyntax>();
 
-        foreach (var attributeNode in attributeNames) {
-            if (cancellationToken.IsCancellationRequested) {
+        foreach (var attributeNode in attributeNames)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
                 break;
             }
 
             var name = attributeNode.Name.ToString();
 
-            if (_attributeNames.Contains(name)) {
+            if (_attributeNames.Contains(name))
+            {
                 return attributeNode;
             }
         }
@@ -364,17 +479,13 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         return null;
     }
 
-    private static HashSet<string> GetAttributeNames() {
+    private static HashSet<string> GetAttributeNames()
+    {
         var returnSet = new HashSet<string>();
-        var names = new List<string> {
-            "Get",
-            "Put",
-            "Post",
-            "Patch",
-            "Delete"
-        };
+        var names = new List<string> { "Get", "Put", "Post", "Patch", "Delete" };
 
-        foreach (var name in names) {
+        foreach (var name in names)
+        {
             returnSet.Add(name);
             returnSet.Add(name + "Attribute");
         }
@@ -411,7 +522,9 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
         HandlerSchema? responseSchema,
         IReadOnlyList<ResponseSchemaModel> responseSchemas,
         bool responsesAreComplete,
-        HandlerSchema? requestSchema) {
+        HandlerSchema? requestSchema
+    )
+    {
         var operationId = controllerType.Name + "." + methodName + "." + nameModel.Method;
 
         var body = parameters.FirstOrDefault(p => p.BindingType == ParameterBindType.Body);
@@ -422,34 +535,44 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
         var spec = new ServiceSpecModel();
 
-        spec.Services.Add(new ServiceModel {
-            Tag = controllerType.Name,
-            TypeBaseName = controllerType.Name,
-            DispatchHeader = nameModel.DispatchHeader,
-            Operations = {
-                new OperationModel {
-                    OperationId = operationId,
-                    MethodName = methodName,
-                    Path = nameModel.Path,
-                    HttpMethod = nameModel.Method,
-                    DispatchKey = nameModel.DispatchKey,
-                    Parameters = described.Select(p => new ParameterModel {
-                        Name = Wire(p),
-                        MemberNameOverride = p.MemberName,
-                        In = Location(p.BindingType),
-                        IsRequired = p.Required,
-                        // What the parameter's own constraints say for the document, read off
-                        // its symbol before this description was written and carried through
-                        // it, since the builder below rebuilds every parameter from here.
-                        SchemaFacets = p.SchemaFacets,
-                        RequiredByConstraint = p.RequiredByConstraint
-                    }).ToList()
-                }
+        spec.Services.Add(
+            new ServiceModel
+            {
+                Tag = controllerType.Name,
+                TypeBaseName = controllerType.Name,
+                DispatchHeader = nameModel.DispatchHeader,
+                Operations =
+                {
+                    new OperationModel
+                    {
+                        OperationId = operationId,
+                        MethodName = methodName,
+                        Path = nameModel.Path,
+                        HttpMethod = nameModel.Method,
+                        DispatchKey = nameModel.DispatchKey,
+                        Parameters = described
+                            .Select(p => new ParameterModel
+                            {
+                                Name = Wire(p),
+                                MemberNameOverride = p.MemberName,
+                                In = Location(p.BindingType),
+                                IsRequired = p.Required,
+                                // What the parameter's own constraints say for the document, read off
+                                // its symbol before this description was written and carried through
+                                // it, since the builder below rebuilds every parameter from here.
+                                SchemaFacets = p.SchemaFacets,
+                                RequiredByConstraint = p.RequiredByConstraint,
+                            })
+                            .ToList(),
+                    },
+                },
             }
-        });
+        );
 
-        var symbols = new Dictionary<string, OperationSymbols> {
-            [operationId] = new() {
+        var symbols = new Dictionary<string, OperationSymbols>
+        {
+            [operationId] = new()
+            {
                 ControllerType = controllerType,
                 InvokeHandlerType = invokeHandlerType,
                 ResponseInformation = response,
@@ -458,13 +581,23 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
                 RequestBodyRequiresServices = body?.ConstructorRequiresServices ?? false,
                 RequestBodyRegisteredAsService = body?.RegisteredAsService ?? false,
                 ParameterOrder = parameters.OrderBy(p => p.ParameterIndex).Select(Wire).ToList(),
-                ParameterTypes = described.ToDictionary(Wire, p => p.ParameterType, StringComparer.Ordinal),
-                ParameterBindings = described.ToDictionary(Wire, p => p.BindingType, StringComparer.Ordinal),
-                ParameterDefaults = described.Where(p => p.DefaultValue != null)
+                ParameterTypes = described.ToDictionary(
+                    Wire,
+                    p => p.ParameterType,
+                    StringComparer.Ordinal
+                ),
+                ParameterBindings = described.ToDictionary(
+                    Wire,
+                    p => p.BindingType,
+                    StringComparer.Ordinal
+                ),
+                ParameterDefaults = described
+                    .Where(p => p.DefaultValue != null)
                     .ToDictionary(Wire, p => p.DefaultValue!, StringComparer.Ordinal),
-                ParameterAttributes = described.Where(p => p.CustomAttribute != null)
-                    .ToDictionary(Wire, p => p.CustomAttribute!, StringComparer.Ordinal)
-            }
+                ParameterAttributes = described
+                    .Where(p => p.CustomAttribute != null)
+                    .ToDictionary(Wire, p => p.CustomAttribute!, StringComparer.Ordinal),
+            },
         };
 
         var built = SpecHandlerModelBuilder.BuildModels(
@@ -473,14 +606,26 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
             controllerType.Namespace,
             invokeHandlerType.Namespace,
             controllerType.Namespace,
-            symbols);
+            symbols
+        );
 
         var model = built.Count == 1 ? built[0] : null;
 
-        if (model == null) {
-            return base.Compose(nameModel, controllerType, methodName, invokeHandlerType,
-                parameters, response, filters, responseSchema, responseSchemas,
-                responsesAreComplete, requestSchema);
+        if (model == null)
+        {
+            return base.Compose(
+                nameModel,
+                controllerType,
+                methodName,
+                invokeHandlerType,
+                parameters,
+                response,
+                filters,
+                responseSchema,
+                responseSchemas,
+                responsesAreComplete,
+                requestSchema
+            );
         }
 
         // Schemas are read from the compilation and have no description to come from. Filters are
@@ -495,11 +640,12 @@ public class WebRequestHandlerModelGenerator : BaseRequestModelGenerator {
 
     /// <summary>Where a parameter lives, for the bindings a description has a word for.</summary>
     private static string Location(ParameterBindType bindType) =>
-        bindType switch {
+        bindType switch
+        {
             ParameterBindType.Path => "path",
             ParameterBindType.QueryString => "query",
             ParameterBindType.Header => "header",
             ParameterBindType.Cookie => "cookie",
-            _ => "internal"
+            _ => "internal",
         };
 }

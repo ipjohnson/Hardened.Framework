@@ -37,15 +37,27 @@ namespace Hardened.Gcp.CloudRun.Runtime.Dispatch;
 /// rather than by the shape of the request.
 /// </para>
 /// </remarks>
-public sealed class CloudRunDispatch : IWebExecutionHandlerService {
+public sealed class CloudRunDispatch : IWebExecutionHandlerService
+{
     /// <summary>
     /// The schemes the function table serves: every neutral trigger the framework declares.
     /// </summary>
-    public static readonly IReadOnlySet<string> TriggerSchemes = new HashSet<string>(StringComparer.Ordinal) {
-        "QUEUE", "TOPIC", "TIMER", "EVENT", "CHANGE", "STREAM", "BLOB", "INVOKE"
+    public static readonly IReadOnlySet<string> TriggerSchemes = new HashSet<string>(
+        StringComparer.Ordinal
+    )
+    {
+        "QUEUE",
+        "TOPIC",
+        "TIMER",
+        "EVENT",
+        "CHANGE",
+        "STREAM",
+        "BLOB",
+        "INVOKE",
     };
 
-    public CloudRunDispatch(IHandlerDispatch web, IHandlerDispatch? function) {
+    public CloudRunDispatch(IHandlerDispatch web, IHandlerDispatch? function)
+    {
         Web = web;
         Function = function;
     }
@@ -59,8 +71,10 @@ public sealed class CloudRunDispatch : IWebExecutionHandlerService {
     /// </summary>
     public IHandlerDispatch? Function { get; }
 
-    public Task Execute(IExecutionChain chain) {
-        if (Function != null && TriggerSchemes.Contains(chain.Context.Request.Method)) {
+    public Task Execute(IExecutionChain chain)
+    {
+        if (Function != null && TriggerSchemes.Contains(chain.Context.Request.Method))
+        {
             return Function.Execute(chain);
         }
 
@@ -84,19 +98,24 @@ public sealed class CloudRunDispatch : IWebExecutionHandlerService {
     /// so an application that reaches the decorator twice is not composed twice.
     /// </para>
     /// </remarks>
-    public static void Compose(IServiceCollection services) {
+    public static void Compose(IServiceCollection services)
+    {
         ServiceDescriptor? function = null;
         var others = 0;
 
-        foreach (var descriptor in services) {
-            if (descriptor.ServiceType != typeof(IHandlerDispatch)) {
+        foreach (var descriptor in services)
+        {
+            if (descriptor.ServiceType != typeof(IHandlerDispatch))
+            {
                 continue;
             }
 
-            if (descriptor.ImplementationType == typeof(FunctionDispatchFilter)) {
+            if (descriptor.ImplementationType == typeof(FunctionDispatchFilter))
+            {
                 function = descriptor;
             }
-            else {
+            else
+            {
                 others++;
             }
         }
@@ -104,13 +123,15 @@ public sealed class CloudRunDispatch : IWebExecutionHandlerService {
         // One family, or something this was not written for: the existing checks in the hosts
         // and the test delivery name a container holding two of one kind better than a silent
         // composition would.
-        if (function == null || others != 1) {
+        if (function == null || others != 1)
+        {
             return;
         }
 
         var web = FindWeb(services);
 
-        if (web == null) {
+        if (web == null)
+        {
             return;
         }
 
@@ -121,16 +142,22 @@ public sealed class CloudRunDispatch : IWebExecutionHandlerService {
 
         services.TryAddSingleton<FunctionDispatchFilter>();
 
-        services.AddSingleton<IWebExecutionHandlerService>(provider =>
-            new CloudRunDispatch(resolveWeb(provider), provider.GetRequiredService<FunctionDispatchFilter>()));
+        services.AddSingleton<IWebExecutionHandlerService>(provider => new CloudRunDispatch(
+            resolveWeb(provider),
+            provider.GetRequiredService<FunctionDispatchFilter>()
+        ));
 
         services.AddSingleton<IHandlerDispatch>(provider =>
-            provider.GetRequiredService<IWebExecutionHandlerService>());
+            provider.GetRequiredService<IWebExecutionHandlerService>()
+        );
     }
 
-    private static ServiceDescriptor? FindWeb(IServiceCollection services) {
-        foreach (var descriptor in services) {
-            if (descriptor.ServiceType == typeof(IWebExecutionHandlerService)) {
+    private static ServiceDescriptor? FindWeb(IServiceCollection services)
+    {
+        foreach (var descriptor in services)
+        {
+            if (descriptor.ServiceType == typeof(IWebExecutionHandlerService))
+            {
                 return descriptor;
             }
         }
@@ -142,12 +169,18 @@ public sealed class CloudRunDispatch : IWebExecutionHandlerService {
     /// How to resolve what <paramref name="web"/> registered, once it is no longer registered
     /// under the interface the composite takes over.
     /// </summary>
-    private static Func<IServiceProvider, IHandlerDispatch> Rebase(IServiceCollection services, ServiceDescriptor web) {
-        if (web.ImplementationInstance is IHandlerDispatch instance) {
+    private static Func<IServiceProvider, IHandlerDispatch> Rebase(
+        IServiceCollection services,
+        ServiceDescriptor web
+    )
+    {
+        if (web.ImplementationInstance is IHandlerDispatch instance)
+        {
             return _ => instance;
         }
 
-        if (web.ImplementationFactory is { } factory) {
+        if (web.ImplementationFactory is { } factory)
+        {
             return provider => (IHandlerDispatch)factory(provider);
         }
 

@@ -5,10 +5,10 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Web.Runtime.Compression;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests;
 
@@ -22,17 +22,28 @@ namespace Hardened.Web.Kestrel.Runtime.Tests;
 /// length was dropped is framed by the host rather than cut off.
 /// </para>
 /// </summary>
-public class CompressionOverASocketTests {
-
+public class CompressionOverASocketTests
+{
     private static readonly string Answer =
-        "{\"readings\":[" + string.Join(",", Enumerable.Range(0, 200).Select(i => $"{{\"sensor\":\"s{i}\",\"value\":{i}}}")) + "]}";
+        "{\"readings\":["
+        + string.Join(
+            ",",
+            Enumerable.Range(0, 200).Select(i => $"{{\"sensor\":\"s{i}\",\"value\":{i}}}")
+        )
+        + "]}";
 
     [Fact]
-    public async Task AClientAcceptingGzipGetsOneMemberThatDecodesToTheAnswer() {
+    public async Task AClientAcceptingGzipGetsOneMemberThatDecodesToTheAnswer()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
-        var response = await harness.Get("gzip, deflate, br", TestContext.Current.CancellationToken);
-        var bytes = await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
+        var response = await harness.Get(
+            "gzip, deflate, br",
+            TestContext.Current.CancellationToken
+        );
+        var bytes = await response.Content.ReadAsByteArrayAsync(
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("gzip", Assert.Single(response.Content.Headers.ContentEncoding));
         Assert.True(bytes.Length > 2 && bytes[0] == 0x1f && bytes[1] == 0x8b);
@@ -41,13 +52,17 @@ public class CompressionOverASocketTests {
     }
 
     [Fact]
-    public async Task AClientAcceptingNothingGetsThePlainBody() {
+    public async Task AClientAcceptingNothingGetsThePlainBody()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         var response = await harness.Get(null, TestContext.Current.CancellationToken);
 
         Assert.Empty(response.Content.Headers.ContentEncoding);
-        Assert.Equal(Answer, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(
+            Answer,
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     /// <summary>
@@ -56,18 +71,22 @@ public class CompressionOverASocketTests {
     /// held whole before the response started, which is this one.
     /// </summary>
     [Fact]
-    public async Task ACompressedResponseIsFramedByTheHostAndVariesOnAcceptEncoding() {
+    public async Task ACompressedResponseIsFramedByTheHostAndVariesOnAcceptEncoding()
+    {
         await using var harness = await Harness.Start(TestContext.Current.CancellationToken);
 
         var response = await harness.Get("gzip", TestContext.Current.CancellationToken);
-        var bytes = await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
+        var bytes = await response.Content.ReadAsByteArrayAsync(
+            TestContext.Current.CancellationToken
+        );
 
         Assert.NotEqual(Answer.Length, bytes.Length);
         Assert.Equal(bytes.Length, response.Content.Headers.ContentLength ?? bytes.Length);
         Assert.Contains("Accept-Encoding", response.Headers.Vary);
     }
 
-    private static string Decode(byte[] bytes) {
+    private static string Decode(byte[] bytes)
+    {
         using var input = new MemoryStream(bytes);
         using var gzip = new GZipStream(input, CompressionMode.Decompress);
         using var reader = new StreamReader(gzip, Encoding.UTF8);
@@ -75,20 +94,28 @@ public class CompressionOverASocketTests {
         return reader.ReadToEnd();
     }
 
-    private sealed class Harness : IAsyncDisposable {
+    private sealed class Harness : IAsyncDisposable
+    {
         private readonly HttpClient _client;
 
         private HardenedKestrelApplication _app = null!;
 
-        private Harness(HttpClient client) {
+        private Harness(HttpClient client)
+        {
             _client = client;
         }
 
-        public static async Task<Harness> Start(CancellationToken cancellationToken) {
+        public static async Task<Harness> Start(CancellationToken cancellationToken)
+        {
             // No automatic decompression, so the coding header and the bytes arrive as sent.
-            var harness = new Harness(new HttpClient(new HttpClientHandler {
-                AutomaticDecompression = DecompressionMethods.None
-            }) { Timeout = TimeSpan.FromSeconds(10) });
+            var harness = new Harness(
+                new HttpClient(
+                    new HttpClientHandler { AutomaticDecompression = DecompressionMethods.None }
+                )
+                {
+                    Timeout = TimeSpan.FromSeconds(10),
+                }
+            );
 
             harness._app = Build();
 
@@ -101,10 +128,15 @@ public class CompressionOverASocketTests {
             return harness;
         }
 
-        public async Task<HttpResponseMessage> Get(string? acceptEncoding, CancellationToken cancellationToken) {
+        public async Task<HttpResponseMessage> Get(
+            string? acceptEncoding,
+            CancellationToken cancellationToken
+        )
+        {
             using var request = new HttpRequestMessage(HttpMethod.Get, "/readings");
 
-            if (acceptEncoding != null) {
+            if (acceptEncoding != null)
+            {
                 request.Headers.TryAddWithoutValidation("Accept-Encoding", acceptEncoding);
             }
 
@@ -115,13 +147,15 @@ public class CompressionOverASocketTests {
             return response;
         }
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             _client.Dispose();
 
             await _app.DisposeAsync();
         }
 
-        private static HardenedKestrelApplication Build() {
+        private static HardenedKestrelApplication Build()
+        {
             var services = new ServiceCollection();
 
             services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
@@ -131,18 +165,25 @@ public class CompressionOverASocketTests {
 
             // Port 0, so the OS picks one and concurrent test classes cannot collide.
             return HardenedKestrelApplication.Create(
-                services, kestrel => kestrel.Listen(IPAddress.Loopback, 0));
+                services,
+                kestrel => kestrel.Listen(IPAddress.Loopback, 0)
+            );
         }
 
-        private void Compose() {
+        private void Compose()
+        {
             var middleware = _app.Services.GetRequiredService<IMiddlewareService>();
 
-            middleware.Use(_ => new ResponseCompressionFilter(configuration: new CompressionConfiguration()));
+            middleware.Use(_ => new ResponseCompressionFilter(
+                configuration: new CompressionConfiguration()
+            ));
             middleware.Use(_ => new Answering());
         }
 
-        private sealed class Answering : IExecutionFilter {
-            public async Task Execute(IExecutionChain chain) {
+        private sealed class Answering : IExecutionFilter
+        {
+            public async Task Execute(IExecutionChain chain)
+            {
                 var response = chain.Context.Response;
                 var bytes = Encoding.UTF8.GetBytes(Answer);
 

@@ -1,9 +1,9 @@
 using Hardened.SourceGenerator.Requests;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 
@@ -24,10 +24,9 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// rule is what has to recognise a hand-rolled struct and a C# 15 union too.
 /// </para>
 /// </remarks>
-public class UnionResponseSelectorTests {
-
-    private const string ResponseSet =
-        """
+public class UnionResponseSelectorTests
+{
+    private const string ResponseSet = """
         namespace Hardened.Requests.Abstract.Responses {
             public class HttpStatusAttribute : System.Attribute {
                 public HttpStatusAttribute(int statusCode) { }
@@ -68,14 +67,21 @@ public class UnionResponseSelectorTests {
     /// The named handler's declaration, and the model to resolve it against.
     /// </summary>
     private static (SemanticModel Model, MethodDeclarationSyntax Method) Compile(
-        string source, string methodName = "Handle") {
+        string source,
+        string methodName = "Handle"
+    )
+    {
         var tree = CSharpSyntaxTree.ParseText(source);
 
         var compilation = CSharpCompilation.Create(
             "SelectorFixture",
             [tree],
             [MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable));
+            new CSharpCompilationOptions(
+                OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable
+            )
+        );
 
         var method = tree.GetRoot()
             .DescendantNodes()
@@ -85,22 +91,27 @@ public class UnionResponseSelectorTests {
         return (compilation.GetSemanticModel(tree), method);
     }
 
-    private static IReadOnlyList<UnionCaseModel> Cases(string source, int? successStatus = null) {
+    private static IReadOnlyList<UnionCaseModel> Cases(string source, int? successStatus = null)
+    {
         var (model, method) = Compile(source);
 
         return UnionResponseSelector.Decode(
-            UnionResponseSelector.Read(model, method, successStatus));
+            UnionResponseSelector.Read(model, method, successStatus)
+        );
     }
 
     #region recognising a set
 
     [Fact]
-    public void AStructMatchingTheBasicUnionPatternIsAResponseSet() {
+    public void AStructMatchingTheBasicUnionPatternIsAResponseSet()
+    {
         var cases = Cases(ResponseSet);
 
         Assert.Equal(4, cases.Count);
-        Assert.Equal(["App.Todo", "App.NotFound", "App.RateLimited", "App.NoContent"],
-            cases.Select(c => c.TypeName.Replace("global::", "")));
+        Assert.Equal(
+            ["App.Todo", "App.NotFound", "App.RateLimited", "App.NoContent"],
+            cases.Select(c => c.TypeName.Replace("global::", ""))
+        );
     }
 
     /// <summary>
@@ -108,43 +119,58 @@ public class UnionResponseSelectorTests {
     /// no case set - that is an envelope, and an envelope has no type-to-status answer.
     /// </summary>
     [Fact]
-    public void AnEnvelopeWithNoPerCaseConstructorIsNotAResponseSet() {
-        Assert.Empty(Cases("""
-            namespace App {
-                public sealed class Todo { }
-                public readonly struct Envelope {
-                    public object? Value { get; }
+    public void AnEnvelopeWithNoPerCaseConstructorIsNotAResponseSet()
+    {
+        Assert.Empty(
+            Cases(
+                """
+                namespace App {
+                    public sealed class Todo { }
+                    public readonly struct Envelope {
+                        public object? Value { get; }
+                    }
+                    public class Controller { public Envelope Handle() => default; }
                 }
-                public class Controller { public Envelope Handle() => default; }
-            }
-            """));
+                """
+            )
+        );
     }
 
     [Fact]
-    public void ATypeWithNoValuePropertyIsNotAResponseSet() {
-        Assert.Empty(Cases("""
-            namespace App {
-                public sealed class Todo { }
-                public readonly struct Pair {
-                    public Pair(Todo value) { Item = value; }
-                    public object? Item { get; }
+    public void ATypeWithNoValuePropertyIsNotAResponseSet()
+    {
+        Assert.Empty(
+            Cases(
+                """
+                namespace App {
+                    public sealed class Todo { }
+                    public readonly struct Pair {
+                        public Pair(Todo value) { Item = value; }
+                        public object? Item { get; }
+                    }
+                    public class Controller { public Pair Handle() => default; }
                 }
-                public class Controller { public Pair Handle() => default; }
-            }
-            """));
+                """
+            )
+        );
     }
 
     /// <summary>
     /// An ordinary return type is the path every handler in existence takes.
     /// </summary>
     [Fact]
-    public void AnOrdinaryReturnTypeIsNotAResponseSet() {
-        Assert.Empty(Cases("""
-            namespace App {
-                public sealed class Todo { }
-                public class Controller { public Todo Handle() => null!; }
-            }
-            """));
+    public void AnOrdinaryReturnTypeIsNotAResponseSet()
+    {
+        Assert.Empty(
+            Cases(
+                """
+                namespace App {
+                    public sealed class Todo { }
+                    public class Controller { public Todo Handle() => null!; }
+                }
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -153,18 +179,23 @@ public class UnionResponseSelectorTests {
     /// unreachable code hiding a contradiction.
     /// </summary>
     [Fact]
-    public void ASetWithARepeatedCaseIsRejected() {
-        Assert.Empty(Cases("""
-            namespace App {
-                public sealed class Todo { }
-                public readonly struct Result {
-                    public Result(Todo value) { Value = value; }
-                    public Result(Todo other) { Value = other; }
-                    public object? Value { get; }
+    public void ASetWithARepeatedCaseIsRejected()
+    {
+        Assert.Empty(
+            Cases(
+                """
+                namespace App {
+                    public sealed class Todo { }
+                    public readonly struct Result {
+                        public Result(Todo value) { Value = value; }
+                        public Result(Todo other) { Value = other; }
+                        public object? Value { get; }
+                    }
+                    public class Controller { public Result Handle() => default; }
                 }
-                public class Controller { public Result Handle() => default; }
-            }
-            """));
+                """
+            )
+        );
     }
 
     #endregion
@@ -174,10 +205,14 @@ public class UnionResponseSelectorTests {
     [Theory]
     [InlineData("System.Threading.Tasks.Task")]
     [InlineData("System.Threading.Tasks.ValueTask")]
-    public void ASetIsFoundPastAnAwaitable(string awaitable) {
-        var cases = Cases(ResponseSet.Replace(
-            "public Result Handle() => default;",
-            $"public {awaitable}<Result> Handle() => default!;"));
+    public void ASetIsFoundPastAnAwaitable(string awaitable)
+    {
+        var cases = Cases(
+            ResponseSet.Replace(
+                "public Result Handle() => default;",
+                $"public {awaitable}<Result> Handle() => default!;"
+            )
+        );
 
         Assert.Equal(4, cases.Count);
     }
@@ -191,7 +226,8 @@ public class UnionResponseSelectorTests {
     /// which is what covers a POST that creates without annotating every case.
     /// </summary>
     [Fact]
-    public void EachCaseTakesItsOwnStatusOrTheEndpointSuccessStatus() {
+    public void EachCaseTakesItsOwnStatusOrTheEndpointSuccessStatus()
+    {
         var cases = Cases(ResponseSet, successStatus: 201);
 
         Assert.Equal(201, cases[0].Status);
@@ -201,7 +237,8 @@ public class UnionResponseSelectorTests {
     }
 
     [Fact]
-    public void AnUnannotatedCaseDefaultsToTwoHundred() {
+    public void AnUnannotatedCaseDefaultsToTwoHundred()
+    {
         Assert.Equal(200, Cases(ResponseSet)[0].Status);
     }
 
@@ -210,7 +247,8 @@ public class UnionResponseSelectorTests {
     /// something to apply rather than type-testing every response at run time.
     /// </summary>
     [Fact]
-    public void OnlyACaseImplementingTheInterfaceContributesHeaders() {
+    public void OnlyACaseImplementingTheInterfaceContributesHeaders()
+    {
         var cases = Cases(ResponseSet);
 
         Assert.False(cases[0].AppliesHeaders);
@@ -223,7 +261,8 @@ public class UnionResponseSelectorTests {
     /// response type can opt out of.
     /// </summary>
     [Fact]
-    public void OnlyABodylessStatusHasNoBody() {
+    public void OnlyABodylessStatusHasNoBody()
+    {
         var cases = Cases(ResponseSet);
 
         Assert.True(cases[0].HasBody);
@@ -235,25 +274,32 @@ public class UnionResponseSelectorTests {
 
     #region findings
 
-    private static string? Diagnose(string source, int? successStatus = null) {
+    private static string? Diagnose(string source, int? successStatus = null)
+    {
         var (model, method) = Compile(source);
 
         return UnionResponseSelector.Diagnose(model, method, successStatus);
     }
 
     [Fact]
-    public void AWellFormedSetHasNoFinding() {
+    public void AWellFormedSetHasNoFinding()
+    {
         Assert.Null(Diagnose(ResponseSet));
     }
 
     [Fact]
-    public void AnOrdinaryReturnTypeHasNoFinding() {
-        Assert.Null(Diagnose("""
-            namespace App {
-                public sealed class Todo { }
-                public class Controller { public Todo Handle() => null!; }
-            }
-            """));
+    public void AnOrdinaryReturnTypeHasNoFinding()
+    {
+        Assert.Null(
+            Diagnose(
+                """
+                namespace App {
+                    public sealed class Todo { }
+                    public class Controller { public Todo Handle() => null!; }
+                }
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -261,8 +307,10 @@ public class UnionResponseSelectorTests {
     /// handler returns.
     /// </summary>
     [Fact]
-    public void ObjectAsACaseIsFound() {
-        var finding = Diagnose("""
+    public void ObjectAsACaseIsFound()
+    {
+        var finding = Diagnose(
+            """
             namespace App {
                 public sealed class Todo { }
                 public readonly struct Result {
@@ -272,7 +320,8 @@ public class UnionResponseSelectorTests {
                 }
                 public class Controller { public Result Handle() => default; }
             }
-            """);
+            """
+        );
 
         Assert.NotNull(finding);
         Assert.StartsWith(UnionResponseSelector.UntypedFinding, finding, StringComparison.Ordinal);
@@ -283,8 +332,10 @@ public class UnionResponseSelectorTests {
     /// <c>oneOf</c> requires exactly one match.
     /// </summary>
     [Fact]
-    public void TwoAssignableCasesAtDifferentStatusesAreFound() {
-        var finding = Diagnose("""
+    public void TwoAssignableCasesAtDifferentStatusesAreFound()
+    {
+        var finding = Diagnose(
+            """
             namespace Hardened.Requests.Abstract.Responses {
                 public class HttpStatusAttribute : System.Attribute {
                     public HttpStatusAttribute(int statusCode) { }
@@ -306,10 +357,15 @@ public class UnionResponseSelectorTests {
                 }
                 public class Controller { public Result Handle() => default; }
             }
-            """);
+            """
+        );
 
         Assert.NotNull(finding);
-        Assert.StartsWith(UnionResponseSelector.AssignableFinding, finding, StringComparison.Ordinal);
+        Assert.StartsWith(
+            UnionResponseSelector.AssignableFinding,
+            finding,
+            StringComparison.Ordinal
+        );
 
         var fields = UnionResponseSelector.DecodeFinding(finding!);
 
@@ -323,19 +379,24 @@ public class UnionResponseSelectorTests {
     /// that would forbid the shape the design calls a oneOf within a 200.
     /// </summary>
     [Fact]
-    public void TwoAssignableCasesAtOneStatusAreNotFound() {
-        Assert.Null(Diagnose("""
-            namespace App {
-                public class Base { }
-                public class Derived : Base { }
-                public readonly struct Result {
-                    public Result(Base value) { Value = value; }
-                    public Result(Derived value) { Value = value; }
-                    public object? Value { get; }
+    public void TwoAssignableCasesAtOneStatusAreNotFound()
+    {
+        Assert.Null(
+            Diagnose(
+                """
+                namespace App {
+                    public class Base { }
+                    public class Derived : Base { }
+                    public readonly struct Result {
+                        public Result(Base value) { Value = value; }
+                        public Result(Derived value) { Value = value; }
+                        public object? Value { get; }
+                    }
+                    public class Controller { public Result Handle() => default; }
                 }
-                public class Controller { public Result Handle() => default; }
-            }
-            """));
+                """
+            )
+        );
     }
 
     /// <summary>
@@ -343,8 +404,10 @@ public class UnionResponseSelectorTests {
     /// is the same ambiguity as one deriving from it.
     /// </summary>
     [Fact]
-    public void AssignabilityThroughAnInterfaceIsFound() {
-        var finding = Diagnose("""
+    public void AssignabilityThroughAnInterfaceIsFound()
+    {
+        var finding = Diagnose(
+            """
             namespace Hardened.Requests.Abstract.Responses {
                 public class HttpStatusAttribute : System.Attribute {
                     public HttpStatusAttribute(int statusCode) { }
@@ -366,10 +429,15 @@ public class UnionResponseSelectorTests {
                 }
                 public class Controller { public Result Handle() => default; }
             }
-            """);
+            """
+        );
 
         Assert.NotNull(finding);
-        Assert.StartsWith(UnionResponseSelector.AssignableFinding, finding, StringComparison.Ordinal);
+        Assert.StartsWith(
+            UnionResponseSelector.AssignableFinding,
+            finding,
+            StringComparison.Ordinal
+        );
     }
 
     #endregion

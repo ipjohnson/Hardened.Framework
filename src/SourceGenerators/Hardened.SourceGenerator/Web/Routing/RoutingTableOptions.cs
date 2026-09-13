@@ -23,7 +23,8 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// move logic that was never part of the route tree.
 /// </para>
 /// </remarks>
-public sealed class RoutingTableOptions {
+public sealed class RoutingTableOptions
+{
     /// <summary>The attribute-routed defaults.</summary>
     public static readonly RoutingTableOptions Default = new();
 

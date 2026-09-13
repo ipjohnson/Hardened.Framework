@@ -18,8 +18,8 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(402)]
-public sealed record PaymentRequired(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
-
+public sealed record PaymentRequired(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+{
     /// <summary>
     /// The PaymentRequired with a generic message, for a handler with nothing more to say than the status.
     /// Shared, so returning it allocates nothing.

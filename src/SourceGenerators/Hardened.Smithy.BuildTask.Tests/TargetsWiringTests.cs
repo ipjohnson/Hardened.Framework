@@ -28,27 +28,29 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// a rule - a rule would quietly absorb the next genuinely missing one.
 /// </para>
 /// </remarks>
-public class TargetsWiringTests {
-
-    public static TheoryData<string, string> Targets() => new() {
-        { "Hardened.Smithy.SourceGenerator", "ExtractSmithySpec" },
-        { "Hardened.OpenApi.SourceGenerator", "ExtractOpenApiSpec" }
-    };
+public class TargetsWiringTests
+{
+    public static TheoryData<string, string> Targets() =>
+        new()
+        {
+            { "Hardened.Smithy.SourceGenerator", "ExtractSmithySpec" },
+            { "Hardened.OpenApi.SourceGenerator", "ExtractOpenApiSpec" },
+        };
 
     [Theory]
     [MemberData(nameof(Targets))]
-    public void EveryTaskInput_IsPassedByTheTargetsFile(string generator, string taskName) {
+    public void EveryTaskInput_IsPassedByTheTargetsFile(string generator, string taskName)
+    {
         var targets = ReadTargets(generator);
         var invocation = Invocation(targets, taskName);
 
-        var missing = Inputs()
-            .Where(name => !Regex.IsMatch(invocation, $@"\b{name}\s*="))
-            .ToList();
+        var missing = Inputs().Where(name => !Regex.IsMatch(invocation, $@"\b{name}\s*=")).ToList();
 
         Assert.True(
             missing.Count == 0,
-            $"{generator}.targets invokes {taskName} without passing: {string.Join(", ", missing)}. " +
-            "The task reads these and would silently use its default.");
+            $"{generator}.targets invokes {taskName} without passing: {string.Join(", ", missing)}. "
+                + "The task reads these and would silently use its default."
+        );
     }
 
     /// <summary>
@@ -79,7 +81,8 @@ public class TargetsWiringTests {
             .Select(property => property.Name);
 
     /// <summary>The text of one task invocation, from its opening tag to the end of its attributes.</summary>
-    private static string Invocation(string targets, string taskName) {
+    private static string Invocation(string targets, string taskName)
+    {
         var match = Regex.Match(targets, $@"<{taskName}\b[^>]*>", RegexOptions.Singleline);
 
         Assert.True(match.Success, $"No <{taskName}> invocation found in the targets file.");

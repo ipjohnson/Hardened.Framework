@@ -1,6 +1,6 @@
-using Hardened.Generation;
 using System.Collections.Generic;
 using System.Threading;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.OpenApi.SourceGenerator;
 using Xunit;
@@ -16,9 +16,10 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// <c>Cat</c> had neither the type nor a way to know it was one. What is asserted here is that the
 /// document decides - a discriminator resolves the branch, and without one nothing is guessed.
 /// </remarks>
-public class OneOfTests {
-
-    private static ServiceSpecModel Parse(string yaml) {
+public class OneOfTests
+{
+    private static ServiceSpecModel Parse(string yaml)
+    {
         var model = OpenApiSpecParser.Parse(yaml, "spec", CancellationToken.None);
 
         Assert.NotNull(model);
@@ -26,9 +27,12 @@ public class OneOfTests {
         return model!;
     }
 
-    private static SchemaModel? Choice(ServiceSpecModel model) {
-        foreach (var schema in model.Schemas) {
-            if (schema.Kind == SchemaKind.OneOf) {
+    private static SchemaModel? Choice(ServiceSpecModel model)
+    {
+        foreach (var schema in model.Schemas)
+        {
+            if (schema.Kind == SchemaKind.OneOf)
+            {
                 return schema;
             }
         }
@@ -37,7 +41,8 @@ public class OneOfTests {
     }
 
     [Fact]
-    public void ADiscriminatedChoiceBecomesATypeNamedForWhereItIsDeclared() {
+    public void ADiscriminatedChoiceBecomesATypeNamedForWhereItIsDeclared()
+    {
         var model = Parse(Discriminated);
 
         var choice = Choice(model);
@@ -53,7 +58,8 @@ public class OneOfTests {
 
     /// <summary>The property is typed as the choice, which is the whole point.</summary>
     [Fact]
-    public void ThePropertyIsTypedAsTheChoiceRatherThanLeftLoose() {
+    public void ThePropertyIsTypedAsTheChoiceRatherThanLeftLoose()
+    {
         var model = Parse(Discriminated);
 
         var holder = Assert.Single(model.Schemas, schema => schema.Name == "Holder");
@@ -68,13 +74,15 @@ public class OneOfTests {
     /// specification says it means and what most descriptions rely on.
     /// </summary>
     [Fact]
-    public void ABareDiscriminatorMapsEachValueToTheSchemaItNames() {
+    public void ABareDiscriminatorMapsEachValueToTheSchemaItNames()
+    {
         var model = Parse(Discriminated);
 
         var choice = Choice(model)!;
         var values = new List<string>();
 
-        foreach (var mapping in choice.DiscriminatorMapping) {
+        foreach (var mapping in choice.DiscriminatorMapping)
+        {
             values.Add(mapping.Value);
         }
 
@@ -83,13 +91,15 @@ public class OneOfTests {
     }
 
     [Fact]
-    public void AnExplicitMappingIsUsedWhereTheDocumentDeclaresOne() {
+    public void AnExplicitMappingIsUsedWhereTheDocumentDeclaresOne()
+    {
         var model = Parse(ExplicitMapping);
 
         var choice = Choice(model)!;
         var values = new List<string>();
 
-        foreach (var mapping in choice.DiscriminatorMapping) {
+        foreach (var mapping in choice.DiscriminatorMapping)
+        {
             values.Add(mapping.Value);
         }
 
@@ -107,7 +117,8 @@ public class OneOfTests {
     /// keeping whichever happens to read.
     /// </remarks>
     [Fact]
-    public void AChoiceWithNoDiscriminatorIsResolvedWhenTheShapesDecideIt() {
+    public void AChoiceWithNoDiscriminatorIsResolvedWhenTheShapesDecideIt()
+    {
         var model = Parse(Undiscriminated);
 
         var choice = Choice(model);
@@ -128,7 +139,8 @@ public class OneOfTests {
     /// openapi-generator does, and unlike serde's first-one-that-reads it cannot bind silently.
     /// </remarks>
     [Fact]
-    public void BranchesTheSchemasDoNotSeparateAreDecidedByCountingMatches() {
+    public void BranchesTheSchemasDoNotSeparateAreDecidedByCountingMatches()
+    {
         var model = Parse(Ambiguous);
 
         var choice = Choice(model);
@@ -150,7 +162,8 @@ public class OneOfTests {
 
     /// <summary>An inline branch, which most published choices are made of.</summary>
     [Fact]
-    public void InlineBranchesAreModelledAsWellAsNamedOnes() {
+    public void InlineBranchesAreModelledAsWellAsNamedOnes()
+    {
         var model = Parse(InlinePrimitives);
 
         var choice = Choice(model);
@@ -159,7 +172,8 @@ public class OneOfTests {
         Assert.Equal(2, choice!.OneOf.Count);
 
         // Neither branch names a schema; both are types written in place.
-        foreach (var branch in choice.OneOf) {
+        foreach (var branch in choice.OneOf)
+        {
             Assert.Null(branch.Ref);
             Assert.NotNull(branch.Type);
         }
@@ -171,7 +185,8 @@ public class OneOfTests {
 
     /// <summary>Branches of different JSON kinds, which is 56% of the corpus's choices.</summary>
     [Fact]
-    public void BranchesOfDifferentValueKindsAreDecidedByKind() {
+    public void BranchesOfDifferentValueKindsAreDecidedByKind()
+    {
         var model = Parse(DifferentKinds);
 
         var choice = Choice(model);
@@ -182,28 +197,33 @@ public class OneOfTests {
 
         Assert.True(plan.FullyProved);
 
-        foreach (var branch in plan.Branches) {
+        foreach (var branch in plan.Branches)
+        {
             Assert.NotNull(branch.ValueKind);
         }
     }
 
     /// <summary>The one that is easy to leave silent.</summary>
     [Fact]
-    public void AnUnresolvableChoiceIsReported() {
+    public void AnUnresolvableChoiceIsReported()
+    {
         var model = Parse(Ambiguous);
 
         var problems = Hardened.Idl.SpecDiagnostics.Find(model, "HOAT");
         var codes = new List<string>();
 
-        foreach (var problem in problems) {
+        foreach (var problem in problems)
+        {
             codes.Add(problem.Code);
         }
 
         Assert.Contains("HOAT022", codes);
 
         // Reported, not fatal: JsonElement is a working answer, just the weakest one.
-        foreach (var problem in problems) {
-            if (problem.Code == "HOAT022") {
+        foreach (var problem in problems)
+        {
+            if (problem.Code == "HOAT022")
+            {
                 Assert.False(problem.Fatal);
             }
         }
@@ -219,7 +239,8 @@ public class OneOfTests {
     /// read, silently. What the payload is is the document's statement, not the caller's.
     /// </remarks>
     [Fact]
-    public void TheDiscriminatorIsWrittenFromTheTypeRatherThanTheModel() {
+    public void TheDiscriminatorIsWrittenFromTheTypeRatherThanTheModel()
+    {
         var model = Parse(Discriminated);
 
         var choice = Choice(model)!;
@@ -237,7 +258,8 @@ public class OneOfTests {
 
     /// <summary>A single branch is not a choice, and does not need a type to say so.</summary>
     [Fact]
-    public void AOneOfWithOneBranchIsNotGivenAType() {
+    public void AOneOfWithOneBranchIsNotGivenAType()
+    {
         var model = Parse(SingleBranch);
 
         Assert.Null(Choice(model));
@@ -439,7 +461,8 @@ public class OneOfTests {
     /// property referencing it read as the type the document already named.
     /// </remarks>
     [Fact]
-    public void AComponentThatIsAChoiceKeepsItsOwnName() {
+    public void AComponentThatIsAChoiceKeepsItsOwnName()
+    {
         var model = Parse(ComponentChoice);
 
         var choice = Choice(model);
@@ -449,7 +472,8 @@ public class OneOfTests {
         Assert.Equal("kind", choice.DiscriminatorPropertyName);
         Assert.Equal(
             new[] { "#/components/schemas/Cat", "#/components/schemas/Dog" },
-            choice.OneOf.Select(branch => branch.Ref).ToArray());
+            choice.OneOf.Select(branch => branch.Ref).ToArray()
+        );
     }
 
     /// <summary>
@@ -463,7 +487,8 @@ public class OneOfTests {
     /// deserialized into nothing.
     /// </remarks>
     [Fact]
-    public void AnOperationReturningAComponentChoiceKeepsItsResponseType() {
+    public void AnOperationReturningAComponentChoiceKeepsItsResponseType()
+    {
         var operation = Parse(ComponentChoice).Services.Single().Operations.Single();
 
         Assert.Equal("#/components/schemas/Pet", operation.ResponseRef);
@@ -471,7 +496,8 @@ public class OneOfTests {
 
     /// <summary>Without a discriminator too, where the schemas separate the branches.</summary>
     [Fact]
-    public void AnUndiscriminatedComponentChoiceIsStillAType() {
+    public void AnUndiscriminatedComponentChoiceIsStillAType()
+    {
         var choice = Choice(Parse(UndiscriminatedComponentChoice));
 
         Assert.NotNull(choice);
@@ -489,7 +515,8 @@ public class OneOfTests {
     /// <c>allOf</c> and generates as a record they inherit; a bare choice has nothing to inherit.
     /// </remarks>
     [Fact]
-    public void AComponentChoiceWithPropertiesOfItsOwnStaysAHierarchyBase() {
+    public void AComponentChoiceWithPropertiesOfItsOwnStaysAHierarchyBase()
+    {
         var model = Parse(HierarchyBase);
 
         Assert.Null(Choice(model));
@@ -505,7 +532,8 @@ public class OneOfTests {
     /// One branch is not a choice, the same as for a property declaring one.
     /// </summary>
     [Fact]
-    public void AComponentChoiceWithOneBranchIsNotGivenAType() {
+    public void AComponentChoiceWithOneBranchIsNotGivenAType()
+    {
         Assert.Null(Choice(Parse(SingleBranchComponent)));
     }
 

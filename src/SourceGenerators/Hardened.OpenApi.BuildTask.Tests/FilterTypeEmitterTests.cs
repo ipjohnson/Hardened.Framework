@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
@@ -20,15 +20,19 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// lower-cased for C#, and an enum default has to be qualified by its type rather than quoted.
 /// </para>
 /// </remarks>
-public class FilterTypeEmitterTests {
-
+public class FilterTypeEmitterTests
+{
     private const string FilterNamespace = EmitterHarness.RootNamespace + ".Filters";
 
-    private static FilterTypeModel Model(string name = "throttle", params FilterTypePropertyModel[] properties) =>
-        new() {
+    private static FilterTypeModel Model(
+        string name = "throttle",
+        params FilterTypePropertyModel[] properties
+    ) =>
+        new()
+        {
             Name = name,
             Namespace = FilterNamespace,
-            Properties = new List<FilterTypePropertyModel>(properties)
+            Properties = new List<FilterTypePropertyModel>(properties),
         };
 
     private static string Emit(FilterTypeModel model) =>
@@ -41,12 +45,14 @@ public class FilterTypeEmitterTests {
     /// implementation that makes it an actual filter.
     /// </summary>
     [Fact]
-    public void TheAttributeIsPublicAndPartial() {
+    public void TheAttributeIsPublicAndPartial()
+    {
         Assert.Contains("public partial class ThrottleAttribute", Emit(Model()));
     }
 
     [Fact]
-    public void TheAttributeDerivesFromAttribute() {
+    public void TheAttributeDerivesFromAttribute()
+    {
         Assert.Contains("Attribute", Emit(Model()));
     }
 
@@ -55,7 +61,8 @@ public class FilterTypeEmitterTests {
     /// controller or for a single operation.
     /// </summary>
     [Fact]
-    public void TheAttributeIsUsableOnAClassAndAMethod() {
+    public void TheAttributeIsUsableOnAClassAndAMethod()
+    {
         var output = Emit(Model());
 
         Assert.Contains("AttributeTargets.Class", output);
@@ -70,12 +77,14 @@ public class FilterTypeEmitterTests {
     [InlineData("throttle", "ThrottleAttribute")]
     [InlineData("rate_limit", "RateLimitAttribute")]
     [InlineData("require-scope", "RequireScopeAttribute")]
-    public void TheClassNameIsPascalCasedWithTheSuffix(string declared, string expected) {
+    public void TheClassNameIsPascalCasedWithTheSuffix(string declared, string expected)
+    {
         Assert.Contains($"public partial class {expected}", Emit(Model(declared)));
     }
 
     [Fact]
-    public void AFilterWithNoPropertiesStillEmitsTheType() {
+    public void AFilterWithNoPropertiesStillEmitsTheType()
+    {
         Assert.Contains("public partial class ThrottleAttribute", Emit(Model()));
     }
 
@@ -84,27 +93,36 @@ public class FilterTypeEmitterTests {
     #region properties
 
     [Fact]
-    public void ADeclaredPropertyIsEmittedPublic() {
-        var output = Emit(Model("throttle",
-            new FilterTypePropertyModel { Name = "Limit", CSharpType = "int" }));
+    public void ADeclaredPropertyIsEmittedPublic()
+    {
+        var output = Emit(
+            Model("throttle", new FilterTypePropertyModel { Name = "Limit", CSharpType = "int" })
+        );
 
         Assert.Contains("public int Limit", output);
     }
 
     [Fact]
-    public void EveryDeclaredPropertyIsEmitted() {
-        var output = Emit(Model("throttle",
-            new FilterTypePropertyModel { Name = "Limit", CSharpType = "int" },
-            new FilterTypePropertyModel { Name = "Window", CSharpType = "string" }));
+    public void EveryDeclaredPropertyIsEmitted()
+    {
+        var output = Emit(
+            Model(
+                "throttle",
+                new FilterTypePropertyModel { Name = "Limit", CSharpType = "int" },
+                new FilterTypePropertyModel { Name = "Window", CSharpType = "string" }
+            )
+        );
 
         Assert.Contains("public int Limit", output);
         Assert.Contains("public string Window", output);
     }
 
     [Fact]
-    public void APropertyWithNoDefaultGetsNoInitializer() {
-        var output = Emit(Model("throttle",
-            new FilterTypePropertyModel { Name = "Limit", CSharpType = "int" }));
+    public void APropertyWithNoDefaultGetsNoInitializer()
+    {
+        var output = Emit(
+            Model("throttle", new FilterTypePropertyModel { Name = "Limit", CSharpType = "int" })
+        );
 
         Assert.DoesNotContain("Limit { get; set; } =", output);
     }
@@ -114,30 +132,63 @@ public class FilterTypeEmitterTests {
     #region default values
 
     [Fact]
-    public void AnIntegerDefaultIsWrittenBare() {
+    public void AnIntegerDefaultIsWrittenBare()
+    {
         Assert.Contains(
             "= 100",
-            Emit(Model("throttle",
-                new FilterTypePropertyModel { Name = "Limit", CSharpType = "int", Default = "100" })));
+            Emit(
+                Model(
+                    "throttle",
+                    new FilterTypePropertyModel
+                    {
+                        Name = "Limit",
+                        CSharpType = "int",
+                        Default = "100",
+                    }
+                )
+            )
+        );
     }
 
     [Theory]
     [InlineData("long", "9000")]
     [InlineData("float", "1.5")]
     [InlineData("double", "2.25")]
-    public void EveryNumericDefaultIsWrittenBare(string csharpType, string value) {
+    public void EveryNumericDefaultIsWrittenBare(string csharpType, string value)
+    {
         Assert.Contains(
             $"= {value}",
-            Emit(Model("throttle",
-                new FilterTypePropertyModel { Name = "Value", CSharpType = csharpType, Default = value })));
+            Emit(
+                Model(
+                    "throttle",
+                    new FilterTypePropertyModel
+                    {
+                        Name = "Value",
+                        CSharpType = csharpType,
+                        Default = value,
+                    }
+                )
+            )
+        );
     }
 
     [Fact]
-    public void AStringDefaultIsQuoted() {
+    public void AStringDefaultIsQuoted()
+    {
         Assert.Contains(
             "= \"minute\"",
-            Emit(Model("throttle",
-                new FilterTypePropertyModel { Name = "Window", CSharpType = "string", Default = "minute" })));
+            Emit(
+                Model(
+                    "throttle",
+                    new FilterTypePropertyModel
+                    {
+                        Name = "Window",
+                        CSharpType = "string",
+                        Default = "minute",
+                    }
+                )
+            )
+        );
     }
 
     /// <summary>
@@ -146,11 +197,22 @@ public class FilterTypeEmitterTests {
     [Theory]
     [InlineData("say \"hi\"", "\"say \\\"hi\\\"\"")]
     [InlineData("back\\slash", "\"back\\\\slash\"")]
-    public void AStringDefaultIsEscaped(string declared, string expected) {
+    public void AStringDefaultIsEscaped(string declared, string expected)
+    {
         Assert.Contains(
             "= " + expected,
-            Emit(Model("throttle",
-                new FilterTypePropertyModel { Name = "Window", CSharpType = "string", Default = declared })));
+            Emit(
+                Model(
+                    "throttle",
+                    new FilterTypePropertyModel
+                    {
+                        Name = "Window",
+                        CSharpType = "string",
+                        Default = declared,
+                    }
+                )
+            )
+        );
     }
 
     /// <summary>
@@ -161,9 +223,19 @@ public class FilterTypeEmitterTests {
     [InlineData("true", "true")]
     [InlineData("False", "false")]
     [InlineData("FALSE", "false")]
-    public void ABooleanDefaultIsLowerCasedForCSharp(string declared, string expected) {
-        var output = Emit(Model("throttle",
-            new FilterTypePropertyModel { Name = "Enabled", CSharpType = "bool", Default = declared }));
+    public void ABooleanDefaultIsLowerCasedForCSharp(string declared, string expected)
+    {
+        var output = Emit(
+            Model(
+                "throttle",
+                new FilterTypePropertyModel
+                {
+                    Name = "Enabled",
+                    CSharpType = "bool",
+                    Default = declared,
+                }
+            )
+        );
 
         Assert.Contains("= " + expected, output);
     }
@@ -173,14 +245,20 @@ public class FilterTypeEmitterTests {
     /// enum, so a string literal would not compile.
     /// </summary>
     [Fact]
-    public void AnEnumDefaultIsQualifiedByItsType() {
-        var output = Emit(Model("throttle",
-            new FilterTypePropertyModel {
-                Name = "Mode",
-                CSharpType = "string",
-                EnumType = "Test.Api.Filters.ThrottleMode",
-                Default = "Sliding"
-            }));
+    public void AnEnumDefaultIsQualifiedByItsType()
+    {
+        var output = Emit(
+            Model(
+                "throttle",
+                new FilterTypePropertyModel
+                {
+                    Name = "Mode",
+                    CSharpType = "string",
+                    EnumType = "Test.Api.Filters.ThrottleMode",
+                    Default = "Sliding",
+                }
+            )
+        );
 
         Assert.Contains("= Test.Api.Filters.ThrottleMode.Sliding", output);
     }
@@ -189,13 +267,19 @@ public class FilterTypeEmitterTests {
     /// The enum type also becomes the property's type, not the declared <c>CSharpType</c>.
     /// </summary>
     [Fact]
-    public void AnEnumPropertyUsesTheEnumTypeRatherThanTheDeclaredOne() {
-        var output = Emit(Model("throttle",
-            new FilterTypePropertyModel {
-                Name = "Mode",
-                CSharpType = "string",
-                EnumType = "Test.Api.Filters.ThrottleMode"
-            }));
+    public void AnEnumPropertyUsesTheEnumTypeRatherThanTheDeclaredOne()
+    {
+        var output = Emit(
+            Model(
+                "throttle",
+                new FilterTypePropertyModel
+                {
+                    Name = "Mode",
+                    CSharpType = "string",
+                    EnumType = "Test.Api.Filters.ThrottleMode",
+                }
+            )
+        );
 
         Assert.Contains("ThrottleMode Mode", output);
         Assert.DoesNotContain("string Mode", output);
@@ -206,13 +290,22 @@ public class FilterTypeEmitterTests {
     /// which would produce something that does not compile.
     /// </summary>
     [Fact]
-    public void AnUnrecognisedTypeFallsBackToAQuotedLiteral() {
+    public void AnUnrecognisedTypeFallsBackToAQuotedLiteral()
+    {
         Assert.Contains(
             "= \"PT1M\"",
-            Emit(Model("throttle",
-                new FilterTypePropertyModel {
-                    Name = "Window", CSharpType = "TimeSpan", Default = "PT1M"
-                })));
+            Emit(
+                Model(
+                    "throttle",
+                    new FilterTypePropertyModel
+                    {
+                        Name = "Window",
+                        CSharpType = "TimeSpan",
+                        Default = "PT1M",
+                    }
+                )
+            )
+        );
     }
 
     #endregion

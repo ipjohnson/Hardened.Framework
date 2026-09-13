@@ -1,8 +1,8 @@
 using System;
 using CSharpAuthor;
 using Hardened.Generation.Models;
-using Hardened.Idl.Validation;
 using Hardened.Idl.Emitters;
+using Hardened.Idl.Validation;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
@@ -16,14 +16,15 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// composition, including which namespaces exist and which types carry
 /// <c>[ExcludeFromCodeCoverage]</c>, is <see cref="SpecFileEmitter"/>'s and is tested there.
 /// </remarks>
-internal static class EmitterHarness {
-
+internal static class EmitterHarness
+{
     internal const string RootNamespace = "Test.Api";
 
     internal const string ModelsNamespace = RootNamespace + ".Models";
 
     /// <summary>Emits into a namespace block and returns the file text, usings and all.</summary>
-    internal static string Write(Action<NamespaceDefinition> emit, string ns = ModelsNamespace) {
+    internal static string Write(Action<NamespaceDefinition> emit, string ns = ModelsNamespace)
+    {
         var file = new CSharpFileDefinition();
         var namespaceDefinition = new NamespaceDefinition(ns);
 
@@ -39,8 +40,14 @@ internal static class EmitterHarness {
     }
 
     internal static string Schema(SchemaModel schema) =>
-        Write(ns => SchemaEmitter.Emit(
-            ns, schema, ModelsNamespace, new PatternRegistry(RootNamespace + ".Validation", "petstore")));
+        Write(ns =>
+            SchemaEmitter.Emit(
+                ns,
+                schema,
+                ModelsNamespace,
+                new PatternRegistry(RootNamespace + ".Validation", "petstore")
+            )
+        );
 
     /// <summary>
     /// The same, with the schemas a property's <c>$ref</c> can resolve against.
@@ -51,18 +58,37 @@ internal static class EmitterHarness {
     /// the property alone.
     /// </remarks>
     internal static string Schema(
-        SchemaModel schema, System.Collections.Generic.List<SchemaModel> allSchemas) =>
-        Write(ns => SchemaEmitter.Emit(
-            ns, schema, ModelsNamespace,
-            new PatternRegistry(RootNamespace + ".Validation", "petstore"), allSchemas));
+        SchemaModel schema,
+        System.Collections.Generic.List<SchemaModel> allSchemas
+    ) =>
+        Write(ns =>
+            SchemaEmitter.Emit(
+                ns,
+                schema,
+                ModelsNamespace,
+                new PatternRegistry(RootNamespace + ".Validation", "petstore"),
+                allSchemas
+            )
+        );
 
     internal static string ServiceInterface(
-        ServiceModel service, bool bindCancellationToken = false) =>
-        Write(ns => ServiceInterfaceEmitter.Emit(
-                ns, service, ModelsNamespace, SpecResponseModel.Throws, bindCancellationToken),
-            RootNamespace + ".Services");
+        ServiceModel service,
+        bool bindCancellationToken = false
+    ) =>
+        Write(
+            ns =>
+                ServiceInterfaceEmitter.Emit(
+                    ns,
+                    service,
+                    ModelsNamespace,
+                    SpecResponseModel.Throws,
+                    bindCancellationToken
+                ),
+            RootNamespace + ".Services"
+        );
 
     internal static string JsonTypeInfo(
-        System.Collections.Generic.List<SchemaModel> schemas, string specFileName) =>
-        Write(ns => JsonTypeInfoEmitter.Emit(ns, schemas, ModelsNamespace, specFileName));
+        System.Collections.Generic.List<SchemaModel> schemas,
+        string specFileName
+    ) => Write(ns => JsonTypeInfoEmitter.Emit(ns, schemas, ModelsNamespace, specFileName));
 }

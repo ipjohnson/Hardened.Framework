@@ -11,15 +11,27 @@ namespace Hardened.IntegrationTests.AzureStream.SUT;
 /// refused after the line is printed, which is how a test outside the process makes the handler
 /// fail and sees the invocation reported failed.
 /// </remarks>
-public sealed class ObservedClickSink : IClickSink {
+public sealed class ObservedClickSink : IClickSink
+{
     private const string Marker = "HARDENED-OBSERVED ";
 
-    public void Record(Click click) {
+    public void Record(Click click)
+    {
         Console.Out.WriteLine(
-            Marker + JsonSerializer.Serialize(new { kind = "stream", id = click.Id, count = click.Count }));
+            Marker
+                + JsonSerializer.Serialize(
+                    new
+                    {
+                        kind = "stream",
+                        id = click.Id,
+                        count = click.Count,
+                    }
+                )
+        );
         Console.Out.Flush();
 
-        if (click.Count < 0) {
+        if (click.Count < 0)
+        {
             throw new InvalidOperationException($"refused {click.Id}: the count is negative");
         }
     }

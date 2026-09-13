@@ -17,74 +17,91 @@ namespace Hardened.Benchmarks.Infrastructure;
 ///
 /// <c>Program</c> runs this automatically before benchmarking; <c>--verify</c> runs it alone.
 /// </summary>
-public static class PipelineVerification {
-
-    public static bool Run(bool includeAspNet, TextWriter output) {
-        var harnesses = new List<IPipelineHarness> {
+public static class PipelineVerification
+{
+    public static bool Run(bool includeAspNet, TextWriter output)
+    {
+        var harnesses = new List<IPipelineHarness>
+        {
             new HardenedNativeHarness(),
             new HardenedFeatureHarness(),
-            new HardenedAspNetHarness()
+            new HardenedAspNetHarness(),
         };
 
-        if (includeAspNet) {
+        if (includeAspNet)
+        {
             harnesses.Add(new AspNetHarness(AspNetFlavor.MinimalApi, sourceGeneratedJson: false));
             harnesses.Add(new AspNetHarness(AspNetFlavor.Mvc, sourceGeneratedJson: false));
         }
 
-        try {
+        try
+        {
             return Verify(harnesses, output);
         }
-        finally {
-            foreach (var harness in harnesses) {
+        finally
+        {
+            foreach (var harness in harnesses)
+            {
                 harness.Dispose();
             }
         }
     }
 
-    private static bool Verify(List<IPipelineHarness> harnesses, TextWriter output) {
+    private static bool Verify(List<IPipelineHarness> harnesses, TextWriter output)
+    {
         var passed = true;
 
         output.WriteLine();
         output.WriteLine("Pipeline verification");
         output.WriteLine(new string('-', 100));
-        output.WriteLine($"{"pipeline",-22} {"scenario",-26} {"status",-7} body");
+        output.WriteLine($"{"pipeline", -22} {"scenario", -26} {"status", -7} body");
         output.WriteLine(new string('-', 100));
 
-        foreach (var scenario in Scenarios.Verification) {
+        foreach (var scenario in Scenarios.Verification)
+        {
             var bodies = new Dictionary<string, string>();
 
-            foreach (var harness in harnesses) {
+            foreach (var harness in harnesses)
+            {
                 var responseBody = new MemoryStream();
                 var status = harness.Execute(scenario, responseBody).GetAwaiter().GetResult();
                 var body = Encoding.UTF8.GetString(responseBody.ToArray());
 
                 // A successful route has to produce a payload; a miss is expected to produce
                 // nothing, so only the status is meaningful there.
-                var ok = status == scenario.ExpectedStatus &&
-                    (scenario.ExpectedStatus != 200 || body.Length > 0);
+                var ok =
+                    status == scenario.ExpectedStatus
+                    && (scenario.ExpectedStatus != 200 || body.Length > 0);
 
                 passed &= ok;
 
-                if (scenario.ExpectedStatus == 200) {
+                if (scenario.ExpectedStatus == 200)
+                {
                     bodies[harness.Name] = body;
                 }
 
                 var shown = body.Length > 46 ? body[..46] + "..." : body;
 
-                output.WriteLine($"{harness.Name,-22} {scenario.Name,-26} {status,-7} " +
-                    (ok
-                        ? shown
-                        : $"<< expected {scenario.ExpectedStatus}, got {status} " +
-                          $"{(body.Length == 0 ? "and no body" : shown)} >>"));
+                output.WriteLine(
+                    $"{harness.Name, -22} {scenario.Name, -26} {status, -7} "
+                        + (
+                            ok
+                                ? shown
+                                : $"<< expected {scenario.ExpectedStatus}, got {status} "
+                                    + $"{(body.Length == 0 ? "and no body" : shown)} >>"
+                        )
+                );
             }
 
             passed &= ReportBodyMismatches(scenario, bodies, output);
         }
 
         output.WriteLine(new string('-', 100));
-        output.WriteLine(passed
-            ? "OK - every pipeline returned the expected status, and all agreed on the response body."
-            : "FAILED - the pipelines are not doing equivalent work. Timings would be meaningless.");
+        output.WriteLine(
+            passed
+                ? "OK - every pipeline returned the expected status, and all agreed on the response body."
+                : "FAILED - the pipelines are not doing equivalent work. Timings would be meaningless."
+        );
         output.WriteLine();
 
         return passed;
@@ -96,24 +113,33 @@ public static class PipelineVerification {
     /// the actual values means one of them bound or computed something the others did not.
     /// </summary>
     private static bool ReportBodyMismatches(
-        RequestScenario scenario, Dictionary<string, string> bodies, TextWriter output) {
-        if (bodies.Count < 2) {
+        RequestScenario scenario,
+        Dictionary<string, string> bodies,
+        TextWriter output
+    )
+    {
+        if (bodies.Count < 2)
+        {
             return true;
         }
 
         var reference = bodies.First();
         var mismatches = bodies
-            .Where(entry => !string.Equals(entry.Value, reference.Value, StringComparison.OrdinalIgnoreCase))
+            .Where(entry =>
+                !string.Equals(entry.Value, reference.Value, StringComparison.OrdinalIgnoreCase)
+            )
             .ToList();
 
-        if (mismatches.Count == 0) {
+        if (mismatches.Count == 0)
+        {
             return true;
         }
 
         output.WriteLine($"  ! body mismatch on {scenario.Name}");
         output.WriteLine($"      {reference.Key}: {reference.Value}");
 
-        foreach (var mismatch in mismatches) {
+        foreach (var mismatch in mismatches)
+        {
             output.WriteLine($"      {mismatch.Key}: {mismatch.Value}");
         }
 

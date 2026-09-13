@@ -36,8 +36,9 @@ public sealed record StorageNotification(
     string EventType,
     string? EventTime,
     string? TimeCreated,
-    string? Updated) {
-
+    string? Updated
+)
+{
     /// <summary>
     /// The notification from the object's metadata as Cloud Storage writes it, in the JSON API's
     /// form or the CloudEvent's, which agree on every field name.
@@ -48,7 +49,12 @@ public sealed record StorageNotification(
     /// do.
     /// </remarks>
     public static StorageNotification From(
-        JsonElement metadata, string eventType, string? eventTime, string? bucket = null, string? name = null) =>
+        JsonElement metadata,
+        string eventType,
+        string? eventTime,
+        string? bucket = null,
+        string? name = null
+    ) =>
         new(
             String(metadata, "bucket") ?? bucket ?? "",
             String(metadata, "name") ?? name ?? "",
@@ -59,18 +65,22 @@ public sealed record StorageNotification(
             eventType,
             eventTime,
             String(metadata, "timeCreated"),
-            String(metadata, "updated"));
+            String(metadata, "updated")
+        );
 
     /// <summary>The notification as the handler's body.</summary>
-    public Stream Body() {
+    public Stream Body()
+    {
         var body = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(body)) {
+        using (var writer = new Utf8JsonWriter(body))
+        {
             writer.WriteStartObject();
             writer.WriteString("bucket", Bucket);
             writer.WriteString("name", Name);
 
-            if (Size is { } size) {
+            if (Size is { } size)
+            {
                 writer.WriteNumber("size", size);
             }
 
@@ -90,29 +100,38 @@ public sealed record StorageNotification(
     }
 
     private static string? String(JsonElement element, string name) =>
-        element.ValueKind == JsonValueKind.Object &&
-        element.TryGetProperty(name, out var value) &&
-        value.ValueKind == JsonValueKind.String
+        element.ValueKind == JsonValueKind.Object
+        && element.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
     /// <summary>A number or the text of one, as the wire form carries an int64 either way.</summary>
-    private static string? Text(JsonElement element, string name) {
-        if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(name, out var value)) {
+    private static string? Text(JsonElement element, string name)
+    {
+        if (
+            element.ValueKind != JsonValueKind.Object
+            || !element.TryGetProperty(name, out var value)
+        )
+        {
             return null;
         }
 
-        return value.ValueKind switch {
+        return value.ValueKind switch
+        {
             JsonValueKind.String => value.GetString(),
             JsonValueKind.Number => value.GetRawText(),
-            _ => null
+            _ => null,
         };
     }
 
-    private static long? Int64(JsonElement element, string name) {
+    private static long? Int64(JsonElement element, string name)
+    {
         var text = Text(element, name);
 
-        return text != null && long.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
+        return
+            text != null
+            && long.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var number)
             ? number
             : null;
     }

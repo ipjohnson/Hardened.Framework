@@ -19,13 +19,18 @@ namespace Hardened.Idl.Emitters;
 /// notice that something will go, not that it has gone.
 /// </para>
 /// </remarks>
-internal static class Deprecation {
-
-    public static void Apply(BaseOutputComponent component) {
+internal static class Deprecation
+{
+    public static void Apply(BaseOutputComponent component)
+    {
         component.AddAttribute(
             TypeDefinition.Get("System", "ObsoleteAttribute"),
-            new CodeOutputComponent("\"Declared deprecated by the specification.\"") { Indented = false },
-            new CodeOutputComponent("false") { Indented = false });
+            new CodeOutputComponent("\"Declared deprecated by the specification.\"")
+            {
+                Indented = false,
+            },
+            new CodeOutputComponent("false") { Indented = false }
+        );
 
         component.WrapInPragma("618");
     }

@@ -16,8 +16,10 @@ namespace Hardened.Aws.Lambda.Http;
 /// </remarks>
 [DependencyModule]
 [LambdaRuntimeModule]
-public partial class LambdaHttpModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class LambdaHttpModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IPayloadAdapter, LambdaHttpAdapter>();
     }
 }

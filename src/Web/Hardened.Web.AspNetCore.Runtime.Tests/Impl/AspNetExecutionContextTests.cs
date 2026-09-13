@@ -27,9 +27,10 @@ namespace Hardened.Web.AspNetCore.Runtime.Tests.Impl;
 /// like in an audit log. Neither had been executed on this host.
 /// </para>
 /// </remarks>
-public class AspNetExecutionContextTests {
-
-    private static AspNetExecutionContext Context(out DefaultHttpContext httpContext) {
+public class AspNetExecutionContextTests
+{
+    private static AspNetExecutionContext Context(out DefaultHttpContext httpContext)
+    {
         var services = new ServiceCollection();
 
         services.AddSingleton(Substitute.For<IKnownServices>());
@@ -50,7 +51,8 @@ public class AspNetExecutionContextTests {
     /// a singleton capture a scoped service.
     /// </summary>
     [Fact]
-    public void BothServiceProvidersAreTheRequestScope() {
+    public void BothServiceProvidersAreTheRequestScope()
+    {
         var context = Context(out var httpContext);
 
         Assert.Same(httpContext.RequestServices, context.RequestServices);
@@ -62,7 +64,8 @@ public class AspNetExecutionContextTests {
     /// hangs up rather than running to completion writing to a closed socket.
     /// </summary>
     [Fact]
-    public void TheCancellationTokenTracksRequestAborted() {
+    public void TheCancellationTokenTracksRequestAborted()
+    {
         using var aborted = new CancellationTokenSource();
 
         var context = Context(out var httpContext);
@@ -77,7 +80,8 @@ public class AspNetExecutionContextTests {
     }
 
     [Fact]
-    public void TheRequestAndResponseWrapTheHttpContexts() {
+    public void TheRequestAndResponseWrapTheHttpContexts()
+    {
         var context = Context(out var httpContext);
 
         Assert.Equal(httpContext.Request.Method, context.Request.Method);
@@ -85,12 +89,14 @@ public class AspNetExecutionContextTests {
     }
 
     [Fact]
-    public void KnownServicesComesFromTheContainer() {
+    public void KnownServicesComesFromTheContainer()
+    {
         Assert.NotNull(Context().KnownServices);
     }
 
     [Fact]
-    public void TheStartTimeIsTaken() {
+    public void TheStartTimeIsTaken()
+    {
         Assert.True(Context().StartTime.GetElapsedMilliseconds() >= 0);
     }
 
@@ -99,18 +105,21 @@ public class AspNetExecutionContextTests {
     /// adapter, so moving a handler between hosts does not change how it authenticates.
     /// </summary>
     [Fact]
-    public void ThePrincipalStartsAnonymous() {
+    public void ThePrincipalStartsAnonymous()
+    {
         Assert.Same(AnonymousCallerPrincipal.Instance, Context().CallerPrincipal);
         Assert.False(Context().CallerPrincipal.IsAuthenticated);
     }
 
     [Fact]
-    public void ACorrelationIdIsProducedWhenNoneWasSet() {
+    public void ACorrelationIdIsProducedWhenNoneWasSet()
+    {
         Assert.False(string.IsNullOrEmpty(Context().CorrelationId));
     }
 
     [Fact]
-    public void TheCorrelationIdIsStableWithinOneContext() {
+    public void TheCorrelationIdIsStableWithinOneContext()
+    {
         var context = Context();
 
         Assert.Equal(context.CorrelationId, context.CorrelationId);
@@ -124,7 +133,8 @@ public class AspNetExecutionContextTests {
         context.Clone(null, null, null, null);
 
     [Fact]
-    public void AForkIsADifferentContext() {
+    public void AForkIsADifferentContext()
+    {
         var context = Context();
 
         Assert.NotSame(context, Fork(context));
@@ -135,7 +145,8 @@ public class AspNetExecutionContextTests {
     /// on, since it forks without replacing anything.
     /// </summary>
     [Fact]
-    public void AForkKeepsTheRequestAndResponseWhenNoneAreSupplied() {
+    public void AForkKeepsTheRequestAndResponseWhenNoneAreSupplied()
+    {
         var context = Context();
         var fork = Fork(context);
 
@@ -144,7 +155,8 @@ public class AspNetExecutionContextTests {
     }
 
     [Fact]
-    public void AForkTakesASuppliedRequestAndResponse() {
+    public void AForkTakesASuppliedRequestAndResponse()
+    {
         var context = Context();
         var request = Substitute.For<IExecutionRequest>();
         var response = Substitute.For<IExecutionResponse>();
@@ -156,7 +168,8 @@ public class AspNetExecutionContextTests {
     }
 
     [Fact]
-    public void AForkTakesASuppliedMetricLogger() {
+    public void AForkTakesASuppliedMetricLogger()
+    {
         var context = Context();
         var metrics = Substitute.For<IMetricLogger>();
 
@@ -164,7 +177,8 @@ public class AspNetExecutionContextTests {
     }
 
     [Fact]
-    public void AForkKeepsTheMetricLoggerWhenNoneIsSupplied() {
+    public void AForkKeepsTheMetricLoggerWhenNoneIsSupplied()
+    {
         var context = Context();
 
         Assert.Same(context.RequestMetrics, Fork(context).RequestMetrics);
@@ -175,7 +189,8 @@ public class AspNetExecutionContextTests {
     /// re-running on the fork has to reach the same answer.
     /// </summary>
     [Fact]
-    public void AForkIsTheSameCaller() {
+    public void AForkIsTheSameCaller()
+    {
         var context = Context();
         var caller = new CallerPrincipal("bearer", ["pets:read"]);
 
@@ -190,14 +205,16 @@ public class AspNetExecutionContextTests {
     /// for.
     /// </summary>
     [Fact]
-    public void AForkReportsOneCorrelationId() {
+    public void AForkReportsOneCorrelationId()
+    {
         var context = Context();
 
         Assert.Equal(context.CorrelationId, Fork(context).CorrelationId);
     }
 
     [Fact]
-    public void AForkKeepsTheHandlerInstanceAndInfo() {
+    public void AForkKeepsTheHandlerInstanceAndInfo()
+    {
         var context = Context();
         var handler = new object();
         var info = Substitute.For<IExecutionRequestHandlerInfo>();
@@ -223,7 +240,8 @@ public class AspNetExecutionContextTests {
     /// so comparing the values says exactly what this test means and says it exactly.
     /// </remarks>
     [Fact]
-    public void AForkKeepsTheStartTime() {
+    public void AForkKeepsTheStartTime()
+    {
         var context = Context();
 
         Assert.Equal(context.StartTime, Fork(context).StartTime);
@@ -234,7 +252,8 @@ public class AspNetExecutionContextTests {
     /// same <c>HttpContext</c>, so a handler on the fork sees the client hang up.
     /// </summary>
     [Fact]
-    public void AForkStillSeesTheSameConnection() {
+    public void AForkStillSeesTheSameConnection()
+    {
         using var aborted = new CancellationTokenSource();
 
         var context = Context(out var httpContext);
@@ -251,7 +270,8 @@ public class AspNetExecutionContextTests {
     /// Forking a fork keeps the caller and the id, which is what three retry attempts actually do.
     /// </summary>
     [Fact]
-    public void ForkingAForkStillCarriesTheCallerAndId() {
+    public void ForkingAForkStillCarriesTheCallerAndId()
+    {
         var context = Context();
         var caller = new CallerPrincipal("bearer", ["pets:read"]);
 

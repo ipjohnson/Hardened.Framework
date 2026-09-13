@@ -1,7 +1,7 @@
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Microsoft.Kiota.Abstractions;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Kiota.Testing.Tests;
 
@@ -12,8 +12,8 @@ namespace Hardened.Kiota.Testing.Tests;
 /// Building one needs the harness's context, which only the harness makes, so construction over
 /// the pipeline is asserted in the Web integration application's suite.
 /// </remarks>
-public class KiotaClientRouteTests {
-
+public class KiotaClientRouteTests
+{
     /// <summary>The shape every Kiota client has: a request builder over one adapter.</summary>
     private sealed class GeneratedClient(IRequestAdapter adapter)
         : BaseRequestBuilder(adapter, "{+baseurl}", new Dictionary<string, object>());
@@ -25,39 +25,46 @@ public class KiotaClientRouteTests {
     private sealed class NestedBuilder(IRequestAdapter adapter, string id)
         : BaseRequestBuilder(adapter, "{+baseurl}/" + id, new Dictionary<string, object>());
 
-    private sealed class HandWritten(HttpClient http) {
+    private sealed class HandWritten(HttpClient http)
+    {
         public HttpClient Http { get; } = http;
     }
 
     private static readonly KiotaClientRoute Route = new();
 
     [Fact]
-    public void AKiotaClientIsRecognisedByItsShape() {
+    public void AKiotaClientIsRecognisedByItsShape()
+    {
         Assert.True(Route.CanBuild(typeof(GeneratedClient)));
     }
 
     [Fact]
-    public void AClientOverAnHttpClientIsNotThisRoutes() {
+    public void AClientOverAnHttpClientIsNotThisRoutes()
+    {
         Assert.False(Route.CanBuild(typeof(HandWritten)));
     }
 
     [Fact]
-    public void AnAbstractBuilderIsNotBuilt() {
+    public void AnAbstractBuilderIsNotBuilt()
+    {
         Assert.False(Route.CanBuild(typeof(AbstractBuilder)));
     }
 
     [Fact]
-    public void ABuilderNeedingMoreThanAnAdapterIsNotAClient() {
+    public void ABuilderNeedingMoreThanAnAdapterIsNotAClient()
+    {
         Assert.False(Route.CanBuild(typeof(NestedBuilder)));
     }
 
     [Fact]
-    public void AnInterfaceIsNotAClient() {
+    public void AnInterfaceIsNotAClient()
+    {
         Assert.False(Route.CanBuild(typeof(IRequestAdapter)));
     }
 
     [Fact]
-    public void TheAttributeNamesTheRoute() {
+    public void TheAttributeNamesTheRoute()
+    {
         TestClientRouteAttribute attribute = new KiotaTestingAttribute();
 
         Assert.Equal(typeof(KiotaClientRoute), attribute.RouteType);

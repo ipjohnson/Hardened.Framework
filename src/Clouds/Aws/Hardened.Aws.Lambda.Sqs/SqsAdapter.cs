@@ -24,7 +24,8 @@ namespace Hardened.Aws.Lambda.Sqs;
 /// missing route rather than a message handled by the wrong code.
 /// </para>
 /// </remarks>
-public sealed class SqsAdapter : IPayloadAdapter {
+public sealed class SqsAdapter : IPayloadAdapter
+{
     private readonly bool _reportsItemFailures;
 
     /// <param name="reportsItemFailures">
@@ -32,7 +33,8 @@ public sealed class SqsAdapter : IPayloadAdapter {
     /// default: a report sent to a mapping that did not ask for one is discarded and the whole
     /// batch marked successful, so guessing wrong here loses messages.
     /// </param>
-    public SqsAdapter(bool reportsItemFailures = false) {
+    public SqsAdapter(bool reportsItemFailures = false)
+    {
         _reportsItemFailures = reportsItemFailures;
     }
 
@@ -46,18 +48,20 @@ public sealed class SqsAdapter : IPayloadAdapter {
     /// <see cref="LambdaPayload.FirstRecord"/> for why the array alone recognises nothing.
     /// </remarks>
     public bool Handles(JsonElement payload) =>
-        LambdaPayload.FirstRecord(payload) is { } record &&
-        record.TryGetProperty(EventSource, out var source) &&
-        source.ValueKind == JsonValueKind.String &&
-        source.ValueEquals(EventSourceValue);
+        LambdaPayload.FirstRecord(payload) is { } record
+        && record.TryGetProperty(EventSource, out var source)
+        && source.ValueKind == JsonValueKind.String
+        && source.ValueEquals(EventSourceValue);
 
-    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
-        var batch = JsonSerializer.Deserialize(
-                        payload.Raw.Span, SqsSerializerContext.Default.SQSEvent)
-                    ?? throw new InvalidOperationException(
-                        "The SQS adapter was given a payload that deserialized to null. The peek " +
-                        "identified it by its records' aws:sqs event source, so this is a " +
-                        "malformed event rather than a different source.");
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context)
+    {
+        var batch =
+            JsonSerializer.Deserialize(payload.Raw.Span, SqsSerializerContext.Default.SQSEvent)
+            ?? throw new InvalidOperationException(
+                "The SQS adapter was given a payload that deserialized to null. The peek "
+                    + "identified it by its records' aws:sqs event source, so this is a "
+                    + "malformed event rather than a different source."
+            );
 
         var records = batch.Records ?? new List<SQSEvent.SQSMessage>();
 
@@ -67,9 +71,11 @@ public sealed class SqsAdapter : IPayloadAdapter {
             // the forks SqsRequest.ForRecord builds.
             new MemoryStream(payload.Raw.ToArray(), writable: false),
             new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>(
-                StringComparer.OrdinalIgnoreCase),
+                StringComparer.OrdinalIgnoreCase
+            ),
             records,
-            _reportsItemFailures);
+            _reportsItemFailures
+        );
     }
 
     /// <summary>
@@ -81,8 +87,10 @@ public sealed class SqsAdapter : IPayloadAdapter {
     /// one gives an empty name - both produce a route no handler declared, which the not-found
     /// handler reports with the value in hand rather than failing inside the adapter.
     /// </remarks>
-    internal static string QueueName(string? eventSourceArn) {
-        if (string.IsNullOrEmpty(eventSourceArn)) {
+    internal static string QueueName(string? eventSourceArn)
+    {
+        if (string.IsNullOrEmpty(eventSourceArn))
+        {
             return "";
         }
 
@@ -114,14 +122,17 @@ public sealed class SqsAdapter : IPayloadAdapter {
     /// of an SQS invocation is ignored unless the mapping asked for it.
     /// </para>
     /// </remarks>
-    public async ValueTask WriteResponse(IExecutionContext context, Stream output) {
+    public async ValueTask WriteResponse(IExecutionContext context, Stream output)
+    {
         await using var writer = new Utf8JsonWriter(output);
 
         writer.WriteStartObject();
         writer.WriteStartArray("batchItemFailures");
 
-        if (context.Request is SqsRequest batch) {
-            foreach (var messageId in batch.FailedMessageIds) {
+        if (context.Request is SqsRequest batch)
+        {
+            foreach (var messageId in batch.FailedMessageIds)
+            {
                 writer.WriteStartObject();
                 writer.WriteString("itemIdentifier", messageId);
                 writer.WriteEndObject();

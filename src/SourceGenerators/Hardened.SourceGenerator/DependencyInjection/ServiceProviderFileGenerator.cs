@@ -1,14 +1,17 @@
 using CSharpAuthor;
-using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
+using static CSharpAuthor.SyntaxHelpers;
 
 namespace Hardened.SourceGenerator.DependencyInjection;
 
-public class ServiceProviderFileGenerator {
+public class ServiceProviderFileGenerator
+{
     public void GenerateFile(
         SourceProductionContext sourceProductionContext,
-        EntryPointSelector.Model model) {
+        EntryPointSelector.Model model
+    )
+    {
         var diFile = new CSharpFileDefinition(model.EntryPointType.Namespace);
 
         // AddLogging, BuildServiceProvider and GetRequiredService are extension methods, and an
@@ -19,9 +22,8 @@ public class ServiceProviderFileGenerator {
         GenerateCode(model, diFile);
 
         var outputContext = new OutputContext(
-            new OutputContextOptions {
-                TypeOutputMode = TypeOutputMode.Global
-            });
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
 
         diFile.WriteOutput(outputContext);
 
@@ -30,7 +32,8 @@ public class ServiceProviderFileGenerator {
         sourceProductionContext.AddSource(fileName, GeneratedSource.Header(outputContext.Output()));
     }
 
-    private void GenerateCode(EntryPointSelector.Model model, CSharpFileDefinition diFile) {
+    private void GenerateCode(EntryPointSelector.Model model, CSharpFileDefinition diFile)
+    {
         var applicationDefinition = diFile.AddClass(model.EntryPointType.Name);
 
         applicationDefinition.Modifiers = ComponentModifier.Public | ComponentModifier.Partial;
@@ -40,38 +43,51 @@ public class ServiceProviderFileGenerator {
 
     private void GenerateCreateServiceProvider(
         EntryPointSelector.Model model,
-        ClassDefinition applicationDefinition) {
+        ClassDefinition applicationDefinition
+    )
+    {
         var providerMethod = applicationDefinition.AddMethod("CreateServiceProvider");
         providerMethod.Modifiers = ComponentModifier.Public;
 
         providerMethod.SetReturnType(KnownTypes.DI.ServiceProvider);
 
-        var environment =
-            providerMethod.AddParameter(KnownTypes.Application.IHardenedEnvironment, "environment");
+        var environment = providerMethod.AddParameter(
+            KnownTypes.Application.IHardenedEnvironment,
+            "environment"
+        );
 
         var overrideDependenciesDefinition = providerMethod.AddParameter(
             TypeDefinition
-                .Action(KnownTypes.Application.IHardenedEnvironment, KnownTypes.DI.IServiceCollection)
+                .Action(
+                    KnownTypes.Application.IHardenedEnvironment,
+                    KnownTypes.DI.IServiceCollection
+                )
                 .MakeNullable(),
-            "overrideDependencies");
+            "overrideDependencies"
+        );
 
-        ParameterDefinition loggingBuilderAction
-            = providerMethod.AddParameter(
-                TypeDefinition.Action(KnownTypes.Logging.ILoggingBuilder).MakeNullable(),
-                "loggingBuilderAction");
+        ParameterDefinition loggingBuilderAction = providerMethod.AddParameter(
+            TypeDefinition.Action(KnownTypes.Logging.ILoggingBuilder).MakeNullable(),
+            "loggingBuilderAction"
+        );
 
         var initAction = providerMethod.AddParameter(
             TypeDefinition
-                .Action(KnownTypes.Application.IHardenedEnvironment, KnownTypes.DI.IServiceCollection)
+                .Action(
+                    KnownTypes.Application.IHardenedEnvironment,
+                    KnownTypes.DI.IServiceCollection
+                )
                 .MakeNullable(),
-            "initDependencies");
+            "initDependencies"
+        );
 
         initAction.DefaultValue = Null();
 
         providerMethod.AddUsingNamespace("Microsoft.Extensions.DependencyInjection.Extensions");
 
-        var serviceCollectionDefinition =
-            providerMethod.Assign(New(KnownTypes.DI.ServiceCollection)).ToVar("serviceCollection");
+        var serviceCollectionDefinition = providerMethod
+            .Assign(New(KnownTypes.DI.ServiceCollection))
+            .ToVar("serviceCollection");
 
         providerMethod.NewLine();
 
@@ -81,8 +97,8 @@ public class ServiceProviderFileGenerator {
         loggerStatement.Indented = false;
 
         providerMethod.AddIndentedStatement(
-            serviceCollectionDefinition.Invoke(
-                "AddLogging", loggerStatement));
+            serviceCollectionDefinition.Invoke("AddLogging", loggerStatement)
+        );
 
         providerMethod.AddUsingNamespace(KnownTypes.Namespace.Hardened.Shared.Runtime.Logging);
 
@@ -101,17 +117,21 @@ public class ServiceProviderFileGenerator {
         providerMethod.NewLine();
 
         providerMethod.AddIndentedStatement(
-            "initDependencies?.Invoke(environment, serviceCollection)");
+            "initDependencies?.Invoke(environment, serviceCollection)"
+        );
 
         providerMethod.NewLine();
 
         providerMethod.AddIndentedStatement(
-            new CodeOutputComponent("this.PopulateServiceCollection(serviceCollection)") {
-                Indented = false
-            });
+            new CodeOutputComponent("this.PopulateServiceCollection(serviceCollection)")
+            {
+                Indented = false,
+            }
+        );
 
         providerMethod.AddIndentedStatement(
-            "overrideDependencies?.Invoke(environment, serviceCollection)");
+            "overrideDependencies?.Invoke(environment, serviceCollection)"
+        );
 
         providerMethod.NewLine();
 

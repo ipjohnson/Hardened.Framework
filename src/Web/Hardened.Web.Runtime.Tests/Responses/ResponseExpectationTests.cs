@@ -2,8 +2,8 @@ using System.Reflection;
 using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Responses;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Responses;
@@ -24,8 +24,8 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// for a response type added later.
 /// </para>
 /// </remarks>
-public class ResponseExpectationTests {
-
+public class ResponseExpectationTests
+{
     private sealed record Problem(string Detail);
 
     #region every expectation, round-tripped through its own headers
@@ -33,12 +33,16 @@ public class ResponseExpectationTests {
     /// <summary>
     /// Every response type that can be read back, closed over a body type where it takes one.
     /// </summary>
-    public static TheoryData<Type> Expectations {
-        get {
+    public static TheoryData<Type> Expectations
+    {
+        get
+        {
             var data = new TheoryData<Type>();
 
-            foreach (var type in typeof(NotFound).Assembly.GetExportedTypes()) {
-                if (type.GetCustomAttribute<HttpStatusAttribute>() == null) {
+            foreach (var type in typeof(NotFound).Assembly.GetExportedTypes())
+            {
+                if (type.GetCustomAttribute<HttpStatusAttribute>() == null)
+                {
                     continue;
                 }
 
@@ -46,7 +50,8 @@ public class ResponseExpectationTests {
                     ? type.MakeGenericType(typeof(string))
                     : type;
 
-                if (IsExpectation(closed)) {
+                if (IsExpectation(closed))
+                {
                     data.Add(closed);
                 }
             }
@@ -61,10 +66,12 @@ public class ResponseExpectationTests {
     /// constraint does not hold - and the types this has to answer no for are exactly those.
     /// </remarks>
     private static bool IsExpectation(Type type) =>
-        type.GetInterfaces().Any(contract =>
-            contract.IsGenericType &&
-            contract.GetGenericTypeDefinition() == typeof(IResponseExpectation<>) &&
-            contract.GenericTypeArguments[0] == type);
+        type.GetInterfaces()
+            .Any(contract =>
+                contract.IsGenericType
+                && contract.GetGenericTypeDefinition() == typeof(IResponseExpectation<>)
+                && contract.GenericTypeArguments[0] == type
+            );
 
     /// <summary>
     /// What a response writes, it can read back.
@@ -78,23 +85,29 @@ public class ResponseExpectationTests {
     /// </remarks>
     [Theory]
     [MemberData(nameof(Expectations))]
-    public void AnExpectation_ReadsBackWhatItWrote(Type type) {
+    public void AnExpectation_ReadsBackWhatItWrote(Type type)
+    {
         var response = (IHttpStatusResponse)Instantiate(type);
 
         var written = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        if (response is IProvidesResponseHeaders provider) {
+        if (response is IProvidesResponseHeaders provider)
+        {
             provider.ApplyHeaders(written);
         }
 
         var headers = written.ToDictionary(
-            header => header.Key, header => header.Value.ToString(), StringComparer.Ordinal);
+            header => header.Key,
+            header => header.Value.ToString(),
+            StringComparer.Ordinal
+        );
 
         var body = response is ICarriesResponseBody carrier ? carrier.Body : null;
 
-        var rebuilt = type
-            .GetMethod(nameof(IResponseExpectation<NoContent>.FromResponse),
-                BindingFlags.Public | BindingFlags.Static)!
+        var rebuilt = type.GetMethod(
+                    nameof(IResponseExpectation<NoContent>.FromResponse),
+                    BindingFlags.Public | BindingFlags.Static
+                )!
             .Invoke(null, [body, headers]);
 
         Assert.Equal(response.Status, ((IHttpStatusResponse)rebuilt!).Status);
@@ -105,9 +118,12 @@ public class ResponseExpectationTests {
     /// the wire are and a client reporting <c>location</c> is not reporting a different header.
     /// </summary>
     [Fact]
-    public void AHeaderIsFoundWhateverCaseTheClientReportedIt() {
+    public void AHeaderIsFoundWhateverCaseTheClientReportedIt()
+    {
         var created = Created<string>.FromResponse(
-            "body", new Dictionary<string, string>(StringComparer.Ordinal) { ["location"] = "/todos/1" });
+            "body",
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["location"] = "/todos/1" }
+        );
 
         Assert.Equal("/todos/1", created.Location);
     }
@@ -117,16 +133,21 @@ public class ResponseExpectationTests {
     #region the members each type reads
 
     [Fact]
-    public void Created_ReadsItsLocation() {
+    public void Created_ReadsItsLocation()
+    {
         Assert.Equal(
-            new Created<string>("body", "/todos/1"), RoundTrip(new Created<string>("body", "/todos/1")));
+            new Created<string>("body", "/todos/1"),
+            RoundTrip(new Created<string>("body", "/todos/1"))
+        );
     }
 
     [Fact]
-    public void RateLimited_ReadsItsDelay() {
+    public void RateLimited_ReadsItsDelay()
+    {
         Assert.Equal(
             new RateLimited<string>(TimeSpan.FromSeconds(30), "body"),
-            RoundTrip(new RateLimited<string>(TimeSpan.FromSeconds(30), "body")));
+            RoundTrip(new RateLimited<string>(TimeSpan.FromSeconds(30), "body"))
+        );
     }
 
     /// <summary>
@@ -135,34 +156,45 @@ public class ResponseExpectationTests {
     /// wait, which is the number that matters.
     /// </summary>
     [Fact]
-    public void RateLimited_ReadsTheDelayThatWasSentRatherThanTheOneGiven() {
+    public void RateLimited_ReadsTheDelayThatWasSentRatherThanTheOneGiven()
+    {
         Assert.Equal(
-            TimeSpan.FromSeconds(2), RoundTrip(new RateLimited<string>(TimeSpan.FromMilliseconds(1500), "b")).RetryAfter);
+            TimeSpan.FromSeconds(2),
+            RoundTrip(new RateLimited<string>(TimeSpan.FromMilliseconds(1500), "b")).RetryAfter
+        );
     }
 
     [Fact]
-    public void ServiceUnavailable_ReadsItsDelayAndItsAbsence() {
+    public void ServiceUnavailable_ReadsItsDelayAndItsAbsence()
+    {
         Assert.Equal(
             TimeSpan.FromSeconds(5),
-            RoundTrip(new ServiceUnavailable<string>("body", TimeSpan.FromSeconds(5))).After);
+            RoundTrip(new ServiceUnavailable<string>("body", TimeSpan.FromSeconds(5))).After
+        );
 
         Assert.Null(RoundTrip(new ServiceUnavailable<string>("body")).After);
     }
 
     [Fact]
-    public void MethodNotAllowed_ReadsItsAllowHeader() {
-        Assert.Equal("GET, HEAD", RoundTrip(new MethodNotAllowed<string>("body", "GET, HEAD")).Allow);
+    public void MethodNotAllowed_ReadsItsAllowHeader()
+    {
+        Assert.Equal(
+            "GET, HEAD",
+            RoundTrip(new MethodNotAllowed<string>("body", "GET, HEAD")).Allow
+        );
         Assert.Equal("GET, HEAD", RoundTrip(new MethodNotAllowed("GET, HEAD")).Allow);
     }
 
     [Fact]
-    public void Accepted_ReadsItsLocationAndItsAbsence() {
+    public void Accepted_ReadsItsLocationAndItsAbsence()
+    {
         Assert.Equal("/jobs/1", RoundTrip(new Accepted("/jobs/1")).Location);
         Assert.Null(RoundTrip(new Accepted()).Location);
     }
 
     [Fact]
-    public void NotModified_ReadsItsETagAndItsAbsence() {
+    public void NotModified_ReadsItsETagAndItsAbsence()
+    {
         Assert.Equal("\"abc\"", RoundTrip(new NotModified("\"abc\"")).ETag);
         Assert.Null(RoundTrip(new NotModified()).ETag);
     }
@@ -172,10 +204,14 @@ public class ResponseExpectationTests {
     /// scope that was required rather than on the string it was formatted into.
     /// </summary>
     [Fact]
-    public void Unauthorized_ReadsItsChallenge() {
+    public void Unauthorized_ReadsItsChallenge()
+    {
         var rebuilt = RoundTrip(
             new Unauthorized<Problem>(
-                new Problem("no token"), AuthorizationChallenge.InvalidToken("api", "it expired")));
+                new Problem("no token"),
+                AuthorizationChallenge.InvalidToken("api", "it expired")
+            )
+        );
 
         Assert.Equal("no token", rebuilt.Body.Detail);
         Assert.Equal("invalid_token", rebuilt.Challenge!.Error);
@@ -188,7 +224,8 @@ public class ResponseExpectationTests {
     /// rather than with the null it was built from.
     /// </summary>
     [Fact]
-    public void Unauthorized_ReadsBackTheChallengeItSentRatherThanNone() {
+    public void Unauthorized_ReadsBackTheChallengeItSentRatherThanNone()
+    {
         var rebuilt = RoundTrip(new Unauthorized<Problem>(new Problem("no token")));
 
         Assert.Equal(AuthorizationChallenge.BearerScheme, rebuilt.Challenge!.Scheme);
@@ -200,12 +237,16 @@ public class ResponseExpectationTests {
     /// apart, and a test asking for one wants it either way.
     /// </summary>
     [Fact]
-    public void Ok_ReadsEveryHeaderTheResponseCarried() {
+    public void Ok_ReadsEveryHeaderTheResponseCarried()
+    {
         var rebuilt = Ok<string>.FromResponse(
             "body",
-            new Dictionary<string, string>(StringComparer.Ordinal) {
-                ["ETag"] = "\"abc\"", ["X-Total-Count"] = "2",
-            });
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["ETag"] = "\"abc\"",
+                ["X-Total-Count"] = "2",
+            }
+        );
 
         Assert.Equal("body", rebuilt.Value);
         Assert.Equal("\"abc\"", rebuilt.Headers!["ETag"]);
@@ -217,9 +258,11 @@ public class ResponseExpectationTests {
     #region what it says when the response is not what was expected
 
     [Fact]
-    public void ABodyThatDidNotArrive_SaysWhatWasDeclared() {
-        var thrown = Assert.Throws<InvalidOperationException>(
-            () => ResponseExpectation.Body<Problem>(null));
+    public void ABodyThatDidNotArrive_SaysWhatWasDeclared()
+    {
+        var thrown = Assert.Throws<InvalidOperationException>(() =>
+            ResponseExpectation.Body<Problem>(null)
+        );
 
         Assert.Contains("Problem", thrown.Message, StringComparison.Ordinal);
         Assert.Contains("carried none", thrown.Message, StringComparison.Ordinal);
@@ -230,28 +273,36 @@ public class ResponseExpectationTests {
     /// body arrived, and it deserialised into a different model than the expectation names.
     /// </summary>
     [Fact]
-    public void ABodyOfAnotherType_NamesBothTypes() {
-        var thrown = Assert.Throws<InvalidOperationException>(
-            () => ResponseExpectation.Body<Problem>("a string"));
+    public void ABodyOfAnotherType_NamesBothTypes()
+    {
+        var thrown = Assert.Throws<InvalidOperationException>(() =>
+            ResponseExpectation.Body<Problem>("a string")
+        );
 
         Assert.Contains("Problem", thrown.Message, StringComparison.Ordinal);
         Assert.Contains("String", thrown.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AMissingRequiredHeader_ListsTheOnesThatWereThere() {
-        var thrown = Assert.Throws<InvalidOperationException>(
-            () => Created<string>.FromResponse(
-                "body", new Dictionary<string, string>(StringComparer.Ordinal) { ["ETag"] = "\"a\"" }));
+    public void AMissingRequiredHeader_ListsTheOnesThatWereThere()
+    {
+        var thrown = Assert.Throws<InvalidOperationException>(() =>
+            Created<string>.FromResponse(
+                "body",
+                new Dictionary<string, string>(StringComparer.Ordinal) { ["ETag"] = "\"a\"" }
+            )
+        );
 
         Assert.Contains(KnownHeaders.Location, thrown.Message, StringComparison.Ordinal);
         Assert.Contains("ETag", thrown.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AMissingRequiredHeaderOnAResponseWithNone_SaysSo() {
-        var thrown = Assert.Throws<InvalidOperationException>(
-            () => Created<string>.FromResponse("body", new Dictionary<string, string>()));
+    public void AMissingRequiredHeaderOnAResponseWithNone_SaysSo()
+    {
+        var thrown = Assert.Throws<InvalidOperationException>(() =>
+            Created<string>.FromResponse("body", new Dictionary<string, string>())
+        );
 
         Assert.Contains("nothing", thrown.Message, StringComparison.Ordinal);
     }
@@ -262,13 +313,17 @@ public class ResponseExpectationTests {
     /// as zero.
     /// </summary>
     [Fact]
-    public void ARetryAfterThatIsADate_IsRefusedRatherThanRead() {
-        var thrown = Assert.Throws<InvalidOperationException>(
-            () => RateLimited<string>.FromResponse(
+    public void ARetryAfterThatIsADate_IsRefusedRatherThanRead()
+    {
+        var thrown = Assert.Throws<InvalidOperationException>(() =>
+            RateLimited<string>.FromResponse(
                 "body",
-                new Dictionary<string, string>(StringComparer.Ordinal) {
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
                     [KnownHeaders.RetryAfter] = "Wed, 21 Oct 2026 07:28:00 GMT",
-                }));
+                }
+            )
+        );
 
         Assert.Contains("delta-seconds", thrown.Message, StringComparison.Ordinal);
     }
@@ -280,37 +335,41 @@ public class ResponseExpectationTests {
     /// testing library does.
     /// </summary>
     private static T RoundTrip<T>(T response)
-        where T : IHttpStatusResponse, IResponseExpectation<T> {
-
+        where T : IHttpStatusResponse, IResponseExpectation<T>
+    {
         var written = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        if (response is IProvidesResponseHeaders provider) {
+        if (response is IProvidesResponseHeaders provider)
+        {
             provider.ApplyHeaders(written);
         }
 
         return T.FromResponse(
             response is ICarriesResponseBody carrier ? carrier.Body : null,
             written.ToDictionary(
-                header => header.Key, header => header.Value.ToString(), StringComparer.Ordinal));
+                header => header.Key,
+                header => header.Value.ToString(),
+                StringComparer.Ordinal
+            )
+        );
     }
 
     /// <summary>
     /// One of each with whatever its constructor asks for, the same way BuiltInResponseTypeTests
     /// does it. The values are placeholders; only the round trip is asserted on.
     /// </summary>
-    private static object Instantiate(Type type) {
-        var constructor = type.GetConstructors()
-            .OrderBy(c => c.GetParameters().Length)
-            .First();
+    private static object Instantiate(Type type)
+    {
+        var constructor = type.GetConstructors().OrderBy(c => c.GetParameters().Length).First();
 
-        var arguments = constructor.GetParameters()
-            .Select(p => p.ParameterType == typeof(string)
-                ? "placeholder"
-                : p.ParameterType == typeof(TimeSpan)
-                    ? TimeSpan.FromSeconds(1)
-                    : p.HasDefaultValue
-                        ? p.DefaultValue
-                        : Activator.CreateInstance(p.ParameterType))
+        var arguments = constructor
+            .GetParameters()
+            .Select(p =>
+                p.ParameterType == typeof(string) ? "placeholder"
+                : p.ParameterType == typeof(TimeSpan) ? TimeSpan.FromSeconds(1)
+                : p.HasDefaultValue ? p.DefaultValue
+                : Activator.CreateInstance(p.ParameterType)
+            )
             .ToArray();
 
         return constructor.Invoke(arguments);

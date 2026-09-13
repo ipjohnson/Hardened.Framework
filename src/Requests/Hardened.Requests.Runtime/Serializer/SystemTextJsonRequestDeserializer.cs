@@ -28,10 +28,11 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// </remarks>
 [RequiresUnreferencedCode(Reason)]
 [RequiresDynamicCode(Reason)]
-public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
+public class SystemTextJsonRequestDeserializer : IRequestDeserializer
+{
     private const string Reason =
-        "Reads the model's shape by reflection. Import AotSerializerModule for a trimmed or " +
-        "AOT-published application, which registers the source-generated serializers instead.";
+        "Reads the model's shape by reflection. Import AotSerializerModule for a trimmed or "
+        + "AOT-published application, which registers the source-generated serializers instead.";
 
     private readonly JsonSerializerOptions _serializerOptions;
 
@@ -40,19 +41,24 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
     /// response serializer takes the same set — a context that governs how an enum is written has
     /// to govern how it is read, or the application answers 400 to its own output.
     /// </param>
-    public SystemTextJsonRequestDeserializer(IOptions<IJsonSerializerConfiguration> configuration,
-        IEnumerable<IJsonTypeInfoResolver> resolvers) {
-        _serializerOptions =
-            RequiredMemberPresence.Enforce(
-                Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
-                    configuration.Value.DeSerializerOptions ??
-                    new JsonSerializerOptions(JsonSerializerDefaults.Web),
-                    resolvers));
+    public SystemTextJsonRequestDeserializer(
+        IOptions<IJsonSerializerConfiguration> configuration,
+        IEnumerable<IJsonTypeInfoResolver> resolvers
+    )
+    {
+        _serializerOptions = RequiredMemberPresence.Enforce(
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.WithResolvers(
+                configuration.Value.DeSerializerOptions
+                    ?? new JsonSerializerOptions(JsonSerializerDefaults.Web),
+                resolvers
+            )
+        );
     }
 
     public bool IsDefaultSerializer => true;
 
-    public bool CanProcessContext(IExecutionContext context) {
+    public bool CanProcessContext(IExecutionContext context)
+    {
         return context.Request.ContentType?.Contains("application/json") ?? false;
     }
 
@@ -61,5 +67,8 @@ public class SystemTextJsonRequestDeserializer : IRequestDeserializer {
     /// before the bind, which is why this no longer looks at <c>Content-Encoding</c>.
     /// </summary>
     public ValueTask<T?> DeserializeRequestBody<T>(IExecutionContext context) =>
-        System.Text.Json.JsonSerializer.DeserializeAsync<T>(context.Request.Body, _serializerOptions);
+        System.Text.Json.JsonSerializer.DeserializeAsync<T>(
+            context.Request.Body,
+            _serializerOptions
+        );
 }

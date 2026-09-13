@@ -27,8 +27,10 @@ namespace Hardened.Web.AspNetCore.Runtime.Impl;
 /// status and the request stops here rather than falling through.
 /// </para>
 /// </remarks>
-public class AspNetResourceNotFoundHandler : IResourceNotFoundHandler {
-    public Task Handle(IExecutionChain chain) {
+public class AspNetResourceNotFoundHandler : IResourceNotFoundHandler
+{
+    public Task Handle(IExecutionChain chain)
+    {
         return chain.Next();
     }
 }

@@ -15,22 +15,28 @@ namespace Hardened.Azure.Functions.SourceGenerator.Tests;
 /// declare, fails here rather than in a fixture's build.
 /// </para>
 /// </summary>
-public class FamilyGenerationTests {
-
+public class FamilyGenerationTests
+{
     /// <summary>
     /// The schedule is an app setting named after the trigger, not an expression in the code, and
     /// the timer arrives as the host's JSON in a string.
     /// </summary>
     [Fact]
-    public async Task ATimerHandlerCompilesToATimerFunctionScheduledByAnAppSetting() {
+    public async Task ATimerHandlerCompilesToATimerFunctionScheduledByAnAppSetting()
+    {
         var result = Generate(
-            """
-                [Timer("nightly-rollup")]
-                public void Nightly() { }
-            """,
-            ("HardenedTimerModule", TimerModule)).AssertNoErrors();
+                """
+                    [Timer("nightly-rollup")]
+                    public void Nightly() { }
+                """,
+                ("HardenedTimerModule", TimerModule)
+            )
+            .AssertNoErrors();
 
-        Assert.Contains("TimerTrigger(\"%Hardened:Timers:nightly-rollup%\")] string timer", FunctionsSource(result));
+        Assert.Contains(
+            "TimerTrigger(\"%Hardened:Timers:nightly-rollup%\")] string timer",
+            FunctionsSource(result)
+        );
 
         var timer = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
 
@@ -48,20 +54,25 @@ public class FamilyGenerationTests {
     /// trigger without a connection fails the host at startup.
     /// </summary>
     [Fact]
-    public async Task AStreamHandlerCompilesToABatchedEventHubsFunction() {
+    public async Task AStreamHandlerCompilesToABatchedEventHubsFunction()
+    {
         var result = Generate(
-            """
-                [Stream("clickstream")]
-                public void OnClick(Order order) { }
-            """,
-            [("HardenedStreamModule", EventHubsModule)],
-            application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(ConsumerGroup = \"analytics\")]")
+                """
+                    [Stream("clickstream")]
+                    public void OnClick(Order order) { }
+                """,
+                [("HardenedStreamModule", EventHubsModule)],
+                application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(ConsumerGroup = \"analytics\")]"
+            )
             .AssertNoErrors();
 
         var functions = FunctionsSource(result);
 
         Assert.Contains("global::Azure.Messaging.EventHubs.EventData[] events", functions);
-        Assert.Contains("IsBatched = true, Connection = \"AzureWebJobsEventHubs\", ConsumerGroup = \"analytics\"", functions);
+        Assert.Contains(
+            "IsBatched = true, Connection = \"AzureWebJobsEventHubs\", ConsumerGroup = \"analytics\"",
+            functions
+        );
 
         var stream = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
 
@@ -83,14 +94,16 @@ public class FamilyGenerationTests {
     /// the one way a thrown batch comes back.
     /// </summary>
     [Fact]
-    public async Task AStreamHandlersRetryPolicyIsOnTheFunctionAndInTheMetadata() {
+    public async Task AStreamHandlersRetryPolicyIsOnTheFunctionAndInTheMetadata()
+    {
         var result = Generate(
-            """
-                [Stream("clickstream")]
-                public void OnClick(Order order) { }
-            """,
-            [("HardenedStreamModule", EventHubsModule)],
-            application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(RetryCount = 3, RetryDelay = \"00:00:10\")]")
+                """
+                    [Stream("clickstream")]
+                    public void OnClick(Order order) { }
+                """,
+                [("HardenedStreamModule", EventHubsModule)],
+                application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(RetryCount = 3, RetryDelay = \"00:00:10\")]"
+            )
             .AssertNoErrors();
 
         Assert.Contains("FixedDelayRetry(3, \"00:00:10\")", FunctionsSource(result));
@@ -105,14 +118,16 @@ public class FamilyGenerationTests {
 
     /// <summary>The same policy on a change feed function, whose lease the extension checkpoints the same way.</summary>
     [Fact]
-    public async Task AChangeHandlersRetryPolicyIsOnTheFunctionAndInTheMetadata() {
+    public async Task AChangeHandlersRetryPolicyIsOnTheFunctionAndInTheMetadata()
+    {
         var result = Generate(
-            """
-                [Change("orders")]
-                public void OnChange(Order order) { }
-            """,
-            [("HardenedChangeModule", CosmosDbModule)],
-            application: "[global::Hardened.Azure.Functions.CosmosDb.CosmosDbModule(Database = \"shop\", RetryCount = 2, RetryDelay = \"00:00:05\")]")
+                """
+                    [Change("orders")]
+                    public void OnChange(Order order) { }
+                """,
+                [("HardenedChangeModule", CosmosDbModule)],
+                application: "[global::Hardened.Azure.Functions.CosmosDb.CosmosDbModule(Database = \"shop\", RetryCount = 2, RetryDelay = \"00:00:05\")]"
+            )
             .AssertNoErrors();
 
         Assert.Contains("FixedDelayRetry(2, \"00:00:05\")", FunctionsSource(result));
@@ -125,13 +140,16 @@ public class FamilyGenerationTests {
 
     /// <summary>A module with no policy declares none, so the host applies its default of no retry.</summary>
     [Fact]
-    public async Task AStreamHandlerWithoutARetryPolicyDeclaresNone() {
+    public async Task AStreamHandlerWithoutARetryPolicyDeclaresNone()
+    {
         var result = Generate(
-            """
-                [Stream("clickstream")]
-                public void OnClick(Order order) { }
-            """,
-            ("HardenedStreamModule", EventHubsModule)).AssertNoErrors();
+                """
+                    [Stream("clickstream")]
+                    public void OnClick(Order order) { }
+                """,
+                ("HardenedStreamModule", EventHubsModule)
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain("FixedDelayRetry", FunctionsSource(result));
         Assert.Null(Assert.Single(await Provider(result).GetFunctionMetadataAsync("")).Retry);
@@ -142,14 +160,16 @@ public class FamilyGenerationTests {
     /// asked for retries, so the missing half is reported the way a missing database is.
     /// </summary>
     [Fact]
-    public void ARetryCountWithoutADelayIsReported() {
+    public void ARetryCountWithoutADelayIsReported()
+    {
         var result = Generate(
             """
                 [Stream("clickstream")]
                 public void OnClick(Order order) { }
             """,
             [("HardenedStreamModule", EventHubsModule)],
-            application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(RetryCount = 3)]");
+            application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(RetryCount = 3)]"
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDAZ003");
 
@@ -160,14 +180,16 @@ public class FamilyGenerationTests {
 
     /// <summary>The connection the application names replaces the default.</summary>
     [Fact]
-    public async Task AStreamHandlersConnectionComesFromTheModule() {
+    public async Task AStreamHandlersConnectionComesFromTheModule()
+    {
         var result = Generate(
-            """
-                [Stream("clickstream")]
-                public void OnClick(Order order) { }
-            """,
-            [("HardenedStreamModule", EventHubsModule)],
-            application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(Connection = \"Hubs\")]")
+                """
+                    [Stream("clickstream")]
+                    public void OnClick(Order order) { }
+                """,
+                [("HardenedStreamModule", EventHubsModule)],
+                application: "[global::Hardened.Azure.Functions.EventHubs.EventHubsModule(Connection = \"Hubs\")]"
+            )
             .AssertNoErrors();
 
         var stream = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
@@ -181,13 +203,15 @@ public class FamilyGenerationTests {
     /// trigger has no slot for; without it the build fails naming the module property to write.
     /// </summary>
     [Fact]
-    public void AChangeHandlerWithoutADatabaseIsReported() {
+    public void AChangeHandlerWithoutADatabaseIsReported()
+    {
         var result = Generate(
             """
                 [Change("orders")]
                 public void OnChange(Order order) { }
             """,
-            ("HardenedChangeModule", CosmosDbModule));
+            ("HardenedChangeModule", CosmosDbModule)
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDAZ003");
 
@@ -201,17 +225,22 @@ public class FamilyGenerationTests {
     /// binding carries the database, the container and the lease container's creation.
     /// </summary>
     [Fact]
-    public async Task AChangeHandlerWithADatabaseCompilesToAChangeFeedFunction() {
+    public async Task AChangeHandlerWithADatabaseCompilesToAChangeFeedFunction()
+    {
         var result = Generate(
-            """
-                [Change("orders")]
-                public void OnChange(Order order) { }
-            """,
-            [("HardenedChangeModule", CosmosDbModule)],
-            application: "[global::Hardened.Azure.Functions.CosmosDb.CosmosDbModule(Database = \"orders-db\", LeaseContainer = \"feed-leases\")]")
+                """
+                    [Change("orders")]
+                    public void OnChange(Order order) { }
+                """,
+                [("HardenedChangeModule", CosmosDbModule)],
+                application: "[global::Hardened.Azure.Functions.CosmosDb.CosmosDbModule(Database = \"orders-db\", LeaseContainer = \"feed-leases\")]"
+            )
             .AssertNoErrors();
 
-        Assert.Contains("CosmosDBTrigger(\"orders-db\", \"orders\", LeaseContainerName = \"feed-leases\", CreateLeaseContainerIfNotExists = true)] string documents", FunctionsSource(result));
+        Assert.Contains(
+            "CosmosDBTrigger(\"orders-db\", \"orders\", LeaseContainerName = \"feed-leases\", CreateLeaseContainerIfNotExists = true)] string documents",
+            FunctionsSource(result)
+        );
 
         var change = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
 
@@ -231,13 +260,16 @@ public class FamilyGenerationTests {
     /// scanning the container.
     /// </summary>
     [Fact]
-    public async Task ABlobHandlerCompilesToAnEventGridFedBlobFunction() {
+    public async Task ABlobHandlerCompilesToAnEventGridFedBlobFunction()
+    {
         var result = Generate(
-            """
-                [Blob("uploads")]
-                public void OnUpload(Order order) { }
-            """,
-            ("HardenedBlobModule", BlobsModule)).AssertNoErrors();
+                """
+                    [Blob("uploads")]
+                    public void OnUpload(Order order) { }
+                """,
+                ("HardenedBlobModule", BlobsModule)
+            )
+            .AssertNoErrors();
 
         Assert.Contains("global::Azure.Storage.Blobs.BlobClient blob", FunctionsSource(result));
 
@@ -257,16 +289,19 @@ public class FamilyGenerationTests {
     /// one function and which handler runs is a question about the event.
     /// </summary>
     [Fact]
-    public async Task EventHandlersCompileToOneEventGridFunction() {
+    public async Task EventHandlersCompileToOneEventGridFunction()
+    {
         var result = Generate(
-            """
-                [Event("com.acme.orders", "OrderPlaced")]
-                public void OnPlaced(Order order) { }
+                """
+                    [Event("com.acme.orders", "OrderPlaced")]
+                    public void OnPlaced(Order order) { }
 
-                [Event("com.acme.orders", "OrderCancelled")]
-                public void OnCancelled(Order order) { }
-            """,
-            ("HardenedEventModule", EventGridModule)).AssertNoErrors();
+                    [Event("com.acme.orders", "OrderCancelled")]
+                    public void OnCancelled(Order order) { }
+                """,
+                ("HardenedEventModule", EventGridModule)
+            )
+            .AssertNoErrors();
 
         Assert.Contains("EventGridTrigger] string cloudEvent", FunctionsSource(result));
 
@@ -285,11 +320,13 @@ public class FamilyGenerationTests {
     /// function to be written: a generator sees only the compilation it runs in.
     /// </summary>
     [Fact]
-    public async Task AnApplicationNamingTheHttpModuleServesRoutesFromAnotherProject() {
+    public async Task AnApplicationNamingTheHttpModuleServesRoutesFromAnotherProject()
+    {
         var result = Generate(
-            "",
-            [("HardenedHttpModule", HttpModule)],
-            application: "[global::Hardened.Azure.Functions.Http.HttpModule]")
+                "",
+                [("HardenedHttpModule", HttpModule)],
+                application: "[global::Hardened.Azure.Functions.Http.HttpModule]"
+            )
             .AssertNoErrors();
 
         var function = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
@@ -303,21 +340,30 @@ public class FamilyGenerationTests {
     /// answering with the worker's response data, and the provider lists its return binding.
     /// </summary>
     [Fact]
-    public async Task WebVerbsCompileToOneCatchAllHttpFunction() {
+    public async Task WebVerbsCompileToOneCatchAllHttpFunction()
+    {
         var result = Generate(
-            """
-                [Get("/orders/{id}")]
-                public Order Get(string id) => new();
+                """
+                    [Get("/orders/{id}")]
+                    public Order Get(string id) => new();
 
-                [Post("/orders")]
-                public Order Place(Order order) => order;
-            """,
-            ("HardenedHttpModule", HttpModule)).AssertNoErrors();
+                    [Post("/orders")]
+                    public Order Place(Order order) => order;
+                """,
+                ("HardenedHttpModule", HttpModule)
+            )
+            .AssertNoErrors();
 
         var functions = FunctionsSource(result);
 
-        Assert.Contains("Route = \"{*path}\")] global::Microsoft.Azure.Functions.Worker.Http.HttpRequestData request", functions);
-        Assert.Contains("global::System.Threading.Tasks.Task<global::Microsoft.Azure.Functions.Worker.Http.HttpResponseData> Http(", functions);
+        Assert.Contains(
+            "Route = \"{*path}\")] global::Microsoft.Azure.Functions.Worker.Http.HttpRequestData request",
+            functions
+        );
+        Assert.Contains(
+            "global::System.Threading.Tasks.Task<global::Microsoft.Azure.Functions.Worker.Http.HttpResponseData> Http(",
+            functions
+        );
 
         var function = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
 
@@ -329,7 +375,10 @@ public class FamilyGenerationTests {
         Assert.Contains("\"type\":\"httpTrigger\"", trigger);
         Assert.Contains("\"authLevel\":\"Anonymous\"", trigger);
         Assert.Contains("\"route\":\"{*path}\"", trigger);
-        Assert.Contains("\"methods\":[\"get\",\"post\",\"put\",\"patch\",\"delete\",\"head\",\"options\"]", trigger);
+        Assert.Contains(
+            "\"methods\":[\"get\",\"post\",\"put\",\"patch\",\"delete\",\"head\",\"options\"]",
+            trigger
+        );
         Assert.Contains("\"name\":\"$return\"", function.RawBindings[1]);
     }
 }

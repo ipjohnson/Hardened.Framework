@@ -26,8 +26,8 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// would not show that anything ran.
 /// </para>
 /// </remarks>
-public class ApplicationFilterRungTests {
-
+public class ApplicationFilterRungTests
+{
     private const string Instance = "instance";
     private const string Io = "io";
     private const string Invoke = "invoke";
@@ -38,45 +38,68 @@ public class ApplicationFilterRungTests {
     /// A filter attribute of the shape an application declares on its module class: it decides for
     /// itself which handlers it applies to, and installs nothing on the rest.
     /// </summary>
-    private sealed class RecordingAttribute : Attribute, IRequestFilterProvider {
+    private sealed class RecordingAttribute : Attribute, IRequestFilterProvider
+    {
         private readonly List<string> _log;
         private readonly string _name;
         private readonly int? _order;
         private readonly string? _method;
 
         public RecordingAttribute(
-            List<string> log, string name, int? order = null, string? method = null) {
+            List<string> log,
+            string name,
+            int? order = null,
+            string? method = null
+        )
+        {
             _log = log;
             _name = name;
             _order = order;
             _method = method;
         }
 
-        public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
-            if (_method != null && !string.Equals(handlerInfo.Method, _method, StringComparison.Ordinal)) {
+        public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+        {
+            if (
+                _method != null
+                && !string.Equals(handlerInfo.Method, _method, StringComparison.Ordinal)
+            )
+            {
                 yield break;
             }
 
-            yield return new RequestFilterInfo(_ => new Pipeline.Recording(_log, _name), _order, _name);
+            yield return new RequestFilterInfo(
+                _ => new Pipeline.Recording(_log, _name),
+                _order,
+                _name
+            );
         }
     }
 
     /// <summary>A second type, so a declaration can be suppressed by one and not by the other.</summary>
-    private sealed class OtherRecordingAttribute : Attribute, IRequestFilterProvider {
+    private sealed class OtherRecordingAttribute : Attribute, IRequestFilterProvider
+    {
         private readonly List<string> _log;
 
-        public OtherRecordingAttribute(List<string> log) {
+        public OtherRecordingAttribute(List<string> log)
+        {
             _log = log;
         }
 
-        public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
+        public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+        {
             yield return new RequestFilterInfo(
-                _ => new Pipeline.Recording(_log, "other"), FilterOrder.Before, "other");
+                _ => new Pipeline.Recording(_log, "other"),
+                FilterOrder.Before,
+                "other"
+            );
         }
     }
 
-    private sealed class Declarations : IApplicationFilterDeclarations {
-        public Declarations(params object[] declared) {
+    private sealed class Declarations : IApplicationFilterDeclarations
+    {
+        public Declarations(params object[] declared)
+        {
             Declared = declared;
         }
 
@@ -84,8 +107,10 @@ public class ApplicationFilterRungTests {
     }
 
     /// <summary>Declarations written in a compilation the handler does not belong to.</summary>
-    private sealed class ForeignDeclarations : IApplicationFilterDeclarations {
-        public ForeignDeclarations(params object[] declared) {
+    private sealed class ForeignDeclarations : IApplicationFilterDeclarations
+    {
+        public ForeignDeclarations(params object[] declared)
+        {
             Declared = declared;
         }
 
@@ -103,40 +128,59 @@ public class ApplicationFilterRungTests {
         IApplicationFilterDeclarations[]? declarations,
         object[]? metadata = null,
         string method = "GET",
-        IRequestFilterProvider[]? handlerProviders = null) {
+        IRequestFilterProvider[]? handlerProviders = null
+    )
+    {
         var ioProvider = Substitute.For<IIOFilterProvider>();
 
-        ioProvider.ProvideFilter(
+        ioProvider
+            .ProvideFilter(
                 Arg.Any<IExecutionRequestHandlerInfo>(),
-                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>())
+                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>()
+            )
             .Returns(new Pipeline.Recording(log, Io));
 
         var instanceProvider = Substitute.For<IInstanceFilterProvider>();
 
-        instanceProvider.ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
+        instanceProvider
+            .ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
             .Returns(new Pipeline.Recording(log, Instance));
 
-        var context = Pipeline.Context(method: method, configureServices: services => {
-            services.AddSingleton<IGlobalFilterRegistry>(
-                new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>()));
-            services.AddSingleton(ioProvider);
-            services.AddSingleton(instanceProvider);
+        var context = Pipeline.Context(
+            method: method,
+            configureServices: services =>
+            {
+                services.AddSingleton<IGlobalFilterRegistry>(
+                    new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>())
+                );
+                services.AddSingleton(ioProvider);
+                services.AddSingleton(instanceProvider);
 
-            foreach (var module in declarations ?? Array.Empty<IApplicationFilterDeclarations>()) {
-                services.AddSingleton(module);
+                foreach (
+                    var module in declarations ?? Array.Empty<IApplicationFilterDeclarations>()
+                )
+                {
+                    services.AddSingleton(module);
+                }
             }
-        });
+        );
 
         context.HandlerInstance = new Controller();
 
         var handlerInfo = new ExecutionRequestHandlerInfo(
-            "/books", method, typeof(Controller), nameof(Run), metadata: metadata);
+            "/books",
+            method,
+            typeof(Controller),
+            nameof(Run),
+            metadata: metadata
+        );
 
         var setup = ExecutionHelper.StandardFilterEmptyParameters<Controller>(
             context.RequestServices,
             handlerInfo,
             (_, _) => log.Add(Invoke),
-            handlerProviders ?? Array.Empty<IRequestFilterProvider>());
+            handlerProviders ?? Array.Empty<IRequestFilterProvider>()
+        );
 
         await new ExecutionChain(setup.Filters, context).Next();
 
@@ -148,7 +192,8 @@ public class ApplicationFilterRungTests {
     /// point: one attribute on the module class covers the application.
     /// </summary>
     [Fact]
-    public async Task ADeclarationReachesAHandlerThatCarriesNone() {
+    public async Task ADeclarationReachesAHandlerThatCarriesNone()
+    {
         var log = new List<string>();
 
         var (ran, _) = await Run(log, [new Declarations(new RecordingAttribute(log, "wide"))]);
@@ -162,7 +207,8 @@ public class ApplicationFilterRungTests {
     /// <c>ConditionalGetAttribute.Declares</c> asks.
     /// </summary>
     [Fact]
-    public async Task ADeclarationThatReachesAHandlerIsInItsMetadata() {
+    public async Task ADeclarationThatReachesAHandlerIsInItsMetadata()
+    {
         var log = new List<string>();
         var declared = new RecordingAttribute(log, "wide");
 
@@ -176,13 +222,18 @@ public class ApplicationFilterRungTests {
     /// so the filter is installed once rather than twice.
     /// </summary>
     [Fact]
-    public async Task AHandlerDeclaringTheSameTypeSuppressesTheWiderOne() {
+    public async Task AHandlerDeclaringTheSameTypeSuppressesTheWiderOne()
+    {
         var log = new List<string>();
         var own = new RecordingAttribute(log, "own");
         var wide = new RecordingAttribute(log, "wide");
 
         var (ran, composed) = await Run(
-            log, [new Declarations(wide)], metadata: [own], handlerProviders: [own]);
+            log,
+            [new Declarations(wide)],
+            metadata: [own],
+            handlerProviders: [own]
+        );
 
         Assert.Contains("own", ran);
         Assert.DoesNotContain("wide", ran);
@@ -194,13 +245,18 @@ public class ApplicationFilterRungTests {
     /// declaration on the handler suppresses nothing.
     /// </summary>
     [Fact]
-    public async Task ADeclarationOfAnotherTypeSuppressesNothing() {
+    public async Task ADeclarationOfAnotherTypeSuppressesNothing()
+    {
         var log = new List<string>();
         var other = new OtherRecordingAttribute(log);
         var wide = new RecordingAttribute(log, "wide");
 
         var (ran, _) = await Run(
-            log, [new Declarations(wide)], metadata: [other], handlerProviders: [other]);
+            log,
+            [new Declarations(wide)],
+            metadata: [other],
+            handlerProviders: [other]
+        );
 
         Assert.Contains("wide", ran);
         Assert.Contains("other", ran);
@@ -212,13 +268,15 @@ public class ApplicationFilterRungTests {
     /// writes alone.
     /// </summary>
     [Fact]
-    public async Task ADeclarationInstallsNothingOnAHandlerItDoesNotApplyTo() {
+    public async Task ADeclarationInstallsNothingOnAHandlerItDoesNotApplyTo()
+    {
         var log = new List<string>();
 
         var (ran, _) = await Run(
             log,
             [new Declarations(new RecordingAttribute(log, "wide", method: "GET"))],
-            method: "POST");
+            method: "POST"
+        );
 
         Assert.DoesNotContain("wide", ran);
     }
@@ -229,7 +287,8 @@ public class ApplicationFilterRungTests {
     /// declaration was written first.
     /// </summary>
     [Fact]
-    public async Task AWiderDeclarationRunsAheadOfTheHandlersOwnAtTheSameOrder() {
+    public async Task AWiderDeclarationRunsAheadOfTheHandlersOwnAtTheSameOrder()
+    {
         var log = new List<string>();
         var own = new RecordingAttribute(log, "own", FilterOrder.Before);
         var wide = new OtherRecordingAttribute(log);
@@ -244,13 +303,17 @@ public class ApplicationFilterRungTests {
     /// last. A process composes as many modules as it references.
     /// </summary>
     [Fact]
-    public async Task EveryModuleThatDeclaresSomethingContributes() {
+    public async Task EveryModuleThatDeclaresSomethingContributes()
+    {
         var log = new List<string>();
 
-        var (ran, _) = await Run(log, [
-            new Declarations(new RecordingAttribute(log, "first")),
-            new Declarations(new OtherRecordingAttribute(log))
-        ]);
+        var (ran, _) = await Run(
+            log,
+            [
+                new Declarations(new RecordingAttribute(log, "first")),
+                new Declarations(new OtherRecordingAttribute(log)),
+            ]
+        );
 
         Assert.Contains("first", ran);
         Assert.Contains("other", ran);
@@ -262,11 +325,14 @@ public class ApplicationFilterRungTests {
     /// document written before this application existed.
     /// </summary>
     [Fact]
-    public async Task DeclarationsFromAnotherCompilationReachNothing() {
+    public async Task DeclarationsFromAnotherCompilationReachNothing()
+    {
         var log = new List<string>();
 
-        var (ran, composed) =
-            await Run(log, [new ForeignDeclarations(new RecordingAttribute(log, "wide"))]);
+        var (ran, composed) = await Run(
+            log,
+            [new ForeignDeclarations(new RecordingAttribute(log, "wide"))]
+        );
 
         Assert.DoesNotContain("wide", ran);
         Assert.Empty(composed.Metadata);
@@ -277,7 +343,8 @@ public class ApplicationFilterRungTests {
     /// the chain it composed before this existed.
     /// </summary>
     [Fact]
-    public async Task NothingRegisteredChangesNothing() {
+    public async Task NothingRegisteredChangesNothing()
+    {
         var (ran, composed) = await Run(new List<string>(), declarations: null);
 
         Assert.Equal([Instance, Io, Invoke], ran);

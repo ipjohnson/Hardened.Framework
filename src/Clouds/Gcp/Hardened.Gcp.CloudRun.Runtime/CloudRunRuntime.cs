@@ -37,24 +37,27 @@ namespace Hardened.Gcp.CloudRun.Runtime;
 /// </remarks>
 [DependencyModule]
 [KestrelRuntime]
-public partial class CloudRunRuntime : IServiceCollectionConfiguration {
-
+public partial class CloudRunRuntime : IServiceCollectionConfiguration
+{
     /// <summary>
     /// A static field initializer merges into the type's static constructor, so this is
     /// registered before the first instance exists and before the registry is read - the same
     /// arrangement the function generator uses for its own registrations.
     /// </summary>
     [DynamicDependency(nameof(ComposeDispatch))]
-    private static readonly int _composeDispatch =
-        DependencyRegistry<CloudRunRuntime>.AddDecorator(ComposeDispatch);
+    private static readonly int _composeDispatch = DependencyRegistry<CloudRunRuntime>.AddDecorator(
+        ComposeDispatch
+    );
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         // TryAddEnumerable rather than Add: a startup service registered twice runs twice, and
         // this one puts the front door in the middleware chain - so a second registration would
         // unwrap every envelope twice. An adapter module composing this one beside an application
         // that also declared it reaches here twice.
         services.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IStartupService, TriggerFrontDoorStartupService>());
+            ServiceDescriptor.Singleton<IStartupService, TriggerFrontDoorStartupService>()
+        );
     }
 
     private static void ComposeDispatch(IServiceCollection services) =>

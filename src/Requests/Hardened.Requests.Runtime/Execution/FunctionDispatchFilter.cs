@@ -25,22 +25,29 @@ namespace Hardened.Requests.Runtime.Execution;
 /// one, and keying on the path alone made them collide.
 /// </para>
 /// </remarks>
-public class FunctionDispatchFilter : IHandlerDispatch {
-    public async Task Execute(IExecutionChain chain) {
+public class FunctionDispatchFilter : IHandlerDispatch
+{
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
         var provider = context.RequestServices.GetRequiredService<IFunctionHandlerProvider>();
 
         var handler = provider.GetFunctionHandler(
-            context.Request.Method, context.Request.Path, context.RequestServices);
+            context.Request.Method,
+            context.Request.Path,
+            context.RequestServices
+        );
 
-        if (handler == null) {
+        if (handler == null)
+        {
             // Raised rather than answered with a status: this family rethrows, and a payload
             // arriving at a function with no handler for it means the deployment wired a source
             // the code does not serve. Answering would tell the source it was handled.
             throw new InvalidOperationException(
-                $"No handler is registered for {context.Request.Method} {context.Request.Path}. " +
-                "An event source is wired to this function that no trigger attribute declared.");
+                $"No handler is registered for {context.Request.Method} {context.Request.Path}. "
+                    + "An event source is wired to this function that no trigger attribute declared."
+            );
         }
 
         await handler.GetExecutionChain(context).Next();

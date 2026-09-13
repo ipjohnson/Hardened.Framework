@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Logging;
 using Hardened.Requests.Testing.Conformance;
 using Hardened.Shared.Runtime.Metrics;
@@ -8,17 +9,18 @@ using Hardened.Web.Kestrel.Runtime.Tests.Impl;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
-using Hardened.Requests.Runtime.Execution;
 
 namespace Hardened.Web.Kestrel.Runtime.Tests.Conformance;
 
 /// <summary>
 /// Kestrel's half of <see cref="RequestTelemetryConformanceTests"/>.
 /// </summary>
-public class FeatureTelemetryConformanceTests : RequestTelemetryConformanceTests {
+public class FeatureTelemetryConformanceTests : RequestTelemetryConformanceTests
+{
     protected override IRequestTelemetryConformanceAdapter Adapter { get; } = new KestrelAdapter();
 
-    private sealed class KestrelAdapter : IRequestTelemetryConformanceAdapter {
+    private sealed class KestrelAdapter : IRequestTelemetryConformanceAdapter
+    {
         public string TransportName => "Kestrel";
 
         /// <summary>
@@ -30,22 +32,29 @@ public class FeatureTelemetryConformanceTests : RequestTelemetryConformanceTests
         /// middleware is still a substitute, because what is under test is whether the host reports
         /// the request at all, not what a handler does inside it.
         /// </remarks>
-        public async Task Dispatch(TelemetryConformanceRequest request) {
+        public async Task Dispatch(TelemetryConformanceRequest request)
+        {
             IExecutionContext? executionContext = null;
 
             var chain = Substitute.For<IExecutionChain>();
-            chain.Next().Returns(_ => {
-                request.Handler?.Invoke(executionContext!);
+            chain
+                .Next()
+                .Returns(_ =>
+                {
+                    request.Handler?.Invoke(executionContext!);
 
-                return Task.CompletedTask;
-            });
+                    return Task.CompletedTask;
+                });
 
             var middlewareService = Substitute.For<IMiddlewareService>();
-            middlewareService.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(callInfo => {
-                executionContext = callInfo.Arg<IExecutionContext>();
+            middlewareService
+                .GetExecutionChain(Arg.Any<IExecutionContext>())
+                .Returns(callInfo =>
+                {
+                    executionContext = callInfo.Arg<IExecutionContext>();
 
-                return chain;
-            });
+                    return chain;
+                });
 
             var services = new ServiceCollection();
             services.AddSingleton(Substitute.For<IKnownServices>());
@@ -53,12 +62,16 @@ public class FeatureTelemetryConformanceTests : RequestTelemetryConformanceTests
             var application = new HardenedHttpApplication(
                 services.BuildServiceProvider(),
                 new RequestExecutor(
-                    middlewareService, new RequestLogger(NullLogger<RequestLogger>.Instance)),
-                new NullMetricLoggerProvider());
+                    middlewareService,
+                    new RequestLogger(NullLogger<RequestLogger>.Instance)
+                ),
+                new NullMetricLoggerProvider()
+            );
 
             var features = new ServerFeatures(request.Method, request.Path);
 
-            foreach (var header in request.Headers) {
+            foreach (var header in request.Headers)
+            {
                 features.Request.Headers[header.Key] = header.Value;
             }
 

@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
@@ -11,10 +12,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// policy is strict, so that was not a spelling a client could be expected to guess — it was a
 /// collection endpoint that did not exist at its own address.
 /// </remarks>
-public class CollectionRootTests {
-
+public class CollectionRootTests
+{
     [HardenedTest]
-    public async Task TheCollectionAnswersAtItsBasePath(ITestWebApp testWebApp) {
+    public async Task TheCollectionAnswersAtItsBasePath(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/collection");
 
         response.Assert.Ok();
@@ -22,7 +24,8 @@ public class CollectionRootTests {
     }
 
     [HardenedTest]
-    public async Task TheCollectionAnswersEveryVerbAtItsBasePath(ITestWebApp testWebApp) {
+    public async Task TheCollectionAnswersEveryVerbAtItsBasePath(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post("", "/collection");
 
         response.Assert.Ok();
@@ -34,7 +37,8 @@ public class CollectionRootTests {
     /// composes with its separator.
     /// </summary>
     [HardenedTest]
-    public async Task ASiblingTokenRouteIsUnaffected(ITestWebApp testWebApp) {
+    public async Task ASiblingTokenRouteIsUnaffected(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/collection/42");
 
         response.Assert.Ok();
@@ -53,7 +57,8 @@ public class CollectionRootTests {
     /// A token names at least one character, so there is no match to bind and 404 is the answer.
     /// </remarks>
     [HardenedTest]
-    public async Task TheTrailingSlashSpellingIsADifferentUrl(ITestWebApp testWebApp) {
+    public async Task TheTrailingSlashSpellingIsADifferentUrl(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/collection/");
 
         response.Assert.NotFound();

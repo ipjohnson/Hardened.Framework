@@ -38,7 +38,8 @@ namespace Hardened.Gcp.CloudRun.Runtime.Envelopes;
 /// see the delivery before the generic one claims it.
 /// </para>
 /// </remarks>
-public sealed class TriggerFrontDoor : IExecutionFilter {
+public sealed class TriggerFrontDoor : IExecutionFilter
+{
     /// <summary>
     /// The most an envelope is allowed to be. A Pub/Sub message is at most ten mebibytes, which
     /// base64 grows by a third; anything past this is not a push and is answered 413 rather than
@@ -48,7 +49,8 @@ public sealed class TriggerFrontDoor : IExecutionFilter {
 
     private readonly ITriggerEnvelope[] _envelopes;
 
-    public TriggerFrontDoor(IEnumerable<ITriggerEnvelope> envelopes) {
+    public TriggerFrontDoor(IEnumerable<ITriggerEnvelope> envelopes)
+    {
         var all = envelopes.ToArray();
 
         _envelopes = all.Where(envelope => envelope is not IFallbackTriggerEnvelope)
@@ -59,18 +61,21 @@ public sealed class TriggerFrontDoor : IExecutionFilter {
     /// <summary>The envelopes this front door asks, in the order it asks them.</summary>
     public IReadOnlyList<ITriggerEnvelope> Envelopes => _envelopes;
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
         var request = context.Request;
 
         // A chain composed with this filter twice would otherwise unwrap what it already built.
-        if (request is CloudRunTriggerRequest || !Recognised(request, out var candidates)) {
+        if (request is CloudRunTriggerRequest || !Recognised(request, out var candidates))
+        {
             await chain.Next();
 
             return;
         }
 
-        if (DeclaredLength(request) > BufferLimit) {
+        if (DeclaredLength(request) > BufferLimit)
+        {
             await chain.Next();
 
             return;
@@ -78,7 +83,8 @@ public sealed class TriggerFrontDoor : IExecutionFilter {
 
         var body = await Buffer(request.Body, context.CancellationToken);
 
-        if (body == null) {
+        if (body == null)
+        {
             // The body has been read past the limit, so nothing behind this could serve the
             // request faithfully; too large is the honest answer.
             context.Response.Status = 413;
@@ -89,15 +95,18 @@ public sealed class TriggerFrontDoor : IExecutionFilter {
 
         CloudRunTriggerRequest? trigger;
 
-        using (var payload = new TriggerPayload(body.Value)) {
+        using (var payload = new TriggerPayload(body.Value))
+        {
             trigger = Unwrap(candidates, request, payload);
 
-            if (trigger == null) {
+            if (trigger == null)
+            {
                 request.Body = payload.AsStream();
             }
         }
 
-        if (trigger == null) {
+        if (trigger == null)
+        {
             await chain.Next();
 
             return;
@@ -106,11 +115,14 @@ public sealed class TriggerFrontDoor : IExecutionFilter {
         await chain.Fork(context.Clone(request: trigger)).Next();
     }
 
-    private bool Recognised(IExecutionRequest request, out List<ITriggerEnvelope> candidates) {
+    private bool Recognised(IExecutionRequest request, out List<ITriggerEnvelope> candidates)
+    {
         candidates = null!;
 
-        foreach (var envelope in _envelopes) {
-            if (envelope.Recognises(request)) {
+        foreach (var envelope in _envelopes)
+        {
+            if (envelope.Recognises(request))
+            {
                 (candidates ??= new List<ITriggerEnvelope>(_envelopes.Length)).Add(envelope);
             }
         }
@@ -119,11 +131,17 @@ public sealed class TriggerFrontDoor : IExecutionFilter {
     }
 
     private static CloudRunTriggerRequest? Unwrap(
-        List<ITriggerEnvelope> candidates, IExecutionRequest request, TriggerPayload payload) {
-        foreach (var envelope in candidates) {
+        List<ITriggerEnvelope> candidates,
+        IExecutionRequest request,
+        TriggerPayload payload
+    )
+    {
+        foreach (var envelope in candidates)
+        {
             var trigger = envelope.Unwrap(request, payload);
 
-            if (trigger != null) {
+            if (trigger != null)
+            {
                 return trigger;
             }
         }
@@ -132,26 +150,38 @@ public sealed class TriggerFrontDoor : IExecutionFilter {
     }
 
     private static long DeclaredLength(IExecutionRequest request) =>
-        request.Headers.TryGetValue(KnownHeaders.ContentLength, out var value) &&
-        long.TryParse(value.ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out var length)
+        request.Headers.TryGetValue(KnownHeaders.ContentLength, out var value)
+        && long.TryParse(
+            value.ToString(),
+            NumberStyles.None,
+            CultureInfo.InvariantCulture,
+            out var length
+        )
             ? length
             : -1;
 
     /// <summary>
     /// The whole body, or null once it has exceeded <see cref="BufferLimit"/>.
     /// </summary>
-    private static async Task<ReadOnlyMemory<byte>?> Buffer(Stream body, CancellationToken cancellationToken) {
+    private static async Task<ReadOnlyMemory<byte>?> Buffer(
+        Stream body,
+        CancellationToken cancellationToken
+    )
+    {
         var buffer = new MemoryStream();
         var chunk = new byte[16 * 1024];
 
-        while (true) {
+        while (true)
+        {
             var read = await body.ReadAsync(chunk, cancellationToken);
 
-            if (read == 0) {
+            if (read == 0)
+            {
                 break;
             }
 
-            if (buffer.Length + read > BufferLimit) {
+            if (buffer.Length + read > BufferLimit)
+            {
                 return null;
             }
 

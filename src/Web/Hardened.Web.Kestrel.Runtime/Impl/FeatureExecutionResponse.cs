@@ -2,9 +2,9 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Runtime.Headers;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Runtime.Impl;
 
@@ -16,7 +16,8 @@ namespace Hardened.Web.Kestrel.Runtime.Impl;
 /// <see cref="IHttpResponseBodyFeature"/>, which is what Kestrel wants written to and what it
 /// needs completed at the end of the request.
 /// </summary>
-public sealed class FeatureExecutionResponse : IExecutionResponse {
+public sealed class FeatureExecutionResponse : IExecutionResponse
+{
     private readonly IHttpResponseFeature _feature;
     private readonly IHttpResponseBodyFeature _bodyFeature;
     private Stream? _bodyOverride;
@@ -30,7 +31,9 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
 
     public FeatureExecutionResponse(
         IHttpResponseFeature feature,
-        IHttpResponseBodyFeature bodyFeature) {
+        IHttpResponseBodyFeature bodyFeature
+    )
+    {
         _feature = feature;
         _bodyFeature = bodyFeature;
     }
@@ -40,7 +43,9 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
         IHttpResponseBodyFeature bodyFeature,
         Stream? bodyOverride,
         int? status,
-        ICookieSetCollection cookies) {
+        ICookieSetCollection cookies
+    )
+    {
         _feature = feature;
         _bodyFeature = bodyFeature;
         _bodyOverride = bodyOverride;
@@ -48,18 +53,20 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
         _cookies = cookies;
     }
 
-    public IExecutionResponse Clone(IHeaderCollection? headerCollection = null) {
-        return new FeatureExecutionResponse(
-            _feature, _bodyFeature, _bodyOverride, _status, Cookies) {
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection = null)
+    {
+        return new FeatureExecutionResponse(_feature, _bodyFeature, _bodyOverride, _status, Cookies)
+        {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,
             IsBinary = IsBinary,
-            ShouldSerialize = ShouldSerialize
+            ShouldSerialize = ShouldSerialize,
         };
     }
 
-    public string? ContentType {
+    public string? ContentType
+    {
         get => _feature.Headers.ContentType;
         set => _feature.Headers.ContentType = value;
     }
@@ -84,9 +91,11 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
     /// has started the status is settled, so reporting it is accurate rather than a guess — and
     /// every filter that tests for null runs earlier than that, before anything is written.
     /// </summary>
-    public int? Status {
+    public int? Status
+    {
         get => _status ?? (_feature.HasStarted ? _feature.StatusCode : null);
-        set {
+        set
+        {
             _status = value;
             _feature.StatusCode = value ?? 200;
         }
@@ -97,7 +106,8 @@ public sealed class FeatureExecutionResponse : IExecutionResponse {
     /// cache and <c>ResponseCompressionFilter</c> both do - writes to the override, so reads and
     /// writes stay consistent rather than one of them going back through the feature.
     /// </summary>
-    public Stream Body {
+    public Stream Body
+    {
         get => _bodyOverride ?? _bodyFeature.Stream;
         set => _bodyOverride = value;
     }

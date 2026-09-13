@@ -25,18 +25,21 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// stream's rather than the per-item one, and that the empty case still terminates.
 /// </para>
 /// </summary>
-public class StreamingTests {
-
+public class StreamingTests
+{
     [HardenedTest]
-    public async Task AStreamOfModelsIsOneJsonDocumentPerLine(ITestWebApp testWebApp) {
+    public async Task AStreamOfModelsIsOneJsonDocumentPerLine(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/models");
 
         response.Assert.Ok();
 
         var measurements = new List<StreamingController.Measurement>();
 
-        await foreach (var measurement in
-                       response.DeserializeAsyncEnumerable<StreamingController.Measurement>()) {
+        await foreach (
+            var measurement in response.DeserializeAsyncEnumerable<StreamingController.Measurement>()
+        )
+        {
             measurements.Add(measurement);
         }
 
@@ -57,12 +60,16 @@ public class StreamingTests {
     /// <c>text/event-stream</c>.
     /// </remarks>
     [HardenedTest]
-    public async Task AStreamKeepsItsOwnContentType(ITestWebApp testWebApp) {
+    public async Task AStreamKeepsItsOwnContentType(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/models");
 
         response.Assert.Ok();
 
-        Assert.Equal(KnownContentType.NdJson, response.Headers[KnownHeaders.ContentType].ToString());
+        Assert.Equal(
+            KnownContentType.NdJson,
+            response.Headers[KnownHeaders.ContentType].ToString()
+        );
     }
 
     /// <summary>
@@ -83,14 +90,16 @@ public class StreamingTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task EvenAStreamOfStringsIsValidJsonPerLine(ITestWebApp testWebApp) {
+    public async Task EvenAStreamOfStringsIsValidJsonPerLine(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/strings");
 
         response.Assert.Ok();
 
         var values = new List<string>();
 
-        await foreach (var value in response.DeserializeAsyncEnumerable<string>()) {
+        await foreach (var value in response.DeserializeAsyncEnumerable<string>())
+        {
             values.Add(value);
         }
 
@@ -116,15 +125,18 @@ public class StreamingTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task ACancellableIteratorSignatureBinds(ITestWebApp testWebApp) {
+    public async Task ACancellableIteratorSignatureBinds(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/cancellable");
 
         response.Assert.Ok();
 
         var measurements = new List<StreamingController.Measurement>();
 
-        await foreach (var measurement in
-                       response.DeserializeAsyncEnumerable<StreamingController.Measurement>()) {
+        await foreach (
+            var measurement in response.DeserializeAsyncEnumerable<StreamingController.Measurement>()
+        )
+        {
             measurements.Add(measurement);
         }
 
@@ -134,7 +146,8 @@ public class StreamingTests {
 
     #region server-sent events
 
-    private static async Task<string> BodyOf(TestWebResponse response) {
+    private static async Task<string> BodyOf(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
         using var reader = new StreamReader(response.Body, leaveOpen: true);
@@ -151,13 +164,16 @@ public class StreamingTests {
     /// <c>application/json</c> would be rejected before a single event was read.
     /// </remarks>
     [HardenedTest]
-    public async Task EventsAreDataLinesSeparatedByBlankLines(ITestWebApp testWebApp) {
+    public async Task EventsAreDataLinesSeparatedByBlankLines(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events");
 
         response.Assert.Ok();
 
         Assert.Equal(
-            KnownContentType.EventStream, response.Headers[KnownHeaders.ContentType].ToString());
+            KnownContentType.EventStream,
+            response.Headers[KnownHeaders.ContentType].ToString()
+        );
 
         Assert.Equal(
             """
@@ -167,7 +183,8 @@ public class StreamingTests {
 
 
             """.ReplaceLineEndings("\n"),
-            await BodyOf(response));
+            await BodyOf(response)
+        );
     }
 
     /// <summary>
@@ -180,7 +197,8 @@ public class StreamingTests {
     /// finds it in two places.
     /// </remarks>
     [HardenedTest]
-    public async Task EventFieldsAreWrittenBesideThePayloadNotInsideIt(ITestWebApp testWebApp) {
+    public async Task EventFieldsAreWrittenBesideThePayloadNotInsideIt(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events-with-ids");
 
         response.Assert.Ok();
@@ -197,7 +215,8 @@ public class StreamingTests {
 
 
             """.ReplaceLineEndings("\n"),
-            await BodyOf(response));
+            await BodyOf(response)
+        );
     }
 
     /// <summary>
@@ -209,7 +228,8 @@ public class StreamingTests {
     /// thing every client is required to discard, so it costs three bytes and nothing else.
     /// </remarks>
     [HardenedTest]
-    public async Task AnEmptyEventStreamSendsAComment(ITestWebApp testWebApp) {
+    public async Task AnEmptyEventStreamSendsAComment(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events-empty");
 
         response.Assert.Ok();
@@ -226,7 +246,8 @@ public class StreamingTests {
     /// at the end of every stream.
     /// </remarks>
     [HardenedTest]
-    public async Task ANonEmptyEventStreamHasNoTrailingComment(ITestWebApp testWebApp) {
+    public async Task ANonEmptyEventStreamHasNoTrailingComment(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events");
 
         Assert.DoesNotContain(":\n\n", await BodyOf(response));
@@ -243,9 +264,12 @@ public class StreamingTests {
     /// The client comes back with the last id it saw, and the handler resumes after it.
     /// </summary>
     [HardenedTest]
-    public async Task AReconnectWithLastEventIdResumesAfterThatEvent(ITestWebApp testWebApp) {
+    public async Task AReconnectWithLastEventIdResumesAfterThatEvent(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/streaming/events-resume", WithHeader(KnownHeaders.LastEventId, "2"));
+            "/streaming/events-resume",
+            WithHeader(KnownHeaders.LastEventId, "2")
+        );
 
         response.Assert.Ok();
 
@@ -259,11 +283,13 @@ public class StreamingTests {
 
 
             """.ReplaceLineEndings("\n"),
-            await BodyOf(response));
+            await BodyOf(response)
+        );
     }
 
     [HardenedTest]
-    public async Task AReconnectWithNoLastEventIdStartsFromTheBeginning(ITestWebApp testWebApp) {
+    public async Task AReconnectWithNoLastEventIdStartsFromTheBeginning(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events-resume");
 
         response.Assert.Ok();
@@ -280,9 +306,12 @@ public class StreamingTests {
     /// body, and the client reads an abort as a network error and reconnects from it.
     /// </summary>
     [HardenedTest]
-    public async Task AReconnectPastTheLastEventIsA204WithNoBody(ITestWebApp testWebApp) {
+    public async Task AReconnectPastTheLastEventIsA204WithNoBody(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/streaming/events-resume", WithHeader(KnownHeaders.LastEventId, "4"));
+            "/streaming/events-resume",
+            WithHeader(KnownHeaders.LastEventId, "4")
+        );
 
         Assert.Equal(204, response.StatusCode);
         Assert.False(response.Headers.ContainsKey(KnownHeaders.ContentType));
@@ -293,9 +322,12 @@ public class StreamingTests {
     /// API Gateway payload 2.0 and a function URL deliver header names in lower case.
     /// </summary>
     [HardenedTest]
-    public async Task TheLastEventIdHeaderIsReadCaseInsensitively(ITestWebApp testWebApp) {
+    public async Task TheLastEventIdHeaderIsReadCaseInsensitively(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/streaming/events-resume", WithHeader("last-event-id", "3"));
+            "/streaming/events-resume",
+            WithHeader("last-event-id", "3")
+        );
 
         response.Assert.Ok();
 
@@ -306,7 +338,8 @@ public class StreamingTests {
 
 
             """.ReplaceLineEndings("\n"),
-            await BodyOf(response));
+            await BodyOf(response)
+        );
     }
 
     #endregion
@@ -328,12 +361,16 @@ public class StreamingTests {
     /// serializer catches this; this is the run.
     /// </remarks>
     [HardenedTest]
-    public async Task ARefusalOnAnSseRouteIsJsonNotAHalfOpenEventStream(ITestWebApp testWebApp) {
+    public async Task ARefusalOnAnSseRouteIsJsonNotAHalfOpenEventStream(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events-guarded", AsAnEventSource());
 
         response.Assert.Unauthorized();
 
-        Assert.StartsWith(KnownContentType.Json, response.Headers[KnownHeaders.ContentType].ToString());
+        Assert.StartsWith(
+            KnownContentType.Json,
+            response.Headers[KnownHeaders.ContentType].ToString()
+        );
 
         var body = await response.ReadTextAsync();
 
@@ -344,12 +381,16 @@ public class StreamingTests {
 
     /// <summary>The newline-delimited twin: no framing, no trailing newline, just the error.</summary>
     [HardenedTest]
-    public async Task ARefusalOnAStreamedRouteDoesNotEmitTheFramingPrologue(ITestWebApp testWebApp) {
+    public async Task ARefusalOnAStreamedRouteDoesNotEmitTheFramingPrologue(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/models-guarded");
 
         response.Assert.Unauthorized();
 
-        Assert.StartsWith(KnownContentType.Json, response.Headers[KnownHeaders.ContentType].ToString());
+        Assert.StartsWith(
+            KnownContentType.Json,
+            response.Headers[KnownHeaders.ContentType].ToString()
+        );
 
         var body = await response.ReadTextAsync();
 
@@ -362,11 +403,18 @@ public class StreamingTests {
     /// response to answer with, and it is the same error document a buffered handler's throw gets.
     /// </summary>
     [HardenedTest]
-    public async Task AFailureBeforeTheFirstEventIsAnErrorDocument(ITestWebApp testWebApp) {
-        var response = await testWebApp.Get("/streaming/events-fail-before-first", AsAnEventSource());
+    public async Task AFailureBeforeTheFirstEventIsAnErrorDocument(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Get(
+            "/streaming/events-fail-before-first",
+            AsAnEventSource()
+        );
 
         Assert.Equal(500, response.StatusCode);
-        Assert.StartsWith(KnownContentType.Json, response.Headers[KnownHeaders.ContentType].ToString());
+        Assert.StartsWith(
+            KnownContentType.Json,
+            response.Headers[KnownHeaders.ContentType].ToString()
+        );
 
         var body = await response.ReadTextAsync();
 
@@ -387,9 +435,11 @@ public class StreamingTests {
     /// </para>
     /// </summary>
     [HardenedTest]
-    public async Task AFailureAfterTheFirstEventEndsTheStream(ITestWebApp testWebApp) {
+    public async Task AFailureAfterTheFirstEventEndsTheStream(ITestWebApp testWebApp)
+    {
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            testWebApp.Get("/streaming/events-fail-after-first", AsAnEventSource()));
+            testWebApp.Get("/streaming/events-fail-after-first", AsAnEventSource())
+        );
 
         Assert.Equal("nothing to stream", failure.Message);
     }
@@ -406,11 +456,13 @@ public class StreamingTests {
     /// construction rules it out.
     /// </summary>
     [HardenedTest]
-    public async Task ARetryAfterTheFirstItemIsWrittenDoesNotDuplicateIt(ITestWebApp testWebApp) {
+    public async Task ARetryAfterTheFirstItemIsWrittenDoesNotDuplicateIt(ITestWebApp testWebApp)
+    {
         var before = StreamingController.RetryAfterFirstEnumerations;
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            testWebApp.Get("/streaming/events-retry-after-first"));
+            testWebApp.Get("/streaming/events-retry-after-first")
+        );
 
         Assert.Equal(1, StreamingController.RetryAfterFirstEnumerations - before);
     }
@@ -420,7 +472,8 @@ public class StreamingTests {
     /// the sequence is called again, and the events arrive.
     /// </summary>
     [HardenedTest]
-    public async Task ARetryOnAStreamingHandlerRetriesTheCall(ITestWebApp testWebApp) {
+    public async Task ARetryOnAStreamingHandlerRetriesTheCall(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events-retry-call");
 
         response.Assert.Ok();
@@ -433,7 +486,8 @@ public class StreamingTests {
 
 
             """.ReplaceLineEndings("\n"),
-            await BodyOf(response));
+            await BodyOf(response)
+        );
     }
 
     #endregion
@@ -448,7 +502,8 @@ public class StreamingTests {
     /// </summary>
     [HardenedTest]
     [HeartbeatEvery(10)]
-    public async Task AHeartbeatArrivesBetweenSlowEvents(ITestWebApp testWebApp) {
+    public async Task AHeartbeatArrivesBetweenSlowEvents(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events-slow");
 
         response.Assert.Ok();
@@ -467,7 +522,8 @@ public class StreamingTests {
     /// where they do not apply.
     /// </summary>
     [HardenedTest]
-    public async Task AnEventStreamCarriesNoCacheAndNoAccelBuffering(ITestWebApp testWebApp) {
+    public async Task AnEventStreamCarriesNoCacheAndNoAccelBuffering(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/events");
 
         response.Assert.Ok();
@@ -478,7 +534,8 @@ public class StreamingTests {
 
     /// <summary>A newline-delimited response is an ordinary representation, and says nothing.</summary>
     [HardenedTest]
-    public async Task ANewlineDelimitedStreamCarriesNeitherHeader(ITestWebApp testWebApp) {
+    public async Task ANewlineDelimitedStreamCarriesNeitherHeader(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/models");
 
         response.Assert.Ok();
@@ -498,7 +555,8 @@ public class StreamingTests {
     /// never been asserted through a real response until now.
     /// </remarks>
     [HardenedTest]
-    public async Task AnEmptyStreamStillTerminates(ITestWebApp testWebApp) {
+    public async Task AnEmptyStreamStillTerminates(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/streaming/empty");
 
         response.Assert.Ok();

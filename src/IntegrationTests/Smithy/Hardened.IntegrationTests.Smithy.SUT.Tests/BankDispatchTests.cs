@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 
 /// <summary>
@@ -17,13 +18,14 @@ namespace Hardened.IntegrationTests.Smithy.SUT.Tests;
 /// on the model; the routing table emits a switch when it sees them.
 /// </para>
 /// </remarks>
-public class BankDispatchTests {
-
+public class BankDispatchTests
+{
     private static Action<TestWebRequest> Target(string target) =>
         request => request.Headers["X-Amz-Target"] = target;
 
     [HardenedTest]
-    public async Task GetBalance_DispatchesOnTheTargetHeader(ITestWebApp app) {
+    public async Task GetBalance_DispatchesOnTheTargetHeader(ITestWebApp app)
+    {
         var response = await app.Post(new { accountId = "acct-1" }, "/", Target("Bank.GetBalance"));
 
         response.Assert.Ok();
@@ -40,11 +42,18 @@ public class BankDispatchTests {
     /// whole of how this protocol names an operation.
     /// </summary>
     [HardenedTest]
-    public async Task Transfer_DispatchesToADifferentHandlerOnTheSameRoute(ITestWebApp app) {
+    public async Task Transfer_DispatchesToADifferentHandlerOnTheSameRoute(ITestWebApp app)
+    {
         var response = await app.Post(
-            new { fromAccount = "acct-1", toAccount = "acct-2", amountCents = 500 },
+            new
+            {
+                fromAccount = "acct-1",
+                toAccount = "acct-2",
+                amountCents = 500,
+            },
             "/",
-            Target("Bank.Transfer"));
+            Target("Bank.Transfer")
+        );
 
         response.Assert.Ok();
         Assert.Equal("acct-1->acct-2:500", response.Deserialize<TransferOutput>()!.TransferId);
@@ -55,11 +64,18 @@ public class BankDispatchTests {
     /// to put one and the specification requires binding traits be ignored.
     /// </summary>
     [HardenedTest]
-    public async Task Transfer_BindsTheWholeInputStructureFromTheBody(ITestWebApp app) {
+    public async Task Transfer_BindsTheWholeInputStructureFromTheBody(ITestWebApp app)
+    {
         var response = await app.Post(
-            new { fromAccount = "a", toAccount = "b", amountCents = 42 },
+            new
+            {
+                fromAccount = "a",
+                toAccount = "b",
+                amountCents = 42,
+            },
             "/",
-            Target("Bank.Transfer"));
+            Target("Bank.Transfer")
+        );
 
         response.Assert.Ok();
         Assert.Equal("a->b:42", response.Deserialize<TransferOutput>()!.TransferId);
@@ -74,9 +90,13 @@ public class BankDispatchTests {
     /// client takes what follows the <c>#</c>, so the qualified form is what is sent.
     /// </remarks>
     [HardenedTest]
-    public async Task GetBalance_SendsTheDeclaredErrorWithItsTypeDiscriminator(ITestWebApp app) {
+    public async Task GetBalance_SendsTheDeclaredErrorWithItsTypeDiscriminator(ITestWebApp app)
+    {
         var response = await app.Post(
-            new { accountId = "missing" }, "/", Target("Bank.GetBalance"));
+            new { accountId = "missing" },
+            "/",
+            Target("Bank.GetBalance")
+        );
 
         Assert.Equal(400, response.StatusCode);
 
@@ -92,9 +112,13 @@ public class BankDispatchTests {
     /// envelope wrapping them.
     /// </summary>
     [HardenedTest]
-    public async Task GetBalance_ErrorBodyIsTheShapeItselfNotAWrapper(ITestWebApp app) {
+    public async Task GetBalance_ErrorBodyIsTheShapeItselfNotAWrapper(ITestWebApp app)
+    {
         var response = await app.Post(
-            new { accountId = "missing" }, "/", Target("Bank.GetBalance"));
+            new { accountId = "missing" },
+            "/",
+            Target("Bank.GetBalance")
+        );
 
         var error = response.Deserialize<AccountNotFound>();
 
@@ -108,22 +132,32 @@ public class BankDispatchTests {
     /// trait and a dispatch protocol requires those be ignored.
     /// </summary>
     [HardenedTest]
-    public async Task GetBalance_ErrorStatusComesFromTheErrorTrait(ITestWebApp app) {
+    public async Task GetBalance_ErrorStatusComesFromTheErrorTrait(ITestWebApp app)
+    {
         var response = await app.Post(
-            new { accountId = "missing" }, "/", Target("Bank.GetBalance"));
+            new { accountId = "missing" },
+            "/",
+            Target("Bank.GetBalance")
+        );
 
         Assert.Equal(400, response.StatusCode);
     }
 
     [HardenedTest]
-    public async Task UnknownTarget_IsNotDispatched(ITestWebApp app) {
-        var response = await app.Post(new { accountId = "acct-1" }, "/", Target("Bank.NoSuchThing"));
+    public async Task UnknownTarget_IsNotDispatched(ITestWebApp app)
+    {
+        var response = await app.Post(
+            new { accountId = "acct-1" },
+            "/",
+            Target("Bank.NoSuchThing")
+        );
 
         Assert.NotEqual(200, response.StatusCode);
     }
 
     [HardenedTest]
-    public async Task PostWithNoTargetHeader_IsNotDispatched(ITestWebApp app) {
+    public async Task PostWithNoTargetHeader_IsNotDispatched(ITestWebApp app)
+    {
         var response = await app.Post(new { accountId = "acct-1" }, "/");
 
         Assert.NotEqual(200, response.StatusCode);
@@ -134,10 +168,14 @@ public class BankDispatchTests {
     /// routes already in it.
     /// </summary>
     [HardenedTest]
-    public async Task PathRoutedOperationsStillWorkAlongsideDispatch(ITestWebApp app) {
+    public async Task PathRoutedOperationsStillWorkAlongsideDispatch(ITestWebApp app)
+    {
         var routed = await app.Get("/pets/1");
         var dispatched = await app.Post(
-            new { accountId = "acct-2" }, "/", Target("Bank.GetBalance"));
+            new { accountId = "acct-2" },
+            "/",
+            Target("Bank.GetBalance")
+        );
 
         routed.Assert.Ok();
         dispatched.Assert.Ok();

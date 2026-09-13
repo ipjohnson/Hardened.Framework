@@ -21,7 +21,8 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters;
 /// variable describes the front door and an event source has none.
 /// </para>
 /// </remarks>
-public interface IStreamingPayloadAdapter : IPayloadAdapter {
+public interface IStreamingPayloadAdapter : IPayloadAdapter
+{
     /// <summary>
     /// The status, headers and cookies to open the response stream with.
     /// </summary>

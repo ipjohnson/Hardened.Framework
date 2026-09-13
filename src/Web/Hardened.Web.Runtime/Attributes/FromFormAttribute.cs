@@ -27,8 +27,10 @@ namespace Hardened.Web.Runtime.Attributes;
 /// different wire format and is not read by this.
 /// </para>
 /// </remarks>
-public class FromFormAttribute : Attribute {
-    public FromFormAttribute(string? name = null) {
+public class FromFormAttribute : Attribute
+{
+    public FromFormAttribute(string? name = null)
+    {
         Name = name;
     }
 

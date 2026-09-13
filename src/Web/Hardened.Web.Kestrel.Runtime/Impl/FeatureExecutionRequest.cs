@@ -2,12 +2,12 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.PathTokens;
 using Hardened.Requests.Abstract.QueryString;
+using Hardened.Requests.Runtime.Headers;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.Primitives;
-using Hardened.Requests.Runtime.Headers;
 
 namespace Hardened.Web.Kestrel.Runtime.Impl;
 
@@ -19,7 +19,8 @@ namespace Hardened.Web.Kestrel.Runtime.Impl;
 /// directly removes a layer of indirection on every property — and, more importantly, removes the
 /// need to convert ASP.NET's parsed representations back into Hardened's.
 /// </summary>
-public sealed class FeatureExecutionRequest : IExecutionRequest {
+public sealed class FeatureExecutionRequest : IExecutionRequest
+{
     private readonly IHttpRequestFeature _feature;
     private readonly ITransportInfo _transport;
 
@@ -43,7 +44,8 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
     /// required because a request feature is all a test needs to construct one of these, and the
     /// conformance suite does exactly that.
     /// </param>
-    public FeatureExecutionRequest(IHttpRequestFeature feature, IHttpConnectionFeature? connection) {
+    public FeatureExecutionRequest(IHttpRequestFeature feature, IHttpConnectionFeature? connection)
+    {
         _feature = feature;
         _transport = new FeatureTransportInfo(connection, feature);
     }
@@ -55,7 +57,9 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
         IDictionary<string, StringValues>? headersOverride,
         IQueryStringCollection? queryStringOverride,
         IReadOnlyList<string>? cookiesOverride,
-        ITransportInfo transport) {
+        ITransportInfo transport
+    )
+    {
         _feature = feature;
         _transport = transport;
         _methodOverride = methodOverride;
@@ -79,7 +83,9 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
         string? path = null,
         IDictionary<string, StringValues>? headers = null,
         IQueryStringCollection? queryString = null,
-        IReadOnlyList<string>? cookies = null) {
+        IReadOnlyList<string>? cookies = null
+    )
+    {
         return new FeatureExecutionRequest(
             _feature,
             method ?? _methodOverride,
@@ -89,11 +95,13 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
             cookies ?? _cookiesOverride,
             // Shared, not cloned: a fork is the same request on the same connection, and rebinding
             // its method or path says nothing about where it came from.
-            _transport) {
+            _transport
+        )
+        {
             // Cloned, not shared: a forked chain must be able to rebind without writing through
             // to the request it was forked from. See the conformance suite.
             Parameters = Parameters?.Clone(),
-            PathTokens = PathTokens
+            PathTokens = PathTokens,
         };
     }
 
@@ -116,7 +124,8 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
 
     public IExecutionRequestParameters? Parameters { get; set; }
 
-    public Stream Body {
+    public Stream Body
+    {
         get => _feature.Body;
         set => _feature.Body = value;
     }
@@ -142,7 +151,8 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
     public IQueryStringCollection QueryString =>
         _queryStringOverride ?? (_queryString ??= ParseQueryString(_feature.QueryString));
 
-    public IPathTokenCollection PathTokens {
+    public IPathTokenCollection PathTokens
+    {
         get => _pathTokens ?? PathTokenCollection.Empty;
         set => _pathTokens = value;
     }
@@ -163,8 +173,10 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
     private static IQueryStringCollection ParseQueryString(string? rawQueryString) =>
         QueryStringParser.Parse(rawQueryString);
 
-    private static IReadOnlyList<string> ParseCookies(IDictionary<string, StringValues> headers) {
-        if (!headers.TryGetValue(KnownHeaders.Cookie, out var cookieHeader)) {
+    private static IReadOnlyList<string> ParseCookies(IDictionary<string, StringValues> headers)
+    {
+        if (!headers.TryGetValue(KnownHeaders.Cookie, out var cookieHeader))
+        {
             return Array.Empty<string>();
         }
 
@@ -172,6 +184,9 @@ public sealed class FeatureExecutionRequest : IExecutionRequest {
 
         return string.IsNullOrEmpty(raw)
             ? Array.Empty<string>()
-            : raw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            : raw.Split(
+                ';',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            );
     }
 }

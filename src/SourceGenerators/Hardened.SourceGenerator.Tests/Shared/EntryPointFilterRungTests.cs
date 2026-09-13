@@ -22,8 +22,8 @@ namespace Hardened.SourceGenerator.Tests.Shared;
 /// chain.
 /// </para>
 /// </remarks>
-public class EntryPointFilterRungTests {
-
+public class EntryPointFilterRungTests
+{
     private const string ConditionalGet = "[Hardened.Web.Runtime.Conditional.ConditionalGet]";
 
     private static EntryPointSelector.Model Model(string attributes) =>
@@ -33,7 +33,8 @@ public class EntryPointFilterRungTests {
         Assert.IsType<DeclaredOperationFacts>(model.FilterFacts);
 
     [Fact]
-    public void AFilterAttributeReachesTheModelReadyToConstruct() {
+    public void AFilterAttributeReachesTheModelReadyToConstruct()
+    {
         var model = Model(ConditionalGet);
 
         var declaration = Assert.Single(model.FilterDeclarations);
@@ -47,7 +48,8 @@ public class EntryPointFilterRungTests {
     /// and response shape, which this pass does not know.
     /// </summary>
     [Fact]
-    public void TheSameDeclarationCarriesWhatItAnswers() {
+    public void TheSameDeclarationCarriesWhatItAnswers()
+    {
         var facts = Facts(Model(ConditionalGet));
 
         Assert.False(facts.IsEmpty);
@@ -66,7 +68,11 @@ public class EntryPointFilterRungTests {
     [InlineData("POST", false, false)]
     [InlineData("GET", true, false)]
     public void WhatItAnswersIsNarrowedByVerbAndResponseShape(
-        string httpMethod, bool streams, bool reaches) {
+        string httpMethod,
+        bool streams,
+        bool reaches
+    )
+    {
         var reaching = Facts(Model(ConditionalGet)).For(httpMethod, streams);
 
         Assert.Equal(reaches, reaching.Refusals.Any(refusal => refusal.Status == 304));
@@ -78,7 +84,8 @@ public class EntryPointFilterRungTests {
     /// what keeps the routing table it generates unchanged.
     /// </summary>
     [Fact]
-    public void AnEntryPointDeclaringNoFilterCarriesNone() {
+    public void AnEntryPointDeclaringNoFilterCarriesNone()
+    {
         var model = Model("");
 
         Assert.Empty(model.FilterDeclarations);
@@ -91,9 +98,11 @@ public class EntryPointFilterRungTests {
     /// would have constructed both.
     /// </summary>
     [Fact]
-    public void AMarkerOnTheEntryPointIsNotAFilter() {
+    public void AMarkerOnTheEntryPointIsNotAFilter()
+    {
         var model = Model(
-            "[Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]\n" + ConditionalGet);
+            "[Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]\n" + ConditionalGet
+        );
 
         var declaration = Assert.Single(model.FilterDeclarations);
 
@@ -105,13 +114,14 @@ public class EntryPointFilterRungTests {
     /// they are merged into a handler's metadata and therefore the order they break ties in.
     /// </summary>
     [Fact]
-    public void EveryFilterDeclaredOnTheEntryPointReachesTheModelInOrder() {
-        var model = Model(
-            "[Hardened.Requests.Runtime.Filters.Retry]\n" + ConditionalGet);
+    public void EveryFilterDeclaredOnTheEntryPointReachesTheModelInOrder()
+    {
+        var model = Model("[Hardened.Requests.Runtime.Filters.Retry]\n" + ConditionalGet);
 
         Assert.Equal(
             ["RetryAttribute", "ConditionalGetAttribute"],
-            model.FilterDeclarations.Select(declaration => declaration.TypeDefinition.Name));
+            model.FilterDeclarations.Select(declaration => declaration.TypeDefinition.Name)
+        );
     }
 
     /// <summary>
@@ -119,7 +129,8 @@ public class EntryPointFilterRungTests {
     /// is the only place its arguments are spelled.
     /// </summary>
     [Fact]
-    public void TheArgumentsADeclarationWasWrittenWithComeWithIt() {
+    public void TheArgumentsADeclarationWasWrittenWithComeWithIt()
+    {
         var model = Model("[Hardened.Requests.Runtime.Filters.Retry(Attempts = 5)]");
 
         var declaration = Assert.Single(model.FilterDeclarations);
@@ -138,9 +149,13 @@ public class EntryPointFilterRungTests {
     [InlineData("[Hardened.Requests.Runtime.RateLimiting.RateLimit]", "RateLimitAttribute")]
     [InlineData(
         "[Hardened.Requests.Runtime.Caching.CacheResponse<Hardened.Web.Runtime.Caching.VaryByRoute>(Duration = 60)]",
-        "CacheResponseAttribute")]
+        "CacheResponseAttribute"
+    )]
     public void EveryShippedFilterAttributeIsDeclarableOnTheEntryPoint(
-        string attribute, string expected) {
+        string attribute,
+        string expected
+    )
+    {
         var declaration = Assert.Single(Model(attribute).FilterDeclarations);
 
         Assert.Equal(expected, declaration.TypeDefinition.Name);
@@ -151,10 +166,14 @@ public class EntryPointFilterRungTests {
     /// every handler compiled with it, so every one of them can answer the 429.
     /// </summary>
     [Fact]
-    public void AFilterThatDeclaresAStatusPublishesItFromTheEntryPoint() {
+    public void AFilterThatDeclaresAStatusPublishesItFromTheEntryPoint()
+    {
         var facts = Facts(Model("[Hardened.Requests.Runtime.RateLimiting.RateLimit]"));
 
-        Assert.Contains(facts.For("GET", streams: false).Refusals, refusal => refusal.Status == 429);
+        Assert.Contains(
+            facts.For("GET", streams: false).Refusals,
+            refusal => refusal.Status == 429
+        );
     }
 
     /// <summary>
@@ -162,7 +181,8 @@ public class EntryPointFilterRungTests {
     /// does not invalidate every routing table in the compilation.
     /// </summary>
     [Fact]
-    public void TwoEntryPointsDeclaringTheSameFilterCompareEqual() {
+    public void TwoEntryPointsDeclaringTheSameFilterCompareEqual()
+    {
         var comparer = new EntryPointSelector.Comparer();
 
         Assert.True(comparer.Equals(Model(ConditionalGet), Model(ConditionalGet)));

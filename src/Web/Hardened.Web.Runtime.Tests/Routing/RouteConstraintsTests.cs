@@ -13,15 +13,15 @@ namespace Hardened.Web.Runtime.Tests.Routing;
 /// is well-formed but not a real day — and those are where a character loop goes wrong. Cheaper to
 /// pin here than through a generated table, and every branch is reachable from this file.
 /// </remarks>
-public class RouteConstraintsTests {
-
+public class RouteConstraintsTests
+{
     [Theory]
     [InlineData("42", true)]
     [InlineData("-7", true)]
     [InlineData("0", true)]
-    [InlineData("2147483648", false)]   // one past int.MaxValue
+    [InlineData("2147483648", false)] // one past int.MaxValue
     [InlineData("4.5", false)]
-    [InlineData("1,000", false)]        // a culture-sensitive parse would take the group separator
+    [InlineData("1,000", false)] // a culture-sensitive parse would take the group separator
     [InlineData("abc", false)]
     [InlineData("", false)]
     public void IsInt(string value, bool expected) =>
@@ -73,9 +73,9 @@ public class RouteConstraintsTests {
     /// </summary>
     [Theory]
     [InlineData("2026-08-17", true)]
-    [InlineData("2026-02-29", false)]    // 2026 is not a leap year
+    [InlineData("2026-02-29", false)] // 2026 is not a leap year
     [InlineData("2026-13-01", false)]
-    [InlineData("2026-8-17", false)]     // not zero-padded
+    [InlineData("2026-8-17", false)] // not zero-padded
     [InlineData("12/06/2026", false)]
     [InlineData("17 August 2026", false)]
     [InlineData("", false)]
@@ -88,7 +88,7 @@ public class RouteConstraintsTests {
     [InlineData("2026-08-17T09:30:00+02:00", true)]
     [InlineData("2026-08-17T09:30Z", true)]
     [InlineData("2026-08-17", true)]
-    [InlineData("2026-08-17 09:30", false)]   // space instead of T
+    [InlineData("2026-08-17 09:30", false)] // space instead of T
     [InlineData("not-a-time", false)]
     [InlineData("", false)]
     public void IsDateTime(string value, bool expected) =>
@@ -193,10 +193,12 @@ public class RouteConstraintsTests {
     /// culture would make the same request match on one machine and not another.
     /// </summary>
     [Fact]
-    public void ParsingDoesNotFollowTheAmbientCulture() {
+    public void ParsingDoesNotFollowTheAmbientCulture()
+    {
         var original = CultureInfo.CurrentCulture;
 
-        try {
+        try
+        {
             // de-DE swaps the decimal point and the group separator.
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
 
@@ -204,7 +206,9 @@ public class RouteConstraintsTests {
             Assert.True(RouteConstraints.IsDecimal("4.5"));
             Assert.False(RouteConstraints.IsDecimal("4,5"));
             Assert.True(RouteConstraints.IsDate("2026-08-17"));
-        } finally {
+        }
+        finally
+        {
             CultureInfo.CurrentCulture = original;
         }
     }

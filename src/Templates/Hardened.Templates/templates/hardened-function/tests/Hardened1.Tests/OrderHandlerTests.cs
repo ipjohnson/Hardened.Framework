@@ -10,11 +10,12 @@ namespace Hardened1.Tests;
 /// does, and the parameter type is the one the handler binds, so a renamed source or a changed
 /// payload is a compile error here rather than a test that passes against nothing.
 /// </remarks>
-public class OrderHandlerTests {
-
+public class OrderHandlerTests
+{
 #if (invoke)
     [HardenedTest]
-    public async Task ThePayloadReachesTheHandler(Application.Invocations invocations, OrderLog log) {
+    public async Task ThePayloadReachesTheHandler(Application.Invocations invocations, OrderLog log)
+    {
         var accepted = await invocations.Process(new Order { Id = "A-1", Quantity = 2 });
 
 #if (xunit)
@@ -28,7 +29,8 @@ public class OrderHandlerTests {
 
     /// <summary>The return value comes back to the caller rather than being discarded.</summary>
     [HardenedTest]
-    public async Task TheHandlersReturnValueComesBack(Application.Invocations invocations) {
+    public async Task TheHandlersReturnValueComesBack(Application.Invocations invocations)
+    {
         var accepted = await invocations.Process(new Order { Id = "A-2", Quantity = 1 });
 
 #if (xunit)
@@ -40,7 +42,8 @@ public class OrderHandlerTests {
 #endif
 #if (queue)
     [HardenedTest]
-    public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog log) {
+    public async Task AMessageReachesTheHandler(Application.Queues queues, OrderLog log)
+    {
         await queues.Orders(new Order { Id = "A-1", Quantity = 2 });
 
 #if (xunit)
@@ -55,9 +58,13 @@ public class OrderHandlerTests {
     /// arrived against; the fan-out is the framework's.
     /// </summary>
     [HardenedTest]
-    public async Task EveryMessageInABatchIsHandled(Application.Queues queues, OrderLog log) {
+    public async Task EveryMessageInABatchIsHandled(Application.Queues queues, OrderLog log)
+    {
         await queues.Orders(
-            new Order { Id = "A-1" }, new Order { Id = "A-2" }, new Order { Id = "A-3" });
+            new Order { Id = "A-1" },
+            new Order { Id = "A-2" },
+            new Order { Id = "A-3" }
+        );
 
 #if (xunit)
         Assert.Equal(3, log.Orders.Count);
@@ -68,7 +75,8 @@ public class OrderHandlerTests {
 #endif
 #if (topic)
     [HardenedTest]
-    public async Task ANotificationReachesTheHandler(Application.Topics topics, OrderLog log) {
+    public async Task ANotificationReachesTheHandler(Application.Topics topics, OrderLog log)
+    {
         await topics.Orders(new Order { Id = "A-1", Quantity = 2 });
 
 #if (xunit)
@@ -80,7 +88,8 @@ public class OrderHandlerTests {
 #endif
 #if (timer)
     [HardenedTest]
-    public async Task TheScheduleReachesTheHandler(Application.Timers timers, OrderLog log) {
+    public async Task TheScheduleReachesTheHandler(Application.Timers timers, OrderLog log)
+    {
         await timers.Nightly();
 
 #if (xunit)
@@ -92,7 +101,8 @@ public class OrderHandlerTests {
 #endif
 #if (change)
     [HardenedTest]
-    public async Task AChangedRowReachesTheHandler(Application.Changes changes, OrderLog log) {
+    public async Task AChangedRowReachesTheHandler(Application.Changes changes, OrderLog log)
+    {
         await changes.Orders(new Order { Id = "A-1", Quantity = 2 });
 
 #if (xunit)
@@ -104,7 +114,8 @@ public class OrderHandlerTests {
 #endif
 #if (stream)
     [HardenedTest]
-    public async Task ARecordReachesTheHandler(Application.Streams streams, OrderLog log) {
+    public async Task ARecordReachesTheHandler(Application.Streams streams, OrderLog log)
+    {
         await streams.Orders(new Order { Id = "A-1", Quantity = 2 });
 
 #if (xunit)
@@ -116,7 +127,8 @@ public class OrderHandlerTests {
 #endif
 #if (blob)
     [HardenedTest]
-    public async Task ANotificationReachesTheHandler(Application.Blobs blobs, OrderLog log) {
+    public async Task ANotificationReachesTheHandler(Application.Blobs blobs, OrderLog log)
+    {
         await blobs.Uploads(new Upload { Key = "report.pdf", Size = 1024 });
 
 #if (xunit)

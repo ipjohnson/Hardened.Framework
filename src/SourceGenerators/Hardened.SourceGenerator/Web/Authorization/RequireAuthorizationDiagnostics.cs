@@ -43,7 +43,8 @@ namespace Hardened.SourceGenerator.Web.Authorization;
 /// <c>&lt;NoWarn&gt;</c>.
 /// </para>
 /// </remarks>
-public static class RequireAuthorizationDiagnostics {
+public static class RequireAuthorizationDiagnostics
+{
     public const string DiagnosticId = "HAUTH001";
 
     /// <summary>
@@ -51,16 +52,17 @@ public static class RequireAuthorizationDiagnostics {
     /// <c>AmbiguousRouteDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "Handler carries no authorization attribute",
-        messageFormat:
-        "'{0}' carries neither an authorization attribute nor [AllowAnonymous], and this application " +
-        "requires one, so the handler will refuse every request at run time. Write [Authorize<TAuth>], [Authorize<TAuth, TPolicy>] or " +
-        "[AuthorizeGrants] to say what it needs, or [AllowAnonymous] to say it is public on purpose.",
-        category: "Hardened.Authorization",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "Handler carries no authorization attribute",
+            messageFormat: "'{0}' carries neither an authorization attribute nor [AllowAnonymous], and this application "
+                + "requires one, so the handler will refuse every request at run time. Write [Authorize<TAuth>], [Authorize<TAuth, TPolicy>] or "
+                + "[AuthorizeGrants] to say what it needs, or [AllowAnonymous] to say it is public on purpose.",
+            category: "Hardened.Authorization",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// Whether an entry point turned on the default-deny posture.
@@ -71,8 +73,9 @@ public static class RequireAuthorizationDiagnostics {
     /// a project other than the one the attribute is convenient to write in.
     /// </remarks>
     public static bool IsRequired(EntryPointSelector.Model applicationModel) =>
-        applicationModel.AttributeModels?.Any(
-            attribute => attribute.TypeDefinition.Name is "RequireAuthorizationAttribute") ?? false;
+        applicationModel.AttributeModels?.Any(attribute =>
+            attribute.TypeDefinition.Name is "RequireAuthorizationAttribute"
+        ) ?? false;
 
     /// <summary>
     /// Reports one handler, if it needs reporting.
@@ -92,14 +95,22 @@ public static class RequireAuthorizationDiagnostics {
     /// </para>
     /// </remarks>
     public static void Report(
-        SourceProductionContext context, HandlerAuthorizationModel handler, bool required) {
-        if (!required || handler.SaysSomethingAboutAuthorization) {
+        SourceProductionContext context,
+        HandlerAuthorizationModel handler,
+        bool required
+    )
+    {
+        if (!required || handler.SaysSomethingAboutAuthorization)
+        {
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(
-            Descriptor(),
-            handler.DeclaredAt?.ToLocation() ?? Location.None,
-            handler.Handler));
+        context.ReportDiagnostic(
+            Diagnostic.Create(
+                Descriptor(),
+                handler.DeclaredAt?.ToLocation() ?? Location.None,
+                handler.Handler
+            )
+        );
     }
 }

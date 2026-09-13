@@ -20,8 +20,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// uncompilable-output failure the whole test plan exists to prevent.
 /// </para>
 /// </summary>
-public static class UnresolvedHandler {
-
+public static class UnresolvedHandler
+{
     /// <summary>
     /// Reported instead of the crash. Deliberately <em>not</em> a restatement of the compiler's
     /// own <c>CS0246</c> — the user already knows the type does not exist. This says the part the
@@ -36,20 +36,24 @@ public static class UnresolvedHandler {
     /// AnalyzerReleases tracking files in all five wrapper projects that link this source. The
     /// existing <c>HardenedException</c> descriptor is constructed inline for the same reason.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "Handler not generated",
-        messageFormat:
-        "'{0}.{1}' was not generated because the type of parameter '{2}' could not be resolved. " +
-        "Other handlers in this assembly are unaffected.",
-        category: "Hardened.Generation",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "Handler not generated",
+            messageFormat: "'{0}.{1}' was not generated because the type of parameter '{2}' could not be resolved. "
+                + "Other handlers in this assembly are unaffected.",
+            category: "Hardened.Generation",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
 
     /// <summary>The first parameter that did not resolve, or null when the handler is fine.</summary>
-    public static RequestParameterInformation? UnresolvedParameter(this RequestHandlerModel model) {
-        foreach (var parameter in model.RequestParameterInformationList) {
-            if (parameter.BindingType == ParameterBindType.Unresolved) {
+    public static RequestParameterInformation? UnresolvedParameter(this RequestHandlerModel model)
+    {
+        foreach (var parameter in model.RequestParameterInformationList)
+        {
+            if (parameter.BindingType == ParameterBindType.Unresolved)
+            {
                 return parameter;
             }
         }
@@ -83,22 +87,30 @@ public static class UnresolvedHandler {
     /// <summary>
     /// True when the handler was skipped, having reported why. Callers emit nothing further.
     /// </summary>
-    public static bool ReportIfUnresolved(this RequestHandlerModel model, SourceProductionContext context) {
+    public static bool ReportIfUnresolved(
+        this RequestHandlerModel model,
+        SourceProductionContext context
+    )
+    {
         var parameter = model.UnresolvedParameter();
 
-        if (parameter == null) {
+        if (parameter == null)
+        {
             return false;
         }
 
         // Location.None rather than the parameter's own span: a syntax location in the model would
         // travel with it through the incremental caches, and models are compared for equality to
         // decide whether to regenerate. The message names the handler and parameter instead.
-        context.ReportDiagnostic(Diagnostic.Create(
-            Descriptor(),
-            Location.None,
-            model.ControllerType.Name,
-            model.HandlerMethod,
-            parameter.Name));
+        context.ReportDiagnostic(
+            Diagnostic.Create(
+                Descriptor(),
+                Location.None,
+                model.ControllerType.Name,
+                model.HandlerMethod,
+                parameter.Name
+            )
+        );
 
         return true;
     }

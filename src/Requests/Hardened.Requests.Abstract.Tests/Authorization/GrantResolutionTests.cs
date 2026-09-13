@@ -12,18 +12,20 @@ namespace Hardened.Requests.Abstract.Tests.Authorization;
 /// the subset means one round trip and no lost structure, and these pin both halves of that.
 /// </para>
 /// </summary>
-public class GrantResolutionTests {
-
+public class GrantResolutionTests
+{
     #region building one
 
     [Fact]
-    public void Abstained_FindsNothingAndSaysNothing() {
+    public void Abstained_FindsNothingAndSaysNothing()
+    {
         Assert.Empty(GrantResolution.Abstained.Granted);
         Assert.Equal(AuthorizationDecision.Abstain, GrantResolution.Abstained.Decision);
     }
 
     [Fact]
-    public void Granting_CarriesTheGrantsAndNoVerdict() {
+    public void Granting_CarriesTheGrantsAndNoVerdict()
+    {
         var resolution = GrantResolution.Granting("pets:read", "pets:write");
 
         Assert.Contains("pets:read", resolution.Granted);
@@ -32,12 +34,14 @@ public class GrantResolutionTests {
     }
 
     [Fact]
-    public void Granting_NothingIsTheSameAsAbstaining() {
+    public void Granting_NothingIsTheSameAsAbstaining()
+    {
         Assert.Same(GrantResolution.Abstained, GrantResolution.Granting());
     }
 
     [Fact]
-    public void Refusing_CarriesTheVerdictAndNoGrants() {
+    public void Refusing_CarriesTheVerdictAndNoGrants()
+    {
         var resolution = GrantResolution.Refusing(AuthorizationDecision.Deny);
 
         Assert.Empty(resolution.Granted);
@@ -49,7 +53,8 @@ public class GrantResolutionTests {
     /// authorization server issued, not prose.
     /// </summary>
     [Fact]
-    public void Granted_MatchesOrdinally() {
+    public void Granted_MatchesOrdinally()
+    {
         var resolution = GrantResolution.Granting("pets:read");
 
         Assert.Contains("pets:read", resolution.Granted);
@@ -65,16 +70,19 @@ public class GrantResolutionTests {
     /// sees the whole picture.
     /// </summary>
     [Fact]
-    public void Combine_UnionsWhatEachContributorFound() {
+    public void Combine_UnionsWhatEachContributorFound()
+    {
         var combined = GrantResolution.Combine(
             GrantResolution.Granting("a", "b"),
-            GrantResolution.Granting("b", "c"));
+            GrantResolution.Granting("b", "c")
+        );
 
         Assert.Equal(["a", "b", "c"], combined.Granted.Order());
     }
 
     [Fact]
-    public void Combine_WithAnAbstentionKeepsWhatWasFound() {
+    public void Combine_WithAnAbstentionKeepsWhatWasFound()
+    {
         var found = GrantResolution.Granting("a");
 
         Assert.Equal(["a"], GrantResolution.Combine(found, GrantResolution.Abstained).Granted);
@@ -86,10 +94,12 @@ public class GrantResolutionTests {
     /// enough, and it being a different one from the one that said yes does not change that.
     /// </summary>
     [Fact]
-    public void Combine_LetsARefusalOutrankGrantsFoundElsewhere() {
+    public void Combine_LetsARefusalOutrankGrantsFoundElsewhere()
+    {
         var combined = GrantResolution.Combine(
             GrantResolution.Granting("a"),
-            GrantResolution.Refusing(AuthorizationDecision.Deny));
+            GrantResolution.Refusing(AuthorizationDecision.Deny)
+        );
 
         Assert.Equal(AuthorizationDecision.Deny, combined.Decision);
 
@@ -99,10 +109,12 @@ public class GrantResolutionTests {
     }
 
     [Fact]
-    public void Combine_ComposesVerdictsByTheUsualRule() {
+    public void Combine_ComposesVerdictsByTheUsualRule()
+    {
         var combined = GrantResolution.Combine(
             GrantResolution.Refusing(AuthorizationDecision.DenyInsufficientAuthentication),
-            GrantResolution.Refusing(AuthorizationDecision.Deny));
+            GrantResolution.Refusing(AuthorizationDecision.Deny)
+        );
 
         Assert.Equal(AuthorizationDecision.Deny, combined.Decision);
     }
@@ -112,10 +124,13 @@ public class GrantResolutionTests {
     /// register first.
     /// </summary>
     [Fact]
-    public void Combine_DoesNotDependOnOrder() {
+    public void Combine_DoesNotDependOnOrder()
+    {
         var left = GrantResolution.Granting("a");
         var right = new GrantResolution(
-            new HashSet<string> { "b" }, AuthorizationDecision.DenyInsufficientAuthentication);
+            new HashSet<string> { "b" },
+            AuthorizationDecision.DenyInsufficientAuthentication
+        );
 
         var forwards = GrantResolution.Combine(left, right);
         var backwards = GrantResolution.Combine(right, left);

@@ -21,10 +21,11 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Dispatch;
 /// <see cref="IHandlerDispatch"/> that routes by scheme. <see cref="MixedApplicationOverASocketTests"/>
 /// is the same two requests over Kestrel.
 /// </remarks>
-public class MixedApplicationTests {
-
+public class MixedApplicationTests
+{
     [HardenedTest]
-    public async Task AWebRouteIsServedBesideAQueue(ITestWebApp app) {
+    public async Task AWebRouteIsServedBesideAQueue(ITestWebApp app)
+    {
         var response = await app.Get("/ping");
 
         Assert.Equal(200, response.StatusCode);
@@ -32,7 +33,11 @@ public class MixedApplicationTests {
     }
 
     [HardenedTest]
-    public async Task AQueueMessageIsServedBesideAWebRoute(MixedApp.Queues queues, [Mock] IOrderStore store) {
+    public async Task AQueueMessageIsServedBesideAWebRoute(
+        MixedApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
         await queues.Orders(new Order { Id = "m-1" });
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "m-1"));
@@ -44,7 +49,8 @@ public class MixedApplicationTests {
     /// <see cref="IWebExecutionHandlerService"/> without asking for the other.
     /// </summary>
     [HardenedTest]
-    public void TheContainerHoldsOneDispatchUnderBothNames(IServiceProvider provider) {
+    public void TheContainerHoldsOneDispatchUnderBothNames(IServiceProvider provider)
+    {
         var dispatch = Assert.Single(provider.GetServices<IHandlerDispatch>());
 
         var composed = Assert.IsType<CloudRunDispatch>(dispatch);
@@ -56,10 +62,11 @@ public class MixedApplicationTests {
 
 /// <summary>The same application over a Kestrel socket.</summary>
 [KestrelRuntime]
-public class MixedApplicationOverASocketTests {
-
+public class MixedApplicationOverASocketTests
+{
     [HardenedTest]
-    public async Task AWebRouteIsServedBesideAQueue(ITestWebApp app) {
+    public async Task AWebRouteIsServedBesideAQueue(ITestWebApp app)
+    {
         var response = await app.Get("/ping");
 
         Assert.Equal(200, response.StatusCode);
@@ -67,7 +74,11 @@ public class MixedApplicationOverASocketTests {
     }
 
     [HardenedTest]
-    public async Task AQueueMessageIsServedBesideAWebRoute(MixedApp.Queues queues, [Mock] IOrderStore store) {
+    public async Task AQueueMessageIsServedBesideAWebRoute(
+        MixedApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
         await queues.Orders(new Order { Id = "m-socket-1" });
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "m-socket-1"));

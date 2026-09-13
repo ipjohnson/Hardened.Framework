@@ -14,7 +14,8 @@ namespace Hardened.IntegrationTests.OpenApi.SUT;
 /// what is under test is the refusal it never reaches.
 /// </remarks>
 [Handler]
-public class OrderServiceImpl : IOrderService {
+public class OrderServiceImpl : IOrderService
+{
     public Task<OrderRequest> PlaceOrder(string? idempotencyKey, OrderRequest body) =>
         Task.FromResult(body);
 }

@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
-using Hardened.Idl.Validation;
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
+using Hardened.Idl.Validation;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
@@ -17,19 +17,29 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// <c>JsonSerializerDefaults.Web</c>. Anything that does not survive that round trip produced one
 /// wire format under AOT and another under reflection.
 /// </remarks>
-public class JsonPropertyNameTests {
-
-    private static string Emit(params string[] propertyNames) {
+public class JsonPropertyNameTests
+{
+    private static string Emit(params string[] propertyNames)
+    {
         var schema = new SchemaModel { Name = "Thing", Kind = SchemaKind.Object };
 
-        foreach (var name in propertyNames) {
-            schema.Properties.Add(new PropertyModel { Name = name, Type = "string", IsRequired = true });
+        foreach (var name in propertyNames)
+        {
+            schema.Properties.Add(
+                new PropertyModel
+                {
+                    Name = name,
+                    Type = "string",
+                    IsRequired = true,
+                }
+            );
         }
 
         var patterns = new PatternRegistry(EmitterHarness.RootNamespace + ".Validation", "spec");
 
         return EmitterHarness.Write(ns =>
-            SchemaEmitter.Emit(ns, schema, EmitterHarness.ModelsNamespace, patterns));
+            SchemaEmitter.Emit(ns, schema, EmitterHarness.ModelsNamespace, patterns)
+        );
     }
 
     /// <summary>
@@ -37,7 +47,8 @@ public class JsonPropertyNameTests {
     /// reflection then writes as "randomNumber" while the resolver writes "random_number".
     /// </summary>
     [Fact]
-    public void ASnakeCasePropertyKeepsItsSpecName() {
+    public void ASnakeCasePropertyKeepsItsSpecName()
+    {
         Assert.Contains("JsonPropertyName(\"random_number\")", Emit("random_number"));
     }
 
@@ -47,19 +58,22 @@ public class JsonPropertyNameTests {
     /// application can change.
     /// </summary>
     [Fact]
-    public void ACamelCasePropertyIsStillPinned() {
+    public void ACamelCasePropertyIsStillPinned()
+    {
         Assert.Contains("JsonPropertyName(\"message\")", Emit("message"));
     }
 
     [Fact]
-    public void TheAttributeTargetsThePropertyRatherThanTheParameter() {
+    public void TheAttributeTargetsThePropertyRatherThanTheParameter()
+    {
         // A positional record's parameter and its property are one syntactic position, so without
         // the target the attribute lands on the parameter where the serializer never sees it.
         Assert.Contains("[property: JsonPropertyName(\"message\")]", Emit("message"));
     }
 
     [Fact]
-    public void EveryPropertyIsPinned() {
+    public void EveryPropertyIsPinned()
+    {
         var source = Emit("id", "random_number");
 
         Assert.Contains("JsonPropertyName(\"id\")", source);

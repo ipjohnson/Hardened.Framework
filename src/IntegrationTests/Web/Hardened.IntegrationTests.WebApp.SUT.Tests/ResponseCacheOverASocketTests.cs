@@ -26,8 +26,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// covers the startup services this host now runs.
 /// </para>
 /// </remarks>
-public class ResponseCacheOverASocketTests {
-
+public class ResponseCacheOverASocketTests
+{
     /// <summary>
     /// What the handler answers on its first request. A hit has to carry the same bytes; the
     /// counter in the body is what proves the handler did not run again.
@@ -39,7 +39,8 @@ public class ResponseCacheOverASocketTests {
     /// the hit re-declared it, then wrote the stored bytes with no chunk header and no terminator.
     /// </summary>
     [Fact]
-    public async Task AHitCarriesTheWholeBodyTheMissCarried() {
+    public async Task AHitCarriesTheWholeBodyTheMissCarried()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var miss = await host.Get(TestContext.Current.CancellationToken);
@@ -53,7 +54,8 @@ public class ResponseCacheOverASocketTests {
     /// And the second answer was the store's, not a second run of the handler.
     /// </summary>
     [Fact]
-    public async Task AHitIsAnsweredWithoutRunningTheHandler() {
+    public async Task AHitIsAnsweredWithoutRunningTheHandler()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         await host.Get(TestContext.Current.CancellationToken);
@@ -74,7 +76,8 @@ public class ResponseCacheOverASocketTests {
     /// replayed. Storing it handed one caller's id to everyone else for the whole duration.
     /// </remarks>
     [Fact]
-    public async Task AHitCarriesTheCallersOwnCorrelationId() {
+    public async Task AHitCarriesTheCallersOwnCorrelationId()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var miss = await host.Response(TestContext.Current.CancellationToken);
@@ -89,16 +92,19 @@ public class ResponseCacheOverASocketTests {
     /// <summary>
     /// The application, started as <c>Program.cs</c> starts it, listening on a port the OS picked.
     /// </summary>
-    private sealed class Host : IAsyncDisposable {
+    private sealed class Host : IAsyncDisposable
+    {
         private readonly WebApplication _app;
         private readonly HttpClient _client;
 
-        private Host(WebApplication app, HttpClient client) {
+        private Host(WebApplication app, HttpClient client)
+        {
             _app = app;
             _client = client;
         }
 
-        public static async Task<Host> Start(CancellationToken cancellationToken) {
+        public static async Task<Host> Start(CancellationToken cancellationToken)
+        {
             var builder = Application.CreateBuilder([]);
 
             // Port 0, so the OS picks one and nothing collides with a parallel test class or with
@@ -114,30 +120,36 @@ public class ResponseCacheOverASocketTests {
             // A short timeout because the failure this exists for is a hang: a response that
             // declares chunked framing and writes none leaves the client waiting for a terminator
             // that never arrives.
-            var client = new HttpClient {
+            var client = new HttpClient
+            {
                 BaseAddress = new Uri(app.Urls.First()),
-                Timeout = TimeSpan.FromSeconds(10)
+                Timeout = TimeSpan.FromSeconds(10),
             };
 
             return new Host(app, client);
         }
 
-        public async Task<string> Get(CancellationToken cancellationToken) {
+        public async Task<string> Get(CancellationToken cancellationToken)
+        {
             var response = await Response(cancellationToken);
 
             return await response.Content.ReadAsStringAsync(cancellationToken);
         }
 
-        public async Task<HttpResponseMessage> Response(CancellationToken cancellationToken) {
+        public async Task<HttpResponseMessage> Response(CancellationToken cancellationToken)
+        {
             var response = await _client.GetAsync(
-                "/response-cache/catalog?culture=en-GB", cancellationToken);
+                "/response-cache/catalog?culture=en-GB",
+                cancellationToken
+            );
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             return response;
         }
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             _client.Dispose();
 
             await _app.DisposeAsync();

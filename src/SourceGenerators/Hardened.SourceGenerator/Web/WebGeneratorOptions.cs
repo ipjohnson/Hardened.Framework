@@ -29,8 +29,11 @@
 /// provider of its own would have cost a fourth level on a tuple that is already three deep.
 /// </param>
 public record WebGeneratorOptions(
-    string? AmbiguousRoutes, string? OpenApiVersion, string WritableContentTypes = SerializerContentTypes.AlwaysWritable) {
-
+    string? AmbiguousRoutes,
+    string? OpenApiVersion,
+    string WritableContentTypes = SerializerContentTypes.AlwaysWritable
+)
+{
     /// <summary>What a build that set nothing gets.</summary>
     public static readonly WebGeneratorOptions Default = new(null, null);
 }

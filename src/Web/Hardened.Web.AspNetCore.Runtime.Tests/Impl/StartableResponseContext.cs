@@ -11,13 +11,16 @@ namespace Hardened.Web.AspNetCore.Runtime.Tests.Impl;
 /// response that has been flushed and one that has not cannot be tested against it. Kestrel flips
 /// the flag on the first body write; this exposes it directly.
 /// </summary>
-internal static class StartableResponseContext {
-
-    public static DefaultHttpContext Create(IServiceProvider requestServices, out Action start) {
+internal static class StartableResponseContext
+{
+    public static DefaultHttpContext Create(IServiceProvider requestServices, out Action start)
+    {
         var features = new FeatureCollection();
         var responseFeature = new StartableResponseFeature();
 
-        features.Set<IHttpRequestFeature>(new HttpRequestFeature { Method = "GET", Path = "/test" });
+        features.Set<IHttpRequestFeature>(
+            new HttpRequestFeature { Method = "GET", Path = "/test" }
+        );
         features.Set<IHttpResponseFeature>(responseFeature);
         features.Set<IHttpResponseBodyFeature>(new StreamResponseBodyFeature(new MemoryStream()));
 
@@ -26,7 +29,8 @@ internal static class StartableResponseContext {
         return new DefaultHttpContext(features) { RequestServices = requestServices };
     }
 
-    private sealed class StartableResponseFeature : IHttpResponseFeature {
+    private sealed class StartableResponseFeature : IHttpResponseFeature
+    {
         public int StatusCode { get; set; } = 200;
 
         public string? ReasonPhrase { get; set; }

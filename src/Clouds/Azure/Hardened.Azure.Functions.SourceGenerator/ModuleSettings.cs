@@ -13,8 +13,10 @@ namespace Hardened.Azure.Functions.SourceGenerator;
 /// metadata rather than the compiled attribute - so a setting that is not a literal has a text the
 /// shim can use and no value the provider can, which is HRDAZ004.
 /// </remarks>
-internal sealed class Setting {
-    public Setting(string text, string? literal, bool? flag, string? number) {
+internal sealed class Setting
+{
+    public Setting(string text, string? literal, bool? flag, string? number)
+    {
         Text = text;
         Literal = literal;
         Flag = flag;
@@ -54,15 +56,20 @@ internal sealed class Setting {
 /// as a resolved type, the same comparison <c>TriggerModuleGenerator</c> makes.
 /// </para>
 /// </remarks>
-internal sealed class ModuleSettings {
+internal sealed class ModuleSettings
+{
     private readonly IReadOnlyDictionary<string, Setting> _settings;
 
-    private ModuleSettings(IReadOnlyDictionary<string, Setting> settings, bool written) {
+    private ModuleSettings(IReadOnlyDictionary<string, Setting> settings, bool written)
+    {
         _settings = settings;
         Written = written;
     }
 
-    public static readonly ModuleSettings None = new(new Dictionary<string, Setting>(StringComparer.Ordinal), written: false);
+    public static readonly ModuleSettings None = new(
+        new Dictionary<string, Setting>(StringComparer.Ordinal),
+        written: false
+    );
 
     /// <summary>
     /// Whether the application wrote the module attribute at all, settings or no settings. An
@@ -71,14 +78,18 @@ internal sealed class ModuleSettings {
     /// </summary>
     public bool Written { get; }
 
-    public Setting? Get(string name) => _settings.TryGetValue(name, out var setting) ? setting : null;
+    public Setting? Get(string name) =>
+        _settings.TryGetValue(name, out var setting) ? setting : null;
 
     /// <summary>The settings on <paramref name="module"/>'s attribute, or none when it is not applied.</summary>
-    public static ModuleSettings For(EntryPointSelector.Model entryPoint, string module) {
+    public static ModuleSettings For(EntryPointSelector.Model entryPoint, string module)
+    {
         var attribute = module.Substring(module.LastIndexOf('.') + 1) + "Attribute";
 
-        foreach (var model in entryPoint.AttributeModels) {
-            if (model.TypeDefinition.Name == attribute) {
+        foreach (var model in entryPoint.AttributeModels)
+        {
+            if (model.TypeDefinition.Name == attribute)
+            {
                 return new ModuleSettings(Parse(model.PropertyAssignment), written: true);
             }
         }
@@ -90,20 +101,24 @@ internal sealed class ModuleSettings {
     /// <c>Name = value, Name = value</c> as the attribute model carries it, split outside string
     /// literals so a value holding a comma survives.
     /// </summary>
-    internal static IReadOnlyDictionary<string, Setting> Parse(string propertyAssignment) {
+    internal static IReadOnlyDictionary<string, Setting> Parse(string propertyAssignment)
+    {
         var settings = new Dictionary<string, Setting>(StringComparer.Ordinal);
 
-        foreach (var assignment in Split(propertyAssignment)) {
+        foreach (var assignment in Split(propertyAssignment))
+        {
             var equals = assignment.IndexOf('=');
 
-            if (equals < 1) {
+            if (equals < 1)
+            {
                 continue;
             }
 
             var name = assignment.Substring(0, equals).Trim();
             var text = assignment.Substring(equals + 1).Trim();
 
-            if (name.Length == 0 || text.Length == 0) {
+            if (name.Length == 0 || text.Length == 0)
+            {
                 continue;
             }
 
@@ -113,37 +128,47 @@ internal sealed class ModuleSettings {
         return settings;
     }
 
-    private static IEnumerable<string> Split(string text) {
+    private static IEnumerable<string> Split(string text)
+    {
         var start = 0;
         var inString = false;
         var verbatim = false;
         var depth = 0;
 
-        for (var index = 0; index < text.Length; index++) {
+        for (var index = 0; index < text.Length; index++)
+        {
             var character = text[index];
 
-            if (inString) {
-                if (verbatim) {
-                    if (character == '"') {
-                        if (index + 1 < text.Length && text[index + 1] == '"') {
+            if (inString)
+            {
+                if (verbatim)
+                {
+                    if (character == '"')
+                    {
+                        if (index + 1 < text.Length && text[index + 1] == '"')
+                        {
                             index++;
                         }
-                        else {
+                        else
+                        {
                             inString = false;
                         }
                     }
                 }
-                else if (character == '\\') {
+                else if (character == '\\')
+                {
                     index++;
                 }
-                else if (character == '"') {
+                else if (character == '"')
+                {
                     inString = false;
                 }
 
                 continue;
             }
 
-            switch (character) {
+            switch (character)
+            {
                 case '"':
                     inString = true;
                     verbatim = index > 0 && text[index - 1] == '@';
@@ -165,34 +190,45 @@ internal sealed class ModuleSettings {
             }
         }
 
-        if (start < text.Length) {
+        if (start < text.Length)
+        {
             yield return text.Substring(start);
         }
     }
 
     /// <summary>The string a literal denotes, or null for any other expression.</summary>
-    internal static string? Literal(string text) {
-        if (text.Length >= 3 && text.StartsWith("@\"", StringComparison.Ordinal) && text.EndsWith("\"", StringComparison.Ordinal)) {
+    internal static string? Literal(string text)
+    {
+        if (
+            text.Length >= 3
+            && text.StartsWith("@\"", StringComparison.Ordinal)
+            && text.EndsWith("\"", StringComparison.Ordinal)
+        )
+        {
             return text.Substring(2, text.Length - 3).Replace("\"\"", "\"");
         }
 
-        if (text.Length < 2 || text[0] != '"' || text[text.Length - 1] != '"') {
+        if (text.Length < 2 || text[0] != '"' || text[text.Length - 1] != '"')
+        {
             return null;
         }
 
         var builder = new StringBuilder(text.Length);
 
-        for (var index = 1; index < text.Length - 1; index++) {
+        for (var index = 1; index < text.Length - 1; index++)
+        {
             var character = text[index];
 
-            if (character != '\\' || index + 1 >= text.Length - 1) {
+            if (character != '\\' || index + 1 >= text.Length - 1)
+            {
                 builder.Append(character);
                 continue;
             }
 
             index++;
 
-            switch (text[index]) {
+            switch (text[index])
+            {
                 case 'n':
                     builder.Append('\n');
                     break;
@@ -216,16 +252,22 @@ internal sealed class ModuleSettings {
     }
 
     private static bool? Flag(string text) =>
-        text == "true" ? true : text == "false" ? false : null;
+        text == "true" ? true
+        : text == "false" ? false
+        : null;
 
     /// <summary>The digits of a non-negative integer literal, or null for any other expression.</summary>
-    private static string? Number(string text) {
-        if (text.Length == 0) {
+    private static string? Number(string text)
+    {
+        if (text.Length == 0)
+        {
             return null;
         }
 
-        foreach (var character in text) {
-            if (character < '0' || character > '9') {
+        foreach (var character in text)
+        {
+            if (character < '0' || character > '9')
+            {
                 return null;
             }
         }

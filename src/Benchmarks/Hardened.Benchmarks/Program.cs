@@ -12,15 +12,18 @@ var includeAspNet = args.Contains("--aspnet");
 var verifyOnly = args.Contains("--verify");
 var skipVerify = args.Contains("--no-verify");
 
-if (!skipVerify) {
+if (!skipVerify)
+{
     // Always run before benchmarking. A pipeline that fails to route still completes, quickly
     // and quietly, so an unverified run can report a fast number for producing a 404.
-    if (!PipelineVerification.Run(includeAspNet, Console.Out)) {
+    if (!PipelineVerification.Run(includeAspNet, Console.Out))
+    {
         return 1;
     }
 }
 
-if (verifyOnly) {
+if (verifyOnly)
+{
     return 0;
 }
 
@@ -28,24 +31,27 @@ var categories = includeAspNet
     ? [.. BenchmarkCategories.DefaultCategories, BenchmarkCategories.AspNet]
     : BenchmarkCategories.DefaultCategories;
 
-var benchmarkArgs = args
-    .Where(argument => argument is not ("--aspnet" or "--verify" or "--no-verify"))
+var benchmarkArgs = args.Where(argument =>
+        argument is not ("--aspnet" or "--verify" or "--no-verify")
+    )
     .ToList();
 
 // Without an explicit filter BenchmarkSwitcher drops into an interactive prompt, which is not
 // what "run the benchmarks" should do.
-if (!benchmarkArgs.Any(argument => argument.StartsWith("--filter", StringComparison.Ordinal))) {
+if (!benchmarkArgs.Any(argument => argument.StartsWith("--filter", StringComparison.Ordinal)))
+{
     benchmarkArgs.Add("--filter");
     benchmarkArgs.Add("*");
 }
 
-if (!benchmarkArgs.Any(argument => argument.StartsWith("--anyCategories", StringComparison.Ordinal))) {
+if (
+    !benchmarkArgs.Any(argument => argument.StartsWith("--anyCategories", StringComparison.Ordinal))
+)
+{
     benchmarkArgs.Add("--anyCategories");
     benchmarkArgs.AddRange(categories);
 }
 
-BenchmarkSwitcher
-    .FromAssembly(typeof(BenchmarkCategories).Assembly)
-    .Run([.. benchmarkArgs]);
+BenchmarkSwitcher.FromAssembly(typeof(BenchmarkCategories).Assembly).Run([.. benchmarkArgs]);
 
 return 0;

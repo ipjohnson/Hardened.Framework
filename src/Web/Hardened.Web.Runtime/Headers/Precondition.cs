@@ -1,6 +1,5 @@
-using Microsoft.Extensions.Primitives;
-
 using Hardened.Requests.Abstract.Headers;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Web.Runtime.Headers;
 
@@ -27,8 +26,8 @@ namespace Hardened.Web.Runtime.Headers;
 /// handler that knows its resource's version writes <c>ETag</c> or <c>Last-Modified</c> itself.
 /// </para>
 /// </remarks>
-public static class Precondition {
-
+public static class Precondition
+{
     /// <summary>
     /// Whether the caller already holds the representation described by <paramref name="etag"/>
     /// and <paramref name="lastModified"/>.
@@ -44,18 +43,22 @@ public static class Precondition {
         StringValues ifNoneMatch,
         StringValues ifModifiedSince,
         string? etag,
-        DateTimeOffset? lastModified) {
-        if (ifNoneMatch.Count > 0) {
+        DateTimeOffset? lastModified
+    )
+    {
+        if (ifNoneMatch.Count > 0)
+        {
             return etag != null && EntityTagHeader.Matches(ifNoneMatch, etag);
         }
 
-        if (lastModified == null) {
+        if (lastModified == null)
+        {
             return false;
         }
 
         // Not newer than what the client was given. Equality counts as unchanged: the header has
         // one-second precision, so "the same second" is as close to "the same" as it can express.
-        return HttpDate.TryParse(ifModifiedSince, out var since) &&
-               HttpDate.Truncate(lastModified.Value) <= since;
+        return HttpDate.TryParse(ifModifiedSince, out var since)
+            && HttpDate.Truncate(lastModified.Value) <= since;
     }
 }

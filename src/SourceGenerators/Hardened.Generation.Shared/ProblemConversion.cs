@@ -23,8 +23,8 @@ namespace Hardened.Generation;
 /// the method the operator calls, so the two cannot disagree about which cases convert.
 /// </para>
 /// </remarks>
-internal static class ProblemConversion {
-
+internal static class ProblemConversion
+{
     /// <summary>The holder's name, which is the file's plus a suffix, reserved by the allocator.</summary>
     public static string HolderName(string specFileName) =>
         NamingHelper.ToPascalCase(specFileName) + "Problems";
@@ -35,13 +35,21 @@ internal static class ProblemConversion {
     /// <summary>The body's constructor arguments, read off <paramref name="record"/>.</summary>
     /// <remarks>Never null for a plan <see cref="For"/> returned, which checked the same call.</remarks>
     public static IReadOnlyList<string> Arguments(
-        Plan plan, IReadOnlyList<SchemaModel> schemas, string record) =>
-        DefaultErrorBody.ArgumentsFromRecord(schemas, plan.SchemaName, plan.StatusCode, record)!;
+        Plan plan,
+        IReadOnlyList<SchemaModel> schemas,
+        string record
+    ) => DefaultErrorBody.ArgumentsFromRecord(schemas, plan.SchemaName, plan.StatusCode, record)!;
 
-    internal readonly struct Plan {
+    internal readonly struct Plan
+    {
         public Plan(
-            int statusCode, string bareRecord, string schemaName, string caseTypeName,
-            bool caseIsShipped) {
+            int statusCode,
+            string bareRecord,
+            string schemaName,
+            string caseTypeName,
+            bool caseIsShipped
+        )
+        {
             StatusCode = statusCode;
             BareRecord = bareRecord;
             SchemaName = schemaName;
@@ -81,41 +89,54 @@ internal static class ProblemConversion {
     /// or a Smithy error shape with a required member nothing can fill; and for a status the
     /// framework ships no record for.
     /// </remarks>
-    public static Plan? For(ErrorResponseModel error, IReadOnlyList<SchemaModel> schemas) {
-        if (error.Ref == null || error.Headers.Count > 0) {
+    public static Plan? For(ErrorResponseModel error, IReadOnlyList<SchemaModel> schemas)
+    {
+        if (error.Ref == null || error.Headers.Count > 0)
+        {
             return null;
         }
 
         var bare = ShippedResponses.BareForm(error.StatusCode);
 
-        if (bare == null || error.StatusCode == 304) {
+        if (bare == null || error.StatusCode == 304)
+        {
             return null;
         }
 
         var schemaName = TypeMapper.GetRefName(error.Ref);
         var schema = DefaultErrorBody.Find(schemas, schemaName);
 
-        if (schema == null) {
+        if (schema == null)
+        {
             return null;
         }
 
         var binding = ShippedResponses.For(error);
 
-        if (binding != null) {
+        if (binding != null)
+        {
             // A shipped generic record over the contract's body, which converts when the body is
             // RFC 7807 shaped. A marker form - Status<Http.Locked, Problem> - has no bare record.
-            if (binding.Value.Marker != null || !DefaultErrorBody.IsProblemDetails(schema)) {
+            if (binding.Value.Marker != null || !DefaultErrorBody.IsProblemDetails(schema))
+            {
                 return null;
             }
 
             return Fillable(schemas, schemaName, error.StatusCode)
-                ? new Plan(error.StatusCode, bare, schemaName, binding.Value.TypeName, caseIsShipped: true)
+                ? new Plan(
+                    error.StatusCode,
+                    bare,
+                    schemaName,
+                    binding.Value.TypeName,
+                    caseIsShipped: true
+                )
                 : null;
         }
 
         // A generated case type carrying a named error shape: Smithy's @error structure, whose
         // message the record's detail fills. Anything else it requires has no source.
-        if (error.TypeName == null || !schema.IsErrorShape) {
+        if (error.TypeName == null || !schema.IsErrorShape)
+        {
             return null;
         }
 
@@ -125,6 +146,9 @@ internal static class ProblemConversion {
     }
 
     /// <summary>Whether every required member of the body has a source on the record.</summary>
-    private static bool Fillable(IReadOnlyList<SchemaModel> schemas, string schemaName, int statusCode) =>
-        DefaultErrorBody.ArgumentsFromRecord(schemas, schemaName, statusCode, Record) != null;
+    private static bool Fillable(
+        IReadOnlyList<SchemaModel> schemas,
+        string schemaName,
+        int statusCode
+    ) => DefaultErrorBody.ArgumentsFromRecord(schemas, schemaName, statusCode, Record) != null;
 }

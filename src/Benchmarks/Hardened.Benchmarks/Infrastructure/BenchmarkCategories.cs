@@ -9,7 +9,8 @@ namespace Hardened.Benchmarks.Infrastructure;
 /// framework is a question you ask deliberately rather than every time you want to know whether
 /// Hardened regressed.
 /// </summary>
-public static class BenchmarkCategories {
+public static class BenchmarkCategories
+{
     /// <summary>Individual Hardened components measured in isolation.</summary>
     public const string Micro = "micro";
 

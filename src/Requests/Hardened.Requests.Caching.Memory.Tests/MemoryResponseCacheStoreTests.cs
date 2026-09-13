@@ -8,40 +8,57 @@ namespace Hardened.Requests.Caching.Memory.Tests;
 /// <summary>
 /// What the in-process store keeps, what it refuses, and what it hands back.
 /// </summary>
-public class MemoryResponseCacheStoreTests {
-
+public class MemoryResponseCacheStoreTests
+{
     private static MemoryResponseCacheStore Store(
         long sizeLimit = MemoryResponseCacheConfiguration.DefaultSizeLimit,
         long maximumBodySize = MemoryResponseCacheConfiguration.DefaultMaximumBodySize,
-        TimeProvider? clock = null) =>
-        new(Options.Create<IMemoryResponseCacheConfiguration>(
-                new MemoryResponseCacheConfiguration {
+        TimeProvider? clock = null
+    ) =>
+        new(
+            Options.Create<IMemoryResponseCacheConfiguration>(
+                new MemoryResponseCacheConfiguration
+                {
                     SizeLimit = sizeLimit,
-                    MaximumBodySize = maximumBodySize
-                }),
-            clock ?? TimeProvider.System);
+                    MaximumBodySize = maximumBodySize,
+                }
+            ),
+            clock ?? TimeProvider.System
+        );
 
     private static CachedResponse Response(
         int bodyLength = 4,
         string? contentType = "application/json",
-        params string[] tags) =>
-        new(200, contentType, new byte[bodyLength], [
-            new KeyValuePair<string, StringValues>("Cache-Control", new StringValues("public"))
-        ], tags);
+        params string[] tags
+    ) =>
+        new(
+            200,
+            contentType,
+            new byte[bodyLength],
+            [new KeyValuePair<string, StringValues>("Cache-Control", new StringValues("public"))],
+            tags
+        );
 
     [Fact]
-    public async Task AKeyNothingWasStoredUnderReadsBackAsNothing() {
+    public async Task AKeyNothingWasStoredUnderReadsBackAsNothing()
+    {
         using var store = Store();
 
         Assert.Null(await store.Get("absent", TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task WhatWasStoredIsWhatComesBack() {
+    public async Task WhatWasStoredIsWhatComesBack()
+    {
         using var store = Store();
         var stored = Response();
 
-        await store.Set("k", stored, TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
+        await store.Set(
+            "k",
+            stored,
+            TimeSpan.FromMinutes(1),
+            TestContext.Current.CancellationToken
+        );
 
         var read = await store.Get("k", TestContext.Current.CancellationToken);
 
@@ -53,21 +70,31 @@ public class MemoryResponseCacheStoreTests {
     /// there is a per-entry cap as well as a total.
     /// </summary>
     [Fact]
-    public async Task AResponseOverThePerEntryCapIsNotStored() {
+    public async Task AResponseOverThePerEntryCapIsNotStored()
+    {
         using var store = Store(maximumBodySize: 8);
 
         await store.Set(
-            "k", Response(bodyLength: 9), TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(bodyLength: 9),
+            TimeSpan.FromMinutes(1),
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Null(await store.Get("k", TestContext.Current.CancellationToken));
     }
 
     [Fact]
-    public async Task AResponseAtThePerEntryCapIsStored() {
+    public async Task AResponseAtThePerEntryCapIsStored()
+    {
         using var store = Store(maximumBodySize: 8);
 
         await store.Set(
-            "k", Response(bodyLength: 8), TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(bodyLength: 8),
+            TimeSpan.FromMinutes(1),
+            TestContext.Current.CancellationToken
+        );
 
         Assert.NotNull(await store.Get("k", TestContext.Current.CancellationToken));
     }
@@ -77,11 +104,16 @@ public class MemoryResponseCacheStoreTests {
     /// Lambda freeze of any length: nothing has to fire for a stale entry to be withheld.
     /// </summary>
     [Fact]
-    public async Task AnExpiredEntryIsNotReturned() {
+    public async Task AnExpiredEntryIsNotReturned()
+    {
         using var store = Store();
 
         await store.Set(
-            "k", Response(), TimeSpan.FromMilliseconds(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(),
+            TimeSpan.FromMilliseconds(1),
+            TestContext.Current.CancellationToken
+        );
 
         await Task.Delay(50, TestContext.Current.CancellationToken);
 
@@ -89,13 +121,23 @@ public class MemoryResponseCacheStoreTests {
     }
 
     [Fact]
-    public async Task ASecondStoreUnderOneKeyReplacesTheFirst() {
+    public async Task ASecondStoreUnderOneKeyReplacesTheFirst()
+    {
         using var store = Store();
         var second = Response(bodyLength: 8);
 
         await store.Set(
-            "k", Response(bodyLength: 4), TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
-        await store.Set("k", second, TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(bodyLength: 4),
+            TimeSpan.FromMinutes(1),
+            TestContext.Current.CancellationToken
+        );
+        await store.Set(
+            "k",
+            second,
+            TimeSpan.FromMinutes(1),
+            TestContext.Current.CancellationToken
+        );
 
         Assert.Same(second, await store.Get("k", TestContext.Current.CancellationToken));
     }
@@ -105,11 +147,16 @@ public class MemoryResponseCacheStoreTests {
     /// carries its size. This is what proves it does.
     /// </summary>
     [Fact]
-    public async Task EveryEntryIsSizedAgainstTheLimit() {
+    public async Task EveryEntryIsSizedAgainstTheLimit()
+    {
         using var store = Store(sizeLimit: 16);
 
         await store.Set(
-            "k", Response(bodyLength: 4), TimeSpan.FromMinutes(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(bodyLength: 4),
+            TimeSpan.FromMinutes(1),
+            TestContext.Current.CancellationToken
+        );
 
         Assert.NotNull(await store.Get("k", TestContext.Current.CancellationToken));
     }
@@ -120,7 +167,8 @@ public class MemoryResponseCacheStoreTests {
     /// noise.
     /// </summary>
     [Fact]
-    public void AnEntryCostsItsBody() {
+    public void AnEntryCostsItsBody()
+    {
         Assert.Equal(4, Response(bodyLength: 4).Size);
     }
 
@@ -129,14 +177,16 @@ public class MemoryResponseCacheStoreTests {
     /// entries at all, so a published change appeared when the entry expired and not before.
     /// </summary>
     [Fact]
-    public async Task AnEntryIsGoneOnceItsTagIsEvicted() {
+    public async Task AnEntryIsGoneOnceItsTagIsEvicted()
+    {
         using var store = Store();
 
         await store.Set(
             "k",
             Response(tags: "rates"),
             TimeSpan.FromHours(1),
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         await store.EvictByTag("rates", TestContext.Current.CancellationToken);
 
@@ -148,15 +198,18 @@ public class MemoryResponseCacheStoreTests {
     /// each symbol rather than the one the publisher happened to name.
     /// </summary>
     [Fact]
-    public async Task EveryEntryUnderTheTagGoes() {
+    public async Task EveryEntryUnderTheTagGoes()
+    {
         using var store = Store();
 
-        foreach (var key in new[] { "EUR", "GBP", "JPY" }) {
+        foreach (var key in new[] { "EUR", "GBP", "JPY" })
+        {
             await store.Set(
                 key,
                 Response(tags: "rates"),
                 TimeSpan.FromHours(1),
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken
+            );
         }
 
         await store.EvictByTag("rates", TestContext.Current.CancellationToken);
@@ -167,14 +220,23 @@ public class MemoryResponseCacheStoreTests {
     }
 
     [Fact]
-    public async Task AnEntryUnderAnotherTagStays() {
+    public async Task AnEntryUnderAnotherTagStays()
+    {
         using var store = Store();
 
         await store.Set(
-            "rate", Response(tags: "rates"), TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+            "rate",
+            Response(tags: "rates"),
+            TimeSpan.FromHours(1),
+            TestContext.Current.CancellationToken
+        );
 
         await store.Set(
-            "alert", Response(tags: "alerts"), TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+            "alert",
+            Response(tags: "alerts"),
+            TimeSpan.FromHours(1),
+            TestContext.Current.CancellationToken
+        );
 
         await store.EvictByTag("rates", TestContext.Current.CancellationToken);
 
@@ -186,14 +248,16 @@ public class MemoryResponseCacheStoreTests {
     /// other's index rather than leaving a key nothing can serve.
     /// </summary>
     [Fact]
-    public async Task AnEntryUnderTwoTagsGoesWithTheFirstOfThem() {
+    public async Task AnEntryUnderTwoTagsGoesWithTheFirstOfThem()
+    {
         using var store = Store();
 
         await store.Set(
             "k",
             Response(tags: ["rates", "symbols"]),
             TimeSpan.FromHours(1),
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         await store.EvictByTag("rates", TestContext.Current.CancellationToken);
 
@@ -205,7 +269,8 @@ public class MemoryResponseCacheStoreTests {
             "k",
             Response(tags: "symbols"),
             TimeSpan.FromHours(1),
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         await store.EvictByTag("rates", TestContext.Current.CancellationToken);
 
@@ -220,14 +285,23 @@ public class MemoryResponseCacheStoreTests {
     /// the old tag would drop an entry that is no longer tagged that way.
     /// </remarks>
     [Fact]
-    public async Task AReplacedEntryIsIndexedByItsNewTag() {
+    public async Task AReplacedEntryIsIndexedByItsNewTag()
+    {
         using var store = Store();
 
         await store.Set(
-            "k", Response(tags: "rates"), TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(tags: "rates"),
+            TimeSpan.FromHours(1),
+            TestContext.Current.CancellationToken
+        );
 
         await store.Set(
-            "k", Response(tags: "alerts"), TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(tags: "alerts"),
+            TimeSpan.FromHours(1),
+            TestContext.Current.CancellationToken
+        );
 
         await store.EvictByTag("rates", TestContext.Current.CancellationToken);
 
@@ -248,16 +322,25 @@ public class MemoryResponseCacheStoreTests {
     /// runs out - the defect the tag was added for, back again as a race.
     /// </remarks>
     [Fact]
-    public async Task AKeyStoredAgainAfterAnEvictionIsStillReachableByItsTag() {
+    public async Task AKeyStoredAgainAfterAnEvictionIsStillReachableByItsTag()
+    {
         using var store = Store();
 
         await store.Set(
-            "k", Response(tags: "rates"), TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(tags: "rates"),
+            TimeSpan.FromHours(1),
+            TestContext.Current.CancellationToken
+        );
 
         await store.EvictByTag("rates", TestContext.Current.CancellationToken);
 
         await store.Set(
-            "k", Response(tags: "rates"), TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(tags: "rates"),
+            TimeSpan.FromHours(1),
+            TestContext.Current.CancellationToken
+        );
 
         await store.EvictByTag("rates", TestContext.Current.CancellationToken);
 
@@ -269,10 +352,16 @@ public class MemoryResponseCacheStoreTests {
     /// wrote does not know whether anything had read it yet.
     /// </summary>
     [Fact]
-    public async Task EvictingATagNothingUsedDoesNothing() {
+    public async Task EvictingATagNothingUsedDoesNothing()
+    {
         using var store = Store();
 
-        await store.Set("k", Response(), TimeSpan.FromHours(1), TestContext.Current.CancellationToken);
+        await store.Set(
+            "k",
+            Response(),
+            TimeSpan.FromHours(1),
+            TestContext.Current.CancellationToken
+        );
 
         await store.EvictByTag("nothing", TestContext.Current.CancellationToken);
 
@@ -289,12 +378,17 @@ public class MemoryResponseCacheStoreTests {
     /// trial arm substituted the whole store to get past it.
     /// </remarks>
     [Fact]
-    public async Task AnEntryIsGoneOnceTheClockPassesItsDuration() {
+    public async Task AnEntryIsGoneOnceTheClockPassesItsDuration()
+    {
         var clock = new TestClock();
         using var store = Store(clock: clock);
 
         await store.Set(
-            "k", Response(), TimeSpan.FromDays(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(),
+            TimeSpan.FromDays(1),
+            TestContext.Current.CancellationToken
+        );
 
         clock.Advance(TimeSpan.FromDays(1));
 
@@ -302,12 +396,17 @@ public class MemoryResponseCacheStoreTests {
     }
 
     [Fact]
-    public async Task AnEntryInsideItsDurationIsStillServed() {
+    public async Task AnEntryInsideItsDurationIsStillServed()
+    {
         var clock = new TestClock();
         using var store = Store(clock: clock);
 
         await store.Set(
-            "k", Response(), TimeSpan.FromDays(1), TestContext.Current.CancellationToken);
+            "k",
+            Response(),
+            TimeSpan.FromDays(1),
+            TestContext.Current.CancellationToken
+        );
 
         clock.Advance(TimeSpan.FromHours(23));
 
@@ -319,7 +418,8 @@ public class MemoryResponseCacheStoreTests {
     /// nothing will be served.
     /// </summary>
     [Fact]
-    public async Task AnExpiredEntryIsNotEvictedAgainByItsTag() {
+    public async Task AnExpiredEntryIsNotEvictedAgainByItsTag()
+    {
         var clock = new TestClock();
         using var store = Store(clock: clock);
 
@@ -327,7 +427,8 @@ public class MemoryResponseCacheStoreTests {
             "k",
             Response(tags: "rates"),
             TimeSpan.FromMinutes(5),
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         clock.Advance(TimeSpan.FromMinutes(6));
 
@@ -337,7 +438,8 @@ public class MemoryResponseCacheStoreTests {
             "k",
             Response(tags: "alerts"),
             TimeSpan.FromMinutes(5),
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         await store.EvictByTag("rates", TestContext.Current.CancellationToken);
 
@@ -349,7 +451,8 @@ public class MemoryResponseCacheStoreTests {
     /// Microsoft.Extensions.TimeProvider.Testing, which would be a package reference for four
     /// lines.
     /// </summary>
-    private sealed class TestClock : TimeProvider {
+    private sealed class TestClock : TimeProvider
+    {
         private DateTimeOffset _now = new(2026, 9, 3, 9, 0, 0, TimeSpan.Zero);
 
         public override DateTimeOffset GetUtcNow() => _now;

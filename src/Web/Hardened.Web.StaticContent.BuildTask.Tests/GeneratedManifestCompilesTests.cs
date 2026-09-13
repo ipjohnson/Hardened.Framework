@@ -17,23 +17,35 @@ namespace Hardened.Web.StaticContent.BuildTask.Tests;
 /// <c>docs/design/TESTING-PLAN.md</c> §2.1 records as a thing that has already happened here twice.
 /// </para>
 /// </summary>
-public class GeneratedManifestCompilesTests : IDisposable {
-
+public class GeneratedManifestCompilesTests : IDisposable
+{
     private readonly string _root;
 
-    public GeneratedManifestCompilesTests() {
-        _root = Path.Combine(Path.GetTempPath(), "hardened-compile-" + Guid.NewGuid().ToString("N"));
+    public GeneratedManifestCompilesTests()
+    {
+        _root = Path.Combine(
+            Path.GetTempPath(),
+            "hardened-compile-" + Guid.NewGuid().ToString("N")
+        );
 
         Directory.CreateDirectory(_root);
     }
 
-    public void Dispose() {
-        try { Directory.Delete(_root, true); } catch { /* best effort */ }
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_root, true);
+        }
+        catch
+        { /* best effort */
+        }
 
         GC.SuppressFinalize(this);
     }
 
-    private void Write(string relative, string content) {
+    private void Write(string relative, string content)
+    {
         var path = Path.Combine(_root, relative);
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -44,28 +56,28 @@ public class GeneratedManifestCompilesTests : IDisposable {
     /// Compiles <paramref name="source"/> against everything loaded here, which includes the
     /// runtime package and DependencyModules - the two things the emitted file binds to.
     /// </summary>
-    private static Assembly Compile(string source) {
+    private static Assembly Compile(string source)
+    {
         // Both sources, because neither is enough on its own. Loaded assemblies bring the
         // framework, which lives in the shared runtime directory and never appears beside the
         // test; the output directory brings DependencyModules.Runtime, which nothing here touches
         // and so is never loaded. Missing either produces a wall of errors about the emitted file
         // that have nothing to do with it.
-        var paths = AppDomain.CurrentDomain.GetAssemblies()
+        var paths = AppDomain
+            .CurrentDomain.GetAssemblies()
             .Where(assembly => !assembly.IsDynamic && !string.IsNullOrEmpty(assembly.Location))
             .Select(assembly => assembly.Location)
             .Concat(Directory.EnumerateFiles(AppContext.BaseDirectory, "*.dll"))
             .Distinct(StringComparer.OrdinalIgnoreCase);
 
-        var references = paths
-            .Select(TryReference)
-            .OfType<MetadataReference>()
-            .ToList();
+        var references = paths.Select(TryReference).OfType<MetadataReference>().ToList();
 
         var compilation = CSharpCompilation.Create(
             "GeneratedManifestUnderTest",
             [CSharpSyntaxTree.ParseText(source)],
             references,
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+        );
 
         using var stream = new MemoryStream();
 
@@ -73,11 +85,17 @@ public class GeneratedManifestCompilesTests : IDisposable {
 
         Assert.True(
             result.Success,
-            "The generated manifest did not compile:" + Environment.NewLine +
-            string.Join(Environment.NewLine,
-                result.Diagnostics
-                    .Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
-                    .Select(diagnostic => "  " + diagnostic)));
+            "The generated manifest did not compile:"
+                + Environment.NewLine
+                + string.Join(
+                    Environment.NewLine,
+                    result
+                        .Diagnostics.Where(diagnostic =>
+                            diagnostic.Severity == DiagnosticSeverity.Error
+                        )
+                        .Select(diagnostic => "  " + diagnostic)
+                )
+        );
 
         return Assembly.Load(stream.ToArray());
     }
@@ -87,16 +105,20 @@ public class GeneratedManifestCompilesTests : IDisposable {
     /// output directory holds native runtime files too, and Roslyn refuses the whole compilation
     /// over one of them.
     /// </summary>
-    private static MetadataReference? TryReference(string path) {
-        try {
+    private static MetadataReference? TryReference(string path)
+    {
+        try
+        {
             return MetadataReference.CreateFromFile(path);
         }
-        catch (Exception exception) when (exception is BadImageFormatException or IOException) {
+        catch (Exception exception) when (exception is BadImageFormatException or IOException)
+        {
             return null;
         }
     }
 
-    private IStaticContentManifest Build(string? fallBack = null, long embed = 1024 * 1024) {
+    private IStaticContentManifest Build(string? fallBack = null, long embed = 1024 * 1024)
+    {
         var scan = StaticContentScan.Scan(_root, "/", fallBack, embed);
         var source = ManifestEmitter.Emit(scan, "Generated.UnderTest", false);
         var assembly = Compile(source);
@@ -109,7 +131,8 @@ public class GeneratedManifestCompilesTests : IDisposable {
     }
 
     [Fact]
-    public void AnEmptyManifestCompiles() {
+    public void AnEmptyManifestCompiles()
+    {
         var manifest = Build();
 
         Assert.Empty(manifest.Entries);
@@ -121,7 +144,8 @@ public class GeneratedManifestCompilesTests : IDisposable {
     /// aliased to a directory, and named the fall back.
     /// </summary>
     [Fact]
-    public void AFullManifestCompilesAndCarriesWhatTheScanFound() {
+    public void AFullManifestCompilesAndCarriesWhatTheScanFound()
+    {
         Write("index.html", "<html>shell</html>");
         Write("app.js", "console.log('hi');");
         Write(Path.Combine("css", "site.css"), new string('a', 3000));
@@ -144,10 +168,12 @@ public class GeneratedManifestCompilesTests : IDisposable {
 
     /// <summary>The bytes survive the round trip through generated source unchanged.</summary>
     [Fact]
-    public void EmbeddedBytesRoundTrip() {
+    public void EmbeddedBytesRoundTrip()
+    {
         var content = new byte[512];
 
-        for (var index = 0; index < content.Length; index++) {
+        for (var index = 0; index < content.Length; index++)
+        {
             content[index] = (byte)index;
         }
 
@@ -163,10 +189,12 @@ public class GeneratedManifestCompilesTests : IDisposable {
     /// A file over the threshold carries its path rather than its bytes, and the entry says so.
     /// </summary>
     [Fact]
-    public void AnEntryLeftOnDiskCarriesItsPath() {
+    public void AnEntryLeftOnDiskCarriesItsPath()
+    {
         Write("movie.bin", new string('b', 5000));
 
-        var entry = Build(embed: 1024).Entries.Single(candidate => candidate.RoutePath == "/movie.bin");
+        var entry = Build(embed: 1024)
+            .Entries.Single(candidate => candidate.RoutePath == "/movie.bin");
 
         Assert.False(entry.IsEmbedded);
         Assert.Equal("movie.bin", entry.RelativePath);
@@ -175,14 +203,18 @@ public class GeneratedManifestCompilesTests : IDisposable {
 
     /// <summary>The timestamp survives as a real point in time rather than as ticks nobody reads.</summary>
     [Fact]
-    public void TheTimestampRoundTripsAsADate() {
+    public void TheTimestampRoundTripsAsADate()
+    {
         Write("app.js", "x");
 
         var entry = Build().Entries.Single(candidate => candidate.RoutePath == "/app.js");
 
         Assert.Equal(TimeSpan.Zero, entry.LastModified.Offset);
         Assert.InRange(
-            entry.LastModified, DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddMinutes(5));
+            entry.LastModified,
+            DateTimeOffset.UtcNow.AddMinutes(-5),
+            DateTimeOffset.UtcNow.AddMinutes(5)
+        );
     }
 
     /// <summary>
@@ -190,11 +222,14 @@ public class GeneratedManifestCompilesTests : IDisposable {
     /// otherwise close the literal and produce a syntax error in a project that did nothing wrong.
     /// </summary>
     [Fact]
-    public void AnAwkwardlyNamedFileStillCompiles() {
-        try {
+    public void AnAwkwardlyNamedFileStillCompiles()
+    {
+        try
+        {
             Write("it's \"quoted\" odd.txt", "content");
         }
-        catch (Exception exception) when (exception is IOException or ArgumentException) {
+        catch (Exception exception) when (exception is IOException or ArgumentException)
+        {
             return; // The file system will not take the name; nothing to assert.
         }
 

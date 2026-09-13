@@ -16,10 +16,11 @@ namespace Hardened1.Tests;
 /// exercised at 200 is indistinguishable from one that has no declared set at all, which is the
 /// thing these tests exist to tell apart.
 /// </remarks>
-public class TodoTests {
-
+public class TodoTests
+{
     [HardenedTest]
-    public async Task ListTodos_ReturnsEveryTodo(TemplateModuleNameClient client) {
+    public async Task ListTodos_ReturnsEveryTodo(TemplateModuleNameClient client)
+    {
         var todos = await client.Todos.GetAsync().Returns<Ok<List<ClientModels.Todo>>>();
 
 #if (xunit)
@@ -30,7 +31,8 @@ public class TodoTests {
     }
 
     [HardenedTest]
-    public async Task GetTodo_ReturnsTheTodo(TemplateModuleNameClient client) {
+    public async Task GetTodo_ReturnsTheTodo(TemplateModuleNameClient client)
+    {
         var todo = await client.Todos[1].GetAsync().Returns<Ok<ClientModels.Todo>>();
 
 #if (xunit)
@@ -54,8 +56,12 @@ public class TodoTests {
     /// </summary>
 #endif
     [HardenedTest]
-    public async Task GetTodo_UnknownId_IsATypedNotFound(TemplateModuleNameClient client) {
-        var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.NotFound>>();
+    public async Task GetTodo_UnknownId_IsATypedNotFound(TemplateModuleNameClient client)
+    {
+        var missing = await client
+            .Todos[9999]
+            .GetAsync()
+            .Returns<NotFound<ClientModels.NotFound>>();
 
 #if (xunit)
         Assert.Contains("9999", missing.Body.Detail);
@@ -65,8 +71,12 @@ public class TodoTests {
     }
 
     [HardenedTest]
-    public async Task RemoveTodo_UnknownId_IsATypedNotFound(TemplateModuleNameClient client) {
-        var missing = await client.Todos[9999].DeleteAsync().Returns<NotFound<ClientModels.NotFound>>();
+    public async Task RemoveTodo_UnknownId_IsATypedNotFound(TemplateModuleNameClient client)
+    {
+        var missing = await client
+            .Todos[9999]
+            .DeleteAsync()
+            .Returns<NotFound<ClientModels.NotFound>>();
 
 #if (xunit)
         Assert.Contains("9999", missing.Body.Detail);
@@ -77,8 +87,10 @@ public class TodoTests {
 
     /// <summary>Titles are unique, which is what gives the sample a real 409 - typed, like the 404.</summary>
     [HardenedTest]
-    public async Task CreateTodo_DuplicateTitle_IsATypedConflict(TemplateModuleNameClient client) {
-        var taken = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
+    public async Task CreateTodo_DuplicateTitle_IsATypedConflict(TemplateModuleNameClient client)
+    {
+        var taken = await client
+            .Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
             .Returns<Conflict<ClientModels.Conflict>>();
 
 #if (xunit)
@@ -94,7 +106,8 @@ public class TodoTests {
     /// implements it in, so the client throws the typed exception either way.
     /// </summary>
     [HardenedTest]
-    public async Task GetTodo_UnknownId_IsATypedProblem(TemplateModuleNameClient client) {
+    public async Task GetTodo_UnknownId_IsATypedProblem(TemplateModuleNameClient client)
+    {
 #if (declaredMode)
         var missing = await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.Problem>>();
 
@@ -112,8 +125,12 @@ public class TodoTests {
 
     /// <summary>The remove says why in every mode, because it throws or returns a case rather than null.</summary>
     [HardenedTest]
-    public async Task RemoveTodo_UnknownId_IsATypedProblem(TemplateModuleNameClient client) {
-        var missing = await client.Todos[9999].DeleteAsync().Returns<NotFound<ClientModels.Problem>>();
+    public async Task RemoveTodo_UnknownId_IsATypedProblem(TemplateModuleNameClient client)
+    {
+        var missing = await client
+            .Todos[9999]
+            .DeleteAsync()
+            .Returns<NotFound<ClientModels.Problem>>();
 
 #if (xunit)
         Assert.Contains("9999", missing.Body.Detail);
@@ -124,8 +141,10 @@ public class TodoTests {
 
     /// <summary>Titles are unique, which is what gives the sample a real 409, carrying the same Problem.</summary>
     [HardenedTest]
-    public async Task CreateTodo_DuplicateTitle_IsATypedProblem(TemplateModuleNameClient client) {
-        var taken = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
+    public async Task CreateTodo_DuplicateTitle_IsATypedProblem(TemplateModuleNameClient client)
+    {
+        var taken = await client
+            .Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
             .Returns<Conflict<ClientModels.Problem>>();
 
 #if (xunit)
@@ -150,14 +169,19 @@ public class TodoTests {
     /// </remarks>
 #endif
     [HardenedTest]
-    public async Task GetTodo_UnknownId_IsATypedError(TemplateModuleNameClient client) {
+    public async Task GetTodo_UnknownId_IsATypedError(TemplateModuleNameClient client)
+    {
         await client.Todos[9999].GetAsync().Returns<NotFound<ClientModels.TodoNotFound>>();
     }
 
     /// <summary>The remove says why in every mode, because it throws or returns a case rather than null.</summary>
     [HardenedTest]
-    public async Task RemoveTodo_UnknownId_IsATypedError(TemplateModuleNameClient client) {
-        var missing = await client.Todos[9999].DeleteAsync().Returns<NotFound<ClientModels.TodoNotFound>>();
+    public async Task RemoveTodo_UnknownId_IsATypedError(TemplateModuleNameClient client)
+    {
+        var missing = await client
+            .Todos[9999]
+            .DeleteAsync()
+            .Returns<NotFound<ClientModels.TodoNotFound>>();
 
 #if (xunit)
         Assert.Contains("9999", missing.Body.Message);
@@ -168,8 +192,10 @@ public class TodoTests {
 
     /// <summary>Titles are unique, which is what gives the sample a real 409, as the shape the model names for it.</summary>
     [HardenedTest]
-    public async Task CreateTodo_DuplicateTitle_IsATypedError(TemplateModuleNameClient client) {
-        var taken = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
+    public async Task CreateTodo_DuplicateTitle_IsATypedError(TemplateModuleNameClient client)
+    {
+        var taken = await client
+            .Todos.PostAsync(new ClientModels.NewTodo { Title = "Add an endpoint" })
             .Returns<Conflict<ClientModels.TodoTitleTaken>>();
 
 #if (xunit)
@@ -191,8 +217,10 @@ public class TodoTests {
     /// signature. This test is what makes that difference visible rather than a claim in a comment.
     /// </remarks>
     [HardenedTest]
-    public async Task CreateTodo_AnswersTwoHundred(TemplateModuleNameClient client) {
-        var answer = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+    public async Task CreateTodo_AnswersTwoHundred(TemplateModuleNameClient client)
+    {
+        var answer = await client
+            .Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
             .Returns<Ok<ClientModels.Todo>>();
 
 #if (xunit)
@@ -204,7 +232,8 @@ public class TodoTests {
 
     /// <summary>200 with the removed todo, for the same reason.</summary>
     [HardenedTest]
-    public async Task RemoveTodo_AnswersTwoHundred(TemplateModuleNameClient client) {
+    public async Task RemoveTodo_AnswersTwoHundred(TemplateModuleNameClient client)
+    {
         var removed = await client.Todos[2].DeleteAsync().Returns<Ok<ClientModels.Todo>>();
 
 #if (xunit)
@@ -220,8 +249,10 @@ public class TodoTests {
     /// is what is asserted.
     /// </summary>
     [HardenedTest]
-    public async Task CreateTodo_AnswersCreated(TemplateModuleNameClient client) {
-        await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+    public async Task CreateTodo_AnswersCreated(TemplateModuleNameClient client)
+    {
+        await client
+            .Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
             .ReturnsStatus<Created<ClientModels.Todo>>();
     }
 #else
@@ -231,8 +262,10 @@ public class TodoTests {
     /// the client received, and Created carries all three.
     /// </summary>
     [HardenedTest]
-    public async Task CreateTodo_AnswersCreatedWithALocation(TemplateModuleNameClient client) {
-        var created = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
+    public async Task CreateTodo_AnswersCreatedWithALocation(TemplateModuleNameClient client)
+    {
+        var created = await client
+            .Todos.PostAsync(new ClientModels.NewTodo { Title = "ship it" })
             .Returns<Created<ClientModels.Todo>>();
 
 #if (xunit)
@@ -254,7 +287,8 @@ public class TodoTests {
     /// says so.
     /// </remarks>
     [HardenedTest]
-    public async Task RemoveTodo_AnswersNoContent(TemplateModuleNameClient client) {
+    public async Task RemoveTodo_AnswersNoContent(TemplateModuleNameClient client)
+    {
         await client.Todos[2].DeleteAsync().Returns<NoContent>();
     }
 #endif
@@ -269,16 +303,22 @@ public class TodoTests {
     /// names the field.
     /// </remarks>
     [HardenedTest]
-    public async Task CreateTodo_TitleOverItsLimit_IsBadRequest(TemplateModuleNameClient client) {
-        var refused = await client.Todos.PostAsync(new ClientModels.NewTodo { Title = new string('x', 100) })
+    public async Task CreateTodo_TitleOverItsLimit_IsBadRequest(TemplateModuleNameClient client)
+    {
+        var refused = await client
+            .Todos.PostAsync(new ClientModels.NewTodo { Title = new string('x', 100) })
             .Returns<BadRequest<ClientModels.RequestValidationError>>();
 
 #if (xunit)
         Assert.Contains(
             refused.Body.Errors!,
-            error => error.Field?.Contains("title", StringComparison.OrdinalIgnoreCase) == true);
+            error => error.Field?.Contains("title", StringComparison.OrdinalIgnoreCase) == true
+        );
 #else
-        Assert.That(refused.Body.Errors!.Select(error => error.Field), Has.Some.Contains("title").IgnoreCase);
+        Assert.That(
+            refused.Body.Errors!.Select(error => error.Field),
+            Has.Some.Contains("title").IgnoreCase
+        );
 #endif
     }
 
@@ -287,14 +327,20 @@ public class TodoTests {
     /// document says so, which DocumentStatusTests holds it to.
     /// </summary>
     [HardenedTest]
-    public async Task GetTodo_IdBelowItsMinimum_IsBadRequest(TemplateModuleNameClient client) {
+    public async Task GetTodo_IdBelowItsMinimum_IsBadRequest(TemplateModuleNameClient client)
+    {
         await client.Todos[0].GetAsync().Returns<BadRequest<ClientModels.RequestValidationError>>();
     }
 
     [HardenedTest]
-    public async Task RemoveTodo_IdBelowItsMinimum_IsBadRequest(TemplateModuleNameClient client) {
-        await client.Todos[0].DeleteAsync().Returns<BadRequest<ClientModels.RequestValidationError>>();
+    public async Task RemoveTodo_IdBelowItsMinimum_IsBadRequest(TemplateModuleNameClient client)
+    {
+        await client
+            .Todos[0]
+            .DeleteAsync()
+            .Returns<BadRequest<ClientModels.RequestValidationError>>();
     }
+
     /// <summary>
     /// An id the parameter's type cannot carry is refused before the handler, with the same
     /// field-level envelope a failed validation answers - and the published document says so,
@@ -305,12 +351,14 @@ public class TodoTests {
     /// is the point. ITestWebApp sends the raw request through the same pipeline.
     /// </remarks>
     [HardenedTest]
-    public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app) {
+    public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app)
+    {
         (await app.Get("/todos/not-a-number")).Assert.BadRequest();
     }
 
     [HardenedTest]
-    public async Task RemoveTodo_MalformedId_IsBadRequest(ITestWebApp app) {
+    public async Task RemoveTodo_MalformedId_IsBadRequest(ITestWebApp app)
+    {
         (await app.Delete("/todos/not-a-number")).Assert.BadRequest();
     }
 }

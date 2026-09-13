@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(422)]
 public sealed record UnprocessableContent<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<UnprocessableContent<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<UnprocessableContent<T>>
+{
     public string Type => ProblemTypes.UnprocessableContent;
 
     public string Title => "Unprocessable Content";
@@ -38,6 +40,7 @@ public sealed record UnprocessableContent<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static UnprocessableContent<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

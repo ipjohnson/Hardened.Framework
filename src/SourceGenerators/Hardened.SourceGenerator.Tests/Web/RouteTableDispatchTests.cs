@@ -18,15 +18,18 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// be diagnosed. See <see cref="Dispatch_DoesNotCollapseTwoOperationsOntoOneVerb"/>.
 /// </para>
 /// </summary>
-public class RouteTableDispatchTests {
+public class RouteTableDispatchTests
+{
     private static string Generate(params RequestHandlerModel[] handlers) =>
         RoutingTableGenerator.GenerateCSharpRouteFile(App(), handlers, CancellationToken.None);
 
     [Fact]
-    public void Dispatch_SwitchesOnTheDeclaredHeader() {
+    public void Dispatch_SwitchesOnTheDeclaredHeader()
+    {
         var result = Generate(
             Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"),
-            Dispatched("X-Amz-Target", "Bank.Transfer", "Transfer"));
+            Dispatched("X-Amz-Target", "Bank.Transfer", "Transfer")
+        );
 
         Assert.Contains("Headers.TryGetValue(\"X-Amz-Target\"", result);
         Assert.Contains("case \"Bank.GetBalance\":", result);
@@ -38,15 +41,19 @@ public class RouteTableDispatchTests {
     /// same path, so a generator that ignores the dispatch fields writes the same case label twice.
     /// </summary>
     [Fact]
-    public void Dispatch_DoesNotCollapseTwoOperationsOntoOneVerb() {
+    public void Dispatch_DoesNotCollapseTwoOperationsOntoOneVerb()
+    {
         var result = Generate(
             Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"),
-            Dispatched("X-Amz-Target", "Bank.Transfer", "Transfer"));
+            Dispatched("X-Amz-Target", "Bank.Transfer", "Transfer")
+        );
 
         var postLabels = result.Split("case \"POST\":").Length - 1;
 
-        Assert.True(postLabels <= 1,
-            $"Emitted {postLabels} 'case \"POST\":' labels in the same switch, which is CS0152.");
+        Assert.True(
+            postLabels <= 1,
+            $"Emitted {postLabels} 'case \"POST\":' labels in the same switch, which is CS0152."
+        );
     }
 
     /// <summary>
@@ -54,10 +61,12 @@ public class RouteTableDispatchTests {
     /// an assumed X-Amz-Target. Each header gets its own lookup and its own out variable.
     /// </summary>
     [Fact]
-    public void Dispatch_WithTwoHeaders_LooksEachOneUpSeparately() {
+    public void Dispatch_WithTwoHeaders_LooksEachOneUpSeparately()
+    {
         var result = Generate(
             Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"),
-            Dispatched("X-Custom-Op", "Ledger.Post", "PostLedger"));
+            Dispatched("X-Custom-Op", "Ledger.Post", "PostLedger")
+        );
 
         Assert.Contains("Headers.TryGetValue(\"X-Amz-Target\", out var dispatchValues)", result);
         Assert.Contains("Headers.TryGetValue(\"X-Custom-Op\", out var dispatchValues1)", result);
@@ -67,9 +76,9 @@ public class RouteTableDispatchTests {
     /// With nothing left to route, no tree is built over an empty list.
     /// </summary>
     [Fact]
-    public void Dispatch_WithNothingRouted_EmitsNoRouteTree() {
-        var result = Generate(
-            Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"));
+    public void Dispatch_WithNothingRouted_EmitsNoRouteTree()
+    {
+        var result = Generate(Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"));
 
         Assert.DoesNotContain("pathSpan", result);
     }
@@ -80,10 +89,12 @@ public class RouteTableDispatchTests {
     /// route for whichever handler owned it and answer the wrong one for the rest.
     /// </summary>
     [Fact]
-    public void Dispatch_IsCheckedBeforeTheRouteTree() {
+    public void Dispatch_IsCheckedBeforeTheRouteTree()
+    {
         var result = Generate(
             Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"),
-            Routed("/health", "GET", "Health"));
+            Routed("/health", "GET", "Health")
+        );
 
         var dispatch = result.IndexOf("Headers.TryGetValue", StringComparison.Ordinal);
         var routing = result.IndexOf("pathSpan", StringComparison.Ordinal);
@@ -97,19 +108,20 @@ public class RouteTableDispatchTests {
     /// A dispatched route carries no template, so there is nothing to bind.
     /// </summary>
     [Fact]
-    public void Dispatch_BindsNoPathTokens() {
-        var result = Generate(
-            Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"));
+    public void Dispatch_BindsNoPathTokens()
+    {
+        var result = Generate(Dispatched("X-Amz-Target", "Bank.GetBalance", "GetBalance"));
 
         Assert.Contains("PathTokenCollection.Empty", result);
     }
 
     private static EntryPointSelector.Model App() =>
-        new() {
+        new()
+        {
             EntryPointType = TypeDefinition.Get("Test.Api", "TestApp"),
             AttributeModels = Array.Empty<AttributeModel>(),
             RootEntryPoint = true,
-            MethodDefinitions = Array.Empty<HardenedMethodDefinition>()
+            MethodDefinitions = Array.Empty<HardenedMethodDefinition>(),
         };
 
     private static RequestHandlerModel Dispatched(string header, string key, string name) =>
@@ -119,11 +131,13 @@ public class RouteTableDispatchTests {
         Model(new RequestHandlerNameModel(path, method), name);
 
     private static RequestHandlerModel Model(RequestHandlerNameModel name, string handlerName) =>
-        new(name,
+        new(
+            name,
             TypeDefinition.Get("Test.Api.Services", "IBankService"),
             handlerName,
             TypeDefinition.Get("Test.Api.Generated", "BankController_" + handlerName),
             Array.Empty<RequestParameterInformation>(),
             new ResponseInformationModel { IsAsync = true },
-            Array.Empty<AttributeModel>());
+            Array.Empty<AttributeModel>()
+        );
 }

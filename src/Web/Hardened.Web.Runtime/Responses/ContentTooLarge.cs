@@ -18,8 +18,8 @@ namespace Hardened.Web.Runtime.Responses;
 /// </para>
 /// </remarks>
 [HttpStatus(413)]
-public sealed record ContentTooLarge(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus {
-
+public sealed record ContentTooLarge(string? Detail = null) : IHttpStatusResponse, IDeclaresStatus
+{
     /// <summary>
     /// The ContentTooLarge with a generic message, for a handler with nothing more to say than the status.
     /// Shared, so returning it allocates nothing.

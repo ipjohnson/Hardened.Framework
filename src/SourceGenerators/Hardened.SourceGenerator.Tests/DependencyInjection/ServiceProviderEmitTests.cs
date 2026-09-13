@@ -1,7 +1,7 @@
+using Hardened.SourceGeneration.Testing;
 using Hardened.SourceGenerator.DependencyInjection;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Tests.Infrastructure;
-using Hardened.SourceGeneration.Testing;
 using Microsoft.CodeAnalysis;
 using Xunit;
 
@@ -11,15 +11,20 @@ namespace Hardened.SourceGenerator.Tests.DependencyInjection;
 /// Runs <see cref="ServiceProviderFileGenerator"/> the way a shipped generator does, so the emitted
 /// <c>CreateServiceProvider</c> is compiled rather than string-matched.
 /// </summary>
-public class ServiceProviderGenerator : IIncrementalGenerator {
-
-    public void Initialize(IncrementalGeneratorInitializationContext context) {
+public class ServiceProviderGenerator : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
         var provider = context.SyntaxProvider.CreateSyntaxProvider(
             EntryPointSelector.UsingAttribute(),
-            EntryPointSelector.TransformModel(true));
+            EntryPointSelector.TransformModel(true)
+        );
 
         context.RegisterSourceOutput(
-            provider, (production, model) => new ServiceProviderFileGenerator().GenerateFile(production, model));
+            provider,
+            (production, model) =>
+                new ServiceProviderFileGenerator().GenerateFile(production, model)
+        );
     }
 }
 
@@ -27,8 +32,8 @@ public class ServiceProviderGenerator : IIncrementalGenerator {
 /// The service collection every host without a <c>Program.cs</c> of its own is built from — Lambda
 /// among them, through the writers in <c>Hardened.Amz</c>.
 /// </summary>
-public class ServiceProviderEmitTests {
-
+public class ServiceProviderEmitTests
+{
     /// <summary>
     /// No <c>CreateServiceProvider</c> member of its own: that is the method under test, and
     /// declaring one here would collide with the emitted partial.
@@ -51,11 +56,13 @@ public class ServiceProviderEmitTests {
         }
         """;
 
-    private static string Generate() {
+    private static string Generate()
+    {
         var result = GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = Application },
             [new ServiceProviderGenerator()],
-            RequestGeneratorHarness.Anchors);
+            RequestGeneratorHarness.Anchors
+        );
 
         result.AssertNoErrors();
 
@@ -76,7 +83,8 @@ public class ServiceProviderEmitTests {
     /// only symptom was environment-gated services quietly not being registered.
     /// </remarks>
     [Fact]
-    public void TheEnvironmentIsRegisteredUnderBothInterfaces() {
+    public void TheEnvironmentIsRegisteredUnderBothInterfaces()
+    {
         var generated = Generate();
 
         Assert.Contains("AddHardenedEnvironment(environment)", generated);
@@ -88,12 +96,14 @@ public class ServiceProviderEmitTests {
     /// behaviour rather than style.
     /// </summary>
     [Fact]
-    public void TheEnvironmentIsRegisteredBeforeTheModulesAreApplied() {
+    public void TheEnvironmentIsRegisteredBeforeTheModulesAreApplied()
+    {
         var generated = Generate();
 
         Assert.True(
-            generated.IndexOf("AddHardenedEnvironment", StringComparison.Ordinal) <
-            generated.IndexOf("PopulateServiceCollection", StringComparison.Ordinal),
-            $"the environment is registered after the modules read it:{Environment.NewLine}{generated}");
+            generated.IndexOf("AddHardenedEnvironment", StringComparison.Ordinal)
+                < generated.IndexOf("PopulateServiceCollection", StringComparison.Ordinal),
+            $"the environment is registered after the modules read it:{Environment.NewLine}{generated}"
+        );
     }
 }

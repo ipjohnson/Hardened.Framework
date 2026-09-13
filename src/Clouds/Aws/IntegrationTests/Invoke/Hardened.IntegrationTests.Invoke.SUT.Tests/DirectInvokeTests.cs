@@ -1,12 +1,12 @@
 using DependencyModules.Testing.Attributes;
+using Hardened.Aws.Lambda.Invoke;
 using Hardened.Aws.Lambda.Runtime.Adapters;
 using Hardened.IntegrationTests.Invoke.SUT;
-using Hardened.Aws.Lambda.Invoke;
 using Hardened.Shared.Testing.Attributes;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.Invoke.SUT.Tests;
 
@@ -20,15 +20,18 @@ namespace Hardened.IntegrationTests.Invoke.SUT.Tests;
 /// it.
 /// </para>
 /// </summary>
-public class DirectInvokeTests {
-
+public class DirectInvokeTests
+{
     [HardenedTest]
     public async Task ACallersPayloadReachesTheHandler(
-        InvokeTestApp.Invocations invocations, [Mock] IOrderLog log) {
+        InvokeTestApp.Invocations invocations,
+        [Mock] IOrderLog log
+    )
+    {
         await invocations.Handle(new OrderRequest { Id = "o-1", Quantity = 3 });
 
-        log.Received().Placed(
-            Arg.Is<OrderRequest>(request => request.Id == "o-1" && request.Quantity == 3));
+        log.Received()
+            .Placed(Arg.Is<OrderRequest>(request => request.Id == "o-1" && request.Quantity == 3));
     }
 
     /// <summary>
@@ -37,7 +40,10 @@ public class DirectInvokeTests {
     /// </summary>
     [HardenedTest]
     public async Task TheHandlersReturnValueIsTheResponse(
-        InvokeTestApp.Invocations invocations, [Mock] IOrderLog log) {
+        InvokeTestApp.Invocations invocations,
+        [Mock] IOrderLog log
+    )
+    {
         var receipt = await invocations.Handle(new OrderRequest { Id = "o-1", Quantity = 3 });
 
         Assert.Equal("o-1", receipt.Id);
@@ -52,13 +58,19 @@ public class DirectInvokeTests {
     [InlineData("records")]
     [InlineData("requestContext")]
     public async Task APayloadShapedLikeAnAwsEventIsStillTheCallers(
-        string field, InvokeTestApp.Invocations invocations, [Mock] IOrderLog log) {
+        string field,
+        InvokeTestApp.Invocations invocations,
+        [Mock] IOrderLog log
+    )
+    {
         var request = new OrderRequest { Id = "o-1" };
 
-        if (field == "records") {
+        if (field == "records")
+        {
             request.Records = ["a", "b"];
         }
-        else {
+        else
+        {
             request.RequestContext = "from-billing";
         }
 
@@ -75,7 +87,8 @@ public class DirectInvokeTests {
     /// JSON.
     /// </summary>
     [HardenedTest]
-    public void TheInvokeAdapterIsTheOnlyOne(IServiceProvider provider) {
+    public void TheInvokeAdapterIsTheOnlyOne(IServiceProvider provider)
+    {
         Assert.IsType<InvokeAdapter>(Assert.Single(provider.GetServices<IPayloadAdapter>()));
     }
 }

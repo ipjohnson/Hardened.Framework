@@ -26,8 +26,8 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// the reason is reported as <c>HOAG010</c>.
 /// </para>
 /// </summary>
-public class UnresolvableTypeTests {
-
+public class UnresolvableTypeTests
+{
     /// <summary>One handler that cannot resolve its parameter, beside two that are fine.</summary>
     private const string OneBrokenHandler = """
         [Get("/orders")]
@@ -44,7 +44,8 @@ public class UnresolvableTypeTests {
         RequestGeneratorHarness.Generate(RequestGeneratorHarness.Controller(OneBrokenHandler));
 
     [Fact]
-    public void TheGeneratorDoesNotThrow() {
+    public void TheGeneratorDoesNotThrow()
+    {
         Assert.Empty(Generate().GeneratorExceptions);
     }
 
@@ -53,7 +54,8 @@ public class UnresolvableTypeTests {
     /// nothing else.
     /// </summary>
     [Fact]
-    public void EveryOtherHandlerInTheAssemblyStillGenerates() {
+    public void EveryOtherHandlerInTheAssemblyStillGenerates()
+    {
         var result = Generate();
 
         Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("List"));
@@ -61,7 +63,8 @@ public class UnresolvableTypeTests {
     }
 
     [Fact]
-    public void TheHandlerThatCouldNotBindIsNotGenerated() {
+    public void TheHandlerThatCouldNotBindIsNotGenerated()
+    {
         Assert.DoesNotContain(Generate().GeneratedSources.Keys, key => key.Contains("Save"));
     }
 
@@ -71,10 +74,12 @@ public class UnresolvableTypeTests {
     /// worse than the missing route.
     /// </summary>
     [Fact]
-    public void TheRoutingTableDoesNotRouteToTheHandlerThatWasSkipped() {
+    public void TheRoutingTableDoesNotRouteToTheHandlerThatWasSkipped()
+    {
         // A routing table is only emitted for an application, so this case supplies its own
         // rather than going through the single-controller helper.
-        var result = RequestGeneratorHarness.Generate("""
+        var result = RequestGeneratorHarness.Generate(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -90,15 +95,19 @@ public class UnresolvableTypeTests {
                 [Post("/orders")]
                 public string Save(NotDeclaredAnywhere model) => "";
             }
-            """);
+            """
+        );
 
-        var routing = result.GeneratedSources
-            .Where(pair => pair.Value.Contains("class RoutingTable"))
+        var routing = result
+            .GeneratedSources.Where(pair => pair.Value.Contains("class RoutingTable"))
             .Select(pair => pair.Value)
             .FirstOrDefault();
 
-        Assert.True(routing != null,
-            "No routing table was generated. Files: " + string.Join(", ", result.GeneratedSources.Keys));
+        Assert.True(
+            routing != null,
+            "No routing table was generated. Files: "
+                + string.Join(", ", result.GeneratedSources.Keys)
+        );
 
         Assert.DoesNotContain("Save", routing!);
 
@@ -107,10 +116,12 @@ public class UnresolvableTypeTests {
     }
 
     [Fact]
-    public void TheReasonIsReported() {
+    public void TheReasonIsReported()
+    {
         var diagnostic = Assert.Single(
             Generate().GeneratorDiagnostics,
-            candidate => candidate.Id == UnresolvedHandler.DiagnosticId);
+            candidate => candidate.Id == UnresolvedHandler.DiagnosticId
+        );
 
         var message = diagnostic.GetMessage();
 
@@ -123,10 +134,12 @@ public class UnresolvableTypeTests {
     /// this says only the part it cannot: that the handler was dropped as a result.
     /// </summary>
     [Fact]
-    public void TheReasonIsAWarningRatherThanAnError() {
+    public void TheReasonIsAWarningRatherThanAnError()
+    {
         var diagnostic = Assert.Single(
             Generate().GeneratorDiagnostics,
-            candidate => candidate.Id == UnresolvedHandler.DiagnosticId);
+            candidate => candidate.Id == UnresolvedHandler.DiagnosticId
+        );
 
         Assert.Equal(DiagnosticSeverity.Warning, diagnostic.Severity);
     }
@@ -136,9 +149,12 @@ public class UnresolvableTypeTests {
     /// reports it, and the routing table skips silently.
     /// </summary>
     [Fact]
-    public void TheReasonIsReportedOncePerBrokenHandler() {
-        var reported = Generate().GeneratorDiagnostics
-            .Count(candidate => candidate.Id == UnresolvedHandler.DiagnosticId);
+    public void TheReasonIsReportedOncePerBrokenHandler()
+    {
+        var reported = Generate()
+            .GeneratorDiagnostics.Count(candidate =>
+                candidate.Id == UnresolvedHandler.DiagnosticId
+            );
 
         Assert.Equal(1, reported);
     }

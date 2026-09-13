@@ -16,10 +16,11 @@ namespace Hardened.Web.Kestrel.Runtime.Tests;
 /// the same reason: the only application built on it declares <c>[HardenedWebModule]</c> itself, so
 /// nothing ever exercised the module alone. That is precisely what this asserts.
 /// </remarks>
-public class RuntimeModuleCompositionTests {
-
+public class RuntimeModuleCompositionTests
+{
     [Fact]
-    public void KestrelRuntime_RegistersTheWebPipelineOnItsOwn() {
+    public void KestrelRuntime_RegistersTheWebPipelineOnItsOwn()
+    {
         var services = new ServiceCollection();
 
         // What a host supplies and the module does not.

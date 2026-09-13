@@ -10,11 +10,11 @@ using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Web.Runtime.Compression;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Compression;
 
@@ -28,8 +28,8 @@ namespace Hardened.Web.Runtime.Tests.Compression;
 /// reach the transport and the headers beside them.
 /// </para>
 /// </summary>
-public class ResponseCompressionFilterTests {
-
+public class ResponseCompressionFilterTests
+{
     private const string Json = """{"name":"compress me","value":7}""";
 
     private const string Browser = "gzip, deflate, br, zstd";
@@ -39,37 +39,57 @@ public class ResponseCompressionFilterTests {
     private static IExecutionContext Context(
         string? acceptEncoding = Browser,
         IServiceProvider? services = null,
-        string path = "/pets") {
+        string path = "/pets"
+    )
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-        if (acceptEncoding != null) {
+        if (acceptEncoding != null)
+        {
             headers[KnownHeaders.AcceptEncoding] = acceptEncoding;
         }
 
         var request = new TestExecutionRequest(
-            "GET", path, "application/json",
-            new SimpleQueryStringCollection(new Dictionary<string, string>())) {
-            Headers = headers
+            "GET",
+            path,
+            "application/json",
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        )
+        {
+            Headers = headers,
         };
 
         var provider = services ?? new ServiceCollection().BuildServiceProvider();
 
         return new TestExecutionContext(
-            provider, provider, Substitute.For<IKnownServices>(), request,
-            new TestExecutionResponse(new MemoryStream()), CancellationToken.None);
+            provider,
+            provider,
+            Substitute.For<IKnownServices>(),
+            request,
+            new TestExecutionResponse(new MemoryStream()),
+            CancellationToken.None
+        );
     }
 
     private static ResponseCompressionFilter Filter(
         ICompressionPredicate? predicate = null,
         CompressionType favor = CompressionType.Default,
-        CompressionConfiguration? configuration = null) =>
-        new(predicate, favor, configuration ?? new CompressionConfiguration());
+        CompressionConfiguration? configuration = null
+    ) => new(predicate, favor, configuration ?? new CompressionConfiguration());
 
     /// <summary>
     /// Runs the filters over a final stage standing in for the serializer.
     /// </summary>
-    private static async Task Run(IExecutionContext context, Func<IExecutionChain, Task> handler, params IExecutionFilter[] filters) {
-        var chain = filters.Select<IExecutionFilter, Func<IExecutionContext, IExecutionFilter>>(filter => _ => filter)
+    private static async Task Run(
+        IExecutionContext context,
+        Func<IExecutionChain, Task> handler,
+        params IExecutionFilter[] filters
+    )
+    {
+        var chain = filters
+            .Select<IExecutionFilter, Func<IExecutionContext, IExecutionFilter>>(filter =>
+                _ => filter
+            )
             .Append(_ => new Stage(handler))
             .ToList();
 
@@ -80,8 +100,13 @@ public class ResponseCompressionFilterTests {
     /// A handler that sets what a serializer would and writes <paramref name="body"/>.
     /// </summary>
     private static Func<IExecutionChain, Task> Writes(
-        string body, string contentType = "application/json", int? status = null, object? value = null) =>
-        async chain => {
+        string body,
+        string contentType = "application/json",
+        int? status = null,
+        object? value = null
+    ) =>
+        async chain =>
+        {
             var response = chain.Context.Response;
 
             response.Status = status;
@@ -95,24 +120,31 @@ public class ResponseCompressionFilterTests {
         ((MemoryStream)context.Response.Body).ToArray();
 
     private static string Encoding_(IExecutionContext context) =>
-        context.Response.Headers.TryGetValue(KnownHeaders.ContentEncoding, out var value) ? value.ToString() : "";
+        context.Response.Headers.TryGetValue(KnownHeaders.ContentEncoding, out var value)
+            ? value.ToString()
+            : "";
 
-    private static bool LooksGzip(byte[] bytes) => bytes.Length > 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
+    private static bool LooksGzip(byte[] bytes) =>
+        bytes.Length > 2 && bytes[0] == 0x1f && bytes[1] == 0x8b;
 
-    private static string Decode(byte[] bytes, string coding) {
+    private static string Decode(byte[] bytes, string coding)
+    {
         using var input = new MemoryStream(bytes);
-        using Stream decoder = coding == KnownEncoding.Br
-            ? new BrotliStream(input, CompressionMode.Decompress)
-            : new GZipStream(input, CompressionMode.Decompress);
+        using Stream decoder =
+            coding == KnownEncoding.Br
+                ? new BrotliStream(input, CompressionMode.Decompress)
+                : new GZipStream(input, CompressionMode.Decompress);
         using var reader = new StreamReader(decoder, Encoding.UTF8);
 
         return reader.ReadToEnd();
     }
 
-    private sealed class Stage : IExecutionFilter {
+    private sealed class Stage : IExecutionFilter
+    {
         private readonly Func<IExecutionChain, Task> _body;
 
-        public Stage(Func<IExecutionChain, Task> body) {
+        public Stage(Func<IExecutionChain, Task> body)
+        {
             _body = body;
         }
 
@@ -120,10 +152,12 @@ public class ResponseCompressionFilterTests {
     }
 
     /// <summary>Answers what the test says, and remembers what it was shown.</summary>
-    private sealed class Predicate : ICompressionPredicate {
+    private sealed class Predicate : ICompressionPredicate
+    {
         private readonly bool _answer;
 
-        public Predicate(bool answer) {
+        public Predicate(bool answer)
+        {
             _answer = answer;
         }
 
@@ -131,7 +165,8 @@ public class ResponseCompressionFilterTests {
 
         public static ICompressionPredicate Create(object[] args) => new Predicate(true);
 
-        public bool ShouldCompress(object value, IExecutionContext context) {
+        public bool ShouldCompress(object value, IExecutionContext context)
+        {
             Seen.Add(value);
 
             return _answer;
@@ -141,7 +176,8 @@ public class ResponseCompressionFilterTests {
     // ---------------------------------------------------------------- negotiation
 
     [Fact]
-    public async Task ABrowserHeaderGetsGzip() {
+    public async Task ABrowserHeaderGetsGzip()
+    {
         var context = Context(Browser);
 
         await Run(context, Writes(Json), Filter());
@@ -152,7 +188,8 @@ public class ResponseCompressionFilterTests {
     }
 
     [Fact]
-    public async Task BrotliIsChosenWhenFavouredAndAccepted() {
+    public async Task BrotliIsChosenWhenFavouredAndAccepted()
+    {
         var context = Context(Browser);
 
         await Run(context, Writes(Json), Filter(favor: CompressionType.Br));
@@ -162,17 +199,26 @@ public class ResponseCompressionFilterTests {
     }
 
     [Fact]
-    public async Task GzipIsChosenWhenFavouredAheadOfAConfiguredBrotli() {
+    public async Task GzipIsChosenWhenFavouredAheadOfAConfiguredBrotli()
+    {
         var context = Context(Browser);
-        var configuration = new CompressionConfiguration { Encodings = [KnownEncoding.Br, KnownEncoding.GZip] };
+        var configuration = new CompressionConfiguration
+        {
+            Encodings = [KnownEncoding.Br, KnownEncoding.GZip],
+        };
 
-        await Run(context, Writes(Json), Filter(favor: CompressionType.GZip, configuration: configuration));
+        await Run(
+            context,
+            Writes(Json),
+            Filter(favor: CompressionType.GZip, configuration: configuration)
+        );
 
         Assert.Equal("gzip", Encoding_(context));
     }
 
     [Fact]
-    public async Task AFavouredCodingTheClientDoesNotAcceptFallsBackToTheOrder() {
+    public async Task AFavouredCodingTheClientDoesNotAcceptFallsBackToTheOrder()
+    {
         var context = Context("gzip");
 
         await Run(context, Writes(Json), Filter(favor: CompressionType.Br));
@@ -185,19 +231,28 @@ public class ResponseCompressionFilterTests {
     /// application turned off.
     /// </summary>
     [Fact]
-    public async Task AFavouredCodingTheConfigurationDoesNotOfferIsNotUsed() {
+    public async Task AFavouredCodingTheConfigurationDoesNotOfferIsNotUsed()
+    {
         var context = Context(Browser);
         var configuration = new CompressionConfiguration { Encodings = [KnownEncoding.GZip] };
 
-        await Run(context, Writes(Json), Filter(favor: CompressionType.Br, configuration: configuration));
+        await Run(
+            context,
+            Writes(Json),
+            Filter(favor: CompressionType.Br, configuration: configuration)
+        );
 
         Assert.Equal("gzip", Encoding_(context));
     }
 
     [Fact]
-    public async Task TheConfiguredOrderDecidesWhenNothingIsFavoured() {
+    public async Task TheConfiguredOrderDecidesWhenNothingIsFavoured()
+    {
         var context = Context(Browser);
-        var configuration = new CompressionConfiguration { Encodings = [KnownEncoding.Br, KnownEncoding.GZip] };
+        var configuration = new CompressionConfiguration
+        {
+            Encodings = [KnownEncoding.Br, KnownEncoding.GZip],
+        };
 
         await Run(context, Writes(Json), Filter(configuration: configuration));
 
@@ -209,7 +264,8 @@ public class ResponseCompressionFilterTests {
     [InlineData("")]
     [InlineData("identity")]
     [InlineData("deflate, zstd")]
-    public async Task AClientAcceptingNothingOfferedIsServedIdentity(string? acceptEncoding) {
+    public async Task AClientAcceptingNothingOfferedIsServedIdentity(string? acceptEncoding)
+    {
         var context = Context(acceptEncoding);
 
         await Run(context, Writes(Json), Filter());
@@ -223,13 +279,27 @@ public class ResponseCompressionFilterTests {
     /// API Gateway delivers header names lowercased.
     /// </summary>
     [Fact]
-    public async Task TheAcceptHeaderIsReadWhateverItsCase() {
+    public async Task TheAcceptHeaderIsReadWhateverItsCase()
+    {
         var headers = new Dictionary<string, StringValues> { ["accept-encoding"] = "gzip" };
-        var request = new TestExecutionRequest("GET", "/pets", "application/json",
-            new SimpleQueryStringCollection(new Dictionary<string, string>())) { Headers = headers };
+        var request = new TestExecutionRequest(
+            "GET",
+            "/pets",
+            "application/json",
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        )
+        {
+            Headers = headers,
+        };
         var provider = new ServiceCollection().BuildServiceProvider();
-        var context = new TestExecutionContext(provider, provider, Substitute.For<IKnownServices>(),
-            request, new TestExecutionResponse(new MemoryStream()), CancellationToken.None);
+        var context = new TestExecutionContext(
+            provider,
+            provider,
+            Substitute.For<IKnownServices>(),
+            request,
+            new TestExecutionResponse(new MemoryStream()),
+            CancellationToken.None
+        );
 
         await Run(context, Writes(Json), Filter());
 
@@ -239,7 +309,8 @@ public class ResponseCompressionFilterTests {
     // ---------------------------------------------------------------- headers
 
     [Fact]
-    public async Task ACompressedResponseVariesOnAcceptEncoding() {
+    public async Task ACompressedResponseVariesOnAcceptEncoding()
+    {
         var context = Context();
 
         await Run(context, Writes(Json), Filter());
@@ -252,25 +323,35 @@ public class ResponseCompressionFilterTests {
     /// is the one thing a shared cache must not be allowed to forget.
     /// </summary>
     [Fact]
-    public async Task VaryIsMergedWithWhatWasAlreadyThere() {
+    public async Task VaryIsMergedWithWhatWasAlreadyThere()
+    {
         var context = Context();
 
         context.Response.Headers[KnownHeaders.Vary] = KnownHeaders.Origin;
 
         await Run(context, Writes(Json), Filter());
 
-        Assert.Equal("Origin, Accept-Encoding", context.Response.Headers[KnownHeaders.Vary].ToString());
+        Assert.Equal(
+            "Origin, Accept-Encoding",
+            context.Response.Headers[KnownHeaders.Vary].ToString()
+        );
     }
 
     [Fact]
-    public async Task AnAnnouncedContentLengthIsDropped() {
+    public async Task AnAnnouncedContentLengthIsDropped()
+    {
         var context = Context();
 
-        await Run(context, async chain => {
-            chain.Context.Response.Headers[KnownHeaders.ContentLength] = Json.Length.ToString();
+        await Run(
+            context,
+            async chain =>
+            {
+                chain.Context.Response.Headers[KnownHeaders.ContentLength] = Json.Length.ToString();
 
-            await Writes(Json)(chain);
-        }, Filter());
+                await Writes(Json)(chain);
+            },
+            Filter()
+        );
 
         Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.ContentLength));
     }
@@ -282,33 +363,46 @@ public class ResponseCompressionFilterTests {
     [Theory]
     [InlineData("\"abc\"", "W/\"abc\"")]
     [InlineData("W/\"abc\"", "W/\"abc\"")]
-    public async Task AStrongETagBecomesWeakOnACompressedResponse(string before, string after) {
+    public async Task AStrongETagBecomesWeakOnACompressedResponse(string before, string after)
+    {
         var context = Context();
 
-        await Run(context, async chain => {
-            chain.Context.Response.Headers[KnownHeaders.ETag] = before;
+        await Run(
+            context,
+            async chain =>
+            {
+                chain.Context.Response.Headers[KnownHeaders.ETag] = before;
 
-            await Writes(Json)(chain);
-        }, Filter());
+                await Writes(Json)(chain);
+            },
+            Filter()
+        );
 
         Assert.Equal(after, context.Response.Headers[KnownHeaders.ETag].ToString());
     }
 
     [Fact]
-    public async Task AnETagIsLeftAloneOnAnIdentityResponse() {
+    public async Task AnETagIsLeftAloneOnAnIdentityResponse()
+    {
         var context = Context(acceptEncoding: null);
 
-        await Run(context, async chain => {
-            chain.Context.Response.Headers[KnownHeaders.ETag] = "\"abc\"";
+        await Run(
+            context,
+            async chain =>
+            {
+                chain.Context.Response.Headers[KnownHeaders.ETag] = "\"abc\"";
 
-            await Writes(Json)(chain);
-        }, Filter());
+                await Writes(Json)(chain);
+            },
+            Filter()
+        );
 
         Assert.Equal("\"abc\"", context.Response.Headers[KnownHeaders.ETag].ToString());
     }
 
     [Fact]
-    public async Task ACompressedResponseIsMarkedBinaryForTheLambdaHttpHost() {
+    public async Task ACompressedResponseIsMarkedBinaryForTheLambdaHttpHost()
+    {
         var compressed = Context();
         var plain = Context(acceptEncoding: null);
 
@@ -324,16 +418,22 @@ public class ResponseCompressionFilterTests {
     /// about the filter: they set the header before they write.
     /// </summary>
     [Fact]
-    public async Task AResponseAlreadyCarryingAContentEncodingIsPassedThrough() {
+    public async Task AResponseAlreadyCarryingAContentEncodingIsPassedThrough()
+    {
         var context = Context();
         var already = Encoding.UTF8.GetBytes("already gzip bytes");
 
-        await Run(context, async chain => {
-            chain.Context.Response.ContentType = "application/json";
-            chain.Context.Response.Headers[KnownHeaders.ContentEncoding] = "gzip";
+        await Run(
+            context,
+            async chain =>
+            {
+                chain.Context.Response.ContentType = "application/json";
+                chain.Context.Response.Headers[KnownHeaders.ContentEncoding] = "gzip";
 
-            await chain.Context.Response.Body.WriteAsync(already);
-        }, Filter());
+                await chain.Context.Response.Body.WriteAsync(already);
+            },
+            Filter()
+        );
 
         Assert.Equal(already, Transport(context));
         Assert.Equal("gzip", Encoding_(context));
@@ -344,7 +444,8 @@ public class ResponseCompressionFilterTests {
     [InlineData(204)]
     [InlineData(206)]
     [InlineData(304)]
-    public async Task AStatusWithNoBodyOrAByteRangeIsPassedThrough(int status) {
+    public async Task AStatusWithNoBodyOrAByteRangeIsPassedThrough(int status)
+    {
         var context = Context();
 
         await Run(context, Writes(Json, status: status), Filter());
@@ -354,7 +455,8 @@ public class ResponseCompressionFilterTests {
     }
 
     [Fact]
-    public async Task AnErrorResponseIsCompressedLikeAnyOther() {
+    public async Task AnErrorResponseIsCompressedLikeAnyOther()
+    {
         var context = Context();
 
         await Run(context, Writes(Json, status: 500), Filter());
@@ -367,14 +469,20 @@ public class ResponseCompressionFilterTests {
     /// empty 200 does not go out labelled as a gzip member of zero bytes.
     /// </summary>
     [Fact]
-    public async Task AResponseThatWritesNothingCarriesNoCoding() {
+    public async Task AResponseThatWritesNothingCarriesNoCoding()
+    {
         var context = Context();
 
-        await Run(context, chain => {
-            chain.Context.Response.ContentType = "application/json";
+        await Run(
+            context,
+            chain =>
+            {
+                chain.Context.Response.ContentType = "application/json";
 
-            return Task.CompletedTask;
-        }, Filter());
+                return Task.CompletedTask;
+            },
+            Filter()
+        );
 
         Assert.Equal("", Encoding_(context));
         Assert.Empty(Transport(context));
@@ -385,14 +493,20 @@ public class ResponseCompressionFilterTests {
     /// decision it would have had.
     /// </summary>
     [Fact]
-    public async Task AFlushBeforeTheFirstWriteLeavesTheDecisionOpen() {
+    public async Task AFlushBeforeTheFirstWriteLeavesTheDecisionOpen()
+    {
         var context = Context();
 
-        await Run(context, async chain => {
-            await chain.Context.Response.Body.FlushAsync();
+        await Run(
+            context,
+            async chain =>
+            {
+                await chain.Context.Response.Body.FlushAsync();
 
-            await Writes(Json)(chain);
-        }, Filter());
+                await Writes(Json)(chain);
+            },
+            Filter()
+        );
 
         Assert.Equal("gzip", Encoding_(context));
         Assert.Equal(Json, Decode(Transport(context), KnownEncoding.GZip));
@@ -404,7 +518,8 @@ public class ResponseCompressionFilterTests {
     [InlineData("application/octet-stream")]
     [InlineData("image/png")]
     [InlineData("text/event-stream")]
-    public async Task AMediaTypeOutsideTheListIsPassedThrough(string contentType) {
+    public async Task AMediaTypeOutsideTheListIsPassedThrough(string contentType)
+    {
         var context = Context();
 
         await Run(context, Writes(Json, contentType: contentType), Filter());
@@ -414,7 +529,8 @@ public class ResponseCompressionFilterTests {
     }
 
     [Fact]
-    public async Task APredicateIsConsultedWithTheHandlersValue() {
+    public async Task APredicateIsConsultedWithTheHandlersValue()
+    {
         var context = Context();
         var predicate = new Predicate(answer: false);
         var value = new List<int> { 1, 2, 3 };
@@ -431,10 +547,15 @@ public class ResponseCompressionFilterTests {
     /// default list leaves out.
     /// </summary>
     [Fact]
-    public async Task APredicateCanOptInATypeTheListLeavesOut() {
+    public async Task APredicateCanOptInATypeTheListLeavesOut()
+    {
         var context = Context();
 
-        await Run(context, Writes(Json, contentType: "application/octet-stream", value: new object()), Filter(new Predicate(true)));
+        await Run(
+            context,
+            Writes(Json, contentType: "application/octet-stream", value: new object()),
+            Filter(new Predicate(true))
+        );
 
         Assert.Equal("gzip", Encoding_(context));
     }
@@ -444,7 +565,8 @@ public class ResponseCompressionFilterTests {
     /// predicate and the default rule applies instead.
     /// </summary>
     [Fact]
-    public async Task APredicateIsSkippedWhenTheResponseCarriesNoValue() {
+    public async Task APredicateIsSkippedWhenTheResponseCarriesNoValue()
+    {
         var context = Context();
         var predicate = new Predicate(answer: false);
 
@@ -461,15 +583,21 @@ public class ResponseCompressionFilterTests {
     /// testing response reads for the same purpose: bytes accepted, not bytes emitted.
     /// </summary>
     [Fact]
-    public async Task TheBodyReportsItsPositionAsBytesAccepted() {
+    public async Task TheBodyReportsItsPositionAsBytesAccepted()
+    {
         var context = Context();
         long position = -1;
 
-        await Run(context, async chain => {
-            await Writes(Json)(chain);
+        await Run(
+            context,
+            async chain =>
+            {
+                await Writes(Json)(chain);
 
-            position = chain.Context.Response.Body.Position;
-        }, Filter());
+                position = chain.Context.Response.Body.Position;
+            },
+            Filter()
+        );
 
         Assert.Equal(Encoding.UTF8.GetByteCount(Json), position);
     }
@@ -479,41 +607,48 @@ public class ResponseCompressionFilterTests {
     /// encoder as the asynchronous ones, and the wrapper is write-only.
     /// </summary>
     [Fact]
-    public async Task TheSynchronousWritesReachTheSameEncoder() {
+    public async Task TheSynchronousWritesReachTheSameEncoder()
+    {
         var context = Context();
         var bytes = Encoding.UTF8.GetBytes(Json);
 
-        await Run(context, chain => {
-            var response = chain.Context.Response;
-            var body = response.Body;
+        await Run(
+            context,
+            chain =>
+            {
+                var response = chain.Context.Response;
+                var body = response.Body;
 
-            response.ContentType = "application/json";
+                response.ContentType = "application/json";
 
-            Assert.True(body.CanWrite);
-            Assert.False(body.CanRead);
-            Assert.False(body.CanSeek);
+                Assert.True(body.CanWrite);
+                Assert.False(body.CanRead);
+                Assert.False(body.CanSeek);
 
-            body.WriteByte(bytes[0]);
-            body.Write(bytes, 1, 3);
-            body.Write(bytes.AsSpan(4));
-            body.Flush();
+                body.WriteByte(bytes[0]);
+                body.Write(bytes, 1, 3);
+                body.Write(bytes.AsSpan(4));
+                body.Flush();
 
-            Assert.Equal(bytes.Length, body.Length);
+                Assert.Equal(bytes.Length, body.Length);
 
-            Assert.Throws<NotSupportedException>(() => body.Position = 0);
-            Assert.Throws<NotSupportedException>(() => body.Read(new byte[1], 0, 1));
-            Assert.Throws<NotSupportedException>(() => body.Seek(0, SeekOrigin.Begin));
-            Assert.Throws<NotSupportedException>(() => body.SetLength(0));
+                Assert.Throws<NotSupportedException>(() => body.Position = 0);
+                Assert.Throws<NotSupportedException>(() => body.Read(new byte[1], 0, 1));
+                Assert.Throws<NotSupportedException>(() => body.Seek(0, SeekOrigin.Begin));
+                Assert.Throws<NotSupportedException>(() => body.SetLength(0));
 
-            return Task.CompletedTask;
-        }, Filter());
+                return Task.CompletedTask;
+            },
+            Filter()
+        );
 
         Assert.Equal("gzip", Encoding_(context));
         Assert.Equal(Json, Decode(Transport(context), KnownEncoding.GZip));
     }
 
     [Fact]
-    public async Task TheTransportIsRestoredAfterTheChain() {
+    public async Task TheTransportIsRestoredAfterTheChain()
+    {
         var context = Context();
         var transport = context.Response.Body;
 
@@ -527,7 +662,8 @@ public class ResponseCompressionFilterTests {
     /// body already wrapped and stands down, so the bytes are compressed once.
     /// </summary>
     [Fact]
-    public async Task ADoubleRegistrationWrapsOnce() {
+    public async Task ADoubleRegistrationWrapsOnce()
+    {
         var context = Context();
 
         await Run(context, Writes(Json), Filter(), Filter(favor: CompressionType.Br));
@@ -538,13 +674,15 @@ public class ResponseCompressionFilterTests {
 
     // ---------------------------------------------------------------- the cache
 
-    private sealed class FixedKey : ICacheKeyProvider {
+    private sealed class FixedKey : ICacheKeyProvider
+    {
         public static ICacheKeyProvider Create(string[] values) => new FixedKey();
 
         public ValueTask<string?> Key(IExecutionContext context) => new("fixed");
     }
 
-    private sealed class RecordingStore : IResponseCacheStore {
+    private sealed class RecordingStore : IResponseCacheStore
+    {
         private readonly Dictionary<string, CachedResponse> _entries = new(StringComparer.Ordinal);
 
         public List<CachedResponse> Stored { get; } = [];
@@ -552,7 +690,13 @@ public class ResponseCompressionFilterTests {
         public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken) =>
             new(_entries.TryGetValue(key, out var entry) ? entry : null);
 
-        public ValueTask Set(string key, CachedResponse response, TimeSpan duration, CancellationToken cancellationToken) {
+        public ValueTask Set(
+            string key,
+            CachedResponse response,
+            TimeSpan duration,
+            CancellationToken cancellationToken
+        )
+        {
             _entries[key] = response;
             Stored.Add(response);
 
@@ -562,7 +706,8 @@ public class ResponseCompressionFilterTests {
         public ValueTask EvictByTag(string tag, CancellationToken cancellationToken) => default;
     }
 
-    private static (IServiceProvider Services, RecordingStore Store) Caching() {
+    private static (IServiceProvider Services, RecordingStore Store) Caching()
+    {
         var store = new RecordingStore();
         var services = new ServiceCollection();
 
@@ -580,7 +725,8 @@ public class ResponseCompressionFilterTests {
     /// not part of the entry.
     /// </summary>
     [Fact]
-    public async Task TheStoredEntryHoldsIdentityBytesAndNoCodingHeader() {
+    public async Task TheStoredEntryHoldsIdentityBytesAndNoCodingHeader()
+    {
         var (services, store) = Caching();
         var context = Context(services: services);
 
@@ -595,14 +741,16 @@ public class ResponseCompressionFilterTests {
     }
 
     [Fact]
-    public async Task AHitIsCompressedOnTheWayOut() {
+    public async Task AHitIsCompressedOnTheWayOut()
+    {
         var (services, _) = Caching();
         var handled = 0;
 
         var miss = Context(services: services);
         var hit = Context(services: services);
 
-        Func<IExecutionChain, Task> handler = async chain => {
+        Func<IExecutionChain, Task> handler = async chain =>
+        {
             handled++;
 
             await Writes(Json)(chain);
@@ -617,7 +765,8 @@ public class ResponseCompressionFilterTests {
     }
 
     [Fact]
-    public async Task AHitToAClientAcceptingNothingIsServedPlain() {
+    public async Task AHitToAClientAcceptingNothingIsServedPlain()
+    {
         var (services, _) = Caching();
         var miss = Context(services: services);
         var hit = Context(acceptEncoding: null, services: services);
@@ -634,7 +783,8 @@ public class ResponseCompressionFilterTests {
     /// the media-type rule - which is the documented behaviour, not an accident.
     /// </summary>
     [Fact]
-    public async Task APredicateIsNotConsultedOnAHit() {
+    public async Task APredicateIsNotConsultedOnAHit()
+    {
         var (services, _) = Caching();
         var predicate = new Predicate(answer: true);
         var miss = Context(services: services);
@@ -649,12 +799,15 @@ public class ResponseCompressionFilterTests {
 
     // ---------------------------------------------------------------- streams
 
-    private sealed class FlushRecordingStream : MemoryStream {
+    private sealed class FlushRecordingStream : MemoryStream
+    {
         public List<long> FlushedAt { get; } = [];
 
-        public TaskCompletionSource FirstFlush { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource FirstFlush { get; } =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        public override Task FlushAsync(CancellationToken cancellationToken) {
+        public override Task FlushAsync(CancellationToken cancellationToken)
+        {
             FlushedAt.Add(Length);
             FirstFlush.TrySetResult();
 
@@ -662,23 +815,46 @@ public class ResponseCompressionFilterTests {
         }
     }
 
-    private static IExecutionContext StreamingContext(FlushRecordingStream transport) {
-        var headers = new Dictionary<string, StringValues> { [KnownHeaders.AcceptEncoding] = Browser };
-        var request = new TestExecutionRequest("GET", "/feed", "application/json",
-            new SimpleQueryStringCollection(new Dictionary<string, string>())) { Headers = headers };
+    private static IExecutionContext StreamingContext(FlushRecordingStream transport)
+    {
+        var headers = new Dictionary<string, StringValues>
+        {
+            [KnownHeaders.AcceptEncoding] = Browser,
+        };
+        var request = new TestExecutionRequest(
+            "GET",
+            "/feed",
+            "application/json",
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        )
+        {
+            Headers = headers,
+        };
         var provider = new ServiceCollection().BuildServiceProvider();
 
-        return new TestExecutionContext(provider, provider, Substitute.For<IKnownServices>(),
-            request, new TestExecutionResponse(transport), CancellationToken.None);
+        return new TestExecutionContext(
+            provider,
+            provider,
+            Substitute.For<IKnownServices>(),
+            request,
+            new TestExecutionResponse(transport),
+            CancellationToken.None
+        );
     }
 
     private static AsyncEnumerableIoFilter<string> Streaming() =>
         new(
             _ => Task.FromResult(EmptyParameters.Instance),
-            context => JsonSerializer.SerializeAsync(context.Response.Body, context.Response.ResponseValue),
-            headerActions: null);
+            context =>
+                JsonSerializer.SerializeAsync(
+                    context.Response.Body,
+                    context.Response.ResponseValue
+                ),
+            headerActions: null
+        );
 
-    private static async IAsyncEnumerable<string> Items(Task gate) {
+    private static async IAsyncEnumerable<string> Items(Task gate)
+    {
         yield return "first";
 
         await gate;
@@ -686,20 +862,24 @@ public class ResponseCompressionFilterTests {
         yield return "second";
     }
 
-    private static string DecodeLeniently(byte[] bytes) {
+    private static string DecodeLeniently(byte[] bytes)
+    {
         using var input = new MemoryStream(bytes);
         using var gzip = new GZipStream(input, CompressionMode.Decompress);
         var output = new MemoryStream();
         var buffer = new byte[256];
 
-        try {
+        try
+        {
             int read;
 
-            while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0) {
+            while ((read = gzip.Read(buffer, 0, buffer.Length)) > 0)
+            {
                 output.Write(buffer, 0, read);
             }
         }
-        catch (IOException) {
+        catch (IOException)
+        {
             // A member cut off mid-stream still yields everything before the cut.
         }
 
@@ -712,18 +892,28 @@ public class ResponseCompressionFilterTests {
     /// gzip member whose first item a reader has before the second is produced.
     /// </summary>
     [Fact]
-    public async Task AnNdjsonStreamIsOneMemberDeliveredItemByItem() {
+    public async Task AnNdjsonStreamIsOneMemberDeliveredItemByItem()
+    {
         var transport = new FlushRecordingStream();
         var context = StreamingContext(transport);
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var run = Run(context, chain => {
-            chain.Context.Response.ResponseValue = Items(gate.Task);
+        var run = Run(
+            context,
+            chain =>
+            {
+                chain.Context.Response.ResponseValue = Items(gate.Task);
 
-            return Task.CompletedTask;
-        }, Filter(), Streaming());
+                return Task.CompletedTask;
+            },
+            Filter(),
+            Streaming()
+        );
 
-        await transport.FirstFlush.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await transport.FirstFlush.Task.WaitAsync(
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken
+        );
 
         var afterFirst = transport.ToArray();
 
@@ -746,11 +936,14 @@ public class ResponseCompressionFilterTests {
     /// Every gzip member opens with the same magic and method byte. Concatenated members - what
     /// compressing per item produced - would show it more than once.
     /// </summary>
-    private static int CountMembers(byte[] bytes) {
+    private static int CountMembers(byte[] bytes)
+    {
         var count = 0;
 
-        for (var i = 0; i + 2 < bytes.Length; i++) {
-            if (bytes[i] == 0x1f && bytes[i + 1] == 0x8b && bytes[i + 2] == 0x08) {
+        for (var i = 0; i + 2 < bytes.Length; i++)
+        {
+            if (bytes[i] == 0x1f && bytes[i + 1] == 0x8b && bytes[i + 2] == 0x08)
+            {
                 count++;
             }
         }
@@ -759,20 +952,28 @@ public class ResponseCompressionFilterTests {
     }
 
     [Fact]
-    public async Task AnEventStreamIsPassedThrough() {
+    public async Task AnEventStreamIsPassedThrough()
+    {
         var transport = new FlushRecordingStream();
         var context = StreamingContext(transport);
         var filter = new AsyncEnumerableIoFilter<string>(
             _ => Task.FromResult(EmptyParameters.Instance),
             c => JsonSerializer.SerializeAsync(c.Response.Body, c.Response.ResponseValue),
             headerActions: null,
-            framing: SseFraming.Instance);
+            framing: SseFraming.Instance
+        );
 
-        await Run(context, chain => {
-            chain.Context.Response.ResponseValue = Items(Task.CompletedTask);
+        await Run(
+            context,
+            chain =>
+            {
+                chain.Context.Response.ResponseValue = Items(Task.CompletedTask);
 
-            return Task.CompletedTask;
-        }, Filter(), filter);
+                return Task.CompletedTask;
+            },
+            Filter(),
+            filter
+        );
 
         Assert.Equal("text/event-stream", context.Response.ContentType);
         Assert.Equal("", Encoding_(context));

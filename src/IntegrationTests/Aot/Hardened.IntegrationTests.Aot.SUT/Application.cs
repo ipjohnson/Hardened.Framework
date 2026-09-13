@@ -38,8 +38,8 @@ public record Echo(string Message, int Length);
 public partial class AotContext : JsonSerializerContext;
 
 /// <summary>A route per thing worth proving survives ILC: routing, binding, serialization.</summary>
-public class EchoController {
-
+public class EchoController
+{
     [Get("/echo/{message}")]
     public Echo Get(string message) => new(message, message.Length);
 

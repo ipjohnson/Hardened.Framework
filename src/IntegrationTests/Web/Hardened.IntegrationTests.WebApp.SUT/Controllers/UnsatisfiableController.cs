@@ -10,9 +10,10 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// <c>FilterOrder.HandlerCreation</c>, ahead of the filter that writes a response, and the
 /// container's exception unwound past it, so this answered a 500 with <c>Content-Length: 0</c>.
 /// </remarks>
-public class UnsatisfiableController {
-
-    public UnsatisfiableController(IUnregisteredService service) {
+public class UnsatisfiableController
+{
+    public UnsatisfiableController(IUnregisteredService service)
+    {
         _ = service;
     }
 

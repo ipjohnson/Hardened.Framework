@@ -19,8 +19,10 @@ namespace Hardened.Functions.Runtime.Attributes;
 /// the method slot on a request was always a string.
 /// </para>
 /// </remarks>
-public class QueueAttribute : Attribute {
-    public QueueAttribute(string name) {
+public class QueueAttribute : Attribute
+{
+    public QueueAttribute(string name)
+    {
         Name = name;
     }
 

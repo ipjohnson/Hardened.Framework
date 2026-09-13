@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.Responses.SUT.Tests;
 
 /// <summary>
@@ -16,14 +17,15 @@ namespace Hardened.IntegrationTests.Responses.SUT.Tests;
 /// what a client receives, and the wrapper is invisible from inside the application.
 /// </para>
 /// </remarks>
-public class DeclaredResponseTests {
-
+public class DeclaredResponseTests
+{
     private record TodoBody(int Id, string Title);
 
     private record ApiErrorBody(string Code, string Message);
 
     [HardenedTest]
-    public async Task TheSuccessCaseSendsThePayloadRatherThanTheContainer(ITestWebApp app) {
+    public async Task TheSuccessCaseSendsThePayloadRatherThanTheContainer(ITestWebApp app)
+    {
         var response = await app.Get("/responses/1");
 
         response.Assert.Ok();
@@ -33,7 +35,8 @@ public class DeclaredResponseTests {
     }
 
     [HardenedTest]
-    public async Task AnErrorCaseAnswersItsOwnStatus(ITestWebApp app) {
+    public async Task AnErrorCaseAnswersItsOwnStatus(ITestWebApp app)
+    {
         (await app.Get("/responses/404")).Assert.NotFound();
     }
 
@@ -41,7 +44,8 @@ public class DeclaredResponseTests {
     /// 201 from the case, not 200 from the handler having returned successfully.
     /// </summary>
     [HardenedTest]
-    public async Task CreatedAnswersTwoHundredAndOneWithItsLocation(ITestWebApp app) {
+    public async Task CreatedAnswersTwoHundredAndOneWithItsLocation(ITestWebApp app)
+    {
         var response = await app.Post(new { Title = "fresh" }, "/responses");
 
         Assert.Equal(201, response.StatusCode);
@@ -53,14 +57,16 @@ public class DeclaredResponseTests {
     /// the Location beside it.
     /// </summary>
     [HardenedTest]
-    public async Task CreatedSendsTheBodyItCarries(ITestWebApp app) {
+    public async Task CreatedSendsTheBodyItCarries(ITestWebApp app)
+    {
         var response = await app.Post(new { Title = "fresh" }, "/responses");
 
         Assert.Equal("fresh", response.Deserialize<TodoBody>().Title);
     }
 
     [HardenedTest]
-    public async Task ADeclaredConflictAnswersFourHundredAndNine(ITestWebApp app) {
+    public async Task ADeclaredConflictAnswersFourHundredAndNine(ITestWebApp app)
+    {
         var response = await app.Post(new { Title = "taken" }, "/responses");
 
         Assert.Equal(409, response.StatusCode);
@@ -74,7 +80,8 @@ public class DeclaredResponseTests {
     /// branch existed, and the one whose failure mode is a 200 carrying "null".
     /// </remarks>
     [HardenedTest]
-    public async Task NoContentAnswersTwoHundredAndFourWithAnEmptyBody(ITestWebApp app) {
+    public async Task NoContentAnswersTwoHundredAndFourWithAnEmptyBody(ITestWebApp app)
+    {
         var response = await app.Delete("/responses/1");
 
         Assert.Equal(204, response.StatusCode);
@@ -82,7 +89,8 @@ public class DeclaredResponseTests {
     }
 
     [HardenedTest]
-    public async Task RemoveStillAnswersItsDeclaredNotFound(ITestWebApp app) {
+    public async Task RemoveStillAnswersItsDeclaredNotFound(ITestWebApp app)
+    {
         (await app.Delete("/responses/404")).Assert.NotFound();
     }
 
@@ -90,7 +98,8 @@ public class DeclaredResponseTests {
     /// A typed error body puts the T on the wire, not the wrapper that named the status.
     /// </summary>
     [HardenedTest]
-    public async Task ATypedErrorSendsItsBodyRatherThanTheWrapper(ITestWebApp app) {
+    public async Task ATypedErrorSendsItsBodyRatherThanTheWrapper(ITestWebApp app)
+    {
         var response = await app.Get("/responses/typed/404");
 
         response.Assert.NotFound();

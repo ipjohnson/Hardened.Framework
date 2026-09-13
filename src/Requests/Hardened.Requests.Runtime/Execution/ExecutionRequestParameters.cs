@@ -19,8 +19,8 @@ namespace Hardened.Requests.Runtime.Execution;
 /// 2,454 of 4,914 bytes across its twenty parameter bags.
 /// </para>
 /// </summary>
-public abstract class ExecutionRequestParameters : IExecutionRequestParameters {
-
+public abstract class ExecutionRequestParameters : IExecutionRequestParameters
+{
     /// <summary>Reads and writes the typed backing properties. Generated.</summary>
     public abstract object this[int index] { get; set; }
 
@@ -32,10 +32,12 @@ public abstract class ExecutionRequestParameters : IExecutionRequestParameters {
 
     public int ParameterCount => Info.Count;
 
-    public bool TryGetParameter(string parameterName, out object? parameterValue) {
+    public bool TryGetParameter(string parameterName, out object? parameterValue)
+    {
         var index = IndexOf(parameterName);
 
-        if (index < 0) {
+        if (index < 0)
+        {
             parameterValue = null;
 
             return false;
@@ -46,10 +48,12 @@ public abstract class ExecutionRequestParameters : IExecutionRequestParameters {
         return true;
     }
 
-    public bool TrySetParameter(string parameterName, object parameterValue) {
+    public bool TrySetParameter(string parameterName, object parameterValue)
+    {
         var index = IndexOf(parameterName);
 
-        if (index < 0) {
+        if (index < 0)
+        {
             return false;
         }
 
@@ -100,11 +104,14 @@ public abstract class ExecutionRequestParameters : IExecutionRequestParameters {
     /// it, or so this can grow a threshold later, without touching what the generator emits.
     /// </para>
     /// </summary>
-    protected virtual int IndexOf(string parameterName) {
+    protected virtual int IndexOf(string parameterName)
+    {
         var info = Info;
 
-        for (var i = 0; i < info.Count; i++) {
-            if (string.Equals(info[i].Name, parameterName, StringComparison.Ordinal)) {
+        for (var i = 0; i < info.Count; i++)
+        {
+            if (string.Equals(info[i].Name, parameterName, StringComparison.Ordinal))
+            {
                 // The declared index, not the position it was found at. The generator emits them
                 // equal, but the indexer is keyed by IExecutionRequestParameter.Index, so reading
                 // the position would quietly bind the wrong argument for any Info that is filtered

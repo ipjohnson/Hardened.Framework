@@ -26,10 +26,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// gets it wrong, and about the two hosts doing the same thing.
 /// </para>
 /// </remarks>
-public class HeaderAfterNextOverASocketTests {
-
+public class HeaderAfterNextOverASocketTests
+{
     [Fact]
-    public async Task TheAnswerTheHandlerWroteStillReachesTheCaller() {
+    public async Task TheAnswerTheHandlerWroteStillReachesTheCaller()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         var response = await host.Get(TestContext.Current.CancellationToken);
@@ -37,7 +38,8 @@ public class HeaderAfterNextOverASocketTests {
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(
             "\"unguarded\"",
-            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)
+        );
     }
 
     /// <summary>
@@ -45,7 +47,8 @@ public class HeaderAfterNextOverASocketTests {
     /// write having quietly succeeded.
     /// </summary>
     [Fact]
-    public async Task TheHeaderWriteFails() {
+    public async Task TheHeaderWriteFails()
+    {
         await using var host = await Host.Start(TestContext.Current.CancellationToken);
 
         await host.Get(TestContext.Current.CancellationToken);
@@ -57,16 +60,20 @@ public class HeaderAfterNextOverASocketTests {
     /// A filter appended to the middleware chain that writes a response header once the chain
     /// beneath it has finished.
     /// </summary>
-    private sealed class HeaderAfterNextFilter : IExecutionFilter {
+    private sealed class HeaderAfterNextFilter : IExecutionFilter
+    {
         public Exception? Failure { get; private set; }
 
-        public async Task Execute(IExecutionChain chain) {
+        public async Task Execute(IExecutionChain chain)
+        {
             await chain.Next();
 
-            try {
+            try
+            {
                 chain.Context.Response.Headers["X-Written-After-Next"] = "yes";
             }
-            catch (Exception exception) {
+            catch (Exception exception)
+            {
                 Failure = exception;
 
                 throw;
@@ -74,11 +81,13 @@ public class HeaderAfterNextOverASocketTests {
         }
     }
 
-    private sealed class Host : IAsyncDisposable {
+    private sealed class Host : IAsyncDisposable
+    {
         private readonly WebApplication _app;
         private readonly HttpClient _client;
 
-        private Host(WebApplication app, HttpClient client, HeaderAfterNextFilter filter) {
+        private Host(WebApplication app, HttpClient client, HeaderAfterNextFilter filter)
+        {
             _app = app;
             _client = client;
             Filter = filter;
@@ -86,7 +95,8 @@ public class HeaderAfterNextOverASocketTests {
 
         public HeaderAfterNextFilter Filter { get; }
 
-        public static async Task<Host> Start(CancellationToken cancellationToken) {
+        public static async Task<Host> Start(CancellationToken cancellationToken)
+        {
             var builder = Application.CreateBuilder([]);
 
             builder.WebHost.UseUrls("http://127.0.0.1:0");
@@ -104,9 +114,10 @@ public class HeaderAfterNextOverASocketTests {
             await app.StartAsync(cancellationToken);
 
             // Short, because the failure this exists for is an aborted connection.
-            var client = new HttpClient {
+            var client = new HttpClient
+            {
                 BaseAddress = new Uri(app.Urls.First()),
-                Timeout = TimeSpan.FromSeconds(10)
+                Timeout = TimeSpan.FromSeconds(10),
             };
 
             return new Host(app, client, filter);
@@ -115,7 +126,8 @@ public class HeaderAfterNextOverASocketTests {
         public Task<HttpResponseMessage> Get(CancellationToken cancellationToken) =>
             _client.GetAsync("/authorization/unguarded", cancellationToken);
 
-        public async ValueTask DisposeAsync() {
+        public async ValueTask DisposeAsync()
+        {
             _client.Dispose();
 
             await _app.DisposeAsync();

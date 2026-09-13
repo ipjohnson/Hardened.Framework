@@ -23,8 +23,8 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// sequence filters actually execute in.
 /// </para>
 /// </summary>
-public class FilterOrderingTests {
-
+public class FilterOrderingTests
+{
     private const string Instance = "instance";
     private const string Io = "io";
     private const string Invoke = "invoke";
@@ -39,23 +39,28 @@ public class FilterOrderingTests {
     private static async Task<List<string>> Run(
         List<string> log,
         Action<IGlobalFilterRegistry> register,
-        params IRequestFilterProvider[] filterProviders) {
-
+        params IRequestFilterProvider[] filterProviders
+    )
+    {
         var registry = new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>());
 
         register(registry);
 
         var ioProvider = Substitute.For<IIOFilterProvider>();
-        ioProvider.ProvideFilter(
+        ioProvider
+            .ProvideFilter(
                 Arg.Any<IExecutionRequestHandlerInfo>(),
-                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>())
+                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>()
+            )
             .Returns(new Pipeline.Recording(log, Io));
 
         var instanceProvider = Substitute.For<IInstanceFilterProvider>();
-        instanceProvider.ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
+        instanceProvider
+            .ProvideFilter<Controller>(Arg.Any<IServiceProvider>())
             .Returns(new Pipeline.Recording(log, Instance));
 
-        var context = Pipeline.Context(configureServices: services => {
+        var context = Pipeline.Context(configureServices: services =>
+        {
             services.AddSingleton<IGlobalFilterRegistry>(registry);
             services.AddSingleton(ioProvider);
             services.AddSingleton(instanceProvider);
@@ -64,24 +69,35 @@ public class FilterOrderingTests {
         context.HandlerInstance = new Controller();
 
         var handlerInfo = new ExecutionRequestHandlerInfo(
-            "/orders", "GET", typeof(Controller), nameof(Run));
+            "/orders",
+            "GET",
+            typeof(Controller),
+            nameof(Run)
+        );
 
-        var filters = ExecutionHelper.StandardFilterEmptyParameters<Controller>(
-            context.RequestServices,
-            handlerInfo,
-            (_, _) => log.Add(Invoke),
-            filterProviders).Filters;
+        var filters = ExecutionHelper
+            .StandardFilterEmptyParameters<Controller>(
+                context.RequestServices,
+                handlerInfo,
+                (_, _) => log.Add(Invoke),
+                filterProviders
+            )
+            .Filters;
 
         await new ExecutionChain(filters, context).Next();
 
         return log;
     }
 
-    private static IRequestFilterProvider AtOrder(List<string> log, string name, int? order) {
+    private static IRequestFilterProvider AtOrder(List<string> log, string name, int? order)
+    {
         var provider = Substitute.For<IRequestFilterProvider>();
 
-        provider.GetFilters(Arg.Any<IExecutionRequestHandlerInfo>())
-            .Returns(new[] { new RequestFilterInfo(_ => new Pipeline.Recording(log, name), order) });
+        provider
+            .GetFilters(Arg.Any<IExecutionRequestHandlerInfo>())
+            .Returns(
+                new[] { new RequestFilterInfo(_ => new Pipeline.Recording(log, name), order) }
+            );
 
         return provider;
     }
@@ -98,47 +114,58 @@ public class FilterOrderingTests {
     /// </para>
     /// </summary>
     [Fact]
-    public async Task EveryStageRunsInPipelineOrder() {
+    public async Task EveryStageRunsInPipelineOrder()
+    {
         var log = new List<string>();
 
         // Name and order together, so a stage that moves fails here rather than being reordered
         // silently. The three the pipeline pins itself are not registered.
-        var stages = new (string Name, int Order)[] {
+        var stages = new (string Name, int Order)[]
+        {
             ("rate-limit-transport", FilterOrder.RateLimitTransport),
-            ("authentication",       FilterOrder.Authentication),
+            ("authentication", FilterOrder.Authentication),
             ("rate-limit-principal", FilterOrder.RateLimitPrincipal),
-            ("grant-authorization",  FilterOrder.GrantAuthorization),
-            ("conditional",          FilterOrder.Conditional),
-            ("response-cache",       FilterOrder.ResponseCache),
+            ("grant-authorization", FilterOrder.GrantAuthorization),
+            ("conditional", FilterOrder.Conditional),
+            ("response-cache", FilterOrder.ResponseCache),
             ("before-serialization", FilterOrder.BeforeSerialization),
-            ("validation",           FilterOrder.Validation),
-            ("authorization",        FilterOrder.Authorization),
-            ("retry",                FilterOrder.Retry),
-            ("default",              FilterOrder.DefaultValue),
+            ("validation", FilterOrder.Validation),
+            ("authorization", FilterOrder.Authorization),
+            ("retry", FilterOrder.Retry),
+            ("default", FilterOrder.DefaultValue),
         };
 
-        await Run(log, registry => {
-            foreach (var stage in stages.Reverse()) {
-                registry.RegisterFilter(new Pipeline.Recording(log, stage.Name), stage.Order);
+        await Run(
+            log,
+            registry =>
+            {
+                foreach (var stage in stages.Reverse())
+                {
+                    registry.RegisterFilter(new Pipeline.Recording(log, stage.Name), stage.Order);
+                }
             }
-        });
+        );
 
-        Assert.Equal(new[] {
-            Instance,                 //  -10000  HandlerCreation
-            "rate-limit-transport",   //    1000
-            "authentication",         //    2000
-            "rate-limit-principal",   //    3000
-            "grant-authorization",    //    4000
-            "conditional",            //    5000
-            "response-cache",         //    6000
-            "before-serialization",   //    6500  Before + Serialization
-            Io,                       //    7000  Serialization
-            "validation",             //    8000
-            "authorization",          //    9000
-            "retry",                  //   10000
-            "default",                //  100000
-            Invoke                    //  200000  EndPointInvoke
-        }, log);
+        Assert.Equal(
+            new[]
+            {
+                Instance, //  -10000  HandlerCreation
+                "rate-limit-transport", //    1000
+                "authentication", //    2000
+                "rate-limit-principal", //    3000
+                "grant-authorization", //    4000
+                "conditional", //    5000
+                "response-cache", //    6000
+                "before-serialization", //    6500  Before + Serialization
+                Io, //    7000  Serialization
+                "validation", //    8000
+                "authorization", //    9000
+                "retry", //   10000
+                "default", //  100000
+                Invoke, //  200000  EndPointInvoke
+            },
+            log
+        );
     }
 
     /// <summary>
@@ -150,7 +177,8 @@ public class FilterOrderingTests {
     /// on volume was deserialized first - which is most of what a limiter exists to avoid.
     /// </remarks>
     [Fact]
-    public void PrincipalRateLimitingRefusesAheadOfTheBodyRead() {
+    public void PrincipalRateLimitingRefusesAheadOfTheBodyRead()
+    {
         Assert.True(FilterOrder.RateLimitPrincipal < FilterOrder.Serialization);
         Assert.True(FilterOrder.RateLimitPrincipal > FilterOrder.Authentication);
     }
@@ -164,22 +192,33 @@ public class FilterOrderingTests {
     /// authorization and retry, and there was no spelling that did not.
     /// </remarks>
     [Fact]
-    public async Task AFilterCanSitBetweenTwoStages() {
+    public async Task AFilterCanSitBetweenTwoStages()
+    {
         var log = new List<string>();
 
-        await Run(log, registry => {
-            registry.RegisterFilter(
-                new Pipeline.Recording(log, "after-auth"),
-                FilterOrder.After + FilterOrder.Authentication);
-            registry.RegisterFilter(
-                new Pipeline.Recording(log, "before-auth"),
-                FilterOrder.Before + FilterOrder.Authentication);
-            registry.RegisterFilter(
-                new Pipeline.Recording(log, "authentication"), FilterOrder.Authentication);
-        });
+        await Run(
+            log,
+            registry =>
+            {
+                registry.RegisterFilter(
+                    new Pipeline.Recording(log, "after-auth"),
+                    FilterOrder.After + FilterOrder.Authentication
+                );
+                registry.RegisterFilter(
+                    new Pipeline.Recording(log, "before-auth"),
+                    FilterOrder.Before + FilterOrder.Authentication
+                );
+                registry.RegisterFilter(
+                    new Pipeline.Recording(log, "authentication"),
+                    FilterOrder.Authentication
+                );
+            }
+        );
 
         Assert.Equal(
-            new[] { Instance, "before-auth", "authentication", "after-auth", Io, Invoke }, log);
+            new[] { Instance, "before-auth", "authentication", "after-auth", Io, Invoke },
+            log
+        );
     }
 
     /// <summary>
@@ -201,12 +240,16 @@ public class FilterOrderingTests {
     [InlineData(FilterOrder.Retry, false)]
     [InlineData(FilterOrder.DefaultValue, false)]
     public async Task AFilterRunsBeforeSerializationExactlyWhenItsOrderIsLower(
-        int order, bool expectedBeforeIo) {
-
+        int order,
+        bool expectedBeforeIo
+    )
+    {
         var log = new List<string>();
 
-        var result = await Run(log, registry =>
-            registry.RegisterFilter(new Pipeline.Recording(log, "subject"), order));
+        var result = await Run(
+            log,
+            registry => registry.RegisterFilter(new Pipeline.Recording(log, "subject"), order)
+        );
 
         Assert.Contains("subject", result);
         Assert.Equal(expectedBeforeIo, result.IndexOf("subject") < result.IndexOf(Io));
@@ -220,11 +263,14 @@ public class FilterOrderingTests {
     [Theory]
     [InlineData(FilterOrder.EndPointInvoke + 1)]
     [InlineData(int.MaxValue)]
-    public async Task AFilterOrderedAfterTheHandlerNeverRuns(int order) {
+    public async Task AFilterOrderedAfterTheHandlerNeverRuns(int order)
+    {
         var log = new List<string>();
 
-        var result = await Run(log, registry =>
-            registry.RegisterFilter(new Pipeline.Recording(log, "after-handler"), order));
+        var result = await Run(
+            log,
+            registry => registry.RegisterFilter(new Pipeline.Recording(log, "after-handler"), order)
+        );
 
         Assert.Equal(new[] { Instance, Io, Invoke }, result);
         Assert.DoesNotContain("after-handler", result);
@@ -236,14 +282,19 @@ public class FilterOrderingTests {
     /// handler.
     /// </summary>
     [Fact]
-    public async Task AFilterWithNoOrderSortsAtTheDefaultValue() {
+    public async Task AFilterWithNoOrderSortsAtTheDefaultValue()
+    {
         var log = new List<string>();
 
         var result = await Run(
             log,
-            registry => registry.RegisterFilter(
-                new Pipeline.Recording(log, "explicit-default"), FilterOrder.DefaultValue),
-            AtOrder(log, "no-order", null));
+            registry =>
+                registry.RegisterFilter(
+                    new Pipeline.Recording(log, "explicit-default"),
+                    FilterOrder.DefaultValue
+                ),
+            AtOrder(log, "no-order", null)
+        );
 
         Assert.Equal(Io, result[1]);
         Assert.Equal(Invoke, result[^1]);
@@ -260,16 +311,21 @@ public class FilterOrderingTests {
     /// another must say so with a distinct order rather than relying on registration order.
     /// </summary>
     [Fact]
-    public async Task TiedFiltersAllRunTogetherBetweenTheirNeighbours() {
+    public async Task TiedFiltersAllRunTogetherBetweenTheirNeighbours()
+    {
         var log = new List<string>();
 
-        var result = await Run(log, registry => {
-            registry.RegisterFilter(new Pipeline.Recording(log, "below"), 10);
-            registry.RegisterFilter(new Pipeline.Recording(log, "tie-a"), 50);
-            registry.RegisterFilter(new Pipeline.Recording(log, "tie-b"), 50);
-            registry.RegisterFilter(new Pipeline.Recording(log, "tie-c"), 50);
-            registry.RegisterFilter(new Pipeline.Recording(log, "above"), 90);
-        });
+        var result = await Run(
+            log,
+            registry =>
+            {
+                registry.RegisterFilter(new Pipeline.Recording(log, "below"), 10);
+                registry.RegisterFilter(new Pipeline.Recording(log, "tie-a"), 50);
+                registry.RegisterFilter(new Pipeline.Recording(log, "tie-b"), 50);
+                registry.RegisterFilter(new Pipeline.Recording(log, "tie-c"), 50);
+                registry.RegisterFilter(new Pipeline.Recording(log, "above"), 90);
+            }
+        );
 
         var tied = new[] { "tie-a", "tie-b", "tie-c" };
 
@@ -289,7 +345,8 @@ public class FilterOrderingTests {
     /// handler and has to beat every globally registered filter that would read the body.
     /// </summary>
     [Fact]
-    public async Task AttributeFiltersAndGlobalFiltersShareOneOrdering() {
+    public async Task AttributeFiltersAndGlobalFiltersShareOneOrdering()
+    {
         var log = new List<string>();
 
         // Positions named as stages rather than as literals. The literals this used to carry were
@@ -297,24 +354,34 @@ public class FilterOrderingTests {
         // the scale changed, which is the failure the named constants exist to prevent.
         var result = await Run(
             log,
-            registry => {
+            registry =>
+            {
                 registry.RegisterFilter(
-                    new Pipeline.Recording(log, "global-early"), FilterOrder.Authentication);
+                    new Pipeline.Recording(log, "global-early"),
+                    FilterOrder.Authentication
+                );
                 registry.RegisterFilter(
-                    new Pipeline.Recording(log, "global-late"), FilterOrder.Retry);
+                    new Pipeline.Recording(log, "global-late"),
+                    FilterOrder.Retry
+                );
             },
             AtOrder(log, "attribute-earliest", FilterOrder.HandlerCreation - 100),
-            AtOrder(log, "attribute-middle", FilterOrder.Validation));
+            AtOrder(log, "attribute-middle", FilterOrder.Validation)
+        );
 
-        Assert.Equal(new[] {
-            "attribute-earliest",
-            Instance,
-            "global-early",
-            Io,
-            "attribute-middle",
-            "global-late",
-            Invoke
-        }, result);
+        Assert.Equal(
+            new[]
+            {
+                "attribute-earliest",
+                Instance,
+                "global-early",
+                Io,
+                "attribute-middle",
+                "global-late",
+                Invoke,
+            },
+            result
+        );
     }
 
     /// <summary>
@@ -325,7 +392,8 @@ public class FilterOrderingTests {
     /// cost of the position - every attempt shares the instance.
     /// </summary>
     [Fact]
-    public async Task RetryIsOrderedBehindSerializationAndAheadOfTheHandler() {
+    public async Task RetryIsOrderedBehindSerializationAndAheadOfTheHandler()
+    {
         var log = new List<string>();
 
         var result = await Run(log, _ => { }, new RecordingRetryProvider(log));
@@ -337,16 +405,21 @@ public class FilterOrderingTests {
     /// Stands in for <c>[Retry]</c> at exactly the order the real attribute uses, so the test
     /// asserts the position rather than re-testing the retry loop.
     /// </summary>
-    private class RecordingRetryProvider : IRequestFilterProvider {
+    private class RecordingRetryProvider : IRequestFilterProvider
+    {
         private readonly List<string> _log;
 
-        public RecordingRetryProvider(List<string> log) {
+        public RecordingRetryProvider(List<string> log)
+        {
             _log = log;
         }
 
-        public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
+        public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+        {
             yield return new RequestFilterInfo(
-                _ => new Pipeline.Recording(_log, "retry"), FilterOrder.Retry);
+                _ => new Pipeline.Recording(_log, "retry"),
+                FilterOrder.Retry
+            );
         }
     }
 }

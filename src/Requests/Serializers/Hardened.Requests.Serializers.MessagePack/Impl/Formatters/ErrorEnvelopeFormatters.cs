@@ -31,13 +31,18 @@ namespace Hardened.Requests.Serializers.MessagePack.Impl.Formatters;
 /// the whole reason the envelopes have a documented shape.
 /// </para>
 /// </remarks>
-internal sealed class ErrorModelFormatter : IMessagePackFormatter<ErrorModel?> {
-
+internal sealed class ErrorModelFormatter : IMessagePackFormatter<ErrorModel?>
+{
     public static readonly ErrorModelFormatter Instance = new();
 
     public void Serialize(
-        ref MessagePackWriter writer, ErrorModel? value, MessagePackSerializerOptions options) {
-        if (value == null) {
+        ref MessagePackWriter writer,
+        ErrorModel? value,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (value == null)
+        {
             writer.WriteNil();
 
             return;
@@ -52,12 +57,18 @@ internal sealed class ErrorModelFormatter : IMessagePackFormatter<ErrorModel?> {
         writer.Write(value.Details);
     }
 
-    public ErrorModel? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) {
+    public ErrorModel? Deserialize(
+        ref MessagePackReader reader,
+        MessagePackSerializerOptions options
+    )
+    {
         var count = Problem.MapHeader(ref reader);
         var model = new ErrorModel();
 
-        for (var i = 0; i < count; i++) {
-            switch (reader.ReadString()) {
+        for (var i = 0; i < count; i++)
+        {
+            switch (reader.ReadString())
+            {
                 case "type":
                     model.Type = reader.ReadString() ?? "";
 
@@ -83,14 +94,19 @@ internal sealed class ErrorModelFormatter : IMessagePackFormatter<ErrorModel?> {
     }
 }
 
-internal sealed class RequestValidationErrorFormatter : IMessagePackFormatter<RequestValidationError?> {
-
+internal sealed class RequestValidationErrorFormatter
+    : IMessagePackFormatter<RequestValidationError?>
+{
     public static readonly RequestValidationErrorFormatter Instance = new();
 
     public void Serialize(
-        ref MessagePackWriter writer, RequestValidationError? value,
-        MessagePackSerializerOptions options) {
-        if (value == null) {
+        ref MessagePackWriter writer,
+        RequestValidationError? value,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (value == null)
+        {
             writer.WriteNil();
 
             return;
@@ -104,18 +120,24 @@ internal sealed class RequestValidationErrorFormatter : IMessagePackFormatter<Re
         writer.Write("errors");
         writer.WriteArrayHeader(value.Errors.Count);
 
-        foreach (var error in value.Errors) {
+        foreach (var error in value.Errors)
+        {
             RequestValidationFieldErrorFormatter.Instance.Serialize(ref writer, error, options);
         }
     }
 
     public RequestValidationError? Deserialize(
-        ref MessagePackReader reader, MessagePackSerializerOptions options) {
+        ref MessagePackReader reader,
+        MessagePackSerializerOptions options
+    )
+    {
         var count = Problem.MapHeader(ref reader);
         var model = new RequestValidationError();
 
-        for (var i = 0; i < count; i++) {
-            switch (reader.ReadString()) {
+        for (var i = 0; i < count; i++)
+        {
+            switch (reader.ReadString())
+            {
                 case "type":
                     model.Type = reader.ReadString() ?? "";
 
@@ -125,17 +147,22 @@ internal sealed class RequestValidationErrorFormatter : IMessagePackFormatter<Re
 
                     break;
                 case "errors":
-                    if (reader.TryReadNil()) {
+                    if (reader.TryReadNil())
+                    {
                         break;
                     }
 
                     var errors = reader.ReadArrayHeader();
 
-                    for (var e = 0; e < errors; e++) {
-                        var field = RequestValidationFieldErrorFormatter.Instance
-                            .Deserialize(ref reader, options);
+                    for (var e = 0; e < errors; e++)
+                    {
+                        var field = RequestValidationFieldErrorFormatter.Instance.Deserialize(
+                            ref reader,
+                            options
+                        );
 
-                        if (field != null) {
+                        if (field != null)
+                        {
                             model.Errors.Add(field);
                         }
                     }
@@ -153,14 +180,18 @@ internal sealed class RequestValidationErrorFormatter : IMessagePackFormatter<Re
 }
 
 internal sealed class RequestValidationFieldErrorFormatter
-    : IMessagePackFormatter<RequestValidationFieldError?> {
-
+    : IMessagePackFormatter<RequestValidationFieldError?>
+{
     public static readonly RequestValidationFieldErrorFormatter Instance = new();
 
     public void Serialize(
-        ref MessagePackWriter writer, RequestValidationFieldError? value,
-        MessagePackSerializerOptions options) {
-        if (value == null) {
+        ref MessagePackWriter writer,
+        RequestValidationFieldError? value,
+        MessagePackSerializerOptions options
+    )
+    {
+        if (value == null)
+        {
             writer.WriteNil();
 
             return;
@@ -176,12 +207,17 @@ internal sealed class RequestValidationFieldErrorFormatter
     }
 
     public RequestValidationFieldError? Deserialize(
-        ref MessagePackReader reader, MessagePackSerializerOptions options) {
+        ref MessagePackReader reader,
+        MessagePackSerializerOptions options
+    )
+    {
         var count = Problem.MapHeader(ref reader);
         var model = new RequestValidationFieldError();
 
-        for (var i = 0; i < count; i++) {
-            switch (reader.ReadString()) {
+        for (var i = 0; i < count; i++)
+        {
+            switch (reader.ReadString())
+            {
                 case "field":
                     model.Field = reader.ReadString() ?? "";
 
@@ -204,4 +240,3 @@ internal sealed class RequestValidationFieldErrorFormatter
         return model;
     }
 }
-

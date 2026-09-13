@@ -28,7 +28,8 @@ namespace Hardened.Requests.Abstract.Errors;
 /// there being one method to call rather than two that must be kept in step.
 /// </para>
 /// </remarks>
-public interface IStatusCodeException : IProvidesResponseHeaders {
+public interface IStatusCodeException : IProvidesResponseHeaders
+{
     /// <summary>The status the response carries.</summary>
     int StatusCode { get; }
 }

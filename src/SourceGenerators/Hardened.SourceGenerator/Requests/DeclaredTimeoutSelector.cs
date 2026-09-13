@@ -22,7 +22,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// writing no <c>Milliseconds</c> publishes nothing rather than a guess.
 /// </para>
 /// </remarks>
-public static class DeclaredTimeoutSelector {
+public static class DeclaredTimeoutSelector
+{
     private const string DeclaresTimeout = "IDeclaresTimeout";
 
     private const string TimeoutNamespace = "Hardened.Requests.Abstract.Timeouts";
@@ -31,11 +32,16 @@ public static class DeclaredTimeoutSelector {
     /// The budget, status and retry-after this operation declares, or null.
     /// </summary>
     public static (int Milliseconds, int Status, int RetryAfterSeconds)? Read(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax method) {
-        foreach (var attribute in Syntax(method)) {
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax method
+    )
+    {
+        foreach (var attribute in Syntax(method))
+        {
             var declaration = context.SemanticModel.GetSymbolInfo(attribute).Symbol?.ContainingType;
 
-            if (declaration == null || !Declares(declaration)) {
+            if (declaration == null || !Declares(declaration))
+            {
                 continue;
             }
 
@@ -46,13 +52,17 @@ public static class DeclaredTimeoutSelector {
             // operation does not actually run under.
             return milliseconds == null
                 ? null
-                : (milliseconds.Value,
+                : (
+                    milliseconds.Value,
                     Written(context, attribute, "Status") ?? 504,
-                    Written(context, attribute, "RetryAfterSeconds") ?? 0);
+                    Written(context, attribute, "RetryAfterSeconds") ?? 0
+                );
         }
 
-        foreach (var declaration in context.SemanticModel.Compilation.Assembly.GetAttributes()) {
-            if (declaration.AttributeClass == null || !Declares(declaration.AttributeClass)) {
+        foreach (var declaration in context.SemanticModel.Compilation.Assembly.GetAttributes())
+        {
+            if (declaration.AttributeClass == null || !Declares(declaration.AttributeClass))
+            {
                 continue;
             }
 
@@ -60,37 +70,50 @@ public static class DeclaredTimeoutSelector {
 
             return milliseconds == null
                 ? null
-                : (milliseconds.Value,
+                : (
+                    milliseconds.Value,
                     Bound(declaration, "Status") ?? 504,
-                    Bound(declaration, "RetryAfterSeconds") ?? 0);
+                    Bound(declaration, "RetryAfterSeconds") ?? 0
+                );
         }
 
         return null;
     }
 
     /// <summary>The method's attributes, then its class's.</summary>
-    private static IEnumerable<AttributeSyntax> Syntax(MethodDeclarationSyntax method) {
-        foreach (var list in method.AttributeLists) {
-            foreach (var attribute in list.Attributes) {
+    private static IEnumerable<AttributeSyntax> Syntax(MethodDeclarationSyntax method)
+    {
+        foreach (var list in method.AttributeLists)
+        {
+            foreach (var attribute in list.Attributes)
+            {
                 yield return attribute;
             }
         }
 
-        if (method.Parent is not TypeDeclarationSyntax declaringType) {
+        if (method.Parent is not TypeDeclarationSyntax declaringType)
+        {
             yield break;
         }
 
-        foreach (var list in declaringType.AttributeLists) {
-            foreach (var attribute in list.Attributes) {
+        foreach (var list in declaringType.AttributeLists)
+        {
+            foreach (var attribute in list.Attributes)
+            {
                 yield return attribute;
             }
         }
     }
 
-    private static bool Declares(INamedTypeSymbol declaration) {
-        foreach (var contract in declaration.AllInterfaces) {
-            if (contract.Name == DeclaresTimeout &&
-                contract.ContainingNamespace?.ToDisplayString() == TimeoutNamespace) {
+    private static bool Declares(INamedTypeSymbol declaration)
+    {
+        foreach (var contract in declaration.AllInterfaces)
+        {
+            if (
+                contract.Name == DeclaresTimeout
+                && contract.ContainingNamespace?.ToDisplayString() == TimeoutNamespace
+            )
+            {
                 return true;
             }
         }
@@ -99,23 +122,33 @@ public static class DeclaredTimeoutSelector {
     }
 
     private static int? Written(
-        GeneratorSyntaxContext context, AttributeSyntax attribute, string property) {
-        var argument = attribute.ArgumentList?.Arguments.FirstOrDefault(
-            candidate => candidate.NameEquals?.Name.Identifier.Text == property);
+        GeneratorSyntaxContext context,
+        AttributeSyntax attribute,
+        string property
+    )
+    {
+        var argument = attribute.ArgumentList?.Arguments.FirstOrDefault(candidate =>
+            candidate.NameEquals?.Name.Identifier.Text == property
+        );
 
-        if (argument == null) {
+        if (argument == null)
+        {
             return null;
         }
 
-        return context.SemanticModel.GetConstantValue(argument.Expression) is
-            { HasValue: true, Value: int value }
+        return
+            context.SemanticModel.GetConstantValue(argument.Expression)
+                is { HasValue: true, Value: int value }
             ? value
             : null;
     }
 
-    private static int? Bound(AttributeData declaration, string property) {
-        foreach (var argument in declaration.NamedArguments) {
-            if (argument.Key == property && argument.Value.Value is int value) {
+    private static int? Bound(AttributeData declaration, string property)
+    {
+        foreach (var argument in declaration.NamedArguments)
+        {
+            if (argument.Key == property && argument.Value.Value is int value)
+            {
                 return value;
             }
         }

@@ -35,8 +35,8 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public sealed class AuthorizeAttribute<TAuth> : Attribute, IAuthorizeAttribute
-    where TAuth : IAuthenticationScheme {
-
+    where TAuth : IAuthenticationScheme
+{
     public Requirement Requirement => Requirement.Authenticated();
 }
 
@@ -69,8 +69,8 @@ public sealed class AuthorizeAttribute<TAuth> : Attribute, IAuthorizeAttribute
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
 public sealed class AuthorizeAttribute<TAuth, TPolicy> : Attribute, IAuthorizeAttribute
     where TAuth : IAuthenticationScheme
-    where TPolicy : IAuthorizationPolicy, new() {
-
+    where TPolicy : IAuthorizationPolicy, new()
+{
     private static readonly Requirement _requirement =
         Requirement.Authenticated() & new TPolicy().Requirement;
 

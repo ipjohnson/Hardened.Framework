@@ -7,13 +7,17 @@ using Microsoft.Extensions.Primitives;
 
 namespace Hardened.Requests.Testing;
 
-public class TestExecutionResponse : IExecutionResponse {
-    public TestExecutionResponse(Stream body) {
+public class TestExecutionResponse : IExecutionResponse
+{
+    public TestExecutionResponse(Stream body)
+    {
         Body = body;
     }
 
-    public IExecutionResponse Clone(IHeaderCollection? headerCollection) {
-        return new TestExecutionResponse(Body) {
+    public IExecutionResponse Clone(IHeaderCollection? headerCollection)
+    {
+        return new TestExecutionResponse(Body)
+        {
             ResponseValue = ResponseValue,
             OutputFactory = OutputFactory,
             Output = Output,
@@ -24,7 +28,8 @@ public class TestExecutionResponse : IExecutionResponse {
         };
     }
 
-    public string? ContentType {
+    public string? ContentType
+    {
         get => Headers.GetOrDefault("Content-Type");
         set => Headers["Content-Type"] = value;
     }
@@ -39,7 +44,8 @@ public class TestExecutionResponse : IExecutionResponse {
 
     public Stream Body { get; set; }
 
-    public IDictionary<string, StringValues> Headers { get; set; } = new Dictionary<string, StringValues>();
+    public IDictionary<string, StringValues> Headers { get; set; } =
+        new Dictionary<string, StringValues>();
     public Exception? ExceptionValue { get; set; }
 
     public bool ResponseStarted => Body.Position > 0;

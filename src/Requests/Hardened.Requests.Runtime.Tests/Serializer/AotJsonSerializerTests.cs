@@ -27,17 +27,19 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// <c>string</c> too. Without that entry every string property throws <c>NotSupportedException</c>.
 /// </para>
 /// </remarks>
-public class AotJsonSerializerTests {
-
+public class AotJsonSerializerTests
+{
     // Payload and PayloadContext are declared once for this namespace in
     // ResponseSerializerCompressionTests.cs, at namespace scope because System.Text.Json's
     // generator does not emit for a context nested inside a type that is not itself partial.
 
     /// <summary>Answers for nothing, but records that it was asked.</summary>
-    private sealed class RecordingResolver : IJsonTypeInfoResolver {
+    private sealed class RecordingResolver : IJsonTypeInfoResolver
+    {
         public List<Type> Asked { get; } = [];
 
-        public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options) {
+        public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
+        {
             Asked.Add(type);
 
             return null;
@@ -48,13 +50,17 @@ public class AotJsonSerializerTests {
     /// Typed as the interface, which is what an application resolves and what carries the optional
     /// <c>pretty</c> and cancellation arguments — the concrete class declares neither.
     /// </summary>
-    private static IJsonSerializer Serializer(params IJsonTypeInfoResolver[] resolvers) {
-        var configuration = new JsonSerializerConfiguration {
-            Options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
+    private static IJsonSerializer Serializer(params IJsonTypeInfoResolver[] resolvers)
+    {
+        var configuration = new JsonSerializerConfiguration
+        {
+            Options = new JsonSerializerOptions(JsonSerializerDefaults.Web),
         };
 
         return new AotJsonSerializer(
-            Options.Create<IJsonSerializerConfiguration>(configuration), resolvers);
+            Options.Create<IJsonSerializerConfiguration>(configuration),
+            resolvers
+        );
     }
 
     private static IJsonSerializer WithPayloadContext() => Serializer(PayloadContext.Default);
@@ -64,14 +70,17 @@ public class AotJsonSerializerTests {
     #region round trips through a generated context
 
     [Fact]
-    public void SerializeWritesAModelTheContextKnows() {
+    public void SerializeWritesAModelTheContextKnows()
+    {
         Assert.Equal(
             """{"name":"first","value":2}""",
-            WithPayloadContext().Serialize(new Payload("first", 2)));
+            WithPayloadContext().Serialize(new Payload("first", 2))
+        );
     }
 
     [Fact]
-    public void DeserializeReadsAModelTheContextKnows() {
+    public void DeserializeReadsAModelTheContextKnows()
+    {
         var payload = WithPayloadContext().Deserialize<Payload>("""{"name":"first","value":2}""");
 
         Assert.Equal("first", payload.Name);
@@ -79,37 +88,56 @@ public class AotJsonSerializerTests {
     }
 
     [Fact]
-    public async Task DeserializeAsyncReadsFromAStream() {
+    public async Task DeserializeAsyncReadsFromAStream()
+    {
         var payload = await WithPayloadContext()
-            .DeserializeAsync<Payload>(Json("""{"name":"first","value":2}"""), TestContext.Current.CancellationToken);
+            .DeserializeAsync<Payload>(
+                Json("""{"name":"first","value":2}"""),
+                TestContext.Current.CancellationToken
+            );
 
         Assert.Equal("first", payload.Name);
         Assert.Equal(2, payload.Value);
     }
 
     [Fact]
-    public async Task SerializeAsyncWritesToAStream() {
+    public async Task SerializeAsyncWritesToAStream()
+    {
         var stream = new MemoryStream();
 
-        await WithPayloadContext().SerializeAsync(
-            stream, new Payload("first", 2), false, TestContext.Current.CancellationToken);
+        await WithPayloadContext()
+            .SerializeAsync(
+                stream,
+                new Payload("first", 2),
+                false,
+                TestContext.Current.CancellationToken
+            );
 
         Assert.Equal("""{"name":"first","value":2}""", Encoding.UTF8.GetString(stream.ToArray()));
     }
 
     [Fact]
-    public async Task AModelRoundTripsThroughTheStreamApi() {
+    public async Task AModelRoundTripsThroughTheStreamApi()
+    {
         var serializer = WithPayloadContext();
         var stream = new MemoryStream();
 
         await serializer.SerializeAsync(
-            stream, new Payload("first", 2), false, TestContext.Current.CancellationToken);
+            stream,
+            new Payload("first", 2),
+            false,
+            TestContext.Current.CancellationToken
+        );
 
         stream.Position = 0;
 
         Assert.Equal(
             new Payload("first", 2),
-            await serializer.DeserializeAsync<Payload>(stream, TestContext.Current.CancellationToken));
+            await serializer.DeserializeAsync<Payload>(
+                stream,
+                TestContext.Current.CancellationToken
+            )
+        );
     }
 
     #endregion
@@ -121,7 +149,8 @@ public class AotJsonSerializerTests {
     /// resolver every string property on every generated model throws.
     /// </summary>
     [Fact]
-    public void AStringSerializesWithoutAContextDeclaringIt() {
+    public void AStringSerializesWithoutAContextDeclaringIt()
+    {
         Assert.Equal("\"hello\"", WithPayloadContext().Serialize("hello"));
     }
 
@@ -129,12 +158,14 @@ public class AotJsonSerializerTests {
     [InlineData(42, "42")]
     [InlineData(true, "true")]
     [InlineData(1.5, "1.5")]
-    public void ThePrimitiveLeafTypesSerialize(object value, string expected) {
+    public void ThePrimitiveLeafTypesSerialize(object value, string expected)
+    {
         Assert.Equal(expected, WithPayloadContext().Serialize(value));
     }
 
     [Fact]
-    public void AStringDeserializes() {
+    public void AStringDeserializes()
+    {
         Assert.Equal("hello", WithPayloadContext().Deserialize<string>("\"hello\""));
     }
 
@@ -143,7 +174,8 @@ public class AotJsonSerializerTests {
     /// for the leaf types.
     /// </summary>
     [Fact]
-    public void ThePrimitiveTableAnswersWithNoRegisteredResolvers() {
+    public void ThePrimitiveTableAnswersWithNoRegisteredResolvers()
+    {
         Assert.Equal("\"hello\"", Serializer().Serialize("hello"));
     }
 
@@ -156,7 +188,8 @@ public class AotJsonSerializerTests {
     /// override how a leaf type is written.
     /// </summary>
     [Fact]
-    public void ARegisteredResolverIsAskedFirst() {
+    public void ARegisteredResolverIsAskedFirst()
+    {
         var recording = new RecordingResolver();
 
         Serializer(recording).Serialize("hello");
@@ -168,12 +201,14 @@ public class AotJsonSerializerTests {
     /// A resolver that answers nothing does not break the chain — the next one is asked.
     /// </summary>
     [Fact]
-    public void AResolverThatAnswersNothingFallsThroughToTheNext() {
+    public void AResolverThatAnswersNothingFallsThroughToTheNext()
+    {
         Assert.Equal("\"hello\"", Serializer(new RecordingResolver()).Serialize("hello"));
     }
 
     [Fact]
-    public void EveryRegisteredResolverIsInTheChain() {
+    public void EveryRegisteredResolverIsInTheChain()
+    {
         var first = new RecordingResolver();
         var second = new RecordingResolver();
 
@@ -190,7 +225,8 @@ public class AotJsonSerializerTests {
     /// behaves differently once published.
     /// </summary>
     [Fact]
-    public void ATypeNoResolverKnowsThrows() {
+    public void ATypeNoResolverKnowsThrows()
+    {
         Assert.ThrowsAny<Exception>(() => Serializer().Serialize(new Payload("first", 2)));
     }
 
@@ -199,7 +235,8 @@ public class AotJsonSerializerTests {
     #region pretty printing
 
     [Fact]
-    public void PrettyPrintingIndents() {
+    public void PrettyPrintingIndents()
+    {
         var pretty = WithPayloadContext().Serialize(new Payload("first", 2), pretty: true);
 
         Assert.Contains("\n", pretty);
@@ -207,16 +244,23 @@ public class AotJsonSerializerTests {
     }
 
     [Fact]
-    public void TheCompactFormIsTheDefault() {
+    public void TheCompactFormIsTheDefault()
+    {
         Assert.DoesNotContain("\n", WithPayloadContext().Serialize(new Payload("first", 2)));
     }
 
     [Fact]
-    public async Task SerializeAsyncCanBePretty() {
+    public async Task SerializeAsyncCanBePretty()
+    {
         var stream = new MemoryStream();
 
-        await WithPayloadContext().SerializeAsync(
-            stream, new Payload("first", 2), true, TestContext.Current.CancellationToken);
+        await WithPayloadContext()
+            .SerializeAsync(
+                stream,
+                new Payload("first", 2),
+                true,
+                TestContext.Current.CancellationToken
+            );
 
         Assert.Contains("\n", Encoding.UTF8.GetString(stream.ToArray()));
     }
@@ -227,22 +271,29 @@ public class AotJsonSerializerTests {
     /// the application declared.
     /// </summary>
     [Fact]
-    public void PrettyPrintingUsesTheSameResolverChain() {
-        Assert.Contains("first", WithPayloadContext().Serialize(new Payload("first", 2), pretty: true));
+    public void PrettyPrintingUsesTheSameResolverChain()
+    {
+        Assert.Contains(
+            "first",
+            WithPayloadContext().Serialize(new Payload("first", 2), pretty: true)
+        );
         Assert.Equal("\"hello\"", WithPayloadContext().Serialize("hello", pretty: true));
     }
 
     #endregion
 
     [Fact]
-    public async Task DeserializingNullThrowsRatherThanReturningIt() {
-        await Assert.ThrowsAsync<Exception>(
-            () => WithPayloadContext().DeserializeAsync<Payload>(
-                Json("null"), TestContext.Current.CancellationToken));
+    public async Task DeserializingNullThrowsRatherThanReturningIt()
+    {
+        await Assert.ThrowsAsync<Exception>(() =>
+            WithPayloadContext()
+                .DeserializeAsync<Payload>(Json("null"), TestContext.Current.CancellationToken)
+        );
     }
 
     [Fact]
-    public void DeserializingNullFromAStringThrowsToo() {
+    public void DeserializingNullFromAStringThrowsToo()
+    {
         Assert.Throws<Exception>(() => WithPayloadContext().Deserialize<Payload>("null"));
     }
 }

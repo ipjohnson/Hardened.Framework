@@ -45,11 +45,13 @@ public partial class DynamoDbSerializerContext : JsonSerializerContext;
 /// per adapter is that an unapplied one gets removed.
 /// </para>
 /// </remarks>
-public static class DynamoDbEventJson {
-    private static readonly JsonSerializerOptions Options = new() {
+public static class DynamoDbEventJson
+{
+    private static readonly JsonSerializerOptions Options = new()
+    {
         TypeInfoResolver = DynamoDbSerializerContext.Default,
         PropertyNameCaseInsensitive = true,
-        Converters = { new UnixEpochDateTimeConverter() }
+        Converters = { new UnixEpochDateTimeConverter() },
     };
 
     /// <summary>The stream event, ready to deserialize.</summary>

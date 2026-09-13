@@ -7,9 +7,9 @@ using Hardened.Shared.Runtime.Attributes;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Attributes;
 using Hardened.Web.Runtime.OpenApi;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.CodeAnalysis;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -28,14 +28,15 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// rather than against the emitted characters.
 /// </para>
 /// </remarks>
-public class DeclaredRefusalDocumentTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),                 // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),            // Hardened.Requests.Abstract
-        typeof(AuthorizeGrantsAttribute),     // Hardened.Requests.Runtime
-        typeof(EnableAttribute<>),            // Hardened.Shared.Runtime
-        typeof(OpenApiDocumentPublishing)     // the marker
+public class DeclaredRefusalDocumentTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
+        typeof(AuthorizeGrantsAttribute), // Hardened.Requests.Runtime
+        typeof(EnableAttribute<>), // Hardened.Shared.Runtime
+        typeof(OpenApiDocumentPublishing), // the marker
     ];
 
     /// <summary>An assembly attribute has to follow the usings and precede the types.</summary>
@@ -59,22 +60,33 @@ public class DeclaredRefusalDocumentTests {
 
         """;
 
-    private static JsonElement Document(string controllers, string assemblyLevel = "") {
-        var result = GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
-                ["Test.cs"] = Usings + assemblyLevel + Entrypoint + controllers
-            },
-            new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors).AssertNoErrors();
+    private static JsonElement Document(string controllers, string assemblyLevel = "")
+    {
+        var result = GeneratorTestHarness
+            .Run(
+                new Dictionary<string, string>
+                {
+                    ["Test.cs"] = Usings + assemblyLevel + Entrypoint + controllers,
+                },
+                new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
+                Anchors
+            )
+            .AssertNoErrors();
 
         var match = Regex.Match(
             result.SourceContaining("OpenApiDocument"),
-            @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
+            @"new byte\[\]\s*\{(.*?)\}\s*;",
+            RegexOptions.Singleline
+        );
 
         Assert.True(match.Success, "No document byte array in the generated source.");
 
-        var bytes = match.Groups[1].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var bytes = match
+            .Groups[1]
+            .Value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
             .Select(byte.Parse)
             .ToArray();
 
@@ -88,15 +100,23 @@ public class DeclaredRefusalDocumentTests {
     }
 
     private static string[] Statuses(JsonElement document, string path) =>
-        document.GetProperty("paths").GetProperty(path).GetProperty("get")
-            .GetProperty("responses").EnumerateObject()
+        document
+            .GetProperty("paths")
+            .GetProperty(path)
+            .GetProperty("get")
+            .GetProperty("responses")
+            .EnumerateObject()
             .Select(response => response.Name)
             .OrderBy(status => status, StringComparer.Ordinal)
             .ToArray();
 
     private static JsonElement Response(JsonElement document, string path, string status) =>
-        document.GetProperty("paths").GetProperty(path).GetProperty("get")
-            .GetProperty("responses").GetProperty(status);
+        document
+            .GetProperty("paths")
+            .GetProperty(path)
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty(status);
 
     /// <summary>
     /// The success survives. A guard names a failure and says nothing about what the handler
@@ -104,58 +124,75 @@ public class DeclaredRefusalDocumentTests {
     /// <c>[Throws&lt;T&gt;]</c> follows.
     /// </summary>
     [Fact]
-    public void AGuardedOperationStillPublishesItsSuccess() {
-        var document = Document("""
+    public void AGuardedOperationStillPublishesItsSuccess()
+    {
+        var document = Document(
+            """
             public class RateController {
                 [Get("/rates")]
                 [AuthorizeGrants("rates:read")]
                 public string Read() => "";
             }
-            """);
+            """
+        );
 
         Assert.Equal(["200", "403"], Statuses(document, "/rates"));
     }
 
     [Fact]
-    public void AnAuthorizedOperationPublishesA403WithTheErrorEnvelope() {
-        var document = Document("""
+    public void AnAuthorizedOperationPublishesA403WithTheErrorEnvelope()
+    {
+        var document = Document(
+            """
             public class RateController {
                 [Get("/rates")]
                 [AuthorizeGrants("rates:read")]
                 public string Read() => "";
             }
-            """);
+            """
+        );
 
         var forbidden = Response(document, "/rates", "403");
 
         Assert.Equal(
             "#/components/schemas/ErrorModel",
-            forbidden.GetProperty("content").GetProperty("application/json")
-                .GetProperty("schema").GetProperty("$ref").GetString());
+            forbidden
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
     }
 
     [Fact]
-    public void ARateLimitedOperationPublishesA429() {
-        var document = Document("""
+    public void ARateLimitedOperationPublishesA429()
+    {
+        var document = Document(
+            """
             public class RateController {
                 [Get("/rates")]
                 [RateLimit(PermitLimit = 10)]
                 public string Read() => "";
             }
-            """);
+            """
+        );
 
         Assert.Equal(["200", "429"], Statuses(document, "/rates"));
     }
 
     [Fact]
-    public void ABoundedOperationPublishesA504() {
-        var document = Document("""
+    public void ABoundedOperationPublishesA504()
+    {
+        var document = Document(
+            """
             public class RateController {
                 [Get("/rates")]
                 [Timeout(Milliseconds = 2000)]
                 public string Read() => "";
             }
-            """);
+            """
+        );
 
         Assert.Equal(["200", "504"], Statuses(document, "/rates"));
     }
@@ -165,28 +202,34 @@ public class DeclaredRefusalDocumentTests {
     /// written rather than the declaration's default.
     /// </summary>
     [Fact]
-    public void ADeclaredStatusReplacesTheDefaultRatherThanJoiningIt() {
-        var document = Document("""
+    public void ADeclaredStatusReplacesTheDefaultRatherThanJoiningIt()
+    {
+        var document = Document(
+            """
             public class RateController {
                 [Get("/rates")]
                 [Timeout(Milliseconds = 2000, Status = 503)]
                 public string Read() => "";
             }
-            """);
+            """
+        );
 
         Assert.Equal(["200", "503"], Statuses(document, "/rates"));
     }
 
     /// <summary>A controller's guard covers every method on it.</summary>
     [Fact]
-    public void AClassLevelGuardReachesItsMethods() {
-        var document = Document("""
+    public void AClassLevelGuardReachesItsMethods()
+    {
+        var document = Document(
+            """
             [AuthorizeGrants("rates:read")]
             public class RateController {
                 [Get("/rates")]
                 public string Read() => "";
             }
-            """);
+            """
+        );
 
         Assert.Equal(["200", "403"], Statuses(document, "/rates"));
     }
@@ -196,7 +239,8 @@ public class DeclaredRefusalDocumentTests {
     /// can answer 504 and the document says so.
     /// </summary>
     [Fact]
-    public void AnAssemblyLevelDeclarationReachesEveryOperation() {
+    public void AnAssemblyLevelDeclarationReachesEveryOperation()
+    {
         var document = Document(
             """
             public class RateController {
@@ -204,7 +248,8 @@ public class DeclaredRefusalDocumentTests {
                 public string Read() => "";
             }
             """,
-            assemblyLevel: "[assembly: Timeout(Milliseconds = 2000)]\n\n");
+            assemblyLevel: "[assembly: Timeout(Milliseconds = 2000)]\n\n"
+        );
 
         Assert.Equal(["200", "504"], Statuses(document, "/rates"));
     }
@@ -214,7 +259,8 @@ public class DeclaredRefusalDocumentTests {
     /// assembly would otherwise have contributed, because it can never answer both.
     /// </summary>
     [Fact]
-    public void ANearerDeclarationSupersedesTheAssemblysRatherThanAddingToIt() {
+    public void ANearerDeclarationSupersedesTheAssemblysRatherThanAddingToIt()
+    {
         var document = Document(
             """
             public class RateController {
@@ -223,7 +269,8 @@ public class DeclaredRefusalDocumentTests {
                 public string Read() => "";
             }
             """,
-            assemblyLevel: "[assembly: Timeout(Milliseconds = 2000)]\n\n");
+            assemblyLevel: "[assembly: Timeout(Milliseconds = 2000)]\n\n"
+        );
 
         Assert.Equal(["200", "503"], Statuses(document, "/rates"));
     }
@@ -234,8 +281,10 @@ public class DeclaredRefusalDocumentTests {
     /// 403 because <c>IAuthorizeAttribute</c> carries the declaration.
     /// </summary>
     [Fact]
-    public void AnApplicationsOwnGuardPublishesTheSameRefusal() {
-        var document = Document("""
+    public void AnApplicationsOwnGuardPublishesTheSameRefusal()
+    {
+        var document = Document(
+            """
             public sealed class OwnedByCallerAttribute : System.Attribute, IAuthorizeAttribute {
                 public Requirement Requirement { get; } =
                     Requirement.Predicate((_, _) => true, "the caller owns this record");
@@ -246,20 +295,24 @@ public class DeclaredRefusalDocumentTests {
                 [OwnedByCaller]
                 public string Read() => "";
             }
-            """);
+            """
+        );
 
         Assert.Equal(["200", "403"], Statuses(document, "/rates"));
     }
 
     /// <summary>An operation nothing guards publishes what it always did.</summary>
     [Fact]
-    public void AnUnguardedOperationPublishesOnlyItsSuccess() {
-        var document = Document("""
+    public void AnUnguardedOperationPublishesOnlyItsSuccess()
+    {
+        var document = Document(
+            """
             public class RateController {
                 [Get("/rates")]
                 public string Read() => "";
             }
-            """);
+            """
+        );
 
         Assert.Equal(["200"], Statuses(document, "/rates"));
     }

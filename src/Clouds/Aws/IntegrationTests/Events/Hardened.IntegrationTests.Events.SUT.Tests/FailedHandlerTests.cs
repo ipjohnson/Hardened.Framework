@@ -19,15 +19,20 @@ namespace Hardened.IntegrationTests.Events.SUT.Tests;
 /// letter, no failed-invocation metric. The schedule stands for the whole unbatched family here
 /// because a bus event has no test façade yet; the fix is in the host and covers both.
 /// </remarks>
-public class FailedHandlerTests {
-
+public class FailedHandlerTests
+{
     [HardenedTest]
     public async Task AFailedTimerHandlerFailsTheInvocation(
-        EventsTestApp.Timers timers, [Mock] ITriggerLog log) {
+        EventsTestApp.Timers timers,
+        [Mock] ITriggerLog log
+    )
+    {
         log.When(one => one.Record("timer:nightly-rollup"))
             .Do(_ => throw new InvalidOperationException("the rollup refused"));
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => timers.NightlyRollup());
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            timers.NightlyRollup()
+        );
 
         Assert.Equal("the rollup refused", failure.Message);
     }

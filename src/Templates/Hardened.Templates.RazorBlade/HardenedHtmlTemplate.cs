@@ -1,9 +1,9 @@
+using System.Text;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Outputs;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Shared.Runtime.Collections;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text;
 
 namespace Hardened.Templates.RazorBlade;
 
@@ -36,9 +36,10 @@ namespace Hardened.Templates.RazorBlade;
 /// <c>SynchronousWriteRegressionTests</c>, which drives a body that refuses synchronous writes.
 /// </para>
 /// </remarks>
-public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemplate,
-    IHardenedResponseOutput<TModel> {
-
+public abstract class HardenedHtmlTemplate<TModel>
+    : global::RazorBlade.HtmlTemplate,
+        IHardenedResponseOutput<TModel>
+{
     /// <summary>
     /// StreamWriter's parameterless UTF8 encoding writes a byte order mark, which lands in the
     /// response body ahead of the markup and is visible in the rendered page.
@@ -94,13 +95,15 @@ public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemp
     /// <c>SynchronousWritesRejectedStream</c> in the test project is the double that does not.
     /// </para>
     /// </remarks>
-    public async Task WriteOutput(IExecutionContext context) {
+    public async Task WriteOutput(IExecutionContext context)
+    {
         Attach(context.Response.ResponseValue, context);
 
         // Only when the handler has not already chosen one. Checked for empty as well as null
         // because the ASP.NET Core host coerces a null assignment to "", so a response that has
         // been touched and left unset reads back as empty rather than null.
-        if (string.IsNullOrEmpty(context.Response.ContentType)) {
+        if (string.IsNullOrEmpty(context.Response.ContentType))
+        {
             context.Response.ContentType = ContentType;
         }
 
@@ -112,7 +115,8 @@ public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemp
         var buffer = reservation?.Item ?? new MemoryStream(1024);
 
         // leaveOpen so disposing the writer does not close a stream the pool is about to reclaim.
-        await using (var writer = new StreamWriter(buffer, Utf8NoBom, -1, true)) {
+        await using (var writer = new StreamWriter(buffer, Utf8NoBom, -1, true))
+        {
             await RenderAsync(writer, context.CancellationToken);
         }
 
@@ -130,17 +134,22 @@ public abstract class HardenedHtmlTemplate<TModel> : global::RazorBlade.HtmlTemp
     /// <c>InvalidCastException</c> from inside this method, naming no template at all - and the null
     /// case is the likely one, because a handler returning nothing on an error path is ordinary.
     /// </remarks>
-    private void Attach(object? model, IExecutionContext context) {
-        if (model is null && default(TModel) is not null) {
+    private void Attach(object? model, IExecutionContext context)
+    {
+        if (model is null && default(TModel) is not null)
+        {
             throw new InvalidOperationException(
-                $"Template '{GetType().Name}' needs a {typeof(TModel).Name} model but the response " +
-                "value was null.");
+                $"Template '{GetType().Name}' needs a {typeof(TModel).Name} model but the response "
+                    + "value was null."
+            );
         }
 
-        if (model is not null and not TModel) {
+        if (model is not null and not TModel)
+        {
             throw new InvalidOperationException(
-                $"Template '{GetType().Name}' needs a {typeof(TModel).Name} model but the response " +
-                $"value was {model.GetType().Name}.");
+                $"Template '{GetType().Name}' needs a {typeof(TModel).Name} model but the response "
+                    + $"value was {model.GetType().Name}."
+            );
         }
 
         Model = (TModel)model!;

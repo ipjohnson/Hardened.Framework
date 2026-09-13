@@ -1,6 +1,6 @@
 using Hardened.IntegrationTests.Benchmark.SUT.Tests.Support;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 
 namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 
@@ -11,8 +11,8 @@ namespace Hardened.IntegrationTests.Benchmark.SUT.Tests;
 /// The pair is the point. Both operations are described in one spec and served by one pipeline, and
 /// the only thing that makes them differ is the media type each declares its response under.
 /// </remarks>
-public class JsonAndPlainTextTests {
-
+public class JsonAndPlainTextTests
+{
     /// <summary>
     /// The headers TechEmpower's own client sends, from
     /// <c>toolset/test_types/abstract_test_type.py</c>. Reproduced rather than simplified because
@@ -30,7 +30,8 @@ public class JsonAndPlainTextTests {
         request => request.Headers["Accept"] = new StringValues(accept);
 
     [HardenedTest]
-    public async Task Json_ReturnsTheMessageObject(ITestWebApp testWebApp) {
+    public async Task Json_ReturnsTheMessageObject(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/json", Accepting(JsonAccept));
 
         response.Assert.Ok();
@@ -45,14 +46,16 @@ public class JsonAndPlainTextTests {
     /// The benchmark specifies the body exactly, and camelCase is what makes it match.
     /// </summary>
     [HardenedTest]
-    public async Task Json_SerializesTheBodyTheBenchmarkSpecifies(ITestWebApp testWebApp) {
+    public async Task Json_SerializesTheBodyTheBenchmarkSpecifies(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/json", Accepting(JsonAccept));
 
         Assert.Equal("{\"message\":\"Hello, World!\"}", await Body.Read(response));
     }
 
     [HardenedTest]
-    public async Task Json_SetsTheJsonContentType(ITestWebApp testWebApp) {
+    public async Task Json_SetsTheJsonContentType(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/json", Accepting(JsonAccept));
 
         Assert.Equal("application/json", response.Headers["Content-Type"]);
@@ -63,7 +66,8 @@ public class JsonAndPlainTextTests {
     /// the raw writer rather than the JSON serializer.
     /// </summary>
     [HardenedTest]
-    public async Task PlainText_WritesTheBodyRaw(ITestWebApp testWebApp) {
+    public async Task PlainText_WritesTheBodyRaw(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/plaintext", Accepting(PlainTextAccept));
 
         response.Assert.Ok();
@@ -89,7 +93,8 @@ public class JsonAndPlainTextTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task PlainText_WithNoAcceptHeaderAnswersTheOneDeclaredType(ITestWebApp testWebApp) {
+    public async Task PlainText_WithNoAcceptHeaderAnswersTheOneDeclaredType(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/plaintext");
 
         response.Assert.Ok();
@@ -123,7 +128,9 @@ public class JsonAndPlainTextTests {
     /// </remarks>
     [HardenedTest]
     public async Task PlainText_UnderLenientAnswersWhatItDeclaresRatherThanRefusing(
-        ITestWebApp testWebApp) {
+        ITestWebApp testWebApp
+    )
+    {
         var response = await testWebApp.Get("/plaintext", Accepting("application/json"));
 
         response.Assert.Ok();
@@ -133,7 +140,8 @@ public class JsonAndPlainTextTests {
     }
 
     [HardenedTest]
-    public async Task PlainText_SetsTheTextContentType(ITestWebApp testWebApp) {
+    public async Task PlainText_SetsTheTextContentType(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/plaintext", Accepting(PlainTextAccept));
 
         Assert.Equal("text/plain", response.Headers["Content-Type"]);

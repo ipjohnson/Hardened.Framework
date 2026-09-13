@@ -21,8 +21,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// write.
 /// </para>
 /// </remarks>
-public class PatternRegistryTests {
-
+public class PatternRegistryTests
+{
     private const string PatternNamespace = EmitterHarness.RootNamespace + ".Validation";
 
     private static PatternRegistry Registry(string specFileName = "petstore") =>
@@ -34,12 +34,14 @@ public class PatternRegistryTests {
     [InlineData("petstore", "PetstorePatterns")]
     [InlineData("pet_store", "PetStorePatterns")]
     [InlineData("pet-store", "PetStorePatterns")]
-    public void TheClassIsNamedForTheSpecFile(string specFileName, string expected) {
+    public void TheClassIsNamedForTheSpecFile(string specFileName, string expected)
+    {
         Assert.Equal(expected, Registry(specFileName).ClassName);
     }
 
     [Fact]
-    public void AFreshRegistryIsEmpty() {
+    public void AFreshRegistryIsEmpty()
+    {
         var registry = Registry();
 
         Assert.True(registry.IsEmpty);
@@ -48,7 +50,8 @@ public class PatternRegistryTests {
     }
 
     [Fact]
-    public void RegisteringAPatternMakesItNonEmpty() {
+    public void RegisteringAPatternMakesItNonEmpty()
+    {
         var registry = Registry();
 
         registry.AttributeArguments("^[a-z]+$");
@@ -66,20 +69,25 @@ public class PatternRegistryTests {
     /// interpreter — 448 KB on an AOT publish against 33 KB — and is what VM0017 rejects.
     /// </summary>
     [Fact]
-    public void TheArgumentsAreATypeAndAMemberName() {
+    public void TheArgumentsAreATypeAndAMemberName()
+    {
         var arguments = Registry().AttributeArguments("^[a-z]+$");
 
         Assert.NotNull(arguments);
         Assert.Equal(2, arguments!.Count);
         Assert.Equal($"typeof(global::{PatternNamespace}.PetstorePatterns)", arguments[0]);
-        Assert.Equal($"nameof(global::{PatternNamespace}.PetstorePatterns.P_c37a8736)", arguments[1]);
+        Assert.Equal(
+            $"nameof(global::{PatternNamespace}.PetstorePatterns.P_c37a8736)",
+            arguments[1]
+        );
     }
 
     /// <summary>
     /// Global-qualified, so the reference cannot bind to a consumer type of the same name.
     /// </summary>
     [Fact]
-    public void TheTypeReferenceIsGlobalQualified() {
+    public void TheTypeReferenceIsGlobalQualified()
+    {
         var arguments = Registry().AttributeArguments("^[a-z]+$");
 
         Assert.All(arguments!, argument => Assert.Contains("global::", argument));
@@ -99,7 +107,8 @@ public class PatternRegistryTests {
     [InlineData("^[a-z]+$", "P_c37a8736")]
     [InlineData(@"^\d{3}-\d{4}$", "P_07d7974f")]
     [InlineData("abc", "P_1a47e90b")]
-    public void MemberNamesAreAStableHashOfThePattern(string pattern, string expected) {
+    public void MemberNamesAreAStableHashOfThePattern(string pattern, string expected)
+    {
         var registry = Registry();
 
         registry.AttributeArguments(pattern);
@@ -111,40 +120,51 @@ public class PatternRegistryTests {
     /// Two registries agree, which is the same property one build after another relies on.
     /// </summary>
     [Fact]
-    public void TwoRegistriesNameThePatternIdentically() {
+    public void TwoRegistriesNameThePatternIdentically()
+    {
         Assert.Equal(
             Registry().AttributeArguments("^[a-z]+$"),
-            Registry().AttributeArguments("^[a-z]+$"));
+            Registry().AttributeArguments("^[a-z]+$")
+        );
     }
 
     /// <summary>
     /// The member name does not depend on the spec file, only the class it hangs off does.
     /// </summary>
     [Fact]
-    public void TheMemberNameIsIndependentOfTheSpecFile() {
+    public void TheMemberNameIsIndependentOfTheSpecFile()
+    {
         var first = Registry("petstore");
         var second = Registry("bank");
 
         first.AttributeArguments("^[a-z]+$");
         second.AttributeArguments("^[a-z]+$");
 
-        Assert.Equal(
-            Assert.Single(first.Members).Value, Assert.Single(second.Members).Value);
+        Assert.Equal(Assert.Single(first.Members).Value, Assert.Single(second.Members).Value);
     }
 
     [Fact]
-    public void EveryMemberNameIsAValidCSharpIdentifier() {
+    public void EveryMemberNameIsAValidCSharpIdentifier()
+    {
         var registry = Registry();
 
-        foreach (var pattern in new[] { "^[a-z]+$", @"^\d+$", "[!@#$%^&*()]", "a|b" }) {
+        foreach (var pattern in new[] { "^[a-z]+$", @"^\d+$", "[!@#$%^&*()]", "a|b" })
+        {
             registry.AttributeArguments(pattern);
         }
 
-        Assert.All(registry.Members.Values, member => {
-            Assert.StartsWith("P_", member);
-            Assert.Equal(10, member.Length);
-            Assert.All(member.Substring(2), character => Assert.True(Uri.IsHexDigit(character)));
-        });
+        Assert.All(
+            registry.Members.Values,
+            member =>
+            {
+                Assert.StartsWith("P_", member);
+                Assert.Equal(10, member.Length);
+                Assert.All(
+                    member.Substring(2),
+                    character => Assert.True(Uri.IsHexDigit(character))
+                );
+            }
+        );
     }
 
     #endregion
@@ -156,7 +176,8 @@ public class PatternRegistryTests {
     /// rather than from the property that declared it.
     /// </summary>
     [Fact]
-    public void ThePatternDeclaredTwiceGetsOneMember() {
+    public void ThePatternDeclaredTwiceGetsOneMember()
+    {
         var registry = Registry();
 
         var first = registry.AttributeArguments("^[a-z]+$");
@@ -167,7 +188,8 @@ public class PatternRegistryTests {
     }
 
     [Fact]
-    public void DifferentPatternsGetDifferentMembers() {
+    public void DifferentPatternsGetDifferentMembers()
+    {
         var registry = Registry();
 
         registry.AttributeArguments("^[a-z]+$");
@@ -177,7 +199,8 @@ public class PatternRegistryTests {
     }
 
     [Fact]
-    public void MembersAreKeyedByPattern() {
+    public void MembersAreKeyedByPattern()
+    {
         var registry = Registry();
 
         registry.AttributeArguments("^[a-z]+$");
@@ -195,12 +218,14 @@ public class PatternRegistryTests {
     /// Grafana's published spec declares one.
     /// </summary>
     [Fact]
-    public void APatternDotNetCannotCompileIsRefused() {
+    public void APatternDotNetCannotCompileIsRefused()
+    {
         Assert.Null(Registry().AttributeArguments(@"^[a-zA-Z0-9\-\_]+$"));
     }
 
     [Fact]
-    public void ARefusedPatternDeclaresNoMember() {
+    public void ARefusedPatternDeclaresNoMember()
+    {
         var registry = Registry();
 
         registry.AttributeArguments(@"^[a-zA-Z0-9\-\_]+$");
@@ -214,7 +239,8 @@ public class PatternRegistryTests {
     /// generating a weaker model.
     /// </summary>
     [Fact]
-    public void ARefusedPatternIsRecordedWithItsReason() {
+    public void ARefusedPatternIsRecordedWithItsReason()
+    {
         var registry = Registry();
 
         registry.AttributeArguments(@"^[a-zA-Z0-9\-\_]+$");
@@ -230,7 +256,8 @@ public class PatternRegistryTests {
     [InlineData("[unclosed")]
     [InlineData("a{2,1}")]
     [InlineData(@"\_")]
-    public void EveryUncompilablePatternIsRefused(string pattern) {
+    public void EveryUncompilablePatternIsRefused(string pattern)
+    {
         var registry = Registry();
 
         Assert.Null(registry.AttributeArguments(pattern));
@@ -238,7 +265,8 @@ public class PatternRegistryTests {
     }
 
     [Fact]
-    public void TheSamePatternRefusedTwiceIsRecordedOnce() {
+    public void TheSamePatternRefusedTwiceIsRecordedOnce()
+    {
         var registry = Registry();
 
         registry.AttributeArguments(@"\_");
@@ -258,7 +286,8 @@ public class PatternRegistryTests {
     /// this list has.
     /// </remarks>
     [Fact]
-    public void APatternThatIsAPrefixOfAnAlreadyRefusedOneIsStillReported() {
+    public void APatternThatIsAPrefixOfAnAlreadyRefusedOneIsStillReported()
+    {
         var registry = Registry();
 
         Assert.Null(registry.AttributeArguments(@"\_x"));
@@ -268,7 +297,8 @@ public class PatternRegistryTests {
     }
 
     [Fact]
-    public void RefusalsAreReportedInTheOrderTheyWereSeen() {
+    public void RefusalsAreReportedInTheOrderTheyWereSeen()
+    {
         var registry = Registry();
 
         registry.AttributeArguments(@"\_");
@@ -283,7 +313,8 @@ public class PatternRegistryTests {
     /// A refusal does not disturb the patterns that did compile.
     /// </summary>
     [Fact]
-    public void AGoodPatternStillRegistersAlongsideARefusedOne() {
+    public void AGoodPatternStillRegistersAlongsideARefusedOne()
+    {
         var registry = Registry();
 
         registry.AttributeArguments("^[a-z]+$");

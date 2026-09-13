@@ -26,11 +26,13 @@ namespace Hardened.Aws.Lambda.Runtime.Execution;
 /// holds one - the elements never leave <c>Handles</c>, and a request object owns its own strings.
 /// </para>
 /// </remarks>
-public sealed class LambdaPayload : IDisposable {
+public sealed class LambdaPayload : IDisposable
+{
     private readonly ReadOnlyMemory<byte> _raw;
     private JsonDocument? _document;
 
-    public LambdaPayload(ReadOnlyMemory<byte> raw) {
+    public LambdaPayload(ReadOnlyMemory<byte> raw)
+    {
         _raw = raw;
     }
 
@@ -55,7 +57,8 @@ public sealed class LambdaPayload : IDisposable {
     /// </remarks>
     public Stream AsStream() => new ReadOnlyMemoryStream(_raw);
 
-    public void Dispose() {
+    public void Dispose()
+    {
         _document?.Dispose();
         _document = null;
     }
@@ -79,11 +82,15 @@ public sealed class LambdaPayload : IDisposable {
     /// a payload no adapter claims is an error the dispatcher raises by name.
     /// </para>
     /// </remarks>
-    public static JsonElement? FirstRecord(JsonElement payload) {
-        if (payload.ValueKind != JsonValueKind.Object ||
-            !payload.TryGetProperty("Records", out var records) ||
-            records.ValueKind != JsonValueKind.Array ||
-            records.GetArrayLength() == 0) {
+    public static JsonElement? FirstRecord(JsonElement payload)
+    {
+        if (
+            payload.ValueKind != JsonValueKind.Object
+            || !payload.TryGetProperty("Records", out var records)
+            || records.ValueKind != JsonValueKind.Array
+            || records.GetArrayLength() == 0
+        )
+        {
             return null;
         }
 
@@ -99,11 +106,13 @@ public sealed class LambdaPayload : IDisposable {
     /// <c>MemoryStream</c> cannot wrap <c>ReadOnlyMemory</c> without copying, and the payload can be
     /// six megabytes on a synchronous invocation. Reading is all the pipeline does with a body.
     /// </remarks>
-    private sealed class ReadOnlyMemoryStream : Stream {
+    private sealed class ReadOnlyMemoryStream : Stream
+    {
         private readonly ReadOnlyMemory<byte> _memory;
         private int _position;
 
-        public ReadOnlyMemoryStream(ReadOnlyMemory<byte> memory) {
+        public ReadOnlyMemoryStream(ReadOnlyMemory<byte> memory)
+        {
             _memory = memory;
         }
 
@@ -112,15 +121,18 @@ public sealed class LambdaPayload : IDisposable {
         public override bool CanWrite => false;
         public override long Length => _memory.Length;
 
-        public override long Position {
+        public override long Position
+        {
             get => _position;
             set => _position = checked((int)value);
         }
 
-        public override int Read(Span<byte> buffer) {
+        public override int Read(Span<byte> buffer)
+        {
             var remaining = _memory.Length - _position;
 
-            if (remaining <= 0) {
+            if (remaining <= 0)
+            {
                 return 0;
             }
 
@@ -135,15 +147,18 @@ public sealed class LambdaPayload : IDisposable {
         public override int Read(byte[] buffer, int offset, int count) =>
             Read(buffer.AsSpan(offset, count));
 
-        public override long Seek(long offset, SeekOrigin origin) {
-            var target = origin switch {
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            var target = origin switch
+            {
                 SeekOrigin.Begin => offset,
                 SeekOrigin.Current => _position + offset,
                 SeekOrigin.End => _memory.Length + offset,
-                _ => throw new ArgumentOutOfRangeException(nameof(origin))
+                _ => throw new ArgumentOutOfRangeException(nameof(origin)),
             };
 
-            if (target < 0 || target > _memory.Length) {
+            if (target < 0 || target > _memory.Length)
+            {
                 throw new ArgumentOutOfRangeException(nameof(offset));
             }
 

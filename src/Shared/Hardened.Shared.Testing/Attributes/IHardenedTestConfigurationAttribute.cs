@@ -4,10 +4,12 @@ using Hardened.Shared.Runtime.Configuration;
 
 namespace Hardened.Shared.Testing.Attributes;
 
-public interface IHardenedTestConfigurationAttribute : IHardenedOrderedAttribute {
+public interface IHardenedTestConfigurationAttribute : IHardenedOrderedAttribute
+{
     void Configure(
         AttributeCollection attributeCollection,
         MethodInfo methodInfo,
         IHardenedEnvironment environment,
-        IAppConfig appConfig);
+        IAppConfig appConfig
+    );
 }

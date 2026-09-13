@@ -19,7 +19,8 @@ namespace Hardened.Requests.Runtime.Authorization;
 /// holds no per-request state.
 /// </para>
 /// </remarks>
-public class AuthorizationFilter : IExecutionFilter {
+public class AuthorizationFilter : IExecutionFilter
+{
     private readonly Requirement _requirement;
     private readonly bool _beforeSerialization;
 
@@ -40,23 +41,27 @@ public class AuthorizationFilter : IExecutionFilter {
     /// which is why both are computed together in <see cref="AuthorizationFilterProvider"/> rather
     /// than passed in from two places.
     /// </param>
-    public AuthorizationFilter(Requirement requirement, bool beforeSerialization) {
+    public AuthorizationFilter(Requirement requirement, bool beforeSerialization)
+    {
         _requirement = requirement;
         _beforeSerialization = beforeSerialization;
         _requiredGrants = requirement.RequiredGrants.ToArray();
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
-        if (_requirement.IsSatisfiedBy(context.CallerPrincipal, context)) {
+        if (_requirement.IsSatisfiedBy(context.CallerPrincipal, context))
+        {
             await chain.Next();
             return;
         }
 
         var (satisfied, refusal) = await Resolve(context);
 
-        if (satisfied) {
+        if (satisfied)
+        {
             await chain.Next();
             return;
         }
@@ -83,34 +88,44 @@ public class AuthorizationFilter : IExecutionFilter {
     /// </para>
     /// </remarks>
     private async ValueTask<(bool Satisfied, AuthorizationDecision Refusal)> Resolve(
-        IExecutionContext context) {
+        IExecutionContext context
+    )
+    {
         // Nothing to look up. A requirement naming no grants - being authenticated, or a predicate
         // over the request - has already been decided by the walk that got us here.
-        if (_requiredGrants.Length == 0) {
+        if (_requiredGrants.Length == 0)
+        {
             return (false, AuthorizationDecision.Abstain);
         }
 
         var service = context.RequestServices.GetService<IActivityAuthorizationService>();
 
-        if (service == null) {
+        if (service == null)
+        {
             return (false, AuthorizationDecision.Abstain);
         }
 
         var resolution = await service.Resolve(context, _requiredGrants);
 
-        if (resolution.Decision == AuthorizationDecision.Allow) {
+        if (resolution.Decision == AuthorizationDecision.Allow)
+        {
             return (true, resolution.Decision);
         }
 
-        if (resolution.Decision != AuthorizationDecision.Abstain || resolution.Granted.Count == 0) {
+        if (resolution.Decision != AuthorizationDecision.Abstain || resolution.Granted.Count == 0)
+        {
             return (false, resolution.Decision);
         }
 
         var principal = context.CallerPrincipal;
 
         return (
-            _requirement.IsSatisfiedBy(new ResolvedPrincipal(principal, resolution.Granted), context),
-            resolution.Decision);
+            _requirement.IsSatisfiedBy(
+                new ResolvedPrincipal(principal, resolution.Granted),
+                context
+            ),
+            resolution.Decision
+        );
     }
 
     /// <summary>
@@ -124,15 +139,16 @@ public class AuthorizationFilter : IExecutionFilter {
     /// why that answer travels on the decision rather than being inferred here.
     /// </para>
     /// </remarks>
-    private Task Refuse(IExecutionChain chain, AuthorizationDecision refusal) {
+    private Task Refuse(IExecutionChain chain, AuthorizationDecision refusal)
+    {
         var context = chain.Context;
 
         var challenge =
             !context.CallerPrincipal.IsAuthenticated
                 ? AuthorizationChallenge.AuthenticationRequired()
-                : refusal == AuthorizationDecision.DenyInsufficientAuthentication
-                    ? AuthorizationChallenge.InsufficientAuthentication()
-                    : AuthorizationChallenge.InsufficientScope(_requiredGrants);
+            : refusal == AuthorizationDecision.DenyInsufficientAuthentication
+                ? AuthorizationChallenge.InsufficientAuthentication()
+            : AuthorizationChallenge.InsufficientScope(_requiredGrants);
 
         context.Response.ExceptionValue = new AuthorizationException(challenge);
 
@@ -154,10 +170,12 @@ public class AuthorizationFilter : IExecutionFilter {
     /// leaving them on the principal would silently widen every later check in the request, and a
     /// grant resolved for "may read this pet" is not a grant the caller holds generally.
     /// </remarks>
-    private sealed class ResolvedPrincipal : ICallerPrincipal {
+    private sealed class ResolvedPrincipal : ICallerPrincipal
+    {
         private readonly ICallerPrincipal _principal;
 
-        public ResolvedPrincipal(ICallerPrincipal principal, IReadOnlySet<string> resolved) {
+        public ResolvedPrincipal(ICallerPrincipal principal, IReadOnlySet<string> resolved)
+        {
             _principal = principal;
             Grants = new UnionSet(principal.Grants, resolved);
         }
@@ -178,11 +196,13 @@ public class AuthorizationFilter : IExecutionFilter {
     /// Both sets, without copying either. Only <c>Contains</c> is on the hot path; the rest exists
     /// because the interface asks for it.
     /// </summary>
-    private sealed class UnionSet : IReadOnlySet<string> {
+    private sealed class UnionSet : IReadOnlySet<string>
+    {
         private readonly IReadOnlySet<string> _first;
         private readonly IReadOnlySet<string> _second;
 
-        public UnionSet(IReadOnlySet<string> first, IReadOnlySet<string> second) {
+        public UnionSet(IReadOnlySet<string> first, IReadOnlySet<string> second)
+        {
             _first = first;
             _second = second;
         }
@@ -197,9 +217,11 @@ public class AuthorizationFilter : IExecutionFilter {
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() =>
             GetEnumerator();
 
-        public bool IsProperSubsetOf(IEnumerable<string> other) => Materialize().IsProperSubsetOf(other);
+        public bool IsProperSubsetOf(IEnumerable<string> other) =>
+            Materialize().IsProperSubsetOf(other);
 
-        public bool IsProperSupersetOf(IEnumerable<string> other) => Materialize().IsProperSupersetOf(other);
+        public bool IsProperSupersetOf(IEnumerable<string> other) =>
+            Materialize().IsProperSupersetOf(other);
 
         public bool IsSubsetOf(IEnumerable<string> other) => Materialize().IsSubsetOf(other);
 

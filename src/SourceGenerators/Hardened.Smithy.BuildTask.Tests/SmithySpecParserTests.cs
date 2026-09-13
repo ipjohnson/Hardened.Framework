@@ -1,6 +1,6 @@
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 using Hardened.Smithy.BuildTask.Parsing;
 using Xunit;
 
@@ -15,12 +15,13 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// is the one thing these tests exist to check - inline <c>input :=</c> structures arriving hoisted
 /// and named, enum members carrying both halves, every reference already absolute.
 /// </remarks>
-public class SmithySpecParserTests {
-
+public class SmithySpecParserTests
+{
     private static string Fixture(string name) =>
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
 
-    private static ServiceSpecModel Parse(out List<string> diagnostics) {
+    private static ServiceSpecModel Parse(out List<string> diagnostics)
+    {
         diagnostics = new List<string>();
 
         var model = SmithySpecParser.Parse(Fixture("petstore.json"), "petstore", diagnostics);
@@ -37,7 +38,8 @@ public class SmithySpecParserTests {
         Assert.Single(model.Schemas, s => s.Name == name);
 
     [Fact]
-    public void Parse_ReadsOperationsFromTheServiceShape() {
+    public void Parse_ReadsOperationsFromTheServiceShape()
+    {
         var model = Parse(out _);
 
         var service = Assert.Single(model.Services);
@@ -45,11 +47,13 @@ public class SmithySpecParserTests {
         Assert.Equal("PetStore", service.Tag);
         Assert.Equal(
             new[] { "CreatePet", "GetPet", "ListPets" },
-            service.Operations.ConvertAll(o => o.OperationId));
+            service.Operations.ConvertAll(o => o.OperationId)
+        );
     }
 
     [Fact]
-    public void Parse_ReadsHttpTraitIntoRouteMethodAndStatus() {
+    public void Parse_ReadsHttpTraitIntoRouteMethodAndStatus()
+    {
         var model = Parse(out _);
 
         var create = Operation(model, "CreatePet");
@@ -60,17 +64,22 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_ReadsDocumentationAsDescription() {
+    public void Parse_ReadsDocumentationAsDescription()
+    {
         var model = Parse(out _);
 
         Assert.Equal("Fetch one pet by id.", Operation(model, "GetPet").Description);
     }
 
     [Fact]
-    public void Parse_BindsHttpLabelAsPathParameter() {
+    public void Parse_BindsHttpLabelAsPathParameter()
+    {
         var model = Parse(out _);
 
-        var parameter = Assert.Single(Operation(model, "GetPet").Parameters, p => p.Name == "petId");
+        var parameter = Assert.Single(
+            Operation(model, "GetPet").Parameters,
+            p => p.Name == "petId"
+        );
 
         Assert.Equal("path", parameter.In);
         Assert.True(parameter.IsRequired);
@@ -88,7 +97,8 @@ public class SmithySpecParserTests {
     /// authority, which is the defect that pass exists to remove.
     /// </remarks>
     [Fact]
-    public void Parse_BindsHttpQueryUnderItsWireName() {
+    public void Parse_BindsHttpQueryUnderItsWireName()
+    {
         var model = Parse(out _);
 
         var parameter = Assert.Single(Operation(model, "GetPet").Parameters, p => p.In == "query");
@@ -98,7 +108,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_BindsHttpHeaderAsHeaderParameter() {
+    public void Parse_BindsHttpHeaderAsHeaderParameter()
+    {
         var model = Parse(out _);
 
         var parameter = Assert.Single(Operation(model, "GetPet").Parameters, p => p.In == "header");
@@ -109,7 +120,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_OperationWithOnlyBoundMembersHasNoRequestBody() {
+    public void Parse_OperationWithOnlyBoundMembersHasNoRequestBody()
+    {
         var model = Parse(out _);
 
         Assert.Null(Operation(model, "GetPet").RequestBodyRef);
@@ -120,7 +132,8 @@ public class SmithySpecParserTests {
     /// so the body is that shape and nothing has to be invented.
     /// </summary>
     [Fact]
-    public void Parse_UnboundMembersBecomeTheRequestBody() {
+    public void Parse_UnboundMembersBecomeTheRequestBody()
+    {
         var model = Parse(out _);
 
         var create = Operation(model, "CreatePet");
@@ -132,7 +145,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_ReadsOutputStructureAsResponse() {
+    public void Parse_ReadsOutputStructureAsResponse()
+    {
         var model = Parse(out _);
 
         var get = Operation(model, "GetPet");
@@ -142,7 +156,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_ReadsErrorsWithHttpErrorStatus() {
+    public void Parse_ReadsErrorsWithHttpErrorStatus()
+    {
         var model = Parse(out _);
 
         var errors = Operation(model, "GetPet").ErrorResponses;
@@ -156,7 +171,8 @@ public class SmithySpecParserTests {
     /// already holds - and the thing OpenAPI has to allocate because it only has the value.
     /// </summary>
     [Fact]
-    public void Parse_EnumCarriesBothMemberNameAndWireValue() {
+    public void Parse_EnumCarriesBothMemberNameAndWireValue()
+    {
         var model = Parse(out _);
 
         var kind = Schema(model, "PetKind");
@@ -167,7 +183,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_UnionBecomesAChoiceSchema() {
+    public void Parse_UnionBecomesAChoiceSchema()
+    {
         var model = Parse(out _);
 
         var attribute = Schema(model, "Attribute");
@@ -183,7 +200,8 @@ public class SmithySpecParserTests {
     /// what <c>InlineNonObjectRefs</c> does on the OpenAPI side.
     /// </summary>
     [Fact]
-    public void Parse_NamedListInlinesToAnArrayProperty() {
+    public void Parse_NamedListInlinesToAnArrayProperty()
+    {
         var model = Parse(out _);
 
         var pets = Assert.Single(Schema(model, "ListPetsOutput").Properties, p => p.Name == "pets");
@@ -194,7 +212,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_NamedMapInlinesToADictionaryProperty() {
+    public void Parse_NamedMapInlinesToADictionaryProperty()
+    {
         var model = Parse(out _);
 
         var tags = Assert.Single(Schema(model, "CreatePetInput").Properties, p => p.Name == "tags");
@@ -205,7 +224,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_ReadsLengthAsStringBounds() {
+    public void Parse_ReadsLengthAsStringBounds()
+    {
         var model = Parse(out _);
 
         var name = Assert.Single(Schema(model, "CreatePetInput").Properties, p => p.Name == "name");
@@ -216,7 +236,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_ReadsRangeAsNumericBounds() {
+    public void Parse_ReadsRangeAsNumericBounds()
+    {
         var model = Parse(out _);
 
         var limit = Assert.Single(Operation(model, "ListPets").Parameters, p => p.Name == "limit");
@@ -226,7 +247,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_ReadsPatternFromTheMember() {
+    public void Parse_ReadsPatternFromTheMember()
+    {
         var model = Parse(out _);
 
         var petId = Assert.Single(Operation(model, "GetPet").Parameters, p => p.Name == "petId");
@@ -239,18 +261,22 @@ public class SmithySpecParserTests {
     /// by the allocator, exactly as it would be for an OpenAPI property spelled the same way.
     /// </summary>
     [Fact]
-    public void Parse_JsonNameSetsTheWireName() {
+    public void Parse_JsonNameSetsTheWireName()
+    {
         var model = Parse(out _);
 
         var photo = Assert.Single(
-            Schema(model, "CreatePetInput").Properties, p => p.Name == "photo_bytes");
+            Schema(model, "CreatePetInput").Properties,
+            p => p.Name == "photo_bytes"
+        );
 
         Assert.Equal("PhotoBytes", photo.MemberNameOverride);
         Assert.Equal("byte", photo.Format);
     }
 
     [Fact]
-    public void Parse_RequiredMemberIsNotNullable() {
+    public void Parse_RequiredMemberIsNotNullable()
+    {
         var model = Parse(out _);
 
         var pet = Schema(model, "Pet");
@@ -260,7 +286,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_ReadsDeprecatedOntoTheProperty() {
+    public void Parse_ReadsDeprecatedOntoTheProperty()
+    {
         var model = Parse(out _);
 
         var pet = Schema(model, "Pet");
@@ -269,17 +296,21 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_TimestampMapsToDateTimeOffset() {
+    public void Parse_TimestampMapsToDateTimeOffset()
+    {
         var model = Parse(out _);
 
         var birthday = Assert.Single(
-            Schema(model, "CreatePetInput").Properties, p => p.Name == "birthday");
+            Schema(model, "CreatePetInput").Properties,
+            p => p.Name == "birthday"
+        );
 
         Assert.Equal("DateTimeOffset", TypeMapper.MapPropertyToCSharpType(birthday));
     }
 
     [Fact]
-    public void Parse_DocumentMapsToJsonElement() {
+    public void Parse_DocumentMapsToJsonElement()
+    {
         var model = Parse(out _);
 
         var metadata = Assert.Single(Schema(model, "Pet").Properties, p => p.Name == "metadata");
@@ -288,7 +319,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_NamesEveryReachedShapeAndNothingElse() {
+    public void Parse_NamesEveryReachedShapeAndNothingElse()
+    {
         var model = Parse(out _);
 
         // The prelude is never in an AST and must never be generated from one.
@@ -297,7 +329,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_EmptyAstExplainsTheRedirectFailure() {
+    public void Parse_EmptyAstExplainsTheRedirectFailure()
+    {
         var diagnostics = new List<string>();
 
         Assert.Null(SmithySpecParser.Parse("", "empty", diagnostics));
@@ -305,7 +338,8 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_MalformedJsonIsReportedNotThrown() {
+    public void Parse_MalformedJsonIsReportedNotThrown()
+    {
         var diagnostics = new List<string>();
 
         Assert.Null(SmithySpecParser.Parse("{ not json", "bad", diagnostics));
@@ -313,13 +347,14 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_ModelWithNoServiceShapeIsReported() {
+    public void Parse_ModelWithNoServiceShapeIsReported()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Pet": { "type": "structure", "members": {} } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Pet": { "type": "structure", "members": {} } } }
+            """;
 
         Assert.Null(SmithySpecParser.Parse(ast, "noservice", diagnostics));
         Assert.Contains(diagnostics, d => d.Contains("no service shape"));
@@ -333,17 +368,18 @@ public class SmithySpecParserTests {
     /// a content type rather than a protocol enum. See <c>AwsJsonProtocolTests</c> for the rest.
     /// </remarks>
     [Fact]
-    public void Parse_SupportsTheOtherAwsJsonVersion() {
+    public void Parse_SupportsTheOtherAwsJsonVersion()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "operations": [ { "target": "com.example#Op" } ],
-                        "traits": { "aws.protocols#awsJson1_1": {} } },
-                      "com.example#Op": { "type": "operation" } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Op" } ],
+                  "traits": { "aws.protocols#awsJson1_1": {} } },
+                "com.example#Op": { "type": "operation" } } }
+            """;
 
         var model = SmithySpecParser.Parse(ast, "awsjson11", diagnostics);
 
@@ -361,7 +397,8 @@ public class SmithySpecParserTests {
     /// <c>@http</c> looks like, and the fixture is one.
     /// </summary>
     [Fact]
-    public void Parse_AcceptsAModelWithNoProtocolTrait() {
+    public void Parse_AcceptsAModelWithNoProtocolTrait()
+    {
         var model = Parse(out var diagnostics);
 
         Assert.NotEmpty(model.Services);
@@ -369,22 +406,34 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_SelectsOneServiceByShapeId() {
+    public void Parse_SelectsOneServiceByShapeId()
+    {
         var diagnostics = new List<string>();
 
         var model = SmithySpecParser.Parse(
-            Fixture("petstore.json"), "petstore", diagnostics, "com.example.petstore#PetStore");
+            Fixture("petstore.json"),
+            "petstore",
+            diagnostics,
+            "com.example.petstore#PetStore"
+        );
 
         Assert.NotNull(model);
         Assert.Single(model!.Services);
     }
 
     [Fact]
-    public void Parse_UnknownServiceShapeIdIsReported() {
+    public void Parse_UnknownServiceShapeIdIsReported()
+    {
         var diagnostics = new List<string>();
 
-        Assert.Null(SmithySpecParser.Parse(
-            Fixture("petstore.json"), "petstore", diagnostics, "com.example#Missing"));
+        Assert.Null(
+            SmithySpecParser.Parse(
+                Fixture("petstore.json"),
+                "petstore",
+                diagnostics,
+                "com.example#Missing"
+            )
+        );
         Assert.Contains(diagnostics, d => d.Contains("Missing"));
     }
 
@@ -393,21 +442,22 @@ public class SmithySpecParserTests {
     /// every one would otherwise become a record named after someone else's trait.
     /// </summary>
     [Fact]
-    public void Parse_SkipsTraitDefinitionShapes() {
+    public void Parse_SkipsTraitDefinitionShapes()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "operations": [ { "target": "com.example#Op" } ] },
-                      "com.example#Op": {
-                        "type": "operation",
-                        "traits": { "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 } } },
-                      "aws.api#arn": {
-                        "type": "structure", "members": {},
-                        "traits": { "smithy.api#trait": {} } } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Op" } ] },
+                "com.example#Op": {
+                  "type": "operation",
+                  "traits": { "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 } } },
+                "aws.api#arn": {
+                  "type": "structure", "members": {},
+                  "traits": { "smithy.api#trait": {} } } } }
+            """;
 
         var model = SmithySpecParser.Parse(ast, "traits", diagnostics);
 
@@ -416,23 +466,24 @@ public class SmithySpecParserTests {
     }
 
     [Fact]
-    public void Parse_StreamingOperationIsSkippedAndReported() {
+    public void Parse_StreamingOperationIsSkippedAndReported()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "operations": [ { "target": "com.example#Ok" }, { "target": "com.example#Stream" } ] },
-                      "com.example#Ok": {
-                        "type": "operation",
-                        "traits": { "smithy.api#http": { "method": "GET", "uri": "/ok", "code": 200 } } },
-                      "com.example#Stream": {
-                        "type": "operation",
-                        "traits": {
-                          "smithy.api#http": { "method": "GET", "uri": "/s", "code": 200 },
-                          "smithy.api#streaming": {} } } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Ok" }, { "target": "com.example#Stream" } ] },
+                "com.example#Ok": {
+                  "type": "operation",
+                  "traits": { "smithy.api#http": { "method": "GET", "uri": "/ok", "code": 200 } } },
+                "com.example#Stream": {
+                  "type": "operation",
+                  "traits": {
+                    "smithy.api#http": { "method": "GET", "uri": "/s", "code": 200 },
+                    "smithy.api#streaming": {} } } } }
+            """;
 
         var model = SmithySpecParser.Parse(ast, "streaming", diagnostics);
 
@@ -446,61 +497,64 @@ public class SmithySpecParserTests {
     /// named at build time instead of quietly changing nothing.
     /// </summary>
     [Fact]
-    public void Parse_ReportsAPreludeTraitItDoesNotModel() {
+    public void Parse_ReportsAPreludeTraitItDoesNotModel()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "operations": [ { "target": "com.example#Op" } ] },
-                      "com.example#Op": {
-                        "type": "operation",
-                        "traits": {
-                          "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 },
-                          "smithy.api#unknownFutureTrait": {} } } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Op" } ] },
+                "com.example#Op": {
+                  "type": "operation",
+                  "traits": {
+                    "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 },
+                    "smithy.api#unknownFutureTrait": {} } } } }
+            """;
 
         Assert.NotNull(SmithySpecParser.Parse(ast, "unknown", diagnostics));
         Assert.Contains(diagnostics, d => d.Contains("unknownFutureTrait"));
     }
 
     [Fact]
-    public void Parse_DoesNotReportCustomTraitsAsUnmodelled() {
+    public void Parse_DoesNotReportCustomTraitsAsUnmodelled()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "operations": [ { "target": "com.example#Op" } ] },
-                      "com.example#Op": {
-                        "type": "operation",
-                        "traits": {
-                          "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 },
-                          "com.example#myOwnTrait": {} } } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Op" } ] },
+                "com.example#Op": {
+                  "type": "operation",
+                  "traits": {
+                    "smithy.api#http": { "method": "GET", "uri": "/x", "code": 200 },
+                    "com.example#myOwnTrait": {} } } } }
+            """;
 
         Assert.NotNull(SmithySpecParser.Parse(ast, "custom", diagnostics));
         Assert.DoesNotContain(diagnostics, d => d.Contains("myOwnTrait"));
     }
 
     [Fact]
-    public void Parse_ResourceLifecycleOperationsFlattenIntoTheService() {
+    public void Parse_ResourceLifecycleOperationsFlattenIntoTheService()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "resources": [ { "target": "com.example#Thing" } ] },
-                      "com.example#Thing": {
-                        "type": "resource",
-                        "read": { "target": "com.example#GetThing" } },
-                      "com.example#GetThing": {
-                        "type": "operation",
-                        "traits": { "smithy.api#http": { "method": "GET", "uri": "/t", "code": 200 } } } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "resources": [ { "target": "com.example#Thing" } ] },
+                "com.example#Thing": {
+                  "type": "resource",
+                  "read": { "target": "com.example#GetThing" } },
+                "com.example#GetThing": {
+                  "type": "operation",
+                  "traits": { "smithy.api#http": { "method": "GET", "uri": "/t", "code": 200 } } } } }
+            """;
 
         var model = SmithySpecParser.Parse(ast, "resource", diagnostics);
 
@@ -518,27 +572,28 @@ public class SmithySpecParserTests {
     /// hangs the build with no diagnostic, which is the worst way for this to fail.
     /// </remarks>
     [Fact]
-    public void Parse_TerminatesOnASelfReferencingShape() {
+    public void Parse_TerminatesOnASelfReferencingShape()
+    {
         var diagnostics = new List<string>();
 
         var ast = """
-                  { "smithy": "2.0", "shapes": {
-                      "com.example#Svc": {
-                        "type": "service", "version": "1",
-                        "operations": [ { "target": "com.example#Op" } ] },
-                      "com.example#Op": {
-                        "type": "operation",
-                        "output": { "target": "com.example#Node" },
-                        "traits": { "smithy.api#http": { "method": "GET", "uri": "/n", "code": 200 } } },
-                      "com.example#Node": {
-                        "type": "structure",
-                        "members": {
-                          "name": { "target": "smithy.api#String" },
-                          "parent": { "target": "com.example#Node" },
-                          "children": { "target": "com.example#NodeList" } } },
-                      "com.example#NodeList": {
-                        "type": "list", "member": { "target": "com.example#Node" } } } }
-                  """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Op" } ] },
+                "com.example#Op": {
+                  "type": "operation",
+                  "output": { "target": "com.example#Node" },
+                  "traits": { "smithy.api#http": { "method": "GET", "uri": "/n", "code": 200 } } },
+                "com.example#Node": {
+                  "type": "structure",
+                  "members": {
+                    "name": { "target": "smithy.api#String" },
+                    "parent": { "target": "com.example#Node" },
+                    "children": { "target": "com.example#NodeList" } } },
+                "com.example#NodeList": {
+                  "type": "list", "member": { "target": "com.example#Node" } } } }
+            """;
 
         var model = SmithySpecParser.Parse(ast, "recursive", diagnostics);
 
@@ -546,8 +601,10 @@ public class SmithySpecParserTests {
 
         var node = Assert.Single(model!.Schemas, s => s.Name == "Node");
 
-        Assert.Equal("Node", TypeMapper.GetRefName(
-            Assert.Single(node.Properties, p => p.Name == "parent").Ref!));
+        Assert.Equal(
+            "Node",
+            TypeMapper.GetRefName(Assert.Single(node.Properties, p => p.Name == "parent").Ref!)
+        );
         Assert.True(Assert.Single(node.Properties, p => p.Name == "children").IsArray);
     }
 
@@ -556,9 +613,18 @@ public class SmithySpecParserTests {
     /// still produce identical output or every build looks dirty.
     /// </summary>
     [Fact]
-    public void Parse_IsStableAcrossRuns() {
-        var first = SmithySpecParser.Parse(Fixture("petstore.json"), "petstore", new List<string>());
-        var second = SmithySpecParser.Parse(Fixture("petstore.json"), "petstore", new List<string>());
+    public void Parse_IsStableAcrossRuns()
+    {
+        var first = SmithySpecParser.Parse(
+            Fixture("petstore.json"),
+            "petstore",
+            new List<string>()
+        );
+        var second = SmithySpecParser.Parse(
+            Fixture("petstore.json"),
+            "petstore",
+            new List<string>()
+        );
 
         Assert.Equal(SpecModelSerializer.Write(first!), SpecModelSerializer.Write(second!));
     }

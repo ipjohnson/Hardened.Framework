@@ -12,12 +12,15 @@ namespace Hardened.Web.Kestrel.Runtime.Tests.Impl;
 /// the adapter's status contract turns on it, but the stock <c>HttpResponseFeature</c> hardcodes
 /// it to <c>false</c> with no way to change it.
 /// </summary>
-internal sealed class ServerFeatures {
-    public ServerFeatures(string method = "GET", string path = "/test", string? queryString = null) {
-        Request = new HttpRequestFeature {
+internal sealed class ServerFeatures
+{
+    public ServerFeatures(string method = "GET", string path = "/test", string? queryString = null)
+    {
+        Request = new HttpRequestFeature
+        {
             Method = method,
             Path = path,
-            QueryString = queryString ?? ""
+            QueryString = queryString ?? "",
         };
 
         Body = new MemoryStream();
@@ -51,7 +54,8 @@ internal sealed class ServerFeatures {
 
     public MemoryStream Body { get; }
 
-    internal sealed class TestResponseFeature : IHttpResponseFeature {
+    internal sealed class TestResponseFeature : IHttpResponseFeature
+    {
         public int StatusCode { get; set; } = 200;
 
         public string? ReasonPhrase { get; set; }
@@ -69,7 +73,8 @@ internal sealed class ServerFeatures {
     }
 
     /// <summary>Records completion, which Kestrel requires and a response with no body relies on.</summary>
-    internal sealed class TestResponseBodyFeature : IHttpResponseBodyFeature {
+    internal sealed class TestResponseBodyFeature : IHttpResponseBodyFeature
+    {
         public TestResponseBodyFeature(Stream stream) => Stream = stream;
 
         public int CompleteCount { get; private set; }
@@ -78,15 +83,20 @@ internal sealed class ServerFeatures {
 
         public PipeWriter Writer => PipeWriter.Create(Stream);
 
-        public Task CompleteAsync() {
+        public Task CompleteAsync()
+        {
             CompleteCount++;
             return Task.CompletedTask;
         }
 
         public void DisableBuffering() { }
 
-        public Task SendFileAsync(string path, long offset, long? count, CancellationToken cancellationToken)
-            => Task.CompletedTask;
+        public Task SendFileAsync(
+            string path,
+            long offset,
+            long? count,
+            CancellationToken cancellationToken
+        ) => Task.CompletedTask;
 
         public Task StartAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }

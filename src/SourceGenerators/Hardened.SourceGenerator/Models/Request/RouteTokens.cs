@@ -20,20 +20,21 @@
 /// It is syntax now, and the two forms differ.
 /// </para>
 /// </summary>
-public static class RouteTokens {
+public static class RouteTokens
+{
     public const char CatchAllMarker = '*';
 
     public const char ConstraintMarker = ':';
 
-    public static bool IsCatchAll(string token) =>
-        token.Length > 0 && token[0] == CatchAllMarker;
+    public static bool IsCatchAll(string token) => token.Length > 0 && token[0] == CatchAllMarker;
 
     /// <summary>
     /// Whether the token at <paramref name="depth"/> is a catch-all. Depth is 1-based, matching
     /// <c>RouteTreeNode.WildCardDepth</c>; out-of-range depths are not catch-alls rather than an
     /// error, because a node is shared by routes with different token counts.
     /// </summary>
-    public static bool IsCatchAll(IReadOnlyList<string> tokens, int depth) {
+    public static bool IsCatchAll(IReadOnlyList<string> tokens, int depth)
+    {
         var index = depth - 1;
 
         return index >= 0 && index < tokens.Count && IsCatchAll(tokens[index]);
@@ -44,7 +45,8 @@ public static class RouteTokens {
     /// parameter called <c>path</c> — the asterisk says how much to match, not what to call it —
     /// and <c>{id:int}</c> binds to <c>id</c>.
     /// </summary>
-    public static string Name(string token) {
+    public static string Name(string token)
+    {
         var start = IsCatchAll(token) ? 1 : 0;
         var end = token.IndexOf(ConstraintMarker, start);
 
@@ -59,7 +61,8 @@ public static class RouteTokens {
     /// identifier from the application, and <c>{id:Int}</c> meaning nothing would be a strange
     /// thing to have to discover.
     /// </remarks>
-    public static string? Constraint(string token) {
+    public static string? Constraint(string token)
+    {
         var marker = token.IndexOf(ConstraintMarker);
 
         return marker < 0 || marker == token.Length - 1
@@ -71,7 +74,8 @@ public static class RouteTokens {
     /// The constraint declared at <paramref name="depth"/>, or null. Depth is 1-based, on the same
     /// terms as <see cref="IsCatchAll(IReadOnlyList{string}, int)"/>.
     /// </summary>
-    public static string? Constraint(IReadOnlyList<string> tokens, int depth) {
+    public static string? Constraint(IReadOnlyList<string> tokens, int depth)
+    {
         var index = depth - 1;
 
         return index >= 0 && index < tokens.Count ? Constraint(tokens[index]) : null;
@@ -84,21 +88,25 @@ public static class RouteTokens {
     /// An unclosed brace ends the walk, the way <see cref="BindsParameter"/> stops looking at one.
     /// <c>RouteTokenSyntax</c> is what reports it; this only answers what does bind.
     /// </remarks>
-    public static IReadOnlyList<string> Names(string pathTemplate) {
+    public static IReadOnlyList<string> Names(string pathTemplate)
+    {
         List<string>? names = null;
 
         var open = pathTemplate.IndexOf('{');
 
-        while (open >= 0) {
+        while (open >= 0)
+        {
             var close = pathTemplate.IndexOf('}', open);
 
-            if (close < 0) {
+            if (close < 0)
+            {
                 break;
             }
 
             var name = Name(pathTemplate.Substring(open + 1, close - open - 1));
 
-            if (name.Length > 0) {
+            if (name.Length > 0)
+            {
                 (names ??= new List<string>()).Add(name);
             }
 
@@ -119,20 +127,27 @@ public static class RouteTokens {
     /// catch-all token bound from the request body instead: a 500 on a GET with no body, from a
     /// route that matched perfectly.
     /// </remarks>
-    public static bool BindsParameter(string pathTemplate, string parameterName) {
+    public static bool BindsParameter(string pathTemplate, string parameterName)
+    {
         var open = pathTemplate.IndexOf('{');
 
-        while (open >= 0) {
+        while (open >= 0)
+        {
             var close = pathTemplate.IndexOf('}', open);
 
-            if (close < 0) {
+            if (close < 0)
+            {
                 return false;
             }
 
-            if (string.Equals(
+            if (
+                string.Equals(
                     Name(pathTemplate.Substring(open + 1, close - open - 1)),
                     parameterName,
-                    StringComparison.Ordinal)) {
+                    StringComparison.Ordinal
+                )
+            )
+            {
                 return true;
             }
 

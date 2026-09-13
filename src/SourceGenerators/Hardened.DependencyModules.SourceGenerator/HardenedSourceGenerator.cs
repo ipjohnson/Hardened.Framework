@@ -8,19 +8,23 @@ using Microsoft.CodeAnalysis;
 namespace Hardened.DependencyModules.SourceGenerator;
 
 [Generator]
-public class HardenedSourceGenerator : BaseSourceGenerator {
-
-    private static readonly ITypeDefinition HardenedModuleAttribute =
-        TypeDefinition.Get(TypeDefinitionEnum.ClassDefinition,
-            "Hardened.Shared.Runtime.Attributes", "HardenedModuleAttribute");
+public class HardenedSourceGenerator : BaseSourceGenerator
+{
+    private static readonly ITypeDefinition HardenedModuleAttribute = TypeDefinition.Get(
+        TypeDefinitionEnum.ClassDefinition,
+        "Hardened.Shared.Runtime.Attributes",
+        "HardenedModuleAttribute"
+    );
 
     protected override bool ShouldAutoApproveCompilationUnit => false;
 
-    protected override ITypeDefinition[] ModuleAttributeTypes() {
+    protected override ITypeDefinition[] ModuleAttributeTypes()
+    {
         return new[] { HardenedModuleAttribute };
     }
 
-    protected override IEnumerable<IDependencyModuleSourceGenerator> AttributeSourceGenerators() {
+    protected override IEnumerable<IDependencyModuleSourceGenerator> AttributeSourceGenerators()
+    {
         yield return new ServiceSourceGenerator();
 
         // Conventions and decorators, so a [HardenedModule] gets them against its own module
@@ -29,15 +33,16 @@ public class HardenedSourceGenerator : BaseSourceGenerator {
         yield return new global::DependencyModules.Conventions.ConventionGenerator();
     }
 
-    protected override void SetupRootGenerator(IncrementalGeneratorInitializationContext context,
-        IncrementalValueProvider<ImmutableArray<(ModuleEntryPointModel Left, DependencyModuleConfigurationModel Right)>> valuesProvider) {
-
+    protected override void SetupRootGenerator(
+        IncrementalGeneratorInitializationContext context,
+        IncrementalValueProvider<
+            ImmutableArray<(ModuleEntryPointModel Left, DependencyModuleConfigurationModel Right)>
+        > valuesProvider
+    )
+    {
         var moduleWriter = new DependencyModuleWriter(true);
 
-        context.RegisterSourceOutput(
-            valuesProvider,
-            moduleWriter.GenerateSource
-        );
+        context.RegisterSourceOutput(valuesProvider, moduleWriter.GenerateSource);
 
         // On the same collected value, so it is asked once per compilation rather than once per
         // entry point - which is the only way to see that there is more than one.

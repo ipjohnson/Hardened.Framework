@@ -21,21 +21,28 @@ namespace Hardened.Web.Runtime.Attributes;
 /// handler is first constructed, and the value here cannot change after that.
 /// </para>
 /// </remarks>
-public class CacheControlAttribute : Attribute, IRequestFilterProvider {
+public class CacheControlAttribute : Attribute, IRequestFilterProvider
+{
     public int MaxAge { get; set; } = 0;
 
     public CacheControlEnum Type { get; set; } = CacheControlEnum.MaxAge | CacheControlEnum.Public;
 
-    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo) {
+    public IEnumerable<RequestFilterInfo> GetFilters(IExecutionRequestHandlerInfo handlerInfo)
+    {
         var headerValue = CacheControlHeader.Format(Type, MaxAge);
 
         // No directive set is a header with nothing to say, so none is written.
-        if (headerValue == null) {
+        if (headerValue == null)
+        {
             yield break;
         }
 
         var filter = new CacheControlFilter(headerValue);
 
-        yield return new RequestFilterInfo(_ => filter, FilterOrder.BeforeSerialization, nameof(CacheControlFilter));
+        yield return new RequestFilterInfo(
+            _ => filter,
+            FilterOrder.BeforeSerialization,
+            nameof(CacheControlFilter)
+        );
     }
 }

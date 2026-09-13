@@ -10,21 +10,24 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// <summary>
 /// Writing a value that is already bytes, and deciding when that is what the client wanted.
 /// </summary>
-public class RawResponseSerializerTests {
-
-    private static IExecutionContext ContextFor(object? value, string? committed = null) {
+public class RawResponseSerializerTests
+{
+    private static IExecutionContext ContextFor(object? value, string? committed = null)
+    {
         var context = Pipeline.Context();
 
         context.Response.ResponseValue = value;
 
-        if (committed != null) {
+        if (committed != null)
+        {
             context.Response.ContentType = committed;
         }
 
         return context;
     }
 
-    private static async Task<string> Write(object? value, string? committed = null) {
+    private static async Task<string> Write(object? value, string? committed = null)
+    {
         var context = ContextFor(value, committed);
 
         await new RawResponseSerializer().SerializeResponse(context);
@@ -53,7 +56,8 @@ public class RawResponseSerializerTests {
     [InlineData("text/plain")]
     [InlineData("application/json")]
     [InlineData("*/*")]
-    public void CanProduce_NothingIsVolunteeredWithoutACommittedContentType(string mediaType) {
+    public void CanProduce_NothingIsVolunteeredWithoutACommittedContentType(string mediaType)
+    {
         var serializer = new RawResponseSerializer();
 
         Assert.False(serializer.CanProduce(mediaType, ContextFor("hello")));
@@ -62,13 +66,19 @@ public class RawResponseSerializerTests {
     }
 
     [Fact]
-    public void CanProduce_FalseForAValueThatIsNotAlreadyBytes() {
+    public void CanProduce_FalseForAValueThatIsNotAlreadyBytes()
+    {
         Assert.False(
-            new RawResponseSerializer().CanProduce("text/csv", ContextFor(new { Name = "x" }, "text/csv")));
+            new RawResponseSerializer().CanProduce(
+                "text/csv",
+                ContextFor(new { Name = "x" }, "text/csv")
+            )
+        );
     }
 
     [Fact]
-    public void CanProduce_FalseForANullResponseValue() {
+    public void CanProduce_FalseForANullResponseValue()
+    {
         Assert.False(new RawResponseSerializer().CanProduce("*/*", ContextFor(null, "text/plain")));
     }
 
@@ -81,7 +91,8 @@ public class RawResponseSerializerTests {
     [Theory]
     [InlineData("text/csv")]
     [InlineData("application/pdf")]
-    public void CanProduce_ACommittedContentTypeIsHonoured(string committed) {
+    public void CanProduce_ACommittedContentTypeIsHonoured(string committed)
+    {
         var serializer = new RawResponseSerializer();
 
         Assert.True(serializer.CanProduce(committed, ContextFor("a,b", committed)));
@@ -94,14 +105,18 @@ public class RawResponseSerializerTests {
     /// text/csv is not also offered as text/plain.
     /// </summary>
     [Fact]
-    public void CanProduce_ACommittedContentTypeReplacesTheDefaultOffer() {
-        Assert.False(new RawResponseSerializer().CanProduce("text/plain", ContextFor("a,b", "text/csv")));
+    public void CanProduce_ACommittedContentTypeReplacesTheDefaultOffer()
+    {
+        Assert.False(
+            new RawResponseSerializer().CanProduce("text/plain", ContextFor("a,b", "text/csv"))
+        );
     }
 
     // ── writing ────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task SerializeResponse_WritesAStringUnquoted() {
+    public async Task SerializeResponse_WritesAStringUnquoted()
+    {
         Assert.Equal("Hello, World!", await Write("Hello, World!"));
     }
 
@@ -110,7 +125,8 @@ public class RawResponseSerializerTests {
     /// body and is invisible to any assertion made on a decoded string.
     /// </summary>
     [Fact]
-    public async Task SerializeResponse_WritesNoByteOrderMark() {
+    public async Task SerializeResponse_WritesNoByteOrderMark()
+    {
         var context = ContextFor("Hello");
 
         await new RawResponseSerializer().SerializeResponse(context);
@@ -121,18 +137,23 @@ public class RawResponseSerializerTests {
     }
 
     [Fact]
-    public async Task SerializeResponse_WritesBytesUnchanged() {
+    public async Task SerializeResponse_WritesBytesUnchanged()
+    {
         Assert.Equal("ab", await Write(Encoding.UTF8.GetBytes("ab"), "application/octet-stream"));
     }
 
     [Fact]
-    public async Task SerializeResponse_CopiesAStream() {
-        Assert.Equal("streamed",
-            await Write(new MemoryStream(Encoding.UTF8.GetBytes("streamed")), "text/plain"));
+    public async Task SerializeResponse_CopiesAStream()
+    {
+        Assert.Equal(
+            "streamed",
+            await Write(new MemoryStream(Encoding.UTF8.GetBytes("streamed")), "text/plain")
+        );
     }
 
     [Fact]
-    public async Task SerializeResponse_SetsTextPlainWhenNothingWasCommitted() {
+    public async Task SerializeResponse_SetsTextPlainWhenNothingWasCommitted()
+    {
         var context = ContextFor("hello");
 
         await new RawResponseSerializer().SerializeResponse(context);
@@ -141,7 +162,8 @@ public class RawResponseSerializerTests {
     }
 
     [Fact]
-    public async Task SerializeResponse_LeavesACommittedContentTypeAlone() {
+    public async Task SerializeResponse_LeavesACommittedContentTypeAlone()
+    {
         var context = ContextFor("a,b", "text/csv");
 
         await new RawResponseSerializer().SerializeResponse(context);
@@ -156,7 +178,8 @@ public class RawResponseSerializerTests {
     /// writes any committed type, and reaches those through the response value's shape instead.
     /// </summary>
     [Fact]
-    public void ContentType_IsTextPlain() {
+    public void ContentType_IsTextPlain()
+    {
         IResponseSerializer raw = new RawResponseSerializer();
 
         Assert.Equal("text/plain", raw.ContentType);
@@ -164,7 +187,8 @@ public class RawResponseSerializerTests {
     }
 
     [Fact]
-    public void IsDefaultSerializer_IsFalse() {
+    public void IsDefaultSerializer_IsFalse()
+    {
         Assert.False(new RawResponseSerializer().IsDefaultSerializer);
     }
 }

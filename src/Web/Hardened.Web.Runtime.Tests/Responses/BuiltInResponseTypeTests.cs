@@ -17,8 +17,8 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// than either alone. The first test here is the one that makes that impossible to ship.
 /// </para>
 /// </summary>
-public class BuiltInResponseTypeTests {
-
+public class BuiltInResponseTypeTests
+{
     /// <summary>
     /// Every built-in response type, found by reflection rather than listed, so a type added later
     /// is covered by these without anyone remembering to add it.
@@ -39,12 +39,17 @@ public class BuiltInResponseTypeTests {
     /// The contract is a <c>Type</c> rather than a type argument: <c>IStatusCode</c> declares a
     /// <c>static abstract</c> member, and an interface that does cannot be one (CS8920).
     /// </remarks>
-    private static TheoryData<Type> Carrying(Type contract) {
+    private static TheoryData<Type> Carrying(Type contract)
+    {
         var data = new TheoryData<Type>();
 
-        foreach (var type in typeof(NotFound).Assembly.GetExportedTypes()) {
-            if (type.GetCustomAttribute<HttpStatusAttribute>() != null &&
-                contract.IsAssignableFrom(type)) {
+        foreach (var type in typeof(NotFound).Assembly.GetExportedTypes())
+        {
+            if (
+                type.GetCustomAttribute<HttpStatusAttribute>() != null
+                && contract.IsAssignableFrom(type)
+            )
+            {
                 data.Add(type);
             }
         }
@@ -61,16 +66,20 @@ public class BuiltInResponseTypeTests {
     /// silently untested.
     /// </remarks>
     [Fact]
-    public void EveryTypeCarryingTheAttributeIsAResponseOrAMarker() {
-        foreach (var type in typeof(NotFound).Assembly.GetExportedTypes()) {
-            if (type.GetCustomAttribute<HttpStatusAttribute>() == null) {
+    public void EveryTypeCarryingTheAttributeIsAResponseOrAMarker()
+    {
+        foreach (var type in typeof(NotFound).Assembly.GetExportedTypes())
+        {
+            if (type.GetCustomAttribute<HttpStatusAttribute>() == null)
+            {
                 continue;
             }
 
             Assert.True(
-                typeof(IHttpStatusResponse).IsAssignableFrom(type) ||
-                typeof(IStatusCode).IsAssignableFrom(type),
-                type.Name + " carries [HttpStatus] and is neither a response nor a marker.");
+                typeof(IHttpStatusResponse).IsAssignableFrom(type)
+                    || typeof(IStatusCode).IsAssignableFrom(type),
+                type.Name + " carries [HttpStatus] and is neither a response nor a marker."
+            );
         }
     }
 
@@ -78,7 +87,8 @@ public class BuiltInResponseTypeTests {
 
     [Theory]
     [MemberData(nameof(BuiltInResponseTypes))]
-    public void HttpStatusAttribute_AgreesWithTheStatusProperty(Type type) {
+    public void HttpStatusAttribute_AgreesWithTheStatusProperty(Type type)
+    {
         var declared = type.GetCustomAttribute<HttpStatusAttribute>()!.StatusCode;
         var instance = (IHttpStatusResponse)Instantiate(type);
 
@@ -92,16 +102,19 @@ public class BuiltInResponseTypeTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(BuiltInResponseTypes))]
-    public void BuiltInResponseType_IsSealed(Type type) {
+    public void BuiltInResponseType_IsSealed(Type type)
+    {
         Assert.True(type.IsSealed, type.Name + " must be sealed.");
     }
 
     [Theory]
     [MemberData(nameof(BuiltInResponseTypes))]
-    public void BuiltInResponseType_DeclaresItselfAsAStatusResponse(Type type) {
+    public void BuiltInResponseType_DeclaresItselfAsAStatusResponse(Type type)
+    {
         Assert.True(
             typeof(IHttpStatusResponse).IsAssignableFrom(type),
-            type.Name + " must implement IHttpStatusResponse.");
+            type.Name + " must implement IHttpStatusResponse."
+        );
     }
 
     #endregion
@@ -120,16 +133,25 @@ public class BuiltInResponseTypeTests {
     /// </remarks>
     [Theory]
     [MemberData(nameof(BuiltInResponseTypes))]
-    public void BuiltInResponseType_DeclaresItsStatusOnTheType(Type type) {
+    public void BuiltInResponseType_DeclaresItsStatusOnTheType(Type type)
+    {
         Assert.True(
             typeof(IDeclaresStatus).IsAssignableFrom(type),
-            type.Name + " must implement IDeclaresStatus.");
+            type.Name + " must implement IDeclaresStatus."
+        );
 
-        var property = (type.IsGenericTypeDefinition ? type.MakeGenericType(typeof(string)) : type)
-            .GetProperty(nameof(IDeclaresStatus.StatusCode), BindingFlags.Public | BindingFlags.Static);
+        var property = (
+            type.IsGenericTypeDefinition ? type.MakeGenericType(typeof(string)) : type
+        ).GetProperty(
+            nameof(IDeclaresStatus.StatusCode),
+            BindingFlags.Public | BindingFlags.Static
+        );
 
         Assert.NotNull(property);
-        Assert.Equal(type.GetCustomAttribute<HttpStatusAttribute>()!.StatusCode, property!.GetValue(null));
+        Assert.Equal(
+            type.GetCustomAttribute<HttpStatusAttribute>()!.StatusCode,
+            property!.GetValue(null)
+        );
     }
 
     /// <summary>
@@ -142,8 +164,10 @@ public class BuiltInResponseTypeTests {
     /// </remarks>
     [Theory]
     [MemberData(nameof(BuiltInResponseTypes))]
-    public void AGenericResponseType_CanBeReadBackFromAResponse(Type type) {
-        if (!type.IsGenericTypeDefinition) {
+    public void AGenericResponseType_CanBeReadBackFromAResponse(Type type)
+    {
+        if (!type.IsGenericTypeDefinition)
+        {
             return;
         }
 
@@ -151,9 +175,11 @@ public class BuiltInResponseTypeTests {
 
         Assert.Contains(
             closed.GetInterfaces(),
-            contract => contract.IsGenericType &&
-                        contract.GetGenericTypeDefinition() == typeof(IResponseExpectation<>) &&
-                        contract.GenericTypeArguments[0] == closed);
+            contract =>
+                contract.IsGenericType
+                && contract.GetGenericTypeDefinition() == typeof(IResponseExpectation<>)
+                && contract.GenericTypeArguments[0] == closed
+        );
     }
 
     /// <summary>
@@ -166,13 +192,18 @@ public class BuiltInResponseTypeTests {
     /// points at the generic form instead.
     /// </remarks>
     [Fact]
-    public void AResponseStatingWhatTheWireDoesNotCarry_IsNotAnExpectation() {
+    public void AResponseStatingWhatTheWireDoesNotCarry_IsNotAnExpectation()
+    {
         Assert.All(
             new[] { typeof(NotFound), typeof(Conflict), typeof(Unauthorized), typeof(RateLimited) },
-            type => Assert.DoesNotContain(
-                type.GetInterfaces(),
-                contract => contract.IsGenericType &&
-                            contract.GetGenericTypeDefinition() == typeof(IResponseExpectation<>)));
+            type =>
+                Assert.DoesNotContain(
+                    type.GetInterfaces(),
+                    contract =>
+                        contract.IsGenericType
+                        && contract.GetGenericTypeDefinition() == typeof(IResponseExpectation<>)
+                )
+        );
     }
 
     #endregion
@@ -190,11 +221,14 @@ public class BuiltInResponseTypeTests {
     /// </remarks>
     [Theory]
     [MemberData(nameof(StatusMarkers))]
-    public void StatusMarker_AttributeAgreesWithTheStaticProperty(Type type) {
+    public void StatusMarker_AttributeAgreesWithTheStaticProperty(Type type)
+    {
         var declared = type.GetCustomAttribute<HttpStatusAttribute>()!.StatusCode;
 
         var property = type.GetProperty(
-            nameof(IStatusCode.Status), BindingFlags.Public | BindingFlags.Static);
+            nameof(IStatusCode.Status),
+            BindingFlags.Public | BindingFlags.Static
+        );
 
         Assert.NotNull(property);
         Assert.Equal(declared, property!.GetValue(null));
@@ -206,7 +240,8 @@ public class BuiltInResponseTypeTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(StatusMarkers))]
-    public void StatusMarker_IsAValueType(Type type) {
+    public void StatusMarker_IsAValueType(Type type)
+    {
         Assert.True(type.IsValueType, type.Name + " must be a struct.");
     }
 
@@ -216,19 +251,24 @@ public class BuiltInResponseTypeTests {
     /// cares about.
     /// </summary>
     [Fact]
-    public void Status_TakesItsStatusFromTheMarker() {
+    public void Status_TakesItsStatusFromTheMarker()
+    {
         Assert.Equal(418, Read(new Status<Http.ImATeapot, string>("body")));
         Assert.Equal(423, Read(new Status<Http.Locked>()));
     }
 
     [Fact]
-    public void Status_CarriesItsBodyRatherThanItself() {
+    public void Status_CarriesItsBodyRatherThanItself()
+    {
         Assert.Equal(
-            "body", ((ICarriesResponseBody)new Status<Http.ImATeapot, string>("body")).Body);
+            "body",
+            ((ICarriesResponseBody)new Status<Http.ImATeapot, string>("body")).Body
+        );
     }
 
     [Fact]
-    public void Status_WithNoBodySerializesNothing() {
+    public void Status_WithNoBodySerializesNothing()
+    {
         Assert.False(HasBody(new Status<Http.Locked>()));
         Assert.True(HasBody(new Status<Http.ImATeapot, string>("body")));
     }
@@ -240,7 +280,8 @@ public class BuiltInResponseTypeTests {
     #region statuses
 
     [Fact]
-    public void Statuses_AreTheOnesTheTypesAreNamedFor() {
+    public void Statuses_AreTheOnesTheTypesAreNamedFor()
+    {
         Assert.Equal(401, new Unauthorized().Status);
         Assert.Equal(403, new Forbidden().Status);
         Assert.Equal(404, new NotFound("todo").Status);
@@ -265,7 +306,8 @@ public class BuiltInResponseTypeTests {
     /// almost all of them.
     /// </remarks>
     [Fact]
-    public void HasBody_IsFalseOnlyForTheBodylessStatuses() {
+    public void HasBody_IsFalseOnlyForTheBodylessStatuses()
+    {
         Assert.False(HasBody(new NoContent()));
         Assert.False(HasBody(new Accepted()));
 
@@ -285,8 +327,10 @@ public class BuiltInResponseTypeTests {
     /// making a branch decision. Two problems sharing a URI would silently merge those branches.
     /// </summary>
     [Fact]
-    public void ProblemTypes_AreDistinctFromEachOther() {
-        var uris = new[] {
+    public void ProblemTypes_AreDistinctFromEachOther()
+    {
+        var uris = new[]
+        {
             new Unauthorized().Type,
             new Forbidden().Type,
             new NotFound("todo").Type,
@@ -294,21 +338,24 @@ public class BuiltInResponseTypeTests {
             new Gone().Type,
             new PreconditionFailed().Type,
             new RateLimited(TimeSpan.FromSeconds(1)).Type,
-            new ServiceUnavailable().Type
+            new ServiceUnavailable().Type,
         };
 
         Assert.Equal(uris.Length, uris.Distinct().Count());
     }
 
     [Fact]
-    public void ProblemTypes_AreAllUnderTheOnePrefix() {
+    public void ProblemTypes_AreAllUnderTheOnePrefix()
+    {
         Assert.All(
-            new[] {
+            new[]
+            {
                 new Unauthorized().Type,
                 new NotFound("todo").Type,
-                new ServiceUnavailable().Type
+                new ServiceUnavailable().Type,
             },
-            uri => Assert.StartsWith(ProblemTypes.Prefix, uri, StringComparison.Ordinal));
+            uri => Assert.StartsWith(ProblemTypes.Prefix, uri, StringComparison.Ordinal)
+        );
     }
 
     #endregion
@@ -317,21 +364,20 @@ public class BuiltInResponseTypeTests {
     /// Builds one of each with whatever its constructor asks for. Only used to read a status off an
     /// instance, so the values are placeholders and none of them is asserted on.
     /// </summary>
-    private static object Instantiate(Type type) {
+    private static object Instantiate(Type type)
+    {
         var concrete = type.IsGenericTypeDefinition ? type.MakeGenericType(typeof(string)) : type;
 
-        var constructor = concrete.GetConstructors()
-            .OrderBy(c => c.GetParameters().Length)
-            .First();
+        var constructor = concrete.GetConstructors().OrderBy(c => c.GetParameters().Length).First();
 
-        var arguments = constructor.GetParameters()
-            .Select(p => p.ParameterType == typeof(string)
-                ? "placeholder"
-                : p.ParameterType == typeof(TimeSpan)
-                    ? TimeSpan.FromSeconds(1)
-                    : p.HasDefaultValue
-                        ? p.DefaultValue
-                        : Activator.CreateInstance(p.ParameterType))
+        var arguments = constructor
+            .GetParameters()
+            .Select(p =>
+                p.ParameterType == typeof(string) ? "placeholder"
+                : p.ParameterType == typeof(TimeSpan) ? TimeSpan.FromSeconds(1)
+                : p.HasDefaultValue ? p.DefaultValue
+                : Activator.CreateInstance(p.ParameterType)
+            )
             .ToArray();
 
         return constructor.Invoke(arguments);

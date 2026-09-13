@@ -19,11 +19,12 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// why they could not, which is what this file said until the task took over naming.
 /// </para>
 /// </summary>
-public class MultipleSpecificationTests {
-
-    private static readonly Dictionary<string, string> TwoSpecs = new() {
+public class MultipleSpecificationTests
+{
+    private static readonly Dictionary<string, string> TwoSpecs = new()
+    {
         ["pets.yaml"] = Specs.Minimal,
-        ["stores.yaml"] = Specs.SecondSpecWithADifferentTag
+        ["stores.yaml"] = Specs.SecondSpecWithADifferentTag,
     };
 
     /// <summary>
@@ -32,8 +33,11 @@ public class MultipleSpecificationTests {
     /// the other.
     /// </summary>
     [Fact]
-    public void EachSpecificationsFilesCarryItsOwnNameAsAPrefix() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
+    public void EachSpecificationsFilesCarryItsOwnNameAsAPrefix()
+    {
+        var result = OpenApiGenerator
+            .Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint)
+            .AssertNoErrors();
 
         Assert.Contains("pets.g.cs", result.GeneratedSources.Keys);
         Assert.Contains("stores.g.cs", result.GeneratedSources.Keys);
@@ -51,8 +55,11 @@ public class MultipleSpecificationTests {
     /// collision loses a file with no error at all.
     /// </summary>
     [Fact]
-    public void NoHintNameIsEmittedTwiceAcrossSpecifications() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
+    public void NoHintNameIsEmittedTwiceAcrossSpecifications()
+    {
+        var result = OpenApiGenerator
+            .Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint)
+            .AssertNoErrors();
 
         Assert.Empty(result.DuplicateHintNames);
         Assert.Empty(result.GeneratorExceptions);
@@ -63,8 +70,11 @@ public class MultipleSpecificationTests {
     /// handler classes that do not collide even though handler hint names carry no spec prefix.
     /// </summary>
     [Fact]
-    public void EachSpecificationGetsItsOwnHandlersNamedFromItsTags() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
+    public void EachSpecificationGetsItsOwnHandlersNamedFromItsTags()
+    {
+        var result = OpenApiGenerator
+            .Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint)
+            .AssertNoErrors();
 
         Assert.Contains("PetController_ListPets.cs", result.GeneratedSources.Keys);
         Assert.Contains("StoreController_ListStores.cs", result.GeneratedSources.Keys);
@@ -75,8 +85,11 @@ public class MultipleSpecificationTests {
     /// application, and a route from either has to resolve.
     /// </summary>
     [Fact]
-    public void BothSpecificationsRoutesReachTheSameRoutingTable() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
+    public void BothSpecificationsRoutesReachTheSameRoutingTable()
+    {
+        var result = OpenApiGenerator
+            .Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint)
+            .AssertNoErrors();
 
         var routing = result.SourceContaining("SpecRouting");
 
@@ -89,8 +102,11 @@ public class MultipleSpecificationTests {
     /// half of what was expected is diagnosed.
     /// </summary>
     [Fact]
-    public void TheDiagnosticFileCountsEverySpecification() {
-        var result = OpenApiGenerator.Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
+    public void TheDiagnosticFileCountsEverySpecification()
+    {
+        var result = OpenApiGenerator
+            .Run(TwoSpecs, OpenApiGenerator.MinimalEntryPoint)
+            .AssertNoErrors();
 
         var diagnosticFile = result.GeneratedSources[OpenApiGenerator.DiagnosticHintName];
 
@@ -107,16 +123,21 @@ public class MultipleSpecificationTests {
     /// not which generator claims it.
     /// </summary>
     [Fact]
-    public void AYamlAndAJsonSpecificationAreBothParsed() {
+    public void AYamlAndAJsonSpecificationAreBothParsed()
+    {
         var result = OpenApiGenerator.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["pets.yaml"] = Specs.Minimal,
-                ["items.json"] = Specs.MinimalJson
+                ["items.json"] = Specs.MinimalJson,
             },
-            OpenApiGenerator.MinimalEntryPoint);
+            OpenApiGenerator.MinimalEntryPoint
+        );
 
-        Assert.Contains("OpenAPI files parsed: 2",
-            result.GeneratedSources[OpenApiGenerator.DiagnosticHintName]);
+        Assert.Contains(
+            "OpenAPI files parsed: 2",
+            result.GeneratedSources[OpenApiGenerator.DiagnosticHintName]
+        );
         Assert.Contains("IPetService", result.GeneratedSources["pets.g.cs"]);
     }
 
@@ -131,26 +152,34 @@ public class MultipleSpecificationTests {
     /// the file name.
     /// </remarks>
     [Fact]
-    public void TwoDocumentsThatEachWriteAnErrorBodyCompile() {
+    public void TwoDocumentsThatEachWriteAnErrorBodyCompile()
+    {
         var result = OpenApiGenerator.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["pets.yaml"] = ErrorBodySpec("pets", "Pet", "PetProblem"),
-                ["stores.yaml"] = ErrorBodySpec("stores", "Store", "StoreProblem")
+                ["stores.yaml"] = ErrorBodySpec("stores", "Store", "StoreProblem"),
             },
-            OpenApiGenerator.MinimalEntryPoint);
+            OpenApiGenerator.MinimalEntryPoint
+        );
 
         Assert.Empty(result.Errors);
     }
 
     /// <summary>And each holder is named after the document that produced it.</summary>
     [Fact]
-    public void EachDocumentsErrorBodyHolderIsNamedAfterIt() {
-        var result = OpenApiGenerator.Run(
-            new Dictionary<string, string> {
-                ["pets.yaml"] = ErrorBodySpec("pets", "Pet", "PetProblem"),
-                ["stores.yaml"] = ErrorBodySpec("stores", "Store", "StoreProblem")
-            },
-            OpenApiGenerator.MinimalEntryPoint).AssertNoErrors();
+    public void EachDocumentsErrorBodyHolderIsNamedAfterIt()
+    {
+        var result = OpenApiGenerator
+            .Run(
+                new Dictionary<string, string>
+                {
+                    ["pets.yaml"] = ErrorBodySpec("pets", "Pet", "PetProblem"),
+                    ["stores.yaml"] = ErrorBodySpec("stores", "Store", "StoreProblem"),
+                },
+                OpenApiGenerator.MinimalEntryPoint
+            )
+            .AssertNoErrors();
 
         Assert.Contains("class PetsErrorBodies", result.GeneratedSources["pets.g.cs"]);
         Assert.Contains("class StoresErrorBodies", result.GeneratedSources["stores.g.cs"]);
@@ -163,40 +192,40 @@ public class MultipleSpecificationTests {
     /// </summary>
     private static string ErrorBodySpec(string tag, string model, string problem) =>
         $$"""
-        openapi: "3.0.0"
-        info: { title: {{tag}}, version: "1.0" }
-        paths:
-          /{{tag}}/{id}:
-            get:
-              tags: [{{tag}}]
-              operationId: get{{tag}}
-              parameters:
-                - name: id
-                  in: path
-                  required: true
-                  schema: { type: string }
-              responses:
-                '200':
-                  description: found
-                  content:
-                    application/json:
-                      schema: { $ref: '#/components/schemas/{{model}}' }
-                '404':
-                  description: missing
-                  content:
-                    application/json:
-                      schema: { $ref: '#/components/schemas/{{problem}}' }
-        components:
-          schemas:
-            {{model}}:
-              type: object
-              properties:
-                id: { type: string }
-            {{problem}}:
-              type: object
-              properties:
-                type: { type: string }
-                title: { type: string }
-                status: { type: integer }
-        """;
+            openapi: "3.0.0"
+            info: { title: {{tag}}, version: "1.0" }
+            paths:
+              /{{tag}}/{id}:
+                get:
+                  tags: [{{tag}}]
+                  operationId: get{{tag}}
+                  parameters:
+                    - name: id
+                      in: path
+                      required: true
+                      schema: { type: string }
+                  responses:
+                    '200':
+                      description: found
+                      content:
+                        application/json:
+                          schema: { $ref: '#/components/schemas/{{model}}' }
+                    '404':
+                      description: missing
+                      content:
+                        application/json:
+                          schema: { $ref: '#/components/schemas/{{problem}}' }
+            components:
+              schemas:
+                {{model}}:
+                  type: object
+                  properties:
+                    id: { type: string }
+                {{problem}}:
+                  type: object
+                  properties:
+                    type: { type: string }
+                    title: { type: string }
+                    status: { type: integer }
+            """;
 }

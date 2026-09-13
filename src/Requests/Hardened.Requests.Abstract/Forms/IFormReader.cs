@@ -10,7 +10,8 @@ namespace Hardened.Requests.Abstract.Forms;
 /// binds every form parameter from the result, the same way it resolves the serialization service
 /// once for a body parameter.
 /// </remarks>
-public interface IFormReader {
+public interface IFormReader
+{
     /// <summary>
     /// The form the request carried, or an empty collection when it carried none.
     /// </summary>

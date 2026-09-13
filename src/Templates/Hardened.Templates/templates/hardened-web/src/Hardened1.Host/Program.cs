@@ -32,7 +32,9 @@ using Microsoft.Extensions.Logging;
 
 #if (!lambda && !azureFunctions)
 // Listens on 5080. Override with PORT.
-var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var configured) ? configured : 5080;
+var port = int.TryParse(Environment.GetEnvironmentVariable("PORT"), out var configured)
+    ? configured
+    : 5080;
 #endif
 
 // Registered by the application, not the framework: only the application knows where its
@@ -50,7 +52,8 @@ new Application().PopulateServiceCollection(services);
 
 await using var app = HardenedKestrelApplication.Create(
     services,
-    kestrel => kestrel.ListenAnyIP(port));
+    kestrel => kestrel.ListenAnyIP(port)
+);
 
 // Started rather than run, so the address is printed once the server is actually listening
 // rather than just before. RunAsync below sees IsStarted and waits for shutdown rather than
@@ -66,7 +69,8 @@ logger.LogInformation("Listening on http://localhost:{Port}", port);
 // Where to start, rather than an address and a guess about what is under it. Gated on the
 // environment because the reference page is: printing a URL that answers 404 is worse than
 // printing nothing.
-if (environment.Matches("development")) {
+if (environment.Matches("development"))
+{
     logger.LogInformation("Browse http://localhost:{Port}/docs to access your API.", port);
 }
 #endif
@@ -95,7 +99,8 @@ await app.StartAsync();
 
 // ASP.NET prints the address itself, so this adds only the part it cannot know about. Gated on the
 // environment because the reference page is.
-if (environment.Matches("development")) {
+if (environment.Matches("development"))
+{
     app.Logger.LogInformation("Browse http://localhost:{Port}/docs to access your API.", port);
 }
 #endif
@@ -145,7 +150,8 @@ new Application().PopulateServiceCollection(services);
 // 5080 like every other host, so the launch profile and the README stay true.
 await using var app = HardenedKestrelApplication.Create(
     services,
-    kestrel => kestrel.ListenAnyIP(port));
+    kestrel => kestrel.ListenAnyIP(port)
+);
 
 await app.StartAsync();
 
@@ -154,7 +160,8 @@ var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Har
 logger.LogInformation("Listening on http://localhost:{Port}", port);
 #if (OpenApiUi)
 
-if (environment.Matches("development")) {
+if (environment.Matches("development"))
+{
     logger.LogInformation("Browse http://localhost:{Port}/docs to access your API.", port);
 }
 #endif

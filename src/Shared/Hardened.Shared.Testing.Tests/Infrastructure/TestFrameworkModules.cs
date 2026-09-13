@@ -7,11 +7,13 @@ namespace Hardened.Shared.Testing.Tests.Infrastructure;
 /// A greeting, so a test can tell the application's own registration apart from a substitute
 /// standing in for it.
 /// </summary>
-public interface IGreetingService {
+public interface IGreetingService
+{
     string Greet(string name);
 }
 
-public class RealGreetingService : IGreetingService {
+public class RealGreetingService : IGreetingService
+{
     public string Greet(string name) => $"real hello {name}";
 }
 
@@ -19,7 +21,8 @@ public class RealGreetingService : IGreetingService {
 /// Registered by nothing. A parameter of this type is what "unresolvable" means to the resolver:
 /// no registration to find and no constructor to fall back on.
 /// </summary>
-public interface INeverRegisteredService {
+public interface INeverRegisteredService
+{
     int Value { get; }
 }
 
@@ -27,8 +30,10 @@ public interface INeverRegisteredService {
 /// Concrete, unregistered, and constructible from services the container does know — the shape
 /// that lets a test name the class under test directly instead of registering it first.
 /// </summary>
-public class GreetingConsumer {
-    public GreetingConsumer(IGreetingService greetingService) {
+public class GreetingConsumer
+{
+    public GreetingConsumer(IGreetingService greetingService)
+    {
         GreetingService = greetingService;
     }
 
@@ -48,12 +53,15 @@ public class GreetingConsumer {
 /// so implementing only the latter would load a module that registers nothing and every
 /// [Mock]-beats-the-application test would pass with nothing to beat.
 /// </remarks>
-public class AssemblyEntryPointModule : IDependencyModule, IServiceCollectionConfiguration {
-    public void PopulateServiceCollection(IServiceCollection serviceCollection) {
+public class AssemblyEntryPointModule : IDependencyModule, IServiceCollectionConfiguration
+{
+    public void PopulateServiceCollection(IServiceCollection serviceCollection)
+    {
         ConfigureServices(serviceCollection);
     }
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IGreetingService, RealGreetingService>();
     }
 }
@@ -62,13 +70,15 @@ public class AssemblyEntryPointModule : IDependencyModule, IServiceCollectionCon
 /// Stands in for an entry point declared on a test class, so a lookup can be seen to prefer it
 /// over the assembly's.
 /// </summary>
-public class ClassEntryPointModule : IDependencyModule {
+public class ClassEntryPointModule : IDependencyModule
+{
     public void PopulateServiceCollection(IServiceCollection serviceCollection) { }
 }
 
 /// <summary>
 /// Stands in for an entry point declared on a single test method.
 /// </summary>
-public class MethodEntryPointModule : IDependencyModule {
+public class MethodEntryPointModule : IDependencyModule
+{
     public void PopulateServiceCollection(IServiceCollection serviceCollection) { }
 }

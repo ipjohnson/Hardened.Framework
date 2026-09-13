@@ -38,7 +38,8 @@ namespace Hardened.Aws.Lambda.Runtime.Adapters;
 /// adapter enrols in and whether a throw is answered or rethrown.
 /// </para>
 /// </remarks>
-public interface IPayloadAdapter {
+public interface IPayloadAdapter
+{
     /// <summary>
     /// Whether this adapter recognises the payload.
     /// </summary>

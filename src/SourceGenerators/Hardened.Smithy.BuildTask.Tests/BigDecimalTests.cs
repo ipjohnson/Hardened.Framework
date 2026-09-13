@@ -20,25 +20,30 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// naming none of them, so the count told you how many and nothing told you which.
 /// </para>
 /// </remarks>
-public class BigDecimalTests {
-
+public class BigDecimalTests
+{
     private static string Model(string members, string shapes = "") =>
         $$"""
-          { "smithy": "2.0", "shapes": {
-              "com.example#Svc": {
-                "type": "service", "version": "1",
-                "operations": [ { "target": "com.example#Charge" } ] },
-              "com.example#Charge": {
-                "type": "operation",
-                "input": { "target": "com.example#Money" },
-                "traits": {
-                  "smithy.api#http": { "method": "POST", "uri": "/charges", "code": 200 } } },
-              "com.example#Money": {
-                "type": "structure",
-                "members": { {{members}} } }{{shapes}} } }
-          """;
+            { "smithy": "2.0", "shapes": {
+                "com.example#Svc": {
+                  "type": "service", "version": "1",
+                  "operations": [ { "target": "com.example#Charge" } ] },
+                "com.example#Charge": {
+                  "type": "operation",
+                  "input": { "target": "com.example#Money" },
+                  "traits": {
+                    "smithy.api#http": { "method": "POST", "uri": "/charges", "code": 200 } } },
+                "com.example#Money": {
+                  "type": "structure",
+                  "members": { {{members}} } }{{shapes}} } }
+            """;
 
-    private static SchemaModel Parse(string members, out List<string> diagnostics, string shapes = "") {
+    private static SchemaModel Parse(
+        string members,
+        out List<string> diagnostics,
+        string shapes = ""
+    )
+    {
         diagnostics = new List<string>();
 
         var model = SmithySpecParser.Parse(Model(members, shapes), "money", diagnostics);
@@ -49,10 +54,14 @@ public class BigDecimalTests {
     }
 
     [Fact]
-    public void ABigDecimalMemberReachesCSharpDecimal() {
-        var schema = Parse("""
+    public void ABigDecimalMemberReachesCSharpDecimal()
+    {
+        var schema = Parse(
+            """
             "amount": { "target": "smithy.api#BigDecimal" }
-            """, out _);
+            """,
+            out _
+        );
 
         var amount = Assert.Single(schema.Properties);
 
@@ -67,14 +76,19 @@ public class BigDecimalTests {
     /// member "becomes decimal" while generating <c>double</c>.
     /// </summary>
     [Fact]
-    public void AListOfBigDecimalIsAListOfDecimal() {
-        var schema = Parse("""
+    public void AListOfBigDecimalIsAListOfDecimal()
+    {
+        var schema = Parse(
+            """
             "amounts": { "target": "com.example#Amounts" }
-            """, out _, """
+            """,
+            out _,
+            """
             , "com.example#Amounts": {
                 "type": "list",
                 "member": { "target": "smithy.api#BigDecimal" } }
-            """);
+            """
+        );
 
         var amounts = Assert.Single(schema.Properties);
 
@@ -83,15 +97,20 @@ public class BigDecimalTests {
     }
 
     [Fact]
-    public void AMapOfBigDecimalIsADictionaryOfDecimal() {
-        var schema = Parse("""
+    public void AMapOfBigDecimalIsADictionaryOfDecimal()
+    {
+        var schema = Parse(
+            """
             "quotes": { "target": "com.example#Quotes" }
-            """, out _, """
+            """,
+            out _,
+            """
             , "com.example#Quotes": {
                 "type": "map",
                 "key": { "target": "smithy.api#String" },
                 "value": { "target": "smithy.api#BigDecimal" } }
-            """);
+            """
+        );
 
         var quotes = Assert.Single(schema.Properties);
 
@@ -103,10 +122,14 @@ public class BigDecimalTests {
     [Theory]
     [InlineData("smithy.api#Float", "float")]
     [InlineData("smithy.api#Double", "double")]
-    public void AnExactlyMappedShapeIsSilent(string shape, string csType) {
-        var schema = Parse($$"""
+    public void AnExactlyMappedShapeIsSilent(string shape, string csType)
+    {
+        var schema = Parse(
+            $$"""
             "amount": { "target": "{{shape}}" }
-            """, out var diagnostics);
+            """,
+            out var diagnostics
+        );
 
         Assert.Equal(csType, TypeMapper.MapPropertyToCSharpType(Assert.Single(schema.Properties)));
         Assert.Empty(diagnostics);
@@ -117,10 +140,14 @@ public class BigDecimalTests {
     /// message says what it became rather than that no type exists.
     /// </summary>
     [Fact]
-    public void TheNarrowingIsReportedAndNamesWhatItBecame() {
-        Parse("""
+    public void TheNarrowingIsReportedAndNamesWhatItBecame()
+    {
+        Parse(
+            """
             "amount": { "target": "smithy.api#BigDecimal" }
-            """, out var diagnostics);
+            """,
+            out var diagnostics
+        );
 
         var warning = Assert.Single(diagnostics);
 
@@ -132,10 +159,14 @@ public class BigDecimalTests {
 
     /// <summary>BigInteger narrows too, and says what it costs rather than the same sentence.</summary>
     [Fact]
-    public void ABigIntegerSaysWhatItCosts() {
-        var schema = Parse("""
+    public void ABigIntegerSaysWhatItCosts()
+    {
+        var schema = Parse(
+            """
             "count": { "target": "smithy.api#BigInteger" }
-            """, out var diagnostics);
+            """,
+            out var diagnostics
+        );
 
         Assert.Equal("long", TypeMapper.MapPropertyToCSharpType(Assert.Single(schema.Properties)));
 
@@ -151,12 +182,16 @@ public class BigDecimalTests {
     /// hold an <c>amount</c>.
     /// </summary>
     [Fact]
-    public void EveryNarrowedMemberIsNamedOnce() {
-        Parse("""
+    public void EveryNarrowedMemberIsNamedOnce()
+    {
+        Parse(
+            """
             "unitPrice": { "target": "smithy.api#BigDecimal" },
             "discount":  { "target": "smithy.api#BigDecimal" },
             "total":     { "target": "smithy.api#BigDecimal" }
-            """, out var diagnostics);
+            """,
+            out var diagnostics
+        );
 
         Assert.Equal(3, diagnostics.Count);
         Assert.Equal(3, diagnostics.Distinct().Count());
@@ -175,12 +210,16 @@ public class BigDecimalTests {
     /// unchanged - only the report.
     /// </remarks>
     [Fact]
-    public void NarrowedOnTheMemberSilencesTheReportAndKeepsTheMapping() {
-        var schema = Parse("""
+    public void NarrowedOnTheMemberSilencesTheReportAndKeepsTheMapping()
+    {
+        var schema = Parse(
+            """
             "amount": {
               "target": "smithy.api#BigDecimal",
               "traits": { "hardened.api#narrowed": {} } }
-            """, out var diagnostics);
+            """,
+            out var diagnostics
+        );
 
         Assert.Empty(diagnostics);
         Assert.Equal("decimal", Assert.Single(schema.Properties).Format);
@@ -188,13 +227,17 @@ public class BigDecimalTests {
 
     /// <summary>A member beside it that says nothing is still reported.</summary>
     [Fact]
-    public void NarrowedSilencesOnlyTheMemberItIsOn() {
-        Parse("""
+    public void NarrowedSilencesOnlyTheMemberItIsOn()
+    {
+        Parse(
+            """
             "amount": {
               "target": "smithy.api#BigDecimal",
               "traits": { "hardened.api#narrowed": {} } },
             "fee": { "target": "smithy.api#BigDecimal" }
-            """, out var diagnostics);
+            """,
+            out var diagnostics
+        );
 
         var reported = Assert.Single(diagnostics);
 
@@ -212,12 +255,17 @@ public class BigDecimalTests {
     /// only the prelude path reported the narrowing.
     /// </remarks>
     [Fact]
-    public void ANamedBigDecimalShapeReachesDecimalAndIsReported() {
-        var schema = Parse("""
+    public void ANamedBigDecimalShapeReachesDecimalAndIsReported()
+    {
+        var schema = Parse(
+            """
             "amount": { "target": "com.example#Usd" }
-            """, out var diagnostics, """
+            """,
+            out var diagnostics,
+            """
             , "com.example#Usd": { "type": "bigDecimal" }
-            """);
+            """
+        );
 
         Assert.Equal("decimal", Assert.Single(schema.Properties).Format);
         Assert.Contains("becomes decimal", Assert.Single(diagnostics));
@@ -227,15 +275,20 @@ public class BigDecimalTests {
     /// And <c>@narrowed</c> on that shape says it once for every member targeting it.
     /// </summary>
     [Fact]
-    public void NarrowedOnTheNamedShapeSilencesEveryMemberTargetingIt() {
-        var schema = Parse("""
+    public void NarrowedOnTheNamedShapeSilencesEveryMemberTargetingIt()
+    {
+        var schema = Parse(
+            """
             "amount": { "target": "com.example#Usd" },
             "fee": { "target": "com.example#Usd" }
-            """, out var diagnostics, """
+            """,
+            out var diagnostics,
+            """
             , "com.example#Usd": {
                 "type": "bigDecimal",
                 "traits": { "hardened.api#narrowed": {} } }
-            """);
+            """
+        );
 
         Assert.Empty(diagnostics);
         Assert.All(schema.Properties, property => Assert.Equal("decimal", property.Format));
@@ -243,12 +296,16 @@ public class BigDecimalTests {
 
     /// <summary>The trait is read rather than reported as one the front end does not model.</summary>
     [Fact]
-    public void NarrowedIsNotReportedAsAnUnknownTrait() {
-        Parse("""
+    public void NarrowedIsNotReportedAsAnUnknownTrait()
+    {
+        Parse(
+            """
             "amount": {
               "target": "smithy.api#BigDecimal",
               "traits": { "hardened.api#narrowed": {} } }
-            """, out var diagnostics);
+            """,
+            out var diagnostics
+        );
 
         Assert.DoesNotContain(diagnostics, entry => entry.Contains("narrowed"));
     }

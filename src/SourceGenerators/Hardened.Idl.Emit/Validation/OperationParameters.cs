@@ -1,10 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
-using Hardened.Idl.Emitters;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 using Hardened.Idl;
-using Hardened.Generation;
+using Hardened.Idl.Emitters;
 
 namespace Hardened.Idl.Validation;
 
@@ -25,9 +25,13 @@ namespace Hardened.Idl.Validation;
 /// rather than two that agree.
 /// </para>
 /// </remarks>
-internal static class OperationParameters {
-
-    internal sealed record Model(string OperationId, string InterfaceName, IReadOnlyList<Member> Members);
+internal static class OperationParameters
+{
+    internal sealed record Model(
+        string OperationId,
+        string InterfaceName,
+        IReadOnlyList<Member> Members
+    );
 
     /// <param name="Name">The C# name, matching what the handler's Parameters class declares.</param>
     /// <param name="WireName">
@@ -37,11 +41,19 @@ internal static class OperationParameters {
     /// <param name="Type">Its type.</param>
     /// <param name="Attributes">Constraints, already rendered.</param>
     internal sealed record Member(
-        string Name, string? WireName, ITypeDefinition Type,
-        IReadOnlyList<ConstraintAttributes.Model> Attributes);
+        string Name,
+        string? WireName,
+        ITypeDefinition Type,
+        IReadOnlyList<ConstraintAttributes.Model> Attributes
+    );
 
     public static Model? Build(
-        OperationModel operation, ServiceSpecModel spec, string modelsNamespace, PatternRegistry patterns) {
+        OperationModel operation,
+        ServiceSpecModel spec,
+        string modelsNamespace,
+        PatternRegistry patterns
+    )
+    {
         var members = new List<Member>();
         var constrained = false;
 
@@ -50,13 +62,16 @@ internal static class OperationParameters {
         // both of which change which constraints can be emitted against it.
         var enumTypes = new HashSet<string>();
 
-        foreach (var schema in spec.Schemas) {
-            if (schema.Kind == SchemaKind.Enum) {
+        foreach (var schema in spec.Schemas)
+        {
+            if (schema.Kind == SchemaKind.Enum)
+            {
                 enumTypes.Add(NamingHelper.ToPascalCase(schema.Name));
             }
         }
 
-        foreach (var parameter in operation.Parameters) {
+        foreach (var parameter in operation.Parameters)
+        {
             var csType = TypeMapper.MapParameterToCSharpType(parameter);
             var isEnumType = enumTypes.Contains(csType);
 
@@ -69,27 +84,42 @@ internal static class OperationParameters {
             // validator for an operation that had nothing else to check, and the document then
             // published a 400 for a refusal no caller can provoke - the same unfailable-check
             // reasoning HRDV003 gives for a value type.
-            var emitRequired = parameter.ConstrainedAsRequired &&
-                               !TypeMapper.IsNonNullableValueType(csType, spec.Schemas) &&
-                               !IsPathParameter(parameter);
+            var emitRequired =
+                parameter.ConstrainedAsRequired
+                && !TypeMapper.IsNonNullableValueType(csType, spec.Schemas)
+                && !IsPathParameter(parameter);
 
             var attributes = ConstraintAttributes.ForParameter(
-                parameter, emitRequired, csType, patterns);
+                parameter,
+                emitRequired,
+                csType,
+                patterns
+            );
 
             constrained |= attributes.Count > 0;
 
-            members.Add(new Member(
-                parameter.MemberName,
-                parameter.Name == parameter.MemberName ? null : parameter.Name,
-                TypeMapper.GetTypeDefinition(modelsNamespace, csType, parameter.IsCSharpNullable),
-                attributes));
+            members.Add(
+                new Member(
+                    parameter.MemberName,
+                    parameter.Name == parameter.MemberName ? null : parameter.Name,
+                    TypeMapper.GetTypeDefinition(
+                        modelsNamespace,
+                        csType,
+                        parameter.IsCSharpNullable
+                    ),
+                    attributes
+                )
+            );
         }
 
         var bodySchema = BodySchema(operation, spec);
 
-        if (bodySchema != null) {
+        if (bodySchema != null)
+        {
             var bodyType = TypeDefinition.Get(
-                modelsNamespace, NamingHelper.ToPascalCase(bodySchema.Name));
+                modelsNamespace,
+                NamingHelper.ToPascalCase(bodySchema.Name)
+            );
 
             // [ValidateNested] is what makes the generated validator descend, which is what gives
             // body errors their "body." prefix and distinguishes them from a path parameter of the
@@ -103,9 +133,18 @@ internal static class OperationParameters {
             // constraint was `required` on a non-nullable value type gets no attributes at all, so
             // no validator is generated for it - and a [ValidateNested] naming a validator that
             // does not exist is CS0234 in a generated file.
-            var attributes = NestedValidation.HasGeneratedValidator(bodySchema, spec.Schemas, patterns)
-                ? new[] { new ConstraintAttributes.Model(
-                    ConstraintAttributes.ValidateNested(), System.Array.Empty<string>()) }
+            var attributes = NestedValidation.HasGeneratedValidator(
+                bodySchema,
+                spec.Schemas,
+                patterns
+            )
+                ? new[]
+                {
+                    new ConstraintAttributes.Model(
+                        ConstraintAttributes.ValidateNested(),
+                        System.Array.Empty<string>()
+                    ),
+                }
                 : System.Array.Empty<ConstraintAttributes.Model>();
 
             constrained |= attributes.Length > 0;
@@ -114,10 +153,7 @@ internal static class OperationParameters {
         }
 
         return constrained
-            ? new Model(
-                operation.OperationId,
-                "I" + operation.MethodName + "Parameters",
-                members)
+            ? new Model(operation.OperationId, "I" + operation.MethodName + "Parameters", members)
             : null;
     }
 
@@ -128,8 +164,10 @@ internal static class OperationParameters {
     private static bool IsPathParameter(ParameterModel parameter) =>
         string.Equals(parameter.In, "path", System.StringComparison.OrdinalIgnoreCase);
 
-    private static SchemaModel? BodySchema(OperationModel operation, ServiceSpecModel spec) {
-        if (operation.RequestBodyRef == null) {
+    private static SchemaModel? BodySchema(OperationModel operation, ServiceSpecModel spec)
+    {
+        if (operation.RequestBodyRef == null)
+        {
             return null;
         }
 

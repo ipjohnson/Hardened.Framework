@@ -10,15 +10,18 @@ namespace Hardened.IntegrationTests.S3.SUT.Tests;
 /// A blob function, whole: the trigger attribute, the generator, the module the build property
 /// named, the adapter, the key decode and the invocation loop.
 /// </summary>
-public class BlobTests {
-
+public class BlobTests
+{
     [HardenedTest]
     public async Task ANotificationReachesTheHandler(
-        BlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+        BlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
         await blobs.Uploads(new Upload { Key = "report.pdf", Size = 1024 });
 
-        sink.Received().Arrived(Arg.Is<Upload>(
-            upload => upload.Key == "report.pdf" && upload.Size == 1024));
+        sink.Received()
+            .Arrived(Arg.Is<Upload>(upload => upload.Key == "report.pdf" && upload.Size == 1024));
     }
 
     /// <summary>
@@ -29,8 +32,8 @@ public class BlobTests {
     /// seeing the plus would fetch an object that does not exist.
     /// </remarks>
     [HardenedTest]
-    public async Task AKeyWithASpaceArrivesDecoded(
-        BlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+    public async Task AKeyWithASpaceArrivesDecoded(BlobTestApp.Blobs blobs, [Mock] IUploadSink sink)
+    {
         await blobs.Uploads(new Upload { Key = "my report.pdf" });
 
         sink.Received().Arrived(Arg.Is<Upload>(upload => upload.Key == "my report.pdf"));
@@ -41,7 +44,10 @@ public class BlobTests {
     /// </summary>
     [HardenedTest]
     public async Task TheBucketComesFromTheNotification(
-        BlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+        BlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
         await blobs.Uploads(new Upload { Key = "a.txt" });
 
         sink.Received().Arrived(Arg.Is<Upload>(upload => upload.Bucket == "uploads"));
@@ -49,9 +55,15 @@ public class BlobTests {
 
     [HardenedTest]
     public async Task EveryNotificationInABatchIsHandledSeparately(
-        BlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+        BlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
         await blobs.Uploads(
-            new Upload { Key = "a.txt" }, new Upload { Key = "b.txt" }, new Upload { Key = "c.txt" });
+            new Upload { Key = "a.txt" },
+            new Upload { Key = "b.txt" },
+            new Upload { Key = "c.txt" }
+        );
 
         sink.Received(3).Arrived(Arg.Any<Upload>());
         sink.Received().Arrived(Arg.Is<Upload>(upload => upload.Key == "b.txt"));
@@ -62,11 +74,15 @@ public class BlobTests {
     /// </summary>
     [HardenedTest]
     public async Task AFailedNotificationFailsTheInvocation(
-        BlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+        BlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
         sink.When(one => one.Arrived(Arg.Is<Upload>(upload => upload.Key == "b.txt")))
             .Do(_ => throw new InvalidOperationException("refused"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => blobs.Uploads(new Upload { Key = "a.txt" }, new Upload { Key = "b.txt" }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            blobs.Uploads(new Upload { Key = "a.txt" }, new Upload { Key = "b.txt" })
+        );
     }
 }

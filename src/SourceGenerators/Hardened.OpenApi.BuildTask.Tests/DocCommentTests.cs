@@ -6,10 +6,11 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// <summary>
 /// What specification prose has to survive to be usable after a <c>///</c>.
 /// </summary>
-public class DocCommentTests {
-
+public class DocCommentTests
+{
     [Fact]
-    public void OrdinaryProseIsUnchanged() {
+    public void OrdinaryProseIsUnchanged()
+    {
         Assert.Equal("Returns a single pet.", DocComment.Format("Returns a single pet."));
     }
 
@@ -19,10 +20,9 @@ public class DocCommentTests {
     /// neither the indent nor the marker. CSharpAuthor writes them line by line now.
     /// </summary>
     [Fact]
-    public void LineBreaksAreKept() {
-        Assert.Equal(
-            "One.\nTwo.\n\nThree.",
-            DocComment.Format("One.\nTwo.\r\n\r\nThree."));
+    public void LineBreaksAreKept()
+    {
+        Assert.Equal("One.\nTwo.\n\nThree.", DocComment.Format("One.\nTwo.\r\n\r\nThree."));
     }
 
     /// <summary>
@@ -30,7 +30,8 @@ public class DocCommentTests {
     /// sitting inside a generated comment.
     /// </summary>
     [Fact]
-    public void CarriageReturnsAreNormalised() {
+    public void CarriageReturnsAreNormalised()
+    {
         Assert.DoesNotContain("\r", DocComment.Format("One.\r\nTwo.")!);
     }
 
@@ -39,7 +40,8 @@ public class DocCommentTests {
     /// regeneration. Leading indentation is content and stays.
     /// </summary>
     [Fact]
-    public void TrailingWhitespaceIsTrimmedPerLine() {
+    public void TrailingWhitespaceIsTrimmedPerLine()
+    {
         Assert.Equal("One.\nTwo.", DocComment.Format("One.   \nTwo.\t"));
     }
 
@@ -48,7 +50,8 @@ public class DocCommentTests {
     /// against the summary tags. Blank lines between paragraphs are structure and stay.
     /// </summary>
     [Fact]
-    public void SurroundingBlankLinesAreDroppedButInnerOnesAreNot() {
+    public void SurroundingBlankLinesAreDroppedButInnerOnesAreNot()
+    {
         Assert.Equal("One.\n\nTwo.", DocComment.Format("\n\nOne.\n\nTwo.\n\n"));
     }
 
@@ -59,10 +62,9 @@ public class DocCommentTests {
     /// <c>&amp;amp;rarr;</c>.
     /// </summary>
     [Fact]
-    public void MarkupCharactersPassThrough() {
-        Assert.Equal(
-            "0 < n <= 100 & n > 0",
-            DocComment.Format("0 < n <= 100 & n > 0"));
+    public void MarkupCharactersPassThrough()
+    {
+        Assert.Equal("0 < n <= 100 & n > 0", DocComment.Format("0 < n <= 100 & n > 0"));
     }
 
     /// <summary>
@@ -74,7 +76,8 @@ public class DocCommentTests {
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("\n\t ")]
-    public void NothingToSayProducesNull(string? description) {
+    public void NothingToSayProducesNull(string? description)
+    {
         Assert.Null(DocComment.Format(description));
     }
 }

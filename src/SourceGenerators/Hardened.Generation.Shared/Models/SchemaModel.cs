@@ -1,6 +1,7 @@
 namespace Hardened.Generation.Models;
 
-internal class SchemaModel : IEquatable<SchemaModel> {
+internal class SchemaModel : IEquatable<SchemaModel>
+{
     public string Name { get; set; } = "";
     public SchemaKind Kind { get; set; }
 
@@ -117,33 +118,41 @@ internal class SchemaModel : IEquatable<SchemaModel> {
     /// </summary>
     public bool IsPolymorphicBase => DiscriminatorPropertyName != null;
 
-    public bool Equals(SchemaModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return Name == other.Name && Kind == other.Kind &&
-               Description == other.Description && IsDeprecated == other.IsDeprecated &&
-               IsErrorShape == other.IsErrorShape &&
-               Type == other.Type && Format == other.Format &&
-               ArrayItemsRef == other.ArrayItemsRef &&
-               ArrayItemsType == other.ArrayItemsType &&
-               ArrayItemsFormat == other.ArrayItemsFormat &&
-               MinItems == other.MinItems &&
-               MaxItems == other.MaxItems &&
-               DictionaryValueType == other.DictionaryValueType &&
-               DictionaryValueRef == other.DictionaryValueRef &&
-               DictionaryValueFormat == other.DictionaryValueFormat &&
-               DiscriminatorPropertyName == other.DiscriminatorPropertyName &&
-               BaseRef == other.BaseRef &&
-               DiscriminatorMapping.SequenceEqual(other.DiscriminatorMapping) &&
-               Properties.SequenceEqual(other.Properties) &&
-               EnumValues.SequenceEqual(other.EnumValues) &&
-               Required.SequenceEqual(other.Required);
+    public bool Equals(SchemaModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
+        return Name == other.Name
+            && Kind == other.Kind
+            && Description == other.Description
+            && IsDeprecated == other.IsDeprecated
+            && IsErrorShape == other.IsErrorShape
+            && Type == other.Type
+            && Format == other.Format
+            && ArrayItemsRef == other.ArrayItemsRef
+            && ArrayItemsType == other.ArrayItemsType
+            && ArrayItemsFormat == other.ArrayItemsFormat
+            && MinItems == other.MinItems
+            && MaxItems == other.MaxItems
+            && DictionaryValueType == other.DictionaryValueType
+            && DictionaryValueRef == other.DictionaryValueRef
+            && DictionaryValueFormat == other.DictionaryValueFormat
+            && DiscriminatorPropertyName == other.DiscriminatorPropertyName
+            && BaseRef == other.BaseRef
+            && DiscriminatorMapping.SequenceEqual(other.DiscriminatorMapping)
+            && Properties.SequenceEqual(other.Properties)
+            && EnumValues.SequenceEqual(other.EnumValues)
+            && Required.SequenceEqual(other.Required);
     }
 
     public override bool Equals(object? obj) => Equals(obj as SchemaModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Name.GetHashCode();
             hash = (hash * 397) ^ Kind.GetHashCode();
             return hash;
@@ -151,7 +160,8 @@ internal class SchemaModel : IEquatable<SchemaModel> {
     }
 }
 
-internal enum SchemaKind {
+internal enum SchemaKind
+{
     Object,
     Enum,
     Array,
@@ -162,5 +172,5 @@ internal enum SchemaKind {
     /// A choice between named schemas - a <c>oneOf</c>, which becomes a type holding exactly one of
     /// them. See <see cref="SchemaModel.OneOf"/>.
     /// </summary>
-    OneOf
+    OneOf,
 }

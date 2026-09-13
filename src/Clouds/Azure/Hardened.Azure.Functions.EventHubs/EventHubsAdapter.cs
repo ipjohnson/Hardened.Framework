@@ -38,23 +38,28 @@ namespace Hardened.Azure.Functions.EventHubs;
 /// to one hub, so the function's identity is the route.
 /// </para>
 /// </remarks>
-public sealed class EventHubsAdapter : ITriggerAdapter {
+public sealed class EventHubsAdapter : ITriggerAdapter
+{
     /// <summary>Whether the shim was generated for this family, which is a type check.</summary>
     public bool Handles(FunctionsTrigger trigger) => trigger.Data is EventData[];
 
-    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context) {
-        var events = trigger.Data as EventData[]
-                     ?? throw new InvalidOperationException(
-                         $"The Event Hubs adapter was handed {trigger.Data.GetType().Name} for " +
-                         $"{trigger.Scheme} {trigger.Path}. Its shims bind EventData[], so this shim " +
-                         "was generated for another family.");
+    public IExecutionRequest CreateRequest(FunctionsTrigger trigger, FunctionContext context)
+    {
+        var events =
+            trigger.Data as EventData[]
+            ?? throw new InvalidOperationException(
+                $"The Event Hubs adapter was handed {trigger.Data.GetType().Name} for "
+                    + $"{trigger.Scheme} {trigger.Path}. Its shims bind EventData[], so this shim "
+                    + "was generated for another family."
+            );
 
         return new EventHubsRequest(
             trigger.Scheme,
             trigger.Path,
             Stream.Null,
             new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
-            events);
+            events
+        );
     }
 
     public IExecutionResponse CreateResponse(Stream output) => new FunctionsPayloadResponse(output);
@@ -66,6 +71,8 @@ public sealed class EventHubsAdapter : ITriggerAdapter {
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
 
     /// <summary>Nothing. The host checkpoints when the invocation completes and reads no response.</summary>
-    public ValueTask<object?> WriteResponse(IExecutionContext context, FunctionContext functionContext) =>
-        new((object?)null);
+    public ValueTask<object?> WriteResponse(
+        IExecutionContext context,
+        FunctionContext functionContext
+    ) => new((object?)null);
 }

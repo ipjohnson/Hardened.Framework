@@ -22,23 +22,26 @@ namespace Hardened.SourceGenerator.Shared;
 /// source at all.
 /// </para>
 /// </remarks>
-public record LocationInfo(string FilePath, TextSpan TextSpan, LinePositionSpan LineSpan) {
-
+public record LocationInfo(string FilePath, TextSpan TextSpan, LinePositionSpan LineSpan)
+{
     /// <summary>Captures where a node was written.</summary>
     public static LocationInfo? From(SyntaxNode? node) => From(node?.GetLocation());
 
     /// <summary>Captures where a token was written - an identifier, rather than its declaration.</summary>
     public static LocationInfo? From(SyntaxToken token) => From(token.GetLocation());
 
-    private static LocationInfo? From(Location? location) {
-        if (location == null || location.SourceTree == null) {
+    private static LocationInfo? From(Location? location)
+    {
+        if (location == null || location.SourceTree == null)
+        {
             return null;
         }
 
         return new LocationInfo(
             location.SourceTree.FilePath,
             location.SourceSpan,
-            location.GetLineSpan().Span);
+            location.GetLineSpan().Span
+        );
     }
 
     /// <summary>

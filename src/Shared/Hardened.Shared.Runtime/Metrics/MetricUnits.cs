@@ -1,7 +1,9 @@
 ﻿namespace Hardened.Shared.Runtime.Metrics;
 
-public class MetricUnits {
-    public MetricUnits(string name) {
+public class MetricUnits
+{
+    public MetricUnits(string name)
+    {
         Name = name;
     }
 

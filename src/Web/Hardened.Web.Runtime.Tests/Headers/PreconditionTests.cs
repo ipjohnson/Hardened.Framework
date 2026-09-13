@@ -1,6 +1,6 @@
 using Hardened.Requests.Abstract.Headers;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Headers;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Headers;
@@ -14,25 +14,28 @@ namespace Hardened.Web.Runtime.Tests.Headers;
 /// here is a case both get wrong the same way.
 /// </para>
 /// </summary>
-public class PreconditionTests {
-
+public class PreconditionTests
+{
     private const string Tag = "\"abc\"";
 
-    private static readonly DateTimeOffset Noon =
-        new(2026, 8, 18, 12, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Noon = new(2026, 8, 18, 12, 0, 0, TimeSpan.Zero);
 
     private static StringValues Date(DateTimeOffset when) => new(HttpDate.Format(when));
 
     #region If-None-Match
 
     [Fact]
-    public void AMatchingTagIsNotModified() {
+    public void AMatchingTagIsNotModified()
+    {
         Assert.True(Precondition.NotModified(new StringValues(Tag), StringValues.Empty, Tag, null));
     }
 
     [Fact]
-    public void ADifferentTagIsModified() {
-        Assert.False(Precondition.NotModified(new StringValues("\"xyz\""), StringValues.Empty, Tag, null));
+    public void ADifferentTagIsModified()
+    {
+        Assert.False(
+            Precondition.NotModified(new StringValues("\"xyz\""), StringValues.Empty, Tag, null)
+        );
     }
 
     /// <summary>
@@ -42,8 +45,11 @@ public class PreconditionTests {
     [Theory]
     [InlineData("\"abc\"")]
     [InlineData("*")]
-    public void IfNoneMatchAgainstAResponseWithNoTagIsModified(string header) {
-        Assert.False(Precondition.NotModified(new StringValues(header), StringValues.Empty, null, Noon));
+    public void IfNoneMatchAgainstAResponseWithNoTagIsModified(string header)
+    {
+        Assert.False(
+            Precondition.NotModified(new StringValues(header), StringValues.Empty, null, Noon)
+        );
     }
 
     /// <summary>
@@ -51,7 +57,8 @@ public class PreconditionTests {
     /// that sent both meant the validator, and the date is not consulted at all.
     /// </summary>
     [Fact]
-    public void AMismatchedTagIsModifiedWhateverTheDateSays() {
+    public void AMismatchedTagIsModifiedWhateverTheDateSays()
+    {
         Assert.False(Precondition.NotModified(new StringValues("\"xyz\""), Date(Noon), Tag, Noon));
     }
 
@@ -64,18 +71,25 @@ public class PreconditionTests {
     /// as close to "the same" as it can express.
     /// </summary>
     [Fact]
-    public void IfModifiedSinceAtLastModifiedIsNotModified() {
+    public void IfModifiedSinceAtLastModifiedIsNotModified()
+    {
         Assert.True(Precondition.NotModified(StringValues.Empty, Date(Noon), null, Noon));
     }
 
     [Fact]
-    public void IfModifiedSinceAfterLastModifiedIsNotModified() {
-        Assert.True(Precondition.NotModified(StringValues.Empty, Date(Noon.AddHours(1)), null, Noon));
+    public void IfModifiedSinceAfterLastModifiedIsNotModified()
+    {
+        Assert.True(
+            Precondition.NotModified(StringValues.Empty, Date(Noon.AddHours(1)), null, Noon)
+        );
     }
 
     [Fact]
-    public void IfModifiedSinceBeforeLastModifiedIsModified() {
-        Assert.False(Precondition.NotModified(StringValues.Empty, Date(Noon.AddSeconds(-1)), null, Noon));
+    public void IfModifiedSinceBeforeLastModifiedIsModified()
+    {
+        Assert.False(
+            Precondition.NotModified(StringValues.Empty, Date(Noon.AddSeconds(-1)), null, Noon)
+        );
     }
 
     /// <summary>
@@ -84,8 +98,16 @@ public class PreconditionTests {
     /// against the resource miss, forever.
     /// </summary>
     [Fact]
-    public void ASubSecondLastModifiedIsComparedToTheSecond() {
-        Assert.True(Precondition.NotModified(StringValues.Empty, Date(Noon), null, Noon.AddMilliseconds(750)));
+    public void ASubSecondLastModifiedIsComparedToTheSecond()
+    {
+        Assert.True(
+            Precondition.NotModified(
+                StringValues.Empty,
+                Date(Noon),
+                null,
+                Noon.AddMilliseconds(750)
+            )
+        );
     }
 
     /// <summary>
@@ -93,19 +115,24 @@ public class PreconditionTests {
     /// says to ignore it then.
     /// </summary>
     [Fact]
-    public void IfModifiedSinceAgainstAResponseWithNoLastModifiedIsModified() {
+    public void IfModifiedSinceAgainstAResponseWithNoLastModifiedIsModified()
+    {
         Assert.False(Precondition.NotModified(StringValues.Empty, Date(Noon), Tag, null));
     }
 
     [Fact]
-    public void AnUnparseableIfModifiedSinceIsModified() {
-        Assert.False(Precondition.NotModified(StringValues.Empty, new StringValues("yesterday"), null, Noon));
+    public void AnUnparseableIfModifiedSinceIsModified()
+    {
+        Assert.False(
+            Precondition.NotModified(StringValues.Empty, new StringValues("yesterday"), null, Noon)
+        );
     }
 
     #endregion
 
     [Fact]
-    public void NoConditionalIsModified() {
+    public void NoConditionalIsModified()
+    {
         Assert.False(Precondition.NotModified(StringValues.Empty, StringValues.Empty, Tag, Noon));
     }
 }

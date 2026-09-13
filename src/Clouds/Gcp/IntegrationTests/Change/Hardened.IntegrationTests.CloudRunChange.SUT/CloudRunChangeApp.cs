@@ -13,7 +13,8 @@ namespace Hardened.IntegrationTests.CloudRunChange.SUT;
 [CloudRunRuntime]
 public partial class CloudRunChangeApp;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
@@ -22,13 +23,15 @@ public class Order {
 }
 
 /// <summary>What a change handler does with a document that moved; injected so each test observes only its own.</summary>
-public interface IOrderProjection {
+public interface IOrderProjection
+{
     void Apply(Order order);
 
     void Previous(Order? previous);
 }
 
-public class OrderChangeHandlers {
+public class OrderChangeHandlers
+{
     /// <summary>
     /// A document, bound like any other message. Firestore delivered typed values and this handler
     /// declares <c>Order</c>, so nothing in it knows the document arrived that way.
@@ -41,6 +44,9 @@ public class OrderChangeHandlers {
     /// than a second handler on <c>orders</c>: one collection is one route.
     /// </summary>
     [Change("audit")]
-    public void OnAuditChanged(Order order, [OldValue] Order? previous, IOrderProjection projection) =>
-        projection.Previous(previous);
+    public void OnAuditChanged(
+        Order order,
+        [OldValue] Order? previous,
+        IOrderProjection projection
+    ) => projection.Previous(previous);
 }

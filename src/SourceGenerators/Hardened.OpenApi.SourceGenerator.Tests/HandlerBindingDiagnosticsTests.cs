@@ -17,32 +17,39 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// class, so the service resolved to nothing; and a declaration the described path never reads
 /// compiled on the implementation and changed nothing.
 /// </remarks>
-public class HandlerBindingDiagnosticsTests {
-
+public class HandlerBindingDiagnosticsTests
+{
     private static RequestHandlerModel Operation(string serviceName, string path) =>
-        new(new RequestHandlerNameModel(path, "GET"),
+        new(
+            new RequestHandlerNameModel(path, "GET"),
             TypeDefinition.Get("Test.Api.Services", serviceName),
             "Invoke",
             TypeDefinition.Get("Test.Api.Generated", serviceName + "_Invoke"),
             Array.Empty<RequestParameterInformation>(),
             new ResponseInformationModel { IsAsync = true },
-            Array.Empty<AttributeModel>());
+            Array.Empty<AttributeModel>()
+        );
 
     private static HandlerInfo Handler(string implementation, params string[] baseList) =>
-        new(TypeDefinition.Get("Test.Api", implementation),
-            Array.ConvertAll(baseList, name => (ITypeDefinition)TypeDefinition.Get("Test.Api", name)),
+        new(
+            TypeDefinition.Get("Test.Api", implementation),
+            Array.ConvertAll(
+                baseList,
+                name => (ITypeDefinition)TypeDefinition.Get("Test.Api", name)
+            ),
             Array.Empty<AttributeModel>(),
-            Array.Empty<HandlerMethodFilterInfo>());
+            Array.Empty<HandlerMethodFilterInfo>()
+        );
 
     private static IReadOnlyList<Microsoft.CodeAnalysis.Diagnostic> Report(
-        IReadOnlyList<RequestHandlerModel> models, IReadOnlyList<HandlerInfo> handlers) =>
-        HandlerBindingDiagnostics.Collect(models, handlers);
+        IReadOnlyList<RequestHandlerModel> models,
+        IReadOnlyList<HandlerInfo> handlers
+    ) => HandlerBindingDiagnostics.Collect(models, handlers);
 
     [Fact]
-    public void ADescribedServiceWithNoHandlerIsReported() {
-        var diagnostics = Report(
-            [Operation("IPetService", "/pets")],
-            []);
+    public void ADescribedServiceWithNoHandlerIsReported()
+    {
+        var diagnostics = Report([Operation("IPetService", "/pets")], []);
 
         var diagnostic = Assert.Single(diagnostics);
 
@@ -52,19 +59,23 @@ public class HandlerBindingDiagnosticsTests {
 
     /// <summary>The count is in the message, because one missing handler can kill many routes.</summary>
     [Fact]
-    public void TheReportNamesHowManyRoutesTheMissingHandlerCosts() {
+    public void TheReportNamesHowManyRoutesTheMissingHandlerCosts()
+    {
         var diagnostics = Report(
             [Operation("IPetService", "/pets"), Operation("IPetService", "/pets/{id}")],
-            []);
+            []
+        );
 
         Assert.Contains("2 route", Assert.Single(diagnostics).GetMessage());
     }
 
     [Fact]
-    public void AnImplementedServiceIsNotReported() {
+    public void AnImplementedServiceIsNotReported()
+    {
         var diagnostics = Report(
             [Operation("IPetService", "/pets")],
-            [Handler("PetServiceImpl", "IPetService")]);
+            [Handler("PetServiceImpl", "IPetService")]
+        );
 
         Assert.Empty(diagnostics);
     }
@@ -73,32 +84,40 @@ public class HandlerBindingDiagnosticsTests {
     /// The case the base-list fix is for: the interface is present but not first.
     /// </summary>
     [Fact]
-    public void AServiceImplementedAfterABaseClassIsNotReported() {
+    public void AServiceImplementedAfterABaseClassIsNotReported()
+    {
         var diagnostics = Report(
             [Operation("IPetService", "/pets")],
-            [Handler("PetServiceImpl", "HandlerBase", "IPetService")]);
+            [Handler("PetServiceImpl", "HandlerBase", "IPetService")]
+        );
 
         Assert.Empty(diagnostics);
     }
 
     [Fact]
-    public void AHandlerNamingNoDescribedServiceIsReported() {
+    public void AHandlerNamingNoDescribedServiceIsReported()
+    {
         var diagnostics = Report(
             [Operation("IPetService", "/pets")],
-            [Handler("StrayImpl", "HandlerBase", "IDisposable")]);
+            [Handler("StrayImpl", "HandlerBase", "IDisposable")]
+        );
 
         Assert.Contains(diagnostics, d => d.Id == HandlerBindingDiagnostics.NoServiceInterfaceId);
     }
 
     /// <summary>The message lists what it did find, so the mismatch is readable without a rebuild.</summary>
     [Fact]
-    public void TheStrayHandlerReportListsItsBaseTypes() {
+    public void TheStrayHandlerReportListsItsBaseTypes()
+    {
         var diagnostics = Report(
             [Operation("IPetService", "/pets")],
-            [Handler("StrayImpl", "HandlerBase", "IDisposable")]);
+            [Handler("StrayImpl", "HandlerBase", "IDisposable")]
+        );
 
         var stray = Assert.Single(
-            diagnostics, d => d.Id == HandlerBindingDiagnostics.NoServiceInterfaceId);
+            diagnostics,
+            d => d.Id == HandlerBindingDiagnostics.NoServiceInterfaceId
+        );
 
         Assert.Contains("HandlerBase", stray.GetMessage());
         Assert.Contains("IDisposable", stray.GetMessage());
@@ -109,7 +128,8 @@ public class HandlerBindingDiagnosticsTests {
     /// belong to the other generator, and reporting them here would fire on every web application.
     /// </summary>
     [Fact]
-    public void NothingIsReportedWhenTheProjectDescribesNoServices() {
+    public void NothingIsReportedWhenTheProjectDescribesNoServices()
+    {
         var diagnostics = Report([], [Handler("SomeImpl", "ISomething")]);
 
         Assert.Empty(diagnostics);
@@ -120,30 +140,38 @@ public class HandlerBindingDiagnosticsTests {
     /// supported target, so an error would make it unbuildable; the escape hatch is NoWarn.
     /// </summary>
     [Fact]
-    public void BothAreWarningsRatherThanErrors() {
+    public void BothAreWarningsRatherThanErrors()
+    {
         var diagnostics = Report(
             [Operation("IPetService", "/pets")],
-            [Handler("StrayImpl", "IDisposable")]);
+            [Handler("StrayImpl", "IDisposable")]
+        );
 
-        Assert.All(diagnostics, d =>
-            Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, d.Severity));
+        Assert.All(
+            diagnostics,
+            d => Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Warning, d.Severity)
+        );
     }
 
     private static AttributeModel Declaration(string attributeName) =>
         new(TypeDefinition.Get("Hardened.Requests.Abstract.Attributes", attributeName), "", "");
 
     private static HandlerInfo HandlerDeclaring(string method, string attributeName) =>
-        new(TypeDefinition.Get("Test.Api", "PetServiceImpl"),
+        new(
+            TypeDefinition.Get("Test.Api", "PetServiceImpl"),
             new[] { (ITypeDefinition)TypeDefinition.Get("Test.Api", "IPetService") },
             Array.Empty<AttributeModel>(),
-            new[] { new HandlerMethodFilterInfo(method, new[] { Declaration(attributeName) }) });
+            new[] { new HandlerMethodFilterInfo(method, new[] { Declaration(attributeName) }) }
+        );
 
     /// <summary>The same handler with the declaration on the class rather than on a method.</summary>
     private static HandlerInfo HandlerClassDeclaring(string attributeName) =>
-        new(TypeDefinition.Get("Test.Api", "PetServiceImpl"),
+        new(
+            TypeDefinition.Get("Test.Api", "PetServiceImpl"),
             new[] { (ITypeDefinition)TypeDefinition.Get("Test.Api", "IPetService") },
             new[] { Declaration(attributeName) },
-            Array.Empty<HandlerMethodFilterInfo>());
+            Array.Empty<HandlerMethodFilterInfo>()
+        );
 
     /// <summary>
     /// <c>[RawResponse]</c> on a described handler, which the generator reads from a handler's own
@@ -154,10 +182,12 @@ public class HandlerBindingDiagnosticsTests {
     /// described path takes the media type from the contract.
     /// </remarks>
     [Fact]
-    public void ADeclarationTheDescribedPathDoesNotReadIsReported() {
+    public void ADeclarationTheDescribedPathDoesNotReadIsReported()
+    {
         var diagnostics = Report(
             new[] { Operation("IPetService", "/pets") },
-            new[] { HandlerDeclaring("ListPets", "RawResponseAttribute") });
+            new[] { HandlerDeclaring("ListPets", "RawResponseAttribute") }
+        );
 
         var diagnostic = Assert.Single(diagnostics);
 
@@ -178,9 +208,15 @@ public class HandlerBindingDiagnosticsTests {
     public void TheInertDeclarationIsAWarning() =>
         Assert.Equal(
             Microsoft.CodeAnalysis.DiagnosticSeverity.Warning,
-            Assert.Single(Report(
-                new[] { Operation("IPetService", "/pets") },
-                new[] { HandlerDeclaring("ListPets", "RawResponseAttribute") })).Severity);
+            Assert
+                .Single(
+                    Report(
+                        new[] { Operation("IPetService", "/pets") },
+                        new[] { HandlerDeclaring("ListPets", "RawResponseAttribute") }
+                    )
+                )
+                .Severity
+        );
 
     /// <summary>
     /// <c>[Throws&lt;T&gt;]</c>, which is how a code-first handler puts a status in the document.
@@ -193,10 +229,16 @@ public class HandlerBindingDiagnosticsTests {
     /// <c>Name</c>.
     /// </remarks>
     [Fact]
-    public void AThrowsDeclarationIsReported() {
-        var message = Assert.Single(Report(
-            new[] { Operation("IPetService", "/pets") },
-            new[] { HandlerDeclaring("ListPets", "ThrowsAttribute") })).GetMessage();
+    public void AThrowsDeclarationIsReported()
+    {
+        var message = Assert
+            .Single(
+                Report(
+                    new[] { Operation("IPetService", "/pets") },
+                    new[] { HandlerDeclaring("ListPets", "ThrowsAttribute") }
+                )
+            )
+            .GetMessage();
 
         Assert.Contains("PetServiceImpl.ListPets", message);
         Assert.Contains("[Throws]", message);
@@ -214,10 +256,16 @@ public class HandlerBindingDiagnosticsTests {
     [Theory]
     [InlineData("TagAttribute", "[Tag]", "grouped by the tag")]
     [InlineData("ServerAttribute", "[Server]", "servers block")]
-    public void AClassLevelDeclarationIsReported(string attribute, string named, string instead) {
-        var message = Assert.Single(Report(
-            new[] { Operation("IPetService", "/pets") },
-            new[] { HandlerClassDeclaring(attribute) })).GetMessage();
+    public void AClassLevelDeclarationIsReported(string attribute, string named, string instead)
+    {
+        var message = Assert
+            .Single(
+                Report(
+                    new[] { Operation("IPetService", "/pets") },
+                    new[] { HandlerClassDeclaring(attribute) }
+                )
+            )
+            .GetMessage();
 
         // The class alone, because there is no method to name.
         Assert.Contains("'PetServiceImpl'", message);
@@ -228,9 +276,12 @@ public class HandlerBindingDiagnosticsTests {
     /// <summary>A class declaration the described path does read is left alone, as a method's is.</summary>
     [Fact]
     public void AClassLevelDeclarationTheDescribedPathReadsIsNotReported() =>
-        Assert.Empty(Report(
-            new[] { Operation("IPetService", "/pets") },
-            new[] { HandlerClassDeclaring("RateLimitAttribute") }));
+        Assert.Empty(
+            Report(
+                new[] { Operation("IPetService", "/pets") },
+                new[] { HandlerClassDeclaring("RateLimitAttribute") }
+            )
+        );
 
     /// <summary>
     /// A declaration the described path does read is left alone. Without this the rule could pass
@@ -238,7 +289,10 @@ public class HandlerBindingDiagnosticsTests {
     /// </summary>
     [Fact]
     public void ADeclarationTheDescribedPathReadsIsNotReported() =>
-        Assert.Empty(Report(
-            new[] { Operation("IPetService", "/pets") },
-            new[] { HandlerDeclaring("ListPets", "RateLimitAttribute") }));
+        Assert.Empty(
+            Report(
+                new[] { Operation("IPetService", "/pets") },
+                new[] { HandlerDeclaring("ListPets", "RateLimitAttribute") }
+            )
+        );
 }

@@ -13,8 +13,8 @@ namespace Hardened.Requests.Abstract.Tests.Headers;
 /// - so the exact strings are asserted rather than the shape.
 /// </para>
 /// </summary>
-public class EntityTagHeaderTests {
-
+public class EntityTagHeaderTests
+{
     #region formatting
 
     /// <summary>
@@ -22,8 +22,12 @@ public class EntityTagHeaderTests {
     /// contains characters that may not appear in an unquoted header value of this shape.
     /// </summary>
     [Fact]
-    public void AnOpaqueValueIsQuoted() {
-        Assert.Equal("\"OybX3FuqNfSKoSm+h1FJqQ==\"", EntityTagHeader.Format("OybX3FuqNfSKoSm+h1FJqQ=="));
+    public void AnOpaqueValueIsQuoted()
+    {
+        Assert.Equal(
+            "\"OybX3FuqNfSKoSm+h1FJqQ==\"",
+            EntityTagHeader.Format("OybX3FuqNfSKoSm+h1FJqQ==")
+        );
     }
 
     /// <summary>
@@ -31,7 +35,8 @@ public class EntityTagHeaderTests {
     /// one validator is what tells a cache holding both that they are interchangeable.
     /// </summary>
     [Fact]
-    public void AVariantGetsItsOwnTag() {
+    public void AVariantGetsItsOwnTag()
+    {
         var plain = EntityTagHeader.Format("abc");
         var gzip = EntityTagHeader.Format("abc", "gzip");
         var brotli = EntityTagHeader.Format("abc", "br");
@@ -47,10 +52,12 @@ public class EntityTagHeaderTests {
     /// digest as well as the formatting.
     /// </summary>
     [Fact]
-    public void AComputedTagIsTheQuotedBase64Sha256OfTheBytes() {
+    public void AComputedTagIsTheQuotedBase64Sha256OfTheBytes()
+    {
         Assert.Equal(
             "\"47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=\"",
-            EntityTagHeader.ForContent(ReadOnlySpan<byte>.Empty));
+            EntityTagHeader.ForContent(ReadOnlySpan<byte>.Empty)
+        );
     }
 
     /// <summary>
@@ -58,15 +65,20 @@ public class EntityTagHeaderTests {
     /// share one.
     /// </summary>
     [Fact]
-    public void AComputedTagFollowsTheBytes() {
+    public void AComputedTagFollowsTheBytes()
+    {
         var catalog = "catalog"u8.ToArray();
 
         Assert.Equal(EntityTagHeader.ForContent(catalog), EntityTagHeader.ForContent(catalog));
-        Assert.NotEqual(EntityTagHeader.ForContent(catalog), EntityTagHeader.ForContent("basket"u8.ToArray()));
+        Assert.NotEqual(
+            EntityTagHeader.ForContent(catalog),
+            EntityTagHeader.ForContent("basket"u8.ToArray())
+        );
     }
 
     [Fact]
-    public void AComputedTagIsStrongAndMatchesItself() {
+    public void AComputedTagIsStrongAndMatchesItself()
+    {
         var tag = EntityTagHeader.ForContent("catalog"u8.ToArray());
 
         Assert.StartsWith("\"", tag);
@@ -78,12 +90,14 @@ public class EntityTagHeaderTests {
     #region matching
 
     [Fact]
-    public void TheSameTagMatches() {
+    public void TheSameTagMatches()
+    {
         Assert.True(EntityTagHeader.Matches(new StringValues("\"abc\""), "\"abc\""));
     }
 
     [Fact]
-    public void ADifferentTagDoesNotMatch() {
+    public void ADifferentTagDoesNotMatch()
+    {
         Assert.False(EntityTagHeader.Matches(new StringValues("\"xyz\""), "\"abc\""));
     }
 
@@ -92,7 +106,8 @@ public class EntityTagHeaderTests {
     /// the whole reason the variant is in the opaque part.
     /// </summary>
     [Fact]
-    public void AVariantTagDoesNotMatchTheResourceTag() {
+    public void AVariantTagDoesNotMatchTheResourceTag()
+    {
         Assert.False(EntityTagHeader.Matches(new StringValues("\"abc-gzip\""), "\"abc\""));
         Assert.False(EntityTagHeader.Matches(new StringValues("\"abc\""), "\"abc-gzip\""));
     }
@@ -107,12 +122,14 @@ public class EntityTagHeaderTests {
     [InlineData("\"abc\",\"two\"")]
     [InlineData("\"one\", \"abc\"")]
     [InlineData("  \"abc\"  ")]
-    public void ATagAnywhereInTheListMatches(string header) {
+    public void ATagAnywhereInTheListMatches(string header)
+    {
         Assert.True(EntityTagHeader.Matches(new StringValues(header), "\"abc\""));
     }
 
     [Fact]
-    public void AListWithoutTheTagDoesNotMatch() {
+    public void AListWithoutTheTagDoesNotMatch()
+    {
         Assert.False(EntityTagHeader.Matches(new StringValues("\"one\", \"two\""), "\"abc\""));
     }
 
@@ -122,7 +139,8 @@ public class EntityTagHeaderTests {
     [Theory]
     [InlineData("*")]
     [InlineData(" * ")]
-    public void TheWildcardMatches(string header) {
+    public void TheWildcardMatches(string header)
+    {
         Assert.True(EntityTagHeader.Matches(new StringValues(header), "\"abc\""));
     }
 
@@ -136,15 +154,18 @@ public class EntityTagHeaderTests {
     [InlineData("\"abc\"", "W/\"abc\"")]
     [InlineData("W/\"abc\"", "W/\"abc\"")]
     [InlineData("\"one\", W/\"abc\"", "\"abc\"")]
-    public void WeakAndStrongCompareEqual(string header, string etag) {
+    public void WeakAndStrongCompareEqual(string header, string etag)
+    {
         Assert.True(EntityTagHeader.Matches(new StringValues(header), etag));
     }
 
     /// <summary>Two header lines carrying one tag each.</summary>
     [Fact]
-    public void ATagInEitherOfTwoValuesMatches() {
-        Assert.True(EntityTagHeader.Matches(
-            new StringValues(new[] { "\"one\"", "\"abc\"" }), "\"abc\""));
+    public void ATagInEitherOfTwoValuesMatches()
+    {
+        Assert.True(
+            EntityTagHeader.Matches(new StringValues(new[] { "\"one\"", "\"abc\"" }), "\"abc\"")
+        );
     }
 
     #endregion
@@ -152,12 +173,14 @@ public class EntityTagHeaderTests {
     #region nothing to match against
 
     [Fact]
-    public void NoHeaderDoesNotMatch() {
+    public void NoHeaderDoesNotMatch()
+    {
         Assert.False(EntityTagHeader.Matches(StringValues.Empty, "\"abc\""));
     }
 
     [Fact]
-    public void NoTagToCompareAgainstDoesNotMatch() {
+    public void NoTagToCompareAgainstDoesNotMatch()
+    {
         Assert.False(EntityTagHeader.Matches(new StringValues("*"), ""));
     }
 
@@ -171,7 +194,8 @@ public class EntityTagHeaderTests {
     [InlineData("W/")]
     [InlineData(",,,")]
     [InlineData("\"one\", garbage, \"abc\"")]
-    public void MalformedInputDoesNotMatch(string header) {
+    public void MalformedInputDoesNotMatch(string header)
+    {
         Assert.False(EntityTagHeader.Matches(new StringValues(header), "\"abc\""));
     }
 
@@ -181,7 +205,8 @@ public class EntityTagHeaderTests {
     /// served the resource last.
     /// </summary>
     [Fact]
-    public void ATagContainingACommaIsNotCutInHalf() {
+    public void ATagContainingACommaIsNotCutInHalf()
+    {
         Assert.True(EntityTagHeader.Matches(new StringValues("\"a,b\""), "\"a,b\""));
         Assert.False(EntityTagHeader.Matches(new StringValues("\"a,b\""), "\"a\""));
     }

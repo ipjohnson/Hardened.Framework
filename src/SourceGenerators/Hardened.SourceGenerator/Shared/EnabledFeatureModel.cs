@@ -20,9 +20,14 @@ namespace Hardened.SourceGenerator.Shared;
 /// still keys an incremental cache.
 /// </para>
 /// </remarks>
-public class EnabledFeatureModel : IEquatable<EnabledFeatureModel> {
+public class EnabledFeatureModel : IEquatable<EnabledFeatureModel>
+{
     public EnabledFeatureModel(
-        ITypeDefinition markerType, IReadOnlyList<FeatureFacet> facets, bool isDependencyModule) {
+        ITypeDefinition markerType,
+        IReadOnlyList<FeatureFacet> facets,
+        bool isDependencyModule
+    )
+    {
         MarkerType = markerType;
         Facets = facets;
         IsDependencyModule = isDependencyModule;
@@ -55,9 +60,12 @@ public class EnabledFeatureModel : IEquatable<EnabledFeatureModel> {
     public IReadOnlyList<FeatureFacet> Facets { get; }
 
     /// <summary>The facet with this name, or null. Names carry no <c>Attribute</c> suffix.</summary>
-    public FeatureFacet? Facet(string name) {
-        foreach (var facet in Facets) {
-            if (string.Equals(facet.Name, name, StringComparison.Ordinal)) {
+    public FeatureFacet? Facet(string name)
+    {
+        foreach (var facet in Facets)
+        {
+            if (string.Equals(facet.Name, name, StringComparison.Ordinal))
+            {
                 return facet;
             }
         }
@@ -66,21 +74,24 @@ public class EnabledFeatureModel : IEquatable<EnabledFeatureModel> {
     }
 
     public bool Equals(EnabledFeatureModel? other) =>
-        other != null &&
-        MarkerType.Equals(other.MarkerType) &&
-        IsDependencyModule == other.IsDependencyModule &&
-        Facets.Count == other.Facets.Count &&
-        !Facets.Where((facet, index) => !facet.Equals(other.Facets[index])).Any();
+        other != null
+        && MarkerType.Equals(other.MarkerType)
+        && IsDependencyModule == other.IsDependencyModule
+        && Facets.Count == other.Facets.Count
+        && !Facets.Where((facet, index) => !facet.Equals(other.Facets[index])).Any();
 
     public override bool Equals(object obj) => Equals(obj as EnabledFeatureModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hashCode = MarkerType.GetHashCode();
 
             hashCode = (hashCode * 397) ^ IsDependencyModule.GetHashCode();
 
-            foreach (var facet in Facets) {
+            foreach (var facet in Facets)
+            {
                 hashCode = (hashCode * 397) ^ facet.GetHashCode();
             }
 
@@ -100,8 +111,10 @@ public class EnabledFeatureModel : IEquatable<EnabledFeatureModel> {
 /// <c>[TemplateContentType("text/html")]</c>, <c>[TemplateBase(typeof(HardenedHtmlTemplate&lt;&gt;))]</c>.
 /// An attribute needing more than that is describing something other than a feature switch.
 /// </remarks>
-public class FeatureFacet : IEquatable<FeatureFacet> {
-    public FeatureFacet(string name, string? value, ITypeDefinition? typeValue) {
+public class FeatureFacet : IEquatable<FeatureFacet>
+{
+    public FeatureFacet(string name, string? value, ITypeDefinition? typeValue)
+    {
         Name = name;
         Value = value;
         TypeValue = typeValue;
@@ -117,15 +130,17 @@ public class FeatureFacet : IEquatable<FeatureFacet> {
     public ITypeDefinition? TypeValue { get; }
 
     public bool Equals(FeatureFacet? other) =>
-        other != null &&
-        string.Equals(Name, other.Name, StringComparison.Ordinal) &&
-        string.Equals(Value, other.Value, StringComparison.Ordinal) &&
-        Equals(TypeValue, other.TypeValue);
+        other != null
+        && string.Equals(Name, other.Name, StringComparison.Ordinal)
+        && string.Equals(Value, other.Value, StringComparison.Ordinal)
+        && Equals(TypeValue, other.TypeValue);
 
     public override bool Equals(object obj) => Equals(obj as FeatureFacet);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hashCode = Name.GetHashCode();
 
             hashCode = (hashCode * 397) ^ (Value?.GetHashCode() ?? 0);

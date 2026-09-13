@@ -12,7 +12,8 @@ namespace Hardened.IntegrationTests.AzureBlob.SUT;
 /// a container and a name where S3 has a bucket and a key, because that is what each store calls
 /// them.
 /// </remarks>
-public class Upload {
+public class Upload
+{
     public string Container { get; set; } = "";
 
     public string Name { get; set; } = "";
@@ -23,11 +24,13 @@ public class Upload {
 }
 
 /// <summary>Where a handled notification goes, so a test can observe it.</summary>
-public interface IUploadSink {
+public interface IUploadSink
+{
     void Arrived(Upload upload);
 }
 
-public class UploadHandlers {
+public class UploadHandlers
+{
     [Blob("uploads")]
     public void OnUpload(Upload upload, IUploadSink sink) => sink.Arrived(upload);
 }

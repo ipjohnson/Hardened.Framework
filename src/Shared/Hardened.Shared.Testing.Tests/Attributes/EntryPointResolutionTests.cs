@@ -16,14 +16,16 @@ namespace Hardened.Shared.Testing.Tests.Attributes;
 /// in Bootstrap.cs. It is the one level a test cannot declare locally, which is exactly why it is
 /// declared once for the whole project rather than mocked.
 /// </remarks>
-public class EntryPointResolutionTests {
-
-    private class InheritsTheAssemblyEntryPoint {
+public class EntryPointResolutionTests
+{
+    private class InheritsTheAssemblyEntryPoint
+    {
         public void Method() { }
     }
 
     [HardenedTestEntryPoint(typeof(ClassEntryPointModule))]
-    private class DeclaresAClassEntryPoint {
+    private class DeclaresAClassEntryPoint
+    {
         public void Method() { }
 
         [HardenedTestEntryPoint(typeof(MethodEntryPointModule))]
@@ -31,29 +33,42 @@ public class EntryPointResolutionTests {
     }
 
     [Fact]
-    public void AMethodWithNoNearerDeclarationGetsTheAssemblyEntryPoint() {
-        var method = typeof(InheritsTheAssemblyEntryPoint)
-            .GetMethod(nameof(InheritsTheAssemblyEntryPoint.Method))!;
+    public void AMethodWithNoNearerDeclarationGetsTheAssemblyEntryPoint()
+    {
+        var method = typeof(InheritsTheAssemblyEntryPoint).GetMethod(
+            nameof(InheritsTheAssemblyEntryPoint.Method)
+        )!;
 
-        Assert.Equal(typeof(AssemblyEntryPointModule),
-            method.GetTestAttribute<HardenedTestEntryPointAttribute>()?.EntryPoint);
+        Assert.Equal(
+            typeof(AssemblyEntryPointModule),
+            method.GetTestAttribute<HardenedTestEntryPointAttribute>()?.EntryPoint
+        );
     }
 
     [Fact]
-    public void AClassEntryPointBeatsTheAssemblyEntryPoint() {
-        var method = typeof(DeclaresAClassEntryPoint).GetMethod(nameof(DeclaresAClassEntryPoint.Method))!;
+    public void AClassEntryPointBeatsTheAssemblyEntryPoint()
+    {
+        var method = typeof(DeclaresAClassEntryPoint).GetMethod(
+            nameof(DeclaresAClassEntryPoint.Method)
+        )!;
 
-        Assert.Equal(typeof(ClassEntryPointModule),
-            method.GetTestAttribute<HardenedTestEntryPointAttribute>()?.EntryPoint);
+        Assert.Equal(
+            typeof(ClassEntryPointModule),
+            method.GetTestAttribute<HardenedTestEntryPointAttribute>()?.EntryPoint
+        );
     }
 
     [Fact]
-    public void AMethodEntryPointBeatsBothTheClassAndTheAssembly() {
-        var method = typeof(DeclaresAClassEntryPoint)
-            .GetMethod(nameof(DeclaresAClassEntryPoint.MethodWithItsOwnEntryPoint))!;
+    public void AMethodEntryPointBeatsBothTheClassAndTheAssembly()
+    {
+        var method = typeof(DeclaresAClassEntryPoint).GetMethod(
+            nameof(DeclaresAClassEntryPoint.MethodWithItsOwnEntryPoint)
+        )!;
 
-        Assert.Equal(typeof(MethodEntryPointModule),
-            method.GetTestAttribute<HardenedTestEntryPointAttribute>()?.EntryPoint);
+        Assert.Equal(
+            typeof(MethodEntryPointModule),
+            method.GetTestAttribute<HardenedTestEntryPointAttribute>()?.EntryPoint
+        );
     }
 
     /// <summary>
@@ -63,11 +78,14 @@ public class EntryPointResolutionTests {
     /// read alike and are not, so both are pinned.
     /// </summary>
     [Fact]
-    public void EveryDeclaredEntryPointIsStillVisibleToModuleLoading() {
-        var method = typeof(DeclaresAClassEntryPoint)
-            .GetMethod(nameof(DeclaresAClassEntryPoint.MethodWithItsOwnEntryPoint))!;
+    public void EveryDeclaredEntryPointIsStillVisibleToModuleLoading()
+    {
+        var method = typeof(DeclaresAClassEntryPoint).GetMethod(
+            nameof(DeclaresAClassEntryPoint.MethodWithItsOwnEntryPoint)
+        )!;
 
-        var entryPoints = method.GetTestAttributes<HardenedTestEntryPointAttribute>()
+        var entryPoints = method
+            .GetTestAttributes<HardenedTestEntryPointAttribute>()
             .Select(attribute => attribute.EntryPoint)
             .ToArray();
 
@@ -81,28 +99,39 @@ public class EntryPointResolutionTests {
     /// is what makes an assembly-level hook run before a method-level one of the same order.
     /// </summary>
     [Fact]
-    public void GetTestAttributesWalksWidestScopeFirst() {
-        var method = typeof(DeclaresAClassEntryPoint)
-            .GetMethod(nameof(DeclaresAClassEntryPoint.MethodWithItsOwnEntryPoint))!;
+    public void GetTestAttributesWalksWidestScopeFirst()
+    {
+        var method = typeof(DeclaresAClassEntryPoint).GetMethod(
+            nameof(DeclaresAClassEntryPoint.MethodWithItsOwnEntryPoint)
+        )!;
 
-        var entryPoints = method.GetTestAttributes<HardenedTestEntryPointAttribute>()
+        var entryPoints = method
+            .GetTestAttributes<HardenedTestEntryPointAttribute>()
             .Select(attribute => attribute.EntryPoint)
             .ToArray();
 
         Assert.Equal(
-            new[] { typeof(AssemblyEntryPointModule), typeof(ClassEntryPointModule), typeof(MethodEntryPointModule) },
-            entryPoints);
+            new[]
+            {
+                typeof(AssemblyEntryPointModule),
+                typeof(ClassEntryPointModule),
+                typeof(MethodEntryPointModule),
+            },
+            entryPoints
+        );
     }
 
     [Fact]
-    public void GetModuleBuildsAnInstanceOfTheDeclaredEntryPoint() {
+    public void GetModuleBuildsAnInstanceOfTheDeclaredEntryPoint()
+    {
         var attribute = new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule));
 
         Assert.IsType<AssemblyEntryPointModule>(attribute.GetModule());
     }
 
     [Fact]
-    public void GetModuleBuildsANewInstanceEachTimeItIsAsked() {
+    public void GetModuleBuildsANewInstanceEachTimeItIsAsked()
+    {
         var attribute = new HardenedTestEntryPointAttribute(typeof(AssemblyEntryPointModule));
 
         Assert.NotSame(attribute.GetModule(), attribute.GetModule());

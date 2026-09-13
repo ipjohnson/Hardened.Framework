@@ -19,22 +19,25 @@ namespace Hardened.IntegrationTests.Rie.Tests;
 /// </para>
 /// </remarks>
 [Trait("Category", "Simulator")]
-public sealed class RuntimeImageTests : IClassFixture<RuntimeImageTests.Function> {
+public sealed class RuntimeImageTests : IClassFixture<RuntimeImageTests.Function>
+{
     private readonly Function _function;
 
-    public RuntimeImageTests(Function function) {
+    public RuntimeImageTests(Function function)
+    {
         _function = function;
     }
 
-    private static string Envelope(string id, int quantity) => $$"""
-        {"Records":[{
-          "messageId":"m-{{id}}","receiptHandle":"r-{{id}}",
-          "body":"{\"id\":\"{{id}}\",\"quantity\":{{quantity}}}",
-          "eventSource":"aws:sqs",
-          "eventSourceARN":"arn:aws:sqs:us-east-1:123456789012:orders-new",
-          "awsRegion":"us-east-1"
-        }]}
-        """;
+    private static string Envelope(string id, int quantity) =>
+        $$"""
+            {"Records":[{
+              "messageId":"m-{{id}}","receiptHandle":"r-{{id}}",
+              "body":"{\"id\":\"{{id}}\",\"quantity\":{{quantity}}}",
+              "eventSource":"aws:sqs",
+              "eventSourceARN":"arn:aws:sqs:us-east-1:123456789012:orders-new",
+              "awsRegion":"us-east-1"
+            }]}
+            """;
 
     /// <summary>
     /// The whole deployed path: the runtime client polls the emulator, the adapter recognises the
@@ -42,8 +45,12 @@ public sealed class RuntimeImageTests : IClassFixture<RuntimeImageTests.Function
     /// batch report is what comes back. Nothing here is in-process.
     /// </summary>
     [Fact]
-    public async Task AQueueMessageIsHandledInsideTheLambdaRuntimeImage() {
-        var result = await _function.Emulator.InvokeAsync(Envelope("rie-1", 4), TestContext.Current.CancellationToken);
+    public async Task AQueueMessageIsHandledInsideTheLambdaRuntimeImage()
+    {
+        var result = await _function.Emulator.InvokeAsync(
+            Envelope("rie-1", 4),
+            TestContext.Current.CancellationToken
+        );
 
         Assert.False(result.Failed, result.Body);
 
@@ -52,7 +59,9 @@ public sealed class RuntimeImageTests : IClassFixture<RuntimeImageTests.Function
         Assert.Empty(report.RootElement.GetProperty("batchItemFailures").EnumerateArray());
 
         var observed = await _function.Emulator.Observed.WaitFor(
-            one => one.Has("id", "rie-1"), cancellationToken: TestContext.Current.CancellationToken);
+            one => one.Has("id", "rie-1"),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("queue", observed.Get("kind"));
         Assert.Equal(4, observed.Fields.GetProperty("quantity").GetInt32());
@@ -64,23 +73,33 @@ public sealed class RuntimeImageTests : IClassFixture<RuntimeImageTests.Function
     /// way the Invoke API does, or SQS would delete the message as handled.
     /// </summary>
     [Fact]
-    public async Task AFailedHandlerFailsTheInvocation() {
-        var result = await _function.Emulator.InvokeAsync(Envelope("rie-refused", -1), TestContext.Current.CancellationToken);
+    public async Task AFailedHandlerFailsTheInvocation()
+    {
+        var result = await _function.Emulator.InvokeAsync(
+            Envelope("rie-refused", -1),
+            TestContext.Current.CancellationToken
+        );
 
         Assert.True(result.Failed, result.Body);
         Assert.Contains("refused rie-refused", result.Body);
 
-        var observed = await _function.Emulator.Observed.Current(TestContext.Current.CancellationToken);
+        var observed = await _function.Emulator.Observed.Current(
+            TestContext.Current.CancellationToken
+        );
 
         Assert.DoesNotContain(observed, one => one.Has("id", "rie-refused"));
     }
 
-    public sealed class Function : IAsyncLifetime {
-        public LambdaRuntimeInterfaceEmulator Emulator { get; } = new(
-            ApplicationOutput.Of("Hardened.IntegrationTests.Rie.SUT"),
-            "Hardened.IntegrationTests.Rie.SUT");
+    public sealed class Function : IAsyncLifetime
+    {
+        public LambdaRuntimeInterfaceEmulator Emulator { get; } =
+            new(
+                ApplicationOutput.Of("Hardened.IntegrationTests.Rie.SUT"),
+                "Hardened.IntegrationTests.Rie.SUT"
+            );
 
-        public async ValueTask InitializeAsync() => await Emulator.StartAsync(TestContext.Current.CancellationToken);
+        public async ValueTask InitializeAsync() =>
+            await Emulator.StartAsync(TestContext.Current.CancellationToken);
 
         public async ValueTask DisposeAsync() => await Emulator.DisposeAsync();
     }

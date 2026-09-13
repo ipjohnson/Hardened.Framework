@@ -3,7 +3,8 @@ using DependencyModules.Runtime.Attributes;
 namespace Hardened1;
 
 /// <summary>What this library does, as a consumer sees it.</summary>
-public interface IGreetingService {
+public interface IGreetingService
+{
     string Greet(string name);
 }
 
@@ -19,7 +20,7 @@ public interface IGreetingService {
 /// something the first request finds out.
 /// </remarks>
 [SingletonService]
-public class GreetingService(IGreetingFormatter formatter) : IGreetingService {
-
+public class GreetingService(IGreetingFormatter formatter) : IGreetingService
+{
     public string Greet(string name) => formatter.Format($"Hello, {name}");
 }

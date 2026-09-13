@@ -31,7 +31,8 @@ namespace Hardened.Requests.Runtime.Serializer;
 /// also what takes it off the negotiated path entirely.
 /// </para>
 /// </remarks>
-public class RawResponseSerializer : IResponseSerializer {
+public class RawResponseSerializer : IResponseSerializer
+{
     /// <summary>What a bare string is, absent any other instruction.</summary>
     public const string DefaultContentType = "text/plain";
 
@@ -80,25 +81,31 @@ public class RawResponseSerializer : IResponseSerializer {
     /// default is JSON.
     /// </para>
     /// </remarks>
-    public bool CanProduce(string mediaType, IExecutionContext context) {
-        if (context.Response.ResponseValue is not (string or byte[] or Stream)) {
+    public bool CanProduce(string mediaType, IExecutionContext context)
+    {
+        if (context.Response.ResponseValue is not (string or byte[] or Stream))
+        {
             return false;
         }
 
         var committed = context.Response.ContentType;
 
-        if (!string.IsNullOrEmpty(committed)) {
+        if (!string.IsNullOrEmpty(committed))
+        {
             return MediaType.Matches(mediaType, committed);
         }
 
         var declared = context.HandlerInfo?.ProducedContentTypes;
 
-        if (declared == null) {
+        if (declared == null)
+        {
             return false;
         }
 
-        for (var i = 0; i < declared.Count; i++) {
-            if (MediaType.Matches(mediaType, declared[i])) {
+        for (var i = 0; i < declared.Count; i++)
+        {
+            if (MediaType.Matches(mediaType, declared[i]))
+            {
                 return true;
             }
         }
@@ -106,7 +113,8 @@ public class RawResponseSerializer : IResponseSerializer {
         return false;
     }
 
-    public async Task SerializeResponse(IExecutionContext context) {
+    public async Task SerializeResponse(IExecutionContext context)
+    {
         var value = context.Response.ResponseValue;
 
         // Only when nothing has been committed. Checked for empty as well as null because the
@@ -115,20 +123,32 @@ public class RawResponseSerializer : IResponseSerializer {
         // Bytes are not text, so they do not fall back to text/plain. Reaching here at all means an
         // operation returning byte[] or Stream declared no content type, which the build refuses -
         // see HRDR001 - so this is what a handler assembled by hand answers with.
-        if (string.IsNullOrEmpty(context.Response.ContentType)) {
+        if (string.IsNullOrEmpty(context.Response.ContentType))
+        {
             context.Response.ContentType =
                 value is string ? DefaultContentType : "application/octet-stream";
         }
 
-        switch (value) {
+        switch (value)
+        {
             case string text:
                 var bytes = Utf8NoBom.GetBytes(text);
 
-                await context.Response.Body.WriteAsync(bytes, 0, bytes.Length, context.CancellationToken);
+                await context.Response.Body.WriteAsync(
+                    bytes,
+                    0,
+                    bytes.Length,
+                    context.CancellationToken
+                );
 
                 break;
             case byte[] raw:
-                await context.Response.Body.WriteAsync(raw, 0, raw.Length, context.CancellationToken);
+                await context.Response.Body.WriteAsync(
+                    raw,
+                    0,
+                    raw.Length,
+                    context.CancellationToken
+                );
 
                 break;
             case Stream stream:
@@ -138,8 +158,9 @@ public class RawResponseSerializer : IResponseSerializer {
             default:
                 // Unreachable through the locator, which only reaches here after CanProduce agreed.
                 throw new InvalidOperationException(
-                    $"RawResponseSerializer cannot write {value?.GetType().Name ?? "null"}; " +
-                    "it handles string, byte[] and Stream.");
+                    $"RawResponseSerializer cannot write {value?.GetType().Name ?? "null"}; "
+                        + "it handles string, byte[] and Stream."
+                );
         }
     }
 }

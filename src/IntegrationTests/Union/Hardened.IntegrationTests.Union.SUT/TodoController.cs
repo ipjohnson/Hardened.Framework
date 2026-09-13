@@ -37,11 +37,13 @@ public union RemovedTodoResult(NoContent, NotFound);
 /// which is what makes the pair worth having rather than either alone.
 /// </para>
 /// </remarks>
-public class TodoController {
-
+public class TodoController
+{
     [Get("/{id}")]
-    public TodoResult ById(int id) {
-        if (id == 404) {
+    public TodoResult ById(int id)
+    {
+        if (id == 404)
+        {
             return new NotFound("todo", "no todo has that id");
         }
 
@@ -49,8 +51,10 @@ public class TodoController {
     }
 
     [Post("/")]
-    public NewTodoResult Create(NewTodo request) {
-        if (request.Title == "taken") {
+    public NewTodoResult Create(NewTodo request)
+    {
+        if (request.Title == "taken")
+        {
             return new Conflict("a todo with that title exists");
         }
 
@@ -60,8 +64,10 @@ public class TodoController {
     }
 
     [Delete("/{id}")]
-    public RemovedTodoResult Remove(int id) {
-        if (id == 404) {
+    public RemovedTodoResult Remove(int id)
+    {
+        if (id == 404)
+        {
             return new NotFound("todo", "no todo has that id");
         }
 

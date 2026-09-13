@@ -12,10 +12,12 @@ namespace Hardened.Functions.Testing;
 /// <see cref="Constructor"/> is also how the harness recognises a façade at all - nothing else has
 /// a constructor taking one.
 /// </remarks>
-public sealed class TriggerInvoker {
+public sealed class TriggerInvoker
+{
     private readonly ITriggerDelivery _delivery;
 
-    public TriggerInvoker(ITriggerDelivery delivery) {
+    public TriggerInvoker(ITriggerDelivery delivery)
+    {
         _delivery = delivery;
     }
 
@@ -33,17 +35,24 @@ public sealed class TriggerInvoker {
     public TriggerSend Send =>
         (messages, scheme, path) =>
             _delivery.Deliver(
-                ((System.Collections.IEnumerable)messages).Cast<object>().ToArray(), scheme, path);
+                ((System.Collections.IEnumerable)messages).Cast<object>().ToArray(),
+                scheme,
+                path
+            );
 
     public TriggerCall Call =>
-        (message, scheme, path, responseType) => _delivery.Call(message, scheme, path, responseType);
+        (message, scheme, path, responseType) =>
+            _delivery.Call(message, scheme, path, responseType);
 
     /// <summary>Builds the façade for one trigger kind, wired to this invoker.</summary>
-    public object Facade(Type type) {
-        var constructor = Constructor(type)
-                          ?? throw new InvalidOperationException(
-                              $"{type.Name} is not a trigger façade: it declares no constructor " +
-                              $"taking {nameof(TriggerSend)} or {nameof(TriggerCall)}.");
+    public object Facade(Type type)
+    {
+        var constructor =
+            Constructor(type)
+            ?? throw new InvalidOperationException(
+                $"{type.Name} is not a trigger façade: it declares no constructor "
+                    + $"taking {nameof(TriggerSend)} or {nameof(TriggerCall)}."
+            );
 
         return constructor.GetParameters()[0].ParameterType == typeof(TriggerCall)
             ? constructor.Invoke([Call])

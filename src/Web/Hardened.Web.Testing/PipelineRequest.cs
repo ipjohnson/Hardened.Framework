@@ -8,9 +8,9 @@ using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Diagnostics;
 using Hardened.Shared.Runtime.Metrics;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing;
 
@@ -33,8 +33,8 @@ namespace Hardened.Web.Testing;
 /// reports its end and leaks nothing.
 /// </para>
 /// </remarks>
-internal static class PipelineRequest {
-
+internal static class PipelineRequest
+{
     /// <summary>
     /// The request as the pipeline will see it: the path decoded the way a transport decodes one,
     /// the query string parsed by the parser Kestrel uses, the <c>Cookie</c> header split onto the
@@ -45,11 +45,14 @@ internal static class PipelineRequest {
         string pathAndQuery,
         IDictionary<string, StringValues> headers,
         Stream body,
-        TestCredential? credential) {
+        TestCredential? credential
+    )
+    {
         var path = pathAndQuery;
         var questionMark = pathAndQuery.IndexOf('?');
 
-        if (questionMark > -1) {
+        if (questionMark > -1)
+        {
             path = pathAndQuery.Substring(0, questionMark);
         }
 
@@ -65,21 +68,29 @@ internal static class PipelineRequest {
 
         var cookies = new List<string>();
 
-        if (headers.TryGetValue(KnownHeaders.Cookie, out var cookieHeader)) {
-            foreach (var pair in cookieHeader.ToString().Split(';')) {
+        if (headers.TryGetValue(KnownHeaders.Cookie, out var cookieHeader))
+        {
+            foreach (var pair in cookieHeader.ToString().Split(';'))
+            {
                 var trimmed = pair.Trim();
 
-                if (trimmed.Length > 0) {
+                if (trimmed.Length > 0)
+                {
                     cookies.Add(trimmed);
                 }
             }
         }
 
         return new TestExecutionRequest(
-            method, path, accept.ToString(), QueryStringParser.ParseFromPath(pathAndQuery)) {
+            method,
+            path,
+            accept.ToString(),
+            QueryStringParser.ParseFromPath(pathAndQuery)
+        )
+        {
             Headers = headers,
             Cookies = cookies,
-            Body = body
+            Body = body,
         };
     }
 
@@ -91,7 +102,9 @@ internal static class PipelineRequest {
         IServiceProvider rootServiceProvider,
         TestExecutionRequest request,
         MemoryStream responseBody,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken
+    )
+    {
         var middlewareService = rootServiceProvider.GetRequiredService<IMiddlewareService>();
         var requestLogger = rootServiceProvider.GetRequiredService<IRequestLogger>();
         var metricLoggerProvider = rootServiceProvider.GetRequiredService<IMetricLoggerProvider>();
@@ -102,13 +115,15 @@ internal static class PipelineRequest {
         // suites in this repository register exactly the four above, so twenty-six of them stopped
         // with a resolution failure. The executor is a pure function of those two, so there is
         // nothing to configure and no reason to make a caller register it.
-        var executor = rootServiceProvider.GetService<IRequestExecutor>()
-                       ?? new RequestExecutor(middlewareService, requestLogger);
+        var executor =
+            rootServiceProvider.GetService<IRequestExecutor>()
+            ?? new RequestExecutor(middlewareService, requestLogger);
 
         var scope = rootServiceProvider.CreateScope();
 
-        var response = new TestExecutionResponse(responseBody) {
-            Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        var response = new TestExecutionResponse(responseBody)
+        {
+            Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
         };
 
         var context = new TestExecutionContext(
@@ -118,16 +133,19 @@ internal static class PipelineRequest {
             request,
             response,
             cancellationToken,
-            metricLoggerProvider.CreateLogger("test-session"));
+            metricLoggerProvider.CreateLogger("test-session")
+        );
 
         var chain = middlewareService.GetExecutionChain(context);
 
         executor.Begin(context);
 
-        try {
+        try
+        {
             await chain.Next();
         }
-        catch (Exception exception) when (!response.ResponseStarted) {
+        catch (Exception exception) when (!response.ResponseStarted)
+        {
             // The answer both socket hosts give, for the reason they give it - see
             // HardenedHttpApplication.ProcessRequestAsync and AspNetCoreRequestHandler. This host
             // caught nothing, so a failure that got past IoFilter unwound out of app.Get and the
@@ -150,7 +168,8 @@ internal static class PipelineRequest {
 
             requestLogger.RequestFailed(context, exception);
         }
-        finally {
+        finally
+        {
             // In a finally because these ran as straight-line statements after the chain, so a
             // request that threw closed out nothing: no duration, no end, and the scope leaked.
             //

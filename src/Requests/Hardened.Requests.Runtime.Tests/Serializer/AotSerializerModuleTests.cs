@@ -24,9 +24,10 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// Duplicated bodies drift; this fails when one is edited and the other is not.
 /// </para>
 /// </remarks>
-public class AotSerializerModuleTests {
-
-    private static ServiceCollection Applied() {
+public class AotSerializerModuleTests
+{
+    private static ServiceCollection Applied()
+    {
         var services = new ServiceCollection();
 
         new AotSerializerModule().PopulateServiceCollection(services);
@@ -38,21 +39,30 @@ public class AotSerializerModuleTests {
         Assert.Single(services, descriptor => descriptor.ServiceType == typeof(TService));
 
     [Fact]
-    public void TheResponseSerializerIsTheAotOne() {
+    public void TheResponseSerializerIsTheAotOne()
+    {
         Assert.Equal(
-            typeof(AotResponseSerializer), DescriptorFor<IResponseSerializer>(Applied()).ImplementationType);
+            typeof(AotResponseSerializer),
+            DescriptorFor<IResponseSerializer>(Applied()).ImplementationType
+        );
     }
 
     [Fact]
-    public void TheRequestDeserializerIsTheAotOne() {
+    public void TheRequestDeserializerIsTheAotOne()
+    {
         Assert.Equal(
-            typeof(AotRequestDeserializer), DescriptorFor<IRequestDeserializer>(Applied()).ImplementationType);
+            typeof(AotRequestDeserializer),
+            DescriptorFor<IRequestDeserializer>(Applied()).ImplementationType
+        );
     }
 
     [Fact]
-    public void TheJsonSerializerIsTheAotOne() {
+    public void TheJsonSerializerIsTheAotOne()
+    {
         Assert.Equal(
-            typeof(AotJsonSerializer), DescriptorFor<IJsonSerializer>(Applied()).ImplementationType);
+            typeof(AotJsonSerializer),
+            DescriptorFor<IJsonSerializer>(Applied()).ImplementationType
+        );
     }
 
     /// <summary>
@@ -63,14 +73,16 @@ public class AotSerializerModuleTests {
     [InlineData(typeof(IResponseSerializer))]
     [InlineData(typeof(IRequestDeserializer))]
     [InlineData(typeof(IJsonSerializer))]
-    public void EveryRegistrationIsASingleton(Type serviceType) {
+    public void EveryRegistrationIsASingleton(Type serviceType)
+    {
         var descriptor = Assert.Single(Applied(), item => item.ServiceType == serviceType);
 
         Assert.Equal(ServiceLifetime.Singleton, descriptor.Lifetime);
     }
 
     [Fact]
-    public void NothingElseIsRegistered() {
+    public void NothingElseIsRegistered()
+    {
         Assert.Equal(3, Applied().Count);
     }
 
@@ -78,7 +90,8 @@ public class AotSerializerModuleTests {
     /// Two identical bodies on one class. This is what notices when only one of them is edited.
     /// </summary>
     [Fact]
-    public void TheTwoRegistrationMethodsRegisterTheSameThings() {
+    public void TheTwoRegistrationMethodsRegisterTheSameThings()
+    {
         var viaInterface = new ServiceCollection();
         var viaInternal = new ServiceCollection();
 
@@ -86,8 +99,13 @@ public class AotSerializerModuleTests {
         new AotSerializerModule().InternalApplyServices(viaInternal);
 
         Assert.Equal(
-            viaInterface.Select(descriptor => (descriptor.ServiceType, descriptor.ImplementationType, descriptor.Lifetime)),
-            viaInternal.Select(descriptor => (descriptor.ServiceType, descriptor.ImplementationType, descriptor.Lifetime)));
+            viaInterface.Select(descriptor =>
+                (descriptor.ServiceType, descriptor.ImplementationType, descriptor.Lifetime)
+            ),
+            viaInternal.Select(descriptor =>
+                (descriptor.ServiceType, descriptor.ImplementationType, descriptor.Lifetime)
+            )
+        );
     }
 
     #region module identity
@@ -98,29 +116,37 @@ public class AotSerializerModuleTests {
     /// <c>IResponseSerializer</c>s of the same type in the container.
     /// </summary>
     [Fact]
-    public void AnyTwoInstancesAreEqual() {
+    public void AnyTwoInstancesAreEqual()
+    {
         Assert.Equal(new AotSerializerModule(), new AotSerializerModule());
     }
 
     [Fact]
-    public void EqualInstancesShareAHashCode() {
-        Assert.Equal(new AotSerializerModule().GetHashCode(), new AotSerializerModule().GetHashCode());
+    public void EqualInstancesShareAHashCode()
+    {
+        Assert.Equal(
+            new AotSerializerModule().GetHashCode(),
+            new AotSerializerModule().GetHashCode()
+        );
     }
 
     [Fact]
-    public void AnotherTypeIsNotEqual() {
+    public void AnotherTypeIsNotEqual()
+    {
         Assert.False(new AotSerializerModule().Equals(new object()));
     }
 
     [Fact]
-    public void NullIsNotEqual() {
+    public void NullIsNotEqual()
+    {
         Assert.False(new AotSerializerModule().Equals(null));
     }
 
     #endregion
 
     [Fact]
-    public void TheAttributeProvidesTheModule() {
+    public void TheAttributeProvidesTheModule()
+    {
         Assert.IsType<AotSerializerModule>(new AotSerializerModuleAttribute().GetModule());
     }
 
@@ -129,9 +155,11 @@ public class AotSerializerModuleTests {
     /// application still de-duplicates.
     /// </summary>
     [Fact]
-    public void ModulesFromTwoAttributesAreEqual() {
+    public void ModulesFromTwoAttributesAreEqual()
+    {
         Assert.Equal(
             new AotSerializerModuleAttribute().GetModule(),
-            new AotSerializerModuleAttribute().GetModule());
+            new AotSerializerModuleAttribute().GetModule()
+        );
     }
 }

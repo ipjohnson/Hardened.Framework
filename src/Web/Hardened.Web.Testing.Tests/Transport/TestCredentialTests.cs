@@ -9,11 +9,12 @@ namespace Hardened.Web.Testing.Tests.Transport;
 /// Which credential wins: the parameter's, then the method's, then the class's, then the
 /// assembly's, with <see cref="AnonymousAttribute"/> cancelling whatever was wider.
 /// </summary>
-public class TestCredentialTests {
-
+public class TestCredentialTests
+{
     [Grants("class:grant")]
     [Subject("class-subject")]
-    private sealed class Fixture {
+    private sealed class Fixture
+    {
         public void Bare(object client) { }
 
         [Grants("method:grant")]
@@ -27,8 +28,10 @@ public class TestCredentialTests {
     }
 
     /// <summary>The runner's view of a method: attributes widest first, as ITestMethodContext promises.</summary>
-    private sealed class Context : ITestMethodContext {
-        public Context(string method, params Attribute[] assemblyAttributes) {
+    private sealed class Context : ITestMethodContext
+    {
+        public Context(string method, params Attribute[] assemblyAttributes)
+        {
             Method = typeof(Fixture).GetMethod(method)!;
             Attributes = assemblyAttributes
                 .Concat(typeof(Fixture).GetCustomAttributes())
@@ -45,7 +48,8 @@ public class TestCredentialTests {
         typeof(Fixture).GetMethod(method)!.GetParameters()[index];
 
     [Fact]
-    public void TheClassAppliesWhenTheMethodSaysNothing() {
+    public void TheClassAppliesWhenTheMethodSaysNothing()
+    {
         var credential = TestCredential.Resolve(new Context("Bare"));
 
         Assert.Equal(new[] { "class:grant" }, credential.Grants);
@@ -53,14 +57,18 @@ public class TestCredentialTests {
     }
 
     [Fact]
-    public void TheClassBeatsTheAssembly() {
-        var credential = TestCredential.Resolve(new Context("Bare", new GrantsAttribute("assembly:grant")));
+    public void TheClassBeatsTheAssembly()
+    {
+        var credential = TestCredential.Resolve(
+            new Context("Bare", new GrantsAttribute("assembly:grant"))
+        );
 
         Assert.Equal(new[] { "class:grant" }, credential.Grants);
     }
 
     [Fact]
-    public void TheAssemblyAppliesWhenNothingNarrowerSpeaks() {
+    public void TheAssemblyAppliesWhenNothingNarrowerSpeaks()
+    {
         var credential = TestCredential.Resolve(new[] { new GrantsAttribute("assembly:grant") });
 
         Assert.Equal(new[] { "assembly:grant" }, credential.Grants);
@@ -68,7 +76,8 @@ public class TestCredentialTests {
     }
 
     [Fact]
-    public void TheMethodBeatsTheClassAndKeepsItsSubject() {
+    public void TheMethodBeatsTheClassAndKeepsItsSubject()
+    {
         var credential = TestCredential.Resolve(new Context("OnMethod"));
 
         Assert.Equal(new[] { "method:grant" }, credential.Grants);
@@ -76,21 +85,24 @@ public class TestCredentialTests {
     }
 
     [Fact]
-    public void TheParameterBeatsTheMethod() {
+    public void TheParameterBeatsTheMethod()
+    {
         var credential = TestCredential.Resolve(new Context("OnMethod"), Parameter("OnMethod", 1));
 
         Assert.Equal(new[] { "parameter:grant" }, credential.Grants);
     }
 
     [Fact]
-    public void ABareParameterTakesTheMethods() {
+    public void ABareParameterTakesTheMethods()
+    {
         var credential = TestCredential.Resolve(new Context("OnMethod"), Parameter("OnMethod", 0));
 
         Assert.Equal(new[] { "method:grant" }, credential.Grants);
     }
 
     [Fact]
-    public void AnonymousOnTheMethodCancelsTheClass() {
+    public void AnonymousOnTheMethodCancelsTheClass()
+    {
         var credential = TestCredential.Resolve(new Context("Cancelled"));
 
         Assert.True(credential.IsAnonymous);
@@ -98,22 +110,31 @@ public class TestCredentialTests {
     }
 
     [Fact]
-    public void AParameterGrantAppliesOverAnAnonymousMethod() {
-        var credential = TestCredential.Resolve(new Context("Cancelled"), Parameter("Cancelled", 1));
+    public void AParameterGrantAppliesOverAnAnonymousMethod()
+    {
+        var credential = TestCredential.Resolve(
+            new Context("Cancelled"),
+            Parameter("Cancelled", 1)
+        );
 
         Assert.Equal(new[] { "parameter:grant" }, credential.Grants);
     }
 
     [Fact]
-    public void AnonymousOnAParameterCancelsEverything() {
-        var credential = TestCredential.Resolve(new Context("SubjectOnly"), Parameter("SubjectOnly", 0));
+    public void AnonymousOnAParameterCancelsEverything()
+    {
+        var credential = TestCredential.Resolve(
+            new Context("SubjectOnly"),
+            Parameter("SubjectOnly", 0)
+        );
 
         Assert.True(credential.IsAnonymous);
     }
 
     /// <summary>A subject with no grants is still a known caller, which the source spells "-".</summary>
     [Fact]
-    public void ASubjectAloneIsAnAuthenticatedCallerHoldingNothing() {
+    public void ASubjectAloneIsAnAuthenticatedCallerHoldingNothing()
+    {
         var credential = new TestCredential(null, "pia");
         var headers = new Dictionary<string, StringValues>();
 
@@ -124,7 +145,8 @@ public class TestCredentialTests {
     }
 
     [Fact]
-    public void AnAnonymousCredentialSetsNoHeaders() {
+    public void AnAnonymousCredentialSetsNoHeaders()
+    {
         var headers = new Dictionary<string, StringValues>();
 
         TestCredential.Anonymous.ApplyTo(headers);
@@ -133,7 +155,8 @@ public class TestCredentialTests {
     }
 
     [Fact]
-    public void ACallerWhoSetEitherHeaderKeepsBoth() {
+    public void ACallerWhoSetEitherHeaderKeepsBoth()
+    {
         var credential = new TestCredential(new[] { "a" }, "pia");
         var headers = new Dictionary<string, StringValues> { ["X-Test-Subject"] = "someone-else" };
 
@@ -148,38 +171,66 @@ public class TestCredentialTests {
     /// neither header: both headers for a subject with grants, the grants alone otherwise.
     /// </summary>
     [Fact]
-    public void ASocketRequestCarryingNeitherHeaderGetsBoth() {
+    public void ASocketRequestCarryingNeitherHeaderGetsBoth()
+    {
         var request = new HttpRequestMessage(HttpMethod.Get, "/pets");
 
         new TestCredential(new[] { "pets:read" }, "pia").ApplyTo(request);
 
-        Assert.Equal("pets:read", request.Headers.GetValues(Requests.Testing.TestGrantsPrincipalSource.GrantsHeader).Single());
-        Assert.Equal("pia", request.Headers.GetValues(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader).Single());
+        Assert.Equal(
+            "pets:read",
+            request
+                .Headers.GetValues(Requests.Testing.TestGrantsPrincipalSource.GrantsHeader)
+                .Single()
+        );
+        Assert.Equal(
+            "pia",
+            request
+                .Headers.GetValues(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader)
+                .Single()
+        );
     }
 
     [Fact]
-    public void ASocketRequestWithNoSubjectGetsTheGrantsAlone() {
+    public void ASocketRequestWithNoSubjectGetsTheGrantsAlone()
+    {
         var request = new HttpRequestMessage(HttpMethod.Get, "/pets");
 
         new TestCredential(new[] { "pets:read" }).ApplyTo(request);
 
-        Assert.True(request.Headers.Contains(Requests.Testing.TestGrantsPrincipalSource.GrantsHeader));
-        Assert.False(request.Headers.Contains(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader));
+        Assert.True(
+            request.Headers.Contains(Requests.Testing.TestGrantsPrincipalSource.GrantsHeader)
+        );
+        Assert.False(
+            request.Headers.Contains(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader)
+        );
     }
 
     [Fact]
-    public void ASocketRequestThatSetItsOwnSubjectKeepsIt() {
+    public void ASocketRequestThatSetItsOwnSubjectKeepsIt()
+    {
         var request = new HttpRequestMessage(HttpMethod.Get, "/pets");
-        request.Headers.Add(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader, "someone-else");
+        request.Headers.Add(
+            Requests.Testing.TestGrantsPrincipalSource.SubjectHeader,
+            "someone-else"
+        );
 
         new TestCredential(new[] { "pets:read" }, "pia").ApplyTo(request);
 
-        Assert.Equal("someone-else", request.Headers.GetValues(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader).Single());
-        Assert.False(request.Headers.Contains(Requests.Testing.TestGrantsPrincipalSource.GrantsHeader));
+        Assert.Equal(
+            "someone-else",
+            request
+                .Headers.GetValues(Requests.Testing.TestGrantsPrincipalSource.SubjectHeader)
+                .Single()
+        );
+        Assert.False(
+            request.Headers.Contains(Requests.Testing.TestGrantsPrincipalSource.GrantsHeader)
+        );
     }
 
     [Fact]
-    public void AnAnonymousCredentialLeavesASocketRequestAlone() {
+    public void AnAnonymousCredentialLeavesASocketRequestAlone()
+    {
         var request = new HttpRequestMessage(HttpMethod.Get, "/pets");
 
         TestCredential.Anonymous.ApplyTo(request);
@@ -188,7 +239,8 @@ public class TestCredentialTests {
     }
 
     [Fact]
-    public void TheHeadersBecomeTheClientsDefaults() {
+    public void TheHeadersBecomeTheClientsDefaults()
+    {
         using var client = new HttpClient();
 
         new TestCredential(new[] { "a", "b" }, "pia").ApplyTo(client);

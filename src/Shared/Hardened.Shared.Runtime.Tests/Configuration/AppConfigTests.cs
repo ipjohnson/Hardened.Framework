@@ -15,13 +15,15 @@ namespace Hardened.Shared.Runtime.Tests.Configuration;
 /// configuration".
 /// </para>
 /// </summary>
-public class AppConfigTests {
-
-    public interface IRetryConfiguration {
+public class AppConfigTests
+{
+    public interface IRetryConfiguration
+    {
         int MaxAttempts { get; }
     }
 
-    public class RetryConfiguration : IRetryConfiguration {
+    public class RetryConfiguration : IRetryConfiguration
+    {
         public int MaxAttempts { get; set; } = 1;
 
         public List<string> Applied { get; } = [];
@@ -29,13 +31,21 @@ public class AppConfigTests {
 
     private static EnvironmentImpl Environment(string name = "development") => new(name);
 
-    private static IRetryConfiguration Resolve(AppConfig config, IHardenedEnvironment? environment = null) {
+    private static IRetryConfiguration Resolve(
+        AppConfig config,
+        IHardenedEnvironment? environment = null
+    )
+    {
         environment ??= Environment();
 
-        return new ConfigurationManager(environment, [config]).GetConfiguration<IRetryConfiguration>();
+        return new ConfigurationManager(
+            environment,
+            [config]
+        ).GetConfiguration<IRetryConfiguration>();
     }
 
-    private static AppConfig WithDefaultRetry() {
+    private static AppConfig WithDefaultRetry()
+    {
         var config = new AppConfig();
 
         config.ProvideValue<IRetryConfiguration, RetryConfiguration>(_ => new RetryConfiguration());
@@ -48,28 +58,38 @@ public class AppConfigTests {
     /// default."
     /// </summary>
     [Fact]
-    public void ProvideValueSuppliesTheImplementation() {
+    public void ProvideValueSuppliesTheImplementation()
+    {
         var config = new AppConfig();
 
-        config.ProvideValue<IRetryConfiguration, RetryConfiguration>(_ => new RetryConfiguration { MaxAttempts = 9 });
+        config.ProvideValue<IRetryConfiguration, RetryConfiguration>(_ => new RetryConfiguration
+        {
+            MaxAttempts = 9,
+        });
 
         Assert.Equal(9, Resolve(config).MaxAttempts);
     }
 
     /// <summary>The value provider is handed the environment, so the value can depend on it.</summary>
     [Fact]
-    public void ProvideValueReceivesTheEnvironment() {
+    public void ProvideValueReceivesTheEnvironment()
+    {
         var config = new AppConfig();
 
         config.ProvideValue<IRetryConfiguration, RetryConfiguration>(
-            environment => new RetryConfiguration { MaxAttempts = environment.Matches("production") ? 5 : 1 });
+            environment => new RetryConfiguration
+            {
+                MaxAttempts = environment.Matches("production") ? 5 : 1,
+            }
+        );
 
         Assert.Equal(5, Resolve(config, Environment("production")).MaxAttempts);
         Assert.Equal(1, Resolve(config, Environment("development")).MaxAttempts);
     }
 
     [Fact]
-    public void AnAmenderChangesTheModelTheApplicationResolves() {
+    public void AnAmenderChangesTheModelTheApplicationResolves()
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.MaxAttempts = 5);
@@ -82,7 +102,8 @@ public class AppConfigTests {
     /// Order is the whole point — the last amender is the one whose value survives.
     /// </summary>
     [Fact]
-    public void AmendersRunInRegistrationOrder() {
+    public void AmendersRunInRegistrationOrder()
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.Applied.Add("first"));
@@ -95,7 +116,8 @@ public class AppConfigTests {
     }
 
     [Fact]
-    public void TheLastAmenderToSetAValueWins() {
+    public void TheLastAmenderToSetAValueWins()
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.MaxAttempts = 2);
@@ -109,7 +131,8 @@ public class AppConfigTests {
     /// <c>IDynamoDbOptions</c> — because amending is the one place that is allowed to write."
     /// </summary>
     [Fact]
-    public void AnAmenderForAnUnrelatedTypeLeavesTheModelAlone() {
+    public void AnAmenderForAnUnrelatedTypeLeavesTheModelAlone()
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.MaxAttempts = 5);
@@ -123,7 +146,8 @@ public class AppConfigTests {
     /// environment." This is how a local-development endpoint override stays out of production.
     /// </summary>
     [Fact]
-    public void AnEnvironmentScopedAmenderRunsInThatEnvironment() {
+    public void AnEnvironmentScopedAmenderRunsInThatEnvironment()
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.MaxAttempts = 5, "development");
@@ -132,7 +156,8 @@ public class AppConfigTests {
     }
 
     [Fact]
-    public void AnEnvironmentScopedAmenderDoesNotRunInAnotherEnvironment() {
+    public void AnEnvironmentScopedAmenderDoesNotRunInAnotherEnvironment()
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.MaxAttempts = 5, "development");
@@ -145,7 +170,8 @@ public class AppConfigTests {
     [InlineData("development")]
     [InlineData("staging")]
     [InlineData("production")]
-    public void AnUnscopedAmenderRunsInEveryEnvironment(string environment) {
+    public void AnUnscopedAmenderRunsInEveryEnvironment(string environment)
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.MaxAttempts = 5);
@@ -158,7 +184,8 @@ public class AppConfigTests {
     /// relative to the rest rather than before or after all of them.
     /// </summary>
     [Fact]
-    public void AScopedAmenderKeepsItsPlaceInRegistrationOrder() {
+    public void AScopedAmenderKeepsItsPlaceInRegistrationOrder()
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.Applied.Add("unscoped-first"));
@@ -171,7 +198,8 @@ public class AppConfigTests {
     }
 
     [Fact]
-    public void AScopedAmenderIsSkippedWithoutDisturbingTheOrderOfTheRest() {
+    public void AScopedAmenderIsSkippedWithoutDisturbingTheOrderOfTheRest()
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.Applied.Add("unscoped-first"));
@@ -188,13 +216,17 @@ public class AppConfigTests {
     /// itself depends on it."
     /// </summary>
     [Fact]
-    public void TheFunctionOverloadReceivesTheEnvironment() {
+    public void TheFunctionOverloadReceivesTheEnvironment()
+    {
         var config = WithDefaultRetry();
 
-        config.Amend((IHardenedEnvironment environment, RetryConfiguration retry) => {
-            retry.MaxAttempts = environment.Matches("production") ? 5 : 1;
-            return retry;
-        });
+        config.Amend(
+            (IHardenedEnvironment environment, RetryConfiguration retry) =>
+            {
+                retry.MaxAttempts = environment.Matches("production") ? 5 : 1;
+                return retry;
+            }
+        );
 
         Assert.Equal(5, Resolve(config, Environment("production")).MaxAttempts);
         Assert.Equal(1, Resolve(config, Environment("development")).MaxAttempts);
@@ -205,14 +237,18 @@ public class AppConfigTests {
     /// are not two separate chains.
     /// </summary>
     [Fact]
-    public void BothAmendOverloadsShareOneOrderedChain() {
+    public void BothAmendOverloadsShareOneOrderedChain()
+    {
         var config = WithDefaultRetry();
 
         config.Amend((RetryConfiguration retry) => retry.Applied.Add("action"));
-        config.Amend((IHardenedEnvironment _, RetryConfiguration retry) => {
-            retry.Applied.Add("function");
-            return retry;
-        });
+        config.Amend(
+            (IHardenedEnvironment _, RetryConfiguration retry) =>
+            {
+                retry.Applied.Add("function");
+                return retry;
+            }
+        );
 
         var resolved = (RetryConfiguration)Resolve(config);
 
@@ -224,16 +260,22 @@ public class AppConfigTests {
     /// library provided without either knowing about the other.
     /// </summary>
     [Fact]
-    public void EveryRegisteredPackageContributesItsAmenders() {
+    public void EveryRegisteredPackageContributesItsAmenders()
+    {
         var library = new AppConfig();
         var application = new AppConfig();
 
-        library.ProvideValue<IRetryConfiguration, RetryConfiguration>(_ => new RetryConfiguration());
+        library.ProvideValue<IRetryConfiguration, RetryConfiguration>(
+            _ => new RetryConfiguration()
+        );
         library.Amend((RetryConfiguration retry) => retry.Applied.Add("library"));
         application.Amend((RetryConfiguration retry) => retry.Applied.Add("application"));
 
-        var resolved = (RetryConfiguration)new ConfigurationManager(Environment(), [library, application])
-            .GetConfiguration<IRetryConfiguration>();
+        var resolved = (RetryConfiguration)
+            new ConfigurationManager(
+                Environment(),
+                [library, application]
+            ).GetConfiguration<IRetryConfiguration>();
 
         Assert.Equal(["library", "application"], resolved.Applied);
     }
@@ -243,22 +285,31 @@ public class AppConfigTests {
     /// an application overrides a library's default outright.
     /// </summary>
     [Fact]
-    public void ALaterPackageReplacesAnEarlierProviderForTheSameInterface() {
+    public void ALaterPackageReplacesAnEarlierProviderForTheSameInterface()
+    {
         var library = new AppConfig();
         var application = new AppConfig();
 
-        library.ProvideValue<IRetryConfiguration, RetryConfiguration>(_ => new RetryConfiguration { MaxAttempts = 1 });
-        application.ProvideValue<IRetryConfiguration, RetryConfiguration>(_ => new RetryConfiguration { MaxAttempts = 9 });
+        library.ProvideValue<IRetryConfiguration, RetryConfiguration>(_ => new RetryConfiguration
+        {
+            MaxAttempts = 1,
+        });
+        application.ProvideValue<IRetryConfiguration, RetryConfiguration>(
+            _ => new RetryConfiguration { MaxAttempts = 9 }
+        );
 
-        var resolved = new ConfigurationManager(Environment(), [library, application])
-            .GetConfiguration<IRetryConfiguration>();
+        var resolved = new ConfigurationManager(
+            Environment(),
+            [library, application]
+        ).GetConfiguration<IRetryConfiguration>();
 
         Assert.Equal(9, resolved.MaxAttempts);
     }
 
     /// <summary>Every builder method returns the same instance, so calls chain.</summary>
     [Fact]
-    public void TheBuilderMethodsChain() {
+    public void TheBuilderMethodsChain()
+    {
         var config = new AppConfig();
 
         var chained = config
@@ -272,7 +323,8 @@ public class AppConfigTests {
 
     /// <summary>An empty package contributes nothing and breaks nothing.</summary>
     [Fact]
-    public void AnEmptyAppConfigContributesNothing() {
+    public void AnEmptyAppConfigContributesNothing()
+    {
         IConfigurationPackage config = new AppConfig();
         var environment = Environment();
 
@@ -280,7 +332,8 @@ public class AppConfigTests {
         Assert.Empty(config.ConfigurationValueAmenders(environment));
     }
 
-    public class UnrelatedConfiguration {
+    public class UnrelatedConfiguration
+    {
         public bool Touched { get; set; }
     }
 }

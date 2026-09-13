@@ -26,7 +26,8 @@ namespace Hardened.Benchmarks.Pipeline;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.AspNet)]
-public class FrameworkComparisonBenchmarks {
+public class FrameworkComparisonBenchmarks
+{
     private HardenedNativeHarness _hardenedNative = null!;
     private HardenedFeatureHarness _hardenedFeatures = null!;
     private HardenedAspNetHarness _hardenedAspNet = null!;
@@ -42,34 +43,50 @@ public class FrameworkComparisonBenchmarks {
     public RequestScenario Scenario { get; set; } = null!;
 
     [GlobalSetup]
-    public void Setup() {
+    public void Setup()
+    {
         _hardenedNative = new HardenedNativeHarness();
         _hardenedFeatures = new HardenedFeatureHarness();
         _hardenedAspNet = new HardenedAspNetHarness();
         _minimalApi = new AspNetHarness(AspNetFlavor.MinimalApi, sourceGeneratedJson: false);
-        _minimalApiSourceGen = new AspNetHarness(AspNetFlavor.MinimalApi, sourceGeneratedJson: true);
+        _minimalApiSourceGen = new AspNetHarness(
+            AspNetFlavor.MinimalApi,
+            sourceGeneratedJson: true
+        );
         _mvc = new AspNetHarness(AspNetFlavor.Mvc, sourceGeneratedJson: false);
         _mvcSourceGen = new AspNetHarness(AspNetFlavor.Mvc, sourceGeneratedJson: true);
         _responseBody = new MemoryStream();
 
-        foreach (var harness in new IPipelineHarness[] {
-            _hardenedNative, _hardenedFeatures, _hardenedAspNet,
-            _minimalApi, _minimalApiSourceGen, _mvc, _mvcSourceGen
-        }) {
+        foreach (
+            var harness in new IPipelineHarness[]
+            {
+                _hardenedNative,
+                _hardenedFeatures,
+                _hardenedAspNet,
+                _minimalApi,
+                _minimalApiSourceGen,
+                _mvc,
+                _mvcSourceGen,
+            }
+        )
+        {
             _responseBody.SetLength(0);
             var status = harness.Execute(Scenario, _responseBody).GetAwaiter().GetResult();
 
-            if (status != 200 || _responseBody.Length == 0) {
+            if (status != 200 || _responseBody.Length == 0)
+            {
                 throw new InvalidOperationException(
-                    $"{harness.Name} returned {status} with a {_responseBody.Length} byte body " +
-                    $"for {Scenario.Name}. A pipeline that is not handling the route would be " +
-                    "timed as though it were.");
+                    $"{harness.Name} returned {status} with a {_responseBody.Length} byte body "
+                        + $"for {Scenario.Name}. A pipeline that is not handling the route would be "
+                        + "timed as though it were."
+                );
             }
         }
     }
 
     [Benchmark(Baseline = true), BenchmarkCategory(BenchmarkCategories.AspNet)]
-    public async Task<int> Hardened() {
+    public async Task<int> Hardened()
+    {
         _responseBody.SetLength(0);
 
         return await _hardenedNative.Execute(Scenario, _responseBody);
@@ -81,49 +98,56 @@ public class FrameworkComparisonBenchmarks {
     /// ASP.NET pipeline in front of it.
     /// </summary>
     [Benchmark]
-    public async Task<int> HardenedOnServerFeatures() {
+    public async Task<int> HardenedOnServerFeatures()
+    {
         _responseBody.SetLength(0);
 
         return await _hardenedFeatures.Execute(Scenario, _responseBody);
     }
 
     [Benchmark]
-    public async Task<int> HardenedOnAspNet() {
+    public async Task<int> HardenedOnAspNet()
+    {
         _responseBody.SetLength(0);
 
         return await _hardenedAspNet.Execute(Scenario, _responseBody);
     }
 
     [Benchmark]
-    public async Task<int> AspNetMinimalApi() {
+    public async Task<int> AspNetMinimalApi()
+    {
         _responseBody.SetLength(0);
 
         return await _minimalApi.Execute(Scenario, _responseBody);
     }
 
     [Benchmark]
-    public async Task<int> AspNetMinimalApiSourceGenJson() {
+    public async Task<int> AspNetMinimalApiSourceGenJson()
+    {
         _responseBody.SetLength(0);
 
         return await _minimalApiSourceGen.Execute(Scenario, _responseBody);
     }
 
     [Benchmark]
-    public async Task<int> AspNetMvc() {
+    public async Task<int> AspNetMvc()
+    {
         _responseBody.SetLength(0);
 
         return await _mvc.Execute(Scenario, _responseBody);
     }
 
     [Benchmark]
-    public async Task<int> AspNetMvcSourceGenJson() {
+    public async Task<int> AspNetMvcSourceGenJson()
+    {
         _responseBody.SetLength(0);
 
         return await _mvcSourceGen.Execute(Scenario, _responseBody);
     }
 
     [GlobalCleanup]
-    public void Cleanup() {
+    public void Cleanup()
+    {
         _hardenedNative.Dispose();
         _hardenedFeatures.Dispose();
         _hardenedAspNet.Dispose();

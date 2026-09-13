@@ -1,8 +1,8 @@
 using System.Security.Cryptography;
 using DependencyModules.Runtime.Attributes;
-using Hardened.Shared.Runtime.Collections;
 using DependencyModules.Runtime.Interfaces;
 using Hardened.Shared.Runtime.Application;
+using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Configuration;
 using Hardened.Web.Runtime.Handlers;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,8 +47,8 @@ namespace Hardened.Web.StaticContent;
 /// </para>
 /// </summary>
 [DependencyModule]
-public partial class HardenedStaticContent : IServiceCollectionConfiguration {
-
+public partial class HardenedStaticContent : IServiceCollectionConfiguration
+{
     public const string DefaultPath = "wwwroot";
 
     /// <summary>The environment that does not cache, so an edit is visible on reload.</summary>
@@ -78,38 +78,54 @@ public partial class HardenedStaticContent : IServiceCollectionConfiguration {
     // whether or not the author wrote it, carrying default(T) when they did not. See the remarks on
     // StaticContentServiceCollectionExtensions.ConfigureStaticContent.
 
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         // An init action rather than a prebuilt instance, so an IConfigurationValueAmender still
         // runs afterwards: NewConfigurationValueProvider applies amenders to what this leaves. That
         // is how the two settings an attribute argument cannot carry - OnPrepareResponse, which is
         // a delegate, and Requirement, which is a tree - are still reachable.
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
-                new IConfigurationValueProvider[] {
-                    new NewConfigurationValueProvider<IStaticContentConfiguration, StaticContentConfiguration>(
-                        (environment, configuration) => {
+                new IConfigurationValueProvider[]
+                {
+                    new NewConfigurationValueProvider<
+                        IStaticContentConfiguration,
+                        StaticContentConfiguration
+                    >(
+                        (environment, configuration) =>
+                        {
                             configuration.Path = Path ?? DefaultPath;
                             configuration.FallBackFile = FallBackFile;
 
                             // Defaulted from the environment rather than fixed, so the inner loop
                             // needs no configuration and a deployed build needs no thought.
                             // ConfigureStaticContent runs after this and wins.
-                            configuration.CacheContent =
-                                !environment.Matches(DevelopmentEnvironment);
-                        })
+                            configuration.CacheContent = !environment.Matches(
+                                DevelopmentEnvironment
+                            );
+                        }
+                    ),
                 },
-                Array.Empty<IConfigurationValueAmender>()));
+                Array.Empty<IConfigurationValueAmender>()
+            )
+        );
 
-        services.TryAddSingleton(
-            serviceProvider => Microsoft.Extensions.Options.Options.Create(
-                serviceProvider.GetRequiredService<IConfigurationManager>()
-                    .GetConfiguration<IStaticContentConfiguration>()));
+        services.TryAddSingleton(serviceProvider =>
+            Microsoft.Extensions.Options.Options.Create(
+                serviceProvider
+                    .GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IStaticContentConfiguration>()
+            )
+        );
 
         // The hash behind a validator. SHA-256 rather than the core module's MD5 pool, which
         // throws outright on a FIPS-enforcing host - and would do so on the first request rather
         // than at startup.
-        services.TryAddSingleton<IItemPool<SHA256>>(
-            _ => new ItemPool<SHA256>(SHA256.Create, _ => { }, hash => hash.Dispose()));
+        services.TryAddSingleton<IItemPool<SHA256>>(_ => new ItemPool<SHA256>(
+            SHA256.Create,
+            _ => { },
+            hash => hash.Dispose()
+        ));
 
         services.TryAddSingleton<StaticContentController>();
 
@@ -120,21 +136,23 @@ public partial class HardenedStaticContent : IServiceCollectionConfiguration {
         services.TryAddSingleton<IStaticContentSource>(serviceProvider =>
             serviceProvider.GetService<IStaticContentManifest>() != null
                 ? ActivatorUtilities.CreateInstance<ManifestContentSource>(serviceProvider)
-                : ActivatorUtilities.CreateInstance<FileSystemContentSource>(serviceProvider));
+                : ActivatorUtilities.CreateInstance<FileSystemContentSource>(serviceProvider)
+        );
 
         // As a fallback, so it is asked after every ordinary provider whatever order the modules
         // were listed in. A directory of files can shadow any path at all; see
         // IFallbackRequestHandlerProvider.
         services.AddSingleton<IFallbackRequestHandlerProvider>(
-            serviceProvider => new StaticContentMountProvider(serviceProvider));
+            serviceProvider => new StaticContentMountProvider(serviceProvider)
+        );
     }
 
     /// <summary>
     /// Keyed on <see cref="Path"/>, so two installs over different directories both load.
     /// </summary>
     public override bool Equals(object? obj) =>
-        obj is HardenedStaticContent other &&
-        string.Equals(Path, other.Path, StringComparison.Ordinal);
+        obj is HardenedStaticContent other
+        && string.Equals(Path, other.Path, StringComparison.Ordinal);
 
     public override int GetHashCode() => Path?.GetHashCode() ?? 0;
 }

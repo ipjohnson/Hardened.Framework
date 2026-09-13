@@ -11,12 +11,16 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// The task's whole reason for existing is that it may touch the file system, so it is exercised
 /// against one rather than against an abstraction over one.
 /// </remarks>
-internal sealed class TaskHarness : IDisposable {
-
+internal sealed class TaskHarness : IDisposable
+{
     private readonly string _root = Path.Combine(
-        Path.GetTempPath(), "hardened-openapi-task-tests", Guid.NewGuid().ToString("n"));
+        Path.GetTempPath(),
+        "hardened-openapi-task-tests",
+        Guid.NewGuid().ToString("n")
+    );
 
-    public TaskHarness() {
+    public TaskHarness()
+    {
         Directory.CreateDirectory(SpecDirectory);
         Directory.CreateDirectory(OutputDirectory);
     }
@@ -27,7 +31,8 @@ internal sealed class TaskHarness : IDisposable {
 
     public string GeneratedSourceDirectory => Path.Combine(OutputDirectory, "generated");
 
-    public string WriteSpec(string fileName, string content) {
+    public string WriteSpec(string fileName, string content)
+    {
         var path = Path.Combine(SpecDirectory, fileName);
         File.WriteAllText(path, content);
         return path;
@@ -35,12 +40,16 @@ internal sealed class TaskHarness : IDisposable {
 
     public Result Run(params string[] specPaths) => RunWithResponseModel("", specPaths);
 
-    public Result RunWithResponseModel(string responseModel, params string[] specPaths) {
+    public Result RunWithResponseModel(string responseModel, params string[] specPaths)
+    {
         var engine = new RecordingBuildEngine();
 
-        var task = new ExtractOpenApiSpec {
+        var task = new ExtractOpenApiSpec
+        {
             BuildEngine = engine,
-            Specs = specPaths.Select(path => (ITaskItem)new Microsoft.Build.Utilities.TaskItem(path)).ToArray(),
+            Specs = specPaths
+                .Select(path => (ITaskItem)new Microsoft.Build.Utilities.TaskItem(path))
+                .ToArray(),
             OutputDirectory = OutputDirectory,
             GeneratedSourceDirectory = GeneratedSourceDirectory,
             Namespace = "Test.Api",
@@ -54,19 +63,30 @@ internal sealed class TaskHarness : IDisposable {
             engine.Errors,
             engine.Warnings,
             task.ModelFiles.Select(item => item.ItemSpec).ToArray(),
-            task.GeneratedSources.Select(item => item.ItemSpec).ToArray());
+            task.GeneratedSources.Select(item => item.ItemSpec).ToArray()
+        );
     }
 
     public string ModelPathFor(string specFileName) =>
-        Path.Combine(OutputDirectory, Path.GetFileNameWithoutExtension(specFileName) + ".openapi-model.txt");
+        Path.Combine(
+            OutputDirectory,
+            Path.GetFileNameWithoutExtension(specFileName) + ".openapi-model.txt"
+        );
 
     public string SourcePathFor(string specFileName) =>
-        Path.Combine(GeneratedSourceDirectory, Path.GetFileNameWithoutExtension(specFileName) + ".g.cs");
+        Path.Combine(
+            GeneratedSourceDirectory,
+            Path.GetFileNameWithoutExtension(specFileName) + ".g.cs"
+        );
 
-    public void Dispose() {
-        try {
+    public void Dispose()
+    {
+        try
+        {
             Directory.Delete(_root, recursive: true);
-        } catch (IOException) {
+        }
+        catch (IOException)
+        {
             // A leftover temp directory is not worth failing a test over.
         }
     }
@@ -76,15 +96,19 @@ internal sealed class TaskHarness : IDisposable {
         IReadOnlyList<BuildErrorEventArgs> Errors,
         IReadOnlyList<BuildWarningEventArgs> Warnings,
         IReadOnlyList<string> ModelFiles,
-        IReadOnlyList<string> GeneratedSources) {
+        IReadOnlyList<string> GeneratedSources
+    )
+    {
         public bool HasError(string code) => Errors.Any(error => error.Code == code);
 
         public int WarningCount(string code) => Warnings.Count(warning => warning.Code == code);
 
-        public string ErrorText => string.Join("\n", Errors.Select(error => $"{error.Code}: {error.Message}"));
+        public string ErrorText =>
+            string.Join("\n", Errors.Select(error => $"{error.Code}: {error.Message}"));
     }
 
-    private sealed class RecordingBuildEngine : IBuildEngine {
+    private sealed class RecordingBuildEngine : IBuildEngine
+    {
         public List<BuildErrorEventArgs> Errors { get; } = new();
 
         public List<BuildWarningEventArgs> Warnings { get; } = new();
@@ -97,7 +121,12 @@ internal sealed class TaskHarness : IDisposable {
 
         public void LogCustomEvent(CustomBuildEventArgs e) { }
 
-        public bool BuildProjectFile(string projectFileName, string[] targetNames, IDictionary globalProperties, IDictionary targetOutputs) => true;
+        public bool BuildProjectFile(
+            string projectFileName,
+            string[] targetNames,
+            IDictionary globalProperties,
+            IDictionary targetOutputs
+        ) => true;
 
         public bool ContinueOnError => false;
 

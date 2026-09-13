@@ -29,7 +29,8 @@ namespace Hardened.Requests.Testing;
 /// caller who is authenticated and holds nothing.
 /// </para>
 /// </remarks>
-public sealed class TestGrantsPrincipalSource : IPrincipalSource {
+public sealed class TestGrantsPrincipalSource : IPrincipalSource
+{
     public const string GrantsHeader = "X-Test-Grants";
 
     /// <summary>
@@ -52,8 +53,10 @@ public sealed class TestGrantsPrincipalSource : IPrincipalSource {
     /// <summary>The scheme name the produced principal carries.</summary>
     public const string SchemeName = "test";
 
-    public ValueTask<ICallerPrincipal?> Authenticate(IExecutionContext context) {
-        if (!context.Request.Headers.TryGetValue(GrantsHeader, out var header)) {
+    public ValueTask<ICallerPrincipal?> Authenticate(IExecutionContext context)
+    {
+        if (!context.Request.Headers.TryGetValue(GrantsHeader, out var header))
+        {
             return new ValueTask<ICallerPrincipal?>((ICallerPrincipal?)null);
         }
 
@@ -63,11 +66,14 @@ public sealed class TestGrantsPrincipalSource : IPrincipalSource {
             ? named.ToString()
             : DefaultSubject;
 
-        return new ValueTask<ICallerPrincipal?>(new CallerPrincipal(
-            SchemeName,
-            value == AnonymousGrantsValue
-                ? []
-                : value.Split(' ', StringSplitOptions.RemoveEmptyEntries),
-            subject: subject));
+        return new ValueTask<ICallerPrincipal?>(
+            new CallerPrincipal(
+                SchemeName,
+                value == AnonymousGrantsValue
+                    ? []
+                    : value.Split(' ', StringSplitOptions.RemoveEmptyEntries),
+                subject: subject
+            )
+        );
     }
 }

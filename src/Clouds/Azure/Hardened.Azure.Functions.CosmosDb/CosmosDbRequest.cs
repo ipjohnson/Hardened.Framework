@@ -22,14 +22,17 @@ namespace Hardened.Azure.Functions.CosmosDb;
 /// and does not do to the lease.
 /// </para>
 /// </remarks>
-public class CosmosDbRequest : FunctionsPayloadRequest, IBatchRequest {
+public class CosmosDbRequest : FunctionsPayloadRequest, IBatchRequest
+{
     public CosmosDbRequest(
         string scheme,
         string path,
         Stream body,
         IDictionary<string, StringValues> headers,
-        IReadOnlyList<CosmosDbDocument> documents)
-        : base(scheme, path, body, headers) {
+        IReadOnlyList<CosmosDbDocument> documents
+    )
+        : base(scheme, path, body, headers)
+    {
         Documents = documents;
     }
 
@@ -66,9 +69,10 @@ public class CosmosDbRequest : FunctionsPayloadRequest, IBatchRequest {
 
     public void RecordFailure(int index, Exception failure) =>
         throw new NotSupportedException(
-            "The extension reads no report from a change feed function, so an individual change " +
-            "cannot be reported as failed. The invocation fails instead, which is what a retry " +
-            "policy on the function app retries.");
+            "The extension reads no report from a change feed function, so an individual change "
+                + "cannot be reported as failed. The invocation fails instead, which is what a retry "
+                + "policy on the function app retries."
+        );
 
     /// <summary>
     /// The request for one change, as a handler will see it.
@@ -78,9 +82,11 @@ public class CosmosDbRequest : FunctionsPayloadRequest, IBatchRequest {
     /// system properties included - Cosmos puts them on the document rather than around it, and a
     /// handler that does not declare them does not see them.
     /// </remarks>
-    public IExecutionRequest ForDocument(CosmosDbDocument document) {
-        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) {
-            ["Content-Type"] = "application/json"
+    public IExecutionRequest ForDocument(CosmosDbDocument document)
+    {
+        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Content-Type"] = "application/json",
         };
 
         Set(headers, IdHeader, document.Id);
@@ -89,11 +95,17 @@ public class CosmosDbRequest : FunctionsPayloadRequest, IBatchRequest {
         Set(headers, ETagHeader, document.ETag);
 
         return new FunctionsPayloadRequest(
-            Method, Path, new MemoryStream(document.Json.ToArray(), writable: false), headers);
+            Method,
+            Path,
+            new MemoryStream(document.Json.ToArray(), writable: false),
+            headers
+        );
     }
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

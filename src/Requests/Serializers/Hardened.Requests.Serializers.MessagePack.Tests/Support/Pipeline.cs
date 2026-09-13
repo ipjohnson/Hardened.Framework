@@ -17,8 +17,8 @@ namespace Hardened.Requests.Serializers.MessagePack.Tests.Support;
 /// borrow a pooled stream, and a substitute handing back a fresh one every call cannot fail when
 /// that ownership is broken.
 /// </summary>
-public static class Pipeline {
-
+public static class Pipeline
+{
     public static MemoryStreamPool Pool() => new();
 
     /// <summary>
@@ -27,10 +27,13 @@ public static class Pipeline {
     /// </summary>
     public static ISharedMessagePackOptions Options(
         Func<IServiceProvider, MessagePackSerializerOptions>? provider = null,
-        params IFormatterResolver[] resolvers) {
+        params IFormatterResolver[] resolvers
+    )
+    {
         var configuration = new MessagePackSerializerConfiguration();
 
-        if (provider != null) {
+        if (provider != null)
+        {
             configuration.OptionsProvider = provider;
         }
 
@@ -38,30 +41,43 @@ public static class Pipeline {
 
         return new SharedMessagePackOptions(
             services,
-            Microsoft.Extensions.Options.Options.Create<IMessagePackSerializerConfiguration>(configuration),
-            resolvers);
+            Microsoft.Extensions.Options.Options.Create<IMessagePackSerializerConfiguration>(
+                configuration
+            ),
+            resolvers
+        );
     }
 
     public static MessagePackRequestDeserializer Deserializer(
-        IMemoryStreamPool pool, ISharedMessagePackOptions? options = null) =>
-        new(options ?? Options(), pool);
+        IMemoryStreamPool pool,
+        ISharedMessagePackOptions? options = null
+    ) => new(options ?? Options(), pool);
 
     public static MessagePackResponseSerializer ResponseSerializer(
-        IMemoryStreamPool pool, ISharedMessagePackOptions? options = null) =>
-        new(options ?? Options(), pool);
+        IMemoryStreamPool pool,
+        ISharedMessagePackOptions? options = null
+    ) => new(options ?? Options(), pool);
 
     /// <summary>A context whose request body is <paramref name="body"/>.</summary>
     public static IExecutionContext Context(
-        byte[]? body = null, string? contentType = MessagePackContentType.Value) {
+        byte[]? body = null,
+        string? contentType = MessagePackContentType.Value
+    )
+    {
         var provider = new ServiceCollection().BuildServiceProvider();
 
         var request = new TestExecutionRequest(
-            "POST", "/", contentType ?? MessagePackContentType.Value,
-            new SimpleQueryStringCollection(new Dictionary<string, string>())) {
-            Body = body is null ? Stream.Null : new MemoryStream(body)
+            "POST",
+            "/",
+            contentType ?? MessagePackContentType.Value,
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        )
+        {
+            Body = body is null ? Stream.Null : new MemoryStream(body),
         };
 
-        if (contentType != null) {
+        if (contentType != null)
+        {
             request.Headers[KnownHeaders.ContentType] = contentType;
         }
 
@@ -72,11 +88,13 @@ public static class Pipeline {
             request,
             new TestExecutionResponse(new MemoryStream()),
             CancellationToken.None,
-            null);
+            null
+        );
     }
 
     /// <summary>Everything written to the response body.</summary>
-    public static byte[] BodyOf(IExecutionContext context) {
+    public static byte[] BodyOf(IExecutionContext context)
+    {
         context.Response.Body.Position = 0;
 
         using var buffer = new MemoryStream();

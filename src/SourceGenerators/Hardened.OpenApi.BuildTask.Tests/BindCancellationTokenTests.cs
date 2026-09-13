@@ -20,37 +20,50 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// the model, which is what keeps the call and the signature agreeing.
 /// </para>
 /// </remarks>
-public class BindCancellationTokenTests {
-
+public class BindCancellationTokenTests
+{
     private static ServiceModel Service() =>
-        new() {
+        new()
+        {
             Tag = "Job",
-            Operations = new List<OperationModel> {
-                new() {
+            Operations = new List<OperationModel>
+            {
+                new()
+                {
                     OperationId = "getJob",
                     Path = "/jobs/{jobId}",
                     HttpMethod = "GET",
                     Tag = "Job",
                     SuccessStatusCode = 200,
                     ResponseRef = "#/components/schemas/Job",
-                    Parameters = new List<ParameterModel> {
-                        new() { Name = "jobId", In = "path", IsRequired = true, Type = "integer", Format = "int32" }
-                    }
+                    Parameters = new List<ParameterModel>
+                    {
+                        new()
+                        {
+                            Name = "jobId",
+                            In = "path",
+                            IsRequired = true,
+                            Type = "integer",
+                            Format = "int32",
+                        },
+                    },
                 },
-                new() {
+                new()
+                {
                     OperationId = "createJob",
                     Path = "/jobs",
                     HttpMethod = "POST",
                     Tag = "Job",
                     SuccessStatusCode = 201,
                     RequestBodyRef = "#/components/schemas/NewJob",
-                    ResponseRef = "#/components/schemas/Job"
-                }
-            }
+                    ResponseRef = "#/components/schemas/Job",
+                },
+            },
         };
 
     [Fact]
-    public void OffByDefault() {
+    public void OffByDefault()
+    {
         var result = EmitterHarness.ServiceInterface(Service());
 
         Assert.Contains("Task<Job> GetJob(int jobId);", result);
@@ -58,7 +71,8 @@ public class BindCancellationTokenTests {
     }
 
     [Fact]
-    public void OnPutsTheTokenLastOnEveryMethod() {
+    public void OnPutsTheTokenLastOnEveryMethod()
+    {
         var result = EmitterHarness.ServiceInterface(Service(), bindCancellationToken: true);
 
         // The short name, under a using the emitter registered. Generated code a person opens reads
@@ -66,7 +80,8 @@ public class BindCancellationTokenTests {
         Assert.Contains("using System.Threading;", result);
         Assert.Contains(
             "Task<Job> GetJob(int jobId, CancellationToken cancellationToken);",
-            result);
+            result
+        );
     }
 
     /// <summary>
@@ -74,12 +89,14 @@ public class BindCancellationTokenTests {
     /// and its body separately, so nothing else in the list is interleaved either.
     /// </summary>
     [Fact]
-    public void TheTokenGoesAfterTheBody() {
+    public void TheTokenGoesAfterTheBody()
+    {
         var result = EmitterHarness.ServiceInterface(Service(), bindCancellationToken: true);
 
         Assert.Contains(
             "Task<Job> CreateJob(NewJob body, CancellationToken cancellationToken);",
-            result);
+            result
+        );
     }
 
     /// <summary>
@@ -87,26 +104,28 @@ public class BindCancellationTokenTests {
     /// One interface with some methods bound and some not is worse to read and worse to migrate.
     /// </summary>
     [Fact]
-    public void AnOperationWithNoParametersTakesItToo() {
-        var service = new ServiceModel {
+    public void AnOperationWithNoParametersTakesItToo()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Job",
-            Operations = new List<OperationModel> {
-                new() {
+            Operations = new List<OperationModel>
+            {
+                new()
+                {
                     OperationId = "listJobs",
                     Path = "/jobs",
                     HttpMethod = "GET",
                     Tag = "Job",
                     SuccessStatusCode = 200,
-                    ResponseRef = "#/components/schemas/JobList"
-                }
-            }
+                    ResponseRef = "#/components/schemas/JobList",
+                },
+            },
         };
 
         var result = EmitterHarness.ServiceInterface(service, bindCancellationToken: true);
 
-        Assert.Contains(
-            "Task<JobList> ListJobs(CancellationToken cancellationToken);",
-            result);
+        Assert.Contains("Task<JobList> ListJobs(CancellationToken cancellationToken);", result);
     }
 
     /// <summary>
@@ -115,28 +134,41 @@ public class BindCancellationTokenTests {
     /// author writes <c>[EnumeratorCancellation]</c> on the implementation's own parameter.
     /// </summary>
     [Fact]
-    public void AStreamedOperationTakesItAfterItsParameters() {
-        var service = new ServiceModel {
+    public void AStreamedOperationTakesItAfterItsParameters()
+    {
+        var service = new ServiceModel
+        {
             Tag = "Job",
-            Operations = new List<OperationModel> {
-                new() {
+            Operations = new List<OperationModel>
+            {
+                new()
+                {
                     OperationId = "jobEvents",
                     Path = "/jobs/{jobId}/events",
                     HttpMethod = "GET",
                     Tag = "Job",
                     SuccessStatusCode = 200,
                     ItemSchemaRef = "#/components/schemas/JobEvent",
-                    Parameters = new List<ParameterModel> {
-                        new() { Name = "jobId", In = "path", IsRequired = true, Type = "integer", Format = "int32" }
-                    }
-                }
-            }
+                    Parameters = new List<ParameterModel>
+                    {
+                        new()
+                        {
+                            Name = "jobId",
+                            In = "path",
+                            IsRequired = true,
+                            Type = "integer",
+                            Format = "int32",
+                        },
+                    },
+                },
+            },
         };
 
         var result = EmitterHarness.ServiceInterface(service, bindCancellationToken: true);
 
         Assert.Contains(
             "IAsyncEnumerable<JobEvent> JobEvents(int jobId, CancellationToken cancellationToken);",
-            result);
+            result
+        );
     }
 }

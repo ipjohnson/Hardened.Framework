@@ -29,7 +29,8 @@ namespace Hardened.Gcp.CloudRun.Firestore;
 /// The event type is <c>ce-type</c>, which is how a handler that cares tells the four apart.
 /// </para>
 /// </remarks>
-public sealed class FirestoreEnvelope : ITriggerEnvelope {
+public sealed class FirestoreEnvelope : ITriggerEnvelope
+{
     /// <summary>The scheme a change feed routes under, which <c>[Change]</c> declares.</summary>
     public const string ChangeScheme = "CHANGE";
 
@@ -44,12 +45,15 @@ public sealed class FirestoreEnvelope : ITriggerEnvelope {
 
     private const string Documents = "documents/";
 
-    public bool Recognises(IExecutionRequest request) {
-        if (!string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase)) {
+    public bool Recognises(IExecutionRequest request)
+    {
+        if (!string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase))
+        {
             return false;
         }
 
-        if (CloudEventReader.IsStructured(request.ContentType)) {
+        if (CloudEventReader.IsStructured(request.ContentType))
+        {
             return true;
         }
 
@@ -58,28 +62,36 @@ public sealed class FirestoreEnvelope : ITriggerEnvelope {
         return type != null && type.StartsWith(DocumentTypePrefix, StringComparison.Ordinal);
     }
 
-    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) {
+    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload)
+    {
         CloudEvent cloudEvent;
 
-        try {
+        try
+        {
             cloudEvent = CloudEventReader.Read(request.ContentType, request.Headers, payload.Raw);
         }
-        catch (CloudEventFormatException) {
+        catch (CloudEventFormatException)
+        {
             return null;
         }
 
-        if (!cloudEvent.Type.StartsWith(DocumentTypePrefix, StringComparison.Ordinal)) {
+        if (!cloudEvent.Type.StartsWith(DocumentTypePrefix, StringComparison.Ordinal))
+        {
             return null;
         }
 
         DocumentEventData documentEvent;
 
-        try {
+        try
+        {
             documentEvent = DocumentEventData.Parser.ParseFrom(cloudEvent.Data.Span);
         }
-        catch (InvalidProtocolBufferException exception) {
+        catch (InvalidProtocolBufferException exception)
+        {
             throw new InvalidOperationException(
-                "The Firestore delivery carries data that is not a DocumentEventData.", exception);
+                "The Firestore delivery carries data that is not a DocumentEventData.",
+                exception
+            );
         }
 
         var document = documentEvent.Value ?? documentEvent.OldValue;
@@ -98,12 +110,15 @@ public sealed class FirestoreEnvelope : ITriggerEnvelope {
             FirestoreValueJson.Body(document),
             headers,
             request,
-            documentEvent);
+            documentEvent
+        );
     }
 
     /// <summary>The document's path without the <c>documents/</c> prefix the subject carries.</summary>
-    internal static string DocumentPath(string? subject) {
-        if (string.IsNullOrEmpty(subject)) {
+    internal static string DocumentPath(string? subject)
+    {
+        if (string.IsNullOrEmpty(subject))
+        {
             return "";
         }
 
@@ -121,18 +136,22 @@ public sealed class FirestoreEnvelope : ITriggerEnvelope {
     /// collection on its own, and an empty one gives an empty route, which is a route no handler
     /// declared rather than a failure inside the envelope.
     /// </remarks>
-    internal static string Collection(string documentPath) {
+    internal static string Collection(string documentPath)
+    {
         var segments = documentPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-        return segments.Length switch {
+        return segments.Length switch
+        {
             0 => "",
             1 => segments[0],
-            _ => segments[segments.Length - 2]
+            _ => segments[segments.Length - 2],
         };
     }
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

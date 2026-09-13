@@ -16,8 +16,10 @@ namespace Hardened.Azure.Functions.Http;
 /// </remarks>
 [DependencyModule]
 [FunctionsRuntimeModule]
-public partial class HttpModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class HttpModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerAdapter>(new HttpAdapter());
     }
 

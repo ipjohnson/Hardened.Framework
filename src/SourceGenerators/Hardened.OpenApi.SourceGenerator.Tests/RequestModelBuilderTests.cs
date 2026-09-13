@@ -6,78 +6,120 @@ using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
-public class RequestModelBuilderTests {
-    private static ServiceSpecModel CreatePetstoreSpec() {
-        return new ServiceSpecModel {
+public class RequestModelBuilderTests
+{
+    private static ServiceSpecModel CreatePetstoreSpec()
+    {
+        return new ServiceSpecModel
+        {
             FileName = "petstore",
-            Schemas = new List<SchemaModel> {
+            Schemas = new List<SchemaModel>
+            {
                 new() { Name = "Pet", Kind = SchemaKind.Object },
                 new() { Name = "CreatePetRequest", Kind = SchemaKind.Object },
-                new() { Name = "Store", Kind = SchemaKind.Object }
+                new() { Name = "Store", Kind = SchemaKind.Object },
             },
-            Services = new List<ServiceModel> {
-                new() {
+            Services = new List<ServiceModel>
+            {
+                new()
+                {
                     Tag = "Pet",
-                    Operations = new List<OperationModel> {
-                        new() {
+                    Operations = new List<OperationModel>
+                    {
+                        new()
+                        {
                             OperationId = "listPets",
                             Path = "/pets",
                             HttpMethod = "GET",
                             ResponseIsArray = true,
                             ResponseArrayItemsRef = "#/components/schemas/Pet",
-                            Parameters = new List<ParameterModel> {
-                                new() { Name = "limit", In = "query", IsRequired = false, Type = "integer", Format = "int32" }
-                            }
+                            Parameters = new List<ParameterModel>
+                            {
+                                new()
+                                {
+                                    Name = "limit",
+                                    In = "query",
+                                    IsRequired = false,
+                                    Type = "integer",
+                                    Format = "int32",
+                                },
+                            },
                         },
-                        new() {
+                        new()
+                        {
                             OperationId = "createPet",
                             Path = "/pets",
                             HttpMethod = "POST",
                             RequestBodyRef = "#/components/schemas/CreatePetRequest",
-                            ResponseRef = "#/components/schemas/Pet"
+                            ResponseRef = "#/components/schemas/Pet",
                         },
-                        new() {
+                        new()
+                        {
                             OperationId = "getPet",
                             Path = "/pets/{petId}",
                             HttpMethod = "GET",
                             ResponseRef = "#/components/schemas/Pet",
-                            Parameters = new List<ParameterModel> {
-                                new() { Name = "petId", In = "path", IsRequired = true, Type = "string" }
-                            }
+                            Parameters = new List<ParameterModel>
+                            {
+                                new()
+                                {
+                                    Name = "petId",
+                                    In = "path",
+                                    IsRequired = true,
+                                    Type = "string",
+                                },
+                            },
                         },
-                        new() {
+                        new()
+                        {
                             OperationId = "deletePet",
                             Path = "/pets/{petId}",
                             HttpMethod = "DELETE",
                             SuccessStatusCode = 204,
-                            Parameters = new List<ParameterModel> {
-                                new() { Name = "petId", In = "path", IsRequired = true, Type = "string" }
-                            }
-                        }
-                    }
+                            Parameters = new List<ParameterModel>
+                            {
+                                new()
+                                {
+                                    Name = "petId",
+                                    In = "path",
+                                    IsRequired = true,
+                                    Type = "string",
+                                },
+                            },
+                        },
+                    },
                 },
-                new() {
+                new()
+                {
                     Tag = "Store",
-                    Operations = new List<OperationModel> {
-                        new() {
+                    Operations = new List<OperationModel>
+                    {
+                        new()
+                        {
                             OperationId = "listStores",
                             Path = "/stores",
                             HttpMethod = "GET",
                             ResponseIsArray = true,
-                            ResponseArrayItemsRef = "#/components/schemas/Store"
-                        }
-                    }
-                }
-            }
+                            ResponseArrayItemsRef = "#/components/schemas/Store",
+                        },
+                    },
+                },
+            },
         };
     }
 
     [Fact]
-    public void BuildModels_PetstoreSpec_ProducesCorrectCountAndControllerTypes() {
+    public void BuildModels_PetstoreSpec_ProducesCorrectCountAndControllerTypes()
+    {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         Assert.Equal(5, models.Count);
 
@@ -91,25 +133,61 @@ public class RequestModelBuilderTests {
     }
 
     [Fact]
-    public void BuildModels_PetstoreSpec_HasCorrectMethodNamesAndPaths() {
+    public void BuildModels_PetstoreSpec_HasCorrectMethodNamesAndPaths()
+    {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
-        Assert.Contains(models, m => m.HandlerMethod == "ListPets" && m.Name.Path == "/pets" && m.Name.Method == "GET");
-        Assert.Contains(models, m => m.HandlerMethod == "CreatePet" && m.Name.Path == "/pets" && m.Name.Method == "POST");
-        Assert.Contains(models, m => m.HandlerMethod == "GetPet" && m.Name.Path == "/pets/{petId}" && m.Name.Method == "GET");
-        Assert.Contains(models, m => m.HandlerMethod == "DeletePet" && m.Name.Path == "/pets/{petId}" && m.Name.Method == "DELETE");
-        Assert.Contains(models, m => m.HandlerMethod == "ListStores" && m.Name.Path == "/stores" && m.Name.Method == "GET");
+        Assert.Contains(
+            models,
+            m => m.HandlerMethod == "ListPets" && m.Name.Path == "/pets" && m.Name.Method == "GET"
+        );
+        Assert.Contains(
+            models,
+            m => m.HandlerMethod == "CreatePet" && m.Name.Path == "/pets" && m.Name.Method == "POST"
+        );
+        Assert.Contains(
+            models,
+            m =>
+                m.HandlerMethod == "GetPet"
+                && m.Name.Path == "/pets/{petId}"
+                && m.Name.Method == "GET"
+        );
+        Assert.Contains(
+            models,
+            m =>
+                m.HandlerMethod == "DeletePet"
+                && m.Name.Path == "/pets/{petId}"
+                && m.Name.Method == "DELETE"
+        );
+        Assert.Contains(
+            models,
+            m =>
+                m.HandlerMethod == "ListStores"
+                && m.Name.Path == "/stores"
+                && m.Name.Method == "GET"
+        );
     }
 
     [Fact]
-    public void BuildModels_PathParameter_MapsToPathBindType() {
+    public void BuildModels_PathParameter_MapsToPathBindType()
+    {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var getPet = models.First(m => m.HandlerMethod == "GetPet");
         var petIdParam = getPet.RequestParameterInformationList.First(p => p.Name == "petId");
@@ -120,11 +198,17 @@ public class RequestModelBuilderTests {
     }
 
     [Fact]
-    public void BuildModels_QueryParameter_MapsToQueryStringBindType() {
+    public void BuildModels_QueryParameter_MapsToQueryStringBindType()
+    {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var listPets = models.First(m => m.HandlerMethod == "ListPets");
         var limitParam = listPets.RequestParameterInformationList.First(p => p.Name == "limit");
@@ -134,11 +218,17 @@ public class RequestModelBuilderTests {
     }
 
     [Fact]
-    public void BuildModels_RequestBody_MapsToBodyBindType() {
+    public void BuildModels_RequestBody_MapsToBodyBindType()
+    {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var createPet = models.First(m => m.HandlerMethod == "CreatePet");
         var bodyParam = createPet.RequestParameterInformationList.First(p => p.Name == "body");
@@ -148,11 +238,17 @@ public class RequestModelBuilderTests {
     }
 
     [Fact]
-    public void BuildModels_RefResponse_HasTaskOfTReturnType() {
+    public void BuildModels_RefResponse_HasTaskOfTReturnType()
+    {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var getPet = models.First(m => m.HandlerMethod == "GetPet");
         Assert.NotNull(getPet.ResponseInformation.ReturnType);
@@ -160,11 +256,17 @@ public class RequestModelBuilderTests {
     }
 
     [Fact]
-    public void BuildModels_ArrayResponse_HasTaskOfListReturnType() {
+    public void BuildModels_ArrayResponse_HasTaskOfListReturnType()
+    {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var listPets = models.First(m => m.HandlerMethod == "ListPets");
         Assert.NotNull(listPets.ResponseInformation.ReturnType);
@@ -172,11 +274,17 @@ public class RequestModelBuilderTests {
     }
 
     [Fact]
-    public void BuildModels_VoidResponse_HasNullReturnType() {
+    public void BuildModels_VoidResponse_HasNullReturnType()
+    {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var deletePet = models.First(m => m.HandlerMethod == "DeletePet");
         Assert.Null(deletePet.ResponseInformation.ReturnType);
@@ -184,9 +292,14 @@ public class RequestModelBuilderTests {
     }
 
     private static RequestHandlerModel BuildFor(string? contentType) =>
-        RequestModelBuilder.BuildModels(
-                SpecReturning(contentType), "Test.Api.Models", "Test.Api.Services",
-                "Test.Api.Generated", "Test.Api.Validation")
+        RequestModelBuilder
+            .BuildModels(
+                SpecReturning(contentType),
+                "Test.Api.Models",
+                "Test.Api.Services",
+                "Test.Api.Generated",
+                "Test.Api.Validation"
+            )
             .Single();
 
     /// <summary>
@@ -195,30 +308,45 @@ public class RequestModelBuilderTests {
     /// exist in two places is gone.
     /// </summary>
     [Fact]
-    public void BuildModels_Html_DoesNotForceTheContentType() {
-        Assert.True(string.IsNullOrEmpty(BuildFor("text/html").ResponseInformation.RawResponseContentType));
+    public void BuildModels_Html_DoesNotForceTheContentType()
+    {
+        Assert.True(
+            string.IsNullOrEmpty(BuildFor("text/html").ResponseInformation.RawResponseContentType)
+        );
     }
 
     // ── [Output<T>] on the implementation ─────────────────────────
 
-    private static readonly ITypeDefinition FortunesView =
-        TypeDefinition.Get("Test.Views", "Fortunes");
+    private static readonly ITypeDefinition FortunesView = TypeDefinition.Get(
+        "Test.Views",
+        "Fortunes"
+    );
 
     private static RequestHandlerModel EnrichRobots(
-        ITypeDefinition? outputType, params AttributeModel[] methodAttributes) {
+        ITypeDefinition? outputType,
+        params AttributeModel[] methodAttributes
+    )
+    {
         var models = RequestModelBuilder.BuildModels(
-            SpecReturning("text/html"), "Test.Api.Models", "Test.Api.Services",
-            "Test.Api.Generated", "Test.Api.Validation");
+            SpecReturning("text/html"),
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var handlerInfo = new HandlerInfo(
             TypeDefinition.Get("Test", "MetaServiceImpl"),
             TypeDefinition.Get("Test.Api.Services", "IMetaService"),
             new List<AttributeModel>(),
-            new List<HandlerMethodFilterInfo> {
-                new("Robots", methodAttributes.ToList(), outputType)
-            });
+            new List<HandlerMethodFilterInfo>
+            {
+                new("Robots", methodAttributes.ToList(), outputType),
+            }
+        );
 
-        return RequestModelBuilder.EnrichWithHandlerFilters(models, new List<HandlerInfo> { handlerInfo })
+        return RequestModelBuilder
+            .EnrichWithHandlerFilters(models, new List<HandlerInfo> { handlerInfo })
             .Single();
     }
 
@@ -228,13 +356,15 @@ public class RequestModelBuilderTests {
     /// name a type in the assembly that will implement it.
     /// </summary>
     [Fact]
-    public void EnrichWithHandlerFilters_OutputAttribute_SetsTheOutputType() {
+    public void EnrichWithHandlerFilters_OutputAttribute_SetsTheOutputType()
+    {
         Assert.Equal(FortunesView, EnrichRobots(FortunesView).ResponseInformation.OutputType);
     }
 
     /// <summary>Other method attributes are still filters.</summary>
     [Fact]
-    public void EnrichWithHandlerFilters_OutputAttribute_LeavesOtherAttributesAsFilters() {
+    public void EnrichWithHandlerFilters_OutputAttribute_LeavesOtherAttributesAsFilters()
+    {
         var other = new AttributeModel(TypeDefinition.Get("Test", "AuditAttribute"), "", "");
 
         var model = EnrichRobots(FortunesView, other);
@@ -245,33 +375,44 @@ public class RequestModelBuilderTests {
 
     /// <summary>An implementation that names no view leaves the response untemplated.</summary>
     [Fact]
-    public void EnrichWithHandlerFilters_NoOutputAttribute_LeavesNoOutput() {
+    public void EnrichWithHandlerFilters_NoOutputAttribute_LeavesNoOutput()
+    {
         Assert.Null(EnrichRobots(null).ResponseInformation.OutputType);
     }
 
     private static ServiceSpecModel SpecReturning(string? contentType) =>
-        new() {
+        new()
+        {
             FileName = "content",
-            Services = new List<ServiceModel> {
-                new() {
+            Services = new List<ServiceModel>
+            {
+                new()
+                {
                     Tag = "Meta",
-                    Operations = new List<OperationModel> {
-                        new() {
+                    Operations = new List<OperationModel>
+                    {
+                        new()
+                        {
                             OperationId = "robots",
                             Path = "/robots.txt",
                             HttpMethod = "GET",
                             ResponseContentType = contentType,
-                            ResponseType = "string"
-                        }
-                    }
-                }
-            }
+                            ResponseType = "string",
+                        },
+                    },
+                },
+            },
         };
 
     private static RequestHandlerModel BuildRobots(string? contentType) =>
-        RequestModelBuilder.BuildModels(
+        RequestModelBuilder
+            .BuildModels(
                 SpecReturning(contentType),
-                "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation")
+                "Test.Api.Models",
+                "Test.Api.Services",
+                "Test.Api.Generated",
+                "Test.Api.Validation"
+            )
             .Single();
 
     /// <summary>
@@ -290,8 +431,13 @@ public class RequestModelBuilderTests {
     /// without a return value there is nothing to negotiate over at all.
     /// </remarks>
     [Fact]
-    public void BuildModels_ANonJsonResponse_DoesNotForceTheContentType() {
-        Assert.True(string.IsNullOrEmpty(BuildRobots("text/plain").ResponseInformation.RawResponseContentType));
+    public void BuildModels_ANonJsonResponse_DoesNotForceTheContentType()
+    {
+        Assert.True(
+            string.IsNullOrEmpty(
+                BuildRobots("text/plain").ResponseInformation.RawResponseContentType
+            )
+        );
     }
 
     /// <summary>
@@ -299,15 +445,22 @@ public class RequestModelBuilderTests {
     /// body, which is right for a string and wrong for a model.
     /// </summary>
     [Fact]
-    public void BuildModels_JsonResponse_LeavesRawResponseContentTypeUnset() {
-        Assert.True(string.IsNullOrEmpty(
-            BuildRobots("application/json").ResponseInformation.RawResponseContentType));
+    public void BuildModels_JsonResponse_LeavesRawResponseContentTypeUnset()
+    {
+        Assert.True(
+            string.IsNullOrEmpty(
+                BuildRobots("application/json").ResponseInformation.RawResponseContentType
+            )
+        );
     }
 
     /// <summary>An operation declaring no response content stays on the JSON path.</summary>
     [Fact]
-    public void BuildModels_NoResponseContentType_LeavesRawResponseContentTypeUnset() {
-        Assert.True(string.IsNullOrEmpty(BuildRobots(null).ResponseInformation.RawResponseContentType));
+    public void BuildModels_NoResponseContentType_LeavesRawResponseContentTypeUnset()
+    {
+        Assert.True(
+            string.IsNullOrEmpty(BuildRobots(null).ResponseInformation.RawResponseContentType)
+        );
     }
 
     /// <summary>
@@ -315,9 +468,13 @@ public class RequestModelBuilderTests {
     /// what keeps application/problem+json and application/vnd.api+json off the raw path.
     /// </summary>
     [Fact]
-    public void BuildModels_VendorJsonResponse_LeavesRawResponseContentTypeUnset() {
-        Assert.True(string.IsNullOrEmpty(
-            BuildRobots("application/problem+json").ResponseInformation.RawResponseContentType));
+    public void BuildModels_VendorJsonResponse_LeavesRawResponseContentTypeUnset()
+    {
+        Assert.True(
+            string.IsNullOrEmpty(
+                BuildRobots("application/problem+json").ResponseInformation.RawResponseContentType
+            )
+        );
     }
 
     [Theory]
@@ -326,41 +483,65 @@ public class RequestModelBuilderTests {
     [InlineData("PetHandler", "PetHandlerController")]
     [InlineData("IFoo", "FooController")]
     [InlineData("PetService", "PetController")]
-    public void DeriveControllerName_VariousInputs_ProducesExpectedOutput(string interfaceName, string expected) {
+    public void DeriveControllerName_VariousInputs_ProducesExpectedOutput(
+        string interfaceName,
+        string expected
+    )
+    {
         var result = RequestModelBuilder.DeriveControllerName(interfaceName);
 
         Assert.Equal(expected, result);
     }
 
     [Fact]
-    public void EnrichWithHandlerFilters_NoHandlerInfos_ReturnsModelsUnchanged() {
+    public void EnrichWithHandlerFilters_NoHandlerInfos_ReturnsModelsUnchanged()
+    {
         var spec = CreatePetstoreSpec();
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var result = RequestModelBuilder.EnrichWithHandlerFilters(
-            models, Array.Empty<HandlerInfo>());
+            models,
+            Array.Empty<HandlerInfo>()
+        );
 
         Assert.Same(models, result);
     }
 
     [Fact]
-    public void EnrichWithHandlerFilters_ClassFilter_AppliedToAllMatchedHandlers() {
+    public void EnrichWithHandlerFilters_ClassFilter_AppliedToAllMatchedHandlers()
+    {
         var spec = CreatePetstoreSpec();
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var classFilter = new AttributeModel(
-            TypeDefinition.Get("Test", "MyFilterAttribute"), "", "");
+            TypeDefinition.Get("Test", "MyFilterAttribute"),
+            "",
+            ""
+        );
 
         var handlerInfo = new HandlerInfo(
             TypeDefinition.Get("Test", "PetServiceImpl"),
             TypeDefinition.Get("Test.Api.Services", "IPetService"),
             new List<AttributeModel> { classFilter },
-            new List<HandlerMethodFilterInfo>());
+            new List<HandlerMethodFilterInfo>()
+        );
 
         var result = RequestModelBuilder.EnrichWithHandlerFilters(
-            models, new List<HandlerInfo> { handlerInfo });
+            models,
+            new List<HandlerInfo> { handlerInfo }
+        );
 
         // All Pet handlers should have the class filter
         var petModels = result.Where(m => m.ControllerType.Name == "IPetService").ToList();
@@ -372,24 +553,37 @@ public class RequestModelBuilderTests {
     }
 
     [Fact]
-    public void EnrichWithHandlerFilters_MethodFilter_AppliedOnlyToMatchingMethod() {
+    public void EnrichWithHandlerFilters_MethodFilter_AppliedOnlyToMatchingMethod()
+    {
         var spec = CreatePetstoreSpec();
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var methodFilter = new AttributeModel(
-            TypeDefinition.Get("Test", "AuthorizeAttribute"), "", "");
+            TypeDefinition.Get("Test", "AuthorizeAttribute"),
+            "",
+            ""
+        );
 
         var handlerInfo = new HandlerInfo(
             TypeDefinition.Get("Test", "PetServiceImpl"),
             TypeDefinition.Get("Test.Api.Services", "IPetService"),
             new List<AttributeModel>(),
-            new List<HandlerMethodFilterInfo> {
-                new("CreatePet", new List<AttributeModel> { methodFilter })
-            });
+            new List<HandlerMethodFilterInfo>
+            {
+                new("CreatePet", new List<AttributeModel> { methodFilter }),
+            }
+        );
 
         var result = RequestModelBuilder.EnrichWithHandlerFilters(
-            models, new List<HandlerInfo> { handlerInfo });
+            models,
+            new List<HandlerInfo> { handlerInfo }
+        );
 
         var createPet = result.First(m => m.HandlerMethod == "CreatePet");
         Assert.Contains(methodFilter, createPet.Filters);
@@ -399,31 +593,51 @@ public class RequestModelBuilderTests {
     }
 
     [Fact]
-    public void BuildModels_HeaderParameter_MapsToHeaderBindType() {
-        var spec = new ServiceSpecModel {
+    public void BuildModels_HeaderParameter_MapsToHeaderBindType()
+    {
+        var spec = new ServiceSpecModel
+        {
             FileName = "test",
-            Services = new List<ServiceModel> {
-                new() {
+            Services = new List<ServiceModel>
+            {
+                new()
+                {
                     Tag = "Auth",
-                    Operations = new List<OperationModel> {
-                        new() {
+                    Operations = new List<OperationModel>
+                    {
+                        new()
+                        {
                             OperationId = "getProfile",
                             Path = "/profile",
                             HttpMethod = "GET",
-                            Parameters = new List<ParameterModel> {
-                                new() { Name = "Authorization", In = "header", IsRequired = true, Type = "string" }
-                            }
-                        }
-                    }
-                }
-            }
+                            Parameters = new List<ParameterModel>
+                            {
+                                new()
+                                {
+                                    Name = "Authorization",
+                                    In = "header",
+                                    IsRequired = true,
+                                    Type = "string",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         };
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Models", "Test.Services", "Test.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Models",
+            "Test.Services",
+            "Test.Generated",
+            "Test.Api.Validation"
+        );
 
         var getProfile = models.First(m => m.HandlerMethod == "GetProfile");
-        var authParam = getProfile.RequestParameterInformationList.First(p => p.BindingName == "Authorization");
+        var authParam = getProfile.RequestParameterInformationList.First(p =>
+            p.BindingName == "Authorization"
+        );
 
         Assert.Equal(ParameterBindType.Header, authParam.BindingType);
     }
@@ -439,12 +653,18 @@ public class RequestModelBuilderTests {
     /// the budget's token rather than the transport's.
     /// </remarks>
     [Fact]
-    public void BuildModels_BindCancellationToken_AddsABoundTokenLast() {
+    public void BuildModels_BindCancellationToken_AddsABoundTokenLast()
+    {
         var spec = CreatePetstoreSpec();
         spec.BindCancellationToken = true;
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var createPet = models.First(m => m.HandlerMethod == "CreatePet");
         var parameters = createPet.RequestParameterInformationList;
@@ -460,15 +680,22 @@ public class RequestModelBuilderTests {
     }
 
     [Fact]
-    public void BuildModels_WithoutTheFlag_BindsNoToken() {
+    public void BuildModels_WithoutTheFlag_BindsNoToken()
+    {
         var spec = CreatePetstoreSpec();
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         Assert.DoesNotContain(
             models.SelectMany(m => m.RequestParameterInformationList),
-            p => p.BindingType == ParameterBindType.CancellationToken);
+            p => p.BindingType == ParameterBindType.CancellationToken
+        );
     }
 
     /// <summary>
@@ -476,16 +703,27 @@ public class RequestModelBuilderTests {
     /// puts the parameter on every method.
     /// </summary>
     [Fact]
-    public void BuildModels_BindCancellationToken_ReachesEveryOperation() {
+    public void BuildModels_BindCancellationToken_ReachesEveryOperation()
+    {
         var spec = CreatePetstoreSpec();
         spec.BindCancellationToken = true;
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
-        Assert.All(models, model => Assert.Contains(
-            model.RequestParameterInformationList,
-            p => p.BindingType == ParameterBindType.CancellationToken));
+        Assert.All(
+            models,
+            model =>
+                Assert.Contains(
+                    model.RequestParameterInformationList,
+                    p => p.BindingType == ParameterBindType.CancellationToken
+                )
+        );
     }
 
     /// <summary>
@@ -493,27 +731,46 @@ public class RequestModelBuilderTests {
     /// filters rather than the standard ones, so the argument list is worth pinning separately.
     /// </summary>
     [Fact]
-    public void BuildModels_BindCancellationToken_ReachesAStreamedOperation() {
+    public void BuildModels_BindCancellationToken_ReachesAStreamedOperation()
+    {
         var spec = CreatePetstoreSpec();
         spec.BindCancellationToken = true;
         spec.Schemas.Add(new SchemaModel { Name = "PetEvent", Kind = SchemaKind.Object });
-        spec.Services[0].Operations.Add(new OperationModel {
-            OperationId = "petEvents",
-            Path = "/pets/{petId}/events",
-            HttpMethod = "GET",
-            ItemSchemaRef = "#/components/schemas/PetEvent",
-            Parameters = new List<ParameterModel> {
-                new() { Name = "petId", In = "path", IsRequired = true, Type = "string" }
-            }
-        });
+        spec.Services[0]
+            .Operations.Add(
+                new OperationModel
+                {
+                    OperationId = "petEvents",
+                    Path = "/pets/{petId}/events",
+                    HttpMethod = "GET",
+                    ItemSchemaRef = "#/components/schemas/PetEvent",
+                    Parameters = new List<ParameterModel>
+                    {
+                        new()
+                        {
+                            Name = "petId",
+                            In = "path",
+                            IsRequired = true,
+                            Type = "string",
+                        },
+                    },
+                }
+            );
 
         var models = RequestModelBuilder.BuildModels(
-            spec, "Test.Api.Models", "Test.Api.Services", "Test.Api.Generated", "Test.Api.Validation");
+            spec,
+            "Test.Api.Models",
+            "Test.Api.Services",
+            "Test.Api.Generated",
+            "Test.Api.Validation"
+        );
 
         var events = models.First(m => m.HandlerMethod == "PetEvents");
         var parameters = events.RequestParameterInformationList;
 
         Assert.Equal(
-            ParameterBindType.CancellationToken, parameters[parameters.Count - 1].BindingType);
+            ParameterBindType.CancellationToken,
+            parameters[parameters.Count - 1].BindingType
+        );
     }
 }

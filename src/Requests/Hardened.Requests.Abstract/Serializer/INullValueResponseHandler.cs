@@ -2,6 +2,7 @@
 
 namespace Hardened.Requests.Abstract.Serializer;
 
-public interface INullValueResponseHandler {
+public interface INullValueResponseHandler
+{
     Task Handle(IExecutionContext context);
 }

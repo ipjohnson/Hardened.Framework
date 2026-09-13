@@ -1,12 +1,14 @@
 using Hardened.Generation.Models;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
-public class OpenApiSourceGeneratorTests {
+public class OpenApiSourceGeneratorTests
+{
     [Fact]
-    public void Parse_PetstoreYaml_ProducesCorrectModel() {
+    public void Parse_PetstoreYaml_ProducesCorrectModel()
+    {
         var yaml = File.ReadAllText(Path.Combine("Fixtures", "petstore.yaml"));
 
         var model = OpenApiSpecParser.Parse(yaml, "petstore", CancellationToken.None);
@@ -16,7 +18,10 @@ public class OpenApiSourceGeneratorTests {
 
         // Schemas
         Assert.Contains(model.Schemas, s => s.Name == "Pet" && s.Kind == SchemaKind.Object);
-        Assert.Contains(model.Schemas, s => s.Name == "CreatePetRequest" && s.Kind == SchemaKind.Object);
+        Assert.Contains(
+            model.Schemas,
+            s => s.Name == "CreatePetRequest" && s.Kind == SchemaKind.Object
+        );
         Assert.Contains(model.Schemas, s => s.Name == "Store" && s.Kind == SchemaKind.Object);
         Assert.Contains(model.Schemas, s => s.Name == "PetStatus" && s.Kind == SchemaKind.Enum);
 
@@ -27,14 +32,27 @@ public class OpenApiSourceGeneratorTests {
         var petService = model.Services.First(s => s.Tag == "Pet");
         Assert.Equal(4, petService.Operations.Count);
 
-        Assert.Contains(petService.Operations, o => o.OperationId == "listPets" && o.HttpMethod == "GET");
-        Assert.Contains(petService.Operations, o => o.OperationId == "createPet" && o.HttpMethod == "POST");
-        Assert.Contains(petService.Operations, o => o.OperationId == "getPet" && o.HttpMethod == "GET");
-        Assert.Contains(petService.Operations, o => o.OperationId == "deletePet" && o.HttpMethod == "DELETE");
+        Assert.Contains(
+            petService.Operations,
+            o => o.OperationId == "listPets" && o.HttpMethod == "GET"
+        );
+        Assert.Contains(
+            petService.Operations,
+            o => o.OperationId == "createPet" && o.HttpMethod == "POST"
+        );
+        Assert.Contains(
+            petService.Operations,
+            o => o.OperationId == "getPet" && o.HttpMethod == "GET"
+        );
+        Assert.Contains(
+            petService.Operations,
+            o => o.OperationId == "deletePet" && o.HttpMethod == "DELETE"
+        );
     }
 
     [Fact]
-    public void Parse_PetstoreYaml_PetSchema_HasCorrectProperties() {
+    public void Parse_PetstoreYaml_PetSchema_HasCorrectProperties()
+    {
         var yaml = File.ReadAllText(Path.Combine("Fixtures", "petstore.yaml"));
 
         var model = OpenApiSpecParser.Parse(yaml, "petstore", CancellationToken.None);
@@ -48,7 +66,8 @@ public class OpenApiSourceGeneratorTests {
     }
 
     [Fact]
-    public void Parse_PetstoreYaml_Operations_HaveCorrectParameters() {
+    public void Parse_PetstoreYaml_Operations_HaveCorrectParameters()
+    {
         var yaml = File.ReadAllText(Path.Combine("Fixtures", "petstore.yaml"));
 
         var model = OpenApiSpecParser.Parse(yaml, "petstore", CancellationToken.None);
@@ -68,15 +87,18 @@ public class OpenApiSourceGeneratorTests {
     }
 
     [Fact]
-    public void Parse_InvalidContent_ReturnsNull() {
+    public void Parse_InvalidContent_ReturnsNull()
+    {
         var result = OpenApiSpecParser.Parse("not valid openapi", "test", CancellationToken.None);
 
         Assert.Null(result);
     }
 
     [Fact]
-    public void Parse_AllOfSchemaComposition_MergesPropertiesAndRequired() {
-        var yaml = @"
+    public void Parse_AllOfSchemaComposition_MergesPropertiesAndRequired()
+    {
+        var yaml =
+            @"
 openapi: '3.0.0'
 info:
   title: Test
@@ -114,8 +136,10 @@ components:
     }
 
     [Fact]
-    public void Parse_DictionarySchema_ProducesDictionaryKind() {
-        var yaml = @"
+    public void Parse_DictionarySchema_ProducesDictionaryKind()
+    {
+        var yaml =
+            @"
 openapi: '3.0.0'
 info:
   title: Test
@@ -138,8 +162,10 @@ components:
     }
 
     [Fact]
-    public void Parse_ArraySchema_ProducesArrayKind() {
-        var yaml = @"
+    public void Parse_ArraySchema_ProducesArrayKind()
+    {
+        var yaml =
+            @"
 openapi: '3.0.0'
 info:
   title: Test
@@ -167,8 +193,10 @@ components:
     }
 
     [Fact]
-    public void Parse_InlineEnumProperty_ParsedCorrectly() {
-        var yaml = @"
+    public void Parse_InlineEnumProperty_ParsedCorrectly()
+    {
+        var yaml =
+            @"
 openapi: '3.0.0'
 info:
   title: Test
@@ -198,8 +226,10 @@ components:
     }
 
     [Fact]
-    public void Parse_MissingOperationId_AutoGeneratesFromMethodAndPath() {
-        var yaml = @"
+    public void Parse_MissingOperationId_AutoGeneratesFromMethodAndPath()
+    {
+        var yaml =
+            @"
 openapi: '3.0.0'
 info:
   title: Test
@@ -223,8 +253,10 @@ paths:
     }
 
     [Fact]
-    public void Parse_MissingTags_DefaultsToDefaultTag() {
-        var yaml = @"
+    public void Parse_MissingTags_DefaultsToDefaultTag()
+    {
+        var yaml =
+            @"
 openapi: '3.0.0'
 info:
   title: Test
@@ -247,8 +279,10 @@ paths:
     }
 
     [Fact]
-    public void Parse_HeaderParameter_ParsedWithHeaderIn() {
-        var yaml = @"
+    public void Parse_HeaderParameter_ParsedWithHeaderIn()
+    {
+        var yaml =
+            @"
 openapi: '3.0.0'
 info:
   title: Test
@@ -281,8 +315,10 @@ paths:
     }
 
     [Fact]
-    public void Parse_MultipleResponseStatusCodes_PicksFirst2xx() {
-        var yaml = @"
+    public void Parse_MultipleResponseStatusCodes_PicksFirst2xx()
+    {
+        var yaml =
+            @"
 openapi: '3.0.0'
 info:
   title: Test
@@ -321,7 +357,8 @@ components:
     }
 
     [Fact]
-    public void Parse_PetstoreYaml_ListPetsResponse_IsArray() {
+    public void Parse_PetstoreYaml_ListPetsResponse_IsArray()
+    {
         var yaml = File.ReadAllText(Path.Combine("Fixtures", "petstore.yaml"));
 
         var model = OpenApiSpecParser.Parse(yaml, "petstore", CancellationToken.None);
@@ -333,7 +370,8 @@ components:
     }
 
     [Fact]
-    public void Parse_PetstoreYaml_CreatePetResponse_HasRefResponse() {
+    public void Parse_PetstoreYaml_CreatePetResponse_HasRefResponse()
+    {
         var yaml = File.ReadAllText(Path.Combine("Fixtures", "petstore.yaml"));
 
         var model = OpenApiSpecParser.Parse(yaml, "petstore", CancellationToken.None);

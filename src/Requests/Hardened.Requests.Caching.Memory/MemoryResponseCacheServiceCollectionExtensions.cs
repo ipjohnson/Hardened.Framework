@@ -3,8 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Caching.Memory;
 
-public static class MemoryResponseCacheServiceCollectionExtensions {
-
+public static class MemoryResponseCacheServiceCollectionExtensions
+{
     /// <summary>
     /// Sets what the in-process response store will hold.
     /// </summary>
@@ -25,18 +25,26 @@ public static class MemoryResponseCacheServiceCollectionExtensions {
     /// left rather than in place of it.
     /// </remarks>
     public static IServiceCollection ConfigureMemoryResponseCache(
-        this IServiceCollection services, Action<MemoryResponseCacheConfiguration> configure) {
+        this IServiceCollection services,
+        Action<MemoryResponseCacheConfiguration> configure
+    )
+    {
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
                 Array.Empty<IConfigurationValueProvider>(),
-                new IConfigurationValueAmender[] {
+                new IConfigurationValueAmender[]
+                {
                     new SimpleConfigurationValueAmender<MemoryResponseCacheConfiguration>(
-                        (_, configuration) => {
+                        (_, configuration) =>
+                        {
                             configure(configuration);
 
                             return configuration;
-                        })
-                }));
+                        }
+                    ),
+                }
+            )
+        );
 
         return services;
     }

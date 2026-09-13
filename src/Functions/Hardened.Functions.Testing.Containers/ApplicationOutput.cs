@@ -22,12 +22,14 @@ namespace Hardened.Functions.Testing.Containers;
 /// the assembly is what the host runs, and it is what the mount is for.
 /// </para>
 /// </remarks>
-public static class ApplicationOutput {
+public static class ApplicationOutput
+{
     /// <summary>
     /// The output directory of the sibling application <paramref name="projectName"/>, or an
     /// exception naming what was expected and where.
     /// </summary>
-    public static string Of(string projectName) {
+    public static string Of(string projectName)
+    {
         var testOutput = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
 
         // bin/<Configuration>/net8.0 is three segments; the project directory is above them.
@@ -38,11 +40,13 @@ public static class ApplicationOutput {
         var output = Path.Combine(fixtureDirectory, projectName, "bin", configuration, framework);
         var assembly = Path.Combine(output, projectName + ".dll");
 
-        if (!File.Exists(assembly)) {
+        if (!File.Exists(assembly))
+        {
             throw new DirectoryNotFoundException(
-                $"No build output for {projectName} at '{output}'. The test project has to reference " +
-                "the application so it is built first, and both have to be built in the same " +
-                $"configuration ({configuration}).");
+                $"No build output for {projectName} at '{output}'. The test project has to reference "
+                    + "the application so it is built first, and both have to be built in the same "
+                    + $"configuration ({configuration})."
+            );
         }
 
         return output;

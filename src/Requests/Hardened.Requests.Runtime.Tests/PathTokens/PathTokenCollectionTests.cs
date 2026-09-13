@@ -22,20 +22,23 @@ namespace Hardened.Requests.Runtime.Tests.PathTokens;
 /// matching the same route, concurrently, and nothing else in the suite would notice.
 /// </para>
 /// </remarks>
-public class PathTokenCollectionTests {
-
+public class PathTokenCollectionTests
+{
     [Fact]
-    public void EmptyHasNoTokens() {
+    public void EmptyHasNoTokens()
+    {
         Assert.Equal(0, PathTokenCollection.Empty.Count);
     }
 
     [Fact]
-    public void CountIsTheCountItWasBuiltWith() {
+    public void CountIsTheCountItWasBuiltWith()
+    {
         Assert.Equal(3, new PathTokenCollection(3, ["a", "b", "c"]).Count);
     }
 
     [Fact]
-    public void AValueSetPositionallyReadsBackUnderTheRoutesName() {
+    public void AValueSetPositionallyReadsBackUnderTheRoutesName()
+    {
         var tokens = new PathTokenCollection(2, ["id", "postId"]);
 
         tokens.SetValue(0, "7");
@@ -50,19 +53,22 @@ public class PathTokenCollectionTests {
     /// The last value is filled in by the constructor because the match unwinds from the leaf.
     /// </summary>
     [Fact]
-    public void TheLastValueMayBeSuppliedAtConstruction() {
+    public void TheLastValueMayBeSuppliedAtConstruction()
+    {
         var tokens = new PathTokenCollection(2, ["id", "postId"], "42");
 
         Assert.Equal("42", tokens.Get(1).TokenValue);
     }
 
     [Fact]
-    public void ALastValueOnAnEmptyCollectionIsIgnoredRatherThanThrowing() {
+    public void ALastValueOnAnEmptyCollectionIsIgnoredRatherThanThrowing()
+    {
         Assert.Equal(0, new PathTokenCollection(0, [], "42").Count);
     }
 
     [Fact]
-    public void LookupByNameFindsTheValue() {
+    public void LookupByNameFindsTheValue()
+    {
         var tokens = new PathTokenCollection(2, ["id", "postId"]);
 
         tokens.SetValue(0, "7");
@@ -72,7 +78,8 @@ public class PathTokenCollectionTests {
     }
 
     [Fact]
-    public void LookupByAnUnknownNameIsEmptyRatherThanThrowing() {
+    public void LookupByAnUnknownNameIsEmptyRatherThanThrowing()
+    {
         var tokens = new PathTokenCollection(1, ["id"]);
 
         tokens.SetValue(0, "7");
@@ -85,12 +92,14 @@ public class PathTokenCollectionTests {
     /// result as a string.
     /// </summary>
     [Fact]
-    public void AnUnsetValueReadsAsAnEmptyStringByIndex() {
+    public void AnUnsetValueReadsAsAnEmptyStringByIndex()
+    {
         Assert.Equal("", new PathTokenCollection(1, ["id"]).Get(0).TokenValue);
     }
 
     [Fact]
-    public void AnUnsetValueReadsAsEmptyByName() {
+    public void AnUnsetValueReadsAsEmptyByName()
+    {
         Assert.Equal(StringValues.Empty, new PathTokenCollection(1, ["id"]).Get("id"));
     }
 
@@ -99,7 +108,8 @@ public class PathTokenCollectionTests {
     /// end of a shared array.
     /// </summary>
     [Fact]
-    public void AValueBeyondTheSuppliedNamesHasAnEmptyName() {
+    public void AValueBeyondTheSuppliedNamesHasAnEmptyName()
+    {
         var tokens = new PathTokenCollection(2, ["id"]);
 
         tokens.SetValue(1, "42");
@@ -112,7 +122,8 @@ public class PathTokenCollectionTests {
     [InlineData(-1)]
     [InlineData(2)]
     [InlineData(int.MaxValue)]
-    public void SetValueOutsideTheRangeThrows(int index) {
+    public void SetValueOutsideTheRangeThrows(int index)
+    {
         var tokens = new PathTokenCollection(2, ["id", "postId"]);
 
         Assert.Throws<IndexOutOfRangeException>(() => tokens.SetValue(index, "value"));
@@ -121,21 +132,24 @@ public class PathTokenCollectionTests {
     [Theory]
     [InlineData(-1)]
     [InlineData(2)]
-    public void GetOutsideTheRangeThrows(int index) {
+    public void GetOutsideTheRangeThrows(int index)
+    {
         var tokens = new PathTokenCollection(2, ["id", "postId"]);
 
         Assert.Throws<IndexOutOfRangeException>(() => tokens.Get(index));
     }
 
     [Fact]
-    public void AnyIndexIntoAnEmptyCollectionThrows() {
+    public void AnyIndexIntoAnEmptyCollectionThrows()
+    {
         Assert.Throws<IndexOutOfRangeException>(() => PathTokenCollection.Empty.Get(0));
     }
 
     #region the legacy constructor, which owns its names
 
     [Fact]
-    public void ACollectionThatOwnsItsNamesRecordsWhatSetIsGiven() {
+    public void ACollectionThatOwnsItsNamesRecordsWhatSetIsGiven()
+    {
         var tokens = new PathTokenCollection(2);
 
         tokens.Set(0, new PathToken("id", "7"));
@@ -145,7 +159,8 @@ public class PathTokenCollectionTests {
     }
 
     [Fact]
-    public void TheLastTokenMayBeSuppliedAtConstruction() {
+    public void TheLastTokenMayBeSuppliedAtConstruction()
+    {
         var tokens = new PathTokenCollection(2, new PathToken("postId", "42"));
 
         Assert.Equal("postId", tokens.Get(1).TokenName);
@@ -153,7 +168,8 @@ public class PathTokenCollectionTests {
     }
 
     [Fact]
-    public void ALastTokenOnAnEmptyCollectionIsIgnoredRatherThanThrowing() {
+    public void ALastTokenOnAnEmptyCollectionIsIgnoredRatherThanThrowing()
+    {
         Assert.Equal(0, new PathTokenCollection(0, new PathToken("postId", "42")).Count);
     }
 
@@ -167,7 +183,8 @@ public class PathTokenCollectionTests {
     /// concurrent request on that route.
     /// </remarks>
     [Fact]
-    public void SetOnARouteSuppliedCollectionDoesNotWriteTheSharedNamesArray() {
+    public void SetOnARouteSuppliedCollectionDoesNotWriteTheSharedNamesArray()
+    {
         var routeNames = new[] { "id", "postId" };
         var tokens = new PathTokenCollection(2, routeNames);
 
@@ -181,7 +198,8 @@ public class PathTokenCollectionTests {
     [Theory]
     [InlineData(-1)]
     [InlineData(2)]
-    public void SetOutsideTheRangeThrows(int index) {
+    public void SetOutsideTheRangeThrows(int index)
+    {
         var tokens = new PathTokenCollection(2);
 
         Assert.Throws<IndexOutOfRangeException>(() => tokens.Set(index, new PathToken("id", "7")));

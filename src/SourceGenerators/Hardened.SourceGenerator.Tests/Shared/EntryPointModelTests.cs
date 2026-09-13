@@ -15,10 +15,11 @@ namespace Hardened.SourceGenerator.Tests.Shared;
 /// drops is a feature that silently does not exist.
 /// </para>
 /// </summary>
-public class EntryPointModelTests {
-
+public class EntryPointModelTests
+{
     [Fact]
-    public void TheEntryPointCarriesTheDeclaringTypeAndNamespace() {
+    public void TheEntryPointCarriesTheDeclaringTypeAndNamespace()
+    {
         var model = EntryPointCapture.Single(EntryPointCapture.Application());
 
         Assert.Equal("TestApp", model.EntryPointType.Namespace);
@@ -32,7 +33,8 @@ public class EntryPointModelTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void TheRootFlagIsWhicheverTheProviderWasBuiltWith(bool rootEntryPoint) {
+    public void TheRootFlagIsWhicheverTheProviderWasBuiltWith(bool rootEntryPoint)
+    {
         var model = EntryPointCapture.Single(EntryPointCapture.Application(), rootEntryPoint);
 
         Assert.Equal(rootEntryPoint, model.RootEntryPoint);
@@ -44,25 +46,44 @@ public class EntryPointModelTests {
     /// parameters is wired the wrong way round.
     /// </summary>
     [Fact]
-    public void MethodsReachTheModelWithTheirReturnTypeAndParameters() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application("""
-                public string Describe(int count, string name) => name;
-            """));
+    public void MethodsReachTheModelWithTheirReturnTypeAndParameters()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                """
+                    public string Describe(int count, string name) => name;
+                """
+            )
+        );
 
-        var method = Assert.Single(model.MethodDefinitions, definition => definition.Name == "Describe");
+        var method = Assert.Single(
+            model.MethodDefinitions,
+            definition => definition.Name == "Describe"
+        );
 
         Assert.Equal("System.String", method.ReturnType?.ToString());
         Assert.Equal(["count", "name"], method.Parameters.Select(parameter => parameter.Name));
-        Assert.Equal("System.String Describe(System.Int32 count,System.String name)", method.ToString());
+        Assert.Equal(
+            "System.String Describe(System.Int32 count,System.String name)",
+            method.ToString()
+        );
     }
 
     [Fact]
-    public void AMethodWithNoParametersReachesTheModelWithAnEmptyParameterList() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application("""
-                public void Configure() { }
-            """));
+    public void AMethodWithNoParametersReachesTheModelWithAnEmptyParameterList()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                """
+                    public void Configure() { }
+                """
+            )
+        );
 
-        var method = Assert.Single(model.MethodDefinitions, definition => definition.Name == "Configure");
+        var method = Assert.Single(
+            model.MethodDefinitions,
+            definition => definition.Name == "Configure"
+        );
 
         Assert.Empty(method.Parameters);
         Assert.Equal("System.Void Configure()", method.ToString());
@@ -74,13 +95,21 @@ public class EntryPointModelTests {
     /// overloads would make which one it finds depend on declaration order.
     /// </summary>
     [Fact]
-    public void OverloadsReachTheModelSeparately() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application("""
-                public void Configure() { }
-                public void Configure(int value) { }
-            """));
+    public void OverloadsReachTheModelSeparately()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                """
+                    public void Configure() { }
+                    public void Configure(int value) { }
+                """
+            )
+        );
 
-        Assert.Equal(2, model.MethodDefinitions.Count(definition => definition.Name == "Configure"));
+        Assert.Equal(
+            2,
+            model.MethodDefinitions.Count(definition => definition.Name == "Configure")
+        );
     }
 
     /// <summary>
@@ -89,27 +118,38 @@ public class EntryPointModelTests {
     /// that does not compile.
     /// </summary>
     [Fact]
-    public void OnlySettablePublicInstancePropertiesReachTheModel() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application("""
-                public string Settable { get; set; } = "";
-                public string Initable { get; init; } = "";
-                public string GetOnly { get; } = "";
-                public string Expression => "";
-                public static string Static { get; set; } = "";
-                private string Private { get; set; } = "";
-                internal string Internal { get; set; } = "";
-            """));
+    public void OnlySettablePublicInstancePropertiesReachTheModel()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                """
+                    public string Settable { get; set; } = "";
+                    public string Initable { get; init; } = "";
+                    public string GetOnly { get; } = "";
+                    public string Expression => "";
+                    public static string Static { get; set; } = "";
+                    private string Private { get; set; } = "";
+                    internal string Internal { get; set; } = "";
+                """
+            )
+        );
 
         Assert.Equal(
             ["Settable", "Initable"],
-            model.PropertyDefinitions!.Select(property => property.PropertyName));
+            model.PropertyDefinitions!.Select(property => property.PropertyName)
+        );
     }
 
     [Fact]
-    public void APropertyReachesTheModelWithItsType() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application("""
-                public int Count { get; set; }
-            """));
+    public void APropertyReachesTheModelWithItsType()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                """
+                    public int Count { get; set; }
+                """
+            )
+        );
 
         var property = Assert.Single(model.PropertyDefinitions!);
 
@@ -118,7 +158,8 @@ public class EntryPointModelTests {
     }
 
     [Fact]
-    public void AnEntryPointWithNoPropertiesReachesTheModelWithAnEmptyList() {
+    public void AnEntryPointWithNoPropertiesReachesTheModelWithAnEmptyList()
+    {
         var model = EntryPointCapture.Single(EntryPointCapture.Application());
 
         Assert.Empty(model.PropertyDefinitions!);
@@ -129,7 +170,8 @@ public class EntryPointModelTests {
     /// selects on <c>[HardenedModule]</c> still has to read the other attributes beside it.
     /// </summary>
     [Fact]
-    public void TheModuleAttributeReachesTheModel() {
+    public void TheModuleAttributeReachesTheModel()
+    {
         var model = EntryPointCapture.Single(EntryPointCapture.Application());
 
         var attribute = Assert.Single(model.AttributeModels);
@@ -144,25 +186,35 @@ public class EntryPointModelTests {
     /// an object initialiser after it.
     /// </summary>
     [Fact]
-    public void PositionalArgumentsAndNamedAssignmentsAreKeptApart() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application(
-            attributes: "[Audit(\"orders\", 2, Scope = \"tenant\", Level = 3)]",
-            trailing: AuditAttribute));
+    public void PositionalArgumentsAndNamedAssignmentsAreKeptApart()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                attributes: "[Audit(\"orders\", 2, Scope = \"tenant\", Level = 3)]",
+                trailing: AuditAttribute
+            )
+        );
 
-        var audit = Assert.Single(model.AttributeModels,
-            attribute => attribute.TypeDefinition.Name == "AuditAttribute");
+        var audit = Assert.Single(
+            model.AttributeModels,
+            attribute => attribute.TypeDefinition.Name == "AuditAttribute"
+        );
 
         Assert.Equal("\"orders\", 2", audit.Arguments);
         Assert.Equal("Scope = \"tenant\", Level = 3", audit.PropertyAssignment);
     }
 
     [Fact]
-    public void AnAttributeWithNoArgumentsCarriesNeither() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application(
-            attributes: "[Audit]", trailing: AuditAttribute));
+    public void AnAttributeWithNoArgumentsCarriesNeither()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(attributes: "[Audit]", trailing: AuditAttribute)
+        );
 
-        var audit = Assert.Single(model.AttributeModels,
-            attribute => attribute.TypeDefinition.Name == "AuditAttribute");
+        var audit = Assert.Single(
+            model.AttributeModels,
+            attribute => attribute.TypeDefinition.Name == "AuditAttribute"
+        );
 
         Assert.Equal("", audit.Arguments);
         Assert.Equal("", audit.PropertyAssignment);
@@ -175,14 +227,21 @@ public class EntryPointModelTests {
     /// spelling that resolves from an unrelated namespace.
     /// </summary>
     [Fact]
-    public void AnAttributeClassWithoutTheSuffixGetsItBack() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application(
-            attributes: "[Trace]",
-            trailing: """
+    public void AnAttributeClassWithoutTheSuffixGetsItBack()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                attributes: "[Trace]",
+                trailing: """
                 public class Trace : Attribute { }
-                """));
+                """
+            )
+        );
 
-        Assert.Single(model.AttributeModels, attribute => attribute.TypeDefinition.Name == "TraceAttribute");
+        Assert.Single(
+            model.AttributeModels,
+            attribute => attribute.TypeDefinition.Name == "TraceAttribute"
+        );
     }
 
     /// <summary>
@@ -205,20 +264,28 @@ public class EntryPointModelTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void AnUnresolvableAttributeIsKeptWithAnEmptyNamespace() {
+    public void AnUnresolvableAttributeIsKeptWithAnEmptyNamespace()
+    {
         var generator = new EntryPointCaptureGenerator();
 
         var result = Hardened.SourceGeneration.Testing.GeneratorTestHarness.Run(
             EntryPointCapture.Application(attributes: "[NotDeclaredAnywhere]"),
             generator,
-            RequestGeneratorHarness.Anchors);
+            RequestGeneratorHarness.Anchors
+        );
 
         // The input itself does not compile, which is the point: the transform still has to produce
         // a model rather than throw, so the IDE keeps working while the user is mid-edit.
         var model = Assert.Single(generator.Models);
 
-        var unresolvable = Assert.Single(model.AttributeModels,
-            attribute => attribute.TypeDefinition.Name.StartsWith("NotDeclaredAnywhere", StringComparison.Ordinal));
+        var unresolvable = Assert.Single(
+            model.AttributeModels,
+            attribute =>
+                attribute.TypeDefinition.Name.StartsWith(
+                    "NotDeclaredAnywhere",
+                    StringComparison.Ordinal
+                )
+        );
 
         // The empty namespace is the part worth pinning: it is what would render as a leading dot.
         Assert.Empty(unresolvable.TypeDefinition.Namespace);
@@ -268,15 +335,23 @@ public class EntryPointModelTests {
     [InlineData("List<DayOfWeek>", "System.Collections.Generic.List<System.DayOfWeek>")]
     [InlineData("List<Outer.Inner>", "System.Collections.Generic.List<TestApp.Outer.Inner>")]
     [InlineData("List<int>?", "System.Collections.Generic.List<int>?")]
-    [InlineData("Dictionary<string, int>",
-        "System.Collections.Generic.Dictionary<string,int>")]
+    [InlineData("Dictionary<string, int>", "System.Collections.Generic.Dictionary<string,int>")]
     public void EveryParameterShapeReachesTheModelAsItsOwnTypeDefinition(
-        string declaration, string expected) {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application(
-            $"    public void Handle({declaration} value) {{ }}",
-            trailing: NestedType));
+        string declaration,
+        string expected
+    )
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                $"    public void Handle({declaration} value) {{ }}",
+                trailing: NestedType
+            )
+        );
 
-        var method = Assert.Single(model.MethodDefinitions, definition => definition.Name == "Handle");
+        var method = Assert.Single(
+            model.MethodDefinitions,
+            definition => definition.Name == "Handle"
+        );
 
         Assert.Equal(expected, Render(Assert.Single(method.Parameters).Type));
     }
@@ -286,16 +361,25 @@ public class EntryPointModelTests {
     /// name — the emitted signature repeats the declaration's own <c>T</c>.
     /// </summary>
     [Fact]
-    public void AGenericMethodsTypeParameterIsCarriedThroughByName() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application("""
-                public void Handle<T>(List<T> values) { }
-            """));
+    public void AGenericMethodsTypeParameterIsCarriedThroughByName()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                """
+                    public void Handle<T>(List<T> values) { }
+                """
+            )
+        );
 
-        var method = Assert.Single(model.MethodDefinitions, definition => definition.Name == "Handle");
+        var method = Assert.Single(
+            model.MethodDefinitions,
+            definition => definition.Name == "Handle"
+        );
 
         Assert.Equal(
             "System.Collections.Generic.List<T>",
-            Render(Assert.Single(method.Parameters).Type));
+            Render(Assert.Single(method.Parameters).Type)
+        );
     }
 
     /// <summary>
@@ -303,23 +387,39 @@ public class EntryPointModelTests {
     /// one return type with no symbol behind its keyword in the same way the others have.
     /// </summary>
     [Fact]
-    public void AVoidReturnTypeReachesTheModel() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application("""
-                public void Handle() { }
-            """));
+    public void AVoidReturnTypeReachesTheModel()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                """
+                    public void Handle() { }
+                """
+            )
+        );
 
-        var method = Assert.Single(model.MethodDefinitions, definition => definition.Name == "Handle");
+        var method = Assert.Single(
+            model.MethodDefinitions,
+            definition => definition.Name == "Handle"
+        );
 
         Assert.Equal("System.Void", Render(method.ReturnType!));
     }
 
     [Fact]
-    public void AGenericReturnTypeReachesTheModelClosed() {
-        var model = EntryPointCapture.Single(EntryPointCapture.Application("""
-                public Task<string> Handle() => Task.FromResult("");
-            """));
+    public void AGenericReturnTypeReachesTheModelClosed()
+    {
+        var model = EntryPointCapture.Single(
+            EntryPointCapture.Application(
+                """
+                    public Task<string> Handle() => Task.FromResult("");
+                """
+            )
+        );
 
-        var method = Assert.Single(model.MethodDefinitions, definition => definition.Name == "Handle");
+        var method = Assert.Single(
+            model.MethodDefinitions,
+            definition => definition.Name == "Handle"
+        );
 
         // Task<string>, not Task<System.String> — the generic argument keeps the keyword it was
         // written with. See EveryParameterShapeReachesTheModelAsItsOwnTypeDefinition.
@@ -347,18 +447,22 @@ public class EntryPointModelTests {
     /// <c>ITypeDefinition.ToString</c> drops the array and nullable markers on a non-generic type,
     /// so it cannot tell <c>int</c> from <c>int[]</c>.
     /// </summary>
-    private static string Render(ITypeDefinition type) {
+    private static string Render(ITypeDefinition type)
+    {
         var text = type.Namespace.Length > 0 ? type.Namespace + "." + type.Name : type.Name;
 
-        if (type.TypeArguments.Count > 0) {
+        if (type.TypeArguments.Count > 0)
+        {
             text += "<" + string.Join(",", type.TypeArguments.Select(Render)) + ">";
         }
 
-        if (type.IsArray) {
+        if (type.IsArray)
+        {
             text += "[]";
         }
 
-        if (type.IsNullable) {
+        if (type.IsNullable)
+        {
             text += "?";
         }
 

@@ -17,8 +17,8 @@ namespace Hardened.Azure.Functions.SourceGenerator.Tests;
 /// looked right.
 /// </para>
 /// </summary>
-public class AzureFunctionsGeneratorTests {
-
+public class AzureFunctionsGeneratorTests
+{
     private const string QueueHandler = """
             [Queue("orders")]
             public void OnOrder(Order order) { }
@@ -29,16 +29,22 @@ public class AzureFunctionsGeneratorTests {
     /// attribute, the provider, and the executor. Compiled, not matched.
     /// </summary>
     [Fact]
-    public void AQueueHandlerCompilesToAShimAProviderAndAnExecutor() {
-        var result = Generate(QueueHandler, ("HardenedQueueModule", ServiceBusModule)).AssertNoErrors();
+    public void AQueueHandlerCompilesToAShimAProviderAndAnExecutor()
+    {
+        var result = Generate(QueueHandler, ("HardenedQueueModule", ServiceBusModule))
+            .AssertNoErrors();
 
         var functions = FunctionsSource(result);
 
-        Assert.Contains("[global::Microsoft.Azure.Functions.Worker.Function(\"Queue_orders\")]", functions);
         Assert.Contains(
-            "[global::Microsoft.Azure.Functions.Worker.ServiceBusTrigger(\"orders\", IsBatched = true)] " +
-            "global::Azure.Messaging.ServiceBus.ServiceBusReceivedMessage[] messages",
-            functions);
+            "[global::Microsoft.Azure.Functions.Worker.Function(\"Queue_orders\")]",
+            functions
+        );
+        Assert.Contains(
+            "[global::Microsoft.Azure.Functions.Worker.ServiceBusTrigger(\"orders\", IsBatched = true)] "
+                + "global::Azure.Messaging.ServiceBus.ServiceBusReceivedMessage[] messages",
+            functions
+        );
         Assert.Contains("class TestApplicationAzureFunctionMetadataProvider", functions);
         Assert.Contains("class TestApplicationAzureFunctionExecutor", functions);
     }
@@ -49,14 +55,17 @@ public class AzureFunctionsGeneratorTests {
     /// trigger dispatch named. A shim carrying another route would invoke and route to nothing.
     /// </summary>
     [Fact]
-    public void TheShimCarriesTheHandlersRoute() {
-        var result = Generate(QueueHandler, ("HardenedQueueModule", ServiceBusModule)).AssertNoErrors();
+    public void TheShimCarriesTheHandlersRoute()
+    {
+        var result = Generate(QueueHandler, ("HardenedQueueModule", ServiceBusModule))
+            .AssertNoErrors();
 
         Assert.Contains(
-            "FunctionsInvocationHandler.Invoke(context, \"QUEUE\", \"/orders\", " +
-            "new global::Hardened.Azure.Functions.ServiceBus.ServiceBusDelivery(messages, messageActions), " +
-            "global::Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch.Trigger)",
-            FunctionsSource(result));
+            "FunctionsInvocationHandler.Invoke(context, \"QUEUE\", \"/orders\", "
+                + "new global::Hardened.Azure.Functions.ServiceBus.ServiceBusDelivery(messages, messageActions), "
+                + "global::Hardened.Azure.Functions.Runtime.Execution.FunctionsDispatch.Trigger)",
+            FunctionsSource(result)
+        );
     }
 
     /// <summary>
@@ -64,8 +73,10 @@ public class AzureFunctionsGeneratorTests {
     /// the interface and registers both generated types.
     /// </summary>
     [Fact]
-    public void TheEntryPointRegistersTheProviderAndTheExecutor() {
-        var result = Generate(QueueHandler, ("HardenedQueueModule", ServiceBusModule)).AssertNoErrors();
+    public void TheEntryPointRegistersTheProviderAndTheExecutor()
+    {
+        var result = Generate(QueueHandler, ("HardenedQueueModule", ServiceBusModule))
+            .AssertNoErrors();
 
         var worker = WorkerSource(result);
 
@@ -79,24 +90,33 @@ public class AzureFunctionsGeneratorTests {
     /// fewer, each with the entry point and script file the host loads it by.
     /// </summary>
     [Fact]
-    public async Task TheProviderListsExactlyTheFunctionsTheHandlersDeclare() {
+    public async Task TheProviderListsExactlyTheFunctionsTheHandlersDeclare()
+    {
         var result = Generate(
-            """
-                [Queue("orders")]
-                public void OnOrder(Order order) { }
+                """
+                    [Queue("orders")]
+                    public void OnOrder(Order order) { }
 
-                [Queue("returns")]
-                public void OnReturn(Order order) { }
-            """,
-            ("HardenedQueueModule", ServiceBusModule)).AssertNoErrors();
+                    [Queue("returns")]
+                    public void OnReturn(Order order) { }
+                """,
+                ("HardenedQueueModule", ServiceBusModule)
+            )
+            .AssertNoErrors();
 
         var functions = await Provider(result).GetFunctionMetadataAsync("");
 
-        Assert.Equal(["Queue_orders", "Queue_returns"], functions.Select(function => function.Name).Order());
+        Assert.Equal(
+            ["Queue_orders", "Queue_returns"],
+            functions.Select(function => function.Name).Order()
+        );
 
         var orders = Assert.Single(functions, function => function.Name == "Queue_orders");
 
-        Assert.Equal("TestApp.Generated.TestApplicationAzureFunctions.Queue_orders", orders.EntryPoint);
+        Assert.Equal(
+            "TestApp.Generated.TestApplicationAzureFunctions.Queue_orders",
+            orders.EntryPoint
+        );
         Assert.Equal("GeneratorTestAssembly.dll", orders.ScriptFile);
         Assert.Equal("dotnet-isolated", orders.Language);
         Assert.Contains("\"queueName\":\"orders\"", Assert.Single(orders.RawBindings!));
@@ -108,7 +128,8 @@ public class AzureFunctionsGeneratorTests {
     /// property named in HRDF001 is the whole of the fix.
     /// </summary>
     [Fact]
-    public void AHandlerWithNoBoundModuleReportsHRDF001AsToday() {
+    public void AHandlerWithNoBoundModuleReportsHRDF001AsToday()
+    {
         var result = Generate(
             """
                 [Queue("orders")]
@@ -117,7 +138,8 @@ public class AzureFunctionsGeneratorTests {
                 [Topic("order-events")]
                 public void OnEvent(Order order) { }
             """,
-            ("HardenedQueueModule", ServiceBusModule));
+            ("HardenedQueueModule", ServiceBusModule)
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDF001");
 
@@ -126,7 +148,10 @@ public class AzureFunctionsGeneratorTests {
         Assert.Contains("HardenedTopicModule", diagnostic.GetMessage());
 
         Assert.DoesNotContain("Topic_", FunctionsSource(result));
-        Assert.DoesNotContain(result.GeneratorDiagnostics, one => one.Id.StartsWith("HRDAZ", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            result.GeneratorDiagnostics,
+            one => one.Id.StartsWith("HRDAZ", StringComparison.Ordinal)
+        );
     }
 
     /// <summary>
@@ -136,13 +161,15 @@ public class AzureFunctionsGeneratorTests {
     /// host and is an error naming the setting and where to write it.
     /// </summary>
     [Fact]
-    public void ATopicHandlerWithoutASubscriptionIsReported() {
+    public void ATopicHandlerWithoutASubscriptionIsReported()
+    {
         var result = Generate(
             """
                 [Topic("order-events")]
                 public void OnEvent(Order order) { }
             """,
-            ("HardenedTopicModule", ServiceBusModule));
+            ("HardenedTopicModule", ServiceBusModule)
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDAZ003");
 
@@ -158,24 +185,30 @@ public class AzureFunctionsGeneratorTests {
     /// binding the host indexes.
     /// </summary>
     [Fact]
-    public async Task ATopicHandlerWithASubscriptionCompilesToASubscriptionFunction() {
+    public async Task ATopicHandlerWithASubscriptionCompilesToASubscriptionFunction()
+    {
         var result = Generate(
-            """
-                [Topic("order-events")]
-                public void OnEvent(Order order) { }
-            """,
-            [("HardenedTopicModule", ServiceBusModule)],
-            application: "[global::Hardened.Azure.Functions.ServiceBus.ServiceBusModule(Subscription = \"orders-service\")]")
+                """
+                    [Topic("order-events")]
+                    public void OnEvent(Order order) { }
+                """,
+                [("HardenedTopicModule", ServiceBusModule)],
+                application: "[global::Hardened.Azure.Functions.ServiceBus.ServiceBusModule(Subscription = \"orders-service\")]"
+            )
             .AssertNoErrors();
 
         Assert.Contains(
             "ServiceBusTrigger(\"order-events\", \"orders-service\", IsBatched = true)",
-            FunctionsSource(result));
+            FunctionsSource(result)
+        );
 
         var topic = Assert.Single(await Provider(result).GetFunctionMetadataAsync(""));
 
         Assert.Equal("Topic_order_events", topic.Name);
-        Assert.Contains("\"subscriptionName\":\"orders-service\"", Assert.Single(topic.RawBindings!));
+        Assert.Contains(
+            "\"subscriptionName\":\"orders-service\"",
+            Assert.Single(topic.RawBindings!)
+        );
     }
 
     /// <summary>
@@ -183,12 +216,14 @@ public class AzureFunctionsGeneratorTests {
     /// metadata the host reads could not.
     /// </summary>
     [Fact]
-    public void ASettingThatIsNotALiteralIsReported() {
+    public void ASettingThatIsNotALiteralIsReported()
+    {
         var result = Generate(
             QueueHandler,
             [("HardenedQueueModule", ServiceBusModule)],
             application: "[global::Hardened.Azure.Functions.ServiceBus.ServiceBusModule(Connection = Names.Connection)]",
-            extraTypes: "public static class Names { public const string Connection = \"Bus\"; }");
+            extraTypes: "public static class Names { public const string Connection = \"Bus\"; }"
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDAZ004");
 
@@ -202,11 +237,13 @@ public class AzureFunctionsGeneratorTests {
     /// handler accepted.
     /// </summary>
     [Fact]
-    public async Task ReportingItemFailuresTurnsOffTheHostsAutoCompletion() {
+    public async Task ReportingItemFailuresTurnsOffTheHostsAutoCompletion()
+    {
         var result = Generate(
-            QueueHandler,
-            [("HardenedQueueModule", ServiceBusModule)],
-            application: "[global::Hardened.Azure.Functions.ServiceBus.ServiceBusModule(ReportsItemFailures = true)]")
+                QueueHandler,
+                [("HardenedQueueModule", ServiceBusModule)],
+                application: "[global::Hardened.Azure.Functions.ServiceBus.ServiceBusModule(ReportsItemFailures = true)]"
+            )
             .AssertNoErrors();
 
         Assert.Contains("IsBatched = true, AutoCompleteMessages = false", FunctionsSource(result));
@@ -221,7 +258,8 @@ public class AzureFunctionsGeneratorTests {
     /// names, case-insensitively, so this is an error and only the first shim is written.
     /// </summary>
     [Fact]
-    public void TwoSourcesProducingOneFunctionNameAreReported() {
+    public void TwoSourcesProducingOneFunctionNameAreReported()
+    {
         var result = Generate(
             """
                 [Queue("orders-new")]
@@ -230,7 +268,8 @@ public class AzureFunctionsGeneratorTests {
                 [Queue("orders.new")]
                 public void Dotted(Order order) { }
             """,
-            ("HardenedQueueModule", ServiceBusModule));
+            ("HardenedQueueModule", ServiceBusModule)
+        );
 
         var diagnostic = Assert.Single(result.GeneratorDiagnostics, one => one.Id == "HRDAZ002");
 
@@ -239,7 +278,10 @@ public class AzureFunctionsGeneratorTests {
 
         var functions = FunctionsSource(result);
 
-        Assert.Equal(1, Occurrences(functions, "[global::Microsoft.Azure.Functions.Worker.Function("));
+        Assert.Equal(
+            1,
+            Occurrences(functions, "[global::Microsoft.Azure.Functions.Worker.Function(")
+        );
     }
 
     /// <summary>
@@ -247,7 +289,8 @@ public class AzureFunctionsGeneratorTests {
     /// on another cloud compile the same handlers and must not gain a dependency on the worker.
     /// </summary>
     [Fact]
-    public void NoBoundModuleAtAllWritesNothing() {
+    public void NoBoundModuleAtAllWritesNothing()
+    {
         var result = Generate(QueueHandler).AssertNoErrors();
 
         Assert.Equal("", FunctionsSource(result));
@@ -260,7 +303,8 @@ public class AzureFunctionsGeneratorTests {
     /// function.
     /// </summary>
     [Fact]
-    public async Task AnApplicationWithNoServedHandlerRegistersAnEmptyProvider() {
+    public async Task AnApplicationWithNoServedHandlerRegistersAnEmptyProvider()
+    {
         var result = Generate("", ("HardenedQueueModule", ServiceBusModule)).AssertNoErrors();
 
         Assert.Contains("IHardenedFunctionsApplication", WorkerSource(result));
@@ -271,12 +315,16 @@ public class AzureFunctionsGeneratorTests {
     /// The generated provider, loaded from the compilation the test built and instantiated, so
     /// what is asserted is what the worker would answer the host with.
     /// </summary>
-    private static int Occurrences(string text, string fragment) {
+    private static int Occurrences(string text, string fragment)
+    {
         var count = 0;
 
-        for (var index = text.IndexOf(fragment, StringComparison.Ordinal);
-             index >= 0;
-             index = text.IndexOf(fragment, index + fragment.Length, StringComparison.Ordinal)) {
+        for (
+            var index = text.IndexOf(fragment, StringComparison.Ordinal);
+            index >= 0;
+            index = text.IndexOf(fragment, index + fragment.Length, StringComparison.Ordinal)
+        )
+        {
             count++;
         }
 

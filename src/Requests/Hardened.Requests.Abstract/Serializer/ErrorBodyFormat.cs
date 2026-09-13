@@ -3,8 +3,8 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// <summary>
 /// What representation a failed request's body goes out as.
 /// </summary>
-public enum ErrorBodyFormat {
-
+public enum ErrorBodyFormat
+{
     /// <summary>
     /// The one the request negotiated, like any other body. The default.
     /// </summary>
@@ -41,5 +41,5 @@ public enum ErrorBodyFormat {
     /// description's root.
     /// </para>
     /// </remarks>
-    Json = 1
+    Json = 1,
 }

@@ -11,7 +11,8 @@ namespace Hardened.IntegrationTests.Invoke.SUT;
 /// the whole reason direct invoke gets a function of its own instead of being told apart by
 /// inspection.
 /// </remarks>
-public class OrderRequest {
+public class OrderRequest
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
@@ -21,7 +22,8 @@ public class OrderRequest {
     public string RequestContext { get; set; } = "";
 }
 
-public class OrderReceipt {
+public class OrderReceipt
+{
     public string Id { get; set; } = "";
 
     public string Status { get; set; } = "";
@@ -33,11 +35,13 @@ public class OrderReceipt {
 /// <remarks>
 /// Injected rather than a static list, so each test sees only its own invocations.
 /// </remarks>
-public interface IOrderLog {
+public interface IOrderLog
+{
     void Placed(OrderRequest request);
 }
 
-public class PlaceOrder {
+public class PlaceOrder
+{
     /// <summary>
     /// Unnamed, which is what makes it answer whatever the deployment called the function.
     /// </summary>
@@ -47,7 +51,8 @@ public class PlaceOrder {
     /// which is the deployment's to choose.
     /// </remarks>
     [HardenedFunction]
-    public OrderReceipt Handle(OrderRequest request, IOrderLog log) {
+    public OrderReceipt Handle(OrderRequest request, IOrderLog log)
+    {
         log.Placed(request);
 
         return new OrderReceipt { Id = request.Id, Status = "placed" };

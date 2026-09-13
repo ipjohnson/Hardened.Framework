@@ -18,7 +18,8 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// before any of this: written, compiled, and constraining nothing.
 /// </para>
 /// </remarks>
-public static class RouteConstraintFacts {
+public static class RouteConstraintFacts
+{
     private const string Runtime = "global::Hardened.Web.Runtime.Routing.RouteConstraints.";
 
     /// <summary>
@@ -31,7 +32,8 @@ public static class RouteConstraintFacts {
     /// composes the argument rather than this knowing how the span is spelled.
     /// </returns>
     public static string? Test(string constraint) =>
-        constraint switch {
+        constraint switch
+        {
             "int" => Runtime + "IsInt",
             "long" => Runtime + "IsLong",
             "guid" => Runtime + "IsGuid",
@@ -42,7 +44,7 @@ public static class RouteConstraintFacts {
             "alpha" => Runtime + "IsAlpha",
             "slug" => Runtime + "IsSlug",
             "hex" => Runtime + "IsHex",
-            _ => null
+            _ => null,
         };
 
     /// <summary>
@@ -68,7 +70,8 @@ public static class RouteConstraintFacts {
     /// <c>[RouteConstraint]</c> that does not declare its own precedence gets.
     /// </returns>
     public static int Rank(string constraint) =>
-        constraint switch {
+        constraint switch
+        {
             "guid" => 10,
             "date" => 15,
             "datetime" => 15,
@@ -86,7 +89,7 @@ public static class RouteConstraintFacts {
             "length" => 80,
             "minlength" => 80,
             "maxlength" => 80,
-            _ => CustomPrecedence
+            _ => CustomPrecedence,
         };
 
     /// <summary>
@@ -100,8 +103,10 @@ public static class RouteConstraintFacts {
     public const int CustomPrecedence = 90;
 
     /// <summary>One constraint in a chain: a name, and the integer arguments it was given.</summary>
-    public readonly struct Term {
-        public Term(string name, IReadOnlyList<int> arguments) {
+    public readonly struct Term
+    {
+        public Term(string name, IReadOnlyList<int> arguments)
+        {
             Name = name;
             Arguments = arguments;
         }
@@ -129,25 +134,31 @@ public static class RouteConstraintFacts {
     /// empty list, because a token can carry no constraint at all and that is not an error.
     /// </para>
     /// </remarks>
-    public static IReadOnlyList<Term>? Terms(string chain) {
-        if (string.IsNullOrEmpty(chain)) {
+    public static IReadOnlyList<Term>? Terms(string chain)
+    {
+        if (string.IsNullOrEmpty(chain))
+        {
             return null;
         }
 
         var terms = new List<Term>();
 
-        foreach (var part in chain.Split(ChainSeparator)) {
-            if (part.Length == 0) {
+        foreach (var part in chain.Split(ChainSeparator))
+        {
+            if (part.Length == 0)
+            {
                 return null;
             }
 
             var open = part.IndexOf('(');
 
-            if (open < 0) {
+            if (open < 0)
+            {
                 // A closing paren with nothing to close is malformed, not a name. Reading it as one
                 // would report "nothing declares a constraint called 'length)'", which sends the
                 // author looking for a missing declaration rather than a missing bracket.
-                if (part.IndexOf(')') >= 0) {
+                if (part.IndexOf(')') >= 0)
+                {
                     return null;
                 }
 
@@ -155,22 +166,32 @@ public static class RouteConstraintFacts {
                 continue;
             }
 
-            if (part[part.Length - 1] != ')' || open == 0) {
+            if (part[part.Length - 1] != ')' || open == 0)
+            {
                 return null;
             }
 
             var name = part.Substring(0, open);
             var inside = part.Substring(open + 1, part.Length - open - 2);
 
-            if (inside.Length == 0) {
+            if (inside.Length == 0)
+            {
                 return null;
             }
 
             var arguments = new List<int>();
 
-            foreach (var argument in inside.Split(',')) {
-                if (!int.TryParse(
-                        argument, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)) {
+            foreach (var argument in inside.Split(','))
+            {
+                if (
+                    !int.TryParse(
+                        argument,
+                        NumberStyles.Integer,
+                        CultureInfo.InvariantCulture,
+                        out var parsed
+                    )
+                )
+                {
                     return null;
                 }
 
@@ -195,7 +216,8 @@ public static class RouteConstraintFacts {
     /// A name that exists at the wrong arity has to read as a wrong call, not as an unknown name.
     /// </remarks>
     public static string? Call(Term term) =>
-        (term.Name, term.Arguments.Count) switch {
+        (term.Name, term.Arguments.Count) switch
+        {
             (_, 0) => Test(term.Name),
             ("length", 1) => Runtime + "IsLength",
             ("length", 2) => Runtime + "IsLength",
@@ -204,7 +226,7 @@ public static class RouteConstraintFacts {
             ("min", 1) => Runtime + "IsMin",
             ("max", 1) => Runtime + "IsMax",
             ("range", 2) => Runtime + "IsRange",
-            _ => null
+            _ => null,
         };
 
     /// <summary>
@@ -230,13 +252,17 @@ public static class RouteConstraintFacts {
     /// 400 a caller can still be sent.
     /// </para>
     /// </remarks>
-    public static bool GuaranteesConversion(string chain, string csType) {
-        if (Terms(chain) is not { } terms) {
+    public static bool GuaranteesConversion(string chain, string csType)
+    {
+        if (Terms(chain) is not { } terms)
+        {
             return false;
         }
 
-        foreach (var term in terms) {
-            if (Guarantees(term, csType)) {
+        foreach (var term in terms)
+        {
+            if (Guarantees(term, csType))
+            {
                 return true;
             }
         }
@@ -251,7 +277,8 @@ public static class RouteConstraintFacts {
     /// range as well as <c>long</c>'s.
     /// </remarks>
     private static bool Guarantees(Term term, string csType) =>
-        (term.Name, term.Arguments.Count) switch {
+        (term.Name, term.Arguments.Count) switch
+        {
             ("int", 0) => AtLeastInt32(csType) || Fractional(csType),
             ("range", 2) => AtLeastInt32(csType) || Fractional(csType),
             ("long", 0) => AtLeastInt64(csType) || Fractional(csType),
@@ -263,14 +290,13 @@ public static class RouteConstraintFacts {
             ("date", 0) => csType is "DateOnly" or "DateTime" or "DateTimeOffset",
             // Not DateOnly: the accepted formats include a time of day, which DateOnly refuses.
             ("datetime", 0) => csType is "DateTime" or "DateTimeOffset",
-            _ => false
+            _ => false,
         };
 
     private static bool AtLeastInt32(string csType) =>
         csType is "Int32" or "int" || AtLeastInt64(csType);
 
-    private static bool AtLeastInt64(string csType) =>
-        csType is "Int64" or "long";
+    private static bool AtLeastInt64(string csType) => csType is "Int64" or "long";
 
     private static bool Fractional(string csType) =>
         csType is "Decimal" or "decimal" or "Double" or "double" or "Single" or "float";
@@ -280,19 +306,30 @@ public static class RouteConstraintFacts {
     /// Empty when the name takes none.
     /// </summary>
     public static IReadOnlyList<int> Arities(string name) =>
-        name switch {
+        name switch
+        {
             "length" => new[] { 1, 2 },
             "minlength" => new[] { 1 },
             "maxlength" => new[] { 1 },
             "min" => new[] { 1 },
             "max" => new[] { 1 },
             "range" => new[] { 2 },
-            _ => new int[0]
+            _ => new int[0],
         };
 
     /// <summary>Every built-in name, for a diagnostic that has to list them.</summary>
     /// <remarks>Alphabetical, because this is read by a person in an error message.</remarks>
-    public static readonly IReadOnlyList<string> Names = new[] {
-        "alpha", "bool", "date", "datetime", "decimal", "guid", "hex", "int", "long", "slug"
+    public static readonly IReadOnlyList<string> Names = new[]
+    {
+        "alpha",
+        "bool",
+        "date",
+        "datetime",
+        "decimal",
+        "guid",
+        "hex",
+        "int",
+        "long",
+        "slug",
     };
 }

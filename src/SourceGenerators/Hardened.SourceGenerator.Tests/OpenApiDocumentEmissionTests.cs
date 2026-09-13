@@ -25,31 +25,32 @@ namespace Hardened.SourceGenerator.Tests;
 /// than only deciding to write one.
 /// </para>
 /// </remarks>
-public class OpenApiDocumentEmissionTests {
-
+public class OpenApiDocumentEmissionTests
+{
     /// <summary>
     /// What an application carries for a document to be emitted at all.
     /// </summary>
     private const string Enable =
-        "[Hardened.Shared.Runtime.Attributes.Enable<" +
-        "Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]";
+        "[Hardened.Shared.Runtime.Attributes.Enable<"
+        + "Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]";
 
-    private static string Application(string controllers, string moduleAttributes = "") => $$"""
-        using System;
-        using System.Collections.Generic;
-        using System.Threading.Tasks;
-        using Hardened.Requests.Abstract.Attributes;
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Web.Runtime.Attributes;
+    private static string Application(string controllers, string moduleAttributes = "") =>
+        $$"""
+            using System;
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
 
-        namespace TestApp;
+            namespace TestApp;
 
-        [HardenedModule]
-        {{moduleAttributes}}
-        public partial class Application { }
+            [HardenedModule]
+            {{moduleAttributes}}
+            public partial class Application { }
 
-        {{controllers}}
-        """;
+            {{controllers}}
+            """;
 
     /// <summary>
     /// One controller per response and parameter shape the document has to describe, so the writers
@@ -102,14 +103,22 @@ public class OpenApiDocumentEmissionTests {
             .SourceContaining("OpenApiDocument");
 
     /// <summary>The JSON the generated source carries, inflated back out of the byte array.</summary>
-    private static string Extract(string generatedSource) {
+    private static string Extract(string generatedSource)
+    {
         var match = Regex.Match(
-            generatedSource, @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
+            generatedSource,
+            @"new byte\[\]\s*\{(.*?)\}\s*;",
+            RegexOptions.Singleline
+        );
 
         Assert.True(match.Success, "No document byte array in the generated source.");
 
-        var bytes = match.Groups[1].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var bytes = match
+            .Groups[1]
+            .Value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
             .Select(byte.Parse)
             .ToArray();
 
@@ -126,16 +135,16 @@ public class OpenApiDocumentEmissionTests {
     /// No marker, no document - the point of making emission opt-in rather than only the route.
     /// </summary>
     [Fact]
-    public void NoDocumentIsEmittedWithoutTheMarker() {
-        var result = RequestGeneratorHarness
-            .Generate(Application(Controllers))
-            .AssertNoErrors();
+    public void NoDocumentIsEmittedWithoutTheMarker()
+    {
+        var result = RequestGeneratorHarness.Generate(Application(Controllers)).AssertNoErrors();
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("OpenApiDocument"));
     }
 
     [Fact]
-    public void TheDocumentIsEmittedWithTheMarker() {
+    public void TheDocumentIsEmittedWithTheMarker()
+    {
         Assert.Contains("OpenApiDocument", Generate(Enable));
         Assert.Contains("GZip", Generate(Enable));
     }
@@ -144,7 +153,8 @@ public class OpenApiDocumentEmissionTests {
     /// Compressed bytes over a metadata blob, not a string literal in the <c>#US</c> heap.
     /// </summary>
     [Fact]
-    public void TheDocumentIsCarriedAsGZippedBytes() {
+    public void TheDocumentIsCarriedAsGZippedBytes()
+    {
         var source = Generate(Enable);
 
         Assert.Contains("ReadOnlySpan<byte>", source);
@@ -156,7 +166,8 @@ public class OpenApiDocumentEmissionTests {
     /// And it inflates back to the document describing the handlers the application declared.
     /// </summary>
     [Fact]
-    public void TheInflatedDocumentDescribesEveryRoute() {
+    public void TheInflatedDocumentDescribesEveryRoute()
+    {
         using var document = JsonDocument.Parse(Extract(Generate(Enable)));
 
         var root = document.RootElement;
@@ -182,7 +193,8 @@ public class OpenApiDocumentEmissionTests {
     /// The schema of a returned type reaches the document, not just its name.
     /// </summary>
     [Fact]
-    public void ReturnedTypesBecomeSchemas() {
+    public void ReturnedTypesBecomeSchemas()
+    {
         using var document = JsonDocument.Parse(Extract(Generate(Enable)));
 
         var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
@@ -202,11 +214,14 @@ public class OpenApiDocumentEmissionTests {
     /// says which is which.
     /// </summary>
     [Fact]
-    public void ParametersAreDescribedWithTheirSource() {
+    public void ParametersAreDescribedWithTheirSource()
+    {
         using var document = JsonDocument.Parse(Extract(Generate(Enable)));
 
-        var parameters = document.RootElement
-            .GetProperty("paths").GetProperty("/orders/{id}").GetProperty("get")
+        var parameters = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/orders/{id}")
+            .GetProperty("get")
             .GetProperty("parameters");
 
         var id = parameters.EnumerateArray().Single();
@@ -214,14 +229,18 @@ public class OpenApiDocumentEmissionTests {
         Assert.Equal("id", id.GetProperty("name").GetString());
         Assert.Equal("path", id.GetProperty("in").GetString());
 
-        var query = document.RootElement
-            .GetProperty("paths").GetProperty("/orders/search").GetProperty("get")
+        var query = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/orders/search")
+            .GetProperty("get")
             .GetProperty("parameters");
 
         Assert.Contains(
             query.EnumerateArray(),
-            parameter => parameter.GetProperty("in").GetString() == "query"
-                         && parameter.GetProperty("name").GetString() == "sku");
+            parameter =>
+                parameter.GetProperty("in").GetString() == "query"
+                && parameter.GetProperty("name").GetString() == "sku"
+        );
     }
 
     /// <summary>
@@ -229,7 +248,8 @@ public class OpenApiDocumentEmissionTests {
     /// XML in the first place.
     /// </summary>
     [Fact]
-    public void DocCommentsBecomeSummaries() {
+    public void DocCommentsBecomeSummaries()
+    {
         var document = Extract(Generate(Enable));
 
         Assert.Contains("Every order.", document);
@@ -246,7 +266,8 @@ public class OpenApiDocumentEmissionTests {
     /// hold; asserted so it stays true rather than stays assumed.
     /// </remarks>
     [Fact]
-    public void TheEmittedBytesAreTheSameOnEveryRun() {
+    public void TheEmittedBytesAreTheSameOnEveryRun()
+    {
         Assert.Equal(Generate(Enable), Generate(Enable));
     }
 
@@ -255,7 +276,8 @@ public class OpenApiDocumentEmissionTests {
     /// <c>AddSingleton</c> by hand.
     /// </summary>
     [Fact]
-    public void TheProviderIsRegisteredAtTheDeclaredPath() {
+    public void TheProviderIsRegisteredAtTheDeclaredPath()
+    {
         var routing = RequestGeneratorHarness
             .Generate(Application(Controllers, Enable))
             .AssertNoErrors()
@@ -267,7 +289,8 @@ public class OpenApiDocumentEmissionTests {
     }
 
     [Fact]
-    public void NoProviderIsRegisteredWithoutTheMarker() {
+    public void NoProviderIsRegisteredWithoutTheMarker()
+    {
         var routing = RequestGeneratorHarness
             .Generate(Application(Controllers))
             .AssertNoErrors()
@@ -281,7 +304,8 @@ public class OpenApiDocumentEmissionTests {
     /// document somewhere else declares its own marker and needs no generator change.
     /// </summary>
     [Fact]
-    public void AnApplicationsOwnMarkerChoosesThePath() {
+    public void AnApplicationsOwnMarkerChoosesThePath()
+    {
         const string marker = """
             [Hardened.Web.Runtime.OpenApi.OpenApiDocumentPath("/spec.json")]
             public sealed class SpecEndpoint { }
@@ -374,17 +398,30 @@ public class OpenApiDocumentEmissionTests {
         """;
 
     private static JsonElement FidelityDocument() =>
-        JsonDocument.Parse(Extract(
-            RequestGeneratorHarness
-                .Generate(Application(FidelityControllers, Enable))
-                .AssertNoErrors()
-                .SourceContaining("OpenApiDocument"))).RootElement;
+        JsonDocument
+            .Parse(
+                Extract(
+                    RequestGeneratorHarness
+                        .Generate(Application(FidelityControllers, Enable))
+                        .AssertNoErrors()
+                        .SourceContaining("OpenApiDocument")
+                )
+            )
+            .RootElement;
 
-    private static JsonElement ListParameter(JsonElement document, string name) {
-        foreach (var parameter in document
-                     .GetProperty("paths").GetProperty("/shipments").GetProperty("get")
-                     .GetProperty("parameters").EnumerateArray()) {
-            if (parameter.GetProperty("name").GetString() == name) {
+    private static JsonElement ListParameter(JsonElement document, string name)
+    {
+        foreach (
+            var parameter in document
+                .GetProperty("paths")
+                .GetProperty("/shipments")
+                .GetProperty("get")
+                .GetProperty("parameters")
+                .EnumerateArray()
+        )
+        {
+            if (parameter.GetProperty("name").GetString() == name)
+            {
                 return parameter;
             }
         }
@@ -397,8 +434,11 @@ public class OpenApiDocumentEmissionTests {
     /// now says so. It said required: true.
     /// </summary>
     [Fact]
-    public void AParameterWithADefaultIsNotRequired() {
-        Assert.False(ListParameter(FidelityDocument(), "limit").GetProperty("required").GetBoolean());
+    public void AParameterWithADefaultIsNotRequired()
+    {
+        Assert.False(
+            ListParameter(FidelityDocument(), "limit").GetProperty("required").GetBoolean()
+        );
     }
 
     /// <summary>
@@ -406,7 +446,8 @@ public class OpenApiDocumentEmissionTests {
     /// It carried {"type":"string"} and nothing else.
     /// </summary>
     [Fact]
-    public void AnEnumParameterCarriesItsVocabulary() {
+    public void AnEnumParameterCarriesItsVocabulary()
+    {
         var document = FidelityDocument();
         var schema = ListParameter(document, "carrier").GetProperty("schema");
 
@@ -414,12 +455,16 @@ public class OpenApiDocumentEmissionTests {
         // generator produces one type per server enum rather than one per use.
         Assert.Equal("#/components/schemas/Carrier", schema.GetProperty("$ref").GetString());
 
-        var carrier = document.GetProperty("components").GetProperty("schemas").GetProperty("Carrier");
+        var carrier = document
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("Carrier");
 
         Assert.Equal("string", carrier.GetProperty("type").GetString());
         Assert.Equal(
             new[] { "dhl", "fedex", "royalMail" },
-            carrier.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+            carrier.GetProperty("enum").EnumerateArray().Select(value => value.GetString())
+        );
     }
 
     /// <summary>
@@ -429,18 +474,23 @@ public class OpenApiDocumentEmissionTests {
     /// transform now captures it.
     /// </summary>
     [Fact]
-    public void AParameterOnlyEnumCarriesItsVocabulary() {
+    public void AParameterOnlyEnumCarriesItsVocabulary()
+    {
         var document = FidelityDocument();
         var schema = Parameter(document, "/shipments/urgent", "priority").GetProperty("schema");
 
         Assert.Equal("#/components/schemas/Priority", schema.GetProperty("$ref").GetString());
 
-        var priority = document.GetProperty("components").GetProperty("schemas").GetProperty("Priority");
+        var priority = document
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("Priority");
 
         Assert.Equal("string", priority.GetProperty("type").GetString());
         Assert.Equal(
             new[] { "low", "high" },
-            priority.GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+            priority.GetProperty("enum").EnumerateArray().Select(value => value.GetString())
+        );
     }
 
     /// <summary>
@@ -450,7 +500,8 @@ public class OpenApiDocumentEmissionTests {
     /// integer.
     /// </summary>
     [Fact]
-    public void ANullableScalarParameterIsAnInteger() {
+    public void ANullableScalarParameterIsAnInteger()
+    {
         var document = FidelityDocument();
 
         var limit = Parameter(document, "/shipments/paged", "limit").GetProperty("schema");
@@ -469,16 +520,23 @@ public class OpenApiDocumentEmissionTests {
     /// so the 200 carried a Task schema and components gained its BCL entourage.
     /// </summary>
     [Fact]
-    public void ABareTaskPublishesNoSchemaAtAll() {
+    public void ABareTaskPublishesNoSchemaAtAll()
+    {
         var document = FidelityDocument();
 
-        var ok = document.GetProperty("paths").GetProperty("/shipments/{id}/archive")
-            .GetProperty("post").GetProperty("responses").GetProperty("200");
+        var ok = document
+            .GetProperty("paths")
+            .GetProperty("/shipments/{id}/archive")
+            .GetProperty("post")
+            .GetProperty("responses")
+            .GetProperty("200");
 
         Assert.False(ok.TryGetProperty("content", out _));
 
-        if (document.TryGetProperty("components", out var components)) {
-            foreach (var schema in components.GetProperty("schemas").EnumerateObject()) {
+        if (document.TryGetProperty("components", out var components))
+        {
+            foreach (var schema in components.GetProperty("schemas").EnumerateObject())
+            {
                 Assert.NotEqual("Task", schema.Name);
             }
         }
@@ -490,22 +548,36 @@ public class OpenApiDocumentEmissionTests {
     /// array every facet it had - and the bounds sit on the array, where no reference is.
     /// </summary>
     [Fact]
-    public void ItemCountOnAnArrayOfReferencesKeepsItsBounds() {
-        var batch = FidelityDocument().GetProperty("components").GetProperty("schemas")
-            .GetProperty("NewShipment").GetProperty("properties").GetProperty("batch");
+    public void ItemCountOnAnArrayOfReferencesKeepsItsBounds()
+    {
+        var batch = FidelityDocument()
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("NewShipment")
+            .GetProperty("properties")
+            .GetProperty("batch");
 
         Assert.Equal(1, batch.GetProperty("minItems").GetInt32());
         Assert.Equal(10, batch.GetProperty("maxItems").GetInt32());
         Assert.Equal(
             "#/components/schemas/Shipment",
-            batch.GetProperty("items").GetProperty("$ref").GetString());
+            batch.GetProperty("items").GetProperty("$ref").GetString()
+        );
     }
 
-    private static JsonElement Parameter(JsonElement document, string path, string name) {
-        foreach (var parameter in document
-                     .GetProperty("paths").GetProperty(path).GetProperty("get")
-                     .GetProperty("parameters").EnumerateArray()) {
-            if (parameter.GetProperty("name").GetString() == name) {
+    private static JsonElement Parameter(JsonElement document, string path, string name)
+    {
+        foreach (
+            var parameter in document
+                .GetProperty("paths")
+                .GetProperty(path)
+                .GetProperty("get")
+                .GetProperty("parameters")
+                .EnumerateArray()
+        )
+        {
+            if (parameter.GetProperty("name").GetString() == name)
+            {
                 return parameter;
             }
         }
@@ -518,10 +590,14 @@ public class OpenApiDocumentEmissionTests {
     /// 2020-12 spelling. They were "minimum": "0.5" and a boolean in a 3.2 document.
     /// </summary>
     [Fact]
-    public void StringSpelledBoundsArePublishedAsNumbers() {
+    public void StringSpelledBoundsArePublishedAsNumbers()
+    {
         var weight = FidelityDocument()
-            .GetProperty("components").GetProperty("schemas").GetProperty("NewShipment")
-            .GetProperty("properties").GetProperty("weightKg");
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("NewShipment")
+            .GetProperty("properties")
+            .GetProperty("weightKg");
 
         Assert.Equal(0.5m, weight.GetProperty("exclusiveMinimum").GetDecimal());
         Assert.Equal(30m, weight.GetProperty("maximum").GetDecimal());
@@ -533,19 +609,26 @@ public class OpenApiDocumentEmissionTests {
     /// null for members the document typed non-nullable, and always sent members it left optional.
     /// </summary>
     [Fact]
-    public void NullabilityReachesTheSchema() {
+    public void NullabilityReachesTheSchema()
+    {
         var shipment = FidelityDocument()
-            .GetProperty("components").GetProperty("schemas").GetProperty("Shipment");
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("Shipment");
 
         var note = shipment.GetProperty("properties").GetProperty("note").GetProperty("type");
 
         Assert.Equal(JsonValueKind.Array, note.ValueKind);
         Assert.Equal(
             new[] { "string", "null" },
-            note.EnumerateArray().Select(value => value.GetString()));
+            note.EnumerateArray().Select(value => value.GetString())
+        );
 
-        var required = shipment.GetProperty("required").EnumerateArray()
-            .Select(value => value.GetString()).ToList();
+        var required = shipment
+            .GetProperty("required")
+            .EnumerateArray()
+            .Select(value => value.GetString())
+            .ToList();
 
         Assert.Contains("id", required);
         Assert.Contains("quantity", required);
@@ -565,7 +648,8 @@ public class OpenApiDocumentEmissionTests {
     /// generated from the document read nothing for it and nothing failed.
     /// </summary>
     [Fact]
-    public void AJsonPropertyNameIsTheDocumentsName() {
+    public void AJsonPropertyNameIsTheDocumentsName()
+    {
         var eta = Schema("Eta");
         var properties = eta.GetProperty("properties");
 
@@ -579,7 +663,8 @@ public class OpenApiDocumentEmissionTests {
     /// and the default is written in the wire's vocabulary. Every non-nullable member was required.
     /// </summary>
     [Fact]
-    public void APositionalDefaultIsPublishedAndTheMemberIsNotRequired() {
+    public void APositionalDefaultIsPublishedAndTheMemberIsNotRequired()
+    {
         var eta = Schema("Eta");
         var properties = eta.GetProperty("properties");
 
@@ -611,36 +696,48 @@ public class OpenApiDocumentEmissionTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void APropertyInitializerIsADefaultAndTheMemberIsNotRequired() {
-        var document = JsonDocument.Parse(Extract(
-            RequestGeneratorHarness
-                .Generate(Application(
-                    """
-                    public class Manifest {
-                        public string Id { get; set; } = "";
+    public void APropertyInitializerIsADefaultAndTheMemberIsNotRequired()
+    {
+        var document = JsonDocument
+            .Parse(
+                Extract(
+                    RequestGeneratorHarness
+                        .Generate(
+                            Application(
+                                """
+                                public class Manifest {
+                                    public string Id { get; set; } = "";
 
-                        public List<string> Records { get; set; } = [];
+                                    public List<string> Records { get; set; } = [];
 
-                        public string Carrier { get; set; }
+                                    public string Carrier { get; set; }
 
-                        public int Quantity { get; set; }
-                    }
+                                    public int Quantity { get; set; }
+                                }
 
-                    public class ManifestController {
-                        [Post("/manifests")]
-                        public Manifest Place(Manifest manifest) => manifest;
-                    }
-                    """,
-                    Enable))
-                .AssertNoErrors()
-                .SourceContaining("OpenApiDocument"))).RootElement;
+                                public class ManifestController {
+                                    [Post("/manifests")]
+                                    public Manifest Place(Manifest manifest) => manifest;
+                                }
+                                """,
+                                Enable
+                            )
+                        )
+                        .AssertNoErrors()
+                        .SourceContaining("OpenApiDocument")
+                )
+            )
+            .RootElement;
 
         var manifest = document
-            .GetProperty("components").GetProperty("schemas").GetProperty("Manifest");
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("Manifest");
 
         Assert.Equal(new[] { "carrier", "quantity" }, Required(manifest));
-        Assert.False(manifest.GetProperty("properties").GetProperty("id")
-            .TryGetProperty("default", out _));
+        Assert.False(
+            manifest.GetProperty("properties").GetProperty("id").TryGetProperty("default", out _)
+        );
     }
 
     /// <summary>
@@ -649,15 +746,26 @@ public class OpenApiDocumentEmissionTests {
     /// first, so the second operation was documented as returning the first one's items.
     /// </summary>
     [Fact]
-    public void AConstructedTypeIsNamedByItsArguments() {
+    public void AConstructedTypeIsNamedByItsArguments()
+    {
         var schemas = FidelityDocument().GetProperty("components").GetProperty("schemas");
 
         Assert.False(schemas.TryGetProperty("Page", out _));
 
-        var shipments = schemas.GetProperty("PageOfShipment").GetProperty("properties")
-            .GetProperty("items").GetProperty("items").GetProperty("$ref").GetString();
-        var couriers = schemas.GetProperty("PageOfCourier").GetProperty("properties")
-            .GetProperty("items").GetProperty("items").GetProperty("$ref").GetString();
+        var shipments = schemas
+            .GetProperty("PageOfShipment")
+            .GetProperty("properties")
+            .GetProperty("items")
+            .GetProperty("items")
+            .GetProperty("$ref")
+            .GetString();
+        var couriers = schemas
+            .GetProperty("PageOfCourier")
+            .GetProperty("properties")
+            .GetProperty("items")
+            .GetProperty("items")
+            .GetProperty("$ref")
+            .GetString();
 
         Assert.Equal("#/components/schemas/Shipment", shipments);
         Assert.Equal("#/components/schemas/Courier", couriers);
@@ -670,14 +778,24 @@ public class OpenApiDocumentEmissionTests {
     /// stand in, because they are the only facts the generator has.
     /// </summary>
     [Fact]
-    public void OpenApiInfoNamesTheDocument() {
-        var document = JsonDocument.Parse(Extract(
-            RequestGeneratorHarness
-                .Generate(Application(
-                    FidelityControllers,
-                    Enable + "\n[Hardened.Web.Runtime.Attributes.OpenApiInfo(\"Shipments API\", \"3.1.4\")]"))
-                .AssertNoErrors()
-                .SourceContaining("OpenApiDocument"))).RootElement;
+    public void OpenApiInfoNamesTheDocument()
+    {
+        var document = JsonDocument
+            .Parse(
+                Extract(
+                    RequestGeneratorHarness
+                        .Generate(
+                            Application(
+                                FidelityControllers,
+                                Enable
+                                    + "\n[Hardened.Web.Runtime.Attributes.OpenApiInfo(\"Shipments API\", \"3.1.4\")]"
+                            )
+                        )
+                        .AssertNoErrors()
+                        .SourceContaining("OpenApiDocument")
+                )
+            )
+            .RootElement;
 
         var info = document.GetProperty("info");
 
@@ -724,18 +842,24 @@ public class OpenApiDocumentEmissionTests {
         """;
 
     private static JsonElement SecuredDocument() =>
-        JsonDocument.Parse(Extract(
-            RequestGeneratorHarness
-                .Generate(Application(SecuredControllers, Enable))
-                .AssertNoErrors()
-                .SourceContaining("OpenApiDocument"))).RootElement;
+        JsonDocument
+            .Parse(
+                Extract(
+                    RequestGeneratorHarness
+                        .Generate(Application(SecuredControllers, Enable))
+                        .AssertNoErrors()
+                        .SourceContaining("OpenApiDocument")
+                )
+            )
+            .RootElement;
 
     /// <summary>
     /// Every scheme the handlers name, keyed by its type's name, shaped by its type's attribute.
     /// Code-first published no securitySchemes at all before this.
     /// </summary>
     [Fact]
-    public void UsedSchemesAreDeclaredInComponents() {
+    public void UsedSchemesAreDeclaredInComponents()
+    {
         var schemes = SecuredDocument().GetProperty("components").GetProperty("securitySchemes");
 
         var bearer = schemes.GetProperty("BearerAuth");
@@ -749,8 +873,12 @@ public class OpenApiDocumentEmissionTests {
         Assert.Equal("oauth2", oauth.GetProperty("type").GetString());
         Assert.Equal(
             "https://id.example/token",
-            oauth.GetProperty("flows").GetProperty("clientCredentials")
-                .GetProperty("tokenUrl").GetString());
+            oauth
+                .GetProperty("flows")
+                .GetProperty("clientCredentials")
+                .GetProperty("tokenUrl")
+                .GetString()
+        );
     }
 
     /// <summary>
@@ -760,7 +888,8 @@ public class OpenApiDocumentEmissionTests {
     /// unchanged either way.
     /// </summary>
     [Fact]
-    public void GrantsBecomeScopesOnlyWhereTheSchemeCarriesThem() {
+    public void GrantsBecomeScopesOnlyWhereTheSchemeCarriesThem()
+    {
         var paths = SecuredDocument().GetProperty("paths");
 
         var create = paths.GetProperty("/pets").GetProperty("post");
@@ -768,8 +897,11 @@ public class OpenApiDocumentEmissionTests {
 
         Assert.Equal(
             new[] { "pets:write", "pets:admin" },
-            oauthRequirement.GetProperty("PetsOAuth").EnumerateArray()
-                .Select(scope => scope.GetString()));
+            oauthRequirement
+                .GetProperty("PetsOAuth")
+                .EnumerateArray()
+                .Select(scope => scope.GetString())
+        );
 
         var remove = paths.GetProperty("/pets/{id}").GetProperty("delete");
         var bearerRequirement = Assert.Single(remove.GetProperty("security").EnumerateArray());
@@ -779,7 +911,8 @@ public class OpenApiDocumentEmissionTests {
 
     /// <summary>An operation naming no scheme declares no security, exactly as before.</summary>
     [Fact]
-    public void AnUnsecuredOperationDeclaresNothing() {
+    public void AnUnsecuredOperationDeclaresNothing()
+    {
         var list = SecuredDocument().GetProperty("paths").GetProperty("/pets").GetProperty("get");
 
         Assert.False(list.TryGetProperty("security", out _));
@@ -792,29 +925,46 @@ public class OpenApiDocumentEmissionTests {
     /// the refusal.
     /// </summary>
     [Fact]
-    public void ASecuredOperationPublishesTheFourOhOne() {
+    public void ASecuredOperationPublishesTheFourOhOne()
+    {
         var document = SecuredDocument();
 
-        var responses = document.GetProperty("paths").GetProperty("/pets/{id}")
-            .GetProperty("get").GetProperty("responses");
+        var responses = document
+            .GetProperty("paths")
+            .GetProperty("/pets/{id}")
+            .GetProperty("get")
+            .GetProperty("responses");
 
         var unauthorized = responses.GetProperty("401");
 
         Assert.True(unauthorized.GetProperty("headers").TryGetProperty("WWW-Authenticate", out _));
         Assert.Equal(
             "#/components/schemas/ErrorModel",
-            unauthorized.GetProperty("content").GetProperty("application/json")
-                .GetProperty("schema").GetProperty("$ref").GetString());
+            unauthorized
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
 
-        Assert.True(document.GetProperty("components").GetProperty("schemas")
-            .TryGetProperty("ErrorModel", out _));
+        Assert.True(
+            document
+                .GetProperty("components")
+                .GetProperty("schemas")
+                .TryGetProperty("ErrorModel", out _)
+        );
     }
 
     /// <summary>And an operation naming no scheme answers no 401, so nothing is added to it.</summary>
     [Fact]
-    public void AnUnsecuredOperationPublishesNoFourOhOne() {
-        var responses = SecuredDocument().GetProperty("paths").GetProperty("/pets")
-            .GetProperty("get").GetProperty("responses");
+    public void AnUnsecuredOperationPublishesNoFourOhOne()
+    {
+        var responses = SecuredDocument()
+            .GetProperty("paths")
+            .GetProperty("/pets")
+            .GetProperty("get")
+            .GetProperty("responses");
 
         Assert.False(responses.TryGetProperty("401", out _));
     }
@@ -825,21 +975,29 @@ public class OpenApiDocumentEmissionTests {
     /// arm put it exactly here, published nothing, and concluded the emission did not exist.
     /// </summary>
     [Fact]
-    public void ASchemeAttributeOnTheControllerIsReported() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public record Pet(string Id);
+    public void ASchemeAttributeOnTheControllerIsReported()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public record Pet(string Id);
 
-            [Hardened.Requests.Abstract.Authorization.HttpAuthenticationScheme("bearer")]
-            public class PetController {
-                [Get("/pets/{id}")]
-                public Task<Pet> Get(string id) => Task.FromResult(new Pet(id));
-            }
-            """, Enable));
+                [Hardened.Requests.Abstract.Authorization.HttpAuthenticationScheme("bearer")]
+                public class PetController {
+                    [Get("/pets/{id}")]
+                    public Task<Pet> Get(string id) => Task.FromResult(new Pet(id));
+                }
+                """,
+                Enable
+            )
+        );
 
         var diagnostic = Assert.Single(
             result.GeneratorDiagnostics,
-            entry => entry.Id == Hardened.SourceGenerator.Requests
-                .SecuritySchemeDiagnostics.MisplacedSchemeId);
+            entry =>
+                entry.Id
+                == Hardened.SourceGenerator.Requests.SecuritySchemeDiagnostics.MisplacedSchemeId
+        );
 
         Assert.Contains("PetController", diagnostic.GetMessage());
         Assert.Contains("Authorize<TScheme>", diagnostic.GetMessage());
@@ -885,11 +1043,16 @@ public class OpenApiDocumentEmissionTests {
         """;
 
     private static JsonElement ShapeDocument() =>
-        JsonDocument.Parse(Extract(
-            RequestGeneratorHarness
-                .Generate(Application(ShapeControllers, Enable))
-                .AssertNoErrors()
-                .SourceContaining("OpenApiDocument"))).RootElement;
+        JsonDocument
+            .Parse(
+                Extract(
+                    RequestGeneratorHarness
+                        .Generate(Application(ShapeControllers, Enable))
+                        .AssertNoErrors()
+                        .SourceContaining("OpenApiDocument")
+                )
+            )
+            .RootElement;
 
     /// <summary>
     /// A byte array is the payload, not a list of numbers.
@@ -900,11 +1063,16 @@ public class OpenApiDocumentEmissionTests {
     /// built from that reads numbers off a body that is not JSON.
     /// </remarks>
     [Fact]
-    public void AByteArrayIsABinaryPayload() {
+    public void AByteArrayIsABinaryPayload()
+    {
         var schema = ShapeDocument()
-            .GetProperty("paths").GetProperty("/download").GetProperty("get")
-            .GetProperty("responses").GetProperty("200")
-            .GetProperty("content").GetProperty("application/octet-stream")
+            .GetProperty("paths")
+            .GetProperty("/download")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/octet-stream")
             .GetProperty("schema");
 
         Assert.Equal("string", schema.GetProperty("type").GetString());
@@ -920,10 +1088,14 @@ public class OpenApiDocumentEmissionTests {
     /// client waited to read one off an empty body.
     /// </remarks>
     [Fact]
-    public void ADeclared204CarriesNoContent() {
+    public void ADeclared204CarriesNoContent()
+    {
         var response = ShapeDocument()
-            .GetProperty("paths").GetProperty("/item").GetProperty("delete")
-            .GetProperty("responses").GetProperty("204");
+            .GetProperty("paths")
+            .GetProperty("/item")
+            .GetProperty("delete")
+            .GetProperty("responses")
+            .GetProperty("204");
 
         Assert.False(response.TryGetProperty("content", out _));
     }
@@ -937,15 +1109,18 @@ public class OpenApiDocumentEmissionTests {
     /// <c>["string","null"]</c> on a scalar and silence on a reference.
     /// </remarks>
     [Fact]
-    public void ANullableReferenceMemberDeclaresItsNull() {
+    public void ANullableReferenceMemberDeclaresItsNull()
+    {
         var home = ShapeDocument()
-            .GetProperty("components").GetProperty("schemas").GetProperty("Registration")
-            .GetProperty("properties").GetProperty("home");
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("Registration")
+            .GetProperty("properties")
+            .GetProperty("home");
 
         var branches = home.GetProperty("anyOf").EnumerateArray().ToList();
 
-        Assert.Equal(
-            "#/components/schemas/Address", branches[0].GetProperty("$ref").GetString());
+        Assert.Equal("#/components/schemas/Address", branches[0].GetProperty("$ref").GetString());
         Assert.Equal("null", branches[1].GetProperty("type").GetString());
     }
 
@@ -958,10 +1133,15 @@ public class OpenApiDocumentEmissionTests {
     /// value it sends and gets a 404 from a route built to accept them.
     /// </remarks>
     [Fact]
-    public void ACatchAllTokenIsMarked() {
+    public void ACatchAllTokenIsMarked()
+    {
         var parameter = ShapeDocument()
-            .GetProperty("paths").GetProperty("/files/{path}").GetProperty("get")
-            .GetProperty("parameters").EnumerateArray().Single();
+            .GetProperty("paths")
+            .GetProperty("/files/{path}")
+            .GetProperty("get")
+            .GetProperty("parameters")
+            .EnumerateArray()
+            .Single();
 
         Assert.Equal("path", parameter.GetProperty("name").GetString());
         Assert.True(parameter.GetProperty("x-hardened-catch-all").GetBoolean());
@@ -969,10 +1149,15 @@ public class OpenApiDocumentEmissionTests {
 
     /// <summary>A single-segment token says nothing, which is the common case.</summary>
     [Fact]
-    public void AnOrdinaryPathTokenIsNotMarked() {
+    public void AnOrdinaryPathTokenIsNotMarked()
+    {
         var parameter = ShapeDocument()
-            .GetProperty("paths").GetProperty("/item/{id}").GetProperty("get")
-            .GetProperty("parameters").EnumerateArray().Single();
+            .GetProperty("paths")
+            .GetProperty("/item/{id}")
+            .GetProperty("get")
+            .GetProperty("parameters")
+            .EnumerateArray()
+            .Single();
 
         Assert.Equal("id", parameter.GetProperty("name").GetString());
         Assert.False(parameter.TryGetProperty("x-hardened-catch-all", out _));
@@ -988,17 +1173,26 @@ public class OpenApiDocumentEmissionTests {
     /// accepting any key at all.
     /// </remarks>
     [Fact]
-    public void AnEnumDictionaryKeyPublishesItsVocabulary() {
+    public void AnEnumDictionaryKeyPublishesItsVocabulary()
+    {
         var schema = ShapeDocument()
-            .GetProperty("paths").GetProperty("/counts").GetProperty("get")
-            .GetProperty("responses").GetProperty("200")
-            .GetProperty("content").GetProperty("application/json").GetProperty("schema");
+            .GetProperty("paths")
+            .GetProperty("/counts")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
 
         Assert.Equal(
             "#/components/schemas/Priority",
-            schema.GetProperty("propertyNames").GetProperty("$ref").GetString());
+            schema.GetProperty("propertyNames").GetProperty("$ref").GetString()
+        );
         Assert.Equal(
-            "integer", schema.GetProperty("additionalProperties").GetProperty("type").GetString());
+            "integer",
+            schema.GetProperty("additionalProperties").GetProperty("type").GetString()
+        );
     }
 
     /// <summary>
@@ -1011,27 +1205,39 @@ public class OpenApiDocumentEmissionTests {
     /// shape in a document that is still valid.
     /// </remarks>
     [Fact]
-    public void TwoTypesUnderOneComponentNameAreReported() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class FirstController {
-                public record Reading(string Sensor);
+    public void TwoTypesUnderOneComponentNameAreReported()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public class FirstController {
+                    public record Reading(string Sensor);
 
-                [Get("/first")]
-                public Reading Get() => new Reading("north");
-            }
+                    [Get("/first")]
+                    public Reading Get() => new Reading("north");
+                }
 
-            public class SecondController {
-                public record Reading(int Value, bool Settled);
+                public class SecondController {
+                    public record Reading(int Value, bool Settled);
 
-                [Get("/second")]
-                public Reading Get() => new Reading(1, true);
-            }
-            """, Enable));
+                    [Get("/second")]
+                    public Reading Get() => new Reading(1, true);
+                }
+                """,
+                Enable
+            )
+        );
 
         var diagnostic = Assert.Single(
             result.GeneratorDiagnostics,
-            entry => entry.Id == Hardened.SourceGenerator.OpenApiDocument
-                .OpenApiDocumentDiagnostics.SchemaNameCollisionId);
+            entry =>
+                entry.Id
+                == Hardened
+                    .SourceGenerator
+                    .OpenApiDocument
+                    .OpenApiDocumentDiagnostics
+                    .SchemaNameCollisionId
+        );
 
         var message = diagnostic.GetMessage();
 
@@ -1048,27 +1254,39 @@ public class OpenApiDocumentEmissionTests {
     /// defect no reader of the document can see.
     /// </remarks>
     [Fact]
-    public void TwoIdenticalTypesUnderOneNameAreNotReported() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class LeftController {
-                public record Reading(string Sensor);
+    public void TwoIdenticalTypesUnderOneNameAreNotReported()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public class LeftController {
+                    public record Reading(string Sensor);
 
-                [Get("/left")]
-                public Reading Get() => new Reading("north");
-            }
+                    [Get("/left")]
+                    public Reading Get() => new Reading("north");
+                }
 
-            public class RightController {
-                public record Reading(string Sensor);
+                public class RightController {
+                    public record Reading(string Sensor);
 
-                [Get("/right")]
-                public Reading Get() => new Reading("south");
-            }
-            """, Enable));
+                    [Get("/right")]
+                    public Reading Get() => new Reading("south");
+                }
+                """,
+                Enable
+            )
+        );
 
         Assert.DoesNotContain(
             result.GeneratorDiagnostics,
-            entry => entry.Id == Hardened.SourceGenerator.OpenApiDocument
-                .OpenApiDocumentDiagnostics.SchemaNameCollisionId);
+            entry =>
+                entry.Id
+                == Hardened
+                    .SourceGenerator
+                    .OpenApiDocument
+                    .OpenApiDocumentDiagnostics
+                    .SchemaNameCollisionId
+        );
     }
 
     #endregion
@@ -1080,20 +1298,33 @@ public class OpenApiDocumentEmissionTests {
     /// published the truncation with nothing said.
     /// </summary>
     [Fact]
-    public void ADescriptionKeepsItsCommas() {
-        using var document = JsonDocument.Parse(Extract(Generate(
-            Enable + "\n[OpenApiInfo(\"Depot\", \"1.0\", \"Parcels, pallets and freight\")]")));
+    public void ADescriptionKeepsItsCommas()
+    {
+        using var document = JsonDocument.Parse(
+            Extract(
+                Generate(
+                    Enable + "\n[OpenApiInfo(\"Depot\", \"1.0\", \"Parcels, pallets and freight\")]"
+                )
+            )
+        );
 
         Assert.Equal(
             "Parcels, pallets and freight",
-            document.RootElement.GetProperty("info").GetProperty("description").GetString());
+            document.RootElement.GetProperty("info").GetProperty("description").GetString()
+        );
     }
 
     /// <summary>And the title and version beside it are still their own arguments.</summary>
     [Fact]
-    public void TheTitleAndVersionAreUnaffected() {
-        using var document = JsonDocument.Parse(Extract(Generate(
-            Enable + "\n[OpenApiInfo(\"Depot\", \"1.0\", \"Parcels, pallets and freight\")]")));
+    public void TheTitleAndVersionAreUnaffected()
+    {
+        using var document = JsonDocument.Parse(
+            Extract(
+                Generate(
+                    Enable + "\n[OpenApiInfo(\"Depot\", \"1.0\", \"Parcels, pallets and freight\")]"
+                )
+            )
+        );
 
         var info = document.RootElement.GetProperty("info");
 
@@ -1106,13 +1337,18 @@ public class OpenApiDocumentEmissionTests {
     /// than as the text "description: ...".
     /// </summary>
     [Fact]
-    public void ANamedDescriptionIsRead() {
-        using var document = JsonDocument.Parse(Extract(Generate(
-            Enable + "\n[OpenApiInfo(\"Depot\", description: \"Parcels, pallets\")]")));
+    public void ANamedDescriptionIsRead()
+    {
+        using var document = JsonDocument.Parse(
+            Extract(
+                Generate(Enable + "\n[OpenApiInfo(\"Depot\", description: \"Parcels, pallets\")]")
+            )
+        );
 
         Assert.Equal(
             "Parcels, pallets",
-            document.RootElement.GetProperty("info").GetProperty("description").GetString());
+            document.RootElement.GetProperty("info").GetProperty("description").GetString()
+        );
     }
 
     /// <summary>
@@ -1120,9 +1356,16 @@ public class OpenApiDocumentEmissionTests {
     /// already split on the first comma only.
     /// </summary>
     [Fact]
-    public void AServerDescriptionKeepsItsCommas() {
-        using var document = JsonDocument.Parse(Extract(Generate(
-            Enable + "\n[Server(\"https://api.example.com\", \"Production, and the only one\")]")));
+    public void AServerDescriptionKeepsItsCommas()
+    {
+        using var document = JsonDocument.Parse(
+            Extract(
+                Generate(
+                    Enable
+                        + "\n[Server(\"https://api.example.com\", \"Production, and the only one\")]"
+                )
+            )
+        );
 
         var server = document.RootElement.GetProperty("servers").EnumerateArray().First();
 

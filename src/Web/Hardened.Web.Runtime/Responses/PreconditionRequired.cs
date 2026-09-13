@@ -20,13 +20,16 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(428)]
 public sealed record PreconditionRequired(string? Detail = null)
-    : IHttpStatusResponse, IDeclaresStatus {
-
+    : IHttpStatusResponse,
+        IDeclaresStatus
+{
     /// <summary>
     /// The PreconditionRequired with a generic message, for a handler with nothing more to say than the status.
     /// Shared, so returning it allocates nothing.
     /// </summary>
-    public static readonly PreconditionRequired Default = new("The request must carry a precondition.");
+    public static readonly PreconditionRequired Default = new(
+        "The request must carry a precondition."
+    );
 
     public string Type => ProblemTypes.PreconditionRequired;
 

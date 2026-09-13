@@ -20,8 +20,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// and cannot be observed by driving the filter alone.
 /// </remarks>
 [BasePath("/timeout")]
-public class TimeoutController {
-
+public class TimeoutController
+{
     /// <summary>
     /// Short enough that a test does not wait on it, long enough not to race a slow CI box.
     /// </summary>
@@ -39,7 +39,8 @@ public class TimeoutController {
 
     private readonly HandlerCallCounter _counter;
 
-    public TimeoutController(HandlerCallCounter counter) {
+    public TimeoutController(HandlerCallCounter counter)
+    {
         _counter = counter;
     }
 
@@ -48,7 +49,8 @@ public class TimeoutController {
     /// </summary>
     [Get("/slow")]
     [Timeout(Milliseconds = ShortBudget)]
-    public async Task<string> Slow(CancellationToken cancellationToken) {
+    public async Task<string> Slow(CancellationToken cancellationToken)
+    {
         await Task.Delay(Timeout.Infinite, cancellationToken);
 
         return "never";
@@ -67,7 +69,8 @@ public class TimeoutController {
     /// </summary>
     [Get("/shed")]
     [Timeout(Milliseconds = ShortBudget, Status = 503, RetryAfterSeconds = 30)]
-    public async Task<string> Shed(CancellationToken cancellationToken) {
+    public async Task<string> Shed(CancellationToken cancellationToken)
+    {
         await Task.Delay(Timeout.Infinite, cancellationToken);
 
         return "never";
@@ -109,7 +112,8 @@ public class TimeoutController {
     [Get("/retried")]
     [Timeout(Milliseconds = 150)]
     [Retry(Attempts = 5, SleepTime = 0, TotalBudget = 0)]
-    public async Task<string> Retried() {
+    public async Task<string> Retried()
+    {
         await Task.Delay(AttemptCost);
 
         throw new InvalidOperationException("attempt " + _counter.Next("retried"));
@@ -131,8 +135,8 @@ public class TimeoutController {
 /// </remarks>
 [BasePath("/timeout/classed")]
 [Timeout(Milliseconds = 20_000)]
-public class ClassTimeoutController {
-
+public class ClassTimeoutController
+{
     /// <summary>Inherits its class, which beat the assembly.</summary>
     [Get("/budget")]
     public int Budget(IExecutionContext context) =>

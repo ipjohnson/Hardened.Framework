@@ -1,6 +1,6 @@
-﻿using Hardened.Generation;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 
 namespace Hardened.Idl;
@@ -34,10 +34,12 @@ namespace Hardened.Idl;
 /// shell, the packaged targets and the Smithy CLI task, per docs/design/generator-diagnostics.md.
 /// </para>
 /// </remarks>
-internal static class SpecDiagnostics {
-
-    internal readonly struct Problem {
-        public Problem(string code, string message, bool fatal = true) {
+internal static class SpecDiagnostics
+{
+    internal readonly struct Problem
+    {
+        public Problem(string code, string message, bool fatal = true)
+        {
             Code = code;
             Message = message;
             Fatal = fatal;
@@ -70,31 +72,42 @@ internal static class SpecDiagnostics {
     /// ShapeMatchOneOf if the branches really can be told apart by shape.
     /// </remarks>
     private static void FindUnresolvableChoices(
-        ServiceSpecModel model, string prefix, List<Problem> problems) {
-        foreach (var schema in model.Schemas) {
-            if (schema.Kind != SchemaKind.OneOf || schema.DiscriminatorPropertyName != null) {
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
+        foreach (var schema in model.Schemas)
+        {
+            if (schema.Kind != SchemaKind.OneOf || schema.DiscriminatorPropertyName != null)
+            {
                 continue;
             }
 
             var plan = ChoiceResolution.Resolve(schema.OneOf, model.Schemas);
 
-            if (plan.FullyProved) {
+            if (plan.FullyProved)
+            {
                 continue;
             }
 
             var names = new List<string>();
 
-            foreach (var branch in plan.Overlapping) {
+            foreach (var branch in plan.Overlapping)
+            {
                 names.Add(ChoiceResolution.CSharpType(branch.Model));
             }
 
-            problems.Add(new Problem(
-                prefix + "022",
-                $"'{schema.Name}' declares no discriminator and nothing in the schemas separates " +
-                $"{string.Join(" from ", names)}, so those are told apart by reading the payload " +
-                "into each and requiring exactly one to fit. A payload matching several is an " +
-                "error at that point. Declaring a discriminator would decide it here instead.",
-                fatal: false));
+            problems.Add(
+                new Problem(
+                    prefix + "022",
+                    $"'{schema.Name}' declares no discriminator and nothing in the schemas separates "
+                        + $"{string.Join(" from ", names)}, so those are told apart by reading the payload "
+                        + "into each and requiring exactly one to fit. A payload matching several is an "
+                        + "error at that point. Declaring a discriminator would decide it here instead.",
+                    fatal: false
+                )
+            );
         }
     }
 
@@ -123,8 +136,13 @@ internal static class SpecDiagnostics {
     /// </para>
     /// </remarks>
     private static void FindUnmappedKeywords(
-        ServiceSpecModel model, string prefix, List<Problem> problems) {
-        if (model.UnmappedKeywords.Count == 0) {
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
+        if (model.UnmappedKeywords.Count == 0)
+        {
             return;
         }
 
@@ -138,12 +156,15 @@ internal static class SpecDiagnostics {
         // put "and 1 other place" on a message about one, which is worse than not counting at all.
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var unmapped in model.UnmappedKeywords) {
-            if (!seen.Add(unmapped.Keyword + "\u001f" + unmapped.Location)) {
+        foreach (var unmapped in model.UnmappedKeywords)
+        {
+            if (!seen.Add(unmapped.Keyword + "\u001f" + unmapped.Location))
+            {
                 continue;
             }
 
-            if (!byKeyword.TryGetValue(unmapped.Keyword, out var locations)) {
+            if (!byKeyword.TryGetValue(unmapped.Keyword, out var locations))
+            {
                 locations = new List<string>();
                 byKeyword[unmapped.Keyword] = locations;
                 order.Add(unmapped.Keyword);
@@ -154,39 +175,48 @@ internal static class SpecDiagnostics {
 
         // Declared order rather than alphabetical, so the first message names the first thing the
         // author would find reading their own document top to bottom.
-        foreach (var keyword in order) {
+        foreach (var keyword in order)
+        {
             var locations = byKeyword[keyword];
 
-            var where = locations.Count == 1
-                ? $"at {locations[0]}"
-                : $"at {locations[0]} and {locations.Count - 1} other " +
-                  (locations.Count == 2 ? "place" : "places");
+            var where =
+                locations.Count == 1
+                    ? $"at {locations[0]}"
+                    : $"at {locations[0]} and {locations.Count - 1} other "
+                        + (locations.Count == 2 ? "place" : "places");
 
             // A keyword the version removed is a different thing from a rule that is not
             // enforced, and takes different advice: nothing was promised and left unapplied, the
             // reader never saw the keyword at all. See NullableKeyword.
-            if (keyword == NullableKeyword) {
-                problems.Add(new Problem(
-                    prefix + "032",
-                    $"'nullable' is declared {where} and was not read. OpenAPI 3.1 removed the " +
-                    "keyword, so a reader on this document's version ignores it: the member " +
-                    "generates as non-null and a null the service sends fails to deserialize. " +
-                    "Write the null in the type instead, as type: [<type>, \"null\"].",
-                    fatal: false));
+            if (keyword == NullableKeyword)
+            {
+                problems.Add(
+                    new Problem(
+                        prefix + "032",
+                        $"'nullable' is declared {where} and was not read. OpenAPI 3.1 removed the "
+                            + "keyword, so a reader on this document's version ignores it: the member "
+                            + "generates as non-null and a null the service sends fails to deserialize. "
+                            + "Write the null in the type instead, as type: [<type>, \"null\"].",
+                        fatal: false
+                    )
+                );
 
                 continue;
             }
 
-            problems.Add(new Problem(
-                prefix + "024",
-                $"'{keyword}' is declared {where} and is not enforced. The description promises it " +
-                "and the generated application does not apply it, so a payload this rejects on " +
-                "paper is accepted at runtime. Remove it, or keep it and enforce the rule in the " +
-                "handler.",
-                // Explicitly, because the constructor's default is fatal. An application declaring
-                // a keyword this does not honour is otherwise correct, and refusing to build it
-                // would be a worse answer than the omission it is reporting.
-                fatal: false));
+            problems.Add(
+                new Problem(
+                    prefix + "024",
+                    $"'{keyword}' is declared {where} and is not enforced. The description promises it "
+                        + "and the generated application does not apply it, so a payload this rejects on "
+                        + "paper is accepted at runtime. Remove it, or keep it and enforce the rule in the "
+                        + "handler.",
+                    // Explicitly, because the constructor's default is fatal. An application declaring
+                    // a keyword this does not honour is otherwise correct, and refusing to build it
+                    // would be a worse answer than the omission it is reporting.
+                    fatal: false
+                )
+            );
         }
     }
 
@@ -210,16 +240,25 @@ internal static class SpecDiagnostics {
     /// close. The document has to say which it means.
     /// </remarks>
     private static void FindMixedEnums(
-        ServiceSpecModel model, string prefix, List<Problem> problems) {
-        foreach (var schema in model.Schemas) {
-            if (schema.Kind == SchemaKind.Enum && schema.Type == MixedEnumType) {
-                problems.Add(new Problem(
-                    prefix + "023",
-                    $"Enum '{schema.Name}' declares both string and numeric values. A C# enum " +
-                    "carries one wire form or the other, and picking one here would put every " +
-                    "value of the other kind out of reach. Declare the members as all strings or " +
-                    "all numbers.",
-                    fatal: true));
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
+        foreach (var schema in model.Schemas)
+        {
+            if (schema.Kind == SchemaKind.Enum && schema.Type == MixedEnumType)
+            {
+                problems.Add(
+                    new Problem(
+                        prefix + "023",
+                        $"Enum '{schema.Name}' declares both string and numeric values. A C# enum "
+                            + "carries one wire form or the other, and picking one here would put every "
+                            + "value of the other kind out of reach. Declare the members as all strings or "
+                            + "all numbers.",
+                        fatal: true
+                    )
+                );
             }
         }
     }
@@ -268,48 +307,68 @@ internal static class SpecDiagnostics {
     /// </para>
     /// </remarks>
     private static void FindUnboundPathTokens(
-        ServiceSpecModel model, string prefix, List<Problem> problems) {
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                if (string.IsNullOrEmpty(operation.Path)) {
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                if (string.IsNullOrEmpty(operation.Path))
+                {
                     continue;
                 }
 
-                foreach (var token in PathTokens(operation.Path)) {
+                foreach (var token in PathTokens(operation.Path))
+                {
                     var declared = false;
                     string? differingByCase = null;
 
-                    foreach (var parameter in operation.Parameters) {
-                        if (parameter.In != "path") {
+                    foreach (var parameter in operation.Parameters)
+                    {
+                        if (parameter.In != "path")
+                        {
                             continue;
                         }
 
-                        if (string.Equals(parameter.Name, token, StringComparison.Ordinal)) {
+                        if (string.Equals(parameter.Name, token, StringComparison.Ordinal))
+                        {
                             declared = true;
 
                             break;
                         }
 
-                        if (string.Equals(parameter.Name, token, StringComparison.OrdinalIgnoreCase)) {
+                        if (
+                            string.Equals(parameter.Name, token, StringComparison.OrdinalIgnoreCase)
+                        )
+                        {
                             differingByCase = parameter.Name;
                         }
                     }
 
-                    if (declared) {
+                    if (declared)
+                    {
                         continue;
                     }
 
-                    problems.Add(new Problem(
-                        prefix + "026",
-                        $"'{operation.HttpMethod} {operation.Path}' declares '{{{token}}}' and " +
-                        "the operation declares no path parameter of that name" +
-                        (differingByCase == null
-                            ? ". "
-                            : $" - '{differingByCase}' differs from it only in case. ") +
-                        "The route still matches and the value is discarded, so the handler cannot " +
-                        "read the segment that chose the resource. Declare the parameter, or take " +
-                        "the token out of the path.",
-                        fatal: false));
+                    problems.Add(
+                        new Problem(
+                            prefix + "026",
+                            $"'{operation.HttpMethod} {operation.Path}' declares '{{{token}}}' and "
+                                + "the operation declares no path parameter of that name"
+                                + (
+                                    differingByCase == null
+                                        ? ". "
+                                        : $" - '{differingByCase}' differs from it only in case. "
+                                )
+                                + "The route still matches and the value is discarded, so the handler cannot "
+                                + "read the segment that chose the resource. Declare the parameter, or take "
+                                + "the token out of the path.",
+                            fatal: false
+                        )
+                    );
                 }
             }
         }
@@ -323,32 +382,38 @@ internal static class SpecDiagnostics {
     /// <c>{name}</c>, but a path can reach here carrying the route-constraint form, and the
     /// parameter it names is the part before the colon either way.
     /// </remarks>
-    private static IEnumerable<string> PathTokens(string path) {
+    private static IEnumerable<string> PathTokens(string path)
+    {
         var index = 0;
 
-        while (index < path.Length) {
+        while (index < path.Length)
+        {
             var open = path.IndexOf('{', index);
 
-            if (open < 0) {
+            if (open < 0)
+            {
                 yield break;
             }
 
             var close = path.IndexOf('}', open);
 
-            if (close < 0) {
+            if (close < 0)
+            {
                 yield break;
             }
 
             var token = path.Substring(open + 1, close - open - 1);
             var constraint = token.IndexOf(':');
 
-            if (constraint >= 0) {
+            if (constraint >= 0)
+            {
                 token = token.Substring(0, constraint);
             }
 
             token = token.TrimStart('*');
 
-            if (token.Length > 0) {
+            if (token.Length > 0)
+            {
                 yield return token;
             }
 
@@ -357,18 +422,27 @@ internal static class SpecDiagnostics {
     }
 
     private static void FindDanglingReferences(
-        ServiceSpecModel model, string prefix, List<Problem> problems) {
-        foreach (var dangling in model.DanglingReferences) {
-            problems.Add(new Problem(
-                prefix + "027",
-                $"'{dangling.Location}' references '{dangling.Reference}', which the description " +
-                "does not declare. Nothing is generated for it, so the member it types would be " +
-                "absent and a response body would be dropped. Declare the schema, or point the " +
-                "reference at one that exists."));
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
+        foreach (var dangling in model.DanglingReferences)
+        {
+            problems.Add(
+                new Problem(
+                    prefix + "027",
+                    $"'{dangling.Location}' references '{dangling.Reference}', which the description "
+                        + "does not declare. Nothing is generated for it, so the member it types would be "
+                        + "absent and a response body would be dropped. Declare the schema, or point the "
+                        + "reference at one that exists."
+                )
+            );
         }
     }
 
-    public static IReadOnlyList<Problem> Find(ServiceSpecModel model, string diagnosticPrefix) {
+    public static IReadOnlyList<Problem> Find(ServiceSpecModel model, string diagnosticPrefix)
+    {
         var problems = new List<Problem>();
 
         FindDanglingReferences(model, diagnosticPrefix, problems);
@@ -380,26 +454,32 @@ internal static class SpecDiagnostics {
         FindMessagePackKeys(model, diagnosticPrefix, problems);
         FindMessagePackUnions(model, diagnosticPrefix, problems);
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
 
-            foreach (var property in schema.Properties) {
+            foreach (var property in schema.Properties)
+            {
                 // The parser has already renamed the member; compare against the wire name to see
                 // whether it had to.
-                if (NamingHelper.ToPascalCase(property.Name) != typeName) {
+                if (NamingHelper.ToPascalCase(property.Name) != typeName)
+                {
                     continue;
                 }
 
                 // C# forbids it outright: CS0542, "member names cannot be the same as their
                 // enclosing type". The emitted record would be
                 // "record Message(string Message)", which is not a compilable declaration.
-                problems.Add(new Problem(
-                    diagnosticPrefix + "020",
-                    $"Schema '{schema.Name}' declares property '{property.Name}', which would " +
-                    $"generate a member named '{typeName}' inside a type of the same name - C# does " +
-                    $"not allow that (CS0542). The member is generated as '{property.MemberName}'; " +
-                    "the wire name is unchanged.",
-                    fatal: false));
+                problems.Add(
+                    new Problem(
+                        diagnosticPrefix + "020",
+                        $"Schema '{schema.Name}' declares property '{property.Name}', which would "
+                            + $"generate a member named '{typeName}' inside a type of the same name - C# does "
+                            + $"not allow that (CS0542). The member is generated as '{property.MemberName}'; "
+                            + "the wire name is unchanged.",
+                        fatal: false
+                    )
+                );
             }
         }
 
@@ -436,34 +516,48 @@ internal static class SpecDiagnostics {
     /// </para>
     /// </remarks>
     private static void FindMessagePackKeys(
-        ServiceSpecModel model, string prefix, List<Problem> problems) {
-        if (model.Serializer != SpecSerializer.MessagePackKeyed) {
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
+        if (model.Serializer != SpecSerializer.MessagePackKeyed)
+        {
             return;
         }
 
-        foreach (var schema in model.Schemas) {
-            if (schema.Kind != SchemaKind.Object) {
+        foreach (var schema in model.Schemas)
+        {
+            if (schema.Kind != SchemaKind.Object)
+            {
                 continue;
             }
 
             var taken = new Dictionary<int, string>();
             var next = 0;
 
-            foreach (var property in schema.Properties) {
-                if (property.IsHeaderBound || property.MessagePackIndex is not { } index) {
+            foreach (var property in schema.Properties)
+            {
+                if (property.IsHeaderBound || property.MessagePackIndex is not { } index)
+                {
                     continue;
                 }
 
-                if (index >= next) {
+                if (index >= next)
+                {
                     next = index + 1;
                 }
 
-                if (taken.TryGetValue(index, out var first)) {
-                    problems.Add(new Problem(
-                        prefix + "033",
-                        $"Schema '{schema.Name}' keys both '{first}' and '{property.Name}' to " +
-                        $"x-message-pack-index {index}. One index identifies one member; give " +
-                        "one of them another."));
+                if (taken.TryGetValue(index, out var first))
+                {
+                    problems.Add(
+                        new Problem(
+                            prefix + "033",
+                            $"Schema '{schema.Name}' keys both '{first}' and '{property.Name}' to "
+                                + $"x-message-pack-index {index}. One index identifies one member; give "
+                                + "one of them another."
+                        )
+                    );
 
                     continue;
                 }
@@ -471,17 +565,22 @@ internal static class SpecDiagnostics {
                 taken.Add(index, property.Name);
             }
 
-            foreach (var property in schema.Properties) {
-                if (property.IsHeaderBound || property.MessagePackIndex.HasValue) {
+            foreach (var property in schema.Properties)
+            {
+                if (property.IsHeaderBound || property.MessagePackIndex.HasValue)
+                {
                     continue;
                 }
 
-                problems.Add(new Problem(
-                    prefix + "033",
-                    $"Property '{property.Name}' of schema '{schema.Name}' declares no " +
-                    "x-message-pack-index, and $(HardenedSerializer) is MessagePackKeyed. Nothing " +
-                    "assigns one, because an index this build chose would move when a property is " +
-                    $"added above it. Write \"x-message-pack-index: {next}\" on the property."));
+                problems.Add(
+                    new Problem(
+                        prefix + "033",
+                        $"Property '{property.Name}' of schema '{schema.Name}' declares no "
+                            + "x-message-pack-index, and $(HardenedSerializer) is MessagePackKeyed. Nothing "
+                            + "assigns one, because an index this build chose would move when a property is "
+                            + $"added above it. Write \"x-message-pack-index: {next}\" on the property."
+                    )
+                );
 
                 next++;
             }
@@ -513,23 +612,33 @@ internal static class SpecDiagnostics {
     /// </para>
     /// </remarks>
     private static void FindMessagePackUnions(
-        ServiceSpecModel model, string prefix, List<Problem> problems) {
-        if (model.Serializer == SpecSerializer.Json) {
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
+        if (model.Serializer == SpecSerializer.Json)
+        {
             return;
         }
 
-        foreach (var schema in model.Schemas) {
-            if (schema.Kind != SchemaKind.OneOf) {
+        foreach (var schema in model.Schemas)
+        {
+            if (schema.Kind != SchemaKind.OneOf)
+            {
                 continue;
             }
 
-            problems.Add(new Problem(
-                prefix + "034",
-                $"Schema '{schema.Name}' is a oneOf, and MessagePack does not carry one - a choice " +
-                "is resolved from a discriminator in the payload, which is a JSON-only shape here. " +
-                "It is generated and serialized as JSON as before; an operation that answers it as " +
-                "application/x-msgpack fails at the response. Declare that operation as JSON only.",
-                fatal: false));
+            problems.Add(
+                new Problem(
+                    prefix + "034",
+                    $"Schema '{schema.Name}' is a oneOf, and MessagePack does not carry one - a choice "
+                        + "is resolved from a discriminator in the payload, which is a JSON-only shape here. "
+                        + "It is generated and serialized as JSON as before; an operation that answers it as "
+                        + "application/x-msgpack fails at the response. Declare that operation as JSON only.",
+                    fatal: false
+                )
+            );
         }
     }
 
@@ -549,23 +658,32 @@ internal static class SpecDiagnostics {
     /// </para>
     /// </remarks>
     private static void FindDuplicateSchemaNames(
-        ServiceSpecModel model, string prefix, List<Problem> problems) {
+        ServiceSpecModel model,
+        string prefix,
+        List<Problem> problems
+    )
+    {
         var seen = new Dictionary<string, string>();
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             var typeName = NamingHelper.ToPascalCase(schema.Name);
 
-            if (seen.TryGetValue(typeName, out var first)) {
+            if (seen.TryGetValue(typeName, out var first))
+            {
                 // Both kinds of collision are resolved before this runs - synthesized names are
                 // made unique as they are invented, declared ones are renamed afterwards. This is
                 // the assertion that neither missed, and it does not stop the build, because a
                 // duplicate type name surfaces immediately as CS0101 anyway.
-                problems.Add(new Problem(
-                    prefix + "021",
-                    $"Schemas '{first}' and '{schema.Name}' both generate a type named " +
-                    $"'{typeName}', which should have been resolved automatically. Rename one of " +
-                    "them in the document.",
-                    fatal: false));
+                problems.Add(
+                    new Problem(
+                        prefix + "021",
+                        $"Schemas '{first}' and '{schema.Name}' both generate a type named "
+                            + $"'{typeName}', which should have been resolved automatically. Rename one of "
+                            + "them in the document.",
+                        fatal: false
+                    )
+                );
 
                 continue;
             }

@@ -17,7 +17,8 @@ namespace Hardened.Requests.Testing.Conformance;
 /// gets wrong should reach the assertions rather than being smoothed over here.
 /// </para>
 /// </remarks>
-public interface IExecutionResponseConformanceAdapter {
+public interface IExecutionResponseConformanceAdapter
+{
     /// <summary>
     /// Name used in assertion messages so a failure identifies the transport.
     /// </summary>

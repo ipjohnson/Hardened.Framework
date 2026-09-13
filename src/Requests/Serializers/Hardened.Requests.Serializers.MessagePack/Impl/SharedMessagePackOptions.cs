@@ -5,7 +5,8 @@ using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Serializers.MessagePack.Impl;
 
-public interface ISharedMessagePackOptions {
+public interface ISharedMessagePackOptions
+{
     MessagePackSerializerOptions Options { get; }
 }
 
@@ -26,11 +27,14 @@ public interface ISharedMessagePackOptions {
 /// </para>
 /// </remarks>
 [SingletonService]
-public class SharedMessagePackOptions : ISharedMessagePackOptions {
+public class SharedMessagePackOptions : ISharedMessagePackOptions
+{
     public SharedMessagePackOptions(
         IServiceProvider serviceProvider,
         IOptions<IMessagePackSerializerConfiguration> configuration,
-        IEnumerable<IFormatterResolver> resolvers) {
+        IEnumerable<IFormatterResolver> resolvers
+    )
+    {
         var options = configuration.Value.OptionsProvider(serviceProvider);
 
         var registered = resolvers.ToArray();
@@ -38,14 +42,17 @@ public class SharedMessagePackOptions : ISharedMessagePackOptions {
         // Only where the application registered one. CompositeResolver.Create allocates a caching
         // resolver over the list, and composing a single-entry list around the same chain the
         // default already carries buys a level of indirection on every lookup for nothing.
-        Options = registered.Length == 0
-            ? options.WithResolver(
-                CompositeResolver.Create(
-                    [], MessagePackSerializerConfiguration.AotResolvers))
-            : options.WithResolver(
-                CompositeResolver.Create(
-                    [],
-                    [..registered, ..MessagePackSerializerConfiguration.AotResolvers]));
+        Options =
+            registered.Length == 0
+                ? options.WithResolver(
+                    CompositeResolver.Create([], MessagePackSerializerConfiguration.AotResolvers)
+                )
+                : options.WithResolver(
+                    CompositeResolver.Create(
+                        [],
+                        [.. registered, .. MessagePackSerializerConfiguration.AotResolvers]
+                    )
+                );
     }
 
     public MessagePackSerializerOptions Options { get; }

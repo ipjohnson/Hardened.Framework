@@ -43,8 +43,8 @@ namespace Hardened.SourceGenerator.Validation;
 /// the pattern forms, the type-fit diagnostics - and nothing about a constraint is decided here.
 /// </para>
 /// </remarks>
-public static class HandlerValidationFrontEnd {
-
+public static class HandlerValidationFrontEnd
+{
     /// <summary>
     /// What <see cref="Build"/> produces: the model, or null when nothing about the handler asks
     /// for one, and whatever was reported reading the parameters' own constraints.
@@ -71,44 +71,58 @@ public static class HandlerValidationFrontEnd {
         ImmutableArray<IParameterSymbol?> parameters,
         Compilation compilation,
         ValidationGeneratorOptions options,
-        CancellationToken cancellationToken) {
-
+        CancellationToken cancellationToken
+    )
+    {
         // The spec path already attached its own filter, against an interface the build task named.
         // Emitting a second validator here would validate the same values twice and report every
         // failure twice with it.
-        if (handler.ParametersInterface != null) {
+        if (handler.ParametersInterface != null)
+        {
             return new Built(null, ImmutableArray<Diagnostic>.Empty);
         }
 
         // One front end for the handler, and kept: what it reports about a constraint written on a
         // parameter is reported nowhere else. HasValidator's is thrown away for the opposite reason.
         var frontEnd = new AttributeFrontEnd(
-            compilation, options.CompileDataAnnotations, options.FieldNamer, options.ResolvedPatternPolicy);
+            compilation,
+            options.CompileDataAnnotations,
+            options.FieldNamer,
+            options.ResolvedPatternPolicy
+        );
 
         var diagnostics = ImmutableArray.CreateBuilder<Diagnostic>();
         var properties = ImmutableArray.CreateBuilder<ValidatedPropertyModel>();
 
-        for (var i = 0; i < handler.RequestParameterInformationList.Count; i++) {
+        for (var i = 0; i < handler.RequestParameterInformationList.Count; i++)
+        {
             cancellationToken.ThrowIfCancellationRequested();
 
             var parameter = handler.RequestParameterInformationList[i];
 
-            if (!CarriesRequestData(parameter.BindingType) || i >= parameters.Length) {
+            if (!CarriesRequestData(parameter.BindingType) || i >= parameters.Length)
+            {
                 continue;
             }
 
-            if (parameters[i] is not { } symbol) {
+            if (parameters[i] is not { } symbol)
+            {
                 continue;
             }
 
-            if (BuildProperty(symbol, parameter, compilation, options, frontEnd, diagnostics) is { } property) {
+            if (
+                BuildProperty(symbol, parameter, compilation, options, frontEnd, diagnostics) is
+                { } property
+            )
+            {
                 properties.Add(property);
             }
         }
 
         diagnostics.AddRange(frontEnd.Diagnostics);
 
-        if (properties.Count == 0) {
+        if (properties.Count == 0)
+        {
             return new Built(null, diagnostics.ToImmutable());
         }
 
@@ -118,8 +132,10 @@ public static class HandlerValidationFrontEnd {
                 "Parameters",
                 $"global::{handler.InvokeHandlerType.Namespace}.{handler.InvokeHandlerType.Name}.Parameters",
                 ValidatorNameFor(handler),
-                new EquatableArray<ValidatedPropertyModel>(properties.ToImmutable())),
-            diagnostics.ToImmutable());
+                new EquatableArray<ValidatedPropertyModel>(properties.ToImmutable())
+            ),
+            diagnostics.ToImmutable()
+        );
     }
 
     /// <summary>
@@ -137,24 +153,29 @@ public static class HandlerValidationFrontEnd {
     /// or the pipeline supplied.
     /// </summary>
     private static bool CarriesRequestData(ParameterBindType bindingType) =>
-        bindingType is ParameterBindType.Body
-            or ParameterBindType.Path
-            or ParameterBindType.QueryString
-            or ParameterBindType.Header
-            or ParameterBindType.Cookie
-            or ParameterBindType.Form
-            or ParameterBindType.CustomAttribute;
+        bindingType
+            is ParameterBindType.Body
+                or ParameterBindType.Path
+                or ParameterBindType.QueryString
+                or ParameterBindType.Header
+                or ParameterBindType.Cookie
+                or ParameterBindType.Form
+                or ParameterBindType.CustomAttribute;
 
     /// <summary>
     /// The symbol of every parameter, aligned with the handler's parameter list.
     /// </summary>
     public static ImmutableArray<IParameterSymbol?> ParameterSymbolsOf(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
-
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration
+    )
+    {
         var symbols = ImmutableArray.CreateBuilder<IParameterSymbol?>(
-            methodDeclaration.ParameterList.Parameters.Count);
+            methodDeclaration.ParameterList.Parameters.Count
+        );
 
-        foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
+        foreach (var parameter in methodDeclaration.ParameterList.Parameters)
+        {
             symbols.Add(context.SemanticModel.GetDeclaredSymbol(parameter));
         }
 
@@ -171,8 +192,9 @@ public static class HandlerValidationFrontEnd {
         Compilation compilation,
         ValidationGeneratorOptions options,
         AttributeFrontEnd frontEnd,
-        ImmutableArray<Diagnostic>.Builder diagnostics) {
-
+        ImmutableArray<Diagnostic>.Builder diagnostics
+    )
+    {
         var type = symbol.Type;
         var shape = PropertyShape.Scalar;
         string? elementTypeName = null;
@@ -181,15 +203,24 @@ public static class HandlerValidationFrontEnd {
         var dictionary = TypeFacts.DictionaryTypesOf(type);
         var elementType = TypeFacts.ElementTypeOf(type);
 
-        if (dictionary is { } entry && HasValidator(entry.Value, compilation, options)) {
+        if (dictionary is { } entry && HasValidator(entry.Value, compilation, options))
+        {
             shape = PropertyShape.Dictionary;
             elementTypeName = Qualified(entry.Value);
             elementValidatorName = QualifiedValidator((INamedTypeSymbol)entry.Value);
-        } else if (elementType is not null && HasValidator(elementType, compilation, options)) {
+        }
+        else if (elementType is not null && HasValidator(elementType, compilation, options))
+        {
             shape = PropertyShape.Collection;
             elementTypeName = Qualified(elementType);
             elementValidatorName = QualifiedValidator((INamedTypeSymbol)elementType);
-        } else if (dictionary is null && elementType is null && HasValidator(type, compilation, options)) {
+        }
+        else if (
+            dictionary is null
+            && elementType is null
+            && HasValidator(type, compilation, options)
+        )
+        {
             shape = PropertyShape.Object;
             elementValidatorName = QualifiedValidator((INamedTypeSymbol)type);
         }
@@ -197,7 +228,8 @@ public static class HandlerValidationFrontEnd {
         var descends = shape != PropertyShape.Scalar;
         var constraints = Constraints(symbol, type, elementType, frontEnd, diagnostics);
 
-        if (!descends && constraints.Count == 0) {
+        if (!descends && constraints.Count == 0)
+        {
             return null;
         }
 
@@ -215,7 +247,8 @@ public static class HandlerValidationFrontEnd {
             TypeFacts.CountAccessor(type),
             descends,
             new EquatableArray<ConstraintModel>(constraints.ToImmutableArray()),
-            DisplayName: constraints.Count > 0 ? symbol.Name : null);
+            DisplayName: constraints.Count > 0 ? symbol.Name : null
+        );
     }
 
     /// <summary>
@@ -239,24 +272,32 @@ public static class HandlerValidationFrontEnd {
         ITypeSymbol type,
         ITypeSymbol? elementType,
         AttributeFrontEnd frontEnd,
-        ImmutableArray<Diagnostic>.Builder diagnostics) {
-
-        foreach (var attribute in symbol.GetAttributes()) {
-            if (!ConstraintAttributeFacts.IsConstraint(attribute)) {
+        ImmutableArray<Diagnostic>.Builder diagnostics
+    )
+    {
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            if (!ConstraintAttributeFacts.IsConstraint(attribute))
+            {
                 continue;
             }
 
-            foreach (var argument in attribute.NamedArguments) {
-                if (argument.Key is not ("When" or "Unless")) {
+            foreach (var argument in attribute.NamedArguments)
+            {
+                if (argument.Key is not ("When" or "Unless"))
+                {
                     continue;
                 }
 
-                diagnostics.Add(Diagnostic.Create(
-                    HandlerValidationDiagnostics.ConditionOnParameterConstraint,
-                    symbol.Locations.FirstOrDefault(),
-                    argument.Key,
-                    attribute.AttributeClass!.Name,
-                    symbol.Name));
+                diagnostics.Add(
+                    Diagnostic.Create(
+                        HandlerValidationDiagnostics.ConditionOnParameterConstraint,
+                        symbol.Locations.FirstOrDefault(),
+                        argument.Key,
+                        attribute.AttributeClass!.Name,
+                        symbol.Name
+                    )
+                );
 
                 return new List<ConstraintModel>();
             }
@@ -264,9 +305,15 @@ public static class HandlerValidationFrontEnd {
 
         var constraints = frontEnd.ReadConstraintsFor(symbol, type);
 
-        if (constraints.Count > 0) {
+        if (constraints.Count > 0)
+        {
             frontEnd.ValidateAndResolve(
-                symbol, type, constraints, type.SpecialType == SpecialType.System_String, elementType);
+                symbol,
+                type,
+                constraints,
+                type.SpecialType == SpecialType.System_String,
+                elementType
+            );
         }
 
         return constraints;
@@ -289,13 +336,23 @@ public static class HandlerValidationFrontEnd {
     /// from both places would double every one of them.
     /// </para>
     /// </remarks>
-    private static bool HasValidator(ITypeSymbol type, Compilation compilation, ValidationGeneratorOptions options) {
-        if (type is not INamedTypeSymbol named || named.SpecialType != SpecialType.None) {
+    private static bool HasValidator(
+        ITypeSymbol type,
+        Compilation compilation,
+        ValidationGeneratorOptions options
+    )
+    {
+        if (type is not INamedTypeSymbol named || named.SpecialType != SpecialType.None)
+        {
             return false;
         }
 
         var frontEnd = new AttributeFrontEnd(
-            compilation, options.CompileDataAnnotations, options.FieldNamer, options.ResolvedPatternPolicy);
+            compilation,
+            options.CompileDataAnnotations,
+            options.FieldNamer,
+            options.ResolvedPatternPolicy
+        );
 
         return frontEnd.Build(named, ValidationGeneratorOptions.ValidatorNameFor) is not null;
     }
@@ -316,7 +373,8 @@ public static class HandlerValidationFrontEnd {
     private static string Qualified(ITypeSymbol type) =>
         type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-    private static string QualifiedValidator(INamedTypeSymbol type) {
+    private static string QualifiedValidator(INamedTypeSymbol type)
+    {
         var name = ValidationGeneratorOptions.ValidatorNameFor(type);
 
         return type.ContainingNamespace.IsGlobalNamespace

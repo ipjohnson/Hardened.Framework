@@ -21,14 +21,18 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// application answers.
 /// </remarks>
 [BasePath("/response-cache")]
-public class ResponseCacheController {
-
+public class ResponseCacheController
+{
     private readonly HandlerCallCounter _counter;
     private readonly ICurrentCaller _currentCaller;
     private readonly IResponseCacheStore _store;
 
     public ResponseCacheController(
-        HandlerCallCounter counter, ICurrentCaller currentCaller, IResponseCacheStore store) {
+        HandlerCallCounter counter,
+        ICurrentCaller currentCaller,
+        IResponseCacheStore store
+    )
+    {
         _counter = counter;
         _currentCaller = currentCaller;
         _store = store;
@@ -37,7 +41,8 @@ public class ResponseCacheController {
     [Get("/catalog")]
     [CacheResponse<VaryByQuery>("culture", Duration = 60)]
     [ConditionalGet]
-    public string Catalog([FromQueryString] string culture) => culture + "-" + _counter.Next("catalog");
+    public string Catalog([FromQueryString] string culture) =>
+        culture + "-" + _counter.Next("catalog");
 
     /// <summary>A handler that declares nothing, so nothing about it changes.</summary>
     [Get("/uncached")]
@@ -50,7 +55,8 @@ public class ResponseCacheController {
     [Get("/composed")]
     [CacheResponse<VaryByQuery>("culture")]
     [CacheResponse<VaryByHeader>("Accept-Language", Duration = 60)]
-    public string Composed([FromQueryString] string culture) => culture + "-" + _counter.Next("composed");
+    public string Composed([FromQueryString] string culture) =>
+        culture + "-" + _counter.Next("composed");
 
     /// <summary>
     /// Guarded by a requirement that reads the request, which runs after the cache would have
@@ -120,7 +126,8 @@ public class ResponseCacheController {
 
     /// <summary>What an application does where it changes what a cached read reads.</summary>
     [Post("/publish")]
-    public async Task<string> Publish(CancellationToken cancellationToken) {
+    public async Task<string> Publish(CancellationToken cancellationToken)
+    {
         await _store.EvictByTag("catalog", cancellationToken);
 
         return "published";
@@ -136,8 +143,8 @@ public class ResponseCacheController {
 /// predicate is the smallest requirement that sets it.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class OwnedByCallerAttribute : Attribute, IAuthorizeAttribute {
-
+public sealed class OwnedByCallerAttribute : Attribute, IAuthorizeAttribute
+{
     public Requirement Requirement { get; } =
         Requirement.Predicate((_, _) => true, "the caller owns this record");
 }

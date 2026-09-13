@@ -18,8 +18,8 @@ namespace Hardened.SourceGenerator.Web.Routing;
 /// strict on its own, so an application that says nothing carries no registration for this at all.
 /// </para>
 /// </remarks>
-internal static class ContentNegotiationRegistration {
-
+internal static class ContentNegotiationRegistration
+{
     /// <summary>The C# for the registration, or null when there is nothing to say.</summary>
     /// <param name="attributeModels">The entry point's attributes.</param>
     /// <param name="documentMode">
@@ -28,25 +28,36 @@ internal static class ContentNegotiationRegistration {
     /// that disagree needs one place to settle it.
     /// </param>
     public static string? Statement(
-        IReadOnlyList<AttributeModel>? attributeModels, string documentMode) {
+        IReadOnlyList<AttributeModel>? attributeModels,
+        string documentMode
+    )
+    {
         var mode = FromAttribute(attributeModels) ?? FromDocument(documentMode);
 
         return mode == null
             ? null
-            : "serviceCollection.AddSingleton<" +
-              "global::Hardened.Requests.Abstract.Serializer.IContentNegotiationPolicy>(" +
-              "new global::Hardened.Requests.Abstract.Serializer.ContentNegotiationPolicy(" +
-              $"global::Hardened.Requests.Abstract.Serializer.ContentNegotiationMode.{mode}))";
+            : "serviceCollection.AddSingleton<"
+                + "global::Hardened.Requests.Abstract.Serializer.IContentNegotiationPolicy>("
+                + "new global::Hardened.Requests.Abstract.Serializer.ContentNegotiationPolicy("
+                + $"global::Hardened.Requests.Abstract.Serializer.ContentNegotiationMode.{mode}))";
     }
 
-    private static string? FromAttribute(IReadOnlyList<AttributeModel>? attributeModels) {
-        if (attributeModels == null) {
+    private static string? FromAttribute(IReadOnlyList<AttributeModel>? attributeModels)
+    {
+        if (attributeModels == null)
+        {
             return null;
         }
 
-        foreach (var attribute in attributeModels) {
-            if (!attribute.TypeDefinition.Name.StartsWith(
-                    "ContentNegotiation", System.StringComparison.Ordinal)) {
+        foreach (var attribute in attributeModels)
+        {
+            if (
+                !attribute.TypeDefinition.Name.StartsWith(
+                    "ContentNegotiation",
+                    System.StringComparison.Ordinal
+                )
+            )
+            {
                 continue;
             }
 
@@ -58,9 +69,10 @@ internal static class ContentNegotiationRegistration {
     }
 
     private static string? FromDocument(string documentMode) =>
-        documentMode switch {
+        documentMode switch
+        {
             "lenient" => "Lenient",
             "strict" => "Strict",
-            _ => null
+            _ => null,
         };
 }

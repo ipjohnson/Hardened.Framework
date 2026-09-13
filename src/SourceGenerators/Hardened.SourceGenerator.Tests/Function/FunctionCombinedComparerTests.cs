@@ -20,8 +20,8 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// when nothing changed, not because the comparer would recognise an equal rebuild.
 /// </para>
 /// </summary>
-public class FunctionCombinedComparerTests {
-
+public class FunctionCombinedComparerTests
+{
     private static ITypeDefinition Type(string name) => TypeDefinition.Get("System", name);
 
     private static RequestHandlerModel Handler(string functionName = "Process") =>
@@ -38,18 +38,21 @@ public class FunctionCombinedComparerTests {
                     defaultValue: null,
                     bindingType: ParameterBindType.Body,
                     bindingName: "model",
-                    parameterIndex: 0)
+                    parameterIndex: 0
+                ),
             ],
             new ResponseInformationModel { ReturnType = Type("String") },
-            []);
+            []
+        );
 
     private static EntryPointSelector.Model EntryPoint(string name = "TestApplication") =>
-        new() {
+        new()
+        {
             EntryPointType = TypeDefinition.Get("TestApp", name),
             RootEntryPoint = false,
             AttributeModels = [],
             MethodDefinitions = [],
-            PropertyDefinitions = null
+            PropertyDefinitions = null,
         };
 
     /// <summary>
@@ -57,7 +60,8 @@ public class FunctionCombinedComparerTests {
     /// a different entry point, and a different set of handlers.
     /// </summary>
     [Fact]
-    public void TheCombinedComparerComparesBothHalvesByReference() {
+    public void TheCombinedComparerComparesBothHalvesByReference()
+    {
         var comparer = new FunctionIncrementalGenerator.CombinedComparer();
         var entryPoint = EntryPoint();
         var handlers = ImmutableArray.Create(Handler());
@@ -66,9 +70,12 @@ public class FunctionCombinedComparerTests {
 
         Assert.False(comparer.Equals((entryPoint, handlers), (EntryPoint("Other"), handlers)));
 
-        Assert.False(comparer.Equals(
-            (entryPoint, handlers),
-            (entryPoint, ImmutableArray.Create(Handler(), Handler("second")))));
+        Assert.False(
+            comparer.Equals(
+                (entryPoint, handlers),
+                (entryPoint, ImmutableArray.Create(Handler(), Handler("second")))
+            )
+        );
 
         // The missed cache hit: a rebuilt-but-identical entry point does not compare equal, because
         // EntryPointSelector.Model has no Equals override and the comparer does not use
@@ -82,16 +89,19 @@ public class FunctionCombinedComparerTests {
     /// half of the hash is <see cref="object.GetHashCode"/>.
     /// </summary>
     [Fact]
-    public void TheCombinedComparerHashesTheHandlersStructurally() {
+    public void TheCombinedComparerHashesTheHandlersStructurally()
+    {
         var comparer = new FunctionIncrementalGenerator.CombinedComparer();
         var entryPoint = EntryPoint();
 
         Assert.Equal(
             comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler()))),
-            comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler()))));
+            comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler())))
+        );
 
         Assert.NotEqual(
             comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler()))),
-            comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler("renamed")))));
+            comparer.GetHashCode((entryPoint, ImmutableArray.Create(Handler("renamed"))))
+        );
     }
 }

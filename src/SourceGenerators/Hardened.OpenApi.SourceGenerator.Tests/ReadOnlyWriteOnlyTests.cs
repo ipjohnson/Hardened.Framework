@@ -22,10 +22,15 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// stays positional and loses its getter, so it deserializes and never serializes.
 /// </para>
 /// </remarks>
-public class ReadOnlyWriteOnlyTests {
-
-    private static PropertyModel Property(string schema, string name) {
-        var model = OpenApiSpecParser.Parse(Specs.ReadOnlyAndWriteOnly, "test", CancellationToken.None);
+public class ReadOnlyWriteOnlyTests
+{
+    private static PropertyModel Property(string schema, string name)
+    {
+        var model = OpenApiSpecParser.Parse(
+            Specs.ReadOnlyAndWriteOnly,
+            "test",
+            CancellationToken.None
+        );
 
         Assert.NotNull(model);
 
@@ -40,7 +45,8 @@ public class ReadOnlyWriteOnlyTests {
     /// than to the whole file. <c>PropertyName = "id"</c> contains <c>Name = "id"</c>, so a
     /// file-wide <c>DoesNotContain</c> for a parameter name matches the property list instead.
     /// </summary>
-    private static string Between(string source, string start, string end) {
+    private static string Between(string source, string start, string end)
+    {
         var from = source.IndexOf(start, StringComparison.Ordinal);
 
         Assert.True(from >= 0, $"'{start}' is not in the generated source.");
@@ -54,7 +60,8 @@ public class ReadOnlyWriteOnlyTests {
     }
 
     [Fact]
-    public void TheKeywordsAreRead() {
+    public void TheKeywordsAreRead()
+    {
         Assert.True(Property("Pet", "id").IsReadOnly);
         Assert.False(Property("Pet", "id").IsWriteOnly);
 
@@ -76,7 +83,8 @@ public class ReadOnlyWriteOnlyTests {
     /// does allow. Direction is documented now and enforced where it can name the property.
     /// </remarks>
     [Fact]
-    public void AReadOnlyPropertyIsPositionalAndMarked() {
+    public void AReadOnlyPropertyIsPositionalAndMarked()
+    {
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
 
         var record = generated.Split('\n').First(line => line.Contains("record Pet("));
@@ -90,9 +98,11 @@ public class ReadOnlyWriteOnlyTests {
     /// resolver, not by the C# shape.
     /// </summary>
     [Fact]
-    public void AWriteOnlyPropertyStaysPositional() {
+    public void AWriteOnlyPropertyStaysPositional()
+    {
         var record = Generated(Specs.ReadOnlyAndWriteOnly)
-            .Split('\n').First(line => line.Contains("record Pet("));
+            .Split('\n')
+            .First(line => line.Contains("record Pet("));
 
         Assert.Contains("Secret", record);
     }
@@ -103,15 +113,22 @@ public class ReadOnlyWriteOnlyTests {
     /// of them is reachable.
     /// </summary>
     [Fact]
-    public void TheResolverCarriesEachPropertyInBothDirections() {
+    public void TheResolverCarriesEachPropertyInBothDirections()
+    {
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
 
         // Both are read and written. Dropping one direction was how this used to be expressed, and
         // it broke the direction the description allows - a response's id could not be read back,
         // and a write-only secret could not be written into the request it belongs to.
         Assert.Contains("PropertyName = \"id\"", generated);
-        Assert.Contains("Getter = static obj => ((global::TestNamespace.Models.Pet)obj).Id,", generated);
-        Assert.DoesNotContain("Getter = null,", Between(generated, "PropertyName = \"secret\"", "}),"));
+        Assert.Contains(
+            "Getter = static obj => ((global::TestNamespace.Models.Pet)obj).Id,",
+            generated
+        );
+        Assert.DoesNotContain(
+            "Getter = null,",
+            Between(generated, "PropertyName = \"secret\"", "}),")
+        );
     }
 
     /// <summary>
@@ -121,11 +138,15 @@ public class ReadOnlyWriteOnlyTests {
     /// where a build catches nothing.
     /// </summary>
     [Fact]
-    public void TheConstructorMetadataMatchesTheConstructor() {
+    public void TheConstructorMetadataMatchesTheConstructor()
+    {
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
 
         var creator = Between(
-            generated, "ObjectWithParameterizedConstructorCreator = static args => new global::TestNamespace.Models.Pet(", "),");
+            generated,
+            "ObjectWithParameterizedConstructorCreator = static args => new global::TestNamespace.Models.Pet(",
+            "),"
+        );
 
         // The creator is positional casts, so what it says about read-only properties is its
         // arity: four arguments means the read-only id is one of them. The old assertion looked
@@ -137,7 +158,8 @@ public class ReadOnlyWriteOnlyTests {
         var parameters = Between(
             generated,
             "ConstructorParameterMetadataInitializer = static () => new JsonParameterInfoValues[]",
-            "});");
+            "});"
+        );
 
         Assert.Contains("Name = \"id\",", parameters);
 
@@ -153,7 +175,8 @@ public class ReadOnlyWriteOnlyTests {
     /// request would reject the create call of a client that correctly omitted the value.
     /// </summary>
     [Fact]
-    public void AReadOnlyPropertyCarriesNoConstraints() {
+    public void AReadOnlyPropertyCarriesNoConstraints()
+    {
         Assert.False(Property("Pet", "id").Constrained);
 
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
@@ -176,7 +199,8 @@ public class ReadOnlyWriteOnlyTests {
     /// <c>ContinuousIntegrationBuild</c>. The derived record inherits it instead.
     /// </summary>
     [Fact]
-    public void ADerivedRecordDoesNotRedeclareTheBaseMember() {
+    public void ADerivedRecordDoesNotRedeclareTheBaseMember()
+    {
         var generated = Generated(Specs.ReadOnlyAndWriteOnly);
 
         // Nothing is declared in the body any more, so the hiding this guarded against cannot
@@ -190,14 +214,19 @@ public class ReadOnlyWriteOnlyTests {
     /// resolver needs the parameterless creator rather than an empty positional one.
     /// </summary>
     [Fact]
-    public void ASchemaOfOnlyReadOnlyPropertiesIsStillConstructed() {
+    public void ASchemaOfOnlyReadOnlyPropertiesIsStillConstructed()
+    {
         var generated = Generated(Specs.ReadOnlyOnly);
 
         // Read-only properties are constructor parameters like any other, so a schema made only of
         // them has a constructor and a response carrying them can be read back.
         Assert.Contains(
             "ObjectWithParameterizedConstructorCreator = static args => new global::TestNamespace.Models.Receipt(",
-            generated);
-        Assert.Contains("Getter = static obj => ((global::TestNamespace.Models.Receipt)obj).Id,", generated);
+            generated
+        );
+        Assert.Contains(
+            "Getter = static obj => ((global::TestNamespace.Models.Receipt)obj).Id,",
+            generated
+        );
     }
 }

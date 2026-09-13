@@ -21,8 +21,8 @@ namespace Hardened.Smithy.BuildTask.Parsing;
 /// feature set and unbounded silent drift.
 /// </para>
 /// </remarks>
-internal static class SmithyTraits {
-
+internal static class SmithyTraits
+{
     internal const string Trait = "smithy.api#trait";
 
     /// <summary>
@@ -102,10 +102,13 @@ internal static class SmithyTraits {
     internal const string OptionalAuth = "smithy.api#optionalAuth";
 
     /// <summary>The schemes a service can declare support for.</summary>
-    internal static readonly HashSet<string> AuthSchemes = new(StringComparer.Ordinal) {
-        "smithy.api#httpApiKeyAuth", "smithy.api#httpBasicAuth",
-        "smithy.api#httpBearerAuth", "smithy.api#httpDigestAuth",
-        "aws.auth#sigv4"
+    internal static readonly HashSet<string> AuthSchemes = new(StringComparer.Ordinal)
+    {
+        "smithy.api#httpApiKeyAuth",
+        "smithy.api#httpBasicAuth",
+        "smithy.api#httpBearerAuth",
+        "smithy.api#httpDigestAuth",
+        "aws.auth#sigv4",
     };
 
     /// <summary>
@@ -116,19 +119,48 @@ internal static class SmithyTraits {
     /// acted on. It is deliberately separate from the parser's own reads: a trait added to the
     /// parser and not to this set would be handled and then reported as unhandled.
     /// </remarks>
-    internal static readonly HashSet<string> Mapped = new(StringComparer.Ordinal) {
-        Http, HttpLabel, HttpQuery, HttpHeader, HttpPayload, HttpError,
-        Error, Required, Default, ClientOptional, Documentation, Deprecated, Title, Tags,
-        EnumValue, JsonName, TimestampFormat, MediaType, Sparse,
-        Length, Range, Pattern, UniqueItems,
-        Auth, OptionalAuth,
-        "smithy.api#httpApiKeyAuth", "smithy.api#httpBasicAuth",
-        "smithy.api#httpBearerAuth", "smithy.api#httpDigestAuth",
-        Readonly, Idempotent, Input, Output, Private, Internal, Mixin,
+    internal static readonly HashSet<string> Mapped = new(StringComparer.Ordinal)
+    {
+        Http,
+        HttpLabel,
+        HttpQuery,
+        HttpHeader,
+        HttpPayload,
+        HttpError,
+        Error,
+        Required,
+        Default,
+        ClientOptional,
+        Documentation,
+        Deprecated,
+        Title,
+        Tags,
+        EnumValue,
+        JsonName,
+        TimestampFormat,
+        MediaType,
+        Sparse,
+        Length,
+        Range,
+        Pattern,
+        UniqueItems,
+        Auth,
+        OptionalAuth,
+        "smithy.api#httpApiKeyAuth",
+        "smithy.api#httpBasicAuth",
+        "smithy.api#httpBearerAuth",
+        "smithy.api#httpDigestAuth",
+        Readonly,
+        Idempotent,
+        Input,
+        Output,
+        Private,
+        Internal,
+        Mixin,
         Trait,
         Timeout,
         Narrowed,
-        Streaming
+        Streaming,
     };
 
     /// <summary>
@@ -144,20 +176,42 @@ internal static class SmithyTraits {
     /// configured on the host, XML applies to a protocol this does not serve, and authentication is
     /// Hardened's own story rather than the IDL's.
     /// </remarks>
-    internal static readonly HashSet<string> Ignorable = new(StringComparer.Ordinal) {
-        "smithy.api#examples", "smithy.api#recommended", "smithy.api#unstable",
-        "smithy.api#since", "smithy.api#externalDocumentation", "smithy.api#suppress",
-        "smithy.api#traitValidators", "smithy.api#idRef", "smithy.api#references",
-        "smithy.api#idempotencyToken", "smithy.api#httpChecksumRequired",
-        "smithy.api#requestCompression", "smithy.api#requiresLength", "smithy.api#endpoint",
-        "smithy.api#hostLabel", "smithy.api#cors", "smithy.api#sensitive",
-        "smithy.api#noReplace", "smithy.api#nestedProperties", "smithy.api#notProperty",
-        "smithy.api#property", "smithy.api#resourceIdentifier", "smithy.api#unitType",
-        "smithy.api#addedDefault", "smithy.api#box", "smithy.api#retryable",
-        "smithy.api#authDefinition", "smithy.api#protocolDefinition",
-        "smithy.api#xmlAttribute", "smithy.api#xmlFlattened", "smithy.api#xmlName",
+    internal static readonly HashSet<string> Ignorable = new(StringComparer.Ordinal)
+    {
+        "smithy.api#examples",
+        "smithy.api#recommended",
+        "smithy.api#unstable",
+        "smithy.api#since",
+        "smithy.api#externalDocumentation",
+        "smithy.api#suppress",
+        "smithy.api#traitValidators",
+        "smithy.api#idRef",
+        "smithy.api#references",
+        "smithy.api#idempotencyToken",
+        "smithy.api#httpChecksumRequired",
+        "smithy.api#requestCompression",
+        "smithy.api#requiresLength",
+        "smithy.api#endpoint",
+        "smithy.api#hostLabel",
+        "smithy.api#cors",
+        "smithy.api#sensitive",
+        "smithy.api#noReplace",
+        "smithy.api#nestedProperties",
+        "smithy.api#notProperty",
+        "smithy.api#property",
+        "smithy.api#resourceIdentifier",
+        "smithy.api#unitType",
+        "smithy.api#addedDefault",
+        "smithy.api#box",
+        "smithy.api#retryable",
+        "smithy.api#authDefinition",
+        "smithy.api#protocolDefinition",
+        "smithy.api#xmlAttribute",
+        "smithy.api#xmlFlattened",
+        "smithy.api#xmlName",
         "smithy.api#xmlNamespace",
-        "smithy.api#eventHeader", "smithy.api#eventPayload"
+        "smithy.api#eventHeader",
+        "smithy.api#eventPayload",
     };
 
     /// <summary>
@@ -171,8 +225,12 @@ internal static class SmithyTraits {
     /// nothing enforcing the protocol between them. The handler author implements paging by hand
     /// or the contract overstates what the service does, and either way it has to be said.
     /// </remarks>
-    internal static readonly HashSet<string> Degrades = new(StringComparer.Ordinal) {
-        HttpResponseCode, HttpPrefixHeaders, HttpQueryParams, "smithy.api#paginated"
+    internal static readonly HashSet<string> Degrades = new(StringComparer.Ordinal)
+    {
+        HttpResponseCode,
+        HttpPrefixHeaders,
+        HttpQueryParams,
+        "smithy.api#paginated",
     };
 
     /// <summary>
@@ -185,8 +243,9 @@ internal static class SmithyTraits {
     /// generating REST routes for an <c>awsJson1_1</c> model is not weaker, it is wrong: every
     /// operation there is POST / dispatched on an X-Amz-Target header.
     /// </remarks>
-    internal static readonly HashSet<string> SupportedProtocols = new(StringComparer.Ordinal) {
-        "aws.protocols#restJson1"
+    internal static readonly HashSet<string> SupportedProtocols = new(StringComparer.Ordinal)
+    {
+        "aws.protocols#restJson1",
     };
 
     /// <summary>
@@ -206,29 +265,34 @@ internal static class SmithyTraits {
     /// binding traits "MUST be ignored if they are present", so there is nothing to reconcile.
     /// </para>
     /// </remarks>
-    internal static readonly Dictionary<string, string> DispatchProtocols =
-        new(StringComparer.Ordinal) {
-            ["aws.protocols#awsJson1_0"] = "X-Amz-Target",
-            ["aws.protocols#awsJson1_1"] = "X-Amz-Target"
-        };
+    internal static readonly Dictionary<string, string> DispatchProtocols = new(
+        StringComparer.Ordinal
+    )
+    {
+        ["aws.protocols#awsJson1_0"] = "X-Amz-Target",
+        ["aws.protocols#awsJson1_1"] = "X-Amz-Target",
+    };
 
     /// <summary>The content type each dispatch protocol sends and answers with.</summary>
-    internal static readonly Dictionary<string, string> DispatchContentTypes =
-        new(StringComparer.Ordinal) {
-            ["aws.protocols#awsJson1_0"] = "application/x-amz-json-1.0",
-            ["aws.protocols#awsJson1_1"] = "application/x-amz-json-1.1"
-        };
+    internal static readonly Dictionary<string, string> DispatchContentTypes = new(
+        StringComparer.Ordinal
+    )
+    {
+        ["aws.protocols#awsJson1_0"] = "application/x-amz-json-1.0",
+        ["aws.protocols#awsJson1_1"] = "application/x-amz-json-1.1",
+    };
 
     /// <summary>Protocol traits that are recognised and refused, with the reason.</summary>
-    internal static readonly Dictionary<string, string> RefusedProtocols =
-        new(StringComparer.Ordinal) {
-            ["aws.protocols#restXml"] =
-                "XML bodies need a serializer this generator does not emit",
-            ["aws.protocols#awsQuery"] =
-                "form-encoded requests and XML responses are not served by this generator",
-            ["aws.protocols#ec2Query"] =
-                "form-encoded requests and XML responses are not served by this generator"
-        };
+    internal static readonly Dictionary<string, string> RefusedProtocols = new(
+        StringComparer.Ordinal
+    )
+    {
+        ["aws.protocols#restXml"] = "XML bodies need a serializer this generator does not emit",
+        ["aws.protocols#awsQuery"] =
+            "form-encoded requests and XML responses are not served by this generator",
+        ["aws.protocols#ec2Query"] =
+            "form-encoded requests and XML responses are not served by this generator",
+    };
 
     /// <summary>Whether a trait needs no diagnostic - it was read, or it is deliberately ignored.</summary>
     internal static bool IsAccountedFor(string traitId) =>

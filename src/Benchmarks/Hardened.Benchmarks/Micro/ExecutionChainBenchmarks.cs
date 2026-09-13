@@ -19,7 +19,8 @@ namespace Hardened.Benchmarks.Micro;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.Micro)]
-public class ExecutionChainBenchmarks {
+public class ExecutionChainBenchmarks
+{
     private HardenedNativeHarness _harness = null!;
     private IServiceScope _scope = null!;
     private MemoryStream _responseBody = null!;
@@ -31,7 +32,8 @@ public class ExecutionChainBenchmarks {
     public int FilterCount { get; set; }
 
     [GlobalSetup]
-    public void Setup() {
+    public void Setup()
+    {
         _harness = new HardenedNativeHarness();
         _scope = _harness.CreateScope();
         _responseBody = new MemoryStream();
@@ -46,7 +48,8 @@ public class ExecutionChainBenchmarks {
     }
 
     [Benchmark]
-    public async Task Walk() {
+    public async Task Walk()
+    {
         await new ExecutionChain(_filters, _context).Next();
     }
 
@@ -55,18 +58,21 @@ public class ExecutionChainBenchmarks {
     /// over a modified context. Measured separately because it allocates a second chain.
     /// </summary>
     [Benchmark]
-    public async Task WalkWithFork() {
+    public async Task WalkWithFork()
+    {
         var chain = new ExecutionChain(_filters, _context);
 
         await chain.Fork(_context).Next();
     }
 
-    private sealed class PassThroughFilter : IExecutionFilter {
+    private sealed class PassThroughFilter : IExecutionFilter
+    {
         public Task Execute(IExecutionChain chain) => chain.Next();
     }
 
     [GlobalCleanup]
-    public void Cleanup() {
+    public void Cleanup()
+    {
         _scope.Dispose();
         _harness.Dispose();
         _responseBody.Dispose();

@@ -9,7 +9,8 @@ namespace Hardened.Requests.Abstract.Authorization;
 /// resolved from a store - a permissions table, a per-tenant role expansion - without a policy
 /// knowing where they came from.
 /// </remarks>
-public interface IAuthorizationPolicy {
+public interface IAuthorizationPolicy
+{
     /// <summary>
     /// The requirement this policy imposes. Built once and reused.
     /// </summary>

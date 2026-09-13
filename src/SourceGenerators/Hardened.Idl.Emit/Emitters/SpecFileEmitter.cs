@@ -1,9 +1,9 @@
-using Hardened.Generation;
 using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
-using Hardened.Idl.Validation;
+using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl.Validation;
 
 namespace Hardened.Idl.Emitters;
 
@@ -23,8 +23,8 @@ namespace Hardened.Idl.Emitters;
 /// them.
 /// </para>
 /// </remarks>
-internal static class SpecFileEmitter {
-
+internal static class SpecFileEmitter
+{
     /// <summary>Types under the root namespace that models live in.</summary>
     private const string ModelsNamespace = "Models";
 
@@ -40,7 +40,9 @@ internal static class SpecFileEmitter {
         bool excludeFromCoverage,
         string document = "",
         string specPath = "",
-        SpecResponseModel responseModel = SpecResponseModel.Throws) {
+        SpecResponseModel responseModel = SpecResponseModel.Throws
+    )
+    {
         // An unnamed namespace writes no wrapper of its own, so this is the file rather than a
         // namespace in it. Filter types declare their own namespace in the spec and may sit outside
         // the root entirely, which is why the file needs to hold more than one top-level block.
@@ -54,39 +56,62 @@ internal static class SpecFileEmitter {
 
         // Built before the schemas, because emitting a record's constraints registers any pattern
         // it uses and the [GeneratedRegex] members are written from what was registered.
-        var patterns = new PatternRegistry(rootNamespace + "." + ValidationNamespace, model.FileName);
+        var patterns = new PatternRegistry(
+            rootNamespace + "." + ValidationNamespace,
+            model.FileName
+        );
 
         // The schemas that are the item of a streamed response. A union among them is an event
         // stream, and is emitted as an event as well as a union.
         var streamedItems = new HashSet<string>(System.StringComparer.Ordinal);
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                if (operation.ItemSchemaRef != null) {
-                    streamedItems.Add(NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ItemSchemaRef)));
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                if (operation.ItemSchemaRef != null)
+                {
+                    streamedItems.Add(
+                        NamingHelper.ToPascalCase(TypeMapper.GetRefName(operation.ItemSchemaRef))
+                    );
                 }
             }
         }
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             Coverage.Apply(
                 SchemaEmitter.Emit(
-                    models, schema, modelsNamespace, patterns, model.Schemas, streamedItems,
-                    model.Serializer),
-                excludeFromCoverage);
+                    models,
+                    schema,
+                    modelsNamespace,
+                    patterns,
+                    model.Schemas,
+                    streamedItems,
+                    model.Serializer
+                ),
+                excludeFromCoverage
+            );
         }
 
-        if (model.Services.Count > 0) {
+        if (model.Services.Count > 0)
+        {
             var services = root.AddNamespace(ServicesNamespace);
 
             var responses = new List<ClassDefinition>();
 
-            foreach (var service in model.Services) {
+            foreach (var service in model.Services)
+            {
                 Coverage.Apply(
                     ServiceInterfaceEmitter.Emit(
-                        services, service, modelsNamespace, responseModel,
-                        model.BindCancellationToken),
-                    excludeFromCoverage);
+                        services,
+                        service,
+                        modelsNamespace,
+                        responseModel,
+                        model.BindCancellationToken
+                    ),
+                    excludeFromCoverage
+                );
 
                 // In the models namespace, beside the payloads they carry, rather than beside the
                 // interfaces - neither is part of the contract an implementation implements.
@@ -103,10 +128,15 @@ internal static class SpecFileEmitter {
                 // would leave the other operations' signatures naming types nothing wrote.
                 responses.AddRange(
                     UnionResponseEmitter.Emit(
-                        models, service, modelsNamespace,
+                        models,
+                        service,
+                        modelsNamespace,
                         asLanguageUnion: responseModel == SpecResponseModel.Union,
                         responseModel: responseModel,
-                        schemas: model.Schemas, specFileName: model.FileName));
+                        schemas: model.Schemas,
+                        specFileName: model.FileName
+                    )
+                );
             }
 
             // The types a declared error needs, once each for the whole document rather than once
@@ -126,18 +156,27 @@ internal static class SpecFileEmitter {
             // named beside it. Only for the ones this file wrote a type for: an error that binds to
             // a shipped record reaches AsException() through the generic extension already.
             var factories = ErrorFactoryEmitter.Emit(
-                models, thrown, modelsNamespace, model.FileName);
+                models,
+                thrown,
+                modelsNamespace,
+                model.FileName
+            );
 
-            if (factories != null) {
+            if (factories != null)
+            {
                 responses.Add(factories);
             }
 
             responses.AddRange(
                 UnionResponseEmitter.EmitErrorCaseTypes(
-                    models, GeneratedErrors(model, responseModel, inResponseSet: true),
-                    modelsNamespace));
+                    models,
+                    GeneratedErrors(model, responseModel, inResponseSet: true),
+                    modelsNamespace
+                )
+            );
 
-            foreach (var definition in responses) {
+            foreach (var definition in responses)
+            {
                 Coverage.Apply(definition, excludeFromCoverage);
             }
 
@@ -145,31 +184,44 @@ internal static class SpecFileEmitter {
             // (schema, status) the document declares. Beside the exceptions for the same reason: it
             // is a payload, not part of the contract the implementation implements.
             DefaultErrorBodyEmitter.Emit(
-                models, model.Schemas, GeneratedErrorBodies(model), modelsNamespace, model.FileName);
+                models,
+                model.Schemas,
+                GeneratedErrorBodies(model),
+                modelsNamespace,
+                model.FileName
+            );
 
             // The cases a bare shipped record converts into, one method per record and body the
             // file's response sets need. Beside the null-return bodies, which fill the same members
             // from the status alone.
             var problems = ProblemConversionEmitter.Emit(
-                models, model.Schemas, ProblemConversions(model, responseModel), modelsNamespace,
-                model.FileName);
+                models,
+                model.Schemas,
+                ProblemConversions(model, responseModel),
+                modelsNamespace,
+                model.FileName
+            );
 
-            if (problems != null) {
+            if (problems != null)
+            {
                 Coverage.Apply(problems, excludeFromCoverage);
             }
         }
 
         Coverage.Apply(
             JsonTypeInfoEmitter.Emit(models, model.Schemas, modelsNamespace, model.FileName),
-            excludeFromCoverage);
+            excludeFromCoverage
+        );
 
         // The specification itself, so the application can serve the contract it was built from
         // rather than a second description of it. Under the root namespace rather than Models,
         // because it is not one - it is the input.
-        if (document.Length > 0) {
+        if (document.Length > 0)
+        {
             Coverage.Apply(
                 SpecificationDocumentEmitter.Emit(root, model, document, specPath),
-                excludeFromCoverage);
+                excludeFromCoverage
+            );
         }
 
         EmitFilterTypes(file, model, excludeFromCoverage);
@@ -192,7 +244,8 @@ internal static class SpecFileEmitter {
         // Recorded so the generator is told which interface each handler implements, rather than
         // deriving the name a second time and drifting.
         model.ValidatedOperations = operations
-            .Select(operation => new ValidatedOperationModel {
+            .Select(operation => new ValidatedOperationModel
+            {
                 OperationId = operation.OperationId,
                 InterfaceName = operation.InterfaceName,
             })
@@ -203,9 +256,9 @@ internal static class SpecFileEmitter {
         // File, and each of those was CS0104 against System.Environment, System.Threading.Thread
         // and System.IO.File. Nobody reads this file, so the length costs nothing, and it also
         // means a type the consumer declares can never change what generated code binds to.
-        var context = new OutputContext(new OutputContextOptions {
-            TypeOutputMode = TypeOutputMode.Global
-        });
+        var context = new OutputContext(
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
 
         file.WriteOutput(context);
 
@@ -236,22 +289,32 @@ internal static class SpecFileEmitter {
     /// an exception - separately named, so neither collides with the other.
     /// </param>
     private static IReadOnlyList<ErrorResponseModel> GeneratedErrors(
-        ServiceSpecModel model, SpecResponseModel responseModel, bool inResponseSet) {
+        ServiceSpecModel model,
+        SpecResponseModel responseModel,
+        bool inResponseSet
+    )
+    {
         var collected = new List<ErrorResponseModel>();
         var seen = new HashSet<string>(System.StringComparer.Ordinal);
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                if (ResponseSetPlan.RequiresResponseSet(operation, responseModel) != inResponseSet) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                if (ResponseSetPlan.RequiresResponseSet(operation, responseModel) != inResponseSet)
+                {
                     continue;
                 }
 
-                foreach (var error in operation.ErrorResponses) {
-                    if (ShippedResponses.For(error) != null) {
+                foreach (var error in operation.ErrorResponses)
+                {
+                    if (ShippedResponses.For(error) != null)
+                    {
                         continue;
                     }
 
-                    if (seen.Add(ShippedResponses.GeneratedKey(error))) {
+                    if (seen.Add(ShippedResponses.GeneratedKey(error)))
+                    {
                         collected.Add(error);
                     }
                 }
@@ -274,17 +337,25 @@ internal static class SpecFileEmitter {
     /// converts through one method.
     /// </summary>
     private static IReadOnlyList<ProblemConversion.Plan> ProblemConversions(
-        ServiceSpecModel model, SpecResponseModel responseModel) {
+        ServiceSpecModel model,
+        SpecResponseModel responseModel
+    )
+    {
         var plans = new Dictionary<string, ProblemConversion.Plan>(System.StringComparer.Ordinal);
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                if (!ResponseSetPlan.RequiresResponseSet(operation, responseModel)) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                if (!ResponseSetPlan.RequiresResponseSet(operation, responseModel))
+                {
                     continue;
                 }
 
-                foreach (var error in operation.ErrorResponses) {
-                    if (ProblemConversion.For(error, model.Schemas) is { } plan) {
+                foreach (var error in operation.ErrorResponses)
+                {
+                    if (ProblemConversion.For(error, model.Schemas) is { } plan)
+                    {
                         plans[plan.Key] = plan;
                     }
                 }
@@ -295,12 +366,17 @@ internal static class SpecFileEmitter {
     }
 
     private static IReadOnlyCollection<(string SchemaName, int StatusCode)> GeneratedErrorBodies(
-        ServiceSpecModel model) {
+        ServiceSpecModel model
+    )
+    {
         var wanted = new HashSet<(string, int)>();
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
-                foreach (var declared in DefaultErrorBody.DeclaredBodies(operation)) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
+                foreach (var declared in DefaultErrorBody.DeclaredBodies(operation))
+                {
                     wanted.Add(declared);
                 }
             }
@@ -320,21 +396,31 @@ internal static class SpecFileEmitter {
     /// file level, where there is nothing to ask.
     /// </remarks>
     private static void EmitFilterTypes(
-        CSharpFileDefinition file, ServiceSpecModel model, bool excludeFromCoverage) {
+        CSharpFileDefinition file,
+        ServiceSpecModel model,
+        bool excludeFromCoverage
+    )
+    {
         var namespaces = new Dictionary<string, NamespaceDefinition>(System.StringComparer.Ordinal);
 
-        foreach (var filterType in model.FilterTypes) {
-            if (!filterType.Generate) {
+        foreach (var filterType in model.FilterTypes)
+        {
+            if (!filterType.Generate)
+            {
                 continue;
             }
 
-            if (!namespaces.TryGetValue(filterType.Namespace, out var filterNamespace)) {
+            if (!namespaces.TryGetValue(filterType.Namespace, out var filterNamespace))
+            {
                 filterNamespace = new NamespaceDefinition(filterType.Namespace);
                 namespaces.Add(filterType.Namespace, filterNamespace);
                 file.AddComponent(filterNamespace);
             }
 
-            Coverage.Apply(FilterTypeEmitter.Emit(filterNamespace, filterType), excludeFromCoverage);
+            Coverage.Apply(
+                FilterTypeEmitter.Emit(filterNamespace, filterType),
+                excludeFromCoverage
+            );
         }
     }
 }

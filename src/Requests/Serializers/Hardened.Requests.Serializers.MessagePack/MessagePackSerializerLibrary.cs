@@ -38,19 +38,28 @@ namespace Hardened.Requests.Serializers.MessagePack;
 /// </code>
 /// </example>
 [DependencyModule]
-public partial class MessagePackSerializerLibrary : IServiceCollectionConfiguration {
-
-    public void ConfigureServices(IServiceCollection services) {
+public partial class MessagePackSerializerLibrary : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<IConfigurationPackage>(
             new SimpleConfigurationPackage(
-                new IConfigurationValueProvider[] {
+                new IConfigurationValueProvider[]
+                {
                     new NewConfigurationValueProvider<
-                        IMessagePackSerializerConfiguration, MessagePackSerializerConfiguration>(null)
-                }));
+                        IMessagePackSerializerConfiguration,
+                        MessagePackSerializerConfiguration
+                    >(null),
+                }
+            )
+        );
 
-        services.AddSingleton(
-            provider => Options.Create(
-                provider.GetRequiredService<IConfigurationManager>()
-                    .GetConfiguration<IMessagePackSerializerConfiguration>()));
+        services.AddSingleton(provider =>
+            Options.Create(
+                provider
+                    .GetRequiredService<IConfigurationManager>()
+                    .GetConfiguration<IMessagePackSerializerConfiguration>()
+            )
+        );
     }
 }

@@ -19,9 +19,10 @@ namespace Hardened.Requests.Runtime.Tests.RateLimiting;
 /// written one never runs. Most of what is asserted here is that distinction.
 /// </para>
 /// </summary>
-public class RateLimitFilterTests {
-
-    private sealed class FixedStore : IRateLimitStore {
+public class RateLimitFilterTests
+{
+    private sealed class FixedStore : IRateLimitStore
+    {
         private readonly RateLimitDecision _decision;
 
         public int Calls { get; private set; }
@@ -30,12 +31,17 @@ public class RateLimitFilterTests {
 
         public RateLimitPolicy LastPolicy { get; private set; }
 
-        public FixedStore(RateLimitDecision decision) {
+        public FixedStore(RateLimitDecision decision)
+        {
             _decision = decision;
         }
 
         public ValueTask<RateLimitDecision> Acquire(
-            string partition, RateLimitPolicy policy, CancellationToken cancellationToken) {
+            string partition,
+            RateLimitPolicy policy,
+            CancellationToken cancellationToken
+        )
+        {
             Calls++;
             LastPartition = partition;
             LastPolicy = policy;
@@ -44,10 +50,12 @@ public class RateLimitFilterTests {
         }
     }
 
-    private sealed class FixedPartitioner : IRateLimitPartitioner {
+    private sealed class FixedPartitioner : IRateLimitPartitioner
+    {
         private readonly string _partition;
 
-        public FixedPartitioner(string partition) {
+        public FixedPartitioner(string partition)
+        {
             _partition = partition;
         }
 
@@ -55,32 +63,43 @@ public class RateLimitFilterTests {
     }
 
     private static IExecutionContext Context(
-        IRateLimitStore? store, IRateLimitPartitioner? partitioner = null) =>
-        Pipeline.Context(configureServices: services => {
-            if (store != null) {
+        IRateLimitStore? store,
+        IRateLimitPartitioner? partitioner = null
+    ) =>
+        Pipeline.Context(configureServices: services =>
+        {
+            if (store != null)
+            {
                 services.AddSingleton(store);
             }
 
             services.AddSingleton(partitioner ?? new FixedPartitioner("caller-1"));
         });
 
-    private static readonly RateLimitPolicy Policy =
-        new(PermitLimit: 10, Window: TimeSpan.FromMinutes(1));
+    private static readonly RateLimitPolicy Policy = new(
+        PermitLimit: 10,
+        Window: TimeSpan.FromMinutes(1)
+    );
 
     [Fact]
-    public async Task Execute_LetsAnAllowedRequestThrough() {
+    public async Task Execute_LetsAnAllowedRequestThrough()
+    {
         var store = new FixedStore(RateLimitDecision.Allow(10, 9));
         var context = Context(store);
         var reached = false;
 
-        await Pipeline.Chain(
-            context,
-            new RateLimitFilter(Policy, beforeSerialization: false),
-            new Pipeline.Inline(_ => {
-                reached = true;
+        await Pipeline
+            .Chain(
+                context,
+                new RateLimitFilter(Policy, beforeSerialization: false),
+                new Pipeline.Inline(_ =>
+                {
+                    reached = true;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.True(reached);
         Assert.Null(context.Response.ExceptionValue);
@@ -91,13 +110,17 @@ public class RateLimitFilterTests {
     /// discover the limit by being refused.
     /// </summary>
     [Fact]
-    public async Task Execute_ReportsTheAllowanceOnAnAllowedRequest() {
+    public async Task Execute_ReportsTheAllowanceOnAnAllowedRequest()
+    {
         var context = Context(new FixedStore(RateLimitDecision.Allow(10, 7)));
 
-        await Pipeline.Chain(
-            context,
-            new RateLimitFilter(Policy, beforeSerialization: false),
-            new Pipeline.Inline(_ => Task.CompletedTask)).Next();
+        await Pipeline
+            .Chain(
+                context,
+                new RateLimitFilter(Policy, beforeSerialization: false),
+                new Pipeline.Inline(_ => Task.CompletedTask)
+            )
+            .Next();
 
         Assert.Equal("10", context.Response.Headers["RateLimit-Limit"].ToString());
         Assert.Equal("7", context.Response.Headers["RateLimit-Remaining"].ToString());
@@ -105,18 +128,25 @@ public class RateLimitFilterTests {
 
     /// <summary>Behind the serialization filter, refusing means not continuing.</summary>
     [Fact]
-    public async Task Execute_StopsTheChainWhenRefusingBehindSerialization() {
-        var context = Context(new FixedStore(RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(30))));
+    public async Task Execute_StopsTheChainWhenRefusingBehindSerialization()
+    {
+        var context = Context(
+            new FixedStore(RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(30)))
+        );
         var reached = false;
 
-        await Pipeline.Chain(
-            context,
-            new RateLimitFilter(Policy, beforeSerialization: false),
-            new Pipeline.Inline(_ => {
-                reached = true;
+        await Pipeline
+            .Chain(
+                context,
+                new RateLimitFilter(Policy, beforeSerialization: false),
+                new Pipeline.Inline(_ =>
+                {
+                    reached = true;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.False(reached);
         Assert.IsType<RateLimitExceededException>(context.Response.ExceptionValue);
@@ -128,18 +158,25 @@ public class RateLimitFilterTests {
     /// nothing in it.
     /// </summary>
     [Fact]
-    public async Task Execute_ContinuesTheChainWhenRefusingAheadOfSerialization() {
-        var context = Context(new FixedStore(RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(30))));
+    public async Task Execute_ContinuesTheChainWhenRefusingAheadOfSerialization()
+    {
+        var context = Context(
+            new FixedStore(RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(30)))
+        );
         var reached = false;
 
-        await Pipeline.Chain(
-            context,
-            new RateLimitFilter(Policy, beforeSerialization: true),
-            new Pipeline.Inline(_ => {
-                reached = true;
+        await Pipeline
+            .Chain(
+                context,
+                new RateLimitFilter(Policy, beforeSerialization: true),
+                new Pipeline.Inline(_ =>
+                {
+                    reached = true;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.True(reached);
         Assert.IsType<RateLimitExceededException>(context.Response.ExceptionValue);
@@ -150,32 +187,41 @@ public class RateLimitFilterTests {
     /// here would take an application down on a registration mistake.
     /// </summary>
     [Fact]
-    public async Task Execute_PassesThroughWhenNoStoreIsRegistered() {
+    public async Task Execute_PassesThroughWhenNoStoreIsRegistered()
+    {
         var context = Context(store: null);
         var reached = false;
 
-        await Pipeline.Chain(
-            context,
-            new RateLimitFilter(Policy, beforeSerialization: false),
-            new Pipeline.Inline(_ => {
-                reached = true;
+        await Pipeline
+            .Chain(
+                context,
+                new RateLimitFilter(Policy, beforeSerialization: false),
+                new Pipeline.Inline(_ =>
+                {
+                    reached = true;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.True(reached);
         Assert.Null(context.Response.ExceptionValue);
     }
 
     [Fact]
-    public async Task Execute_AsksTheStoreAboutThePartitionerSPartition() {
+    public async Task Execute_AsksTheStoreAboutThePartitionerSPartition()
+    {
         var store = new FixedStore(RateLimitDecision.Allow(10, 9));
         var context = Context(store, new FixedPartitioner("tenant-42"));
 
-        await Pipeline.Chain(
-            context,
-            new RateLimitFilter(Policy, beforeSerialization: false),
-            new Pipeline.Inline(_ => Task.CompletedTask)).Next();
+        await Pipeline
+            .Chain(
+                context,
+                new RateLimitFilter(Policy, beforeSerialization: false),
+                new Pipeline.Inline(_ => Task.CompletedTask)
+            )
+            .Next();
 
         Assert.Equal(1, store.Calls);
         Assert.Equal("tenant-42", store.LastPartition);
@@ -189,9 +235,11 @@ public class RateLimitFilterTests {
     /// <see cref="IStatusCodeException"/> - the pipeline asks it for its headers before writing.
     /// </summary>
     [Fact]
-    public void RateLimitExceededException_CarriesRetryAfterAndTheAllowance() {
+    public void RateLimitExceededException_CarriesRetryAfterAndTheAllowance()
+    {
         var exception = new RateLimitExceededException(
-            RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(30)));
+            RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(30))
+        );
 
         var headers = new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>();
 
@@ -211,9 +259,11 @@ public class RateLimitFilterTests {
     [InlineData(0.1, "1")]
     [InlineData(1.2, "2")]
     [InlineData(30.0, "30")]
-    public void RateLimitExceededException_RoundsRetryAfterUp(double seconds, string expected) {
+    public void RateLimitExceededException_RoundsRetryAfterUp(double seconds, string expected)
+    {
         var exception = new RateLimitExceededException(
-            RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(seconds)));
+            RateLimitDecision.Refuse(10, TimeSpan.FromSeconds(seconds))
+        );
 
         var headers = new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>();
 
@@ -229,9 +279,11 @@ public class RateLimitFilterTests {
     /// so it refuses without the request body having been read.
     /// </summary>
     [Fact]
-    public void RateLimitAttribute_OrdersATransportLimitAheadOfAuthenticationAndSerialization() {
+    public void RateLimitAttribute_OrdersATransportLimitAheadOfAuthenticationAndSerialization()
+    {
         var info = Assert.Single(
-            new RateLimitAttribute { Scope = RateLimitScope.Transport }.GetFilters(null!));
+            new RateLimitAttribute { Scope = RateLimitScope.Transport }.GetFilters(null!)
+        );
 
         Assert.Equal(FilterOrder.RateLimitTransport, info.Order);
         Assert.True(info.Order < FilterOrder.Authentication);
@@ -240,9 +292,11 @@ public class RateLimitFilterTests {
 
     /// <summary>A principal-keyed limit runs after authentication, because it needs a caller.</summary>
     [Fact]
-    public void RateLimitAttribute_OrdersAPrincipalLimitAfterAuthentication() {
+    public void RateLimitAttribute_OrdersAPrincipalLimitAfterAuthentication()
+    {
         var info = Assert.Single(
-            new RateLimitAttribute { Scope = RateLimitScope.Principal }.GetFilters(null!));
+            new RateLimitAttribute { Scope = RateLimitScope.Principal }.GetFilters(null!)
+        );
 
         Assert.Equal(FilterOrder.RateLimitPrincipal, info.Order);
         Assert.True(info.Order > FilterOrder.Authentication);
@@ -255,12 +309,22 @@ public class RateLimitFilterTests {
     /// written.
     /// </summary>
     [Fact]
-    public void RateLimitAttribute_UsesOrdersNothingElseClaims() {
-        var taken = new[] {
-            FilterOrder.HandlerCreation, FilterOrder.Authentication, FilterOrder.GrantAuthorization,
-            FilterOrder.Conditional, FilterOrder.ResponseCache, FilterOrder.BeforeSerialization,
-            FilterOrder.Serialization, FilterOrder.Validation, FilterOrder.Authorization,
-            FilterOrder.Retry, FilterOrder.DefaultValue, FilterOrder.EndPointInvoke
+    public void RateLimitAttribute_UsesOrdersNothingElseClaims()
+    {
+        var taken = new[]
+        {
+            FilterOrder.HandlerCreation,
+            FilterOrder.Authentication,
+            FilterOrder.GrantAuthorization,
+            FilterOrder.Conditional,
+            FilterOrder.ResponseCache,
+            FilterOrder.BeforeSerialization,
+            FilterOrder.Serialization,
+            FilterOrder.Validation,
+            FilterOrder.Authorization,
+            FilterOrder.Retry,
+            FilterOrder.DefaultValue,
+            FilterOrder.EndPointInvoke,
         };
 
         Assert.DoesNotContain(FilterOrder.RateLimitTransport, taken);
@@ -272,17 +336,25 @@ public class RateLimitFilterTests {
     /// share a counter.
     /// </summary>
     [Fact]
-    public void RateLimitAttribute_AllowsMoreThanOnePerHandler() {
-        var usage = (AttributeUsageAttribute)Attribute.GetCustomAttribute(
-            typeof(RateLimitAttribute), typeof(AttributeUsageAttribute))!;
+    public void RateLimitAttribute_AllowsMoreThanOnePerHandler()
+    {
+        var usage = (AttributeUsageAttribute)
+            Attribute.GetCustomAttribute(
+                typeof(RateLimitAttribute),
+                typeof(AttributeUsageAttribute)
+            )!;
 
         Assert.True(usage.AllowMultiple);
     }
 
     [Fact]
-    public async Task RateLimitAttribute_PassesItsConfigurationToThePolicy() {
-        var attribute = new RateLimitAttribute {
-            PermitLimit = 5, WindowSeconds = 30, Name = "burst"
+    public async Task RateLimitAttribute_PassesItsConfigurationToThePolicy()
+    {
+        var attribute = new RateLimitAttribute
+        {
+            PermitLimit = 5,
+            WindowSeconds = 30,
+            Name = "burst",
         };
 
         var store = new FixedStore(RateLimitDecision.Allow(5, 4));

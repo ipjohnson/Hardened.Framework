@@ -22,8 +22,8 @@ namespace Hardened.SourceGenerator.Shared;
 /// compile in has to be small enough to carry.
 /// </para>
 /// </remarks>
-public static class RoutingGeneratorMarker {
-
+public static class RoutingGeneratorMarker
+{
     /// <summary>The metadata name the check looks for.</summary>
     public const string TypeName = "Hardened.Web.Generated.WebRoutingGeneratorMarker";
 
@@ -46,10 +46,10 @@ public static class RoutingGeneratorMarker {
     /// </para>
     /// </remarks>
     public const string Source =
-        "namespace Hardened.Web.Generated {\n" +
-        "    /// <summary>Declared by a Hardened routing generator so other generators can tell\n" +
-        "    /// whether route declarations are being compiled for this compilation.</summary>\n" +
-        "    internal static partial class WebRoutingGeneratorMarker {\n" +
-        "    }\n" +
-        "}\n";
+        "namespace Hardened.Web.Generated {\n"
+        + "    /// <summary>Declared by a Hardened routing generator so other generators can tell\n"
+        + "    /// whether route declarations are being compiled for this compilation.</summary>\n"
+        + "    internal static partial class WebRoutingGeneratorMarker {\n"
+        + "    }\n"
+        + "}\n";
 }

@@ -35,8 +35,8 @@ namespace Hardened.Requests.Runtime.Caching;
 /// <c>MD5.Create()</c> throws outright on a FIPS-enforcing host.
 /// </para>
 /// </remarks>
-public sealed class ByPayload : ICacheKeyProvider {
-
+public sealed class ByPayload : ICacheKeyProvider
+{
     private static readonly ByPayload _instance = new();
 
     private ByPayload() { }
@@ -54,14 +54,18 @@ public sealed class ByPayload : ICacheKeyProvider {
         values.Length == 0
             ? _instance
             : throw new ArgumentException(
-                "ByPayload keys on the request body and takes no values, but was given " +
-                string.Join(", ", values) + ".",
-                nameof(values));
+                "ByPayload keys on the request body and takes no values, but was given "
+                    + string.Join(", ", values)
+                    + ".",
+                nameof(values)
+            );
 
-    public async ValueTask<string?> Key(IExecutionContext context) {
+    public async ValueTask<string?> Key(IExecutionContext context)
+    {
         var body = context.Request.Body;
 
-        if (body == Stream.Null) {
+        if (body == Stream.Null)
+        {
             return string.Empty;
         }
 

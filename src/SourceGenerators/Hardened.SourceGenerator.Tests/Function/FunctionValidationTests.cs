@@ -22,8 +22,8 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// and if the name it derives were wrong, the case would not compile.
 /// </para>
 /// </remarks>
-public class FunctionValidationTests {
-
+public class FunctionValidationTests
+{
     /// <summary>
     /// Stands in for what <c>Hardened.Validation.SourceGenerator</c> contributes: the marker that
     /// says it is running, and a validator named the way it names them.
@@ -69,12 +69,16 @@ public class FunctionValidationTests {
         """;
 
     [Fact]
-    public void AConstrainedPayloadAttachesAFilter() {
-        var handler = FunctionGeneratorHarness.Generate(
-                new Dictionary<string, string> {
+    public void AConstrainedPayloadAttachesAFilter()
+    {
+        var handler = FunctionGeneratorHarness
+            .Generate(
+                new Dictionary<string, string>
+                {
                     ["Functions.cs"] = FunctionSource,
-                    ["Validation.cs"] = ValidationGeneratorOutput
-                })
+                    ["Validation.cs"] = ValidationGeneratorOutput,
+                }
+            )
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 
@@ -89,12 +93,16 @@ public class FunctionValidationTests {
     /// parameters validator only reaches it.
     /// </summary>
     [Fact]
-    public void TheParametersValidatorDelegatesToThePayloadValidator() {
-        var validator = FunctionGeneratorHarness.Generate(
-                new Dictionary<string, string> {
+    public void TheParametersValidatorDelegatesToThePayloadValidator()
+    {
+        var validator = FunctionGeneratorHarness
+            .Generate(
+                new Dictionary<string, string>
+                {
                     ["Functions.cs"] = FunctionSource,
-                    ["Validation.cs"] = ValidationGeneratorOutput
-                })
+                    ["Validation.cs"] = ValidationGeneratorOutput,
+                }
+            )
             .AssertNoErrors()
             .SourceContaining("ParametersValidator");
 
@@ -106,8 +114,10 @@ public class FunctionValidationTests {
     /// the validation generator building.
     /// </summary>
     [Fact]
-    public void WithoutTheValidationGeneratorNothingIsAttached() {
-        var handler = FunctionGeneratorHarness.Generate(FunctionSource)
+    public void WithoutTheValidationGeneratorNothingIsAttached()
+    {
+        var handler = FunctionGeneratorHarness
+            .Generate(FunctionSource)
             .AssertNoErrors()
             .SourceContaining("Process.FunctionHandler");
 

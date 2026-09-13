@@ -14,10 +14,9 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// rather than only where the code-first tests look.
 /// </para>
 /// </summary>
-public class EnabledFeatureTests {
-
-    private const string Spec =
-        """
+public class EnabledFeatureTests
+{
+    private const string Spec = """
         openapi: "3.0.0"
         info: { title: Views, version: "1.0" }
         paths:
@@ -41,66 +40,71 @@ public class EnabledFeatureTests {
         OpenApiGenerator.Run(
             Spec,
             $$"""
-              using System;
-              using System.Threading.Tasks;
-              using Hardened.Requests.Abstract.Execution;
-              using Hardened.Requests.Abstract.Outputs;
-              using Hardened.Requests.Abstract.Templates;
-              using Hardened.Shared.Runtime.Attributes;
-              using Other.Engine;
+            using System;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Execution;
+            using Hardened.Requests.Abstract.Outputs;
+            using Hardened.Requests.Abstract.Templates;
+            using Hardened.Shared.Runtime.Attributes;
+            using Other.Engine;
 
-              namespace Other.Engine {
-                  [TemplateBase(typeof(EngineHtmlTemplate<>))]
-                  [TemplateContentType("text/html")]
-                  public sealed class RazorTemplates { }
+            namespace Other.Engine {
+                [TemplateBase(typeof(EngineHtmlTemplate<>))]
+                [TemplateContentType("text/html")]
+                public sealed class RazorTemplates { }
 
-                  [TemplateBase(typeof(EngineTextTemplate<>))]
-                  [TemplateContentType("text/plain")]
-                  public sealed class FluidTemplate { }
+                [TemplateBase(typeof(EngineTextTemplate<>))]
+                [TemplateContentType("text/plain")]
+                public sealed class FluidTemplate { }
 
-                  public sealed class PlainMarker { }
+                public sealed class PlainMarker { }
 
-                  // The contract a [TemplateBase] declares: IHardenedResponseOutput, an overridable
-                  // ContentType for the generated base to replace, and a protected Context the
-                  // generated Links property resolves services from.
-                  public abstract class EngineHtmlTemplate<TModel> : IHardenedResponseOutput<TModel> {
-                      protected IExecutionContext Context { get; private set; } = default!;
+                // The contract a [TemplateBase] declares: IHardenedResponseOutput, an overridable
+                // ContentType for the generated base to replace, and a protected Context the
+                // generated Links property resolves services from.
+                public abstract class EngineHtmlTemplate<TModel> : IHardenedResponseOutput<TModel> {
+                    protected IExecutionContext Context { get; private set; } = default!;
 
-                      public virtual string ContentType => "text/html";
+                    public virtual string ContentType => "text/html";
 
-                      public bool SupportsContentType(string? accept, IExecutionContext context) => true;
+                    public bool SupportsContentType(string? accept, IExecutionContext context) => true;
 
-                      public Task WriteOutput(IExecutionContext context) => Task.CompletedTask;
-                  }
+                    public Task WriteOutput(IExecutionContext context) => Task.CompletedTask;
+                }
 
-                  public abstract class EngineTextTemplate<TModel> : IHardenedResponseOutput<TModel> {
-                      protected IExecutionContext Context { get; private set; } = default!;
+                public abstract class EngineTextTemplate<TModel> : IHardenedResponseOutput<TModel> {
+                    protected IExecutionContext Context { get; private set; } = default!;
 
-                      public virtual string ContentType => "text/plain";
+                    public virtual string ContentType => "text/plain";
 
-                      public bool SupportsContentType(string? accept, IExecutionContext context) => true;
+                    public bool SupportsContentType(string? accept, IExecutionContext context) => true;
 
-                      public Task WriteOutput(IExecutionContext context) => Task.CompletedTask;
-                  }
-              }
+                    public Task WriteOutput(IExecutionContext context) => Task.CompletedTask;
+                }
+            }
 
-              namespace TestNamespace {
-                  [HardenedModule]
-                  {{enables}}
-                  public partial class TestApp {
-                  }
-              }
-              """);
+            namespace TestNamespace {
+                [HardenedModule]
+                {{enables}}
+                public partial class TestApp {
+                }
+            }
+            """
+        );
 
     /// <summary>
     /// The base is named from the marker and the entry point together — the entry point supplies
     /// the prefix that scopes it to a module, and the marker supplies the rest as written.
     /// </summary>
     [Fact]
-    public void ATemplateBaseIsNamedFromTheEntryPointAndTheMarker() {
+    public void ATemplateBaseIsNamedFromTheEntryPointAndTheMarker()
+    {
         var result = Generate("[Enable<RazorTemplates>]").AssertNoErrors();
 
-        Assert.Contains(result.GeneratedSources.Keys, name => name.Contains("TestAppRazorTemplates"));
+        Assert.Contains(
+            result.GeneratedSources.Keys,
+            name => name.Contains("TestAppRazorTemplates")
+        );
     }
 
     /// <summary>
@@ -109,7 +113,8 @@ public class EnabledFeatureTests {
     /// which is what lets a package supply an engine without a change here.
     /// </summary>
     [Fact]
-    public void ATemplateBaseDerivesFromTheMarkersBaseAndCarriesItsContentType() {
+    public void ATemplateBaseDerivesFromTheMarkersBaseAndCarriesItsContentType()
+    {
         var source = Generate("[Enable<RazorTemplates>]")
             .AssertNoErrors()
             .SourceContaining("RazorTemplate");
@@ -123,12 +128,19 @@ public class EnabledFeatureTests {
     /// the design rather than a retrofit, and a name derived from the marker is what makes it work.
     /// </summary>
     [Fact]
-    public void TwoMarkersProduceTwoDistinctlyNamedBases() {
+    public void TwoMarkersProduceTwoDistinctlyNamedBases()
+    {
         var result = Generate("[Enable<RazorTemplates>]\n    [Enable<FluidTemplate>]")
             .AssertNoErrors();
 
-        Assert.Contains(result.GeneratedSources.Keys, name => name.Contains("TestAppRazorTemplates"));
-        Assert.Contains(result.GeneratedSources.Keys, name => name.Contains("TestAppFluidTemplate"));
+        Assert.Contains(
+            result.GeneratedSources.Keys,
+            name => name.Contains("TestAppRazorTemplates")
+        );
+        Assert.Contains(
+            result.GeneratedSources.Keys,
+            name => name.Contains("TestAppFluidTemplate")
+        );
     }
 
     /// <summary>
@@ -136,7 +148,8 @@ public class EnabledFeatureTests {
     /// reported. One attribute name serves every optional feature, which is the point of it.
     /// </summary>
     [Fact]
-    public void AMarkerWithNoTemplateBaseEmitsNoBase() {
+    public void AMarkerWithNoTemplateBaseEmitsNoBase()
+    {
         var result = Generate("[Enable<PlainMarker>]").AssertNoErrors();
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, name => name.Contains("Template"));
@@ -150,7 +163,8 @@ public class EnabledFeatureTests {
     [InlineData("[Enable<RazorTemplates>]")]
     [InlineData("[EnableAttribute<RazorTemplates>]")]
     [InlineData("[Hardened.Shared.Runtime.Attributes.Enable<RazorTemplates>]")]
-    public void EverySpellingOfEnableProducesTheBase(string enables) {
+    public void EverySpellingOfEnableProducesTheBase(string enables)
+    {
         var result = Generate(enables).AssertNoErrors();
 
         Assert.Contains(result.GeneratedSources.Keys, name => name.Contains("RazorTemplate"));
@@ -158,7 +172,8 @@ public class EnabledFeatureTests {
 
     /// <summary>An entry point enabling nothing emits no base, which is the ordinary API case.</summary>
     [Fact]
-    public void AnEntryPointWithNoFeaturesEmitsNoBase() {
+    public void AnEntryPointWithNoFeaturesEmitsNoBase()
+    {
         var result = Generate("").AssertNoErrors();
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, name => name.Contains("Template"));

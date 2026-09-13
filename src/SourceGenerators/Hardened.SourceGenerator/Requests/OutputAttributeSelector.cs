@@ -14,7 +14,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// <c>Output&lt;Views.Fortunes&gt;</c> and matches nothing. The type argument is what is wanted
 /// anyway, so this walks the attribute lists itself.
 /// </remarks>
-public static class OutputAttributeSelector {
+public static class OutputAttributeSelector
+{
     private const string AttributeName = "Output";
 
     private const string AttributeSuffix = "Attribute";
@@ -39,20 +40,26 @@ public static class OutputAttributeSelector {
     /// </para>
     /// </remarks>
     public static ITypeDefinition? Read(
-        GeneratorSyntaxContext context, MethodDeclarationSyntax methodDeclaration) {
-        foreach (var attributeList in methodDeclaration.AttributeLists) {
-            foreach (var attribute in attributeList.Attributes) {
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration
+    )
+    {
+        foreach (var attributeList in methodDeclaration.AttributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
                 var argument = TypeArgument(attribute);
 
-                if (argument != null) {
+                if (argument != null)
+                {
                     // A TypeParameterDefinition, which is "written as itself in every output
                     // mode" - not because the name is a type parameter, but because that is the
                     // contract described above: the text resolves in the generated file's own
                     // namespace, walking outward the way C# does. An empty-namespace
                     // TypeDefinition stopped meaning that in CSharpAuthor 2.0, which qualifies it
                     // to global:: - and prefixing the handler's namespace instead would not walk.
-                    return argument.GetTypeDefinition(context) ??
-                           new TypeParameterDefinition(argument.ToString().Trim());
+                    return argument.GetTypeDefinition(context)
+                        ?? new TypeParameterDefinition(argument.ToString().Trim());
                 }
             }
         }
@@ -60,12 +67,15 @@ public static class OutputAttributeSelector {
         return null;
     }
 
-    private static TypeSyntax? TypeArgument(AttributeSyntax attribute) {
-        var generic = attribute.Name as GenericNameSyntax ??
-                      (attribute.Name as QualifiedNameSyntax)?.Right as GenericNameSyntax ??
-                      (attribute.Name as AliasQualifiedNameSyntax)?.Name as GenericNameSyntax;
+    private static TypeSyntax? TypeArgument(AttributeSyntax attribute)
+    {
+        var generic =
+            attribute.Name as GenericNameSyntax
+            ?? (attribute.Name as QualifiedNameSyntax)?.Right as GenericNameSyntax
+            ?? (attribute.Name as AliasQualifiedNameSyntax)?.Name as GenericNameSyntax;
 
-        if (generic == null || generic.TypeArgumentList.Arguments.Count != 1) {
+        if (generic == null || generic.TypeArgumentList.Arguments.Count != 1)
+        {
             return null;
         }
 

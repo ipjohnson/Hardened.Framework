@@ -22,17 +22,20 @@ namespace Hardened.Benchmarks.Infrastructure;
 /// built-in defaults, because a server populates them too and two of the defaults are wrong for
 /// this purpose. See <see cref="TrackingResponseFeature"/>.
 /// </summary>
-public static class HttpContextFactory {
-
+public static class HttpContextFactory
+{
     public static DefaultHttpContext Create(
         RequestScenario scenario,
         IServiceProvider requestServices,
-        MemoryStream responseBody) {
-        return new DefaultHttpContext(CreateFeatures(scenario, responseBody)) {
+        MemoryStream responseBody
+    )
+    {
+        return new DefaultHttpContext(CreateFeatures(scenario, responseBody))
+        {
             // Normally set by HostingApplication, which sits above the RequestDelegate and so is
             // not in play here. AspNetExecutionContext reads it, and so does [FromServices]
             // binding on both ASP.NET flavors.
-            RequestServices = requestServices
+            RequestServices = requestServices,
         };
     }
 
@@ -47,21 +50,26 @@ public static class HttpContextFactory {
     /// </summary>
     public static FeatureCollection CreateFeatures(
         RequestScenario scenario,
-        MemoryStream responseBody) {
+        MemoryStream responseBody
+    )
+    {
         var features = new FeatureCollection();
 
-        var requestFeature = new HttpRequestFeature {
+        var requestFeature = new HttpRequestFeature
+        {
             Method = scenario.Method,
             Path = scenario.Path,
             QueryString = scenario.QueryString is null ? "" : "?" + scenario.QueryString,
-            Body = scenario.Body is null ? Stream.Null : new MemoryStream(scenario.Body, false)
+            Body = scenario.Body is null ? Stream.Null : new MemoryStream(scenario.Body, false),
         };
 
-        foreach (var header in scenario.Headers) {
+        foreach (var header in scenario.Headers)
+        {
             requestFeature.Headers[header.Key] = header.Value;
         }
 
-        if (scenario.Body is not null) {
+        if (scenario.Body is not null)
+        {
             requestFeature.Headers.ContentType = scenario.ContentType;
             requestFeature.Headers.ContentLength = scenario.Body.Length;
         }
@@ -76,7 +84,8 @@ public static class HttpContextFactory {
         // Minimal API and MVC body binding consult this before reading. Absent, a POST can bind
         // an empty model and still return 200 — a passing benchmark that skipped deserialization.
         features.Set<IHttpRequestBodyDetectionFeature>(
-            new RequestBodyDetectionFeature(scenario.Body is not null));
+            new RequestBodyDetectionFeature(scenario.Body is not null)
+        );
 
         return features;
     }
@@ -91,10 +100,12 @@ public static class HttpContextFactory {
     /// the status with 404. Under Kestrel the first body write flushes the headers and
     /// <c>HasStarted</c> becomes true, so this tracks the same signal rather than inventing one.
     /// </summary>
-    private sealed class TrackingResponseFeature : IHttpResponseFeature {
+    private sealed class TrackingResponseFeature : IHttpResponseFeature
+    {
         private readonly MemoryStream _body;
 
-        public TrackingResponseFeature(MemoryStream body) {
+        public TrackingResponseFeature(MemoryStream body)
+        {
             _body = body;
             Body = body;
         }
@@ -114,7 +125,8 @@ public static class HttpContextFactory {
         public void OnCompleted(Func<object, Task> callback, object state) { }
     }
 
-    private sealed class RequestBodyDetectionFeature : IHttpRequestBodyDetectionFeature {
+    private sealed class RequestBodyDetectionFeature : IHttpRequestBodyDetectionFeature
+    {
         public RequestBodyDetectionFeature(bool canHaveBody) => CanHaveBody = canHaveBody;
 
         public bool CanHaveBody { get; }

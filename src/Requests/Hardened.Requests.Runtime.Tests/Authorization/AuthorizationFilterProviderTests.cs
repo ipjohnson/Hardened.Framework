@@ -18,37 +18,44 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// attributes themselves.
 /// </para>
 /// </summary>
-public class AuthorizationFilterProviderTests {
-
+public class AuthorizationFilterProviderTests
+{
     [HttpAuthenticationScheme("bearer")]
     private sealed class BearerAuth : IAuthenticationScheme;
 
-    private class CanManagePets : AuthorizationPolicy {
+    private class CanManagePets : AuthorizationPolicy
+    {
         protected override Requirement Define() => Grant("pets:manage");
     }
 
-    private class MustOwnTheResource : AuthorizationPolicy {
+    private class MustOwnTheResource : AuthorizationPolicy
+    {
         protected override Requirement Define() => Predicate((_, _) => true, "owns it");
     }
 
     /// <summary>
     /// The hand-authored form: a grant named once, spelled as a type everywhere it is required.
     /// </summary>
-    private sealed class RequiresPetWriteAttribute : AuthorizeGrantsAttribute {
-        public RequiresPetWriteAttribute() : base("pets:read", "pets:write") { }
+    private sealed class RequiresPetWriteAttribute : AuthorizeGrantsAttribute
+    {
+        public RequiresPetWriteAttribute()
+            : base("pets:read", "pets:write") { }
     }
 
     /// <summary>The other hand-authored form: a set of grants named as a type.</summary>
-    private sealed class PetsReadWrite : IGrantProvider {
+    private sealed class PetsReadWrite : IGrantProvider
+    {
         public string[] Grants => ["pets:read", "pets:write"];
     }
 
-    private sealed class TenantMember : IGrantProvider {
+    private sealed class TenantMember : IGrantProvider
+    {
         public string[] Grants => ["tenant:member"];
     }
 
     /// <summary>A provider that names nothing, which is the one thing it must not do.</summary>
-    private sealed class NamesNothing : IGrantProvider {
+    private sealed class NamesNothing : IGrantProvider
+    {
         public string[] Grants => [];
     }
 
@@ -63,7 +70,13 @@ public class AuthorizationFilterProviderTests {
     /// </remarks>
     private static IExecutionRequestHandlerInfo Handler(params object[] metadata) =>
         new ExecutionRequestHandlerInfo(
-            "/orders", "GET", typeof(AuthorizationFilterProviderTests), "Handler", null, metadata);
+            "/orders",
+            "GET",
+            typeof(AuthorizationFilterProviderTests),
+            "Handler",
+            null,
+            metadata
+        );
 
     private static RequestFilterInfo? Filter(bool requireAuthorization, params object[] metadata) =>
         new AuthorizationFilterProvider(requireAuthorization).GetFilter(Handler(metadata));
@@ -75,12 +88,14 @@ public class AuthorizationFilterProviderTests {
     /// application that has adopted none of this pays nothing per request.
     /// </summary>
     [Fact]
-    public void AnUnannotatedHandlerGetsNoFilterByDefault() {
+    public void AnUnannotatedHandlerGetsNoFilterByDefault()
+    {
         Assert.Null(Filter(requireAuthorization: false));
     }
 
     [Fact]
-    public void AllowAnonymousGetsNoFilter() {
+    public void AllowAnonymousGetsNoFilter()
+    {
         Assert.Null(Filter(requireAuthorization: false, new AllowAnonymousAttribute()));
     }
 
@@ -93,7 +108,8 @@ public class AuthorizationFilterProviderTests {
     /// rather than a statement that the handler is public.
     /// </summary>
     [Fact]
-    public void AnUnannotatedHandlerIsGuardedOnceAuthorizationIsRequired() {
+    public void AnUnannotatedHandlerIsGuardedOnceAuthorizationIsRequired()
+    {
         Assert.NotNull(Filter(requireAuthorization: true));
     }
 
@@ -102,7 +118,8 @@ public class AuthorizationFilterProviderTests {
     /// expressible.
     /// </summary>
     [Fact]
-    public void AllowAnonymousOptsBackOutOfTheBackstop() {
+    public void AllowAnonymousOptsBackOutOfTheBackstop()
+    {
         Assert.Null(Filter(requireAuthorization: true, new AllowAnonymousAttribute()));
     }
 
@@ -111,7 +128,8 @@ public class AuthorizationFilterProviderTests {
     /// rather than after parameters are bound.
     /// </summary>
     [Fact]
-    public void TheBackstopRunsAheadOfSerialization() {
+    public void TheBackstopRunsAheadOfSerialization()
+    {
         Assert.True(Filter(requireAuthorization: true)!.Order < FilterOrder.Serialization);
     }
 
@@ -120,7 +138,8 @@ public class AuthorizationFilterProviderTests {
     #region folding attributes
 
     [Fact]
-    public void APolicyAttributeProducesAFilter() {
+    public void APolicyAttributeProducesAFilter()
+    {
         Assert.NotNull(Filter(false, new AuthorizeAttribute<BearerAuth, CanManagePets>()));
     }
 
@@ -130,8 +149,15 @@ public class AuthorizationFilterProviderTests {
     /// public in the source and refuses in production.
     /// </summary>
     [Fact]
-    public void AllowAnonymousWinsOverARequirementOnTheSameHandler() {
-        Assert.Null(Filter(false, new AuthorizeAttribute<BearerAuth, CanManagePets>(), new AllowAnonymousAttribute()));
+    public void AllowAnonymousWinsOverARequirementOnTheSameHandler()
+    {
+        Assert.Null(
+            Filter(
+                false,
+                new AuthorizeAttribute<BearerAuth, CanManagePets>(),
+                new AllowAnonymousAttribute()
+            )
+        );
     }
 
     /// <summary>
@@ -146,8 +172,10 @@ public class AuthorizationFilterProviderTests {
     /// convention weaken every handler it touched.
     /// </remarks>
     [Fact]
-    public async Task RepeatedGrantAttributesMustAllHold() {
-        object[] metadata = [
+    public async Task RepeatedGrantAttributesMustAllHold()
+    {
+        object[] metadata =
+        [
             new AuthorizeGrantsAttribute("pets:read", "pets:write"),
             new AuthorizeGrantsAttribute("admin:*"),
         ];
@@ -169,7 +197,8 @@ public class AuthorizationFilterProviderTests {
     /// derived type - which it does by interface, not by name.
     /// </remarks>
     [Fact]
-    public async Task ADerivedGrantAttributeIsHonoured() {
+    public async Task ADerivedGrantAttributeIsHonoured()
+    {
         object[] metadata = [new RequiresPetWriteAttribute()];
 
         Assert.True(await Admits(metadata, "pets:read", "pets:write"));
@@ -180,7 +209,8 @@ public class AuthorizationFilterProviderTests {
     /// A grant set named as a type is honoured exactly like the grants written inline.
     /// </summary>
     [Fact]
-    public async Task ATypedGrantSetIsHonoured() {
+    public async Task ATypedGrantSetIsHonoured()
+    {
         object[] metadata = [new AuthorizeGrantsAttribute<PetsReadWrite>()];
 
         Assert.True(await Admits(metadata, "pets:read", "pets:write"));
@@ -196,8 +226,10 @@ public class AuthorizationFilterProviderTests {
     /// one rule applying to them like anything else.
     /// </remarks>
     [Fact]
-    public async Task TwoTypedGrantSetsMustBothHold() {
-        object[] metadata = [
+    public async Task TwoTypedGrantSetsMustBothHold()
+    {
+        object[] metadata =
+        [
             new AuthorizeGrantsAttribute<PetsReadWrite>(),
             new AuthorizeGrantsAttribute<TenantMember>(),
         ];
@@ -215,15 +247,18 @@ public class AuthorizationFilterProviderTests {
     /// the time anything enforces there is one requirement whatever wrote it.
     /// </remarks>
     [Fact]
-    public async Task TheDifferentSpellingsConjoinWithEachOther() {
-        object[] metadata = [
+    public async Task TheDifferentSpellingsConjoinWithEachOther()
+    {
+        object[] metadata =
+        [
             new AuthorizeGrantsAttribute("tenant:member"),
             new AuthorizeGrantsAttribute<PetsReadWrite>(),
             new AuthorizeAttribute<BearerAuth, CanManagePets>(),
         ];
 
-        Assert.True(await Admits(
-            metadata, "tenant:member", "pets:read", "pets:write", "pets:manage"));
+        Assert.True(
+            await Admits(metadata, "tenant:member", "pets:read", "pets:write", "pets:manage")
+        );
 
         Assert.False(await Admits(metadata, "tenant:member", "pets:read", "pets:write"));
         Assert.False(await Admits(metadata, "pets:read", "pets:write", "pets:manage"));
@@ -239,9 +274,11 @@ public class AuthorizationFilterProviderTests {
     /// and the inner message is the only part that says which type was at fault.
     /// </remarks>
     [Fact]
-    public void AGrantProviderNamingNothingThrows() {
-        var exception = Assert.Throws<ArgumentException>(
-            () => new AuthorizeGrantsAttribute<NamesNothing>());
+    public void AGrantProviderNamingNothingThrows()
+    {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            new AuthorizeGrantsAttribute<NamesNothing>()
+        );
 
         Assert.Contains(nameof(NamesNothing), exception.Message);
     }
@@ -255,10 +292,12 @@ public class AuthorizationFilterProviderTests {
     /// either sufficed, so writing a narrower attribute on one route opened it up.
     /// </remarks>
     [Fact]
-    public async Task AControllerAndAMethodRequirementBothApply() {
-        object[] metadata = [
-            new AuthorizeGrantsAttribute("tenant:member"),  // written on the controller
-            new RequiresPetWriteAttribute(),                // written on the method
+    public async Task AControllerAndAMethodRequirementBothApply()
+    {
+        object[] metadata =
+        [
+            new AuthorizeGrantsAttribute("tenant:member"), // written on the controller
+            new RequiresPetWriteAttribute(), // written on the method
         ];
 
         Assert.True(await Admits(metadata, "tenant:member", "pets:read", "pets:write"));
@@ -271,7 +310,8 @@ public class AuthorizationFilterProviderTests {
     /// object means.
     /// </summary>
     [Fact]
-    public async Task GrantsWithinOneAttributeMustAllHold() {
+    public async Task GrantsWithinOneAttributeMustAllHold()
+    {
         object[] metadata = [new AuthorizeGrantsAttribute("pets:read", "pets:write")];
 
         Assert.True(await Admits(metadata, "pets:read", "pets:write"));
@@ -284,8 +324,10 @@ public class AuthorizationFilterProviderTests {
     /// ambiguous case, and it matches what stacking authorization attributes means elsewhere.
     /// </summary>
     [Fact]
-    public async Task APolicyAndAGrantAttributeMustBothHold() {
-        object[] metadata = [
+    public async Task APolicyAndAGrantAttributeMustBothHold()
+    {
+        object[] metadata =
+        [
             new AuthorizeAttribute<BearerAuth, CanManagePets>(),
             new AuthorizeGrantsAttribute("pets:read"),
         ];
@@ -304,7 +346,8 @@ public class AuthorizationFilterProviderTests {
     /// there are two positions.
     /// </summary>
     [Fact]
-    public void AGrantOnlyRequirementRunsAheadOfSerialization() {
+    public void AGrantOnlyRequirementRunsAheadOfSerialization()
+    {
         var filter = Filter(false, new AuthorizeGrantsAttribute("pets:read"))!;
 
         Assert.Equal(FilterOrder.GrantAuthorization, filter.Order);
@@ -315,7 +358,8 @@ public class AuthorizationFilterProviderTests {
     /// One reading bound parameters cannot run before they exist.
     /// </summary>
     [Fact]
-    public void ARequirementOverTheRequestRunsAfterParametersAreBound() {
+    public void ARequirementOverTheRequestRunsAfterParametersAreBound()
+    {
         var filter = Filter(false, new AuthorizeAttribute<BearerAuth, MustOwnTheResource>())!;
 
         Assert.Equal(FilterOrder.Authorization, filter.Order);
@@ -328,11 +372,13 @@ public class AuthorizationFilterProviderTests {
     /// the case it exists to serve.
     /// </summary>
     [Fact]
-    public void MixingAPredicateIntoGrantsMovesTheWholeRequirementLate() {
+    public void MixingAPredicateIntoGrantsMovesTheWholeRequirementLate()
+    {
         var filter = Filter(
             false,
             new AuthorizeGrantsAttribute("pets:read"),
-            new AuthorizeAttribute<BearerAuth, MustOwnTheResource>())!;
+            new AuthorizeAttribute<BearerAuth, MustOwnTheResource>()
+        )!;
 
         Assert.Equal(FilterOrder.Authorization, filter.Order);
     }
@@ -355,25 +401,31 @@ public class AuthorizationFilterProviderTests {
     /// handler; here there is no serializer, so the response is the signal.
     /// </para>
     /// </remarks>
-    private static async Task<bool> Admits(object[] metadata, params string[] grants) {
-        var filterInfo = new AuthorizationFilterProvider(requireAuthorization: false)
-            .GetFilter(Handler(metadata));
+    private static async Task<bool> Admits(object[] metadata, params string[] grants)
+    {
+        var filterInfo = new AuthorizationFilterProvider(requireAuthorization: false).GetFilter(
+            Handler(metadata)
+        );
 
-        if (filterInfo == null) {
+        if (filterInfo == null)
+        {
             return true;
         }
 
-        var context = Pipeline.Context(configureServices: services => {
+        var context = Pipeline.Context(configureServices: services =>
+        {
             services.AddSingleton<IActivityAuthorizationService, ActivityAuthorizationService>();
-            services.AddSingleton<IActivityAuthorizationHandler, PrincipalGrantAuthorizationHandler>();
+            services.AddSingleton<
+                IActivityAuthorizationHandler,
+                PrincipalGrantAuthorizationHandler
+            >();
         });
 
         context.CallerPrincipal = new CallerPrincipal("bearer", grants);
 
-        await Pipeline.Chain(
-            context,
-            filterInfo.FilterFunc(context),
-            new Pipeline.Recording([], "handler")).Next();
+        await Pipeline
+            .Chain(context, filterInfo.FilterFunc(context), new Pipeline.Recording([], "handler"))
+            .Next();
 
         return context.Response.ExceptionValue == null;
     }

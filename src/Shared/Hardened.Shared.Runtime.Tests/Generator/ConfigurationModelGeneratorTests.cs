@@ -21,16 +21,17 @@ namespace Hardened.Shared.Runtime.Tests.Generator;
 /// <c>[HideConfigurationField]</c> keeping a field out of the generated surface.
 /// </para>
 /// </summary>
-public class ConfigurationModelGeneratorTests {
-
+public class ConfigurationModelGeneratorTests
+{
     /// <summary>
     /// The assemblies a configuration model binds against. <c>typeof</c> rather than a name so the
     /// assembly is loaded by the time references are collected.
     /// </summary>
-    private static readonly Type[] Anchors = [
-        typeof(ConfigurationModelAttribute),  // Hardened.Shared.Runtime
-        typeof(IConfigurationPackage),        // Hardened.Shared.Runtime
-        typeof(IServiceCollection)            // Microsoft.Extensions.DependencyInjection.Abstractions
+    private static readonly Type[] Anchors =
+    [
+        typeof(ConfigurationModelAttribute), // Hardened.Shared.Runtime
+        typeof(IConfigurationPackage), // Hardened.Shared.Runtime
+        typeof(IServiceCollection), // Microsoft.Extensions.DependencyInjection.Abstractions
     ];
 
     /// <summary>
@@ -43,10 +44,15 @@ public class ConfigurationModelGeneratorTests {
         GeneratorTestHarness.Run(
             new Dictionary<string, string> { ["Test.cs"] = source },
             [new LibrarySourceGenerator(), new HardenedSourceGenerator()],
-            Anchors);
+            Anchors
+        );
 
-    private static GeneratorResult GenerateModel(string body, string className = "ServiceOptions") =>
-        Generate($$"""
+    private static GeneratorResult GenerateModel(
+        string body,
+        string className = "ServiceOptions"
+    ) =>
+        Generate(
+            $$"""
             using System;
             using System.Collections.Generic;
             using Hardened.Shared.Runtime.Attributes;
@@ -57,10 +63,13 @@ public class ConfigurationModelGeneratorTests {
             public partial class {{className}} {
             {{body}}
             }
-            """);
+            """
+        );
 
-    private static string PropertiesOf(GeneratorResult result, string className = "ServiceOptions") =>
-        result.SourceContaining("ConfigurationModels_" + className);
+    private static string PropertiesOf(
+        GeneratorResult result,
+        string className = "ServiceOptions"
+    ) => result.SourceContaining("ConfigurationModels_" + className);
 
     /// <summary>
     /// The emitter breaks an argument list across lines once it is long enough, so an assertion on a
@@ -70,11 +79,15 @@ public class ConfigurationModelGeneratorTests {
         new string(source.Where(character => !char.IsWhiteSpace(character)).ToArray());
 
     [Fact]
-    public void AModelOfPlainFieldsCompiles() {
-        GenerateModel("""
-                private string _serviceUrl = "";
-                private int _retentionDays = 180;
-            """).AssertNoErrors();
+    public void AModelOfPlainFieldsCompiles()
+    {
+        GenerateModel(
+                """
+                    private string _serviceUrl = "";
+                    private int _retentionDays = 180;
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -83,10 +96,14 @@ public class ConfigurationModelGeneratorTests {
     /// detail.
     /// </summary>
     [Fact]
-    public void TheGeneratedInterfaceIsINameOfTheModel() {
-        var result = GenerateModel("""
-                private string _serviceUrl = "";
-            """).AssertNoErrors();
+    public void TheGeneratedInterfaceIsINameOfTheModel()
+    {
+        var result = GenerateModel(
+                """
+                    private string _serviceUrl = "";
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("interface IServiceOptions", PropertiesOf(result));
         Assert.NotNull(result.Compilation.GetTypeByMetadataName("TestApp.IServiceOptions"));
@@ -94,10 +111,14 @@ public class ConfigurationModelGeneratorTests {
 
     /// <summary>The model is made to implement the interface the generator invented for it.</summary>
     [Fact]
-    public void TheModelImplementsItsGeneratedInterface() {
-        var result = GenerateModel("""
-                private string _serviceUrl = "";
-            """).AssertNoErrors();
+    public void TheModelImplementsItsGeneratedInterface()
+    {
+        var result = GenerateModel(
+                """
+                    private string _serviceUrl = "";
+                """
+            )
+            .AssertNoErrors();
 
         var model = result.Compilation.GetTypeByMetadataName("TestApp.ServiceOptions");
         var iface = result.Compilation.GetTypeByMetadataName("TestApp.IServiceOptions");
@@ -121,13 +142,19 @@ public class ConfigurationModelGeneratorTests {
     [InlineData("__doubled", "Doubled")]
     [InlineData("_x", "X")]
     [InlineData("x", "X")]
-    public void APropertyIsNamedAfterItsFieldWithoutTheLeadingUnderscore(string field, string property) {
+    public void APropertyIsNamedAfterItsFieldWithoutTheLeadingUnderscore(
+        string field,
+        string property
+    )
+    {
         var result = GenerateModel($"        private string {field} = \"\";").AssertNoErrors();
 
         Assert.NotNull(
-            result.Compilation.GetTypeByMetadataName("TestApp.ServiceOptions")!
+            result
+                .Compilation.GetTypeByMetadataName("TestApp.ServiceOptions")!
                 .GetMembers(property)
-                .FirstOrDefault());
+                .FirstOrDefault()
+        );
     }
 
     /// <summary>
@@ -135,8 +162,10 @@ public class ConfigurationModelGeneratorTests {
     /// than each declarator would silently emit one property instead of two.
     /// </summary>
     [Fact]
-    public void EveryDeclaratorInASharedDeclarationGetsItsOwnProperty() {
-        var result = GenerateModel("        private string _first = \"a\", _second = \"b\";").AssertNoErrors();
+    public void EveryDeclaratorInASharedDeclarationGetsItsOwnProperty()
+    {
+        var result = GenerateModel("        private string _first = \"a\", _second = \"b\";")
+            .AssertNoErrors();
 
         var model = result.Compilation.GetTypeByMetadataName("TestApp.ServiceOptions")!;
 
@@ -150,10 +179,14 @@ public class ConfigurationModelGeneratorTests {
     /// this needs asserting rather than assuming.
     /// </summary>
     [Fact]
-    public void ThePropertyReadsTheFieldSoTheInitialiserIsTheDefault() {
-        var result = GenerateModel("""
-                private int _retentionDays = 180;
-            """).AssertNoErrors();
+    public void ThePropertyReadsTheFieldSoTheInitialiserIsTheDefault()
+    {
+        var result = GenerateModel(
+                """
+                    private int _retentionDays = 180;
+                """
+            )
+            .AssertNoErrors();
 
         var properties = PropertiesOf(result);
 
@@ -166,13 +199,17 @@ public class ConfigurationModelGeneratorTests {
     /// something with no sensible property — mark it <c>[HideConfigurationField]</c>."
     /// </summary>
     [Fact]
-    public void AHiddenFieldGetsNoProperty() {
-        var result = GenerateModel("""
-                private string _visible = "";
+    public void AHiddenFieldGetsNoProperty()
+    {
+        var result = GenerateModel(
+                """
+                    private string _visible = "";
 
-                [HideConfigurationField]
-                private string _secret = "";
-            """).AssertNoErrors();
+                    [HideConfigurationField]
+                    private string _secret = "";
+                """
+            )
+            .AssertNoErrors();
 
         var model = result.Compilation.GetTypeByMetadataName("TestApp.ServiceOptions")!;
 
@@ -184,13 +221,19 @@ public class ConfigurationModelGeneratorTests {
     [Theory]
     [InlineData("HideConfigurationField")]
     [InlineData("HideConfigurationFieldAttribute")]
-    public void AHiddenFieldIsRecognisedByEitherSpellingOfTheAttribute(string attribute) {
-        var result = GenerateModel($$"""
-                [{{attribute}}]
-                private string _secret = "";
-            """).AssertNoErrors();
+    public void AHiddenFieldIsRecognisedByEitherSpellingOfTheAttribute(string attribute)
+    {
+        var result = GenerateModel(
+                $$"""
+                    [{{attribute}}]
+                    private string _secret = "";
+                """
+            )
+            .AssertNoErrors();
 
-        Assert.Empty(result.Compilation.GetTypeByMetadataName("TestApp.ServiceOptions")!.GetMembers("Secret"));
+        Assert.Empty(
+            result.Compilation.GetTypeByMetadataName("TestApp.ServiceOptions")!.GetMembers("Secret")
+        );
     }
 
     /// <summary>
@@ -198,16 +241,21 @@ public class ConfigurationModelGeneratorTests {
     /// the model still has to satisfy its own interface.
     /// </summary>
     [Fact]
-    public void AModelWhoseFieldsAreAllHiddenStillCompiles() {
-        GenerateModel("""
-                [HideConfigurationField]
-                private string _secret = "";
-            """).AssertNoErrors();
+    public void AModelWhoseFieldsAreAllHiddenStillCompiles()
+    {
+        GenerateModel(
+                """
+                    [HideConfigurationField]
+                    private string _secret = "";
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>A model with no fields at all is the degenerate case, and is not an error.</summary>
     [Fact]
-    public void AModelWithNoFieldsCompiles() {
+    public void AModelWithNoFieldsCompiles()
+    {
         GenerateModel("").AssertNoErrors();
     }
 
@@ -219,7 +267,10 @@ public class ConfigurationModelGeneratorTests {
     /// </summary>
     [Theory]
     [InlineData("Dictionary<string, string>", "Dictionary<string, string>")]
-    [InlineData("Dictionary<string, Func<IServiceProvider, string>>", "Dictionary<string, Func<IServiceProvider, string>>")]
+    [InlineData(
+        "Dictionary<string, Func<IServiceProvider, string>>",
+        "Dictionary<string, Func<IServiceProvider, string>>"
+    )]
     [InlineData("Func<IServiceProvider, string>", "Func<IServiceProvider, string>")]
     [InlineData("Action<string>", "Action<string>")]
     [InlineData("IReadOnlyList<int>", "IReadOnlyList<int>")]
@@ -228,18 +279,24 @@ public class ConfigurationModelGeneratorTests {
     [InlineData("int?", "int?")]
     [InlineData("TimeSpan", "TimeSpan")]
     [InlineData("System.Text.Json.JsonSerializerOptions", "JsonSerializerOptions")]
-    public void ANonTrivialFieldTypeSurvivesIntoTheProperty(string fieldType, string expectedPropertyType) {
-        var result = GenerateModel($"        private {fieldType} _value = default!;").AssertNoErrors();
+    public void ANonTrivialFieldTypeSurvivesIntoTheProperty(
+        string fieldType,
+        string expectedPropertyType
+    )
+    {
+        var result = GenerateModel($"        private {fieldType} _value = default!;")
+            .AssertNoErrors();
 
-        var property = result.Compilation
-            .GetTypeByMetadataName("TestApp.ServiceOptions")!
+        var property = result
+            .Compilation.GetTypeByMetadataName("TestApp.ServiceOptions")!
             .GetMembers("Value")
             .OfType<IPropertySymbol>()
             .Single();
 
         Assert.Equal(
             expectedPropertyType,
-            property.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+            property.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)
+        );
     }
 
     /// <summary>
@@ -247,8 +304,10 @@ public class ConfigurationModelGeneratorTests {
     /// <c>?</c> is handled on a separate path from the type itself.
     /// </summary>
     [Fact]
-    public void ANullableDelegateFieldCompiles() {
-        GenerateModel("        private Func<IServiceProvider, string>? _defaultClient;").AssertNoErrors();
+    public void ANullableDelegateFieldCompiles()
+    {
+        GenerateModel("        private Func<IServiceProvider, string>? _defaultClient;")
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -256,27 +315,31 @@ public class ConfigurationModelGeneratorTests {
     /// strings, a dictionary of factories and a nullable factory, all in one model.
     /// </summary>
     [Fact]
-    public void TheShippedDynamoDbOptionsShapeCompiles() {
-        Generate("""
-            using System;
-            using System.Collections.Generic;
-            using Hardened.Shared.Runtime.Attributes;
+    public void TheShippedDynamoDbOptionsShapeCompiles()
+    {
+        Generate(
+                """
+                using System;
+                using System.Collections.Generic;
+                using Hardened.Shared.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [ConfigurationModel]
-            public partial class DynamoDbOptions {
-                [FromEnvironmentVariable("DYNAMODB_SERVICE_URL")]
-                private string _serviceUrl = "";
+                [ConfigurationModel]
+                public partial class DynamoDbOptions {
+                    [FromEnvironmentVariable("DYNAMODB_SERVICE_URL")]
+                    private string _serviceUrl = "";
 
-                [FromEnvironmentVariable("AWS_REGION")]
-                private string _region = "";
+                    [FromEnvironmentVariable("AWS_REGION")]
+                    private string _region = "";
 
-                private Dictionary<string, Func<IServiceProvider, object>> _clients = new();
+                    private Dictionary<string, Func<IServiceProvider, object>> _clients = new();
 
-                private Func<IServiceProvider, object>? _defaultClient;
-            }
-            """).AssertNoErrors();
+                    private Func<IServiceProvider, object>? _defaultClient;
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -284,19 +347,23 @@ public class ConfigurationModelGeneratorTests {
     /// interface and mutate the model" — the setter lives on the class, for amenders.
     /// </summary>
     [Fact]
-    public void TheInterfacePropertyIsReadOnlyWhileTheClassPropertyIsNot() {
-        var result = GenerateModel("""
-                private string _serviceUrl = "";
-            """).AssertNoErrors();
+    public void TheInterfacePropertyIsReadOnlyWhileTheClassPropertyIsNot()
+    {
+        var result = GenerateModel(
+                """
+                    private string _serviceUrl = "";
+                """
+            )
+            .AssertNoErrors();
 
-        var onInterface = result.Compilation
-            .GetTypeByMetadataName("TestApp.IServiceOptions")!
+        var onInterface = result
+            .Compilation.GetTypeByMetadataName("TestApp.IServiceOptions")!
             .GetMembers("ServiceUrl")
             .OfType<IPropertySymbol>()
             .Single();
 
-        var onClass = result.Compilation
-            .GetTypeByMetadataName("TestApp.ServiceOptions")!
+        var onClass = result
+            .Compilation.GetTypeByMetadataName("TestApp.ServiceOptions")!
             .GetMembers("ServiceUrl")
             .OfType<IPropertySymbol>()
             .Single();
@@ -307,22 +374,26 @@ public class ConfigurationModelGeneratorTests {
 
     /// <summary>Two models in one file each get their own interface and their own emitted file.</summary>
     [Fact]
-    public void TwoModelsInOneFileEachGetTheirOwnInterface() {
-        var result = Generate("""
-            using Hardened.Shared.Runtime.Attributes;
+    public void TwoModelsInOneFileEachGetTheirOwnInterface()
+    {
+        var result = Generate(
+                """
+                using Hardened.Shared.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [ConfigurationModel]
-            public partial class FirstOptions {
-                private string _one = "";
-            }
+                [ConfigurationModel]
+                public partial class FirstOptions {
+                    private string _one = "";
+                }
 
-            [ConfigurationModel]
-            public partial class SecondOptions {
-                private string _two = "";
-            }
-            """).AssertNoErrors();
+                [ConfigurationModel]
+                public partial class SecondOptions {
+                    private string _two = "";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.NotNull(result.Compilation.GetTypeByMetadataName("TestApp.IFirstOptions"));
         Assert.NotNull(result.Compilation.GetTypeByMetadataName("TestApp.ISecondOptions"));
@@ -334,20 +405,25 @@ public class ConfigurationModelGeneratorTests {
     /// in the assembly.
     /// </summary>
     [Fact]
-    public void AClassWithoutTheAttributeGeneratesNothing() {
-        var result = Generate("""
-            namespace TestApp;
+    public void AClassWithoutTheAttributeGeneratesNothing()
+    {
+        var result = Generate(
+                """
+                namespace TestApp;
 
-            public partial class NotAModel {
-                private string _serviceUrl = "";
-            }
-            """).AssertNoErrors();
+                public partial class NotAModel {
+                    private string _serviceUrl = "";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Null(result.Compilation.GetTypeByMetadataName("TestApp.INotAModel"));
     }
 
     private static GeneratorResult GenerateModule(string models) =>
-        Generate($$"""
+        Generate(
+            $$"""
             using System;
             using System.Collections.Generic;
             using Hardened.Shared.Runtime.Attributes;
@@ -358,7 +434,8 @@ public class ConfigurationModelGeneratorTests {
             public partial class TestModule { }
 
             {{models}}
-            """);
+            """
+        );
 
     /// <summary>
     /// Documented: "The generator collects every <c>[ConfigurationModel]</c> in an assembly into the
@@ -367,20 +444,27 @@ public class ConfigurationModelGeneratorTests {
     /// model in the assembly resolves.
     /// </summary>
     [Fact]
-    public void TheModuleGetsAConfigurationProviderPackage() {
-        var result = GenerateModule("""
-            [ConfigurationModel]
-            public partial class ServiceOptions {
-                private string _serviceUrl = "";
-            }
-            """).AssertNoErrors();
+    public void TheModuleGetsAConfigurationProviderPackage()
+    {
+        var result = GenerateModule(
+                """
+                [ConfigurationModel]
+                public partial class ServiceOptions {
+                    private string _serviceUrl = "";
+                }
+                """
+            )
+            .AssertNoErrors();
 
-        var provider = result.Compilation.GetTypeByMetadataName("TestApp.TestModule+ConfigurationProvider");
+        var provider = result.Compilation.GetTypeByMetadataName(
+            "TestApp.TestModule+ConfigurationProvider"
+        );
 
         Assert.NotNull(provider);
         Assert.Contains(
             provider.AllInterfaces,
-            symbol => symbol.Name == nameof(IConfigurationPackage));
+            symbol => symbol.Name == nameof(IConfigurationPackage)
+        );
     }
 
     /// <summary>
@@ -389,23 +473,33 @@ public class ConfigurationModelGeneratorTests {
     /// than throw "is not a registered configuration type".
     /// </summary>
     [Fact]
-    public void EveryModelInTheAssemblyIsRegisteredOnTheModule() {
-        var result = GenerateModule("""
-            [ConfigurationModel]
-            public partial class FirstOptions {
-                private string _one = "";
-            }
+    public void EveryModelInTheAssemblyIsRegisteredOnTheModule()
+    {
+        var result = GenerateModule(
+                """
+                [ConfigurationModel]
+                public partial class FirstOptions {
+                    private string _one = "";
+                }
 
-            [ConfigurationModel]
-            public partial class SecondOptions {
-                private string _two = "";
-            }
-            """).AssertNoErrors();
+                [ConfigurationModel]
+                public partial class SecondOptions {
+                    private string _two = "";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var configuration = result.SourceContaining("TestModule.Configuration");
 
-        Assert.Contains("NewConfigurationValueProvider<IFirstOptions,FirstOptions>", WithoutWhitespace(configuration));
-        Assert.Contains("NewConfigurationValueProvider<ISecondOptions,SecondOptions>", WithoutWhitespace(configuration));
+        Assert.Contains(
+            "NewConfigurationValueProvider<IFirstOptions,FirstOptions>",
+            WithoutWhitespace(configuration)
+        );
+        Assert.Contains(
+            "NewConfigurationValueProvider<ISecondOptions,SecondOptions>",
+            WithoutWhitespace(configuration)
+        );
     }
 
     /// <summary>
@@ -413,7 +507,8 @@ public class ConfigurationModelGeneratorTests {
     /// than fall off the end of an iterator with a declared return type.
     /// </summary>
     [Fact]
-    public void AModuleWithNoConfigurationModelsStillCompiles() {
+    public void AModuleWithNoConfigurationModelsStillCompiles()
+    {
         GenerateModule("").AssertNoErrors();
     }
 
@@ -424,20 +519,25 @@ public class ConfigurationModelGeneratorTests {
     /// fallback work — see <c>FromEnvironmentVariableTests</c> for the runtime half.
     /// </summary>
     [Fact]
-    public void AnEnvironmentBackedFieldIsReadThroughTheEnvironmentWithTheFieldValueAsFallback() {
-        var result = GenerateModule("""
-            [ConfigurationModel]
-            public partial class ServiceOptions {
-                [FromEnvironmentVariable("SERVICE_URL")]
-                private string _serviceUrl = "http://localhost";
-            }
-            """).AssertNoErrors();
+    public void AnEnvironmentBackedFieldIsReadThroughTheEnvironmentWithTheFieldValueAsFallback()
+    {
+        var result = GenerateModule(
+                """
+                [ConfigurationModel]
+                public partial class ServiceOptions {
+                    [FromEnvironmentVariable("SERVICE_URL")]
+                    private string _serviceUrl = "http://localhost";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var configuration = result.SourceContaining("TestModule.Configuration");
 
         Assert.Contains(
             "model.ServiceUrl=environment.Value(\"SERVICE_URL\",model.ServiceUrl)!;",
-            WithoutWhitespace(configuration));
+            WithoutWhitespace(configuration)
+        );
     }
 
     /// <summary>
@@ -445,19 +545,24 @@ public class ConfigurationModelGeneratorTests {
     /// empty method, which is a different branch of the emitter.
     /// </summary>
     [Fact]
-    public void AModelWithNoEnvironmentBackedFieldGetsNoInitialiser() {
-        var result = GenerateModule("""
-            [ConfigurationModel]
-            public partial class ServiceOptions {
-                private string _serviceUrl = "";
-            }
-            """).AssertNoErrors();
+    public void AModelWithNoEnvironmentBackedFieldGetsNoInitialiser()
+    {
+        var result = GenerateModule(
+                """
+                [ConfigurationModel]
+                public partial class ServiceOptions {
+                    private string _serviceUrl = "";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         var configuration = result.SourceContaining("TestModule.Configuration");
 
         Assert.Contains(
             "NewConfigurationValueProvider<IServiceOptions,ServiceOptions>(null)",
-            WithoutWhitespace(configuration));
+            WithoutWhitespace(configuration)
+        );
         Assert.DoesNotContain("ConfigureServiceOptions", configuration);
     }
 
@@ -471,14 +576,21 @@ public class ConfigurationModelGeneratorTests {
     [InlineData("bool", "false")]
     [InlineData("double", "0")]
     [InlineData("long", "0")]
-    public void AnEnvironmentBackedFieldOfAnyConvertibleTypeCompiles(string fieldType, string initialiser) {
-        GenerateModule($$"""
-            [ConfigurationModel]
-            public partial class ServiceOptions {
-                [FromEnvironmentVariable("SOME_VALUE")]
-                private {{fieldType}} _someValue = {{initialiser}};
-            }
-            """).AssertNoErrors();
+    public void AnEnvironmentBackedFieldOfAnyConvertibleTypeCompiles(
+        string fieldType,
+        string initialiser
+    )
+    {
+        GenerateModule(
+                $$"""
+                [ConfigurationModel]
+                public partial class ServiceOptions {
+                    [FromEnvironmentVariable("SOME_VALUE")]
+                    private {{fieldType}} _someValue = {{initialiser}};
+                }
+                """
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -488,18 +600,23 @@ public class ConfigurationModelGeneratorTests {
     [Theory]
     [InlineData("FromEnvironmentVariable")]
     [InlineData("FromEnvironmentVariableAttribute")]
-    public void AnEnvironmentBackedFieldIsRecognisedByEitherSpellingOfTheAttribute(string attribute) {
-        var result = GenerateModule($$"""
-            [ConfigurationModel]
-            public partial class ServiceOptions {
-                [{{attribute}}("SERVICE_URL")]
-                private string _serviceUrl = "";
-            }
-            """).AssertNoErrors();
+    public void AnEnvironmentBackedFieldIsRecognisedByEitherSpellingOfTheAttribute(string attribute)
+    {
+        var result = GenerateModule(
+                $$"""
+                [ConfigurationModel]
+                public partial class ServiceOptions {
+                    [{{attribute}}("SERVICE_URL")]
+                    private string _serviceUrl = "";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains(
             "environment.Value(\"SERVICE_URL\",",
-            WithoutWhitespace(result.SourceContaining("TestModule.Configuration")));
+            WithoutWhitespace(result.SourceContaining("TestModule.Configuration"))
+        );
     }
 
     /// <summary>
@@ -507,15 +624,19 @@ public class ConfigurationModelGeneratorTests {
     /// against it would not compile.
     /// </summary>
     [Fact]
-    public void AHiddenFieldIsNotReadFromTheEnvironmentEvenWhenItSaysItShouldBe() {
-        var result = GenerateModule("""
-            [ConfigurationModel]
-            public partial class ServiceOptions {
-                [HideConfigurationField]
-                [FromEnvironmentVariable("SERVICE_URL")]
-                private string _serviceUrl = "";
-            }
-            """).AssertNoErrors();
+    public void AHiddenFieldIsNotReadFromTheEnvironmentEvenWhenItSaysItShouldBe()
+    {
+        var result = GenerateModule(
+                """
+                [ConfigurationModel]
+                public partial class ServiceOptions {
+                    [HideConfigurationField]
+                    [FromEnvironmentVariable("SERVICE_URL")]
+                    private string _serviceUrl = "";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain("SERVICE_URL", result.SourceContaining("TestModule.Configuration"));
     }
@@ -525,16 +646,21 @@ public class ConfigurationModelGeneratorTests {
     /// the shape the documentation tells consumers to inject.
     /// </summary>
     [Fact]
-    public void TheModuleRegistersIOptionsOfTheGeneratedInterface() {
-        var result = GenerateModule("""
-            [ConfigurationModel]
-            public partial class ServiceOptions {
-                private string _serviceUrl = "";
-            }
-            """).AssertNoErrors();
+    public void TheModuleRegistersIOptionsOfTheGeneratedInterface()
+    {
+        var result = GenerateModule(
+                """
+                [ConfigurationModel]
+                public partial class ServiceOptions {
+                    private string _serviceUrl = "";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains(
             "GetConfiguration<IServiceOptions>()",
-            result.SourceContaining("TestModule.Configuration"));
+            result.SourceContaining("TestModule.Configuration")
+        );
     }
 }

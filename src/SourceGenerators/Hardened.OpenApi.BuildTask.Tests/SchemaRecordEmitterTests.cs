@@ -1,21 +1,40 @@
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
 
-public class SchemaRecordEmitterTests {
+public class SchemaRecordEmitterTests
+{
     [Fact]
-    public void Emit_SimpleRecord_GeneratesCorrectOutput() {
-        var schema = new SchemaModel {
+    public void Emit_SimpleRecord_GeneratesCorrectOutput()
+    {
+        var schema = new SchemaModel
+        {
             Name = "Pet",
             Kind = SchemaKind.Object,
             Required = new List<string> { "id", "name" },
-            Properties = new List<PropertyModel> {
-                new() { Name = "id", Type = "string", IsRequired = true },
-                new() { Name = "name", Type = "string", IsRequired = true },
-                new() { Name = "tag", Type = "string", IsRequired = false }
-            }
+            Properties = new List<PropertyModel>
+            {
+                new()
+                {
+                    Name = "id",
+                    Type = "string",
+                    IsRequired = true,
+                },
+                new()
+                {
+                    Name = "name",
+                    Type = "string",
+                    IsRequired = true,
+                },
+                new()
+                {
+                    Name = "tag",
+                    Type = "string",
+                    IsRequired = false,
+                },
+            },
         };
 
         var result = EmitterHarness.Schema(schema);
@@ -28,11 +47,13 @@ public class SchemaRecordEmitterTests {
     }
 
     [Fact]
-    public void Emit_EmptyRecord_GeneratesEmptyRecord() {
-        var schema = new SchemaModel {
+    public void Emit_EmptyRecord_GeneratesEmptyRecord()
+    {
+        var schema = new SchemaModel
+        {
             Name = "EmptyModel",
             Kind = SchemaKind.Object,
-            Properties = new List<PropertyModel>()
+            Properties = new List<PropertyModel>(),
         };
 
         var result = EmitterHarness.Schema(schema);
@@ -41,19 +62,23 @@ public class SchemaRecordEmitterTests {
     }
 
     [Fact]
-    public void Emit_WithArrayProperty_GeneratesList() {
-        var schema = new SchemaModel {
+    public void Emit_WithArrayProperty_GeneratesList()
+    {
+        var schema = new SchemaModel
+        {
             Name = "PetList",
             Kind = SchemaKind.Object,
             Required = new List<string> { "items" },
-            Properties = new List<PropertyModel> {
-                new() {
+            Properties = new List<PropertyModel>
+            {
+                new()
+                {
                     Name = "items",
                     IsArray = true,
                     ArrayItemsRef = "#/components/schemas/Pet",
-                    IsRequired = true
-                }
-            }
+                    IsRequired = true,
+                },
+            },
         };
 
         var result = EmitterHarness.Schema(schema);

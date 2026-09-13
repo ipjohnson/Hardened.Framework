@@ -9,10 +9,10 @@ using Hardened.Requests.Runtime.Filters;
 using Hardened.Requests.Runtime.QueryString;
 using Hardened.Requests.Testing;
 using Hardened.Web.Runtime.OpenApi;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.OpenApi;
 
@@ -21,9 +21,10 @@ namespace Hardened.Web.Runtime.Tests.OpenApi;
 /// real client - so the uncompressed path is the exception rather than the norm, and both are worth
 /// pinning.
 /// </summary>
-public class OpenApiDocumentProviderTests {
-
-    private const string Document = """{"openapi":"3.1.0","info":{"title":"t","version":"1"},"paths":{}}""";
+public class OpenApiDocumentProviderTests
+{
+    private const string Document =
+        """{"openapi":"3.1.0","info":{"title":"t","version":"1"},"paths":{}}""";
 
     /// <summary>
     /// A pass-through, standing in for the serialization filter.
@@ -33,7 +34,8 @@ public class OpenApiDocumentProviderTests {
     /// filter has nothing to do here - and constructing one would drag a serializer and a content
     /// negotiator into tests about gzip.
     /// </remarks>
-    private sealed class PassThrough : IExecutionFilter {
+    private sealed class PassThrough : IExecutionFilter
+    {
         public Task Execute(IExecutionChain chain) => chain.Next();
     }
 
@@ -45,19 +47,23 @@ public class OpenApiDocumentProviderTests {
     /// what puts conventions and <c>IGlobalFilterRegistry</c> in front of the published document.
     /// The cost here is that these tests need the container a real application has.
     /// </remarks>
-    private static ServiceProvider Services(Action<IServiceCollection>? configure = null) {
+    private static ServiceProvider Services(Action<IServiceCollection>? configure = null)
+    {
         var collection = new ServiceCollection();
 
         var ioProvider = Substitute.For<IIOFilterProvider>();
-        ioProvider.ProvideFilter(
+        ioProvider
+            .ProvideFilter(
                 Arg.Any<IExecutionRequestHandlerInfo>(),
-                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>())
+                Arg.Any<Func<IExecutionContext, Task<IExecutionRequestParameters>>>()
+            )
             .Returns(new PassThrough());
 
         collection.AddSingleton(ioProvider);
         collection.AddSingleton<IInstanceFilterProvider, InstanceFilterProvider>();
         collection.AddSingleton<IGlobalFilterRegistry>(
-            new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>()));
+            new GlobalFilterRegistry(Array.Empty<IRequestFilterProvider>())
+        );
         collection.AddSingleton<OpenApiDocumentController>();
 
         configure?.Invoke(collection);
@@ -66,25 +72,41 @@ public class OpenApiDocumentProviderTests {
     }
 
     private static IExecutionContext Context(
-        string path = "/openapi.json", string method = "GET", string? acceptEncoding = "gzip",
-        IServiceProvider? services = null) {
+        string path = "/openapi.json",
+        string method = "GET",
+        string? acceptEncoding = "gzip",
+        IServiceProvider? services = null
+    )
+    {
         var request = new TestExecutionRequest(
-            method, path, "application/json",
-            new SimpleQueryStringCollection(new Dictionary<string, string>()));
+            method,
+            path,
+            "application/json",
+            new SimpleQueryStringCollection(new Dictionary<string, string>())
+        );
 
-        if (acceptEncoding != null) {
+        if (acceptEncoding != null)
+        {
             request.Headers[KnownHeaders.AcceptEncoding] = acceptEncoding;
         }
 
         services ??= Services();
 
         return new TestExecutionContext(
-            services, services, Substitute.For<IKnownServices>(), request,
-            new TestExecutionResponse(new MemoryStream()), CancellationToken.None);
+            services,
+            services,
+            Substitute.For<IKnownServices>(),
+            request,
+            new TestExecutionResponse(new MemoryStream()),
+            CancellationToken.None
+        );
     }
 
     private static async Task<IExecutionContext> Serve(
-        OpenApiDocumentProvider provider, IExecutionContext context) {
+        OpenApiDocumentProvider provider,
+        IExecutionContext context
+    )
+    {
         var handler = provider.GetExecutionRequestHandler(context);
 
         Assert.NotNull(handler);
@@ -94,13 +116,15 @@ public class OpenApiDocumentProviderTests {
         return context;
     }
 
-    private static byte[] BodyBytes(IExecutionContext context) {
+    private static byte[] BodyBytes(IExecutionContext context)
+    {
         var body = (MemoryStream)context.Response.Body;
 
         return body.ToArray();
     }
 
-    private static string Inflate(byte[] gzip) {
+    private static string Inflate(byte[] gzip)
+    {
         using var source = new MemoryStream(gzip, writable: false);
         using var stream = new GZipStream(source, CompressionMode.Decompress);
         using var inflated = new MemoryStream();
@@ -111,29 +135,38 @@ public class OpenApiDocumentProviderTests {
     }
 
     [Fact]
-    public async Task Handle_ServesGZipToAClientThatAcceptsIt() {
+    public async Task Handle_ServesGZipToAClientThatAcceptsIt()
+    {
         var context = await Serve(new OpenApiDocumentProvider(Services(), Document), Context());
 
         Assert.Equal(200, context.Response.Status);
         Assert.Equal("application/json", context.Response.ContentType);
         Assert.Equal(
-            KnownEncoding.GZip, context.Response.Headers[KnownHeaders.ContentEncoding].ToString());
+            KnownEncoding.GZip,
+            context.Response.Headers[KnownHeaders.ContentEncoding].ToString()
+        );
         Assert.Equal(Document, Inflate(BodyBytes(context)));
     }
 
     [Fact]
-    public async Task Handle_InflatesForAClientThatDoesNotAcceptGZip() {
+    public async Task Handle_InflatesForAClientThatDoesNotAcceptGZip()
+    {
         var context = await Serve(
-            new OpenApiDocumentProvider(Services(), Document), Context(acceptEncoding: "identity"));
+            new OpenApiDocumentProvider(Services(), Document),
+            Context(acceptEncoding: "identity")
+        );
 
         Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.ContentEncoding));
         Assert.Equal(Document, Encoding.UTF8.GetString(BodyBytes(context)));
     }
 
     [Fact]
-    public async Task Handle_InflatesWhenNoAcceptEncodingIsSentAtAll() {
+    public async Task Handle_InflatesWhenNoAcceptEncodingIsSentAtAll()
+    {
         var context = await Serve(
-            new OpenApiDocumentProvider(Services(), Document), Context(acceptEncoding: null));
+            new OpenApiDocumentProvider(Services(), Document),
+            Context(acceptEncoding: null)
+        );
 
         Assert.Equal(Document, Encoding.UTF8.GetString(BodyBytes(context)));
     }
@@ -149,12 +182,17 @@ public class OpenApiDocumentProviderTests {
     [InlineData("br, zstd, gzip, deflate")]
     [InlineData("GZIP")]
     [InlineData("gzip;q=1.0, identity;q=0.5")]
-    public async Task Handle_RecognisesGZipAnywhereInTheAcceptEncodingValue(string accepted) {
+    public async Task Handle_RecognisesGZipAnywhereInTheAcceptEncodingValue(string accepted)
+    {
         var context = await Serve(
-            new OpenApiDocumentProvider(Services(), Document), Context(acceptEncoding: accepted));
+            new OpenApiDocumentProvider(Services(), Document),
+            Context(acceptEncoding: accepted)
+        );
 
         Assert.Equal(
-            KnownEncoding.GZip, context.Response.Headers[KnownHeaders.ContentEncoding].ToString());
+            KnownEncoding.GZip,
+            context.Response.Headers[KnownHeaders.ContentEncoding].ToString()
+        );
     }
 
     /// <summary>
@@ -167,25 +205,31 @@ public class OpenApiDocumentProviderTests {
     [InlineData("gzip2")]
     [InlineData("identity")]
     [InlineData("")]
-    public async Task Handle_DoesNotTreatAPartialTokenAsGZip(string accepted) {
+    public async Task Handle_DoesNotTreatAPartialTokenAsGZip(string accepted)
+    {
         var context = await Serve(
-            new OpenApiDocumentProvider(Services(), Document), Context(acceptEncoding: accepted));
+            new OpenApiDocumentProvider(Services(), Document),
+            Context(acceptEncoding: accepted)
+        );
 
         Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.ContentEncoding));
         Assert.Equal(Document, Encoding.UTF8.GetString(BodyBytes(context)));
     }
 
     [Fact]
-    public async Task Handle_SetsContentLengthToWhatWasWritten() {
+    public async Task Handle_SetsContentLengthToWhatWasWritten()
+    {
         var context = await Serve(new OpenApiDocumentProvider(Services(), Document), Context());
 
         Assert.Equal(
             BodyBytes(context).Length.ToString(),
-            context.Response.Headers[KnownHeaders.ContentLength].ToString());
+            context.Response.Headers[KnownHeaders.ContentLength].ToString()
+        );
     }
 
     [Fact]
-    public async Task Handle_SendsNoCacheSoAStaleDocumentIsNotServedAfterADeploy() {
+    public async Task Handle_SendsNoCacheSoAStaleDocumentIsNotServedAfterADeploy()
+    {
         var context = await Serve(new OpenApiDocumentProvider(Services(), Document), Context());
 
         Assert.Equal("no-cache", context.Response.Headers[KnownHeaders.CacheControl].ToString());
@@ -196,7 +240,8 @@ public class OpenApiDocumentProviderTests {
     /// back as a JSON-encoded string of a document.
     /// </summary>
     [Fact]
-    public async Task Handle_DoesNotSerializeTheDocument() {
+    public async Task Handle_DoesNotSerializeTheDocument()
+    {
         var context = await Serve(new OpenApiDocumentProvider(Services(), Document), Context());
 
         Assert.False(context.Response.ShouldSerialize);
@@ -208,7 +253,8 @@ public class OpenApiDocumentProviderTests {
     /// is this one's.
     /// </summary>
     [Fact]
-    public void GetExecutionRequestHandler_MatchesHead() {
+    public void GetExecutionRequestHandler_MatchesHead()
+    {
         var provider = new OpenApiDocumentProvider(Services(), Document);
 
         Assert.NotNull(provider.GetExecutionRequestHandler(Context(method: "HEAD")));
@@ -223,7 +269,8 @@ public class OpenApiDocumentProviderTests {
     [InlineData("POST")]
     [InlineData("PUT")]
     [InlineData("DELETE")]
-    public void GetExecutionRequestHandler_ReportsWhatIsAllowedForEveryOtherVerb(string method) {
+    public void GetExecutionRequestHandler_ReportsWhatIsAllowedForEveryOtherVerb(string method)
+    {
         var provider = new OpenApiDocumentProvider(Services(), Document);
 
         var match = provider.GetExecutionRequestHandler(Context(method: method));
@@ -234,7 +281,8 @@ public class OpenApiDocumentProviderTests {
     }
 
     [Fact]
-    public void GetExecutionRequestHandler_IgnoresAnotherPath() {
+    public void GetExecutionRequestHandler_IgnoresAnotherPath()
+    {
         var provider = new OpenApiDocumentProvider(Services(), Document);
 
         Assert.Null(provider.GetExecutionRequestHandler(Context("/openapi.yaml")));
@@ -246,9 +294,14 @@ public class OpenApiDocumentProviderTests {
     /// <c>application/json</c> is serving something a client cannot read.
     /// </summary>
     [Fact]
-    public async Task Handle_KeepsTheContentTypeItWasGiven() {
+    public async Task Handle_KeepsTheContentTypeItWasGiven()
+    {
         var provider = new OpenApiDocumentProvider(
-            Services(), "openapi: 3.1.0", "/openapi.yaml", "application/yaml");
+            Services(),
+            "openapi: 3.1.0",
+            "/openapi.yaml",
+            "application/yaml"
+        );
 
         var context = await Serve(provider, Context("/openapi.yaml"));
 
@@ -260,11 +313,14 @@ public class OpenApiDocumentProviderTests {
     /// it - nothing inflates or recompresses on the way through.
     /// </summary>
     [Fact]
-    public async Task Handle_ServesAPreCompressedDocumentByteForByte() {
+    public async Task Handle_ServesAPreCompressedDocumentByteForByte()
+    {
         var compressed = Deflate(Document);
 
         var context = await Serve(
-            new OpenApiDocumentProvider(Services(), new ReadOnlySpan<byte>(compressed)), Context());
+            new OpenApiDocumentProvider(Services(), new ReadOnlySpan<byte>(compressed)),
+            Context()
+        );
 
         Assert.Equal(compressed, BodyBytes(context));
     }
@@ -272,10 +328,12 @@ public class OpenApiDocumentProviderTests {
     // ---------------------------------------------------- governable at last
 
     /// <summary>Requires a grant of everything under a path prefix.</summary>
-    private sealed class PrefixConvention : IAuthorizationConvention {
+    private sealed class PrefixConvention : IAuthorizationConvention
+    {
         private readonly string _prefix;
 
-        public PrefixConvention(string prefix) {
+        public PrefixConvention(string prefix)
+        {
             _prefix = prefix;
         }
 
@@ -286,9 +344,11 @@ public class OpenApiDocumentProviderTests {
     }
 
     private static IExecutionRequestHandlerInfo HandlerInfoFor(
-        OpenApiDocumentProvider provider, IServiceProvider services) {
-        var match = provider.GetExecutionRequestHandler(
-            Context(services: services));
+        OpenApiDocumentProvider provider,
+        IServiceProvider services
+    )
+    {
+        var match = provider.GetExecutionRequestHandler(Context(services: services));
 
         Assert.NotNull(match);
 
@@ -313,12 +373,13 @@ public class OpenApiDocumentProviderTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void AConventionReachesTheDocument() {
+    public void AConventionReachesTheDocument()
+    {
         var services = Services(collection =>
-            collection.AddSingleton<IAuthorizationConvention>(new PrefixConvention("/openapi")));
+            collection.AddSingleton<IAuthorizationConvention>(new PrefixConvention("/openapi"))
+        );
 
-        var handlerInfo = HandlerInfoFor(
-            new OpenApiDocumentProvider(services, Document), services);
+        var handlerInfo = HandlerInfoFor(new OpenApiDocumentProvider(services, Document), services);
 
         Assert.NotNull(handlerInfo.Requirement);
         Assert.Contains("docs:read", handlerInfo.Requirement!.RequiredGrants);
@@ -330,13 +391,18 @@ public class OpenApiDocumentProviderTests {
     /// by hand to say what it needs.
     /// </summary>
     [Fact]
-    public void ADeclaredRequirementReachesTheDocument() {
+    public void ADeclaredRequirementReachesTheDocument()
+    {
         var services = Services();
 
         var handlerInfo = HandlerInfoFor(
             new OpenApiDocumentProvider(
-                services, Document, requirement: Requirement.Grant("docs:read")),
-            services);
+                services,
+                Document,
+                requirement: Requirement.Grant("docs:read")
+            ),
+            services
+        );
 
         Assert.Contains("docs:read", handlerInfo.Requirement!.RequiredGrants);
     }
@@ -346,14 +412,20 @@ public class OpenApiDocumentProviderTests {
     /// document that already declared something and can never open one.
     /// </summary>
     [Fact]
-    public void ADeclaredRequirementAndAConventionBothApply() {
+    public void ADeclaredRequirementAndAConventionBothApply()
+    {
         var services = Services(collection =>
-            collection.AddSingleton<IAuthorizationConvention>(new PrefixConvention("/openapi")));
+            collection.AddSingleton<IAuthorizationConvention>(new PrefixConvention("/openapi"))
+        );
 
         var handlerInfo = HandlerInfoFor(
             new OpenApiDocumentProvider(
-                services, Document, requirement: Requirement.Grant("docs:internal")),
-            services);
+                services,
+                Document,
+                requirement: Requirement.Grant("docs:internal")
+            ),
+            services
+        );
 
         var grants = handlerInfo.Requirement!.RequiredGrants.ToArray();
 
@@ -366,17 +438,21 @@ public class OpenApiDocumentProviderTests {
     /// application's posture rather than overriding it.
     /// </summary>
     [Fact]
-    public void NothingConfiguredLeavesTheDocumentUnguarded() {
+    public void NothingConfiguredLeavesTheDocumentUnguarded()
+    {
         var services = Services();
 
         Assert.Null(
-            HandlerInfoFor(new OpenApiDocumentProvider(services, Document), services).Requirement);
+            HandlerInfoFor(new OpenApiDocumentProvider(services, Document), services).Requirement
+        );
     }
 
-    private static byte[] Deflate(string value) {
+    private static byte[] Deflate(string value)
+    {
         using var output = new MemoryStream();
 
-        using (var gzip = new GZipStream(output, CompressionLevel.SmallestSize, leaveOpen: true)) {
+        using (var gzip = new GZipStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+        {
             var bytes = Encoding.UTF8.GetBytes(value);
 
             gzip.Write(bytes, 0, bytes.Length);

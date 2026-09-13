@@ -2,9 +2,9 @@ using Hardened.Requests.Abstract.Responses;
 using Hardened.SourceGeneration.Testing;
 using Hardened.SourceGenerator.Requests;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.CodeAnalysis;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -18,8 +18,8 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// whoever generates that client.
 /// </para>
 /// </summary>
-public class ResponseSetDiagnosticsTests {
-
+public class ResponseSetDiagnosticsTests
+{
     private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(Response<,>)];
 
     private static GeneratorResult Generate(string handlers) =>
@@ -50,7 +50,8 @@ public class ResponseSetDiagnosticsTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
     private static Diagnostic? Reported(GeneratorResult result, string id) =>
         result.GeneratorDiagnostics.FirstOrDefault(d => d.Id == id);
@@ -60,13 +61,17 @@ public class ResponseSetDiagnosticsTests {
     /// handler returns and the document would describe all of them with its schema.
     /// </summary>
     [Fact]
-    public void ObjectAsACaseIsAnError() {
+    public void ObjectAsACaseIsAnError()
+    {
         var reported = Reported(
-            Generate("""
-                [Get("/todos/{id}")]
-                public Response<object, NotFound> ById(int id) => new NotFound("todo");
-            """),
-            ResponseModelDiagnostics.UntypedCaseId);
+            Generate(
+                """
+                    [Get("/todos/{id}")]
+                    public Response<object, NotFound> ById(int id) => new NotFound("todo");
+                """
+            ),
+            ResponseModelDiagnostics.UntypedCaseId
+        );
 
         Assert.NotNull(reported);
         Assert.Equal(DiagnosticSeverity.Error, reported!.Severity);
@@ -79,13 +84,17 @@ public class ResponseSetDiagnosticsTests {
     /// artifact that is already ambiguous.
     /// </summary>
     [Fact]
-    public void TwoAssignableCasesAtDifferentStatusesIsAnError() {
+    public void TwoAssignableCasesAtDifferentStatusesIsAnError()
+    {
         var reported = Reported(
-            Generate("""
-                [Get("/todos/{id}")]
-                public Response<Base, Derived, NotFound> ById(int id) => new Base(id);
-            """),
-            ResponseModelDiagnostics.AssignableCasesId);
+            Generate(
+                """
+                    [Get("/todos/{id}")]
+                    public Response<Base, Derived, NotFound> ById(int id) => new Base(id);
+                """
+            ),
+            ResponseModelDiagnostics.AssignableCasesId
+        );
 
         Assert.NotNull(reported);
         Assert.Equal(DiagnosticSeverity.Error, reported!.Severity);
@@ -96,11 +105,14 @@ public class ResponseSetDiagnosticsTests {
     /// Rejecting that would forbid the shape the design calls a oneOf-within-200.
     /// </summary>
     [Fact]
-    public void TwoAssignableCasesAtOneStatusAreFine() {
-        var result = Generate("""
+    public void TwoAssignableCasesAtOneStatusAreFine()
+    {
+        var result = Generate(
+            """
                 [Get("/todos/{id}")]
                 public Response<Base, Sibling> ById(int id) => new Base(id);
-            """);
+            """
+        );
 
         Assert.Null(Reported(result, ResponseModelDiagnostics.AssignableCasesId));
     }
@@ -109,22 +121,28 @@ public class ResponseSetDiagnosticsTests {
     /// The ordinary set, which every one of these must leave alone.
     /// </summary>
     [Fact]
-    public void AWellFormedSetReportsNothing() {
-        var result = Generate("""
+    public void AWellFormedSetReportsNothing()
+    {
+        var result = Generate(
+            """
                 [Get("/todos/{id}")]
                 public Response<Todo, NotFound, Conflict> ById(int id) => new Todo(id);
-            """);
+            """
+        );
 
         Assert.Null(Reported(result, ResponseModelDiagnostics.UntypedCaseId));
         Assert.Null(Reported(result, ResponseModelDiagnostics.AssignableCasesId));
     }
 
     [Fact]
-    public void AnOrdinaryHandlerReportsNothing() {
-        var result = Generate("""
+    public void AnOrdinaryHandlerReportsNothing()
+    {
+        var result = Generate(
+            """
                 [Get("/todos/{id}")]
                 public Todo ById(int id) => new Todo(id);
-            """);
+            """
+        );
 
         Assert.Null(Reported(result, ResponseModelDiagnostics.UntypedCaseId));
         Assert.Null(Reported(result, ResponseModelDiagnostics.AssignableCasesId));

@@ -21,35 +21,42 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// written.
 /// </para>
 /// </remarks>
-public class ModuleDeclaredFilterTests {
-
+public class ModuleDeclaredFilterTests
+{
     private const string InTheLibrary = "/web-library/string-methods/concat/hello/world";
 
     private const string InTheHost = "/binding/path/17";
 
     private static Action<TestWebRequest> Plain(Action<TestWebRequest>? also = null) =>
-        request => {
+        request =>
+        {
             request.Headers[KnownHeaders.AcceptEncoding] = new StringValues("identity");
             also?.Invoke(request);
         };
 
     [HardenedTest]
-    public async Task AHandlerCompiledWithTheModuleAnswersWithATag(ITestWebApp testWebApp) {
+    public async Task AHandlerCompiledWithTheModuleAnswersWithATag(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(InTheLibrary, Plain());
 
         Assert.Equal(200, response.StatusCode);
-        Assert.True(response.Headers.ContainsKey(KnownHeaders.ETag),
-            "The module's declaration should have tagged the read it covers.");
+        Assert.True(
+            response.Headers.ContainsKey(KnownHeaders.ETag),
+            "The module's declaration should have tagged the read it covers."
+        );
     }
 
     [HardenedTest]
-    public async Task ACallerHoldingThatTagIsAnsweredNotModified(ITestWebApp testWebApp) {
+    public async Task ACallerHoldingThatTagIsAnsweredNotModified(ITestWebApp testWebApp)
+    {
         var first = await testWebApp.Get(InTheLibrary, Plain());
 
         var tag = first.Headers[KnownHeaders.ETag].ToString();
 
-        var second = await testWebApp.Get(InTheLibrary, Plain(
-            request => request.Headers[KnownHeaders.IfNoneMatch] = new StringValues(tag)));
+        var second = await testWebApp.Get(
+            InTheLibrary,
+            Plain(request => request.Headers[KnownHeaders.IfNoneMatch] = new StringValues(tag))
+        );
 
         Assert.Equal(304, second.StatusCode);
         Assert.Equal(0, second.Body.Length);
@@ -59,11 +66,14 @@ public class ModuleDeclaredFilterTests {
     /// And the host's own reads are untouched, which is the seam a compile-time rung cannot cross.
     /// </summary>
     [HardenedTest]
-    public async Task AHandlerInTheHostIsLeftAlone(ITestWebApp testWebApp) {
+    public async Task AHandlerInTheHostIsLeftAlone(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(InTheHost, Plain());
 
         Assert.Equal(200, response.StatusCode);
-        Assert.False(response.Headers.ContainsKey(KnownHeaders.ETag),
-            "A library module's declaration must not reach the host's handlers.");
+        Assert.False(
+            response.Headers.ContainsKey(KnownHeaders.ETag),
+            "A library module's declaration must not reach the host's handlers."
+        );
     }
 }

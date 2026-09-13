@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -14,14 +15,15 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// error while a client with no preference still gets the text the document leads with.
 /// </para>
 /// </remarks>
-public class PlainTextErrorResponseTests {
-
+public class PlainTextErrorResponseTests
+{
     /// <summary>
     /// The ordering half of the fix: the success representation still leads the declared set, so
     /// a client with no preference gets the text, not the JSON the errors added.
     /// </summary>
     [HardenedTest]
-    public async Task TheSuccessStillLeadsTheDeclaredSet(ITestWebApp testWebApp) {
+    public async Task TheSuccessStillLeadsTheDeclaredSet(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/7/label");
 
         response.Assert.Ok();
@@ -31,7 +33,8 @@ public class PlainTextErrorResponseTests {
     }
 
     [HardenedTest]
-    public async Task TheDeclaredNotFoundAnswersAsJson(ITestWebApp testWebApp) {
+    public async Task TheDeclaredNotFoundAnswersAsJson(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/missing/label");
 
         Assert.Equal(404, response.StatusCode);
@@ -50,7 +53,8 @@ public class PlainTextErrorResponseTests {
     /// text.
     /// </summary>
     [HardenedTest]
-    public async Task ABindingFailureAnswersTheValidationEnvelopeAsJson(ITestWebApp testWebApp) {
+    public async Task ABindingFailureAnswersTheValidationEnvelopeAsJson(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/7/label?copies=abc");
 
         response.Assert.BadRequest();
@@ -67,7 +71,8 @@ public class PlainTextErrorResponseTests {
 
     private record FieldShape(string Field, string Code, string Message);
 
-    private static async Task<string> Body(TestWebResponse response) {
+    private static async Task<string> Body(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
         using var reader = new StreamReader(response.Body, leaveOpen: true);

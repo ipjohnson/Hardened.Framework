@@ -22,19 +22,25 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// fail a test that only checks the happy path — it fails a consumer's build.
 /// </para>
 /// </remarks>
-public class ConstraintAttributesTests {
-
+public class ConstraintAttributesTests
+{
     private static PatternRegistry Patterns() =>
         new(EmitterHarness.RootNamespace + ".Validation", "petstore");
 
     private static PropertyModel Property(
-        int? minLength = null, int? maxLength = null,
-        decimal? minimum = null, decimal? maximum = null,
-        bool exclusiveMinimum = false, bool exclusiveMaximum = false,
+        int? minLength = null,
+        int? maxLength = null,
+        decimal? minimum = null,
+        decimal? maximum = null,
+        bool exclusiveMinimum = false,
+        bool exclusiveMaximum = false,
         string? pattern = null,
-        int? minItems = null, int? maxItems = null,
-        List<string>? enumValues = null) =>
-        new() {
+        int? minItems = null,
+        int? maxItems = null,
+        List<string>? enumValues = null
+    ) =>
+        new()
+        {
             Name = "value",
             MinLength = minLength,
             MaxLength = maxLength,
@@ -45,35 +51,44 @@ public class ConstraintAttributesTests {
             Pattern = pattern,
             MinItems = minItems,
             MaxItems = maxItems,
-            EnumValues = enumValues
+            EnumValues = enumValues,
         };
 
     private static IReadOnlyList<ConstraintAttributes.Model> For(
-        PropertyModel property, string csType, bool required = false) =>
-        ConstraintAttributes.ForProperty(property, required, Patterns(), csType);
+        PropertyModel property,
+        string csType,
+        bool required = false
+    ) => ConstraintAttributes.ForProperty(property, required, Patterns(), csType);
 
-    private static IReadOnlyList<string> Names(IReadOnlyList<ConstraintAttributes.Model> attributes) =>
-        attributes.Select(attribute => attribute.Type.Name).ToList();
+    private static IReadOnlyList<string> Names(
+        IReadOnlyList<ConstraintAttributes.Model> attributes
+    ) => attributes.Select(attribute => attribute.Type.Name).ToList();
 
     private static ConstraintAttributes.Model Single(
-        IReadOnlyList<ConstraintAttributes.Model> attributes, string name) =>
-        Assert.Single(attributes, attribute => attribute.Type.Name == name);
+        IReadOnlyList<ConstraintAttributes.Model> attributes,
+        string name
+    ) => Assert.Single(attributes, attribute => attribute.Type.Name == name);
 
     #region required
 
     [Fact]
-    public void RequiredIsEmittedWhenTheCallerSaysSo() {
+    public void RequiredIsEmittedWhenTheCallerSaysSo()
+    {
         Assert.Contains("RequiredAttribute", Names(For(Property(), "string", required: true)));
     }
 
     [Fact]
-    public void RequiredIsNotEmittedOtherwise() {
+    public void RequiredIsNotEmittedOtherwise()
+    {
         Assert.DoesNotContain("RequiredAttribute", Names(For(Property(), "string")));
     }
 
     [Fact]
-    public void RequiredTakesNoArguments() {
-        Assert.Empty(Single(For(Property(), "string", required: true), "RequiredAttribute").Arguments);
+    public void RequiredTakesNoArguments()
+    {
+        Assert.Empty(
+            Single(For(Property(), "string", required: true), "RequiredAttribute").Arguments
+        );
     }
 
     /// <summary>
@@ -82,7 +97,8 @@ public class ConstraintAttributesTests {
     /// <c>[Required]</c> on one with <c>value.petId is null</c> against a <c>long</c>: CS0037.
     /// </summary>
     [Fact]
-    public void TheFacetsDoNotDecideRequiredness() {
+    public void TheFacetsDoNotDecideRequiredness()
+    {
         Assert.DoesNotContain("RequiredAttribute", Names(For(Property(minLength: 1), "long")));
     }
 
@@ -91,10 +107,15 @@ public class ConstraintAttributesTests {
     #region string length
 
     [Fact]
-    public void AStringWithBothLengthBoundsGetsStringLength() {
+    public void AStringWithBothLengthBoundsGetsStringLength()
+    {
         Assert.Equal(
             ["Min = 1", "Max = 64"],
-            Single(For(Property(minLength: 1, maxLength: 64), "string"), "StringLengthAttribute").Arguments);
+            Single(
+                For(Property(minLength: 1, maxLength: 64), "string"),
+                "StringLengthAttribute"
+            ).Arguments
+        );
     }
 
     /// <summary>
@@ -102,18 +123,22 @@ public class ConstraintAttributesTests {
     /// constructor takes both.
     /// </summary>
     [Fact]
-    public void OnlyTheDeclaredBoundIsWritten() {
+    public void OnlyTheDeclaredBoundIsWritten()
+    {
         Assert.Equal(
             ["Max = 64"],
-            Single(For(Property(maxLength: 64), "string"), "StringLengthAttribute").Arguments);
+            Single(For(Property(maxLength: 64), "string"), "StringLengthAttribute").Arguments
+        );
 
         Assert.Equal(
             ["Min = 1"],
-            Single(For(Property(minLength: 1), "string"), "StringLengthAttribute").Arguments);
+            Single(For(Property(minLength: 1), "string"), "StringLengthAttribute").Arguments
+        );
     }
 
     [Fact]
-    public void NoLengthBoundEmitsNoStringLength() {
+    public void NoLengthBoundEmitsNoStringLength()
+    {
         Assert.DoesNotContain("StringLengthAttribute", Names(For(Property(), "string")));
     }
 
@@ -125,9 +150,12 @@ public class ConstraintAttributesTests {
     [InlineData("long")]
     [InlineData("JsonElement")]
     [InlineData("List<string>")]
-    public void ALengthBoundOnANonStringTypeIsDropped(string csType) {
+    public void ALengthBoundOnANonStringTypeIsDropped(string csType)
+    {
         Assert.DoesNotContain(
-            "StringLengthAttribute", Names(For(Property(minLength: 1, maxLength: 64), csType)));
+            "StringLengthAttribute",
+            Names(For(Property(minLength: 1, maxLength: 64), csType))
+        );
     }
 
     #endregion
@@ -142,7 +170,8 @@ public class ConstraintAttributesTests {
     [InlineData("float")]
     [InlineData("short")]
     [InlineData("byte")]
-    public void ANumericTypeWithBoundsGetsRange(string csType) {
+    public void ANumericTypeWithBoundsGetsRange(string csType)
+    {
         Assert.Contains("RangeAttribute", Names(For(Property(minimum: 1, maximum: 10), csType)));
     }
 
@@ -153,8 +182,12 @@ public class ConstraintAttributesTests {
     [InlineData("string")]
     [InlineData("JsonElement")]
     [InlineData("List<int>")]
-    public void ANumericBoundOnANonNumericTypeIsDropped(string csType) {
-        Assert.DoesNotContain("RangeAttribute", Names(For(Property(minimum: 1, maximum: 10), csType)));
+    public void ANumericBoundOnANonNumericTypeIsDropped(string csType)
+    {
+        Assert.DoesNotContain(
+            "RangeAttribute",
+            Names(For(Property(minimum: 1, maximum: 10), csType))
+        );
     }
 
     /// <summary>
@@ -165,14 +198,16 @@ public class ConstraintAttributesTests {
     /// against that exact symptom never engaged.
     /// </summary>
     [Fact]
-    public void AnAbsentBoundIsOmitted() {
+    public void AnAbsentBoundIsOmitted()
+    {
         var arguments = Single(For(Property(minimum: 5), "int"), "RangeAttribute").Arguments;
 
         Assert.Equal(new[] { "Min = 5" }, arguments);
     }
 
     [Fact]
-    public void AnAbsentLowerBoundIsOmittedToo() {
+    public void AnAbsentLowerBoundIsOmittedToo()
+    {
         var arguments = Single(For(Property(maximum: 10), "int"), "RangeAttribute").Arguments;
 
         Assert.Equal(new[] { "Max = 10" }, arguments);
@@ -183,27 +218,40 @@ public class ConstraintAttributesTests {
     /// single-bound message templates engage.
     /// </summary>
     [Fact]
-    public void AnExclusiveSingleBoundKeepsItsFlag() {
+    public void AnExclusiveSingleBoundKeepsItsFlag()
+    {
         var arguments = Single(
-            For(Property(minimum: 0, exclusiveMinimum: true), "double"), "RangeAttribute").Arguments;
+            For(Property(minimum: 0, exclusiveMinimum: true), "double"),
+            "RangeAttribute"
+        ).Arguments;
 
         Assert.Equal(new[] { "Min = 0", "ExclusiveMin = true" }, arguments);
     }
 
     [Fact]
-    public void ExclusiveBoundsAreNamedArgumentsAfterTheBounds() {
-        var arguments =
-            Single(For(Property(minimum: 1, maximum: 10, exclusiveMinimum: true, exclusiveMaximum: true), "int"),
-                "RangeAttribute").Arguments;
+    public void ExclusiveBoundsAreNamedArgumentsAfterTheBounds()
+    {
+        var arguments = Single(
+            For(
+                Property(minimum: 1, maximum: 10, exclusiveMinimum: true, exclusiveMaximum: true),
+                "int"
+            ),
+            "RangeAttribute"
+        ).Arguments;
 
         Assert.Equal(
             new[] { "Min = 1", "Max = 10", "ExclusiveMin = true", "ExclusiveMax = true" },
-            arguments);
+            arguments
+        );
     }
 
     [Fact]
-    public void AnInclusiveBoundWritesNoExclusiveFlag() {
-        var arguments = Single(For(Property(minimum: 1, maximum: 10), "int"), "RangeAttribute").Arguments;
+    public void AnInclusiveBoundWritesNoExclusiveFlag()
+    {
+        var arguments = Single(
+            For(Property(minimum: 1, maximum: 10), "int"),
+            "RangeAttribute"
+        ).Arguments;
 
         Assert.Equal(new[] { "Min = 1", "Max = 10" }, arguments);
     }
@@ -213,10 +261,14 @@ public class ConstraintAttributesTests {
     /// generated file does not parse.
     /// </summary>
     [Fact]
-    public void AFractionalBoundIsWrittenInvariant() {
+    public void AFractionalBoundIsWrittenInvariant()
+    {
         Assert.Equal(
             "Min = 1.5",
-            Single(For(Property(minimum: 1.5m, maximum: 10), "double"), "RangeAttribute").Arguments[0]);
+            Single(For(Property(minimum: 1.5m, maximum: 10), "double"), "RangeAttribute").Arguments[
+                0
+            ]
+        );
     }
 
     #endregion
@@ -224,8 +276,12 @@ public class ConstraintAttributesTests {
     #region pattern
 
     [Fact]
-    public void AStringWithAPatternGetsPatternInItsReferenceForm() {
-        var arguments = Single(For(Property(pattern: "^[a-z]+$"), "string"), "PatternAttribute").Arguments;
+    public void AStringWithAPatternGetsPatternInItsReferenceForm()
+    {
+        var arguments = Single(
+            For(Property(pattern: "^[a-z]+$"), "string"),
+            "PatternAttribute"
+        ).Arguments;
 
         Assert.Equal(2, arguments.Count);
         Assert.StartsWith("typeof(global::", arguments[0]);
@@ -237,20 +293,28 @@ public class ConstraintAttributesTests {
     /// a member that cannot be generated.
     /// </summary>
     [Fact]
-    public void APatternTheRuntimeRefusesEmitsNoAttribute() {
+    public void APatternTheRuntimeRefusesEmitsNoAttribute()
+    {
         Assert.DoesNotContain(
-            "PatternAttribute", Names(For(Property(pattern: @"^[a-zA-Z0-9\-\_]+$"), "string")));
+            "PatternAttribute",
+            Names(For(Property(pattern: @"^[a-zA-Z0-9\-\_]+$"), "string"))
+        );
     }
 
     [Theory]
     [InlineData("int")]
     [InlineData("JsonElement")]
-    public void APatternOnANonStringTypeIsDropped(string csType) {
-        Assert.DoesNotContain("PatternAttribute", Names(For(Property(pattern: "^[a-z]+$"), csType)));
+    public void APatternOnANonStringTypeIsDropped(string csType)
+    {
+        Assert.DoesNotContain(
+            "PatternAttribute",
+            Names(For(Property(pattern: "^[a-z]+$"), csType))
+        );
     }
 
     [Fact]
-    public void AnEmptyPatternEmitsNothing() {
+    public void AnEmptyPatternEmitsNothing()
+    {
         Assert.DoesNotContain("PatternAttribute", Names(For(Property(pattern: ""), "string")));
     }
 
@@ -262,10 +326,12 @@ public class ConstraintAttributesTests {
     [InlineData("List<string>")]
     [InlineData("Dictionary<string, int>")]
     [InlineData("string[]")]
-    public void ACountedTypeWithBoundsGetsItemCount(string csType) {
+    public void ACountedTypeWithBoundsGetsItemCount(string csType)
+    {
         Assert.Equal(
             ["Min = 1", "Max = 5"],
-            Single(For(Property(minItems: 1, maxItems: 5), csType), "ItemCountAttribute").Arguments);
+            Single(For(Property(minItems: 1, maxItems: 5), csType), "ItemCountAttribute").Arguments
+        );
     }
 
     /// <summary>
@@ -276,8 +342,12 @@ public class ConstraintAttributesTests {
     [InlineData("JsonElement")]
     [InlineData("string")]
     [InlineData("int")]
-    public void AnItemBoundOnATypeWithNoCountIsDropped(string csType) {
-        Assert.DoesNotContain("ItemCountAttribute", Names(For(Property(minItems: 1, maxItems: 5), csType)));
+    public void AnItemBoundOnATypeWithNoCountIsDropped(string csType)
+    {
+        Assert.DoesNotContain(
+            "ItemCountAttribute",
+            Names(For(Property(minItems: 1, maxItems: 5), csType))
+        );
     }
 
     #endregion
@@ -285,11 +355,15 @@ public class ConstraintAttributesTests {
     #region allowed values
 
     [Fact]
-    public void AStringEnumBecomesAllowedValues() {
+    public void AStringEnumBecomesAllowedValues()
+    {
         Assert.Equal(
             ["\"available\"", "\"pending\""],
-            Single(For(Property(enumValues: ["available", "pending"]), "string"), "AllowedValuesAttribute")
-                .Arguments);
+            Single(
+                For(Property(enumValues: ["available", "pending"]), "string"),
+                "AllowedValuesAttribute"
+            ).Arguments
+        );
     }
 
     /// <summary>
@@ -301,46 +375,67 @@ public class ConstraintAttributesTests {
     [InlineData("PetStatus")]
     [InlineData("JsonElement")]
     [InlineData("int")]
-    public void AnEnumOnANonStringTypeIsDropped(string csType) {
+    public void AnEnumOnANonStringTypeIsDropped(string csType)
+    {
         Assert.DoesNotContain(
-            "AllowedValuesAttribute", Names(For(Property(enumValues: ["available"]), csType)));
+            "AllowedValuesAttribute",
+            Names(For(Property(enumValues: ["available"]), csType))
+        );
     }
 
     [Fact]
-    public void AnEmptyEnumEmitsNothing() {
-        Assert.DoesNotContain("AllowedValuesAttribute", Names(For(Property(enumValues: []), "string")));
+    public void AnEmptyEnumEmitsNothing()
+    {
+        Assert.DoesNotContain(
+            "AllowedValuesAttribute",
+            Names(For(Property(enumValues: []), "string"))
+        );
     }
 
     [Fact]
-    public void AnAllowedValueContainingAQuoteIsEscaped() {
+    public void AnAllowedValueContainingAQuoteIsEscaped()
+    {
         Assert.Equal(
             ["\"say \\\"hi\\\"\"", "\"back\\\\slash\""],
-            Single(For(Property(enumValues: ["say \"hi\"", "back\\slash"]), "string"),
-                "AllowedValuesAttribute").Arguments);
+            Single(
+                For(Property(enumValues: ["say \"hi\"", "back\\slash"]), "string"),
+                "AllowedValuesAttribute"
+            ).Arguments
+        );
     }
 
     #endregion
 
     [Fact]
-    public void APropertyWithNoConstraintsGetsNoAttributes() {
+    public void APropertyWithNoConstraintsGetsNoAttributes()
+    {
         Assert.Empty(For(Property(), "string"));
     }
 
     [Fact]
-    public void EveryAttributeComesFromTheConstraintsNamespace() {
+    public void EveryAttributeComesFromTheConstraintsNamespace()
+    {
         var attributes = For(
             Property(minLength: 1, maxLength: 5, pattern: "^[a-z]+$", enumValues: ["a"]),
-            "string", required: true);
+            "string",
+            required: true
+        );
 
         Assert.NotEmpty(attributes);
-        Assert.All(attributes,
-            attribute => Assert.Equal("ValidationModules.Constraints", attribute.Type.Namespace));
+        Assert.All(
+            attributes,
+            attribute => Assert.Equal("ValidationModules.Constraints", attribute.Type.Namespace)
+        );
     }
 
     [Fact]
-    public void ValidateNestedNamesTheNestedAttribute() {
+    public void ValidateNestedNamesTheNestedAttribute()
+    {
         Assert.Equal("ValidateNestedAttribute", ConstraintAttributes.ValidateNested().Name);
-        Assert.Equal("ValidationModules.Constraints", ConstraintAttributes.ValidateNested().Namespace);
+        Assert.Equal(
+            "ValidationModules.Constraints",
+            ConstraintAttributes.ValidateNested().Namespace
+        );
     }
 
     /// <summary>
@@ -349,19 +444,33 @@ public class ConstraintAttributesTests {
     /// introduced to prevent.
     /// </summary>
     [Fact]
-    public void AParameterIsBuiltByTheSameRules() {
-        var parameter = new ParameterModel { Name = "status", MinLength = 1, MaxLength = 8 };
+    public void AParameterIsBuiltByTheSameRules()
+    {
+        var parameter = new ParameterModel
+        {
+            Name = "status",
+            MinLength = 1,
+            MaxLength = 8,
+        };
 
         Assert.Equal(
             ["Min = 1", "Max = 8"],
             Single(
                 ConstraintAttributes.ForParameter(parameter, false, "string", Patterns()),
-                "StringLengthAttribute").Arguments);
+                "StringLengthAttribute"
+            ).Arguments
+        );
     }
 
     [Fact]
-    public void AParameterBoundOnANonStringTypeIsDroppedToo() {
-        var parameter = new ParameterModel { Name = "limit", MinLength = 1, MaxLength = 8 };
+    public void AParameterBoundOnANonStringTypeIsDroppedToo()
+    {
+        var parameter = new ParameterModel
+        {
+            Name = "limit",
+            MinLength = 1,
+            MaxLength = 8,
+        };
 
         Assert.Empty(ConstraintAttributes.ForParameter(parameter, false, "int", Patterns()));
     }

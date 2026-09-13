@@ -21,8 +21,8 @@ namespace Hardened.SourceGenerator.Shared;
 /// helper; it is the single definition of a contract.
 /// </para>
 /// </remarks>
-internal static class EnumWireNaming {
-
+internal static class EnumWireNaming
+{
     private const string AttributeName = "JsonEnumNamingAttribute";
     private const string AttributeNamespace = "Hardened.Requests.Abstract.Attributes";
 
@@ -55,16 +55,22 @@ internal static class EnumWireNaming {
     /// <summary>
     /// The naming declared directly on a symbol, or null when it carries no attribute.
     /// </summary>
-    public static string? Declared(ISymbol symbol) {
-        foreach (var attribute in symbol.GetAttributes()) {
+    public static string? Declared(ISymbol symbol)
+    {
+        foreach (var attribute in symbol.GetAttributes())
+        {
             var attributeClass = attribute.AttributeClass;
 
-            if (attributeClass?.Name != AttributeName ||
-                attributeClass.ContainingNamespace?.ToDisplayString() != AttributeNamespace) {
+            if (
+                attributeClass?.Name != AttributeName
+                || attributeClass.ContainingNamespace?.ToDisplayString() != AttributeNamespace
+            )
+            {
                 continue;
             }
 
-            if (attribute.ConstructorArguments.Length == 0) {
+            if (attribute.ConstructorArguments.Length == 0)
+            {
                 continue;
             }
 
@@ -72,7 +78,8 @@ internal static class EnumWireNaming {
 
             // The argument is the enum's underlying int. Its member name is the naming's name,
             // which is what every consumer here switches on.
-            if (value is int ordinal) {
+            if (value is int ordinal)
+            {
                 return NameOf(ordinal);
             }
         }
@@ -80,25 +87,29 @@ internal static class EnumWireNaming {
         return null;
     }
 
-    private static string? NameOf(int ordinal) => ordinal switch {
-        0 => "MemberName",
-        1 => "CamelCase",
-        2 => "KebabCaseLower",
-        3 => "SnakeCaseLower",
-        4 => "SnakeCaseUpper",
-        _ => null
-    };
+    private static string? NameOf(int ordinal) =>
+        ordinal switch
+        {
+            0 => "MemberName",
+            1 => "CamelCase",
+            2 => "KebabCaseLower",
+            3 => "SnakeCaseLower",
+            4 => "SnakeCaseUpper",
+            _ => null,
+        };
 
     /// <summary>
     /// The wire value for one member, under a resolved naming.
     /// </summary>
-    public static string Value(string memberName, string naming) => naming switch {
-        "CamelCase" => CamelCase(memberName),
-        "KebabCaseLower" => Delimited(memberName, '-', upper: false),
-        "SnakeCaseLower" => Delimited(memberName, '_', upper: false),
-        "SnakeCaseUpper" => Delimited(memberName, '_', upper: true),
-        _ => memberName
-    };
+    public static string Value(string memberName, string naming) =>
+        naming switch
+        {
+            "CamelCase" => CamelCase(memberName),
+            "KebabCaseLower" => Delimited(memberName, '-', upper: false),
+            "SnakeCaseLower" => Delimited(memberName, '_', upper: false),
+            "SnakeCaseUpper" => Delimited(memberName, '_', upper: true),
+            _ => memberName,
+        };
 
     /// <summary>
     /// Whether Hardened gives this enum a vocabulary at all.
@@ -117,25 +128,31 @@ internal static class EnumWireNaming {
     /// <c>Static | Final</c> is a number and belongs on the wire as one.
     /// </para>
     /// </remarks>
-    public static bool IsOwned(INamedTypeSymbol enumType, IAssemblySymbol? modelAssembly) {
-        if (HasFlags(enumType)) {
+    public static bool IsOwned(INamedTypeSymbol enumType, IAssemblySymbol? modelAssembly)
+    {
+        if (HasFlags(enumType))
+        {
             return false;
         }
 
         var assembly = enumType.ContainingAssembly;
 
-        if (assembly == null) {
+        if (assembly == null)
+        {
             return false;
         }
 
-        return SymbolEqualityComparer.Default.Equals(assembly, modelAssembly) ||
-               Declared(assembly) != null;
+        return SymbolEqualityComparer.Default.Equals(assembly, modelAssembly)
+            || Declared(assembly) != null;
     }
 
     private static bool HasFlags(INamedTypeSymbol enumType) =>
-        enumType.GetAttributes().Any(attribute =>
-            attribute.AttributeClass?.Name == "FlagsAttribute" &&
-            attribute.AttributeClass.ContainingNamespace?.ToDisplayString() == "System");
+        enumType
+            .GetAttributes()
+            .Any(attribute =>
+                attribute.AttributeClass?.Name == "FlagsAttribute"
+                && attribute.AttributeClass.ContainingNamespace?.ToDisplayString() == "System"
+            );
 
     /// <summary>
     /// Every distinct member of an enum, paired with the value it goes out as.
@@ -148,23 +165,30 @@ internal static class EnumWireNaming {
     /// declared wins, which is the same one <c>Enum.ToString</c> picks.
     /// </remarks>
     public static IReadOnlyList<(string Member, string Wire)> Members(
-        INamedTypeSymbol enumType, string naming) {
+        INamedTypeSymbol enumType,
+        string naming
+    )
+    {
         var members = new List<(string Member, string Wire)>();
         var seenValues = new HashSet<object>();
         var seenWire = new HashSet<string>(System.StringComparer.Ordinal);
 
-        foreach (var field in enumType.GetMembers().OfType<IFieldSymbol>()) {
-            if (!field.IsConst || field.ConstantValue == null) {
+        foreach (var field in enumType.GetMembers().OfType<IFieldSymbol>())
+        {
+            if (!field.IsConst || field.ConstantValue == null)
+            {
                 continue;
             }
 
-            if (!seenValues.Add(field.ConstantValue)) {
+            if (!seenValues.Add(field.ConstantValue))
+            {
                 continue;
             }
 
             var wire = Value(field.Name, naming);
 
-            if (!seenWire.Add(wire)) {
+            if (!seenWire.Add(wire))
+            {
                 continue;
             }
 
@@ -174,8 +198,10 @@ internal static class EnumWireNaming {
         return members;
     }
 
-    private static string CamelCase(string name) {
-        if (name.Length == 0 || !char.IsUpper(name[0])) {
+    private static string CamelCase(string name)
+    {
+        if (name.Length == 0 || !char.IsUpper(name[0]))
+        {
             return name;
         }
 
@@ -183,7 +209,8 @@ internal static class EnumWireNaming {
         // becomes ioStream rather than iOStream. A name that is all capitals lowercases entirely.
         var prefix = 1;
 
-        while (prefix < name.Length && char.IsUpper(name[prefix])) {
+        while (prefix < name.Length && char.IsUpper(name[prefix]))
+        {
             prefix++;
         }
 
@@ -191,7 +218,8 @@ internal static class EnumWireNaming {
         // single leading capital steps back to zero and nothing is lowered at all, so CamelCase
         // returned its input for every ordinary name - Standard, Low, Open - which is nearly all
         // of them.
-        if (prefix > 1 && prefix < name.Length) {
+        if (prefix > 1 && prefix < name.Length)
+        {
             prefix--;
         }
 
@@ -207,20 +235,25 @@ internal static class EnumWireNaming {
     /// <c>HTTPProxy</c> is <c>http-proxy</c> rather than <c>h-t-t-p-proxy</c>, and <c>Plus1</c>
     /// stays one word.
     /// </remarks>
-    private static string Delimited(string name, char separator, bool upper) {
+    private static string Delimited(string name, char separator, bool upper)
+    {
         var builder = new StringBuilder(name.Length + 4);
 
-        for (var index = 0; index < name.Length; index++) {
+        for (var index = 0; index < name.Length; index++)
+        {
             var current = name[index];
 
-            if (index > 0 && char.IsUpper(current)) {
+            if (index > 0 && char.IsUpper(current))
+            {
                 var previous = name[index - 1];
                 var startsWord = !char.IsUpper(previous);
-                var endsAcronym = char.IsUpper(previous) &&
-                                  index + 1 < name.Length &&
-                                  char.IsLower(name[index + 1]);
+                var endsAcronym =
+                    char.IsUpper(previous)
+                    && index + 1 < name.Length
+                    && char.IsLower(name[index + 1]);
 
-                if (startsWord || endsAcronym) {
+                if (startsWord || endsAcronym)
+                {
                     builder.Append(separator);
                 }
             }

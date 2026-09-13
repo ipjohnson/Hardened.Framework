@@ -2,14 +2,18 @@
 
 namespace Hardened.Shared.Runtime.Utilities;
 
-public interface IFileExtToMimeTypeHelper {
+public interface IFileExtToMimeTypeHelper
+{
     (string, bool) GetMimeTypeInfo(string fileExtension);
 }
 
 [SingletonService(Using = RegistrationType.Try)]
-public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper {
-    public (string, bool) GetMimeTypeInfo(string fileExtension) {
-        switch (fileExtension.ToLowerInvariant().TrimStart('.')) {
+public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper
+{
+    public (string, bool) GetMimeTypeInfo(string fileExtension)
+    {
+        switch (fileExtension.ToLowerInvariant().TrimStart('.'))
+        {
             case "bz2":
                 return ("application/x-bzip2", true);
 
@@ -20,7 +24,10 @@ public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper {
                 return ("text/csv", false);
 
             case "docx":
-                return ("application/vnd.openxmlformats-officedocument.wordprocessingml.document", true);
+                return (
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    true
+                );
 
             case "gz":
                 return ("application/gzip", true);
@@ -49,7 +56,10 @@ public class FileExtToMimeTypeHelper : IFileExtToMimeTypeHelper {
                 return ("image/png", true);
 
             case "pptx":
-                return ("application/vnd.openxmlformats-officedocument.presentationml.presentation", true);
+                return (
+                    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                    true
+                );
 
             case "txt":
             case "text":

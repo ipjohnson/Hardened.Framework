@@ -7,20 +7,28 @@ using Xunit;
 
 namespace Hardened.Azure.Functions.Runtime.Tests;
 
-public class EventHubsRequestTests {
+public class EventHubsRequestTests
+{
     private static readonly EventHubsAdapter Adapter = new();
 
     private static EventHubsRequest Request(params EventData[] events) =>
-        (EventHubsRequest)Adapter.CreateRequest(
-            new FunctionsTrigger("STREAM", "/clickstream", events),
-            new TestFunctionContext("Stream_clickstream", new Dictionary<string, object?>(), new ServiceCollection().BuildServiceProvider()));
+        (EventHubsRequest)
+            Adapter.CreateRequest(
+                new FunctionsTrigger("STREAM", "/clickstream", events),
+                new TestFunctionContext(
+                    "Stream_clickstream",
+                    new Dictionary<string, object?>(),
+                    new ServiceCollection().BuildServiceProvider()
+                )
+            );
 
     /// <summary>
     /// The facts the hub carries outside the body, under prefixed names, from an event built the
     /// way a test builds one.
     /// </summary>
     [Fact]
-    public void AForkCarriesTheEventsPositionAndProperties() {
+    public void AForkCarriesTheEventsPositionAndProperties()
+    {
         var enqueued = new DateTimeOffset(2026, 9, 8, 12, 0, 0, TimeSpan.Zero);
 
         var eventData = EventHubsModelFactory.EventData(
@@ -29,7 +37,8 @@ public class EventHubsRequestTests {
             partitionKey: "clicks",
             sequenceNumber: 7,
             offset: 640,
-            enqueuedTime: enqueued);
+            enqueuedTime: enqueued
+        );
 
         eventData.ContentType = "application/json";
         eventData.MessageId = "m-7";
@@ -41,7 +50,10 @@ public class EventHubsRequestTests {
         Assert.Equal("7", fork.Headers[EventHubsRequest.SequenceNumberHeader].ToString());
         Assert.Equal("640", fork.Headers[EventHubsRequest.OffsetHeader].ToString());
         Assert.Equal("clicks", fork.Headers[EventHubsRequest.PartitionKeyHeader].ToString());
-        Assert.Equal("2026-09-08T12:00:00.0000000+00:00", fork.Headers[EventHubsRequest.EnqueuedTimeHeader].ToString());
+        Assert.Equal(
+            "2026-09-08T12:00:00.0000000+00:00",
+            fork.Headers[EventHubsRequest.EnqueuedTimeHeader].ToString()
+        );
         Assert.Equal("m-7", fork.Headers[EventHubsRequest.MessageIdHeader].ToString());
         Assert.Equal("application/json", fork.ContentType);
         Assert.Equal("abc", fork.Headers["x-trace"].ToString());
@@ -55,24 +67,34 @@ public class EventHubsRequestTests {
     /// long can hold - which is where the SDK's own accessor threw under the real host.
     /// </summary>
     [Fact]
-    public void AnOffsetTheServiceWroteAsTextIsCarriedAsIs() {
+    public void AnOffsetTheServiceWroteAsTextIsCarriedAsIs()
+    {
         var eventData = EventHubsModelFactory.EventData(
             eventBody: BinaryData.FromString("{}"),
-            systemProperties: new Dictionary<string, object> {
+            systemProperties: new Dictionary<string, object>
+            {
                 ["x-opt-offset"] = "0-128",
                 ["x-opt-sequence-number"] = 1L,
-                ["x-opt-enqueued-time"] = new DateTime(2026, 9, 8, 12, 0, 0, DateTimeKind.Utc)
-            });
+                ["x-opt-enqueued-time"] = new DateTime(2026, 9, 8, 12, 0, 0, DateTimeKind.Utc),
+            }
+        );
 
         var fork = Request(eventData).ForItem(0);
 
         Assert.Equal("0-128", fork.Headers[EventHubsRequest.OffsetHeader].ToString());
-        Assert.Equal("2026-09-08T12:00:00.0000000+00:00", fork.Headers[EventHubsRequest.EnqueuedTimeHeader].ToString());
+        Assert.Equal(
+            "2026-09-08T12:00:00.0000000+00:00",
+            fork.Headers[EventHubsRequest.EnqueuedTimeHeader].ToString()
+        );
     }
 
     [Fact]
-    public void AnEventWithoutABodyHasNoBody() {
-        var fork = Request(EventHubsModelFactory.EventData(eventBody: new BinaryData(Array.Empty<byte>()))).ForItem(0);
+    public void AnEventWithoutABodyHasNoBody()
+    {
+        var fork = Request(
+                EventHubsModelFactory.EventData(eventBody: new BinaryData(Array.Empty<byte>()))
+            )
+            .ForItem(0);
 
         Assert.Same(Stream.Null, fork.Body);
     }

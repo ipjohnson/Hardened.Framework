@@ -17,8 +17,10 @@ namespace Hardened.Azure.Functions.Timer;
 /// </remarks>
 [DependencyModule]
 [FunctionsRuntimeModule]
-public partial class TimerModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class TimerModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerAdapter>(new TimerAdapter());
 
         // A timer is never a batch, but the neutral test delivery always is, and the filter is

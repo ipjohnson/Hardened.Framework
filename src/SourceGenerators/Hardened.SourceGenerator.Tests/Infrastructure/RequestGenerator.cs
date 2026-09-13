@@ -20,13 +20,16 @@ namespace Hardened.SourceGenerator.Tests.Infrastructure;
 /// assembly under test.
 /// </para>
 /// </summary>
-public class RequestGenerator : IIncrementalGenerator {
-
-    public void Initialize(IncrementalGeneratorInitializationContext context) {
-        var applicationModel = context.SyntaxProvider.CreateSyntaxProvider(
-            EntryPointSelector.UsingAttribute(),
-            EntryPointSelector.TransformModel(false)
-        ).WithComparer(new EntryPointSelector.Comparer());
+public class RequestGenerator : IIncrementalGenerator
+{
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        var applicationModel = context
+            .SyntaxProvider.CreateSyntaxProvider(
+                EntryPointSelector.UsingAttribute(),
+                EntryPointSelector.TransformModel(false)
+            )
+            .WithComparer(new EntryPointSelector.Comparer());
 
         WebIncrementalGenerator.Setup(context, applicationModel);
     }
@@ -41,23 +44,30 @@ public class RequestGenerator : IIncrementalGenerator {
 /// by calling the generator directly - they have to be collected from inside a real run. This
 /// registers no source output: the point is the models, not what would be written from them.
 /// </remarks>
-public class HandlerModelCapture : IIncrementalGenerator {
+public class HandlerModelCapture : IIncrementalGenerator
+{
     private readonly List<RequestHandlerModel> _models;
 
     public HandlerModelCapture(List<RequestHandlerModel> models) => _models = models;
 
-    public void Initialize(IncrementalGeneratorInitializationContext context) {
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
         var generator = new WebRequestHandlerModelGenerator();
 
         var models = context.SyntaxProvider.CreateSyntaxProvider(
             generator.SelectWebRequestMethods,
             (syntaxContext, cancellationToken) =>
-                generator.GenerateRequestModel(syntaxContext, cancellationToken));
+                generator.GenerateRequestModel(syntaxContext, cancellationToken)
+        );
 
-        context.RegisterSourceOutput(models.Collect(), (_, collected) => {
-            _models.Clear();
-            _models.AddRange(collected.Where(model => model != null)!);
-        });
+        context.RegisterSourceOutput(
+            models.Collect(),
+            (_, collected) =>
+            {
+                _models.Clear();
+                _models.AddRange(collected.Where(model => model != null)!);
+            }
+        );
     }
 }
 
@@ -65,20 +75,20 @@ public class HandlerModelCapture : IIncrementalGenerator {
 /// The reference set generated request handlers bind against, and the entry point every test in
 /// this suite goes through.
 /// </summary>
-public static class RequestGeneratorHarness {
-
+public static class RequestGeneratorHarness
+{
     /// <summary>
     /// One type per assembly the generated code touches. <c>typeof</c> rather than an assembly name
     /// because it forces the assembly to load, which is what makes it resolvable.
     /// </summary>
-    public static readonly Type[] Anchors = [
-        typeof(GetAttribute),        // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),   // Hardened.Requests.Abstract
-
+    public static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
         // Fully qualified: this assembly's own namespace is Hardened.SourceGenerator.*, so an
         // unqualified Requests. or Shared. binds there instead of to the runtime packages.
         typeof(global::Hardened.Requests.Runtime.Execution.BaseExecutionHandler<>),
-        typeof(global::Hardened.Shared.Runtime.Attributes.HardenedModuleAttribute)
+        typeof(global::Hardened.Shared.Runtime.Attributes.HardenedModuleAttribute),
     ];
 
     /// <summary>
@@ -91,7 +101,8 @@ public static class RequestGeneratorHarness {
     /// <summary>
     /// The handler models the attribute-routed pipeline builds for <paramref name="source"/>.
     /// </summary>
-    public static IReadOnlyList<RequestHandlerModel> HandlerModels(string source) {
+    public static IReadOnlyList<RequestHandlerModel> HandlerModels(string source)
+    {
         var models = new List<RequestHandlerModel>();
 
         GeneratorTestHarness.Run(source, new HandlerModelCapture(models), Anchors);
@@ -107,18 +118,19 @@ public static class RequestGeneratorHarness {
     /// Wraps <paramref name="body"/> in a controller with a single <c>[Get]</c> route, for the many
     /// cases where the interesting part is one handler signature.
     /// </summary>
-    public static string Controller(string body) => $$"""
-        using System;
-        using System.Collections.Generic;
-        using System.Threading.Tasks;
-        using Hardened.Requests.Abstract.Attributes;
-        using Hardened.Requests.Abstract.Execution;
-        using Hardened.Web.Runtime.Attributes;
+    public static string Controller(string body) =>
+        $$"""
+            using System;
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Requests.Abstract.Execution;
+            using Hardened.Web.Runtime.Attributes;
 
-        namespace TestApp;
+            namespace TestApp;
 
-        public class TestController {
-        {{body}}
-        }
-        """;
+            public class TestController {
+            {{body}}
+            }
+            """;
 }

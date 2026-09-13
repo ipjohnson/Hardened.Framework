@@ -24,8 +24,8 @@ namespace Hardened.Requests.Abstract.Caching;
 /// store needs one, and the in-process implementation ignoring it costs nothing.
 /// </para>
 /// </remarks>
-public interface IResponseCacheStore {
-
+public interface IResponseCacheStore
+{
     /// <summary>
     /// The entry stored under <paramref name="key"/>, or null when there is none or it has expired.
     /// </summary>
@@ -42,7 +42,11 @@ public interface IResponseCacheStore {
     /// misses.
     /// </remarks>
     ValueTask Set(
-        string key, CachedResponse response, TimeSpan duration, CancellationToken cancellationToken);
+        string key,
+        CachedResponse response,
+        TimeSpan duration,
+        CancellationToken cancellationToken
+    );
 
     /// <summary>
     /// Drops every entry stored under <paramref name="tag"/>.

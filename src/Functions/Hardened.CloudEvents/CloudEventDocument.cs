@@ -13,7 +13,8 @@ namespace Hardened.CloudEvents;
 /// missing required one is reported by <see cref="CloudEventReader"/> by name rather than by a
 /// deserializer failing to construct.
 /// </remarks>
-internal sealed class CloudEventDocument {
+internal sealed class CloudEventDocument
+{
     [JsonPropertyName("specversion")]
     public string? SpecVersion { get; set; }
 

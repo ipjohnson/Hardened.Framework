@@ -22,11 +22,12 @@ namespace Hardened.IntegrationTests.Smithy.SUT;
 /// </para>
 /// </remarks>
 [Handler]
-public class BankServiceImpl : IBankService {
-
-    private static readonly Dictionary<string, long> Balances = new() {
+public class BankServiceImpl : IBankService
+{
+    private static readonly Dictionary<string, long> Balances = new()
+    {
         ["acct-1"] = 125_00,
-        ["acct-2"] = 4_250_00
+        ["acct-2"] = 4_250_00,
     };
 
     /// <summary>
@@ -40,8 +41,10 @@ public class BankServiceImpl : IBankService {
     /// the reader added the <c>__type</c> field the protocol identifies errors by, so nothing here
     /// has to know that awsJson wants one.
     /// </remarks>
-    public Task<GetBalanceOutput> GetBalance(GetBalanceInput body) {
-        if (!Balances.TryGetValue(body.AccountId, out var cents)) {
+    public Task<GetBalanceOutput> GetBalance(GetBalanceInput body)
+    {
+        if (!Balances.TryGetValue(body.AccountId, out var cents))
+        {
             // AsException() rather than naming AccountNotFound twice, which is the same shorthand
             // the shipped records get and is generated because this shape names one error.
             throw new AccountNotFound($"No account {body.AccountId}.").AsException();
@@ -51,5 +54,7 @@ public class BankServiceImpl : IBankService {
     }
 
     public Task<TransferOutput> Transfer(TransferInput body) =>
-        Task.FromResult(new TransferOutput($"{body.FromAccount}->{body.ToAccount}:{body.AmountCents}"));
+        Task.FromResult(
+            new TransferOutput($"{body.FromAccount}->{body.ToAccount}:{body.AmountCents}")
+        );
 }

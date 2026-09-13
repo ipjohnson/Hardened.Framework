@@ -14,8 +14,8 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// making is which handler a request actually reaches.
 /// </para>
 /// </summary>
-public class RouteTreeConflictTests {
-
+public class RouteTreeConflictTests
+{
     private const string EntryPoint = """
         using Hardened.Shared.Runtime.Attributes;
         using Hardened.Web.Runtime.Attributes;
@@ -37,8 +37,10 @@ public class RouteTreeConflictTests {
     /// and both requests reach one handler.
     /// </summary>
     [Fact]
-    public void RoutesThatReduceToTheSameGeneratedMethodNameReachTheirOwnHandlers() {
-        var routing = Routing("""
+    public void RoutesThatReduceToTheSameGeneratedMethodNameReachTheirOwnHandlers()
+    {
+        var routing = Routing(
+            """
             public class SplitController {
                 [Get("/a/x")]
                 public string AX() => "ax";
@@ -46,7 +48,8 @@ public class RouteTreeConflictTests {
                 [Get("/b/x")]
                 public string BX() => "bx";
             }
-            """);
+            """
+        );
 
         Assert.Equal("AX", routing.Handler("GET", "/a/x").InvokeMethod);
         Assert.Equal("BX", routing.Handler("GET", "/b/x").InvokeMethod);
@@ -78,8 +81,12 @@ public class RouteTreeConflictTests {
     [InlineData("/r/other", "Token")]
     [InlineData("/r/fixed/sub", "FixedSub")]
     [InlineData("/r/other/sub", "TokenSub")]
-    public void ALiteralBeatsATokenAtEveryDepth(string path, string expectedHandler) {
-        Assert.Equal(expectedHandler, Routing(LiteralAgainstToken).Handler("GET", path).InvokeMethod);
+    public void ALiteralBeatsATokenAtEveryDepth(string path, string expectedHandler)
+    {
+        Assert.Equal(
+            expectedHandler,
+            Routing(LiteralAgainstToken).Handler("GET", path).InvokeMethod
+        );
     }
 
     /// <summary>
@@ -87,7 +94,8 @@ public class RouteTreeConflictTests {
     /// the prefix of a literal the tree also knows about.
     /// </summary>
     [Fact]
-    public void ATokenBindsTheSegmentItMatchedEvenWhenALiteralSharesItsPrefix() {
+    public void ATokenBindsTheSegmentItMatchedEvenWhenALiteralSharesItsPrefix()
+    {
         var routing = Routing(LiteralAgainstToken);
 
         Assert.Equal("fixe", Assert.Contains("id", routing.PathTokens("GET", "/r/fixe")));
@@ -112,8 +120,15 @@ public class RouteTreeConflictTests {
     [Theory]
     [InlineData("/f/7.json", "Json")]
     [InlineData("/f/7/edit", "Edit")]
-    public void OneTokenWithTwoDifferentSuffixesReachesBothRoutes(string path, string expectedHandler) {
-        Assert.Equal(expectedHandler, Routing(SharedTokenDifferentSuffixes).Handler("GET", path).InvokeMethod);
+    public void OneTokenWithTwoDifferentSuffixesReachesBothRoutes(
+        string path,
+        string expectedHandler
+    )
+    {
+        Assert.Equal(
+            expectedHandler,
+            Routing(SharedTokenDifferentSuffixes).Handler("GET", path).InvokeMethod
+        );
     }
 
     /// <summary>
@@ -122,7 +137,8 @@ public class RouteTreeConflictTests {
     /// <c>7.json</c> as its id.
     /// </summary>
     [Fact]
-    public void ATokenStopsBeforeTheSuffixThatDistinguishesTheRoutes() {
+    public void ATokenStopsBeforeTheSuffixThatDistinguishesTheRoutes()
+    {
         var routing = Routing(SharedTokenDifferentSuffixes);
 
         Assert.Equal("7", Assert.Contains("id", routing.PathTokens("GET", "/f/7.json")));
@@ -134,7 +150,8 @@ public class RouteTreeConflictTests {
     /// wildcard branch was emitted first.
     /// </summary>
     [Fact]
-    public void ASuffixNeitherRouteDeclaresMatchesNothing() {
+    public void ASuffixNeitherRouteDeclaresMatchesNothing()
+    {
         Assert.Null(Routing(SharedTokenDifferentSuffixes).Route("GET", "/f/7.xml"));
     }
 
@@ -143,8 +160,10 @@ public class RouteTreeConflictTests {
     /// naming their token differently is the smallest case where a positional mistake is visible.
     /// </summary>
     [Fact]
-    public void TheSamePathUnderTwoVerbsBindsEachVerbsOwnTokenName() {
-        var routing = Routing("""
+    public void TheSamePathUnderTwoVerbsBindsEachVerbsOwnTokenName()
+    {
+        var routing = Routing(
+            """
             public class TokenVerbController {
                 [Get("/t/{getId}")]
                 public string Read(string getId) => getId;
@@ -152,7 +171,8 @@ public class RouteTreeConflictTests {
                 [Post("/t/{postId}")]
                 public string Write(string postId) => postId;
             }
-            """);
+            """
+        );
 
         var read = routing.PathTokens("GET", "/t/7");
         var write = routing.PathTokens("POST", "/t/7");
@@ -169,13 +189,16 @@ public class RouteTreeConflictTests {
     /// own switch over the request method with its own default, separate from the literal one.
     /// </summary>
     [Fact]
-    public void AVerbWithNoRouteBehindATokenReachesNoHandler() {
-        var routing = Routing("""
+    public void AVerbWithNoRouteBehindATokenReachesNoHandler()
+    {
+        var routing = Routing(
+            """
             public class ReadOnlyController {
                 [Get("/items/{id}")]
                 public string GetItem(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.NotNull(routing.Handler("GET", "/items/42"));
         Assert.Null(routing.Route("DELETE", "/items/42")?.Handler);
@@ -187,8 +210,10 @@ public class RouteTreeConflictTests {
     /// below it. Each binds its own names and nothing else's.
     /// </summary>
     [Fact]
-    public void ThreeRoutesSharingATokenPositionEachBindOnlyTheirOwnNames() {
-        var routing = Routing("""
+    public void ThreeRoutesSharingATokenPositionEachBindOnlyTheirOwnNames()
+    {
+        var routing = Routing(
+            """
             public class NestedController {
                 [Get("/n/{alpha}")]
                 public string One(string alpha) => alpha;
@@ -199,7 +224,8 @@ public class RouteTreeConflictTests {
                 [Get("/n/{gamma}/x/{delta}")]
                 public string Three(string gamma, string delta) => gamma + delta;
             }
-            """);
+            """
+        );
 
         var one = routing.PathTokens("GET", "/n/1");
         var two = routing.PathTokens("GET", "/n/2/x");
@@ -218,13 +244,16 @@ public class RouteTreeConflictTests {
 
     /// <summary>Two tokens with nothing but the leading slash in front of them.</summary>
     [Fact]
-    public void TwoTokensAtTheRootOfTheTreeEachBindTheirOwnSegment() {
-        var routing = Routing("""
+    public void TwoTokensAtTheRootOfTheTreeEachBindTheirOwnSegment()
+    {
+        var routing = Routing(
+            """
             public class RootTokenController {
                 [Get("/{tenant}/{resource}")]
                 public string Pair(string tenant, string resource) => tenant + resource;
             }
-            """);
+            """
+        );
 
         var tokens = routing.PathTokens("GET", "/acme/orders");
 
@@ -243,13 +272,16 @@ public class RouteTreeConflictTests {
     [InlineData("/shor", false)]
     [InlineData("/", false)]
     [InlineData("", false)]
-    public void ARequestMustBeExactlyAsLongAsTheRouteItMatches(string path, bool matches) {
-        var routing = Routing("""
+    public void ARequestMustBeExactlyAsLongAsTheRouteItMatches(string path, bool matches)
+    {
+        var routing = Routing(
+            """
             public class ShortController {
                 [Get("/short")]
                 public string Value() => "short";
             }
-            """);
+            """
+        );
 
         Assert.Equal(matches, routing.Route("GET", path) != null);
     }
@@ -260,13 +292,16 @@ public class RouteTreeConflictTests {
     /// as one is unreachable as the other.
     /// </summary>
     [Fact]
-    public void AnEmptySegmentInTheMiddleOfARouteIsMatchedLiterally() {
-        var routing = Routing("""
+    public void AnEmptySegmentInTheMiddleOfARouteIsMatchedLiterally()
+    {
+        var routing = Routing(
+            """
             public class DoubleController {
                 [Get("/a//b")]
                 public string Value() => "double";
             }
-            """);
+            """
+        );
 
         Assert.Equal("Value", routing.Handler("GET", "/a//b").InvokeMethod);
         Assert.Null(routing.Route("GET", "/a/b"));
@@ -279,13 +314,16 @@ public class RouteTreeConflictTests {
     [Theory]
     [InlineData("/ORDERS/7/LINES")]
     [InlineData("/Orders/7/Lines")]
-    public void ARouteWithATokenIsMatchedAsWritten(string path) {
-        var routing = Routing("""
+    public void ARouteWithATokenIsMatchedAsWritten(string path)
+    {
+        var routing = Routing(
+            """
             public class CaseController {
                 [Get("/orders/{id}/lines")]
                 public string Lines(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Equal("Lines", routing.Handler("GET", "/orders/7/lines").InvokeMethod);
         Assert.Null(routing.Route("GET", path));
@@ -300,8 +338,10 @@ public class RouteTreeConflictTests {
     [InlineData("/orders/7/lines")]
     [InlineData("/ORDERS/7/LINES")]
     [InlineData("/Orders/7/Lines")]
-    public void CaseInsensitiveRoutesMatchesATokenRouteInAnyCase(string path) {
-        var routing = GeneratedRoutingTable.For("""
+    public void CaseInsensitiveRoutesMatchesATokenRouteInAnyCase(string path)
+    {
+        var routing = GeneratedRoutingTable.For(
+            """
             using Hardened.Shared.Runtime.Attributes;
             using Hardened.Web.Runtime.Attributes;
 
@@ -315,7 +355,8 @@ public class RouteTreeConflictTests {
                 [Get("/orders/{id}/lines")]
                 public string Lines(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Equal("Lines", routing.Handler("GET", path).InvokeMethod);
         Assert.Equal("7", Assert.Contains("id", routing.PathTokens("GET", path)));
@@ -327,8 +368,10 @@ public class RouteTreeConflictTests {
     /// wildcard scan all decide this one request.
     /// </summary>
     [Fact]
-    public void APrefixALongerLiteralAndATokenAtOnePositionAreAllReachable() {
-        var routing = Routing("""
+    public void APrefixALongerLiteralAndATokenAtOnePositionAreAllReachable()
+    {
+        var routing = Routing(
+            """
             public class PrefixController {
                 [Get("/p/list")]
                 public string List() => "list";
@@ -339,7 +382,8 @@ public class RouteTreeConflictTests {
                 [Get("/p/{id}")]
                 public string ById(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Equal("List", routing.Handler("GET", "/p/list").InvokeMethod);
         Assert.Equal("Listing", routing.Handler("GET", "/p/listing").InvokeMethod);
@@ -352,8 +396,10 @@ public class RouteTreeConflictTests {
     /// identical. Both are reachable, and neither answers at the other's prefix.
     /// </summary>
     [Fact]
-    public void IdenticalTailsUnderDifferentBasePathsDoNotCollide() {
-        var routing = Routing("""
+    public void IdenticalTailsUnderDifferentBasePathsDoNotCollide()
+    {
+        var routing = Routing(
+            """
             [BasePath("/v1")]
             public class V1Controller {
                 [Get("/items/{id}")]
@@ -365,7 +411,8 @@ public class RouteTreeConflictTests {
                 [Get("/items/{id}")]
                 public string Two(string id) => id;
             }
-            """);
+            """
+        );
 
         Assert.Equal("One", routing.Handler("GET", "/v1/items/7").InvokeMethod);
         Assert.Equal("Two", routing.Handler("GET", "/v2/items/7").InvokeMethod);

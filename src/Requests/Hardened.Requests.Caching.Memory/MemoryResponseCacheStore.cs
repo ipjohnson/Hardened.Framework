@@ -35,8 +35,8 @@ namespace Hardened.Requests.Caching.Memory;
 /// makes the duration mean something a test can move.
 /// </para>
 /// </remarks>
-public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable {
-
+public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable
+{
     private readonly MemoryCache _cache;
     private readonly long _maximumBodySize;
     private readonly TimeProvider _timeProvider;
@@ -59,7 +59,10 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
     private readonly Dictionary<string, HashSet<string>> _keysByTag = new(StringComparer.Ordinal);
 
     public MemoryResponseCacheStore(
-        IOptions<IMemoryResponseCacheConfiguration> configuration, TimeProvider timeProvider) {
+        IOptions<IMemoryResponseCacheConfiguration> configuration,
+        TimeProvider timeProvider
+    )
+    {
         var settings = configuration.Value;
 
         _maximumBodySize = settings.MaximumBodySize;
@@ -74,19 +77,23 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
     /// An entry past its duration is removed rather than merely withheld, so the tag index does not
     /// keep naming a response nothing will be served.
     /// </remarks>
-    public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken) {
-        if (!_cache.TryGetValue(key, out Entry? entry) || entry == null) {
+    public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken)
+    {
+        if (!_cache.TryGetValue(key, out Entry? entry) || entry == null)
+        {
             return new ValueTask<CachedResponse?>((CachedResponse?)null);
         }
 
-        if (entry.ExpiresAt > _timeProvider.GetUtcNow()) {
+        if (entry.ExpiresAt > _timeProvider.GetUtcNow())
+        {
             return new ValueTask<CachedResponse?>(entry.Response);
         }
 
         // Unindexed here rather than left to the eviction callback, which arrives on the thread
         // pool: a tag still naming this key would take the next entry stored under the key with it
         // the next time that tag was evicted.
-        lock (_keysByTag) {
+        lock (_keysByTag)
+        {
             Forget(key, entry);
 
             _cache.Remove(key);
@@ -104,8 +111,14 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
     /// refusal is that the next request misses.
     /// </remarks>
     public ValueTask Set(
-        string key, CachedResponse response, TimeSpan duration, CancellationToken cancellationToken) {
-        if (response.Size > _maximumBodySize) {
+        string key,
+        CachedResponse response,
+        TimeSpan duration,
+        CancellationToken cancellationToken
+    )
+    {
+        if (response.Size > _maximumBodySize)
+        {
             return default;
         }
 
@@ -114,27 +127,35 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
         // MemoryCache raises them on the thread pool - and unindex the entry that just arrived,
         // which leaves a response nothing can invalidate and a publish nobody sees until it
         // expires.
-        lock (_keysByTag) {
+        lock (_keysByTag)
+        {
             // A key written again may have been indexed under different tags. Unindexing what is
             // being replaced is what keeps EvictByTag from dropping an entry that is no longer
             // tagged that way, and it is why the callback ignores a replacement.
             // Not null when the lookup succeeded: this store is the only thing that writes to its
             // own cache, and it never writes one.
-            if (_cache.TryGetValue(key, out Entry? replaced)) {
+            if (_cache.TryGetValue(key, out Entry? replaced))
+            {
                 Forget(key, replaced!);
             }
 
-            var entry = new Entry(response, _timeProvider.GetUtcNow() + duration) {
-                TagSets = Index(key, response.Tags)
+            var entry = new Entry(response, _timeProvider.GetUtcNow() + duration)
+            {
+                TagSets = Index(key, response.Tags),
             };
 
-            _cache.Set(key, entry, new MemoryCacheEntryOptions {
-                AbsoluteExpirationRelativeToNow = duration,
+            _cache.Set(
+                key,
+                entry,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = duration,
 
-                // Sized, because MemoryCacheOptions.SizeLimit is only enforced when every entry says
-                // how big it is - and an entry with no size on a cache with a limit throws.
-                Size = response.Size
-            }.RegisterPostEvictionCallback(OnEvicted));
+                    // Sized, because MemoryCacheOptions.SizeLimit is only enforced when every entry says
+                    // how big it is - and an entry with no size on a cache with a limit throws.
+                    Size = response.Size,
+                }.RegisterPostEvictionCallback(OnEvicted)
+            );
         }
 
         return default;
@@ -148,18 +169,22 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
     /// store cannot add a key to a tag that is halfway through being evicted. Keys carrying other
     /// tags as well are unindexed from those by the eviction callback.
     /// </remarks>
-    public ValueTask EvictByTag(string tag, CancellationToken cancellationToken) {
+    public ValueTask EvictByTag(string tag, CancellationToken cancellationToken)
+    {
         string[] keys;
 
-        lock (_keysByTag) {
-            if (!_keysByTag.Remove(tag, out var tagged)) {
+        lock (_keysByTag)
+        {
+            if (!_keysByTag.Remove(tag, out var tagged))
+            {
                 return default;
             }
 
-            keys = [..tagged];
+            keys = [.. tagged];
         }
 
-        foreach (var key in keys) {
+        foreach (var key in keys)
+        {
             _cache.Remove(key);
         }
 
@@ -176,8 +201,8 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
     /// store was given. <see cref="MemoryCache"/> holds its own, on the machine clock, and that one
     /// only decides when the memory is freed.
     /// </remarks>
-    private sealed record Entry(CachedResponse Response, DateTimeOffset ExpiresAt) {
-
+    private sealed record Entry(CachedResponse Response, DateTimeOffset ExpiresAt)
+    {
         /// <summary>
         /// The index sets this entry was added to, so leaving them needs no lookup. Empty for an
         /// entry whose declaration named no tags, which is most of them.
@@ -198,17 +223,23 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
     /// <para>Called holding the lock.</para>
     /// </remarks>
     private IReadOnlyList<(string Tag, HashSet<string> Keys)> Index(
-        string key, IReadOnlyList<string> tags) {
-        if (tags.Count == 0) {
+        string key,
+        IReadOnlyList<string> tags
+    )
+    {
+        if (tags.Count == 0)
+        {
             return [];
         }
 
         var joined = new (string, HashSet<string>)[tags.Count];
 
-        for (var i = 0; i < tags.Count; i++) {
+        for (var i = 0; i < tags.Count; i++)
+        {
             var tag = tags[i];
 
-            if (!_keysByTag.TryGetValue(tag, out var tagged)) {
+            if (!_keysByTag.TryGetValue(tag, out var tagged))
+            {
                 _keysByTag[tag] = tagged = new HashSet<string>(StringComparer.Ordinal);
             }
 
@@ -239,20 +270,25 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
     /// </para>
     /// </remarks>
     [ExcludeFromCodeCoverage(
-        Justification = "Raised by MemoryCache on the thread pool, for reclamation this store did " +
-                        "not schedule. No test driving the public surface can execute it.")]
-    private void OnEvicted(object key, object? value, EvictionReason reason, object? state) {
+        Justification = "Raised by MemoryCache on the thread pool, for reclamation this store did "
+            + "not schedule. No test driving the public surface can execute it."
+    )]
+    private void OnEvicted(object key, object? value, EvictionReason reason, object? state)
+    {
         // A replacement has already been unindexed by Set, which knew the new entry's tags.
-        if (reason == EvictionReason.Replaced || value is not Entry evicted) {
+        if (reason == EvictionReason.Replaced || value is not Entry evicted)
+        {
             return;
         }
 
-        lock (_keysByTag) {
+        lock (_keysByTag)
+        {
             // The index entry belongs to whatever is in the cache now, which may not be what was
             // evicted: these arrive on the thread pool, so a key can be stored again before its
             // predecessor's callback runs. Unindexing then would leave a response nothing can
             // invalidate.
-            if (_cache.TryGetValue(key, out Entry? current) && !ReferenceEquals(current, evicted)) {
+            if (_cache.TryGetValue(key, out Entry? current) && !ReferenceEquals(current, evicted))
+            {
                 return;
             }
 
@@ -276,8 +312,10 @@ public sealed class MemoryResponseCacheStore : IResponseCacheStore, IDisposable 
     /// </para>
     /// <para>Called holding the lock.</para>
     /// </remarks>
-    private static void Forget(string key, Entry entry) {
-        foreach (var (_, tagged) in entry.TagSets) {
+    private static void Forget(string key, Entry entry)
+    {
+        foreach (var (_, tagged) in entry.TagSets)
+        {
             tagged.Remove(key);
         }
     }

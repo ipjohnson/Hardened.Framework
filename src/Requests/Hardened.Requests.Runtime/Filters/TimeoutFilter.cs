@@ -37,32 +37,39 @@ namespace Hardened.Requests.Runtime.Filters;
 /// <see cref="DeadlineScope"/> for the deadline's own restore.
 /// </para>
 /// </remarks>
-public class TimeoutFilter : IExecutionFilter {
+public class TimeoutFilter : IExecutionFilter
+{
     private readonly int _milliseconds;
     private readonly bool _publishDeadline;
 
-    public TimeoutFilter(int milliseconds, bool publishDeadline = true) {
+    public TimeoutFilter(int milliseconds, bool publishDeadline = true)
+    {
         _milliseconds = milliseconds;
         _publishDeadline = publishDeadline;
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
         // Linked, so the transport's own cancellation still reaches the handler: a client that
         // hangs up should stop the work whether or not a budget was declared.
-        using var deadline =
-            CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(
+            context.CancellationToken
+        );
 
         deadline.CancelAfter(_milliseconds);
 
-        try {
+        try
+        {
             using (context.WithCancellation(deadline.Token))
-            using (RequestDeadline.Until(Published(), deadline.Token)) {
+            using (RequestDeadline.Until(Published(), deadline.Token))
+            {
                 await chain.Next();
             }
         }
-        finally {
+        finally
+        {
             // The scope has closed by the time this runs, so the token read here is the
             // transport's again. Both fire together on a disconnect, and that is the case this
             // excludes: the metric is here to find the slow handler, not to count clients closing
@@ -71,8 +78,11 @@ public class TimeoutFilter : IExecutionFilter {
             // In a finally because a filter that throws past this one would otherwise take the
             // count with it. Nothing in the shipping pipeline does - IOFilter catches at
             // Serialization, inside this span - but a chain that has been composed by hand can.
-            if (deadline.IsCancellationRequested &&
-                !context.CancellationToken.IsCancellationRequested) {
+            if (
+                deadline.IsCancellationRequested
+                && !context.CancellationToken.IsCancellationRequested
+            )
+            {
                 context.RequestMetrics.Record(RequestMetrics.RequestTimedOut, 1);
             }
         }

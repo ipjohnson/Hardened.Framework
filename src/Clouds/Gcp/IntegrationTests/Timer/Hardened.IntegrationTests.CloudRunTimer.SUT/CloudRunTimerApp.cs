@@ -13,11 +13,13 @@ namespace Hardened.IntegrationTests.CloudRunTimer.SUT;
 public partial class CloudRunTimerApp;
 
 /// <summary>What the handlers in this application did, in order; injected so each test observes only its own.</summary>
-public interface ITriggerLog {
+public interface ITriggerLog
+{
     void Record(string entry);
 }
 
-public class ScheduleHandlers {
+public class ScheduleHandlers
+{
     /// <summary>
     /// No payload, which is the ordinary shape for a schedule: a Scheduler job carries no body
     /// unless one was configured, so there is nothing to bind and asking for one would be asking
@@ -31,9 +33,14 @@ public class ScheduleHandlers {
 /// A log that reports every entry on the process's output, for the container tier: the marker the
 /// harness reads, written as a literal so this executable depends on no test package.
 /// </summary>
-public sealed class ObservedTriggerLog : ITriggerLog {
-    public void Record(string entry) {
-        Console.Out.WriteLine("HARDENED-OBSERVED " + System.Text.Json.JsonSerializer.Serialize(new { kind = "timer", entry }));
+public sealed class ObservedTriggerLog : ITriggerLog
+{
+    public void Record(string entry)
+    {
+        Console.Out.WriteLine(
+            "HARDENED-OBSERVED "
+                + System.Text.Json.JsonSerializer.Serialize(new { kind = "timer", entry })
+        );
         Console.Out.Flush();
     }
 }

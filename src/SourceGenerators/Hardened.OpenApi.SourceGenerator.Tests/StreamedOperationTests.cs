@@ -21,10 +21,9 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// parse-emit-serialise-generate path a build does, which is what makes them able to see that.
 /// </para>
 /// </remarks>
-public class StreamedOperationTests {
-
-    private const string Spec =
-        """
+public class StreamedOperationTests
+{
+    private const string Spec = """
         openapi: "3.2.0"
         info: { title: Pets, version: "1.0" }
         paths:
@@ -80,8 +79,7 @@ public class StreamedOperationTests {
                 detail: { type: string }
         """;
 
-    private const string Implementation =
-        """
+    private const string Implementation = """
         [Handler]
         public class PetServiceImpl : IPetService {
             public async IAsyncEnumerable<PetEvent> PetEvents(string petId) {
@@ -99,17 +97,25 @@ public class StreamedOperationTests {
         """;
 
     [Fact]
-    public void TheInterfaceReturnsAStream() {
-        var generated = OpenApiGenerator.Run(Spec).AssertNoErrors().SourceContaining("petstore.g.cs");
+    public void TheInterfaceReturnsAStream()
+    {
+        var generated = OpenApiGenerator
+            .Run(Spec)
+            .AssertNoErrors()
+            .SourceContaining("petstore.g.cs");
 
-        Assert.Contains("IAsyncEnumerable<global::TestNamespace.Models.PetEvent> PetEvents(string petId)", generated);
+        Assert.Contains(
+            "IAsyncEnumerable<global::TestNamespace.Models.PetEvent> PetEvents(string petId)",
+            generated
+        );
     }
 
     /// <summary>
     /// The handler hands the enumerable to the streaming filter rather than awaiting it.
     /// </summary>
     [Fact]
-    public void TheHandlerStreamsWithTheFramingTheContractNames() {
+    public void TheHandlerStreamsWithTheFramingTheContractNames()
+    {
         var result = OpenApiGenerator.Run(Spec).AssertNoErrors();
 
         var events = result.SourceContaining("PetController_PetEvents");
@@ -131,8 +137,12 @@ public class StreamedOperationTests {
     /// to stand down rather than buffer an event stream.
     /// </summary>
     [Fact]
-    public void TheHandlerInfoSaysItStreams() {
-        var events = OpenApiGenerator.Run(Spec).AssertNoErrors().SourceContaining("PetController_PetEvents");
+    public void TheHandlerInfoSaysItStreams()
+    {
+        var events = OpenApiGenerator
+            .Run(Spec)
+            .AssertNoErrors()
+            .SourceContaining("PetController_PetEvents");
 
         Assert.Contains("streamsResponse: true", events);
     }
@@ -142,8 +152,11 @@ public class StreamedOperationTests {
     /// generated - which is the assertion that failed before, in the generated invoke method.
     /// </summary>
     [Fact]
-    public void AStreamingImplementationCompiles() {
-        OpenApiGenerator.Run(Spec, OpenApiGenerator.EntryPointWithHandler(Implementation)).AssertNoErrors();
+    public void AStreamingImplementationCompiles()
+    {
+        OpenApiGenerator
+            .Run(Spec, OpenApiGenerator.EntryPointWithHandler(Implementation))
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -152,42 +165,66 @@ public class StreamedOperationTests {
     /// contract's own description, beside the 404 the contract declares.
     /// </summary>
     [Fact]
-    public void TheDocumentDescribesTheStream() {
-        var result = OpenApiGenerator.Run(Spec, OpenApiGenerator.EntryPointWithHandler(Implementation))
+    public void TheDocumentDescribesTheStream()
+    {
+        var result = OpenApiGenerator
+            .Run(Spec, OpenApiGenerator.EntryPointWithHandler(Implementation))
             .AssertNoErrors();
 
         using var document = JsonDocument.Parse(ServedDocument(result));
 
-        var events = document.RootElement.GetProperty("paths").GetProperty("/pets/{petId}/events")
-            .GetProperty("get").GetProperty("responses");
+        var events = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/pets/{petId}/events")
+            .GetProperty("get")
+            .GetProperty("responses");
 
         var ok = events.GetProperty("200");
         var media = ok.GetProperty("content").GetProperty("text/event-stream");
         var item = media.GetProperty("itemSchema");
         var whole = media.GetProperty("schema");
 
-        Assert.Equal("The pet's history, one event at a time.", ok.GetProperty("description").GetString());
+        Assert.Equal(
+            "The pet's history, one event at a time.",
+            ok.GetProperty("description").GetString()
+        );
         Assert.Equal("#/components/schemas/PetEvent", item.GetProperty("$ref").GetString());
         Assert.Equal("array", whole.GetProperty("type").GetString());
         Assert.Equal(item.GetRawText(), whole.GetProperty("items").GetRawText());
-        Assert.True(events.TryGetProperty("404", out _), "the declared 404 is written beside the stream");
+        Assert.True(
+            events.TryGetProperty("404", out _),
+            "the declared 404 is written beside the stream"
+        );
 
-        var readings = document.RootElement.GetProperty("paths").GetProperty("/pets/{petId}/readings")
-            .GetProperty("get").GetProperty("responses").GetProperty("200").GetProperty("content");
+        var readings = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/pets/{petId}/readings")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content");
 
-        Assert.True(readings.TryGetProperty("application/x-ndjson", out _), "the framing is the contract's media type");
+        Assert.True(
+            readings.TryGetProperty("application/x-ndjson", out _),
+            "the framing is the contract's media type"
+        );
     }
 
     /// <summary>The document the generator embeds, inflated the way CI's extractor does it.</summary>
-    private static string ServedDocument(GeneratorResult result) {
+    private static string ServedDocument(GeneratorResult result)
+    {
         var source = result.SourceContaining("OpenApiDocument");
 
         var match = Regex.Match(source, @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
 
         Assert.True(match.Success, "No document byte array in the generated source.");
 
-        var bytes = match.Groups[1].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var bytes = match
+            .Groups[1]
+            .Value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
             .Select(byte.Parse)
             .ToArray();
 

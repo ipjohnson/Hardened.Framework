@@ -16,65 +16,77 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// route that matched perfectly. Both lists are in the generator's hand.
 /// </para>
 /// </summary>
-public class RouteBindingDiagnosticsTests {
+public class RouteBindingDiagnosticsTests
+{
     private const string DiagnosticId = "HRDR005";
 
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),       // Hardened.Web.Runtime
-        typeof(FromBodyAttribute)   // Hardened.Requests.Abstract
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
     ];
 
     private static GeneratorResult Generate(string verb, string route, string parameters) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using Hardened.Requests.Abstract.Attributes;
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-                    public class EventBody {
-                        public string Title { get; set; } = "";
-                    }
+                public class EventBody {
+                    public string Title { get; set; } = "";
+                }
 
-                    public class EventController {
-                        [{{verb}}("{{route}}")]
-                        public string Handle({{parameters}}) => "";
-                    }
-                    """
+                public class EventController {
+                    [{{verb}}("{{route}}")]
+                    public string Handle({{parameters}}) => "";
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
-    private static Diagnostic Reported(string verb, string route, string parameters) {
+    private static Diagnostic Reported(string verb, string route, string parameters)
+    {
         var result = Generate(verb, route, parameters);
 
-        var diagnostic = result.GeneratorDiagnostics
-            .SingleOrDefault(reported => reported.Id == DiagnosticId);
+        var diagnostic = result.GeneratorDiagnostics.SingleOrDefault(reported =>
+            reported.Id == DiagnosticId
+        );
 
-        Assert.True(diagnostic != null,
-            $"'{verb} {route}' with '{parameters}' reported no {DiagnosticId}. Reported: " +
-            string.Join(", ", result.GeneratorDiagnostics.Select(reported => reported.Id)));
+        Assert.True(
+            diagnostic != null,
+            $"'{verb} {route}' with '{parameters}' reported no {DiagnosticId}. Reported: "
+                + string.Join(", ", result.GeneratorDiagnostics.Select(reported => reported.Id))
+        );
 
         return diagnostic!;
     }
 
-    private static void NotReported(string verb, string route, string parameters) {
+    private static void NotReported(string verb, string route, string parameters)
+    {
         Assert.DoesNotContain(
             Generate(verb, route, parameters).GeneratorDiagnostics,
-            reported => reported.Id == DiagnosticId);
+            reported => reported.Id == DiagnosticId
+        );
     }
 
     /// <summary>The trial's exact repro.</summary>
     [Fact]
-    public void ATokenDifferingOnlyByCaseIsAnError() {
+    public void ATokenDifferingOnlyByCaseIsAnError()
+    {
         Assert.Equal(
             DiagnosticSeverity.Error,
-            Reported("Get", "/events/{eventid}", "string eventId").Severity);
+            Reported("Get", "/events/{eventid}", "string eventId").Severity
+        );
     }
 
     /// <summary>
@@ -82,7 +94,8 @@ public class RouteBindingDiagnosticsTests {
     /// leaves the reader to spot a difference of one character.
     /// </summary>
     [Fact]
-    public void TheMessageNamesBothIdentifiersAndTheCaseDifference() {
+    public void TheMessageNamesBothIdentifiersAndTheCaseDifference()
+    {
         var message = Reported("Get", "/events/{eventid}", "string eventId").GetMessage();
 
         Assert.Contains("{eventid}", message);
@@ -97,10 +110,12 @@ public class RouteBindingDiagnosticsTests {
     /// typo silently takes two readings of one body.
     /// </summary>
     [Fact]
-    public void ACaseDifferenceIsReportedOnABodyCarryingVerbToo() {
+    public void ACaseDifferenceIsReportedOnABodyCarryingVerbToo()
+    {
         Assert.Equal(
             DiagnosticSeverity.Error,
-            Reported("Put", "/events/{eventid}", "string eventId, EventBody body").Severity);
+            Reported("Put", "/events/{eventid}", "string eventId, EventBody body").Severity
+        );
     }
 
     /// <summary>
@@ -108,7 +123,8 @@ public class RouteBindingDiagnosticsTests {
     /// says what the verb costs it.
     /// </summary>
     [Fact]
-    public void AMisspeltTokenOnABodylessVerbIsAnError() {
+    public void AMisspeltTokenOnABodylessVerbIsAnError()
+    {
         var message = Reported("Get", "/events/{eventKey}", "string eventId").GetMessage();
 
         Assert.Contains("{eventKey}", message);
@@ -126,7 +142,11 @@ public class RouteBindingDiagnosticsTests {
     [InlineData("Post", "/events", "EventBody body")]
     [InlineData("Post", "/events/{eventId}", "string eventId, EventBody body")]
     public void ARouteThatBindsWhatItDeclaresIsNotReported(
-        string verb, string route, string parameters) {
+        string verb,
+        string route,
+        string parameters
+    )
+    {
         NotReported(verb, route, parameters);
     }
 
@@ -136,7 +156,8 @@ public class RouteBindingDiagnosticsTests {
     /// looks like.
     /// </summary>
     [Fact]
-    public void AnUnboundTokenWithNoBodyParameterIsNotReported() {
+    public void AnUnboundTokenWithNoBodyParameterIsNotReported()
+    {
         NotReported("Get", "/events/{eventId}/holds/{holdId}", "string eventId");
     }
 
@@ -145,7 +166,8 @@ public class RouteBindingDiagnosticsTests {
     /// nothing has nowhere else to have sent it.
     /// </summary>
     [Fact]
-    public void AParameterBoundFromTheQueryStringIsNotABodyRead() {
+    public void AParameterBoundFromTheQueryStringIsNotABodyRead()
+    {
         NotReported("Get", "/events/{eventKey}", "[FromQueryString(\"page\")] int page");
     }
 
@@ -155,16 +177,19 @@ public class RouteBindingDiagnosticsTests {
     /// the parameter went to the body, and a legal route failed to build.
     /// </summary>
     [Fact]
-    public void ATokenNamedAfterAKeywordIsNotReported() {
+    public void ATokenNamedAfterAKeywordIsNotReported()
+    {
         NotReported("Get", "/things/{base}", "string @base");
     }
 
     /// <summary>And the case rule still applies to one, so the escape did not turn the match off.</summary>
     [Fact]
-    public void ATokenNamedAfterAKeywordDifferingByCaseIsStillAnError() {
+    public void ATokenNamedAfterAKeywordDifferingByCaseIsStillAnError()
+    {
         Assert.Equal(
             DiagnosticSeverity.Error,
-            Reported("Get", "/things/{Base}", "string @base").Severity);
+            Reported("Get", "/things/{Base}", "string @base").Severity
+        );
     }
 
     /// <summary>
@@ -173,9 +198,13 @@ public class RouteBindingDiagnosticsTests {
     /// diagnostic that says what is wrong.
     /// </summary>
     [Fact]
-    public void TheHandlerIsStillEmitted() {
+    public void TheHandlerIsStillEmitted()
+    {
         var result = Generate("Get", "/events/{eventid}", "string eventId");
 
-        Assert.Contains(result.GeneratedSources.Keys, key => key.Contains("EventController_Handle"));
+        Assert.Contains(
+            result.GeneratedSources.Keys,
+            key => key.Contains("EventController_Handle")
+        );
     }
 }

@@ -17,8 +17,10 @@ namespace Hardened.Web.Runtime.Attributes;
 /// </code>
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
-public class OpenApiInfoAttribute : Attribute {
-    public OpenApiInfoAttribute(string title, string version = "1.0.0", string? description = null) {
+public class OpenApiInfoAttribute : Attribute
+{
+    public OpenApiInfoAttribute(string title, string version = "1.0.0", string? description = null)
+    {
         Title = title;
         Version = version;
         Description = description;

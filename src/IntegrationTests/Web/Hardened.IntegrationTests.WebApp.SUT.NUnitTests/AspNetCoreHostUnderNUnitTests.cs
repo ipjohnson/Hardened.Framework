@@ -1,8 +1,8 @@
 using Hardened.IntegrationTests.WebApp.SUT.Models;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Web.AspNetCore.Runtime;
-using NSubstitute;
 using Hardened.Web.Runtime.Responses;
+using NSubstitute;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
 
@@ -11,10 +11,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.NUnitTests;
 /// the same way xUnit's does.
 /// </summary>
 [AspNetCoreRuntime]
-public class AspNetCoreHostUnderNUnitTests {
-
+public class AspNetCoreHostUnderNUnitTests
+{
     [HardenedTest]
-    public async Task ARequestAnswersThroughTheAspNetPipeline(ITestWebApp app) {
+    public async Task ARequestAnswersThroughTheAspNetPipeline(ITestWebApp app)
+    {
         var response = await app.Get("/verbs/item/42");
 
         response.Assert.Ok();
@@ -23,7 +24,11 @@ public class AspNetCoreHostUnderNUnitTests {
     }
 
     [HardenedTest]
-    public async Task AMockBehindARouteIsTheOneTheHandlerSees(ITestWebApp app, [Mock] IMathService<int> math) {
+    public async Task AMockBehindARouteIsTheOneTheHandlerSees(
+        ITestWebApp app,
+        [Mock] IMathService<int> math
+    )
+    {
         math.Add(Arg.Any<int[]>()).Returns(100);
 
         var response = await app.Post(new MathAddModel { Values = [1, 2, 3] }, "/int/add");
@@ -33,7 +38,8 @@ public class AspNetCoreHostUnderNUnitTests {
     }
 
     [HardenedTest]
-    public async Task AnUnmatchedPathIsAspNetsOwn404(ITestWebApp app) {
+    public async Task AnUnmatchedPathIsAspNetsOwn404(ITestWebApp app)
+    {
         var response = await app.Get("/no/such/route");
 
         response.Assert.NotFound();

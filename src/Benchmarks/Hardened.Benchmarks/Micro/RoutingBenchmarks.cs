@@ -20,7 +20,8 @@ namespace Hardened.Benchmarks.Micro;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.Micro)]
-public class RoutingBenchmarks {
+public class RoutingBenchmarks
+{
     private HardenedNativeHarness _harness = null!;
     private IServiceScope _scope = null!;
     private MemoryStream _responseBody = null!;
@@ -33,7 +34,8 @@ public class RoutingBenchmarks {
     public RequestScenario Scenario { get; set; } = null!;
 
     [GlobalSetup]
-    public void Setup() {
+    public void Setup()
+    {
         _harness = new HardenedNativeHarness();
         _scope = _harness.CreateScope();
         _responseBody = new MemoryStream();
@@ -41,24 +43,29 @@ public class RoutingBenchmarks {
 
         // WebExecutionHandlerService reverses the registration order before walking them, so the
         // same order is used here rather than the raw enumeration order.
-        _providers = _harness.Provider
-            .GetServices<IWebExecutionRequestHandlerProvider>()
+        _providers = _harness
+            .Provider.GetServices<IWebExecutionRequestHandlerProvider>()
             .Reverse()
             .ToArray();
 
-        if (Match() is null) {
+        if (Match() is null)
+        {
             throw new InvalidOperationException(
-                $"No handler matched {Scenario.Name}. Timing a failed match measures how fast " +
-                "the matcher gives up, not how fast it routes.");
+                $"No handler matched {Scenario.Name}. Timing a failed match measures how fast "
+                    + "the matcher gives up, not how fast it routes."
+            );
         }
     }
 
     [Benchmark]
-    public object? Match() {
-        foreach (var provider in _providers) {
+    public object? Match()
+    {
+        foreach (var provider in _providers)
+        {
             var handler = provider.GetExecutionRequestHandler(_context);
 
-            if (handler != null) {
+            if (handler != null)
+            {
                 return handler;
             }
         }
@@ -67,7 +74,8 @@ public class RoutingBenchmarks {
     }
 
     [GlobalCleanup]
-    public void Cleanup() {
+    public void Cleanup()
+    {
         _scope.Dispose();
         _harness.Dispose();
         _responseBody.Dispose();

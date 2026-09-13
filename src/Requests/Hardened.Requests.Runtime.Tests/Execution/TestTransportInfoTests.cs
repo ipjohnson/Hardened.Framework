@@ -13,24 +13,26 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// What makes it possible to test a forwarded-headers filter or an address-partitioned rate
 /// limiter without opening a socket, which is the only reason the harness has one of these.
 /// </remarks>
-public class TestTransportInfoTests {
-
+public class TestTransportInfoTests
+{
     private static TestExecutionRequest Request() =>
         new("GET", "/", null, new SimpleQueryStringCollection((IDictionary<string, string>?)null));
 
-
     [Fact]
-    public void AStatedValueIsReturned() {
+    public void AStatedValueIsReturned()
+    {
         var info = new TestTransportInfo(
             (KnownTransportKeys.ClientAddress, "203.0.113.7"),
-            (KnownTransportKeys.UrlScheme, "https"));
+            (KnownTransportKeys.UrlScheme, "https")
+        );
 
         Assert.Equal("203.0.113.7", info.Get(KnownTransportKeys.ClientAddress));
         Assert.Equal("https", info.Get(KnownTransportKeys.UrlScheme));
     }
 
     [Fact]
-    public void AnUnstatedValueIsNull() {
+    public void AnUnstatedValueIsNull()
+    {
         var info = new TestTransportInfo((KnownTransportKeys.ClientAddress, "203.0.113.7"));
 
         Assert.Null(info.Get(KnownTransportKeys.ServerAddress));
@@ -38,7 +40,8 @@ public class TestTransportInfoTests {
 
     /// <summary>Only what the test stated is published.</summary>
     [Fact]
-    public void KeysAreWhatWasStated() {
+    public void KeysAreWhatWasStated()
+    {
         var info = new TestTransportInfo((KnownTransportKeys.ClientAddress, "203.0.113.7"));
 
         Assert.Equal([KnownTransportKeys.ClientAddress], info.Keys);
@@ -52,7 +55,8 @@ public class TestTransportInfoTests {
     /// to set a transport it does not care about.
     /// </remarks>
     [Fact]
-    public void TheDefaultIsEmptyRatherThanNull() {
+    public void TheDefaultIsEmptyRatherThanNull()
+    {
         var request = Request();
 
         Assert.NotNull(request.Transport);
@@ -69,10 +73,13 @@ public class TestTransportInfoTests {
     /// partition depend on whether something happened to fork the chain.
     /// </remarks>
     [Fact]
-    public void ACloneKeepsTheTransport() {
+    public void ACloneKeepsTheTransport()
+    {
         var request = Request();
 
-        request.Transport = new TestTransportInfo((KnownTransportKeys.ClientAddress, "203.0.113.7"));
+        request.Transport = new TestTransportInfo(
+            (KnownTransportKeys.ClientAddress, "203.0.113.7")
+        );
 
         var clone = request.Clone(method: "DELETE", null, null, null, null);
 

@@ -6,10 +6,14 @@ using Hardened.Requests.Abstract.Serializer;
 namespace Hardened.Requests.Runtime.Execution;
 
 [SingletonService(Using = RegistrationType.Try)]
-public class KnownServices : IKnownServices {
-    public KnownServices(IContextSerializationService contextSerializationService,
+public class KnownServices : IKnownServices
+{
+    public KnownServices(
+        IContextSerializationService contextSerializationService,
         IStringConverterService stringConverterService,
-        IFormReader formReader) {
+        IFormReader formReader
+    )
+    {
         ContextSerializationService = contextSerializationService;
         StringConverterService = stringConverterService;
         FormReader = formReader;

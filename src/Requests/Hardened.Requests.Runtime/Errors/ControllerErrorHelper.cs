@@ -19,8 +19,10 @@ namespace Hardened.Requests.Runtime.Errors;
 /// handler fault twice.
 /// </para>
 /// </remarks>
-public static class ControllerErrorHelper {
-    public static Task HandleException(IExecutionContext context, Exception exception) {
+public static class ControllerErrorHelper
+{
+    public static Task HandleException(IExecutionContext context, Exception exception)
+    {
         context.Response.ExceptionValue = exception;
 
         return Task.CompletedTask;

@@ -13,10 +13,11 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// write a branch for. The declaration states its reach and this applies it, which keeps the rule
 /// that nothing in the selector knows what any filter does.
 /// </remarks>
-public class DeclaredScopeTests {
-
+public class DeclaredScopeTests
+{
     [Fact]
-    public void AnUnrestrictedDeclarationReachesEveryOperation() {
+    public void AnUnrestrictedDeclarationReachesEveryOperation()
+    {
         var scope = new DeclaredScope(methods: null, notWhenStreaming: false);
 
         Assert.True(scope.Reaches("GET", streams: false));
@@ -25,7 +26,8 @@ public class DeclaredScopeTests {
     }
 
     [Fact]
-    public void AMethodRestrictionReachesOnlyThose() {
+    public void AMethodRestrictionReachesOnlyThose()
+    {
         var scope = new DeclaredScope("GET,HEAD", notWhenStreaming: false);
 
         Assert.True(scope.Reaches("GET", streams: false));
@@ -36,7 +38,8 @@ public class DeclaredScopeTests {
 
     /// <summary>Written the way somebody writes it.</summary>
     [Fact]
-    public void SpacingAndCaseDoNotDecideIt() {
+    public void SpacingAndCaseDoNotDecideIt()
+    {
         var scope = new DeclaredScope(" get , Head ", notWhenStreaming: false);
 
         Assert.True(scope.Reaches("GET", streams: false));
@@ -44,7 +47,8 @@ public class DeclaredScopeTests {
     }
 
     [Fact]
-    public void AStreamingHandlerIsLeftOutWhereTheDeclarationSaysSo() {
+    public void AStreamingHandlerIsLeftOutWhereTheDeclarationSaysSo()
+    {
         var restricted = new DeclaredScope("GET", notWhenStreaming: true);
 
         Assert.True(restricted.Reaches("GET", streams: false));
@@ -65,5 +69,7 @@ public class DeclaredScopeTests {
     /// </remarks>
     [Fact]
     public void AnUnknownVerbKeepsTheDeclaration() =>
-        Assert.True(new DeclaredScope("GET", notWhenStreaming: false).Reaches(null, streams: false));
+        Assert.True(
+            new DeclaredScope("GET", notWhenStreaming: false).Reaches(null, streams: false)
+        );
 }

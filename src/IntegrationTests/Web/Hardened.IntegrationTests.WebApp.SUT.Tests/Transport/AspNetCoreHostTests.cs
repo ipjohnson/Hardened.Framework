@@ -2,10 +2,10 @@ using Hardened.IntegrationTests.WebApp.SUT.Client;
 using Hardened.IntegrationTests.WebApp.SUT.Services;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.Web.AspNetCore.Runtime;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Kiota.Abstractions;
 using NSubstitute;
 using ClientModels = Hardened.IntegrationTests.WebApp.SUT.Client.Models;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 
@@ -22,12 +22,13 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Transport;
 /// Hardened's.
 /// </remarks>
 [AspNetCoreRuntime]
-public class AspNetCoreHostTests {
-
+public class AspNetCoreHostTests
+{
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [HardenedTest]
-    public async Task ARequestAnswersThroughTheAspNetPipeline(ITestWebApp app) {
+    public async Task ARequestAnswersThroughTheAspNetPipeline(ITestWebApp app)
+    {
         var response = await app.Get("/verbs/item/42");
 
         response.Assert.Ok();
@@ -37,7 +38,11 @@ public class AspNetCoreHostTests {
     }
 
     [HardenedTest]
-    public async Task AMockBehindARouteIsTheOneTheHandlerSees(ITestWebApp app, [Mock] IMathService<int> math) {
+    public async Task AMockBehindARouteIsTheOneTheHandlerSees(
+        ITestWebApp app,
+        [Mock] IMathService<int> math
+    )
+    {
         math.Add(Arg.Any<int[]>()).Returns(100);
 
         var response = await app.Post(new MathAddModel { Values = [1, 2, 3] }, "/int/add");
@@ -47,16 +52,21 @@ public class AspNetCoreHostTests {
     }
 
     [HardenedTest]
-    public async Task AGeneratedClientSendsToTheSocketAndReturnsReadsIt(WebAppClient client) {
-        var created = await client.Verbs.Located
-            .PostAsync(new ClientModels.MathAddModel { Values = [1, 2, 3] }, cancellationToken: Token)
+    public async Task AGeneratedClientSendsToTheSocketAndReturnsReadsIt(WebAppClient client)
+    {
+        var created = await client
+            .Verbs.Located.PostAsync(
+                new ClientModels.MathAddModel { Values = [1, 2, 3] },
+                cancellationToken: Token
+            )
             .Returns<Created<ClientModels.MathAddModel>>();
 
         Assert.Equal("/verbs/item/3", created.Location);
     }
 
     [HardenedTest]
-    public async Task LastResponseIsWhatCameBackOverTheWire(WebAppClient client) {
+    public async Task LastResponseIsWhatCameBackOverTheWire(WebAppClient client)
+    {
         await client.Verbs.Emptied.DeleteAsync(cancellationToken: Token);
 
         Assert.Equal(204, LastResponse.Status);
@@ -64,10 +74,18 @@ public class AspNetCoreHostTests {
 
     [HardenedTest]
     public async Task ThreeParametersCarryThreeCredentialsOverTheWire(
-        [Grants("pets:read")] WebAppClient reader, [Anonymous] WebAppClient nobody, [Grants("pets:write")] WebAppClient writer) {
+        [Grants("pets:read")] WebAppClient reader,
+        [Anonymous] WebAppClient nobody,
+        [Grants("pets:write")] WebAppClient writer
+    )
+    {
         var pets = await reader.Authorization.Pets.GetAsync(cancellationToken: Token);
-        var refused = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() => nobody.Authorization.Pets.GetAsync(cancellationToken: Token));
-        var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() => writer.Authorization.Pets.GetAsync(cancellationToken: Token));
+        var refused = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
+            nobody.Authorization.Pets.GetAsync(cancellationToken: Token)
+        );
+        var forbidden = await Assert.ThrowsAsync<ClientModels.ErrorModel>(() =>
+            writer.Authorization.Pets.GetAsync(cancellationToken: Token)
+        );
 
         Assert.NotNull(pets);
         Assert.Equal(401, refused.ResponseStatusCode);
@@ -80,7 +98,8 @@ public class AspNetCoreHostTests {
     /// default composition, so ASP.NET's own 404 answers: no envelope, no body.
     /// </summary>
     [HardenedTest]
-    public async Task AnUnmatchedPathIsAspNetsOwn404(ITestWebApp app) {
+    public async Task AnUnmatchedPathIsAspNetsOwn404(ITestWebApp app)
+    {
         var response = await app.Get("/no/such/route");
 
         response.Assert.NotFound();
@@ -88,7 +107,8 @@ public class AspNetCoreHostTests {
     }
 
     [HardenedTest]
-    public async Task OverTheSocketAHandlersExceptionDoesNotCross(ITestWebApp app) {
+    public async Task OverTheSocketAHandlersExceptionDoesNotCross(ITestWebApp app)
+    {
         var response = await app.Get("/errors/server");
 
         Assert.Equal(500, response.StatusCode);
@@ -97,7 +117,8 @@ public class AspNetCoreHostTests {
 
     [HardenedTest]
     [PipelineHost]
-    public async Task InProcessTheExceptionIsReported(ITestWebApp app) {
+    public async Task InProcessTheExceptionIsReported(ITestWebApp app)
+    {
         var response = await app.Get("/errors/server");
 
         Assert.Equal(500, response.StatusCode);

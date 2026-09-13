@@ -11,8 +11,8 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// envelope, no content negotiation. Only three shapes make sense as raw bytes, and the helper
 /// refuses anything else rather than writing a type name.
 /// </summary>
-public class RawOutputHelperTests {
-
+public class RawOutputHelperTests
+{
     private static string Body(IExecutionContext context) =>
         Encoding.UTF8.GetString(((MemoryStream)context.Response.Body).ToArray());
 
@@ -21,7 +21,8 @@ public class RawOutputHelperTests {
     [InlineData("text/html")]
     [InlineData("text/csv")]
     [InlineData("application/octet-stream")]
-    public async Task TheConfiguredContentTypeIsWhatTheResponseAdvertises(string contentType) {
+    public async Task TheConfiguredContentTypeIsWhatTheResponseAdvertises(string contentType)
+    {
         var context = Pipeline.Context();
         context.Response.ResponseValue = "body";
 
@@ -31,7 +32,8 @@ public class RawOutputHelperTests {
     }
 
     [Fact]
-    public async Task AStringIsWrittenAsUtf8Text() {
+    public async Task AStringIsWrittenAsUtf8Text()
+    {
         var context = Pipeline.Context();
         context.Response.ResponseValue = "<html><body>hello</body></html>";
 
@@ -45,7 +47,8 @@ public class RawOutputHelperTests {
     /// to a byte.
     /// </summary>
     [Fact]
-    public async Task NonAsciiTextIsWrittenAsUtf8RatherThanNarrowed() {
+    public async Task NonAsciiTextIsWrittenAsUtf8RatherThanNarrowed()
+    {
         var context = Pipeline.Context();
         context.Response.ResponseValue = "café — 日本語";
 
@@ -55,7 +58,8 @@ public class RawOutputHelperTests {
     }
 
     [Fact]
-    public async Task AByteArrayIsWrittenVerbatim() {
+    public async Task AByteArrayIsWrittenVerbatim()
+    {
         var context = Pipeline.Context();
         var payload = new byte[] { 0x00, 0x1f, 0x8b, 0xff, 0x7f };
 
@@ -67,7 +71,8 @@ public class RawOutputHelperTests {
     }
 
     [Fact]
-    public async Task AStreamIsCopiedIntoTheResponseBody() {
+    public async Task AStreamIsCopiedIntoTheResponseBody()
+    {
         var context = Pipeline.Context();
         context.Response.ResponseValue = new MemoryStream("streamed content"u8.ToArray());
 
@@ -81,7 +86,8 @@ public class RawOutputHelperTests {
     /// type check.
     /// </summary>
     [Fact]
-    public async Task AnEmptyStringWritesAnEmptyBody() {
+    public async Task AnEmptyStringWritesAnEmptyBody()
+    {
         var context = Pipeline.Context();
         context.Response.ResponseValue = "";
 
@@ -95,7 +101,8 @@ public class RawOutputHelperTests {
     /// waiting for bytes that are not coming.
     /// </summary>
     [Fact]
-    public async Task ANullResponseValueClosesTheBody() {
+    public async Task ANullResponseValueClosesTheBody()
+    {
         var context = Pipeline.Context();
 
         await RawOutputHelper.OutputFunc("text/plain")(context);
@@ -111,22 +118,25 @@ public class RawOutputHelperTests {
     // Rows are TheoryDataRow rather than a TheoryData<object> collection initializer: for an object
     // element, Add(object) and Add(TheoryDataRow<object>) are both applicable and the call is
     // ambiguous under xunit.v3.
-    public static IEnumerable<TheoryDataRow<object>> UnsupportedRawValues => [
-        new(42),
-        new(4.2),
-        new(true),
-        new(new[] { "an", "array", "of", "strings" }),
-        new(new { Name = "an anonymous type" })
-    ];
+    public static IEnumerable<TheoryDataRow<object>> UnsupportedRawValues =>
+        [
+            new(42),
+            new(4.2),
+            new(true),
+            new(new[] { "an", "array", "of", "strings" }),
+            new(new { Name = "an anonymous type" }),
+        ];
 
     [Theory]
     [MemberData(nameof(UnsupportedRawValues))]
-    public async Task AnUnsupportedRawValueIsRefused(object value) {
+    public async Task AnUnsupportedRawValueIsRefused(object value)
+    {
         var context = Pipeline.Context();
         context.Response.ResponseValue = value;
 
-        var exception = await Assert.ThrowsAsync<Exception>(
-            () => RawOutputHelper.OutputFunc("text/plain")(context));
+        var exception = await Assert.ThrowsAsync<Exception>(() =>
+            RawOutputHelper.OutputFunc("text/plain")(context)
+        );
 
         Assert.Contains("must be string, byte[], or Stream", exception.Message);
     }

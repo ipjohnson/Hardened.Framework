@@ -24,17 +24,22 @@ namespace Hardened.SourceGenerator.Requests;
 /// not have.
 /// </para>
 /// </remarks>
-internal sealed class DeclaredOperationFacts : IEquatable<DeclaredOperationFacts>, IEntryPointFilterFacts {
-
+internal sealed class DeclaredOperationFacts
+    : IEquatable<DeclaredOperationFacts>,
+        IEntryPointFilterFacts
+{
     public static readonly DeclaredOperationFacts Empty = new(
         Array.Empty<ScopedRefusal>(),
         Array.Empty<ScopedResponseHeader>(),
-        Array.Empty<ScopedRequestHeader>());
+        Array.Empty<ScopedRequestHeader>()
+    );
 
     public DeclaredOperationFacts(
         IReadOnlyList<ScopedRefusal> refusals,
         IReadOnlyList<ScopedResponseHeader> responseHeaders,
-        IReadOnlyList<ScopedRequestHeader> requestHeaders) {
+        IReadOnlyList<ScopedRequestHeader> requestHeaders
+    )
+    {
         Refusals = refusals;
         ResponseHeaders = responseHeaders;
         RequestHeaders = requestHeaders;
@@ -51,35 +56,44 @@ internal sealed class DeclaredOperationFacts : IEquatable<DeclaredOperationFacts
 
     /// <summary>The subset reaching an operation with this verb and this response shape.</summary>
     public OperationDeclarations For(string? httpMethod, bool streams) =>
-        new(Refusals.Where(entry => entry.Scope.Reaches(httpMethod, streams))
-                .Select(entry => entry.Response).ToList(),
+        new(
+            Refusals
+                .Where(entry => entry.Scope.Reaches(httpMethod, streams))
+                .Select(entry => entry.Response)
+                .ToList(),
             ResponseHeaders.Where(entry => entry.Scope.Reaches(httpMethod, streams)).ToList(),
-            RequestHeaders.Where(entry => entry.Scope.Reaches(httpMethod, streams)).ToList());
+            RequestHeaders.Where(entry => entry.Scope.Reaches(httpMethod, streams)).ToList()
+        );
 
     public bool Equals(DeclaredOperationFacts? other) =>
-        other is not null &&
-        Refusals.SequenceEqual(other.Refusals) &&
-        ResponseHeaders.SequenceEqual(other.ResponseHeaders) &&
-        RequestHeaders.SequenceEqual(other.RequestHeaders);
+        other is not null
+        && Refusals.SequenceEqual(other.Refusals)
+        && ResponseHeaders.SequenceEqual(other.ResponseHeaders)
+        && RequestHeaders.SequenceEqual(other.RequestHeaders);
 
     public override bool Equals(object? obj) => Equals(obj as DeclaredOperationFacts);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Refusals.Count;
 
             hash = (hash * 397) ^ ResponseHeaders.Count;
             hash = (hash * 397) ^ RequestHeaders.Count;
 
-            foreach (var refusal in Refusals) {
+            foreach (var refusal in Refusals)
+            {
                 hash = (hash * 397) ^ refusal.GetHashCode();
             }
 
-            foreach (var header in ResponseHeaders) {
+            foreach (var header in ResponseHeaders)
+            {
                 hash = (hash * 397) ^ header.GetHashCode();
             }
 
-            foreach (var header in RequestHeaders) {
+            foreach (var header in RequestHeaders)
+            {
                 hash = (hash * 397) ^ header.GetHashCode();
             }
 
@@ -101,9 +115,10 @@ internal sealed class DeclaredOperationFacts : IEquatable<DeclaredOperationFacts
 /// states its own reach and this applies it - which keeps the rule that nothing here knows what a
 /// filter does, because the filter says where it applies in the same place it says what it answers.
 /// </remarks>
-internal readonly struct DeclaredScope : IEquatable<DeclaredScope> {
-
-    public DeclaredScope(string? methods, bool notWhenStreaming) {
+internal readonly struct DeclaredScope : IEquatable<DeclaredScope>
+{
+    public DeclaredScope(string? methods, bool notWhenStreaming)
+    {
         Methods = methods;
         NotWhenStreaming = notWhenStreaming;
     }
@@ -120,17 +135,22 @@ internal readonly struct DeclaredScope : IEquatable<DeclaredScope> {
     /// declaration had before this existed. Matching tolerates spaces, because <c>"GET, HEAD"</c>
     /// is how somebody writes it.
     /// </remarks>
-    public bool Reaches(string? httpMethod, bool streams) {
-        if (NotWhenStreaming && streams) {
+    public bool Reaches(string? httpMethod, bool streams)
+    {
+        if (NotWhenStreaming && streams)
+        {
             return false;
         }
 
-        if (string.IsNullOrWhiteSpace(Methods) || string.IsNullOrEmpty(httpMethod)) {
+        if (string.IsNullOrWhiteSpace(Methods) || string.IsNullOrEmpty(httpMethod))
+        {
             return true;
         }
 
-        foreach (var candidate in Methods!.Split(',')) {
-            if (string.Equals(candidate.Trim(), httpMethod, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var candidate in Methods!.Split(','))
+        {
+            if (string.Equals(candidate.Trim(), httpMethod, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
             }
         }
@@ -148,9 +168,10 @@ internal readonly struct DeclaredScope : IEquatable<DeclaredScope> {
 }
 
 /// <summary>A status a declaration can answer with, and the operations it reaches.</summary>
-internal sealed class ScopedRefusal : IEquatable<ScopedRefusal> {
-
-    public ScopedRefusal(ResponseSchemaModel response, DeclaredScope scope) {
+internal sealed class ScopedRefusal : IEquatable<ScopedRefusal>
+{
+    public ScopedRefusal(ResponseSchemaModel response, DeclaredScope scope)
+    {
         Response = response;
         Scope = scope;
     }
@@ -169,9 +190,10 @@ internal sealed class ScopedRefusal : IEquatable<ScopedRefusal> {
 }
 
 /// <summary>A header a declaration says a response carries, and the operations it reaches.</summary>
-internal sealed class ScopedResponseHeader : IEquatable<ScopedResponseHeader> {
-
-    public ScopedResponseHeader(int status, string name, string? description, DeclaredScope scope) {
+internal sealed class ScopedResponseHeader : IEquatable<ScopedResponseHeader>
+{
+    public ScopedResponseHeader(int status, string name, string? description, DeclaredScope scope)
+    {
         Status = status;
         Name = name;
         Description = description;
@@ -187,14 +209,18 @@ internal sealed class ScopedResponseHeader : IEquatable<ScopedResponseHeader> {
     public DeclaredScope Scope { get; }
 
     public bool Equals(ScopedResponseHeader? other) =>
-        other is not null &&
-        Status == other.Status && Name == other.Name && Description == other.Description &&
-        Scope.Equals(other.Scope);
+        other is not null
+        && Status == other.Status
+        && Name == other.Name
+        && Description == other.Description
+        && Scope.Equals(other.Scope);
 
     public override bool Equals(object? obj) => Equals(obj as ScopedResponseHeader);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Status;
 
             hash = (hash * 397) ^ Name.GetHashCode();
@@ -207,9 +233,10 @@ internal sealed class ScopedResponseHeader : IEquatable<ScopedResponseHeader> {
 }
 
 /// <summary>A header a declaration says it reads, and the operations it reaches.</summary>
-internal sealed class ScopedRequestHeader : IEquatable<ScopedRequestHeader> {
-
-    public ScopedRequestHeader(string name, string? description, DeclaredScope scope) {
+internal sealed class ScopedRequestHeader : IEquatable<ScopedRequestHeader>
+{
+    public ScopedRequestHeader(string name, string? description, DeclaredScope scope)
+    {
         Name = name;
         Description = description;
         Scope = scope;
@@ -222,13 +249,17 @@ internal sealed class ScopedRequestHeader : IEquatable<ScopedRequestHeader> {
     public DeclaredScope Scope { get; }
 
     public bool Equals(ScopedRequestHeader? other) =>
-        other is not null &&
-        Name == other.Name && Description == other.Description && Scope.Equals(other.Scope);
+        other is not null
+        && Name == other.Name
+        && Description == other.Description
+        && Scope.Equals(other.Scope);
 
     public override bool Equals(object? obj) => Equals(obj as ScopedRequestHeader);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             var hash = Name.GetHashCode();
 
             hash = (hash * 397) ^ (Description?.GetHashCode() ?? 0);
@@ -240,12 +271,14 @@ internal sealed class ScopedRequestHeader : IEquatable<ScopedRequestHeader> {
 }
 
 /// <summary>What the declarations covering one operation say about that operation's document.</summary>
-internal sealed class OperationDeclarations {
-
+internal sealed class OperationDeclarations
+{
     public OperationDeclarations(
         IReadOnlyList<ResponseSchemaModel> refusals,
         IReadOnlyList<ScopedResponseHeader> responseHeaders,
-        IReadOnlyList<ScopedRequestHeader> requestHeaders) {
+        IReadOnlyList<ScopedRequestHeader> requestHeaders
+    )
+    {
         Refusals = refusals;
         ResponseHeaders = responseHeaders;
         RequestHeaders = requestHeaders;
@@ -258,16 +291,20 @@ internal sealed class OperationDeclarations {
     public IReadOnlyList<ScopedRequestHeader> RequestHeaders { get; }
 
     /// <summary>The header parameters, as the document model carries them.</summary>
-    public IReadOnlyList<DeclaredHeaderParameterModel> HeaderParameters() {
-        if (RequestHeaders.Count == 0) {
+    public IReadOnlyList<DeclaredHeaderParameterModel> HeaderParameters()
+    {
+        if (RequestHeaders.Count == 0)
+        {
             return Array.Empty<DeclaredHeaderParameterModel>();
         }
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<DeclaredHeaderParameterModel>();
 
-        foreach (var header in RequestHeaders) {
-            if (seen.Add(header.Name)) {
+        foreach (var header in RequestHeaders)
+        {
+            if (seen.Add(header.Name))
+            {
                 result.Add(new DeclaredHeaderParameterModel(header.Name, header.Description));
             }
         }
@@ -284,21 +321,32 @@ internal sealed class OperationDeclarations {
     /// response to hang it on would publish a status the handler cannot produce.
     /// </remarks>
     public IReadOnlyList<ResponseSchemaModel> WithHeaders(
-        IReadOnlyList<ResponseSchemaModel> responses) {
-        if (ResponseHeaders.Count == 0 || responses.Count == 0) {
+        IReadOnlyList<ResponseSchemaModel> responses
+    )
+    {
+        if (ResponseHeaders.Count == 0 || responses.Count == 0)
+        {
             return responses;
         }
 
         var result = new List<ResponseSchemaModel>(responses.Count);
 
-        foreach (var response in responses) {
+        foreach (var response in responses)
+        {
             var added = Headers(response.Status, response.Headers);
 
-            result.Add(added == null
-                ? response
-                : new ResponseSchemaModel(response.Status, response.Description, response.Schema) {
-                    Headers = added
-                });
+            result.Add(
+                added == null
+                    ? response
+                    : new ResponseSchemaModel(
+                        response.Status,
+                        response.Description,
+                        response.Schema
+                    )
+                    {
+                        Headers = added,
+                    }
+            );
         }
 
         return result;
@@ -312,32 +360,49 @@ internal sealed class OperationDeclarations {
     /// than a filter's blanket statement can.
     /// </remarks>
     public IReadOnlyList<ResponseHeaderModel>? Headers(
-        int status, IReadOnlyList<ResponseHeaderModel> existing) {
+        int status,
+        IReadOnlyList<ResponseHeaderModel> existing
+    )
+    {
         List<ResponseHeaderModel>? merged = null;
 
-        foreach (var declared in ResponseHeaders) {
-            if (declared.Status != status || Names(existing, declared.Name) ||
-                Names(merged, declared.Name)) {
+        foreach (var declared in ResponseHeaders)
+        {
+            if (
+                declared.Status != status
+                || Names(existing, declared.Name)
+                || Names(merged, declared.Name)
+            )
+            {
                 continue;
             }
 
-            (merged ??= new List<ResponseHeaderModel>(existing)).Add(new ResponseHeaderModel {
-                Name = declared.Name,
-                ParameterName = Generation.NamingHelper.ToPascalCase(declared.Name.Replace("-", "")),
-                Description = declared.Description
-            });
+            (merged ??= new List<ResponseHeaderModel>(existing)).Add(
+                new ResponseHeaderModel
+                {
+                    Name = declared.Name,
+                    ParameterName = Generation.NamingHelper.ToPascalCase(
+                        declared.Name.Replace("-", "")
+                    ),
+                    Description = declared.Description,
+                }
+            );
         }
 
         return merged;
     }
 
-    private static bool Names(IReadOnlyList<ResponseHeaderModel>? headers, string name) {
-        if (headers == null) {
+    private static bool Names(IReadOnlyList<ResponseHeaderModel>? headers, string name)
+    {
+        if (headers == null)
+        {
             return false;
         }
 
-        foreach (var header in headers) {
-            if (string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var header in headers)
+        {
+            if (string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
             }
         }

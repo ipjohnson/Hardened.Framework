@@ -12,8 +12,8 @@ namespace Hardened.SourceGenerator.Validation;
 /// recognise is treated as a custom binder and emitted as one. A constraint attribute landing in
 /// that branch does not merely fail to validate - it takes over how the parameter is bound.
 /// </remarks>
-public static class ConstraintAttributeFacts {
-
+public static class ConstraintAttributeFacts
+{
     public static bool IsConstraint(AttributeData attribute) =>
         IsConstraintNamespace(attribute.AttributeClass?.ContainingNamespace?.ToDisplayString());
 
@@ -25,7 +25,8 @@ public static class ConstraintAttributeFacts {
     /// equally be someone's own attribute, and treating a name as proof would take a consumer's
     /// unrelated attribute out of the binding path it was written for.
     /// </remarks>
-    public static bool IsConstraint(GeneratorSyntaxContext context, SyntaxNode attribute) {
+    public static bool IsConstraint(GeneratorSyntaxContext context, SyntaxNode attribute)
+    {
         var symbol = context.SemanticModel.GetSymbolInfo(attribute).Symbol;
 
         var containing = symbol?.ContainingType?.ContainingNamespace?.ToDisplayString();
@@ -34,5 +35,7 @@ public static class ConstraintAttributeFacts {
     }
 
     private static bool IsConstraintNamespace(string? containingNamespace) =>
-        containingNamespace is KnownTypes.ConstraintsNamespace or KnownTypes.DataAnnotationsNamespace;
+        containingNamespace
+            is KnownTypes.ConstraintsNamespace
+                or KnownTypes.DataAnnotationsNamespace;
 }

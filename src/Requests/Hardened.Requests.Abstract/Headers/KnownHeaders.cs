@@ -1,6 +1,7 @@
 ﻿namespace Hardened.Requests.Abstract.Headers;
 
-public static class KnownHeaders {
+public static class KnownHeaders
+{
     public const string Accept = "Accept";
 
     /// <summary>
@@ -165,7 +166,8 @@ public static class KnownHeaders {
     /// <summary>What produced the response. The host's to write, and the same on all of them.</summary>
     public const string Server = "Server";
 
-    public static class Cors {
+    public static class Cors
+    {
         public const string AccessControlAllowOrigin = "Access-Control-Allow-Origin";
 
         public const string AccessControlAllowHeaders = "Access-Control-Allow-Headers";

@@ -16,13 +16,14 @@ namespace Hardened.Aws.DynamoDbClient.Tests;
 /// </para>
 /// </summary>
 [Collection(LocalDynamoDbCollection.Name)]
-public class LocalDynamoDbTests {
-
+public class LocalDynamoDbTests
+{
     /// <summary>A real tag rather than <c>latest</c>, so the container is a different one.</summary>
     private const string PinnedImage = "amazon/dynamodb-local:3.3.1";
 
     [RequiresDockerFact]
-    public void TheContainerStartsOnceAndKeepsItsEndpoint() {
+    public void TheContainerStartsOnceAndKeepsItsEndpoint()
+    {
         var first = LocalDynamoDb.Endpoint;
         var second = LocalDynamoDb.Endpoint;
 
@@ -35,19 +36,25 @@ public class LocalDynamoDbTests {
     /// the item, not about what a mock was told.
     /// </summary>
     [RequiresDockerFact]
-    public async Task AnItemRoundTripsThroughARealTable() {
+    public async Task AnItemRoundTripsThroughARealTable()
+    {
         using var client = LocalDynamoDb.CreateClient();
 
         await CreateTable(client, "round-trip");
 
-        await client.PutItemAsync("round-trip", new Dictionary<string, AttributeValue> {
-            ["id"] = new("the-key"),
-            ["value"] = new("kept"),
-        });
+        await client.PutItemAsync(
+            "round-trip",
+            new Dictionary<string, AttributeValue>
+            {
+                ["id"] = new("the-key"),
+                ["value"] = new("kept"),
+            }
+        );
 
-        var response = await client.GetItemAsync("round-trip", new Dictionary<string, AttributeValue> {
-            ["id"] = new("the-key"),
-        });
+        var response = await client.GetItemAsync(
+            "round-trip",
+            new Dictionary<string, AttributeValue> { ["id"] = new("the-key") }
+        );
 
         Assert.Equal("kept", response.Item["value"].S);
     }
@@ -57,7 +64,8 @@ public class LocalDynamoDbTests {
     /// depended on what ran first. Two named images now mean two containers.
     /// </summary>
     [RequiresDockerFact]
-    public void DifferentImagesGetDifferentContainers() {
+    public void DifferentImagesGetDifferentContainers()
+    {
         var byDefault = LocalDynamoDb.EndpointFor(LocalDynamoDb.DefaultImage);
         var pinned = LocalDynamoDb.EndpointFor(PinnedImage);
 
@@ -66,7 +74,8 @@ public class LocalDynamoDbTests {
 
     /// <summary>A pinned image is a working DynamoDB, not just a second endpoint.</summary>
     [RequiresDockerFact]
-    public async Task APinnedImageServesRequestsToo() {
+    public async Task APinnedImageServesRequestsToo()
+    {
         using var client = LocalDynamoDb.CreateClient(PinnedImage);
 
         await CreateTable(client, "pinned");
@@ -77,15 +86,18 @@ public class LocalDynamoDbTests {
     }
 
     private static Task CreateTable(IAmazonDynamoDB client, string name) =>
-        client.CreateTableAsync(new CreateTableRequest {
-            TableName = name,
-            KeySchema = [new KeySchemaElement("id", KeyType.HASH)],
-            AttributeDefinitions = [new AttributeDefinition("id", ScalarAttributeType.S)],
+        client.CreateTableAsync(
+            new CreateTableRequest
+            {
+                TableName = name,
+                KeySchema = [new KeySchemaElement("id", KeyType.HASH)],
+                AttributeDefinitions = [new AttributeDefinition("id", ScalarAttributeType.S)],
 
-            // DynamoDB Local ignores throughput, but the API still requires it unless the table is
-            // on-demand, and provisioned works on every version worth testing against.
-            ProvisionedThroughput = new ProvisionedThroughput(1, 1),
-        });
+                // DynamoDB Local ignores throughput, but the API still requires it unless the table is
+                // on-demand, and provisioned works on every version worth testing against.
+                ProvisionedThroughput = new ProvisionedThroughput(1, 1),
+            }
+        );
 }
 
 /// <summary>
@@ -93,7 +105,8 @@ public class LocalDynamoDbTests {
 /// racing to start them, and so there is a single point at which the containers are stopped.
 /// </summary>
 [CollectionDefinition(Name)]
-public sealed class LocalDynamoDbCollection : ICollectionFixture<LocalDynamoDbLifetime> {
+public sealed class LocalDynamoDbCollection : ICollectionFixture<LocalDynamoDbLifetime>
+{
     public const string Name = "local-dynamodb";
 }
 
@@ -109,12 +122,16 @@ public sealed class LocalDynamoDbCollection : ICollectionFixture<LocalDynamoDbLi
 /// find out it was never about the code.
 /// </para>
 /// </summary>
-public sealed class LocalDynamoDbLifetime : IDisposable {
-    public LocalDynamoDbLifetime() {
-        if (!DockerDaemon.IsAvailable) {
+public sealed class LocalDynamoDbLifetime : IDisposable
+{
+    public LocalDynamoDbLifetime()
+    {
+        if (!DockerDaemon.IsAvailable)
+        {
             throw new InvalidOperationException(
-                "These tests run DynamoDB Local in a container and no Docker daemon answered. " +
-                $"Start one, or exclude them: dotnet test --filter \"Category!={RequiresDockerFactAttribute.Category}\".");
+                "These tests run DynamoDB Local in a container and no Docker daemon answered. "
+                    + $"Start one, or exclude them: dotnet test --filter \"Category!={RequiresDockerFactAttribute.Category}\"."
+            );
         }
     }
 

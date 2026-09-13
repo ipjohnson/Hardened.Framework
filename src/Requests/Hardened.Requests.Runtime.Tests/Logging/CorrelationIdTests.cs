@@ -21,8 +21,8 @@ namespace Hardened.Requests.Runtime.Tests.Logging;
 /// to group them by.
 /// </para>
 /// </summary>
-public class CorrelationIdTests {
-
+public class CorrelationIdTests
+{
     /// <summary>In ASCII order, so an id sorts as text the way it sorts as a number.</summary>
     private const string Base64Digits =
         "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
@@ -31,10 +31,13 @@ public class CorrelationIdTests {
     /// Listens to the pipeline's source so that spans are actually created, since without a
     /// listener <c>StartActivity</c> returns null and there is nothing to read a trace id from.
     /// </summary>
-    private static ActivityListener Listening() {
-        var listener = new ActivityListener {
+    private static ActivityListener Listening()
+    {
+        var listener = new ActivityListener
+        {
             ShouldListenTo = source => source.Name == HardenedDiagnostics.SourceName,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) =>
+                ActivitySamplingResult.AllData,
         };
 
         ActivitySource.AddActivityListener(listener);
@@ -46,7 +49,8 @@ public class CorrelationIdTests {
 
     /// <summary>Always present, whatever else is or is not configured.</summary>
     [Fact]
-    public void CorrelationId_IsNeverEmpty() {
+    public void CorrelationId_IsNeverEmpty()
+    {
         Assert.False(string.IsNullOrEmpty(Pipeline.Context().CorrelationId));
     }
 
@@ -55,7 +59,8 @@ public class CorrelationIdTests {
     /// on every log line of the same request.
     /// </summary>
     [Fact]
-    public void CorrelationId_IsTheSameOnEveryRead() {
+    public void CorrelationId_IsTheSameOnEveryRead()
+    {
         var context = Pipeline.Context();
 
         Assert.Equal(context.CorrelationId, context.CorrelationId);
@@ -63,7 +68,8 @@ public class CorrelationIdTests {
 
     /// <summary>Two requests are two ids.</summary>
     [Fact]
-    public void CorrelationId_DiffersBetweenRequests() {
+    public void CorrelationId_DiffersBetweenRequests()
+    {
         Assert.NotEqual(Pipeline.Context().CorrelationId, Pipeline.Context().CorrelationId);
     }
 
@@ -72,7 +78,8 @@ public class CorrelationIdTests {
     /// would have been.
     /// </summary>
     [Fact]
-    public void CorrelationId_IsThirteenBase64CharactersWhenNothingIsTracing() {
+    public void CorrelationId_IsThirteenBase64CharactersWhenNothingIsTracing()
+    {
         var id = Pipeline.Context().CorrelationId;
 
         Assert.Equal(13, id.Length);
@@ -85,7 +92,8 @@ public class CorrelationIdTests {
     /// off by an epoch or written out backwards still looks like a plausible id.
     /// </summary>
     [Fact]
-    public void CorrelationId_LeadsWithTheMillisecondTheRequestStarted() {
+    public void CorrelationId_LeadsWithTheMillisecondTheRequestStarted()
+    {
         var before = DateTimeOffset.UtcNow;
         var id = Pipeline.Context().CorrelationId;
         var after = DateTimeOffset.UtcNow;
@@ -100,7 +108,8 @@ public class CorrelationIdTests {
     /// rather than with the number of ids issued.
     /// </summary>
     [Fact]
-    public async Task CorrelationId_LeadsWithTheClockRatherThanMoreCounter() {
+    public async Task CorrelationId_LeadsWithTheClockRatherThanMoreCounter()
+    {
         var first = CorrelationIdentifier.ForCurrentTrace();
 
         await Task.Delay(25, TestContext.Current.CancellationToken);
@@ -115,7 +124,8 @@ public class CorrelationIdTests {
     /// the span for the same request carry the same string and nobody has to join two identifiers.
     /// </summary>
     [Fact]
-    public void CorrelationId_IsTheTraceIdWhenSomethingIsTracing() {
+    public void CorrelationId_IsTheTraceIdWhenSomethingIsTracing()
+    {
         using var listener = Listening();
 
         var context = Pipeline.Context();
@@ -135,7 +145,8 @@ public class CorrelationIdTests {
     /// And with nothing listening there is still an id. This is the case the trace id cannot cover.
     /// </summary>
     [Fact]
-    public void CorrelationId_IsStillIssuedWhenNothingIsTracing() {
+    public void CorrelationId_IsStillIssuedWhenNothingIsTracing()
+    {
         var context = Pipeline.Context();
         var logger = new RequestLogger(Pipeline.Logger<RequestLogger>());
 
@@ -151,7 +162,8 @@ public class CorrelationIdTests {
     /// caller - a retried or forked chain reporting a second id would split one request's logs.
     /// </summary>
     [Fact]
-    public void CorrelationId_SurvivesClone() {
+    public void CorrelationId_SurvivesClone()
+    {
         var context = Pipeline.Context();
 
         Assert.Equal(context.CorrelationId, context.Clone().CorrelationId);
@@ -159,7 +171,8 @@ public class CorrelationIdTests {
 
     /// <summary>Including when the clone replaces the request and response.</summary>
     [Fact]
-    public void CorrelationId_SurvivesCloneThatReplacesRequestAndResponse() {
+    public void CorrelationId_SurvivesCloneThatReplacesRequestAndResponse()
+    {
         var context = Pipeline.Context();
         var clone = context.Clone(request: context.Request.Clone(path: "/elsewhere"));
 
@@ -173,7 +186,8 @@ public class CorrelationIdTests {
     /// nothing about - which is the point of using a scope rather than a message parameter.
     /// </summary>
     [Fact]
-    public void RequestBegin_PutsTheCorrelationIdInScopeForEveryLogLine() {
+    public void RequestBegin_PutsTheCorrelationIdInScopeForEveryLogLine()
+    {
         var provider = new ScopeCapturingProvider();
         using var factory = LoggerFactory.Create(builder => builder.AddProvider(provider));
 
@@ -195,7 +209,8 @@ public class CorrelationIdTests {
     /// does next.
     /// </summary>
     [Fact]
-    public void RequestEnd_ClosesTheScope() {
+    public void RequestEnd_ClosesTheScope()
+    {
         var provider = new ScopeCapturingProvider();
         using var factory = LoggerFactory.Create(builder => builder.AddProvider(provider));
 
@@ -215,7 +230,8 @@ public class CorrelationIdTests {
     /// and a request with no span is precisely the one that has a scope worth closing.
     /// </summary>
     [Fact]
-    public void RequestEnd_ClosesTheScopeEvenWithNoSpan() {
+    public void RequestEnd_ClosesTheScopeEvenWithNoSpan()
+    {
         var provider = new ScopeCapturingProvider();
         using var factory = LoggerFactory.Create(builder => builder.AddProvider(provider));
 
@@ -235,14 +251,16 @@ public class CorrelationIdTests {
 
     /// <summary>The caller gets the id back, so they can quote it.</summary>
     [Fact]
-    public async Task CorrelationHeaderFilter_PutsTheIdOnTheResponse() {
+    public async Task CorrelationHeaderFilter_PutsTheIdOnTheResponse()
+    {
         var context = Pipeline.Context();
 
         await Pipeline.Chain(context, new CorrelationHeaderFilter()).Next();
 
         Assert.Equal(
             context.CorrelationId,
-            context.Response.Headers[CorrelationHeaderFilter.HeaderName].ToString());
+            context.Response.Headers[CorrelationHeaderFilter.HeaderName].ToString()
+        );
     }
 
     /// <summary>
@@ -251,27 +269,34 @@ public class CorrelationIdTests {
     /// somebody is most likely to ask about.
     /// </summary>
     [Fact]
-    public async Task CorrelationHeaderFilter_SetsTheHeaderEvenWhenTheRequestIsRefused() {
+    public async Task CorrelationHeaderFilter_SetsTheHeaderEvenWhenTheRequestIsRefused()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(
-            context,
-            new CorrelationHeaderFilter(),
-            new Pipeline.Inline(chain => {
-                chain.Context.Response.Status = 429;
+        await Pipeline
+            .Chain(
+                context,
+                new CorrelationHeaderFilter(),
+                new Pipeline.Inline(chain =>
+                {
+                    chain.Context.Response.Status = 429;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal(429, context.Response.Status);
         Assert.Equal(
             context.CorrelationId,
-            context.Response.Headers[CorrelationHeaderFilter.HeaderName].ToString());
+            context.Response.Headers[CorrelationHeaderFilter.HeaderName].ToString()
+        );
     }
 
     /// <summary>The header name is configurable for a deployment that already has a convention.</summary>
     [Fact]
-    public async Task CorrelationHeaderFilter_HonoursAConfiguredHeaderName() {
+    public async Task CorrelationHeaderFilter_HonoursAConfiguredHeaderName()
+    {
         var context = Pipeline.Context();
 
         await Pipeline.Chain(context, new CorrelationHeaderFilter("X-Request-Id")).Next();
@@ -284,7 +309,8 @@ public class CorrelationIdTests {
     /// response finalizer is.
     /// </summary>
     [Fact]
-    public async Task MiddlewareService_ReturnsTheIdWithoutAnyHostRegisteringTheFilter() {
+    public async Task MiddlewareService_ReturnsTheIdWithoutAnyHostRegisteringTheFilter()
+    {
         var context = Pipeline.Context();
         var service = new MiddlewareService();
 
@@ -292,7 +318,8 @@ public class CorrelationIdTests {
 
         Assert.Equal(
             context.CorrelationId,
-            context.Response.Headers[CorrelationHeaderFilter.HeaderName].ToString());
+            context.Response.Headers[CorrelationHeaderFilter.HeaderName].ToString()
+        );
     }
 
     // ----------------------------------------------------------- the generator
@@ -302,7 +329,8 @@ public class CorrelationIdTests {
     /// absent activity would otherwise imply.
     /// </summary>
     [Fact]
-    public void ForCurrentTrace_DoesNotIssueTheZeroTraceId() {
+    public void ForCurrentTrace_DoesNotIssueTheZeroTraceId()
+    {
         var zero = default(ActivityTraceId).ToHexString();
 
         Assert.NotEqual(zero, CorrelationIdentifier.ForCurrentTrace());
@@ -314,21 +342,28 @@ public class CorrelationIdTests {
     /// way this can go wrong, so it is worth taking enough ids to catch it.
     /// </summary>
     [Fact]
-    public void ForCurrentTrace_IssuesNoDuplicatesAcrossThreads() {
+    public void ForCurrentTrace_IssuesNoDuplicatesAcrossThreads()
+    {
         const int threads = 8;
         const int each = 50_000;
 
         var issued = new string[threads][];
 
-        Parallel.For(0, threads, thread => {
-            var mine = new string[each];
+        Parallel.For(
+            0,
+            threads,
+            thread =>
+            {
+                var mine = new string[each];
 
-            for (var i = 0; i < each; i++) {
-                mine[i] = CorrelationIdentifier.ForCurrentTrace();
+                for (var i = 0; i < each; i++)
+                {
+                    mine[i] = CorrelationIdentifier.ForCurrentTrace();
+                }
+
+                issued[thread] = mine;
             }
-
-            issued[thread] = mine;
-        });
+        );
 
         var all = issued.SelectMany(ids => ids).ToList();
 
@@ -342,7 +377,8 @@ public class CorrelationIdTests {
     /// off-by-one in the refill would show up as a repeat or a jump backwards.
     /// </summary>
     [Fact]
-    public void ForCurrentTrace_AscendsOnOneThread() {
+    public void ForCurrentTrace_AscendsOnOneThread()
+    {
         var issued = Enumerable
             .Range(0, 200)
             .Select(_ => CorrelationIdentifier.ForCurrentTrace())
@@ -357,7 +393,8 @@ public class CorrelationIdTests {
         id[..7].Aggregate(0L, (value, c) => (value << 6) | (uint)Base64Digits.IndexOf(c));
 
     /// <summary>Captures the scopes in force when each message was written.</summary>
-    private sealed class ScopeCapturingProvider : ILoggerProvider {
+    private sealed class ScopeCapturingProvider : ILoggerProvider
+    {
         private readonly List<(string Message, List<string> Scopes)> _written = new();
         private readonly AsyncLocal<Stack<object>> _scopes = new();
 
@@ -370,14 +407,18 @@ public class CorrelationIdTests {
 
         private Stack<object> Current => _scopes.Value ??= new Stack<object>();
 
-        private sealed class Capturing : ILogger {
+        private sealed class Capturing : ILogger
+        {
             private readonly ScopeCapturingProvider _provider;
 
-            public Capturing(ScopeCapturingProvider provider) {
+            public Capturing(ScopeCapturingProvider provider)
+            {
                 _provider = provider;
             }
 
-            public IDisposable? BeginScope<TState>(TState state) where TState : notnull {
+            public IDisposable? BeginScope<TState>(TState state)
+                where TState : notnull
+            {
                 _provider.Current.Push(state);
 
                 return new Pop(_provider);
@@ -386,11 +427,14 @@ public class CorrelationIdTests {
             public bool IsEnabled(LogLevel logLevel) => true;
 
             public void Log<TState>(
-                LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-                Func<TState, Exception?, string> formatter) {
-                var scopes = _provider.Current
-                    .SelectMany(Values)
-                    .ToList();
+                LogLevel logLevel,
+                EventId eventId,
+                TState state,
+                Exception? exception,
+                Func<TState, Exception?, string> formatter
+            )
+            {
+                var scopes = _provider.Current.SelectMany(Values).ToList();
 
                 _provider._written.Add((formatter(state, exception), scopes));
             }
@@ -400,15 +444,19 @@ public class CorrelationIdTests {
                     ? pairs.Select(p => p.Value?.ToString() ?? "")
                     : new[] { scope.ToString() ?? "" };
 
-            private sealed class Pop : IDisposable {
+            private sealed class Pop : IDisposable
+            {
                 private readonly ScopeCapturingProvider _provider;
 
-                public Pop(ScopeCapturingProvider provider) {
+                public Pop(ScopeCapturingProvider provider)
+                {
                     _provider = provider;
                 }
 
-                public void Dispose() {
-                    if (_provider.Current.Count > 0) {
+                public void Dispose()
+                {
+                    if (_provider.Current.Count > 0)
+                    {
                         _provider.Current.Pop();
                     }
                 }

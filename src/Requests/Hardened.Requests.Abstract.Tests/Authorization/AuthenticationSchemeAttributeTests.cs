@@ -7,13 +7,15 @@ namespace Hardened.Requests.Abstract.Tests.Authorization;
 /// The scheme-shape attributes carry what was declared. The generator reads them as symbols;
 /// these pin the runtime surface an application or a tool reading the metadata sees.
 /// </summary>
-public class AuthenticationSchemeAttributeTests {
-
+public class AuthenticationSchemeAttributeTests
+{
     [Fact]
-    public void HttpSchemeCarriesItsShape() {
-        var attribute = new HttpAuthenticationSchemeAttribute("bearer") {
+    public void HttpSchemeCarriesItsShape()
+    {
+        var attribute = new HttpAuthenticationSchemeAttribute("bearer")
+        {
             BearerFormat = "JWT",
-            Description = "The bearer."
+            Description = "The bearer.",
         };
 
         Assert.Equal("bearer", attribute.Scheme);
@@ -22,9 +24,11 @@ public class AuthenticationSchemeAttributeTests {
     }
 
     [Fact]
-    public void ApiKeySchemeCarriesItsShape() {
-        var attribute = new ApiKeyAuthenticationSchemeAttribute("X-Api-Key", ApiKeyLocation.Header) {
-            Description = "The key."
+    public void ApiKeySchemeCarriesItsShape()
+    {
+        var attribute = new ApiKeyAuthenticationSchemeAttribute("X-Api-Key", ApiKeyLocation.Header)
+        {
+            Description = "The key.",
         };
 
         Assert.Equal("X-Api-Key", attribute.Name);
@@ -33,12 +37,14 @@ public class AuthenticationSchemeAttributeTests {
     }
 
     [Fact]
-    public void OAuth2SchemeCarriesItsShape() {
-        var attribute = new OAuth2AuthenticationSchemeAttribute(OAuth2Flow.ClientCredentials) {
+    public void OAuth2SchemeCarriesItsShape()
+    {
+        var attribute = new OAuth2AuthenticationSchemeAttribute(OAuth2Flow.ClientCredentials)
+        {
             TokenUrl = "https://id.example/token",
             AuthorizationUrl = "https://id.example/authorize",
             RefreshUrl = "https://id.example/refresh",
-            Description = "The flow."
+            Description = "The flow.",
         };
 
         Assert.Equal(OAuth2Flow.ClientCredentials, attribute.Flow);

@@ -16,12 +16,14 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// satisfied answered a 500 with <c>Content-Length: 0</c>, because the throw here unwound past the
 /// filter that writes a response. The message naming the service reached only the log.
 /// </remarks>
-public class InstanceFilterTests {
-
+public class InstanceFilterTests
+{
     public interface IClock;
 
-    public sealed class NeedsAClock {
-        public NeedsAClock(IClock clock) {
+    public sealed class NeedsAClock
+    {
+        public NeedsAClock(IClock clock)
+        {
             _ = clock;
         }
     }
@@ -29,8 +31,11 @@ public class InstanceFilterTests {
     public sealed class NeedsNothing;
 
     [Fact]
-    public async Task ASatisfiableHandlerIsConstructedOntoTheContext() {
-        var context = Pipeline.Context(configureServices: services => services.AddTransient<NeedsNothing>());
+    public async Task ASatisfiableHandlerIsConstructedOntoTheContext()
+    {
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddTransient<NeedsNothing>()
+        );
 
         await Pipeline.Chain(context, new InstanceFilter<NeedsNothing>()).Next();
 
@@ -39,8 +44,11 @@ public class InstanceFilterTests {
     }
 
     [Fact]
-    public async Task AMissingDependencyIsRecordedNamingTheHandlerAndTheService() {
-        var context = Pipeline.Context(configureServices: services => services.AddTransient<NeedsAClock>());
+    public async Task AMissingDependencyIsRecordedNamingTheHandlerAndTheService()
+    {
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddTransient<NeedsAClock>()
+        );
 
         context.HandlerInfo = Handler("GET", "/clock");
 
@@ -60,15 +68,25 @@ public class InstanceFilterTests {
     /// the framework's error envelope instead of a bodyless 500.
     /// </summary>
     [Fact]
-    public async Task AMissingDependencyStillReachesTheFilterThatWritesIt() {
-        var context = Pipeline.Context(configureServices: services => services.AddTransient<NeedsAClock>());
+    public async Task AMissingDependencyStillReachesTheFilterThatWritesIt()
+    {
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddTransient<NeedsAClock>()
+        );
         var reached = false;
 
-        await Pipeline.Chain(context, new InstanceFilter<NeedsAClock>(), new Pipeline.Inline(chain => {
-            reached = chain.Context.Response.Refused;
+        await Pipeline
+            .Chain(
+                context,
+                new InstanceFilter<NeedsAClock>(),
+                new Pipeline.Inline(chain =>
+                {
+                    reached = chain.Context.Response.Refused;
 
-            return Task.CompletedTask;
-        })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.True(reached);
     }
@@ -79,17 +97,22 @@ public class InstanceFilterTests {
     /// an instance filter for it would refuse every request at HandlerCreation.
     /// </summary>
     [Fact]
-    public void ObjectAsksForTheStaticFilter() {
+    public void ObjectAsksForTheStaticFilter()
+    {
         Assert.Same(
             StaticInstanceFilter.Instance,
-            new InstanceFilterProvider().ProvideFilter<object>(Substitute.For<IServiceProvider>()));
+            new InstanceFilterProvider().ProvideFilter<object>(Substitute.For<IServiceProvider>())
+        );
     }
 
     [Fact]
-    public void EveryOtherControllerTypeStillConstructsAnInstance() {
+    public void EveryOtherControllerTypeStillConstructsAnInstance()
+    {
         Assert.IsType<InstanceFilter<NeedsNothing>>(
             new InstanceFilterProvider().ProvideFilter<NeedsNothing>(
-                Substitute.For<IServiceProvider>()));
+                Substitute.For<IServiceProvider>()
+            )
+        );
     }
 
     /// <summary>
@@ -97,7 +120,8 @@ public class InstanceFilterTests {
     /// has to leave something there even though nothing reads it.
     /// </summary>
     [Fact]
-    public async Task TheStaticFilterLeavesANonNullHandlerInstance() {
+    public async Task TheStaticFilterLeavesANonNullHandlerInstance()
+    {
         var context = Pipeline.Context();
 
         await Pipeline.Chain(context, StaticInstanceFilter.Instance).Next();
@@ -106,7 +130,8 @@ public class InstanceFilterTests {
         Assert.Null(context.Response.ExceptionValue);
     }
 
-    private static IExecutionRequestHandlerInfo Handler(string method, string path) {
+    private static IExecutionRequestHandlerInfo Handler(string method, string path)
+    {
         var info = Substitute.For<IExecutionRequestHandlerInfo>();
 
         info.Method.Returns(method);

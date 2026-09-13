@@ -27,51 +27,60 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// <see cref="ACompressedBodyIsNotDecodedByTheDeserializer"/> pins that the branch is gone from
 /// here rather than duplicated.
 /// </remarks>
-public class JsonRequestDeserializerTests {
-
+public class JsonRequestDeserializerTests
+{
     private record Payload(string Name, int Value);
 
     private static IOptions<IJsonSerializerConfiguration> Config() =>
-        Options.Create<IJsonSerializerConfiguration>(new JsonSerializerConfiguration {
-            DeSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
-        });
+        Options.Create<IJsonSerializerConfiguration>(
+            new JsonSerializerConfiguration
+            {
+                DeSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web),
+            }
+        );
 
-    private static IRequestDeserializer DeserializerNamed(string name) => name switch {
-        nameof(SystemTextJsonRequestDeserializer) =>
-            new SystemTextJsonRequestDeserializer(
+    private static IRequestDeserializer DeserializerNamed(string name) =>
+        name switch
+        {
+            nameof(SystemTextJsonRequestDeserializer) => new SystemTextJsonRequestDeserializer(
                 Config(),
-                Array.Empty<IJsonTypeInfoResolver>()),
-        nameof(AotRequestDeserializer) =>
-            new AotRequestDeserializer(
+                Array.Empty<IJsonTypeInfoResolver>()
+            ),
+            nameof(AotRequestDeserializer) => new AotRequestDeserializer(
                 Config(),
                 NullLogger<AotRequestDeserializer>.Instance,
-                new IJsonTypeInfoResolver[] { new DefaultJsonTypeInfoResolver() }),
-        _ => throw new ArgumentOutOfRangeException(nameof(name), name, "unknown deserializer")
-    };
+                new IJsonTypeInfoResolver[] { new DefaultJsonTypeInfoResolver() }
+            ),
+            _ => throw new ArgumentOutOfRangeException(nameof(name), name, "unknown deserializer"),
+        };
 
-    public static TheoryData<string> DeserializerNames => new() {
-        nameof(SystemTextJsonRequestDeserializer),
-        nameof(AotRequestDeserializer)
-    };
+    public static TheoryData<string> DeserializerNames =>
+        new() { nameof(SystemTextJsonRequestDeserializer), nameof(AotRequestDeserializer) };
 
     private const string Json = """{"name":"encoded","value":7}""";
 
-    private static IExecutionContext Context(byte[] body, string? contentEncoding = null) {
+    private static IExecutionContext Context(byte[] body, string? contentEncoding = null)
+    {
         var context = Pipeline.Context(method: "POST", body: body);
 
         context.Request.Headers[KnownHeaders.ContentType] = new StringValues("application/json");
 
-        if (contentEncoding is not null) {
-            context.Request.Headers[KnownHeaders.ContentEncoding] = new StringValues(contentEncoding);
+        if (contentEncoding is not null)
+        {
+            context.Request.Headers[KnownHeaders.ContentEncoding] = new StringValues(
+                contentEncoding
+            );
         }
 
         return context;
     }
 
-    private static byte[] GZipped(string content) {
+    private static byte[] GZipped(string content)
+    {
         var output = new MemoryStream();
 
-        using (var gzip = new GZipStream(output, CompressionLevel.Fastest, true)) {
+        using (var gzip = new GZipStream(output, CompressionLevel.Fastest, true))
+        {
             var bytes = Encoding.UTF8.GetBytes(content);
 
             gzip.Write(bytes, 0, bytes.Length);
@@ -82,7 +91,8 @@ public class JsonRequestDeserializerTests {
 
     [Theory]
     [MemberData(nameof(DeserializerNames))]
-    public async Task ABodyIsReadAsPlainJson(string deserializerName) {
+    public async Task ABodyIsReadAsPlainJson(string deserializerName)
+    {
         var payload = await DeserializerNamed(deserializerName)
             .DeserializeRequestBody<Payload>(Context(Encoding.UTF8.GetBytes(Json)));
 
@@ -98,22 +108,26 @@ public class JsonRequestDeserializerTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(DeserializerNames))]
-    public async Task ACompressedBodyIsNotDecodedByTheDeserializer(string deserializerName) {
+    public async Task ACompressedBodyIsNotDecodedByTheDeserializer(string deserializerName)
+    {
         await Assert.ThrowsAnyAsync<Exception>(async () =>
             await DeserializerNamed(deserializerName)
-                .DeserializeRequestBody<Payload>(Context(GZipped(Json), KnownEncoding.GZip)));
+                .DeserializeRequestBody<Payload>(Context(GZipped(Json), KnownEncoding.GZip))
+        );
     }
 
     [Theory]
     [MemberData(nameof(DeserializerNames))]
-    public void ADeserializerHandlesAJsonContentTypeAndNothingElse(string deserializerName) {
+    public void ADeserializerHandlesAJsonContentTypeAndNothingElse(string deserializerName)
+    {
         var deserializer = DeserializerNamed(deserializerName);
 
         Assert.True(deserializer.CanProcessContext(Context(Encoding.UTF8.GetBytes(Json))));
 
         var formEncoded = Pipeline.Context(method: "POST");
-        formEncoded.Request.Headers[KnownHeaders.ContentType] =
-            new StringValues("application/x-www-form-urlencoded");
+        formEncoded.Request.Headers[KnownHeaders.ContentType] = new StringValues(
+            "application/x-www-form-urlencoded"
+        );
 
         Assert.False(deserializer.CanProcessContext(formEncoded));
         Assert.False(deserializer.CanProcessContext(Pipeline.Context(method: "POST")));
@@ -125,7 +139,8 @@ public class JsonRequestDeserializerTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(DeserializerNames))]
-    public void BothDeserializersOfferThemselvesAsTheDefault(string deserializerName) {
+    public void BothDeserializersOfferThemselvesAsTheDefault(string deserializerName)
+    {
         Assert.True(DeserializerNamed(deserializerName).IsDefaultSerializer);
     }
 }

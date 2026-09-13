@@ -22,22 +22,23 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// counts, default, enum, and nullability as the 2020-12 type array.
 /// </para>
 /// </remarks>
-public class SpecSchemaFacetTests {
-
-    private static string Component(SchemaModel schema, params SchemaModel[] others) {
+public class SpecSchemaFacetTests
+{
+    private static string Component(SchemaModel schema, params SchemaModel[] others)
+    {
         var schemas = new List<SchemaModel> { schema };
 
         schemas.AddRange(others);
 
-        var handlerSchema = SpecSchemaWriter.ForRef(
-            "#/components/schemas/" + schema.Name, schemas);
+        var handlerSchema = SpecSchemaWriter.ForRef("#/components/schemas/" + schema.Name, schemas);
 
         Assert.NotNull(handlerSchema);
 
         return handlerSchema!.Components.Single(c => c.Name == schema.Name).Json;
     }
 
-    private static SchemaModel Thing(params PropertyModel[] properties) {
+    private static SchemaModel Thing(params PropertyModel[] properties)
+    {
         var schema = new SchemaModel { Name = "Thing", Kind = SchemaKind.Object };
 
         schema.Properties.AddRange(properties);
@@ -46,14 +47,20 @@ public class SpecSchemaFacetTests {
     }
 
     [Fact]
-    public void StringFacetsArePublished() {
-        var schema = Component(Thing(new PropertyModel {
-            Name = "code",
-            Type = "string",
-            MinLength = 1,
-            MaxLength = 12,
-            Pattern = "^[a-z]+$"
-        }));
+    public void StringFacetsArePublished()
+    {
+        var schema = Component(
+            Thing(
+                new PropertyModel
+                {
+                    Name = "code",
+                    Type = "string",
+                    MinLength = 1,
+                    MaxLength = 12,
+                    Pattern = "^[a-z]+$",
+                }
+            )
+        );
 
         Assert.Contains("\"minLength\":1", schema);
         Assert.Contains("\"maxLength\":12", schema);
@@ -61,13 +68,19 @@ public class SpecSchemaFacetTests {
     }
 
     [Fact]
-    public void NumericBoundsArePublished() {
-        var schema = Component(Thing(new PropertyModel {
-            Name = "rating",
-            Type = "integer",
-            Minimum = 1,
-            Maximum = 5
-        }));
+    public void NumericBoundsArePublished()
+    {
+        var schema = Component(
+            Thing(
+                new PropertyModel
+                {
+                    Name = "rating",
+                    Type = "integer",
+                    Minimum = 1,
+                    Maximum = 5,
+                }
+            )
+        );
 
         Assert.Contains("\"minimum\":1", schema);
         Assert.Contains("\"maximum\":5", schema);
@@ -79,15 +92,21 @@ public class SpecSchemaFacetTests {
     /// document is one this spelling is correct in.
     /// </summary>
     [Fact]
-    public void ExclusiveBoundsUseTheModernSpelling() {
-        var schema = Component(Thing(new PropertyModel {
-            Name = "ratio",
-            Type = "number",
-            Minimum = 0,
-            Maximum = 1,
-            ExclusiveMinimum = true,
-            ExclusiveMaximum = true
-        }));
+    public void ExclusiveBoundsUseTheModernSpelling()
+    {
+        var schema = Component(
+            Thing(
+                new PropertyModel
+                {
+                    Name = "ratio",
+                    Type = "number",
+                    Minimum = 0,
+                    Maximum = 1,
+                    ExclusiveMinimum = true,
+                    ExclusiveMaximum = true,
+                }
+            )
+        );
 
         Assert.Contains("\"exclusiveMinimum\":0", schema);
         Assert.Contains("\"exclusiveMaximum\":1", schema);
@@ -96,53 +115,73 @@ public class SpecSchemaFacetTests {
     }
 
     [Fact]
-    public void ADefaultAndAnInlineEnumArePublished() {
-        var schema = Component(Thing(new PropertyModel {
-            Name = "state",
-            Type = "string",
-            Default = "open",
-            EnumValues = new List<string> { "open", "closed" }
-        }));
+    public void ADefaultAndAnInlineEnumArePublished()
+    {
+        var schema = Component(
+            Thing(
+                new PropertyModel
+                {
+                    Name = "state",
+                    Type = "string",
+                    Default = "open",
+                    EnumValues = new List<string> { "open", "closed" },
+                }
+            )
+        );
 
         Assert.Contains("\"default\":\"open\"", schema);
         Assert.Contains("\"enum\":[\"open\",\"closed\"]", schema);
     }
 
     [Fact]
-    public void ANullablePropertyPublishesTheTypeArray() {
-        var schema = Component(Thing(new PropertyModel {
-            Name = "deliveredAt",
-            Type = "string",
-            Format = "date-time",
-            IsNullable = true
-        }));
+    public void ANullablePropertyPublishesTheTypeArray()
+    {
+        var schema = Component(
+            Thing(
+                new PropertyModel
+                {
+                    Name = "deliveredAt",
+                    Type = "string",
+                    Format = "date-time",
+                    IsNullable = true,
+                }
+            )
+        );
 
         Assert.Contains("\"deliveredAt\":{\"type\":[\"string\",\"null\"]", schema);
     }
 
     [Fact]
-    public void AnArrayPropertyPublishesItsItemBounds() {
-        var schema = Component(Thing(new PropertyModel {
-            Name = "lines",
-            Type = "array",
-            IsArray = true,
-            ArrayItemsType = "string",
-            MinItems = 1,
-            MaxItems = 10
-        }));
+    public void AnArrayPropertyPublishesItsItemBounds()
+    {
+        var schema = Component(
+            Thing(
+                new PropertyModel
+                {
+                    Name = "lines",
+                    Type = "array",
+                    IsArray = true,
+                    ArrayItemsType = "string",
+                    MinItems = 1,
+                    MaxItems = 10,
+                }
+            )
+        );
 
         Assert.Contains("\"minItems\":1", schema);
         Assert.Contains("\"maxItems\":10", schema);
     }
 
     [Fact]
-    public void ANamedArraySchemaPublishesItsOwnBounds() {
-        var array = new SchemaModel {
+    public void ANamedArraySchemaPublishesItsOwnBounds()
+    {
+        var array = new SchemaModel
+        {
             Name = "Batch",
             Kind = SchemaKind.Array,
             ArrayItemsType = "string",
             MinItems = 1,
-            MaxItems = 100
+            MaxItems = 100,
         };
 
         var schema = Component(array);
@@ -154,13 +193,17 @@ public class SpecSchemaFacetTests {
 
     /// <summary>A reference stays a bare reference; the component it names carries the facts.</summary>
     [Fact]
-    public void AReferencePropertyIsLeftAlone() {
-        var owner = Thing(new PropertyModel {
-            Name = "address",
-            Ref = "#/components/schemas/Address",
-            IsNullable = true,
-            MinLength = 3
-        });
+    public void AReferencePropertyIsLeftAlone()
+    {
+        var owner = Thing(
+            new PropertyModel
+            {
+                Name = "address",
+                Ref = "#/components/schemas/Address",
+                IsNullable = true,
+                MinLength = 3,
+            }
+        );
 
         var address = new SchemaModel { Name = "Address", Kind = SchemaKind.Object };
 

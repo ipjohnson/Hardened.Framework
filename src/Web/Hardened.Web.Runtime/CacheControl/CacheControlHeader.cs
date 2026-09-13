@@ -20,8 +20,8 @@ namespace Hardened.Web.Runtime.CacheControl;
 /// than what it says is the thing this exists to stop.
 /// </para>
 /// </remarks>
-public static class CacheControlHeader {
-
+public static class CacheControlHeader
+{
     /// <summary>
     /// The header value, or null when no directive is set and the header should be omitted.
     /// </summary>
@@ -36,43 +36,56 @@ public static class CacheControlHeader {
     /// Appends <c>immutable</c>. Separate from the flags because the enum has no member for it, and
     /// the static content configuration carries it as its own property.
     /// </param>
-    public static string? Format(CacheControlEnum type, int maxAge, bool immutable = false) {
+    public static string? Format(CacheControlEnum type, int maxAge, bool immutable = false)
+    {
         var builder = new StringBuilder();
 
         // public and private are mutually exclusive. Both set is a contradiction the type system
         // allows, and private is the safer reading of it.
-        if (type.HasFlag(CacheControlEnum.Private)) {
+        if (type.HasFlag(CacheControlEnum.Private))
+        {
             Append(builder, "private");
         }
-        else if (type.HasFlag(CacheControlEnum.Public)) {
+        else if (type.HasFlag(CacheControlEnum.Public))
+        {
             Append(builder, "public");
         }
 
-        if (type.HasFlag(CacheControlEnum.NoCache)) {
+        if (type.HasFlag(CacheControlEnum.NoCache))
+        {
             Append(builder, "no-cache");
         }
 
-        if (type.HasFlag(CacheControlEnum.NoStore)) {
+        if (type.HasFlag(CacheControlEnum.NoStore))
+        {
             Append(builder, "no-store");
         }
 
-        if (type.HasFlag(CacheControlEnum.MaxAge)) {
-            Append(builder, "max-age=" + maxAge.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        if (type.HasFlag(CacheControlEnum.MaxAge))
+        {
+            Append(
+                builder,
+                "max-age=" + maxAge.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            );
         }
 
-        if (type.HasFlag(CacheControlEnum.NoTransform)) {
+        if (type.HasFlag(CacheControlEnum.NoTransform))
+        {
             Append(builder, "no-transform");
         }
 
-        if (immutable) {
+        if (immutable)
+        {
             Append(builder, "immutable");
         }
 
         return builder.Length == 0 ? null : builder.ToString();
     }
 
-    private static void Append(StringBuilder builder, string directive) {
-        if (builder.Length > 0) {
+    private static void Append(StringBuilder builder, string directive)
+    {
+        if (builder.Length > 0)
+        {
             builder.Append(", ");
         }
 

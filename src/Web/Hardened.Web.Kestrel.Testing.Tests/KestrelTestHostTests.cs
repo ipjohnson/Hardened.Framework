@@ -5,37 +5,50 @@ using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
 using Hardened.Requests.Testing;
 using Hardened.Web.Kestrel.Runtime;
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.Primitives;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Kestrel.Testing.Tests;
 
 /// <summary>
 /// The Kestrel host: what it binds, what it carries in and out, and how it stops.
 /// </summary>
-public class KestrelTestHostTests {
-
+public class KestrelTestHostTests
+{
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    private static Task Answer(IExecutionChain chain, int status, string body, string? header = null) {
+    private static Task Answer(
+        IExecutionChain chain,
+        int status,
+        string body,
+        string? header = null
+    )
+    {
         var response = chain.Context.Response;
 
         response.Status = status;
         response.ContentType = "application/json";
         response.ShouldSerialize = false;
 
-        if (header != null) {
+        if (header != null)
+        {
             response.Headers["X-Answer"] = header;
         }
 
-        return response.Body.WriteAsync(Encoding.UTF8.GetBytes(body), chain.Context.CancellationToken).AsTask();
+        return response
+            .Body.WriteAsync(Encoding.UTF8.GetBytes(body), chain.Context.CancellationToken)
+            .AsTask();
     }
 
     [Fact]
-    public async Task StartAsync_BindsALoopbackPortTheKernelPicked() {
-        await using var harness = await HostHarness.Start(chain => Answer(chain, 200, "\"ok\""), Token);
+    public async Task StartAsync_BindsALoopbackPortTheKernelPicked()
+    {
+        await using var harness = await HostHarness.Start(
+            chain => Answer(chain, 200, "\"ok\""),
+            Token
+        );
 
         var address = harness.Host.BaseAddress;
 
@@ -46,8 +59,12 @@ public class KestrelTestHostTests {
     }
 
     [Fact]
-    public void BeforeStartThereIsNoAddress() {
-        var host = new KestrelTestingAttribute().CreateHost(null!, new Microsoft.Extensions.DependencyInjection.ServiceCollection());
+    public void BeforeStartThereIsNoAddress()
+    {
+        var host = new KestrelTestingAttribute().CreateHost(
+            null!,
+            new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+        );
 
         var failure = Assert.Throws<InvalidOperationException>(() => host.BaseAddress);
 
@@ -56,8 +73,12 @@ public class KestrelTestHostTests {
 
     /// <summary>The attribute an application names its host with is the one a test names it with.</summary>
     [Fact]
-    public void TheProviderAnswersForTheKestrelRuntimeAttribute() {
-        Assert.Equal(typeof(KestrelRuntimeAttribute), new KestrelTestingAttribute().RuntimeAttribute);
+    public void TheProviderAnswersForTheKestrelRuntimeAttribute()
+    {
+        Assert.Equal(
+            typeof(KestrelRuntimeAttribute),
+            new KestrelTestingAttribute().RuntimeAttribute
+        );
     }
 
     /// <summary>
@@ -66,17 +87,24 @@ public class KestrelTestHostTests {
     /// Kestrel wrote, and the body as bytes.
     /// </summary>
     [Fact]
-    public async Task SendAsync_CarriesTheRequestInAndTheAnswerOut() {
-        await using var harness = await HostHarness.Start(chain => Answer(chain, 201, "{\"id\":7}", "yes"), Token);
+    public async Task SendAsync_CarriesTheRequestInAndTheAnswerOut()
+    {
+        await using var harness = await HostHarness.Start(
+            chain => Answer(chain, 201, "{\"id\":7}", "yes"),
+            Token
+        );
 
-        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) {
+        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        {
             ["Content-Type"] = "application/json",
             ["X-Probe"] = "one",
         };
         var body = new MemoryStream("{\"title\":\"t\"}"u8.ToArray());
 
         var response = await harness.Host.SendAsync(
-            new TestHostRequest("POST", "/things?culture=en-GB", headers, body, null), Token);
+            new TestHostRequest("POST", "/things?culture=en-GB", headers, body, null),
+            Token
+        );
 
         var request = Assert.Single(harness.Requests);
 
@@ -93,32 +121,57 @@ public class KestrelTestHostTests {
 
     /// <summary>The body reaches the chain as the bytes the test wrote, never re-serialised.</summary>
     [Fact]
-    public async Task SendAsync_CarriesTheBodyBytesAsWritten() {
+    public async Task SendAsync_CarriesTheBodyBytesAsWritten()
+    {
         string? seen = null;
 
-        await using var harness = await HostHarness.Start(async chain => {
-            using var reader = new StreamReader(chain.Context.Request.Body);
+        await using var harness = await HostHarness.Start(
+            async chain =>
+            {
+                using var reader = new StreamReader(chain.Context.Request.Body);
 
-            seen = await reader.ReadToEndAsync(chain.Context.CancellationToken);
+                seen = await reader.ReadToEndAsync(chain.Context.CancellationToken);
 
-            await Answer(chain, 200, "\"ok\"");
-        }, Token);
+                await Answer(chain, 200, "\"ok\"");
+            },
+            Token
+        );
 
-        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase) { ["Content-Type"] = "application/json" };
+        var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Content-Type"] = "application/json",
+        };
 
         await harness.Host.SendAsync(
-            new TestHostRequest("POST", "/things", headers, new MemoryStream("{\"name\":"u8.ToArray()), null), Token);
+            new TestHostRequest(
+                "POST",
+                "/things",
+                headers,
+                new MemoryStream("{\"name\":"u8.ToArray()),
+                null
+            ),
+            Token
+        );
 
         Assert.Equal("{\"name\":", seen);
     }
 
     /// <summary>A path the chain passes on reaches the real not-found handler behind it.</summary>
     [Fact]
-    public async Task AnUnmatchedPathIs404() {
+    public async Task AnUnmatchedPathIs404()
+    {
         await using var harness = await HostHarness.Start(chain => chain.Next(), Token);
 
         var response = await harness.Host.SendAsync(
-            new TestHostRequest("GET", "/no/such/route", new Dictionary<string, StringValues>(), Stream.Null, null), Token);
+            new TestHostRequest(
+                "GET",
+                "/no/such/route",
+                new Dictionary<string, StringValues>(),
+                Stream.Null,
+                null
+            ),
+            Token
+        );
 
         Assert.Equal(404, response.StatusCode);
     }
@@ -128,11 +181,18 @@ public class KestrelTestHostTests {
     /// carries neither and left alone for one that set its own.
     /// </summary>
     [Fact]
-    public async Task CreateHandler_AppliesTheCredentialWhereTheRequestCarriesNone() {
-        await using var harness = await HostHarness.Start(chain => Answer(chain, 200, "\"ok\""), Token);
+    public async Task CreateHandler_AppliesTheCredentialWhereTheRequestCarriesNone()
+    {
+        await using var harness = await HostHarness.Start(
+            chain => Answer(chain, 200, "\"ok\""),
+            Token
+        );
 
-        using var client = new HttpClient(harness.Host.CreateHandler(new TestCredential(new[] { "pets:read" }))) {
-            BaseAddress = harness.Host.BaseAddress
+        using var client = new HttpClient(
+            harness.Host.CreateHandler(new TestCredential(new[] { "pets:read" }))
+        )
+        {
+            BaseAddress = harness.Host.BaseAddress,
         };
 
         using var bare = await client.GetAsync("/pets", Token);
@@ -141,8 +201,14 @@ public class KestrelTestHostTests {
         own.Headers.Add(TestGrantsPrincipalSource.GrantsHeader, "pets:write");
         using var explicitly = await client.SendAsync(own, Token);
 
-        Assert.Equal("pets:read", harness.Requests[0].Headers[TestGrantsPrincipalSource.GrantsHeader]);
-        Assert.Equal("pets:write", harness.Requests[1].Headers[TestGrantsPrincipalSource.GrantsHeader]);
+        Assert.Equal(
+            "pets:read",
+            harness.Requests[0].Headers[TestGrantsPrincipalSource.GrantsHeader]
+        );
+        Assert.Equal(
+            "pets:write",
+            harness.Requests[1].Headers[TestGrantsPrincipalSource.GrantsHeader]
+        );
     }
 
     /// <summary>
@@ -150,10 +216,17 @@ public class KestrelTestHostTests {
     /// chain as much as through the harness.
     /// </summary>
     [Fact]
-    public async Task AClientBuiltOverTheHostRecordsWhatItReceived() {
-        await using var harness = await HostHarness.Start(chain => Answer(chain, 204, "", "recorded"), Token);
+    public async Task AClientBuiltOverTheHostRecordsWhatItReceived()
+    {
+        await using var harness = await HostHarness.Start(
+            chain => Answer(chain, 204, "", "recorded"),
+            Token
+        );
 
-        using var client = new HttpClient(harness.Host.CreateHandler(null)) { BaseAddress = harness.Host.BaseAddress };
+        using var client = new HttpClient(harness.Host.CreateHandler(null))
+        {
+            BaseAddress = harness.Host.BaseAddress,
+        };
 
         using var response = await client.DeleteAsync("/things/1", Token);
 
@@ -168,29 +241,44 @@ public class KestrelTestHostTests {
     /// the stream as it arrives and <c>LastResponse</c> carries the status and the headers alone.
     /// </summary>
     [Fact]
-    public async Task AnEventStreamIsHandedOnWithoutBeingBuffered() {
-        await using var harness = await HostHarness.Start(async chain => {
-            var response = chain.Context.Response;
+    public async Task AnEventStreamIsHandedOnWithoutBeingBuffered()
+    {
+        await using var harness = await HostHarness.Start(
+            async chain =>
+            {
+                var response = chain.Context.Response;
 
-            response.Status = 200;
-            response.ContentType = "text/event-stream";
-            response.ShouldSerialize = false;
+                response.Status = 200;
+                response.ContentType = "text/event-stream";
+                response.ShouldSerialize = false;
 
-            await response.Body.WriteAsync("data: 1\n\n"u8.ToArray(), chain.Context.CancellationToken);
-            await response.Body.FlushAsync(chain.Context.CancellationToken);
+                await response.Body.WriteAsync(
+                    "data: 1\n\n"u8.ToArray(),
+                    chain.Context.CancellationToken
+                );
+                await response.Body.FlushAsync(chain.Context.CancellationToken);
 
-            // Held open until the client goes away, as a subscription is.
-            try {
-                await Task.Delay(Timeout.Infinite, chain.Context.CancellationToken);
-            }
-            catch (OperationCanceledException) {
-            }
-        }, Token);
+                // Held open until the client goes away, as a subscription is.
+                try
+                {
+                    await Task.Delay(Timeout.Infinite, chain.Context.CancellationToken);
+                }
+                catch (OperationCanceledException) { }
+            },
+            Token
+        );
 
-        using var client = new HttpClient(harness.Host.CreateHandler(null)) { BaseAddress = harness.Host.BaseAddress };
+        using var client = new HttpClient(harness.Host.CreateHandler(null))
+        {
+            BaseAddress = harness.Host.BaseAddress,
+        };
 
         using var request = new HttpRequestMessage(HttpMethod.Get, "/events");
-        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, Token);
+        using var response = await client.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            Token
+        );
 
         using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(Token));
 
@@ -203,7 +291,8 @@ public class KestrelTestHostTests {
     /// Disposing the container disposes the host, and the port is closed by the time it returns.
     /// </summary>
     [Fact]
-    public async Task DisposingTheContainerClosesThePort() {
+    public async Task DisposingTheContainerClosesThePort()
+    {
         var harness = await HostHarness.Start(chain => Answer(chain, 200, "\"ok\""), Token);
         var port = harness.Host.BaseAddress.Port;
 
@@ -211,7 +300,9 @@ public class KestrelTestHostTests {
 
         using var probe = new TcpClient();
 
-        await Assert.ThrowsAsync<SocketException>(() => probe.ConnectAsync(IPAddress.Loopback, port, Token).AsTask());
+        await Assert.ThrowsAsync<SocketException>(() =>
+            probe.ConnectAsync(IPAddress.Loopback, port, Token).AsTask()
+        );
     }
 
     /// <summary>
@@ -219,33 +310,47 @@ public class KestrelTestHostTests {
     /// closed first, then the server is stopped within the bound, and what is left is aborted.
     /// </summary>
     [Fact]
-    public async Task DisposeStopsWithinTheBoundDespiteAHungHandler() {
+    public async Task DisposeStopsWithinTheBoundDespiteAHungHandler()
+    {
         var bound = SocketHost.StopBound;
 
         SocketHost.StopBound = TimeSpan.FromSeconds(1);
 
-        try {
-            var harness = await HostHarness.Start(async chain => {
-                await new TaskCompletionSource().Task;
-            }, Token);
+        try
+        {
+            var harness = await HostHarness.Start(
+                async chain =>
+                {
+                    await new TaskCompletionSource().Task;
+                },
+                Token
+            );
 
-            using var client = new HttpClient(harness.Host.CreateHandler(null)) { BaseAddress = harness.Host.BaseAddress };
+            using var client = new HttpClient(harness.Host.CreateHandler(null))
+            {
+                BaseAddress = harness.Host.BaseAddress,
+            };
 
             var hung = client.GetAsync("/never", Token);
 
             // Until the request has reached the handler, or a disposal here would have nothing to wait for.
-            while (harness.Requests.Count == 0) {
+            while (harness.Requests.Count == 0)
+            {
                 await Task.Delay(10, Token);
             }
 
             var disposal = harness.DisposeAsync().AsTask();
-            var finished = await Task.WhenAny(disposal, Task.Delay(TimeSpan.FromSeconds(15), Token));
+            var finished = await Task.WhenAny(
+                disposal,
+                Task.Delay(TimeSpan.FromSeconds(15), Token)
+            );
 
             Assert.Same(disposal, finished);
 
             await Assert.ThrowsAnyAsync<Exception>(() => hung);
         }
-        finally {
+        finally
+        {
             SocketHost.StopBound = bound;
         }
     }

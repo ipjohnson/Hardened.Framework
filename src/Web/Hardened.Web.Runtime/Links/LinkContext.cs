@@ -6,7 +6,8 @@ namespace Hardened.Web.Runtime.Links;
 /// <summary>
 /// What a host tells the link builders about where it is served from.
 /// </summary>
-public interface ILinkConfiguration {
+public interface ILinkConfiguration
+{
     string BasePath { get; }
 
     string? Scheme { get; }
@@ -15,7 +16,8 @@ public interface ILinkConfiguration {
 }
 
 /// <inheritdoc cref="ILinkConfiguration" />
-public class LinkConfiguration : ILinkConfiguration {
+public class LinkConfiguration : ILinkConfiguration
+{
     /// <summary>
     /// Prefixed to every generated link. Empty by default, which is right for a host that serves
     /// the application at the root - Kestrel and ASP.NET Core do.
@@ -40,8 +42,10 @@ public class LinkConfiguration : ILinkConfiguration {
 /// the request it is handling - replaces it by registering its own first.
 /// </remarks>
 [SingletonService(Using = RegistrationType.Try)]
-public class LinkContext : ILinkContext {
-    public LinkContext(IOptions<ILinkConfiguration> configuration) {
+public class LinkContext : ILinkContext
+{
+    public LinkContext(IOptions<ILinkConfiguration> configuration)
+    {
         var value = configuration.Value;
 
         // Trimmed, so a base path configured either way composes with a route that always starts
@@ -59,7 +63,8 @@ public class LinkContext : ILinkContext {
 
     public string Resolve(string path) => BasePath.Length == 0 ? path : BasePath + path;
 
-    public string Absolute(string path) {
+    public string Absolute(string path)
+    {
         var resolved = Resolve(path);
 
         return string.IsNullOrEmpty(Scheme) || string.IsNullOrEmpty(Host)

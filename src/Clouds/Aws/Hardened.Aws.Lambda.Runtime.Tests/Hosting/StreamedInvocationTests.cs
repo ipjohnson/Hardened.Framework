@@ -27,16 +27,20 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Hosting;
 /// <see cref="CapturingResponseStreamFactory"/> is what these assert through: the prelude each
 /// stream opened with, and every byte written to it.
 /// </remarks>
-public class StreamedInvocationTests {
-
+public class StreamedInvocationTests
+{
     // ------------------------------------------------------------------ which mode is served
 
     /// <summary>
     /// The whole of the mode's effect on a web-shaped function: a stream, not an envelope.
     /// </summary>
     [Fact]
-    public async Task StreamModeOpensAResponseStream() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
+    public async Task StreamModeOpensAResponseStream()
+    {
+        var (handler, executor, streams) = Build(
+            LambdaResponseMode.Stream,
+            new LambdaHttpAdapter()
+        );
 
         executor.Body = Writes("hello");
 
@@ -53,8 +57,12 @@ public class StreamedInvocationTests {
     /// The default, and what every function that names no variable runs under.
     /// </summary>
     [Fact]
-    public async Task BufferedModeWritesTheEnvelopeAndOpensNoStream() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Buffered, new LambdaHttpAdapter());
+    public async Task BufferedModeWritesTheEnvelopeAndOpensNoStream()
+    {
+        var (handler, executor, streams) = Build(
+            LambdaResponseMode.Buffered,
+            new LambdaHttpAdapter()
+        );
 
         executor.Body = Writes("hello");
 
@@ -73,7 +81,8 @@ public class StreamedInvocationTests {
     /// setting with its queues.
     /// </remarks>
     [Fact]
-    public async Task AnAdapterThatCannotStreamStaysBufferedUnderStreamMode() {
+    public async Task AnAdapterThatCannotStreamStaysBufferedUnderStreamMode()
+    {
         var (handler, _, streams) = Build(LambdaResponseMode.Stream, new SqsAdapter());
 
         await handler.Invoke(Input(Payloads.SqsJson), Context());
@@ -87,10 +96,15 @@ public class StreamedInvocationTests {
     /// Status, headers and cookies as they stood at the first byte.
     /// </summary>
     [Fact]
-    public async Task ThePreludeCarriesTheStatusHeadersAndCookies() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
+    public async Task ThePreludeCarriesTheStatusHeadersAndCookies()
+    {
+        var (handler, executor, streams) = Build(
+            LambdaResponseMode.Stream,
+            new LambdaHttpAdapter()
+        );
 
-        executor.Body = async context => {
+        executor.Body = async context =>
+        {
             context.Response.Status = 201;
             context.Response.Headers["X-Trace"] = "abc";
             context.Response.Cookies.Append("session", "s1");
@@ -104,7 +118,10 @@ public class StreamedInvocationTests {
 
         Assert.Equal(HttpStatusCode.Created, prelude.StatusCode);
         Assert.Equal("abc", prelude.Headers["X-Trace"]);
-        Assert.Contains(prelude.Cookies, cookie => cookie.StartsWith("session=s1", StringComparison.Ordinal));
+        Assert.Contains(
+            prelude.Cookies,
+            cookie => cookie.StartsWith("session=s1", StringComparison.Ordinal)
+        );
     }
 
     /// <summary>
@@ -118,10 +135,15 @@ public class StreamedInvocationTests {
     /// what the 204 rule in the SSE contract exists for.
     /// </remarks>
     [Fact]
-    public async Task AStatusSetBeforeTheFirstByteReachesThePrelude() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
+    public async Task AStatusSetBeforeTheFirstByteReachesThePrelude()
+    {
+        var (handler, executor, streams) = Build(
+            LambdaResponseMode.Stream,
+            new LambdaHttpAdapter()
+        );
 
-        executor.Body = async context => {
+        executor.Body = async context =>
+        {
             await context.Response.Body.WriteAsync("first"u8.ToArray());
 
             // After the prelude has gone. Recorded on the response, ignored on the wire.
@@ -143,7 +165,8 @@ public class StreamedInvocationTests {
     /// waiting on data that never arrives - so a reader blocks until the invocation times out.
     /// </remarks>
     [Fact]
-    public async Task AnEmptyResponseStillOpensTheStream() {
+    public async Task AnEmptyResponseStillOpensTheStream()
+    {
         var (handler, _, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
 
         await handler.Invoke(Input(Payloads.HttpJson), Context());
@@ -161,17 +184,23 @@ public class StreamedInvocationTests {
     /// what a truncated stream should be.
     /// </remarks>
     [Fact]
-    public async Task AThrowAfterTheFirstByteKeepsWhatWasWritten() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
+    public async Task AThrowAfterTheFirstByteKeepsWhatWasWritten()
+    {
+        var (handler, executor, streams) = Build(
+            LambdaResponseMode.Stream,
+            new LambdaHttpAdapter()
+        );
 
-        executor.Body = async context => {
+        executor.Body = async context =>
+        {
             await context.Response.Body.WriteAsync("partial"u8.ToArray());
 
             throw new InvalidOperationException("nothing more to stream");
         };
 
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.Invoke(Input(Payloads.HttpJson), Context()));
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Invoke(Input(Payloads.HttpJson), Context())
+        );
 
         Assert.Equal("nothing more to stream", failure.Message);
         Assert.Equal("partial", streams.Target.Text);
@@ -182,13 +211,18 @@ public class StreamedInvocationTests {
     /// rather than an empty one with a 200 already on it.
     /// </summary>
     [Fact]
-    public async Task AThrowBeforeTheFirstByteOpensNoStream() {
-        var (handler, executor, streams) = Build(LambdaResponseMode.Stream, new LambdaHttpAdapter());
+    public async Task AThrowBeforeTheFirstByteOpensNoStream()
+    {
+        var (handler, executor, streams) = Build(
+            LambdaResponseMode.Stream,
+            new LambdaHttpAdapter()
+        );
 
         executor.Body = _ => throw new InvalidOperationException("nothing to stream");
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.Invoke(Input(Payloads.HttpJson), Context()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Invoke(Input(Payloads.HttpJson), Context())
+        );
 
         Assert.Empty(streams.Preludes);
     }
@@ -198,15 +232,19 @@ public class StreamedInvocationTests {
     private static Func<IExecutionContext, Task> Writes(string body) =>
         async context => await context.Response.Body.WriteAsync(Encoding.UTF8.GetBytes(body));
 
-    private static async Task<string> Text(Stream output) {
+    private static async Task<string> Text(Stream output)
+    {
         using var reader = new StreamReader(output);
 
         return await reader.ReadToEndAsync(TestContext.Current.CancellationToken);
     }
 
-    private static (LambdaInvocationHandler Handler, RecordingExecutor Executor,
-        CapturingResponseStreamFactory Streams) Build(
-            LambdaResponseMode mode, params IPayloadAdapter[] adapters) {
+    private static (
+        LambdaInvocationHandler Handler,
+        RecordingExecutor Executor,
+        CapturingResponseStreamFactory Streams
+    ) Build(LambdaResponseMode mode, params IPayloadAdapter[] adapters)
+    {
         var executor = new RecordingExecutor();
         var streams = new CapturingResponseStreamFactory();
 
@@ -217,10 +255,15 @@ public class StreamedInvocationTests {
         services.AddSingleton<IHandlerDispatch, StubDispatch>();
 
         var handler = new LambdaInvocationHandler(
-            services.BuildServiceProvider(), executor, new NullMetricLoggerProvider(), adapters,
+            services.BuildServiceProvider(),
+            executor,
+            new NullMetricLoggerProvider(),
+            adapters,
             streams,
             Options.Create<ILambdaResponseModeConfiguration>(
-                new LambdaResponseModeConfiguration { Mode = mode }));
+                new LambdaResponseModeConfiguration { Mode = mode }
+            )
+        );
 
         return (handler, executor, streams);
     }
@@ -231,12 +274,14 @@ public class StreamedInvocationTests {
     private static Stream Input(string json) => new MemoryStream(Encoding.UTF8.GetBytes(json));
 
     /// <summary>Runs whatever a test put in <see cref="Body"/> in place of the real pipeline.</summary>
-    private sealed class RecordingExecutor : IRequestExecutor {
+    private sealed class RecordingExecutor : IRequestExecutor
+    {
         public Func<IExecutionContext, Task>? Body;
 
         public void Begin(IExecutionContext context) { }
 
-        public Task RunChain(IExecutionContext context, HostFailurePolicy onFailure) => Task.CompletedTask;
+        public Task RunChain(IExecutionContext context, HostFailurePolicy onFailure) =>
+            Task.CompletedTask;
 
         public void End(IExecutionContext context) { }
 
@@ -244,7 +289,8 @@ public class StreamedInvocationTests {
             Body?.Invoke(context) ?? Task.CompletedTask;
     }
 
-    private sealed class StubDispatch : IHandlerDispatch {
+    private sealed class StubDispatch : IHandlerDispatch
+    {
         public Task Execute(IExecutionChain chain) => Task.CompletedTask;
     }
 }

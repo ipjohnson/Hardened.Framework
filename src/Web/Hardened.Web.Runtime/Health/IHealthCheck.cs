@@ -1,10 +1,12 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.Web.Runtime.Health;
 
 /// <summary>
 /// How healthy something the application depends on is.
 /// </summary>
-public enum HealthStatus {
+public enum HealthStatus
+{
     /// <summary>Working.</summary>
     Healthy = 0,
 
@@ -15,7 +17,7 @@ public enum HealthStatus {
     Degraded = 1,
 
     /// <summary>Not working. Answers 503 on readiness.</summary>
-    Unhealthy = 2
+    Unhealthy = 2,
 }
 
 /// <summary>
@@ -26,7 +28,8 @@ public enum HealthStatus {
 /// Why, for a human reading a log. Only reaches the response body when the endpoint is configured
 /// to report detail, because readiness is unauthenticated.
 /// </param>
-public readonly record struct HealthCheckResult(HealthStatus Status, string? Description = null) {
+public readonly record struct HealthCheckResult(HealthStatus Status, string? Description = null)
+{
     public static HealthCheckResult Healthy(string? description = null) =>
         new(HealthStatus.Healthy, description);
 
@@ -53,7 +56,8 @@ public readonly record struct HealthCheckResult(HealthStatus Status, string? Des
 /// <c>HealthCheckConfiguration.CheckTimeout</c> - and is expected to honour it.
 /// </para>
 /// </remarks>
-public interface IHealthCheck {
+public interface IHealthCheck
+{
     /// <summary>
     /// What this checks, as it appears in the detailed response. Should be stable and short.
     /// </summary>

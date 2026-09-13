@@ -2,7 +2,8 @@ using Hardened.Functions.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.CloudRunQueue.SUT;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
@@ -17,11 +18,13 @@ public class Order {
 /// boundary. An injected dependency rather than a static, so two test classes running in parallel
 /// cannot reset each other.
 /// </remarks>
-public interface IOrderStore {
+public interface IOrderStore
+{
     void Place(Order order);
 }
 
-public class OrderHandlers {
+public class OrderHandlers
+{
     /// <remarks>
     /// The store arrives as a parameter rather than through a constructor, which the binder
     /// resolves from the request's services - so the handler stays a plain method and the test

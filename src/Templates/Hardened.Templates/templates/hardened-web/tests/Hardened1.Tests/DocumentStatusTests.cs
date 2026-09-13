@@ -19,8 +19,8 @@ namespace Hardened1.Tests;
 /// Each request runs against a container of its own, so the probes need no ordering and one cannot
 /// set up or spoil another. See "Testing" in README.md.
 /// </remarks>
-public class DocumentStatusTests {
-
+public class DocumentStatusTests
+{
     /// <summary>
     /// One request, and the status it exists to provoke.
     /// </summary>
@@ -30,7 +30,8 @@ public class DocumentStatusTests {
     private sealed record Probe(
         string Operation,
         int Status,
-        Func<ITestWebApp, Task<TestWebResponse>> Send);
+        Func<ITestWebApp, Task<TestWebResponse>> Send
+    );
 
     private record NewTodoRequest(string Title);
 
@@ -43,45 +44,54 @@ public class DocumentStatusTests {
     /// nowhere to put a status beside it, so a created todo comes back at 200. Every other model,
     /// and both contract languages, carry the status in the declaration.
     /// </remarks>
-    private static readonly Probe[] Probes = [
+    private static readonly Probe[] Probes =
+    [
         new("GET /todos", 200, app => app.Get("/todos")),
-
         new("GET /todos/{id}", 200, app => app.Get("/todos/1")),
         new("GET /todos/{id}", 400, app => app.Get("/todos/0")),
         new("GET /todos/{id}", 404, app => app.Get("/todos/9999")),
-
 #if (codeFirst && throwsMode)
         new("POST /todos", 200, app => app.Post(new NewTodoRequest("Write a test"), "/todos")),
 #else
         new("POST /todos", 201, app => app.Post(new NewTodoRequest("Write a test"), "/todos")),
 #endif
-        new("POST /todos", 400, app => app.Post(new NewTodoRequest(new string('x', 100)), "/todos")),
+        new(
+            "POST /todos",
+            400,
+            app => app.Post(new NewTodoRequest(new string('x', 100)), "/todos")
+        ),
         new("POST /todos", 409, app => app.Post(new NewTodoRequest("Add an endpoint"), "/todos")),
-
 #if (codeFirst && throwsMode)
         new("DELETE /todos/{id}", 200, app => app.Delete("/todos/1")),
 #else
         new("DELETE /todos/{id}", 204, app => app.Delete("/todos/1")),
 #endif
         new("DELETE /todos/{id}", 400, app => app.Delete("/todos/0")),
-        new("DELETE /todos/{id}", 404, app => app.Delete("/todos/9999"))
+        new("DELETE /todos/{id}", 404, app => app.Delete("/todos/9999")),
     ];
 
     [HardenedTest]
-    public async Task TheDocumentDeclaresExactlyWhatTheApplicationAnswers(ITestWebApp app) {
+    public async Task TheDocumentDeclaresExactlyWhatTheApplicationAnswers(ITestWebApp app)
+    {
         var faults = new List<string>();
         var answered = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
 
-        foreach (var probe in Probes) {
+        foreach (var probe in Probes)
+        {
             var status = (await probe.Send(app)).StatusCode;
 
-            if (status != probe.Status) {
+            if (status != probe.Status)
+            {
                 faults.Add(
-                    $"{probe.Operation}: the probe written for {probe.Status} answered {status}.");
+                    $"{probe.Operation}: the probe written for {probe.Status} answered {status}."
+                );
             }
 
-            if (!answered.TryGetValue(probe.Operation, out var statuses)) {
-                answered[probe.Operation] = statuses = new SortedSet<string>(StringComparer.Ordinal);
+            if (!answered.TryGetValue(probe.Operation, out var statuses))
+            {
+                answered[probe.Operation] = statuses = new SortedSet<string>(
+                    StringComparer.Ordinal
+                );
             }
 
             // What came back, not what the probe hoped for. A wrong probe is reported above and
@@ -91,7 +101,8 @@ public class DocumentStatusTests {
 
         var declared = Declared(await Document(app));
 
-        foreach (var operation in declared.Keys.Union(answered.Keys).Order(StringComparer.Ordinal)) {
+        foreach (var operation in declared.Keys.Union(answered.Keys).Order(StringComparer.Ordinal))
+        {
             var inDocument = declared.TryGetValue(operation, out var published)
                 ? published
                 : new SortedSet<string>(StringComparer.Ordinal);
@@ -100,21 +111,25 @@ public class DocumentStatusTests {
                 ? observed
                 : new SortedSet<string>(StringComparer.Ordinal);
 
-            if (inDocument.Count == 0) {
+            if (inDocument.Count == 0)
+            {
                 faults.Add($"{operation}: answered here and absent from the document.");
                 continue;
             }
 
-            if (onTheWire.Count == 0) {
+            if (onTheWire.Count == 0)
+            {
                 faults.Add($"{operation}: in the document and reached by no probe in this file.");
                 continue;
             }
 
-            foreach (var status in inDocument.Except(onTheWire)) {
+            foreach (var status in inDocument.Except(onTheWire))
+            {
                 faults.Add($"{operation}: declares {status} and no request here answered it.");
             }
 
-            foreach (var status in onTheWire.Except(inDocument)) {
+            foreach (var status in onTheWire.Except(inDocument))
+            {
                 faults.Add($"{operation}: answered {status}, which the document does not declare.");
             }
         }
@@ -131,18 +146,24 @@ public class DocumentStatusTests {
     /// <summary>
     /// The status set the served document declares, keyed the way <see cref="Probe"/> keys one.
     /// </summary>
-    private static Dictionary<string, SortedSet<string>> Declared(JsonElement document) {
+    private static Dictionary<string, SortedSet<string>> Declared(JsonElement document)
+    {
         var declared = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
 
-        foreach (var path in document.GetProperty("paths").EnumerateObject()) {
-            foreach (var operation in path.Value.EnumerateObject()) {
-                if (!operation.Value.TryGetProperty("responses", out var responses)) {
+        foreach (var path in document.GetProperty("paths").EnumerateObject())
+        {
+            foreach (var operation in path.Value.EnumerateObject())
+            {
+                if (!operation.Value.TryGetProperty("responses", out var responses))
+                {
                     continue;
                 }
 
-                declared[$"{operation.Name.ToUpperInvariant()} {path.Name}"] = new SortedSet<string>(
-                    responses.EnumerateObject().Select(response => response.Name),
-                    StringComparer.Ordinal);
+                declared[$"{operation.Name.ToUpperInvariant()} {path.Name}"] =
+                    new SortedSet<string>(
+                        responses.EnumerateObject().Select(response => response.Name),
+                        StringComparer.Ordinal
+                    );
             }
         }
 
@@ -150,7 +171,8 @@ public class DocumentStatusTests {
     }
 
     /// <summary>The served document, which is stored and answered gzipped.</summary>
-    private static async Task<JsonElement> Document(ITestWebApp app) {
+    private static async Task<JsonElement> Document(ITestWebApp app)
+    {
         var response = await app.Get("/openapi.json");
 
         response.Assert.Ok();

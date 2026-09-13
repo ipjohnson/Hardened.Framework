@@ -27,43 +27,53 @@ namespace Hardened.IntegrationTests.Sqs.SUT.Tests;
 /// one codebase is the one shape that has to build its own.
 /// </para>
 /// </summary>
-public class PartialBatchFailureTests : IDisposable {
+public class PartialBatchFailureTests : IDisposable
+{
     private readonly ServiceProvider _provider;
     private readonly IOrderStore _store = Substitute.For<IOrderStore>();
 
-    public PartialBatchFailureTests() {
+    public PartialBatchFailureTests()
+    {
         _provider = new PartialFailureApp().CreateServiceProvider(
             new EnvironmentImpl(null),
             (_, services) => services.AddSingleton(_store),
-            builder => { });
+            builder => { }
+        );
     }
 
     public void Dispose() => _provider.Dispose();
 
     private void Refuse(string id) =>
-        _store.When(one => one.Place(Arg.Is<Order>(order => order.Id == id)))
+        _store
+            .When(one => one.Place(Arg.Is<Order>(order => order.Id == id)))
             .Do(_ => throw new InvalidOperationException("refused " + id));
 
-    private async Task<string[]> Invoke(params string[] ids) {
-        var records = ids.Select((id, index) => $$"""
-            {
-              "messageId":"m-{{id}}",
-              "receiptHandle":"r{{index}}",
-              "body":"{\"id\":\"{{id}}\",\"quantity\":1}",
-              "eventSource":"aws:sqs",
-              "eventSourceARN":"arn:aws:sqs:us-east-1:123456789012:orders-new",
-              "awsRegion":"us-east-1"
-            }
-            """);
+    private async Task<string[]> Invoke(params string[] ids)
+    {
+        var records = ids.Select(
+            (id, index) =>
+                $$"""
+                    {
+                      "messageId":"m-{{id}}",
+                      "receiptHandle":"r{{index}}",
+                      "body":"{\"id\":\"{{id}}\",\"quantity\":1}",
+                      "eventSource":"aws:sqs",
+                      "eventSourceARN":"arn:aws:sqs:us-east-1:123456789012:orders-new",
+                      "awsRegion":"us-east-1"
+                    }
+                    """
+        );
 
         var payload = "{\"Records\":[" + string.Join(",", records) + "]}";
 
-        var output = await _provider.GetRequiredService<LambdaInvocationHandler>()
+        var output = await _provider
+            .GetRequiredService<LambdaInvocationHandler>()
             .Invoke(new MemoryStream(Encoding.UTF8.GetBytes(payload)), new Context());
 
         using var report = JsonDocument.Parse(new StreamReader(output).ReadToEnd());
 
-        return report.RootElement.GetProperty("batchItemFailures")
+        return report
+            .RootElement.GetProperty("batchItemFailures")
             .EnumerateArray()
             .Select(entry => entry.GetProperty("itemIdentifier").GetString()!)
             .ToArray();
@@ -74,7 +84,8 @@ public class PartialBatchFailureTests : IDisposable {
     /// "delete all of them".
     /// </summary>
     [Fact]
-    public async Task ASuccessfulBatchReportsNoFailures() {
+    public async Task ASuccessfulBatchReportsNoFailures()
+    {
         Assert.Empty(await Invoke("a-1", "a-2"));
     }
 
@@ -83,7 +94,8 @@ public class PartialBatchFailureTests : IDisposable {
     /// would be redelivered, including the messages that were handled.
     /// </summary>
     [Fact]
-    public async Task OnlyTheFailedMessageIsReported() {
+    public async Task OnlyTheFailedMessageIsReported()
+    {
         Refuse("a-2");
 
         Assert.Equal(["m-a-2"], await Invoke("a-1", "a-2", "a-3"));
@@ -94,7 +106,8 @@ public class PartialBatchFailureTests : IDisposable {
     /// delete them as successfully processed.
     /// </summary>
     [Fact]
-    public async Task EveryMessageIsStillAttemptedAfterOneFails() {
+    public async Task EveryMessageIsStillAttemptedAfterOneFails()
+    {
         Refuse("a-1");
 
         Assert.Equal(["m-a-1"], await Invoke("a-1", "a-2", "a-3"));
@@ -103,7 +116,8 @@ public class PartialBatchFailureTests : IDisposable {
     }
 
     [Fact]
-    public async Task SeveralFailuresAreAllReported() {
+    public async Task SeveralFailuresAreAllReported()
+    {
         Refuse("a-1");
         Refuse("a-3");
 
@@ -116,14 +130,16 @@ public class PartialBatchFailureTests : IDisposable {
     /// which is the same messages counted twice against the redrive policy.
     /// </summary>
     [Fact]
-    public async Task AWhollyFailedBatchReportsEveryMessage() {
+    public async Task AWhollyFailedBatchReportsEveryMessage()
+    {
         Refuse("a-1");
         Refuse("a-2");
 
         Assert.Equal(["m-a-1", "m-a-2"], await Invoke("a-1", "a-2"));
     }
 
-    private sealed class Context : ILambdaContext {
+    private sealed class Context : ILambdaContext
+    {
         public string AwsRequestId => "integration";
         public IClientContext ClientContext => null!;
         public string FunctionName => "orders-function";

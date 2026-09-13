@@ -18,8 +18,10 @@ namespace Hardened.Gcp.CloudRun.Eventarc;
 /// </remarks>
 [DependencyModule]
 [CloudRunRuntime]
-public partial class EventarcModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class EventarcModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton<ITriggerEnvelope, EventarcEnvelope>();
 
         services.AddBatchExecutionFilter();

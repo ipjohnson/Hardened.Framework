@@ -7,11 +7,11 @@ using Hardened.Aws.Lambda.Runtime.Hosting;
 using Hardened.Aws.Lambda.Runtime.Streaming;
 using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Primitives;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Aws.Lambda.Testing;
 
@@ -31,9 +31,12 @@ namespace Hardened.Aws.Lambda.Testing;
 /// runs on the pipeline, on Kestrel and here, and only an assembly attribute differs.
 /// </para>
 /// </remarks>
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = false)]
-public sealed class LambdaWebTestingAttribute : TestHostAttribute {
-
+[AttributeUsage(
+    AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly,
+    AllowMultiple = false
+)]
+public sealed class LambdaWebTestingAttribute : TestHostAttribute
+{
     /// <summary>
     /// The response mode the function is deployed in. Buffered unless the test says otherwise.
     /// </summary>
@@ -66,8 +69,10 @@ public sealed class LambdaWebTestingAttribute : TestHostAttribute {
     /// </example>
     public LambdaResponseMode ResponseMode { get; set; } = LambdaResponseMode.Buffered;
 
-    public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services) {
-        if (ResponseMode != LambdaResponseMode.Stream) {
+    public override ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services)
+    {
+        if (ResponseMode != LambdaResponseMode.Stream)
+        {
             return new LambdaWebHost();
         }
 
@@ -88,7 +93,8 @@ public sealed class LambdaWebTestingAttribute : TestHostAttribute {
 /// <summary>
 /// API Gateway as a test host: a request in as a proxy event, a proxy response back out.
 /// </summary>
-public sealed class LambdaWebHost : ITestHost {
+public sealed class LambdaWebHost : ITestHost
+{
     private readonly StreamedResponseCapture? _capture;
     private IServiceProvider? _provider;
     private ITestContainerSource? _source;
@@ -106,7 +112,8 @@ public sealed class LambdaWebHost : ITestHost {
     /// <c>[LambdaWebTesting(ResponseMode = LambdaResponseMode.Stream)]</c> is how a test asks for
     /// this.
     /// </remarks>
-    internal LambdaWebHost(StreamedResponseCapture capture) {
+    internal LambdaWebHost(StreamedResponseCapture capture)
+    {
         _capture = capture;
     }
 
@@ -138,8 +145,10 @@ public sealed class LambdaWebHost : ITestHost {
     /// installs it on its first invocation, which is the same thing a deployed function does and
     /// the path worth exercising.
     /// </remarks>
-    public Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken) {
-        if (_started) {
+    public Task StartAsync(IServiceProvider provider, CancellationToken cancellationToken)
+    {
+        if (_started)
+        {
             return Task.CompletedTask;
         }
 
@@ -158,8 +167,10 @@ public sealed class LambdaWebHost : ITestHost {
     /// dispatch on its first invocation and holds a flag saying it has, so a fresh handler on a
     /// fresh container is a cold environment doing what a cold environment does.
     /// </remarks>
-    private async ValueTask<IServiceProvider> ContainerForRequestAsync(bool reuse = false) {
-        if (_source is not { } source) {
+    private async ValueTask<IServiceProvider> ContainerForRequestAsync(bool reuse = false)
+    {
+        if (_source is not { } source)
+        {
             return Provider;
         }
 
@@ -177,11 +188,16 @@ public sealed class LambdaWebHost : ITestHost {
         new HostHandler(this, credential, reuseContainer);
 
     public Task<TestWebResponse> SendAsync(
-        TestHostRequest request, CancellationToken cancellationToken) =>
-        SendAsync(request, cancellationToken, reuseContainer: false);
+        TestHostRequest request,
+        CancellationToken cancellationToken
+    ) => SendAsync(request, cancellationToken, reuseContainer: false);
 
     public async Task<TestWebResponse> SendAsync(
-        TestHostRequest request, CancellationToken cancellationToken, bool reuseContainer) {
+        TestHostRequest request,
+        CancellationToken cancellationToken,
+        bool reuseContainer
+    )
+    {
         var provider = await ContainerForRequestAsync(reuseContainer);
 
         var handler = provider.GetRequiredService<LambdaInvocationHandler>();
@@ -196,7 +212,8 @@ public sealed class LambdaWebHost : ITestHost {
         // the capture is the response. An adapter that cannot stream stays buffered under the same
         // mode, and that invocation opened nothing - so this asks what happened rather than assuming
         // the mode decided it.
-        if (_capture is { Opened: true }) {
+        if (_capture is { Opened: true })
+        {
             return new TestWebResponse(Streamed(_capture));
         }
 
@@ -214,17 +231,22 @@ public sealed class LambdaWebHost : ITestHost {
     /// function URL. There is no status on the wire in that shape at all, so 200 is what the bytes
     /// arriving means.
     /// </remarks>
-    private static TestExecutionResponse Streamed(StreamedResponseCapture capture) {
-        var response = new TestExecutionResponse(new MemoryStream(capture.Body, writable: false)) {
-            Status = (int?)capture.Prelude?.StatusCode ?? 200
+    private static TestExecutionResponse Streamed(StreamedResponseCapture capture)
+    {
+        var response = new TestExecutionResponse(new MemoryStream(capture.Body, writable: false))
+        {
+            Status = (int?)capture.Prelude?.StatusCode ?? 200,
         };
 
-        if (capture.Prelude is { } prelude) {
-            foreach (var header in prelude.Headers) {
+        if (capture.Prelude is { } prelude)
+        {
+            foreach (var header in prelude.Headers)
+            {
                 response.Headers[header.Key] = new StringValues(header.Value);
             }
 
-            if (prelude.Cookies.Count > 0) {
+            if (prelude.Cookies.Count > 0)
+            {
                 response.Headers["Set-Cookie"] = new StringValues(prelude.Cookies.ToArray());
             }
         }
@@ -240,7 +262,8 @@ public sealed class LambdaWebHost : ITestHost {
     /// fixture built by round-tripping <c>APIGatewayHttpApiV2ProxyRequest</c> would agree with the
     /// type it came from rather than with AWS.
     /// </remarks>
-    private static string Event(TestHostRequest request) {
+    private static string Event(TestHostRequest request)
+    {
         var split = request.PathAndQuery.IndexOf('?');
 
         var path = split < 0 ? request.PathAndQuery : request.PathAndQuery.Substring(0, split);
@@ -251,28 +274,35 @@ public sealed class LambdaWebHost : ITestHost {
         var headers = string.Join(
             ",",
             request.Headers.Select(header =>
-                JsonSerializer.Serialize(header.Key) + ":" +
-                JsonSerializer.Serialize(header.Value.ToString())));
+                JsonSerializer.Serialize(header.Key)
+                + ":"
+                + JsonSerializer.Serialize(header.Value.ToString())
+            )
+        );
 
         var parameters = string.Join(
             ",",
-            query.Split('&', StringSplitOptions.RemoveEmptyEntries).Select(pair => {
-                var equals = pair.IndexOf('=');
-                var name = equals < 0 ? pair : pair.Substring(0, equals);
-                var value = equals < 0 ? "" : pair.Substring(equals + 1);
+            query
+                .Split('&', StringSplitOptions.RemoveEmptyEntries)
+                .Select(pair =>
+                {
+                    var equals = pair.IndexOf('=');
+                    var name = equals < 0 ? pair : pair.Substring(0, equals);
+                    var value = equals < 0 ? "" : pair.Substring(equals + 1);
 
-                // Decoded, because API Gateway hands over queryStringParameters already decoded and
-                // the adapter deliberately does not decode a second time.
-                return JsonSerializer.Serialize(WebUtility.UrlDecode(name)) + ":" +
-                       JsonSerializer.Serialize(WebUtility.UrlDecode(value));
-            }));
+                    // Decoded, because API Gateway hands over queryStringParameters already decoded and
+                    // the adapter deliberately does not decode a second time.
+                    return JsonSerializer.Serialize(WebUtility.UrlDecode(name))
+                        + ":"
+                        + JsonSerializer.Serialize(WebUtility.UrlDecode(value));
+                })
+        );
 
-        var http =
-            $$"""
-              {"method":{{JsonSerializer.Serialize(request.Method)}},
-               "path":{{JsonSerializer.Serialize(path)}},
-               "protocol":"HTTP/1.1","sourceIp":"203.0.113.7"}
-              """;
+        var http = $$"""
+            {"method":{{JsonSerializer.Serialize(request.Method)}},
+             "path":{{JsonSerializer.Serialize(path)}},
+             "protocol":"HTTP/1.1","sourceIp":"203.0.113.7"}
+            """;
 
         return $$"""
             {"version":"2.0",
@@ -294,18 +324,25 @@ public sealed class LambdaWebHost : ITestHost {
     /// host would want, so this needs no access to Hardened.Web.Testing's internals - a host of
     /// anyone's own can be written the same way.
     /// </remarks>
-    private static TestExecutionResponse Response(JsonElement proxy) {
-        var body = proxy.TryGetProperty("body", out var text) && text.ValueKind == JsonValueKind.String
-            ? Encoding.UTF8.GetBytes(text.GetString()!)
-            : Array.Empty<byte>();
+    private static TestExecutionResponse Response(JsonElement proxy)
+    {
+        var body =
+            proxy.TryGetProperty("body", out var text) && text.ValueKind == JsonValueKind.String
+                ? Encoding.UTF8.GetBytes(text.GetString()!)
+                : Array.Empty<byte>();
 
-        var response = new TestExecutionResponse(new MemoryStream(body, writable: false)) {
-            Status = proxy.TryGetProperty("statusCode", out var status) ? status.GetInt32() : 200
+        var response = new TestExecutionResponse(new MemoryStream(body, writable: false))
+        {
+            Status = proxy.TryGetProperty("statusCode", out var status) ? status.GetInt32() : 200,
         };
 
-        if (proxy.TryGetProperty("headers", out var headers) &&
-            headers.ValueKind == JsonValueKind.Object) {
-            foreach (var header in headers.EnumerateObject()) {
+        if (
+            proxy.TryGetProperty("headers", out var headers)
+            && headers.ValueKind == JsonValueKind.Object
+        )
+        {
+            foreach (var header in headers.EnumerateObject())
+            {
                 response.Headers[header.Name] = new StringValues(header.Value.GetString());
             }
         }
@@ -316,33 +353,45 @@ public sealed class LambdaWebHost : ITestHost {
     public ValueTask DisposeAsync() => default;
 
     private IServiceProvider Provider =>
-        _provider ?? throw new InvalidOperationException(
-            "The Lambda web host has not been started, so it has no container to invoke through.");
+        _provider
+        ?? throw new InvalidOperationException(
+            "The Lambda web host has not been started, so it has no container to invoke through."
+        );
 
     /// <summary>Routes an <see cref="HttpClient"/> through the same invocation.</summary>
-    private sealed class HostHandler : HttpMessageHandler {
+    private sealed class HostHandler : HttpMessageHandler
+    {
         private readonly LambdaWebHost _host;
         private readonly TestCredential? _credential;
         private readonly bool _reuseContainer;
 
         public HostHandler(
-            LambdaWebHost host, TestCredential? credential, bool reuseContainer = false) {
+            LambdaWebHost host,
+            TestCredential? credential,
+            bool reuseContainer = false
+        )
+        {
             _host = host;
             _credential = credential;
             _reuseContainer = reuseContainer;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, CancellationToken cancellationToken) {
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
             var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var header in request.Headers) {
+            foreach (var header in request.Headers)
+            {
                 headers[header.Key] = new StringValues(header.Value.ToArray());
             }
 
-            var body = request.Content == null
-                ? Stream.Null
-                : await request.Content.ReadAsStreamAsync(cancellationToken);
+            var body =
+                request.Content == null
+                    ? Stream.Null
+                    : await request.Content.ReadAsStreamAsync(cancellationToken);
 
             var response = await _host.SendAsync(
                 new TestHostRequest(
@@ -350,15 +399,19 @@ public sealed class LambdaWebHost : ITestHost {
                     request.RequestUri!.PathAndQuery,
                     headers,
                     body,
-                    _credential),
+                    _credential
+                ),
                 cancellationToken,
-                _reuseContainer);
+                _reuseContainer
+            );
 
-            var message = new HttpResponseMessage((HttpStatusCode)response.StatusCode) {
-                Content = new StreamContent(response.Body)
+            var message = new HttpResponseMessage((HttpStatusCode)response.StatusCode)
+            {
+                Content = new StreamContent(response.Body),
             };
 
-            foreach (var header in response.Headers) {
+            foreach (var header in response.Headers)
+            {
                 message.Headers.TryAddWithoutValidation(header.Key, header.Value.ToString());
             }
 
@@ -367,13 +420,15 @@ public sealed class LambdaWebHost : ITestHost {
     }
 
     /// <summary>Enough context to invoke, with a deadline the host turns into a token.</summary>
-    private sealed class TestContext : ILambdaContext {
+    private sealed class TestContext : ILambdaContext
+    {
         public string AwsRequestId => Guid.NewGuid().ToString();
         public IClientContext ClientContext => null!;
         public string FunctionName => "web-test";
         public string FunctionVersion => "$LATEST";
         public ICognitoIdentity Identity => null!;
-        public string InvokedFunctionArn => "arn:aws:lambda:us-east-1:123456789012:function:web-test";
+        public string InvokedFunctionArn =>
+            "arn:aws:lambda:us-east-1:123456789012:function:web-test";
         public ILambdaLogger Logger => null!;
         public string LogGroupName => "/aws/lambda/web-test";
         public string LogStreamName => "test";

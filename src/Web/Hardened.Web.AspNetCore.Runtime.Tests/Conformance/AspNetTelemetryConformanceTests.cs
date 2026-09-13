@@ -1,5 +1,6 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Logging;
 using Hardened.Requests.Testing.Conformance;
 using Hardened.Shared.Runtime.Metrics;
@@ -9,17 +10,18 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
-using Hardened.Requests.Runtime.Execution;
 
 namespace Hardened.Web.AspNetCore.Runtime.Tests.Conformance;
 
 /// <summary>
 /// ASP.NET's half of <see cref="RequestTelemetryConformanceTests"/>.
 /// </summary>
-public class AspNetTelemetryConformanceTests : RequestTelemetryConformanceTests {
+public class AspNetTelemetryConformanceTests : RequestTelemetryConformanceTests
+{
     protected override IRequestTelemetryConformanceAdapter Adapter { get; } = new AspNetAdapter();
 
-    private sealed class AspNetAdapter : IRequestTelemetryConformanceAdapter {
+    private sealed class AspNetAdapter : IRequestTelemetryConformanceAdapter
+    {
         public string TransportName => "ASP.NET Core";
 
         /// <summary>
@@ -32,27 +34,37 @@ public class AspNetTelemetryConformanceTests : RequestTelemetryConformanceTests 
         /// reported either way, and a host that only reported the ones it handled itself would be
         /// wrong in exactly the way that is hard to notice.
         /// </remarks>
-        public async Task Dispatch(TelemetryConformanceRequest request) {
+        public async Task Dispatch(TelemetryConformanceRequest request)
+        {
             IExecutionContext? executionContext = null;
 
             var chain = Substitute.For<IExecutionChain>();
-            chain.Next().Returns(_ => {
-                request.Handler?.Invoke(executionContext!);
+            chain
+                .Next()
+                .Returns(_ =>
+                {
+                    request.Handler?.Invoke(executionContext!);
 
-                return Task.CompletedTask;
-            });
+                    return Task.CompletedTask;
+                });
 
             var middlewareService = Substitute.For<IMiddlewareService>();
-            middlewareService.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(callInfo => {
-                executionContext = callInfo.Arg<IExecutionContext>();
+            middlewareService
+                .GetExecutionChain(Arg.Any<IExecutionContext>())
+                .Returns(callInfo =>
+                {
+                    executionContext = callInfo.Arg<IExecutionContext>();
 
-                return chain;
-            });
+                    return chain;
+                });
 
             var handler = new AspNetCoreRequestHandler(
                 new NullMetricLoggerProvider(),
                 new RequestExecutor(
-                    middlewareService, new RequestLogger(NullLogger<RequestLogger>.Instance)));
+                    middlewareService,
+                    new RequestLogger(NullLogger<RequestLogger>.Instance)
+                )
+            );
 
             await handler.HandleRequest(HttpContextFor(request), _ => Task.CompletedTask);
         }
@@ -62,27 +74,33 @@ public class AspNetTelemetryConformanceTests : RequestTelemetryConformanceTests 
         /// it produces — the suite needs a distinct path per request so its listener can tell one
         /// from another while the rest of the assembly runs in parallel.
         /// </summary>
-        private static HttpContext HttpContextFor(TelemetryConformanceRequest request) {
-            var requestFeature = new HttpRequestFeature {
+        private static HttpContext HttpContextFor(TelemetryConformanceRequest request)
+        {
+            var requestFeature = new HttpRequestFeature
+            {
                 Method = request.Method,
-                Path = request.Path
+                Path = request.Path,
             };
 
-            foreach (var header in request.Headers) {
+            foreach (var header in request.Headers)
+            {
                 requestFeature.Headers[header.Key] = header.Value;
             }
 
             var features = new FeatureCollection();
             features.Set<IHttpRequestFeature>(requestFeature);
             features.Set<IHttpResponseFeature>(new HttpResponseFeature());
-            features.Set<IHttpResponseBodyFeature>(new StreamResponseBodyFeature(new MemoryStream()));
+            features.Set<IHttpResponseBodyFeature>(
+                new StreamResponseBodyFeature(new MemoryStream())
+            );
 
             // AspNetExecutionContext resolves IKnownServices out of RequestServices as it is built.
             var services = new ServiceCollection();
             services.AddSingleton(Substitute.For<IKnownServices>());
 
-            return new DefaultHttpContext(features) {
-                RequestServices = services.BuildServiceProvider()
+            return new DefaultHttpContext(features)
+            {
+                RequestServices = services.BuildServiceProvider(),
             };
         }
     }

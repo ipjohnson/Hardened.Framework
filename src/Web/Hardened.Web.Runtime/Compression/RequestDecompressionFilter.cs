@@ -34,7 +34,8 @@ namespace Hardened.Web.Runtime.Compression;
 /// still reached.
 /// </para>
 /// </remarks>
-public sealed class RequestDecompressionFilter : IExecutionFilter {
+public sealed class RequestDecompressionFilter : IExecutionFilter
+{
     /// <summary>
     /// Resolved on the first request that carries a coding, for the reason the response cache
     /// resolves its store that way: there is no service provider where a filter is built.
@@ -44,16 +45,19 @@ public sealed class RequestDecompressionFilter : IExecutionFilter {
     /// <param name="configuration">
     /// Supplied by tests. Left null, it is read from the application's services on first use.
     /// </param>
-    public RequestDecompressionFilter(ICompressionConfiguration? configuration = null) {
+    public RequestDecompressionFilter(ICompressionConfiguration? configuration = null)
+    {
         _configuration = configuration;
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
         var request = context.Request;
         var coding = ContentCoding(request.Headers);
 
-        if (coding == null) {
+        if (coding == null)
+        {
             await chain.Next();
 
             return;
@@ -61,13 +65,16 @@ public sealed class RequestDecompressionFilter : IExecutionFilter {
 
         Stream decoder;
 
-        if (string.Equals(coding, KnownEncoding.GZip, StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(coding, KnownEncoding.GZip, StringComparison.OrdinalIgnoreCase))
+        {
             decoder = new GZipStream(request.Body, CompressionMode.Decompress, leaveOpen: true);
         }
-        else if (string.Equals(coding, KnownEncoding.Br, StringComparison.OrdinalIgnoreCase)) {
+        else if (string.Equals(coding, KnownEncoding.Br, StringComparison.OrdinalIgnoreCase))
+        {
             decoder = new BrotliStream(request.Body, CompressionMode.Decompress, leaveOpen: true);
         }
-        else {
+        else
+        {
             context.Response.ExceptionValue = new BadContentEncodingException(coding);
 
             await chain.Next();
@@ -77,17 +84,22 @@ public sealed class RequestDecompressionFilter : IExecutionFilter {
 
         var encoded = request.Body;
 
-        request.Body = new BoundedReadStream(decoder, Configuration(context).MaxDecompressedRequestBytes);
+        request.Body = new BoundedReadStream(
+            decoder,
+            Configuration(context).MaxDecompressedRequestBytes
+        );
 
         // Removed so nothing downstream decodes a second time, and Content-Length with it, because
         // it measured the bytes on the wire and no longer describes the body anything will read.
         Remove(request.Headers, KnownHeaders.ContentEncoding);
         Remove(request.Headers, KnownHeaders.ContentLength);
 
-        try {
+        try
+        {
             await chain.Next();
         }
-        finally {
+        finally
+        {
             request.Body = encoded;
 
             await decoder.DisposeAsync();
@@ -108,26 +120,38 @@ public sealed class RequestDecompressionFilter : IExecutionFilter {
     /// and a forked request carries whatever dictionary it was handed.
     /// </para>
     /// </remarks>
-    private static string? ContentCoding(IDictionary<string, StringValues> headers) {
+    private static string? ContentCoding(IDictionary<string, StringValues> headers)
+    {
         var value = Read(headers, KnownHeaders.ContentEncoding);
 
-        if (StringValues.IsNullOrEmpty(value)) {
+        if (StringValues.IsNullOrEmpty(value))
+        {
             return null;
         }
 
         string? coding = null;
 
-        foreach (var element in value) {
-            if (string.IsNullOrWhiteSpace(element)) {
+        foreach (var element in value)
+        {
+            if (string.IsNullOrWhiteSpace(element))
+            {
                 continue;
             }
 
-            foreach (var token in element.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
-                if (string.Equals(token, "identity", StringComparison.OrdinalIgnoreCase)) {
+            foreach (
+                var token in element.Split(
+                    ',',
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+                )
+            )
+            {
+                if (string.Equals(token, "identity", StringComparison.OrdinalIgnoreCase))
+                {
                     continue;
                 }
 
-                if (coding != null) {
+                if (coding != null)
+                {
                     return value.ToString();
                 }
 
@@ -138,23 +162,29 @@ public sealed class RequestDecompressionFilter : IExecutionFilter {
         return coding;
     }
 
-    private ICompressionConfiguration Configuration(IExecutionContext context) {
+    private ICompressionConfiguration Configuration(IExecutionContext context)
+    {
         // Racy by construction and harmless: two requests may both resolve the same singleton.
-        return _configuration ??= context.RootServiceProvider
-            .GetRequiredService<IOptions<ICompressionConfiguration>>().Value;
+        return _configuration ??= context
+            .RootServiceProvider.GetRequiredService<IOptions<ICompressionConfiguration>>()
+            .Value;
     }
 
     /// <summary>
     /// Removes a header under whatever casing it arrived in, for the reason <see cref="Read"/>
     /// looks it up that way.
     /// </summary>
-    private static void Remove(IDictionary<string, StringValues> headers, string name) {
-        if (headers.Remove(name)) {
+    private static void Remove(IDictionary<string, StringValues> headers, string name)
+    {
+        if (headers.Remove(name))
+        {
             return;
         }
 
-        foreach (var header in headers) {
-            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var header in headers)
+        {
+            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase))
+            {
                 headers.Remove(header.Key);
 
                 return;
@@ -162,13 +192,17 @@ public sealed class RequestDecompressionFilter : IExecutionFilter {
         }
     }
 
-    private static StringValues Read(IDictionary<string, StringValues> headers, string name) {
-        if (headers.TryGetValue(name, out var value)) {
+    private static StringValues Read(IDictionary<string, StringValues> headers, string name)
+    {
+        if (headers.TryGetValue(name, out var value))
+        {
             return value;
         }
 
-        foreach (var header in headers) {
-            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var header in headers)
+        {
+            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase))
+            {
                 return header.Value;
             }
         }

@@ -19,8 +19,9 @@ namespace Hardened.Web.Testing;
 /// factory; a second service is one more class in the same file.
 /// </para>
 /// </remarks>
-public interface ITestClientFactory<out TClient> where TClient : class {
-
+public interface ITestClientFactory<out TClient>
+    where TClient : class
+{
     /// <summary>Builds the client over <paramref name="http"/>, which already carries the test's credential.</summary>
     TClient Create(HttpClient http);
 
@@ -43,7 +44,8 @@ public interface ITestClientFactory<out TClient> where TClient : class {
     /// differ - the harness calls this one.
     /// </para>
     /// </remarks>
-    TClient Create(TestClientContext context) {
+    TClient Create(TestClientContext context)
+    {
         ArgumentNullException.ThrowIfNull(context);
 
         return Create(context.Http);

@@ -43,15 +43,22 @@ namespace Hardened.SourceGenerator.Shared;
 /// the DependencyModules generator already emits - which a second static constructor would.
 /// </para>
 /// </remarks>
-public static class TriggerModuleGenerator {
-
+public static class TriggerModuleGenerator
+{
     /// <summary>
     /// One trigger: the attribute a handler writes, and the property naming what serves it.
     /// </summary>
-    public sealed class Trigger {
+    public sealed class Trigger
+    {
         public Trigger(
-            string name, string attribute, string property, string scheme,
-            bool namesItsOwnRoute = true, bool isFunctionHandler = true) {
+            string name,
+            string attribute,
+            string property,
+            string scheme,
+            bool namesItsOwnRoute = true,
+            bool isFunctionHandler = true
+        )
+        {
             NamesItsOwnRoute = namesItsOwnRoute;
             IsFunctionHandler = isFunctionHandler;
             Name = name;
@@ -61,7 +68,8 @@ public static class TriggerModuleGenerator {
             Spellings = Names(attribute);
             Type = TypeDefinition.Get(
                 attribute.Substring(0, attribute.LastIndexOf('.')),
-                attribute.Substring(attribute.LastIndexOf('.') + 1));
+                attribute.Substring(attribute.LastIndexOf('.') + 1)
+            );
         }
 
         public string Name { get; }
@@ -109,12 +117,14 @@ public static class TriggerModuleGenerator {
         /// </summary>
         public IReadOnlyList<string> Spellings { get; }
 
-        private static IReadOnlyList<string> Names(string fullName) {
+        private static IReadOnlyList<string> Names(string fullName)
+        {
             var simple = fullName.Substring(fullName.LastIndexOf('.') + 1);
 
             var names = new List<string> { fullName, simple };
 
-            if (simple.EndsWith("Attribute", StringComparison.Ordinal)) {
+            if (simple.EndsWith("Attribute", StringComparison.Ordinal))
+            {
                 names.Add(simple.Substring(0, simple.Length - "Attribute".Length));
             }
 
@@ -126,41 +136,108 @@ public static class TriggerModuleGenerator {
     /// The triggers, and the property that binds each. Fixed here because they are the framework's
     /// own; what serves them is not.
     /// </summary>
-    public static readonly IReadOnlyList<Trigger> Triggers = new[] {
-        new Trigger("Queue", "Hardened.Functions.Runtime.Attributes.QueueAttribute", "HardenedQueueModule", "QUEUE"),
-        new Trigger("Topic", "Hardened.Functions.Runtime.Attributes.TopicAttribute", "HardenedTopicModule", "TOPIC"),
-        new Trigger("Timer", "Hardened.Functions.Runtime.Attributes.TimerAttribute", "HardenedTimerModule", "TIMER"),
-        new Trigger("Event", "Hardened.Functions.Runtime.Attributes.EventAttribute", "HardenedEventModule", "EVENT"),
-
+    public static readonly IReadOnlyList<Trigger> Triggers = new[]
+    {
+        new Trigger(
+            "Queue",
+            "Hardened.Functions.Runtime.Attributes.QueueAttribute",
+            "HardenedQueueModule",
+            "QUEUE"
+        ),
+        new Trigger(
+            "Topic",
+            "Hardened.Functions.Runtime.Attributes.TopicAttribute",
+            "HardenedTopicModule",
+            "TOPIC"
+        ),
+        new Trigger(
+            "Timer",
+            "Hardened.Functions.Runtime.Attributes.TimerAttribute",
+            "HardenedTimerModule",
+            "TIMER"
+        ),
+        new Trigger(
+            "Event",
+            "Hardened.Functions.Runtime.Attributes.EventAttribute",
+            "HardenedEventModule",
+            "EVENT"
+        ),
         // The two ordered sources. One trigger each rather than one shared "stream", because two
         // adapter packages binding a single property resolve first-import-wins on an import order
         // nobody controls - and because a change feed's handler binds a row image where a stream's
         // binds the publisher's own bytes.
-        new Trigger("Change", "Hardened.Functions.Runtime.Attributes.ChangeAttribute", "HardenedChangeModule", "CHANGE"),
-        new Trigger("Stream", "Hardened.Functions.Runtime.Attributes.StreamAttribute", "HardenedStreamModule", "STREAM"),
-
+        new Trigger(
+            "Change",
+            "Hardened.Functions.Runtime.Attributes.ChangeAttribute",
+            "HardenedChangeModule",
+            "CHANGE"
+        ),
+        new Trigger(
+            "Stream",
+            "Hardened.Functions.Runtime.Attributes.StreamAttribute",
+            "HardenedStreamModule",
+            "STREAM"
+        ),
         // Unordered, unlike the two above: two notifications for one key can arrive out of order,
         // so this is a queue's failure shape rather than a shard's.
-        new Trigger("Blob", "Hardened.Functions.Runtime.Attributes.BlobAttribute", "HardenedBlobModule", "BLOB"),
-
+        new Trigger(
+            "Blob",
+            "Hardened.Functions.Runtime.Attributes.BlobAttribute",
+            "HardenedBlobModule",
+            "BLOB"
+        ),
         // Not a trigger in the same sense - nothing delivers to it, a caller invokes it - but it
         // binds a module the same way, and for the same reason: an application that had to write
         // [InvokeModule] itself would name a cloud in the one file that must not.
-        new Trigger("HardenedFunction", "Hardened.Requests.Abstract.Attributes.HardenedFunctionAttribute",
-            "HardenedInvokeModule", "INVOKE", namesItsOwnRoute: false),
-
+        new Trigger(
+            "HardenedFunction",
+            "Hardened.Requests.Abstract.Attributes.HardenedFunctionAttribute",
+            "HardenedInvokeModule",
+            "INVOKE",
+            namesItsOwnRoute: false
+        ),
         // The web verbs, which the web generator routes and this only binds. All five name one
         // module, so a controller with a GET and a POST registers one adapter.
-        new Trigger("Get", "Hardened.Web.Runtime.Attributes.GetAttribute",
-            "HardenedHttpModule", "GET", namesItsOwnRoute: false, isFunctionHandler: false),
-        new Trigger("Post", "Hardened.Web.Runtime.Attributes.PostAttribute",
-            "HardenedHttpModule", "POST", namesItsOwnRoute: false, isFunctionHandler: false),
-        new Trigger("Put", "Hardened.Web.Runtime.Attributes.PutAttribute",
-            "HardenedHttpModule", "PUT", namesItsOwnRoute: false, isFunctionHandler: false),
-        new Trigger("Patch", "Hardened.Web.Runtime.Attributes.PatchAttribute",
-            "HardenedHttpModule", "PATCH", namesItsOwnRoute: false, isFunctionHandler: false),
-        new Trigger("Delete", "Hardened.Web.Runtime.Attributes.DeleteAttribute",
-            "HardenedHttpModule", "DELETE", namesItsOwnRoute: false, isFunctionHandler: false)
+        new Trigger(
+            "Get",
+            "Hardened.Web.Runtime.Attributes.GetAttribute",
+            "HardenedHttpModule",
+            "GET",
+            namesItsOwnRoute: false,
+            isFunctionHandler: false
+        ),
+        new Trigger(
+            "Post",
+            "Hardened.Web.Runtime.Attributes.PostAttribute",
+            "HardenedHttpModule",
+            "POST",
+            namesItsOwnRoute: false,
+            isFunctionHandler: false
+        ),
+        new Trigger(
+            "Put",
+            "Hardened.Web.Runtime.Attributes.PutAttribute",
+            "HardenedHttpModule",
+            "PUT",
+            namesItsOwnRoute: false,
+            isFunctionHandler: false
+        ),
+        new Trigger(
+            "Patch",
+            "Hardened.Web.Runtime.Attributes.PatchAttribute",
+            "HardenedHttpModule",
+            "PATCH",
+            namesItsOwnRoute: false,
+            isFunctionHandler: false
+        ),
+        new Trigger(
+            "Delete",
+            "Hardened.Web.Runtime.Attributes.DeleteAttribute",
+            "HardenedHttpModule",
+            "DELETE",
+            namesItsOwnRoute: false,
+            isFunctionHandler: false
+        ),
     };
 
     /// <summary>
@@ -179,15 +256,16 @@ public static class TriggerModuleGenerator {
     /// </para>
     /// </remarks>
     private static DiagnosticDescriptor NoModuleForTrigger() =>
-        new(id: "HRDF001",
+        new(
+            id: "HRDF001",
             title: "No adapter is registered for this trigger",
-            messageFormat:
-            "Handlers in this project use [{0}], but no referenced runtime declares a module for " +
-            "it. Reference a runtime package that supports {0} triggers, or set <{1}> to the " +
-            "module that should serve them.",
+            messageFormat: "Handlers in this project use [{0}], but no referenced runtime declares a module for "
+                + "it. Reference a runtime package that supports {0} triggers, or set <{1}> to the "
+                + "module that should serve them.",
             category: "Hardened.Function",
             defaultSeverity: DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// An adapter is registered for a trigger nothing in the project writes.
@@ -207,50 +285,63 @@ public static class TriggerModuleGenerator {
     /// </para>
     /// </remarks>
     private static DiagnosticDescriptor UnusedAdapter() =>
-        new(id: "HRDF003",
+        new(
+            id: "HRDF003",
             title: "An adapter is registered for a trigger this project does not use",
-            messageFormat:
-            "{0} is bound to serve {1} and nothing in this project declares one, so it ships in " +
-            "the deployment bundle unreachable. Reference the adapter packages for the triggers " +
-            "this project uses rather than a meta package, or clear {2}.",
+            messageFormat: "{0} is bound to serve {1} and nothing in this project declares one, so it ships in "
+                + "the deployment bundle unreachable. Reference the adapter packages for the triggers "
+                + "this project uses rather than a meta package, or clear {2}.",
             category: "Hardened.Function",
             defaultSeverity: DiagnosticSeverity.Info,
-            isEnabledByDefault: true);
+            isEnabledByDefault: true
+        );
 
     public static void Setup(
         IncrementalGeneratorInitializationContext context,
-        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider) {
-
+        IncrementalValuesProvider<EntryPointSelector.Model> entryPointProvider
+    )
+    {
         // One provider rather than one ForAttributeWithMetadataName per trigger. Four of those
         // would each need combining into the output, and the tuple that produces is four levels
         // deep - the shape WebIncrementalGenerator records as already near-unreadable at three.
-        var used = context.SyntaxProvider
-            .CreateSyntaxProvider(Uses, Named)
+        var used = context
+            .SyntaxProvider.CreateSyntaxProvider(Uses, Named)
             .Where(name => name != null)
             .Collect()
-            .Select((names, _) =>
-                names.Where(name => name != null).Distinct().OrderBy(name => name, StringComparer.Ordinal)
-                    .ToImmutableArray());
+            .Select(
+                (names, _) =>
+                    names
+                        .Where(name => name != null)
+                        .Distinct()
+                        .OrderBy(name => name, StringComparer.Ordinal)
+                        .ToImmutableArray()
+            );
 
         var modules = context.AnalyzerConfigOptionsProvider.Select(ReadModules);
 
         context.RegisterSourceOutput(
             entryPointProvider.Combine(used).Combine(modules),
-            SourceGeneratorWrapper.Wrap<
-                ((EntryPointSelector.Model Entry, ImmutableArray<string?> Used) Left,
-                 ImmutableArray<string?> Right)>(Generate));
+            SourceGeneratorWrapper.Wrap<(
+                (EntryPointSelector.Model Entry, ImmutableArray<string?> Used) Left,
+                ImmutableArray<string?> Right
+            )>(Generate)
+        );
     }
 
     private static bool Uses(SyntaxNode node, CancellationToken token) =>
         node is MethodDeclarationSyntax { AttributeLists.Count: > 0 };
 
     /// <summary>The trigger this method carries, or null for the many that carry none.</summary>
-    private static string? Named(GeneratorSyntaxContext context, CancellationToken token) {
-        foreach (var attribute in context.Node.DescendantNodes().OfType<AttributeSyntax>()) {
+    private static string? Named(GeneratorSyntaxContext context, CancellationToken token)
+    {
+        foreach (var attribute in context.Node.DescendantNodes().OfType<AttributeSyntax>())
+        {
             var written = attribute.Name.ToString();
 
-            foreach (var trigger in Triggers) {
-                if (trigger.Spellings.Contains(written)) {
+            foreach (var trigger in Triggers)
+            {
+                if (trigger.Spellings.Contains(written))
+                {
                     return trigger.Name;
                 }
             }
@@ -269,17 +360,28 @@ public static class TriggerModuleGenerator {
     /// directly would regenerate on every keystroke.
     /// </remarks>
     private static ImmutableArray<string?> ReadModules(
-        AnalyzerConfigOptionsProvider provider, CancellationToken token) =>
-        Triggers.Select(trigger =>
-            provider.GlobalOptions.TryGetValue("build_property." + trigger.Property, out var value) &&
-            !string.IsNullOrWhiteSpace(value)
-                ? value.Trim()
-                : null).ToImmutableArray();
+        AnalyzerConfigOptionsProvider provider,
+        CancellationToken token
+    ) =>
+        Triggers
+            .Select(trigger =>
+                provider.GlobalOptions.TryGetValue(
+                    "build_property." + trigger.Property,
+                    out var value
+                ) && !string.IsNullOrWhiteSpace(value)
+                    ? value.Trim()
+                    : null
+            )
+            .ToImmutableArray();
 
     private static void Generate(
         SourceProductionContext context,
-        ((EntryPointSelector.Model Entry, ImmutableArray<string?> Used) Left,
-         ImmutableArray<string?> Right) models) {
+        (
+            (EntryPointSelector.Model Entry, ImmutableArray<string?> Used) Left,
+            ImmutableArray<string?> Right
+        ) models
+    )
+    {
         var entryPoint = models.Left.Entry;
         var used = models.Left.Used;
         var modules = models.Right;
@@ -289,7 +391,8 @@ public static class TriggerModuleGenerator {
         // other case: a runtime is present and does not serve one of the triggers used. Reporting
         // "nothing binds [HardenedFunction]" at every project that has not referenced a cloud yet
         // would be noise rather than a finding.
-        if (modules.All(module => module == null)) {
+        if (modules.All(module => module == null))
+        {
             return;
         }
 
@@ -297,18 +400,27 @@ public static class TriggerModuleGenerator {
 
         var register = new List<string>();
 
-        for (var index = 0; index < Triggers.Count; index++) {
+        for (var index = 0; index < Triggers.Count; index++)
+        {
             var trigger = Triggers[index];
 
-            if (!used.Contains(trigger.Name)) {
+            if (!used.Contains(trigger.Name))
+            {
                 continue;
             }
 
             var module = modules[index];
 
-            if (module == null) {
+            if (module == null)
+            {
                 context.ReportDiagnostic(
-                    Diagnostic.Create(NoModuleForTrigger(), Location.None, trigger.Name, trigger.Property));
+                    Diagnostic.Create(
+                        NoModuleForTrigger(),
+                        Location.None,
+                        trigger.Name,
+                        trigger.Property
+                    )
+                );
 
                 continue;
             }
@@ -318,24 +430,28 @@ public static class TriggerModuleGenerator {
             // not harmless: SqsModule compares by type, so the inferred instance ties with the
             // declared one and whichever is reached first wins - which silently dropped
             // ReportBatchItemFailures the moment a deployment turned it on.
-            if (Declares(entryPoint, module)) {
+            if (Declares(entryPoint, module))
+            {
                 continue;
             }
 
             // The same module can serve two triggers - a schedule and a bus event are one adapter -
             // and adding it twice would register the adapter twice.
-            if (!register.Contains(module)) {
+            if (!register.Contains(module))
+            {
                 register.Add(module);
             }
         }
 
-        if (register.Count == 0) {
+        if (register.Count == 0)
+        {
             return;
         }
 
         context.AddSource(
             entryPoint.EntryPointType.Name + ".TriggerModules.cs",
-            GeneratedSource.Header(Source(entryPoint, register)));
+            GeneratedSource.Header(Source(entryPoint, register))
+        );
     }
 
     /// <summary>
@@ -357,39 +473,51 @@ public static class TriggerModuleGenerator {
     private static void ReportUnused(
         SourceProductionContext context,
         ImmutableArray<string?> used,
-        ImmutableArray<string?> modules) {
-        if (used.Length == 0) {
+        ImmutableArray<string?> modules
+    )
+    {
+        if (used.Length == 0)
+        {
             return;
         }
 
         var reported = new List<string>();
 
-        for (var index = 0; index < Triggers.Count; index++) {
+        for (var index = 0; index < Triggers.Count; index++)
+        {
             var module = modules[index];
 
-            if (module == null || reported.Contains(module)) {
+            if (module == null || reported.Contains(module))
+            {
                 continue;
             }
 
             var served = new List<Trigger>();
 
-            for (var other = 0; other < Triggers.Count; other++) {
-                if (modules[other] == module) {
+            for (var other = 0; other < Triggers.Count; other++)
+            {
+                if (modules[other] == module)
+                {
                     served.Add(Triggers[other]);
                 }
             }
 
-            if (served.Any(trigger => used.Contains(trigger.Name))) {
+            if (served.Any(trigger => used.Contains(trigger.Name)))
+            {
                 continue;
             }
 
             reported.Add(module);
 
-            context.ReportDiagnostic(Diagnostic.Create(
-                UnusedAdapter(), Location.None,
-                module,
-                Readable(served.Select(trigger => "[" + trigger.Name + "]")),
-                Readable(served.Select(trigger => "<" + trigger.Property + ">").Distinct())));
+            context.ReportDiagnostic(
+                Diagnostic.Create(
+                    UnusedAdapter(),
+                    Location.None,
+                    module,
+                    Readable(served.Select(trigger => "[" + trigger.Name + "]")),
+                    Readable(served.Select(trigger => "<" + trigger.Property + ">").Distinct())
+                )
+            );
         }
     }
 
@@ -401,13 +529,15 @@ public static class TriggerModuleGenerator {
     /// "clear &lt;HardenedTimerModule&gt;, &lt;HardenedEventModule&gt;", which reads as MSBuild a
     /// user could paste and is not.
     /// </remarks>
-    private static string Readable(IEnumerable<string> parts) {
+    private static string Readable(IEnumerable<string> parts)
+    {
         var all = parts.ToList();
 
-        return all.Count switch {
+        return all.Count switch
+        {
             0 => "",
             1 => all[0],
-            _ => string.Join(", ", all.Take(all.Count - 1)) + " and " + all[all.Count - 1]
+            _ => string.Join(", ", all.Take(all.Count - 1)) + " and " + all[all.Count - 1],
         };
     }
 
@@ -420,11 +550,11 @@ public static class TriggerModuleGenerator {
     /// attribute as a resolved type, so there is no symbol to compare - and a name is enough,
     /// because two modules with one name in one compilation would not compile either.
     /// </remarks>
-    private static bool Declares(EntryPointSelector.Model entryPoint, string module) {
+    private static bool Declares(EntryPointSelector.Model entryPoint, string module)
+    {
         var attribute = module.Substring(module.LastIndexOf('.') + 1) + "Attribute";
 
-        return entryPoint.AttributeModels.Any(
-            model => model.TypeDefinition.Name == attribute);
+        return entryPoint.AttributeModels.Any(model => model.TypeDefinition.Name == attribute);
     }
 
     /// <summary>
@@ -435,19 +565,22 @@ public static class TriggerModuleGenerator {
     /// writes - so the hash of its full name goes on the end. A collision would be a compile error
     /// rather than a silent problem, but it would be a confusing one in generated code.
     /// </remarks>
-    private static string FieldName(EntryPointSelector.Model entryPoint) {
+    private static string FieldName(EntryPointSelector.Model entryPoint)
+    {
         var full = entryPoint.EntryPointType.Namespace + "." + entryPoint.EntryPointType.Name;
 
         var hash = 17;
 
-        foreach (var character in full) {
+        foreach (var character in full)
+        {
             hash = unchecked(hash * 31 + character);
         }
 
         return "_hardenedTriggerModules_" + (hash & 0x7FFFFFF).ToString();
     }
 
-    private static string Source(EntryPointSelector.Model entryPoint, IReadOnlyList<string> modules) {
+    private static string Source(EntryPointSelector.Model entryPoint, IReadOnlyList<string> modules)
+    {
         var file = new CSharpFileDefinition(entryPoint.EntryPointType.Namespace);
 
         var appClass = file.AddClass(entryPoint.EntryPointType.Name);
@@ -458,8 +591,11 @@ public static class TriggerModuleGenerator {
         // has no usings to rely on, the shape is fixed, and the module names arrive as strings from
         // MSBuild - resolving them to symbols only to print them again would buy nothing.
         var registry =
-            "global::DependencyModules.Runtime.Helpers.DependencyRegistry<global::" +
-            entryPoint.EntryPointType.Namespace + "." + entryPoint.EntryPointType.Name + ">";
+            "global::DependencyModules.Runtime.Helpers.DependencyRegistry<global::"
+            + entryPoint.EntryPointType.Namespace
+            + "."
+            + entryPoint.EntryPointType.Name
+            + ">";
 
         var arguments = string.Join(", ", modules.Select(module => "new global::" + module + "()"));
 
@@ -469,10 +605,14 @@ public static class TriggerModuleGenerator {
 
         field.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
 
-        field.InitializeValue =
-            new CodeOutputComponent(registry + ".AddModule(" + arguments + ")") { Indented = false };
+        field.InitializeValue = new CodeOutputComponent(registry + ".AddModule(" + arguments + ")")
+        {
+            Indented = false,
+        };
 
-        var output = new OutputContext(new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global });
+        var output = new OutputContext(
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
 
         file.WriteOutput(output);
 

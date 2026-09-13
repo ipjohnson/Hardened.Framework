@@ -23,26 +23,28 @@ namespace Hardened.Requests.Runtime.Tests.Serializer;
 /// is under test is whether a body is refused.
 /// </para>
 /// </remarks>
-public class RequiredMemberPresenceTests {
-
+public class RequiredMemberPresenceTests
+{
     private static JsonSerializerOptions Options() =>
         RequiredMemberPresence.Enforce(
-            new JsonSerializerOptions(JsonSerializerDefaults.Web) {
-                TypeInfoResolver = new DefaultJsonTypeInfoResolver()
-            });
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                TypeInfoResolver = new DefaultJsonTypeInfoResolver(),
+            }
+        );
 
     private static JsonException Refused<T>(string json) =>
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<T>(json, Options()));
 
-    private static T Accepted<T>(string json) =>
-        JsonSerializer.Deserialize<T>(json, Options())!;
+    private static T Accepted<T>(string json) => JsonSerializer.Deserialize<T>(json, Options())!;
 
     // ---------------------------------------------------------------- what is required
 
     private record Todo(string Title);
 
     [Fact]
-    public void ANonNullableReferenceMemberMustBeSent() {
+    public void ANonNullableReferenceMemberMustBeSent()
+    {
         Assert.Contains("title", Refused<Todo>("{}").Message);
     }
 
@@ -53,7 +55,8 @@ public class RequiredMemberPresenceTests {
     private record Quote(string AccountId, string Origin, string Destination);
 
     [Fact]
-    public void EveryMissingMemberIsNamedAtOnce() {
+    public void EveryMissingMemberIsNamedAtOnce()
+    {
         var message = Refused<Quote>("""{"origin":"SEA"}""").Message;
 
         Assert.Contains("accountId", message);
@@ -66,7 +69,8 @@ public class RequiredMemberPresenceTests {
     /// is the split: presence is the reader's question, content is the validator's.
     /// </summary>
     [Fact]
-    public void AnExplicitNullIsNotAbsence() {
+    public void AnExplicitNullIsNotAbsence()
+    {
         Assert.Null(Accepted<Todo>("""{"title":null}""").Title);
     }
 
@@ -75,7 +79,8 @@ public class RequiredMemberPresenceTests {
     private record Optional(string? Title);
 
     [Fact]
-    public void ANullableReferenceMemberMayBeOmitted() {
+    public void ANullableReferenceMemberMayBeOmitted()
+    {
         Assert.Null(Accepted<Optional>("{}").Title);
     }
 
@@ -88,7 +93,8 @@ public class RequiredMemberPresenceTests {
     private record Weighed(int Grams, bool Fragile);
 
     [Fact]
-    public void AValueTypeMemberIsLeftAlone() {
+    public void AValueTypeMemberIsLeftAlone()
+    {
         Assert.Equal(0, Accepted<Weighed>("{}").Grams);
     }
 
@@ -96,7 +102,8 @@ public class RequiredMemberPresenceTests {
     private record Paged(string Cursor = "");
 
     [Fact]
-    public void AMemberWithAConstructorDefaultMayBeOmitted() {
+    public void AMemberWithAConstructorDefaultMayBeOmitted()
+    {
         Assert.Equal("", Accepted<Paged>("{}").Cursor);
     }
 
@@ -107,14 +114,16 @@ public class RequiredMemberPresenceTests {
     /// repository's own Invoke fixture, whose four settable properties carry three initializers
     /// between them.
     /// </summary>
-    private class Manifest {
+    private class Manifest
+    {
         public string Id { get; set; } = "";
 
         public List<string> Records { get; set; } = [];
     }
 
     [Fact]
-    public void ASettablePropertyIsNotDemanded() {
+    public void ASettablePropertyIsNotDemanded()
+    {
         var accepted = Accepted<Manifest>("{}");
 
         Assert.Equal("", accepted.Id);
@@ -128,7 +137,8 @@ public class RequiredMemberPresenceTests {
     private record Assigned([property: ResponseOnly] string Id, string Title);
 
     [Fact]
-    public void AResponseOnlyMemberIsNotDemanded() {
+    public void AResponseOnlyMemberIsNotDemanded()
+    {
         var accepted = Accepted<Assigned>("""{"title":"t"}""");
 
         Assert.Null(accepted.Id);
@@ -139,12 +149,14 @@ public class RequiredMemberPresenceTests {
     /// A member the reader cannot fill. There is no constructor parameter for it and no setter, so
     /// requiring it would refuse every request for a value that could never arrive.
     /// </summary>
-    private record Computed(string Title) {
+    private record Computed(string Title)
+    {
         public string Slug => Title.ToLowerInvariant();
     }
 
     [Fact]
-    public void AGetOnlyMemberWithNoConstructorParameterIsNotDemanded() {
+    public void AGetOnlyMemberWithNoConstructorParameterIsNotDemanded()
+    {
         Assert.Equal("t", Accepted<Computed>("""{"title":"t"}""").Title);
     }
 
@@ -154,7 +166,8 @@ public class RequiredMemberPresenceTests {
     /// there is none.
     /// </summary>
     [Fact]
-    public void AMemberWithNoNullableAnnotationIsNotDemanded() {
+    public void AMemberWithNoNullableAnnotationIsNotDemanded()
+    {
         Assert.Null(Accepted<Unannotated>("{}").Title);
     }
 
@@ -165,7 +178,8 @@ public class RequiredMemberPresenceTests {
     private record Explicit([property: JsonRequired] int Grams);
 
     [Fact]
-    public void AMemberAlreadyRequiredStaysRequired() {
+    public void AMemberAlreadyRequiredStaysRequired()
+    {
         Assert.Contains("grams", Refused<Explicit>("{}").Message);
     }
 }

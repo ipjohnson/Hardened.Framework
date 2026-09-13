@@ -18,8 +18,8 @@ namespace Hardened.Generation.Models;
 /// ETag, which is the header that motivated this.
 /// </para>
 /// </remarks>
-internal class ResponseHeaderModel : IEquatable<ResponseHeaderModel> {
-
+internal class ResponseHeaderModel : IEquatable<ResponseHeaderModel>
+{
     /// <summary>The header's name, as it goes on the wire.</summary>
     public string Name { get; set; } = "";
 
@@ -34,19 +34,24 @@ internal class ResponseHeaderModel : IEquatable<ResponseHeaderModel> {
 
     public string? Description { get; set; }
 
-    public bool Equals(ResponseHeaderModel? other) {
-        if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
+    public bool Equals(ResponseHeaderModel? other)
+    {
+        if (other is null)
+            return false;
+        if (ReferenceEquals(this, other))
+            return true;
 
-        return Name == other.Name &&
-               ParameterName == other.ParameterName &&
-               Description == other.Description;
+        return Name == other.Name
+            && ParameterName == other.ParameterName
+            && Description == other.Description;
     }
 
     public override bool Equals(object? obj) => Equals(obj as ResponseHeaderModel);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             return (Name.GetHashCode() * 397) ^ ParameterName.GetHashCode();
         }
     }

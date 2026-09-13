@@ -2,14 +2,14 @@
 using Hardened.Requests.Abstract.Logging;
 using Hardened.Requests.Abstract.Metrics;
 using Hardened.Requests.Abstract.Middleware;
+using Hardened.Requests.Runtime.Execution;
 using Hardened.Shared.Runtime.Metrics;
 using Hardened.Web.AspNetCore.Runtime.Impl;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Xunit;
-using Hardened.Requests.Runtime.Execution;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.AspNetCore.Runtime.Tests.Impl;
 
@@ -21,10 +21,11 @@ namespace Hardened.Web.AspNetCore.Runtime.Tests.Impl;
 /// <c>HardenedHttpApplication</c> on Kestrel — and this host did not, so an ASP.NET-hosted
 /// application produced no begin, no end and no <c>TotalRequestDuration</c>.
 /// </summary>
-public class AspNetCoreRequestHandlerTests {
-
+public class AspNetCoreRequestHandlerTests
+{
     [Fact]
-    public async Task HandleRequest_LogsTheRequestBeginningAndEnding() {
+    public async Task HandleRequest_LogsTheRequestBeginningAndEnding()
+    {
         var harness = new Harness();
 
         await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
@@ -34,12 +35,15 @@ public class AspNetCoreRequestHandlerTests {
     }
 
     [Fact]
-    public async Task HandleRequest_RecordsTheTotalRequestDuration() {
+    public async Task HandleRequest_RecordsTheTotalRequestDuration()
+    {
         var harness = new Harness();
 
         await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
 
-        harness.MetricLogger.Received(1).Record(RequestMetrics.TotalRequestDuration, Arg.Any<double>());
+        harness
+            .MetricLogger.Received(1)
+            .Record(RequestMetrics.TotalRequestDuration, Arg.Any<double>());
     }
 
     /// <summary>
@@ -48,7 +52,8 @@ public class AspNetCoreRequestHandlerTests {
     /// host that never disposes gets nothing out of any provider that emits on completion.
     /// </summary>
     [Fact]
-    public async Task HandleRequest_FlushesTheMetricLogger() {
+    public async Task HandleRequest_FlushesTheMetricLogger()
+    {
         var harness = new Harness();
 
         await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
@@ -62,12 +67,15 @@ public class AspNetCoreRequestHandlerTests {
     /// of the request most worth having one.
     /// </summary>
     [Fact]
-    public async Task HandleRequest_ClosesTheRequestOutWhenTheChainThrows() {
+    public async Task HandleRequest_ClosesTheRequestOutWhenTheChainThrows()
+    {
         var harness = new Harness(chainEffect: _ => throw new InvalidOperationException("boom"));
 
         await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
 
-        harness.MetricLogger.Received(1).Record(RequestMetrics.TotalRequestDuration, Arg.Any<double>());
+        harness
+            .MetricLogger.Received(1)
+            .Record(RequestMetrics.TotalRequestDuration, Arg.Any<double>());
         harness.RequestLogger.Received(1).RequestEnd(Arg.Any<IExecutionContext>());
         harness.MetricLogger.Received(1).Dispose();
     }
@@ -80,14 +88,16 @@ public class AspNetCoreRequestHandlerTests {
     /// the connection outright once any bytes have gone out.
     /// </summary>
     [Fact]
-    public async Task HandleRequest_DoesNotLetAChainExceptionReachAspNet() {
+    public async Task HandleRequest_DoesNotLetAChainExceptionReachAspNet()
+    {
         var harness = new Harness(chainEffect: _ => throw new InvalidOperationException("boom"));
 
         await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
     }
 
     [Fact]
-    public async Task HandleRequest_ReportsAChainExceptionToTheRequestLogger() {
+    public async Task HandleRequest_ReportsAChainExceptionToTheRequestLogger()
+    {
         var thrown = new InvalidOperationException("boom");
         var harness = new Harness(chainEffect: _ => throw thrown);
 
@@ -97,7 +107,8 @@ public class AspNetCoreRequestHandlerTests {
     }
 
     [Fact]
-    public async Task HandleRequest_AnswersFiveHundredWhenTheChainThrows() {
+    public async Task HandleRequest_AnswersFiveHundredWhenTheChainThrows()
+    {
         var harness = new Harness(chainEffect: _ => throw new InvalidOperationException("boom"));
 
         await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
@@ -110,9 +121,12 @@ public class AspNetCoreRequestHandlerTests {
     /// right, which is the failure this whole path exists to stop.
     /// </summary>
     [Fact]
-    public async Task HandleRequest_LeavesTheStatusAloneWhenTheResponseHasAlreadyStarted() {
+    public async Task HandleRequest_LeavesTheStatusAloneWhenTheResponseHasAlreadyStarted()
+    {
         var harness = new Harness(
-            startResponse: true, chainEffect: _ => throw new InvalidOperationException("boom"));
+            startResponse: true,
+            chainEffect: _ => throw new InvalidOperationException("boom")
+        );
 
         await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
 
@@ -124,15 +138,20 @@ public class AspNetCoreRequestHandlerTests {
     /// <c>UseHardened</c> to be answered a second time.
     /// </summary>
     [Fact]
-    public async Task HandleRequest_DoesNotFallThroughAfterTheChainThrew() {
+    public async Task HandleRequest_DoesNotFallThroughAfterTheChainThrew()
+    {
         var harness = new Harness(chainEffect: _ => throw new InvalidOperationException("boom"));
         var nextInvoked = false;
 
-        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
-            nextInvoked = true;
+        await harness.Handler.HandleRequest(
+            harness.HttpContext,
+            _ =>
+            {
+                nextInvoked = true;
 
-            return Task.CompletedTask;
-        });
+                return Task.CompletedTask;
+            }
+        );
 
         Assert.False(nextInvoked);
     }
@@ -142,21 +161,27 @@ public class AspNetCoreRequestHandlerTests {
     /// <c>UseHardened</c>, and to whatever exception handling that application installed.
     /// </summary>
     [Fact]
-    public async Task HandleRequest_LetsAFallthroughExceptionThrough() {
+    public async Task HandleRequest_LetsAFallthroughExceptionThrough()
+    {
         var harness = new Harness();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => harness.Handler.HandleRequest(
-                harness.HttpContext, _ => throw new InvalidOperationException("downstream")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            harness.Handler.HandleRequest(
+                harness.HttpContext,
+                _ => throw new InvalidOperationException("downstream")
+            )
+        );
 
-        harness.RequestLogger.DidNotReceive().RequestFailed(
-            Arg.Any<IExecutionContext>(), Arg.Any<Exception>());
+        harness
+            .RequestLogger.DidNotReceive()
+            .RequestFailed(Arg.Any<IExecutionContext>(), Arg.Any<Exception>());
     }
 
     #endregion
 
     [Fact]
-    public async Task HandleRequest_RunsTheExecutionChain() {
+    public async Task HandleRequest_RunsTheExecutionChain()
+    {
         var harness = new Harness();
 
         await harness.Handler.HandleRequest(harness.HttpContext, _ => Task.CompletedTask);
@@ -169,14 +194,19 @@ public class AspNetCoreRequestHandlerTests {
     /// to whatever comes next in the ASP.NET pipeline.
     /// </summary>
     [Fact]
-    public async Task HandleRequest_InvokesTheNextDelegateWhenTheResponseHasNotStarted() {
+    public async Task HandleRequest_InvokesTheNextDelegateWhenTheResponseHasNotStarted()
+    {
         var harness = new Harness();
         var nextInvoked = false;
 
-        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
-            nextInvoked = true;
-            return Task.CompletedTask;
-        });
+        await harness.Handler.HandleRequest(
+            harness.HttpContext,
+            _ =>
+            {
+                nextInvoked = true;
+                return Task.CompletedTask;
+            }
+        );
 
         Assert.True(nextInvoked);
     }
@@ -186,14 +216,19 @@ public class AspNetCoreRequestHandlerTests {
     /// and handing it on would let the terminal delegate overwrite the status.
     /// </summary>
     [Fact]
-    public async Task HandleRequest_SkipsTheNextDelegateWhenTheResponseHasStarted() {
+    public async Task HandleRequest_SkipsTheNextDelegateWhenTheResponseHasStarted()
+    {
         var harness = new Harness(startResponse: true);
         var nextInvoked = false;
 
-        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
-            nextInvoked = true;
-            return Task.CompletedTask;
-        });
+        await harness.Handler.HandleRequest(
+            harness.HttpContext,
+            _ =>
+            {
+                nextInvoked = true;
+                return Task.CompletedTask;
+            }
+        );
 
         Assert.False(nextInvoked);
     }
@@ -217,48 +252,66 @@ public class AspNetCoreRequestHandlerTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public async Task HandleRequest_SkipsTheNextDelegateWhenTheChainSetAStatusWithNoBody() {
+    public async Task HandleRequest_SkipsTheNextDelegateWhenTheChainSetAStatusWithNoBody()
+    {
         var harness = new Harness(chainEffect: context => context.Response.Status = 204);
         var nextInvoked = false;
 
-        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
-            nextInvoked = true;
-            return Task.CompletedTask;
-        });
+        await harness.Handler.HandleRequest(
+            harness.HttpContext,
+            _ =>
+            {
+                nextInvoked = true;
+                return Task.CompletedTask;
+            }
+        );
 
         Assert.False(nextInvoked);
         Assert.Equal(204, harness.HttpContext.Response.StatusCode);
     }
 
     [Fact]
-    public async Task HandleRequest_SkipsTheNextDelegateWhenRoutingSelectedAHandler() {
+    public async Task HandleRequest_SkipsTheNextDelegateWhenRoutingSelectedAHandler()
+    {
         var harness = new Harness(chainEffect: context =>
-            context.HandlerInfo = Substitute.For<IExecutionRequestHandlerInfo>());
+            context.HandlerInfo = Substitute.For<IExecutionRequestHandlerInfo>()
+        );
         var nextInvoked = false;
 
-        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
-            nextInvoked = true;
-            return Task.CompletedTask;
-        });
+        await harness.Handler.HandleRequest(
+            harness.HttpContext,
+            _ =>
+            {
+                nextInvoked = true;
+                return Task.CompletedTask;
+            }
+        );
 
         Assert.False(nextInvoked);
     }
 
     [Fact]
-    public async Task HandleRequest_SkipsTheNextDelegateWhenTheChainLeftAResponseValue() {
+    public async Task HandleRequest_SkipsTheNextDelegateWhenTheChainLeftAResponseValue()
+    {
         var harness = new Harness(chainEffect: context => context.Response.ResponseValue = "value");
         var nextInvoked = false;
 
-        await harness.Handler.HandleRequest(harness.HttpContext, _ => {
-            nextInvoked = true;
-            return Task.CompletedTask;
-        });
+        await harness.Handler.HandleRequest(
+            harness.HttpContext,
+            _ =>
+            {
+                nextInvoked = true;
+                return Task.CompletedTask;
+            }
+        );
 
         Assert.False(nextInvoked);
     }
 
-    private class Harness {
-        public Harness(bool startResponse = false, Action<IExecutionContext>? chainEffect = null) {
+    private class Harness
+    {
+        public Harness(bool startResponse = false, Action<IExecutionContext>? chainEffect = null)
+        {
             RequestLogger = Substitute.For<IRequestLogger>();
             MetricLogger = Substitute.For<IMetricLogger>();
             Chain = Substitute.For<IExecutionChain>();
@@ -271,31 +324,42 @@ public class AspNetCoreRequestHandlerTests {
             // The context is built inside HandleRequest, so it is captured on the way past rather
             // than handed in — chainEffect stands in for whatever the real chain would have left
             // on it.
-            middlewareService.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(callInfo => {
-                ExecutionContext = callInfo.Arg<IExecutionContext>();
+            middlewareService
+                .GetExecutionChain(Arg.Any<IExecutionContext>())
+                .Returns(callInfo =>
+                {
+                    ExecutionContext = callInfo.Arg<IExecutionContext>();
 
-                return Chain;
-            });
+                    return Chain;
+                });
 
-            Chain.Next().Returns(_ => {
-                chainEffect?.Invoke(ExecutionContext!);
+            Chain
+                .Next()
+                .Returns(_ =>
+                {
+                    chainEffect?.Invoke(ExecutionContext!);
 
-                return Task.CompletedTask;
-            });
+                    return Task.CompletedTask;
+                });
 
             // AspNetExecutionContext resolves IKnownServices out of RequestServices as it is built.
             var services = new ServiceCollection();
             services.AddSingleton(Substitute.For<IKnownServices>());
 
             HttpContext = StartableResponseContext.Create(
-                services.BuildServiceProvider(), out var start);
+                services.BuildServiceProvider(),
+                out var start
+            );
 
-            if (startResponse) {
+            if (startResponse)
+            {
                 start();
             }
 
             Handler = new AspNetCoreRequestHandler(
-                metricLoggerProvider, new RequestExecutor(middlewareService, RequestLogger));
+                metricLoggerProvider,
+                new RequestExecutor(middlewareService, RequestLogger)
+            );
         }
 
         public IRequestLogger RequestLogger { get; }

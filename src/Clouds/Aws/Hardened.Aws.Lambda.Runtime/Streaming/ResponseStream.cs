@@ -23,7 +23,8 @@ namespace Hardened.Aws.Lambda.Runtime.Streaming;
 /// there is no timer between them.
 /// </para>
 /// </remarks>
-public sealed class ResponseStream : Stream {
+public sealed class ResponseStream : Stream
+{
     private readonly Pipe _pipe = new();
     private readonly Func<Stream> _open;
     private Task? _pump;
@@ -33,7 +34,8 @@ public sealed class ResponseStream : Stream {
     /// Opens the Lambda response stream. Called once, on the first write or flush, and never when
     /// nothing is written.
     /// </param>
-    public ResponseStream(Func<Stream> open) {
+    public ResponseStream(Func<Stream> open)
+    {
         _open = open;
     }
 
@@ -52,16 +54,19 @@ public sealed class ResponseStream : Stream {
     /// <summary>The bytes written so far.</summary>
     public override long Length => _written;
 
-    public override long Position {
+    public override long Position
+    {
         get => _written;
         set => throw new NotSupportedException("Seeking in this stream is not supported.");
     }
 
-    public override void Write(byte[] buffer, int offset, int count) {
+    public override void Write(byte[] buffer, int offset, int count)
+    {
         Write(buffer.AsSpan(offset, count));
     }
 
-    public override void Write(ReadOnlySpan<byte> buffer) {
+    public override void Write(ReadOnlySpan<byte> buffer)
+    {
         EnsureStarted();
 
         var span = _pipe.Writer.GetSpan(buffer.Length);
@@ -71,7 +76,8 @@ public sealed class ResponseStream : Stream {
         _written += buffer.Length;
     }
 
-    public override void WriteByte(byte value) {
+    public override void WriteByte(byte value)
+    {
         EnsureStarted();
 
         var span = _pipe.Writer.GetSpan(1);
@@ -81,11 +87,21 @@ public sealed class ResponseStream : Stream {
         _written += 1;
     }
 
-    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+    public override Task WriteAsync(
+        byte[] buffer,
+        int offset,
+        int count,
+        CancellationToken cancellationToken
+    )
+    {
         return WriteAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
     }
 
-    public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) {
+    public override async ValueTask WriteAsync(
+        ReadOnlyMemory<byte> buffer,
+        CancellationToken cancellationToken = default
+    )
+    {
         EnsureStarted();
 
         await _pipe.Writer.WriteAsync(buffer, cancellationToken);
@@ -93,7 +109,8 @@ public sealed class ResponseStream : Stream {
         _written += buffer.Length;
     }
 
-    public override async Task FlushAsync(CancellationToken cancellationToken) {
+    public override async Task FlushAsync(CancellationToken cancellationToken)
+    {
         EnsureStarted();
 
         await _pipe.Writer.FlushAsync(cancellationToken);
@@ -111,8 +128,10 @@ public sealed class ResponseStream : Stream {
     /// so the runtime's terminator cannot race a write still in flight. A stream that never
     /// started has nothing to wait for.
     /// </summary>
-    public async Task CompleteAsync() {
-        if (_pump == null) {
+    public async Task CompleteAsync()
+    {
+        if (_pump == null)
+        {
             return;
         }
 
@@ -120,8 +139,10 @@ public sealed class ResponseStream : Stream {
         await _pump;
     }
 
-    private void EnsureStarted() {
-        if (_pump != null) {
+    private void EnsureStarted()
+    {
+        if (_pump != null)
+        {
             return;
         }
 
@@ -130,16 +151,21 @@ public sealed class ResponseStream : Stream {
         _pump = PumpAsync(target);
     }
 
-    private async Task PumpAsync(Stream target) {
+    private async Task PumpAsync(Stream target)
+    {
         var reader = _pipe.Reader;
 
-        try {
-            while (true) {
+        try
+        {
+            while (true)
+            {
                 var result = await reader.ReadAsync();
                 var buffer = result.Buffer;
 
-                if (!buffer.IsEmpty) {
-                    foreach (var segment in buffer) {
+                if (!buffer.IsEmpty)
+                {
+                    foreach (var segment in buffer)
+                    {
                         await target.WriteAsync(segment);
                     }
 
@@ -148,25 +174,30 @@ public sealed class ResponseStream : Stream {
 
                 reader.AdvanceTo(buffer.End);
 
-                if (result.IsCompleted) {
+                if (result.IsCompleted)
+                {
                     break;
                 }
             }
         }
-        finally {
+        finally
+        {
             await reader.CompleteAsync();
         }
     }
 
-    public override int Read(byte[] buffer, int offset, int count) {
+    public override int Read(byte[] buffer, int offset, int count)
+    {
         throw new NotSupportedException("Reading from this stream is not supported.");
     }
 
-    public override long Seek(long offset, SeekOrigin origin) {
+    public override long Seek(long offset, SeekOrigin origin)
+    {
         throw new NotSupportedException("Seeking in this stream is not supported.");
     }
 
-    public override void SetLength(long value) {
+    public override void SetLength(long value)
+    {
         throw new NotSupportedException("SetLength is not supported for this stream.");
     }
 }

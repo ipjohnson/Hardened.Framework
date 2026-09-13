@@ -23,7 +23,8 @@ namespace Hardened.IntegrationTests.Rie.Tests;
 /// envelope tests is the real image, the real runtime client and the real Runtime API exchange.
 /// </para>
 /// </remarks>
-public sealed class LambdaRuntimeInterfaceEmulator : IAsyncDisposable {
+public sealed class LambdaRuntimeInterfaceEmulator : IAsyncDisposable
+{
     public const string Image = "public.ecr.aws/lambda/dotnet:8";
 
     private const int Port = 8080;
@@ -58,7 +59,12 @@ public sealed class LambdaRuntimeInterfaceEmulator : IAsyncDisposable {
     /// What <c>AWS_LAMBDA_FUNCTION_NAME</c> says, which the invoke adapter routes on. The emulator's
     /// own default is <c>test_function</c>, which no handler in this repository is named.
     /// </param>
-    public LambdaRuntimeInterfaceEmulator(string outputDirectory, string handler, string functionName = "orders-function") {
+    public LambdaRuntimeInterfaceEmulator(
+        string outputDirectory,
+        string handler,
+        string functionName = "orders-function"
+    )
+    {
         _container = new ContainerBuilder(Image)
             .WithBindMount(outputDirectory, "/var/task", AccessMode.ReadOnly)
             .WithCommand(handler)
@@ -76,10 +82,17 @@ public sealed class LambdaRuntimeInterfaceEmulator : IAsyncDisposable {
             // Any status counts, because the point is that the emulator answered, and the path is one
             // it does not serve. It replies 404, and a future version replying something else would
             // still be answering.
-            .WithWaitStrategy(Wait.ForUnixContainer()
-                .UntilHttpRequestIsSucceeded(
-                    request => request.ForPort(Port).ForPath(ReadinessPath).ForStatusCodeMatching(_ => true),
-                    strategy => strategy.WithTimeout(StartupTimeout)))
+            .WithWaitStrategy(
+                Wait.ForUnixContainer()
+                    .UntilHttpRequestIsSucceeded(
+                        request =>
+                            request
+                                .ForPort(Port)
+                                .ForPath(ReadinessPath)
+                                .ForStatusCodeMatching(_ => true),
+                        strategy => strategy.WithTimeout(StartupTimeout)
+                    )
+            )
             .Build();
     }
 
@@ -104,27 +117,40 @@ public sealed class LambdaRuntimeInterfaceEmulator : IAsyncDisposable {
     /// establishes before any of this runs.
     /// </para>
     /// </remarks>
-    public async Task<InvocationResult> InvokeAsync(string payload, CancellationToken cancellationToken = default) {
-        var url = $"http://{_container.Hostname}:{_container.GetMappedPublicPort(Port)}/2015-03-31/functions/function/invocations";
+    public async Task<InvocationResult> InvokeAsync(
+        string payload,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var url =
+            $"http://{_container.Hostname}:{_container.GetMappedPublicPort(Port)}/2015-03-31/functions/function/invocations";
 
         using var client = new HttpClient { Timeout = InvocationTimeout };
 
         HttpResponseMessage response;
 
-        try {
+        try
+        {
             response = await client.PostAsync(
-                url, new StringContent(payload, Encoding.UTF8, "application/json"), cancellationToken);
+                url,
+                new StringContent(payload, Encoding.UTF8, "application/json"),
+                cancellationToken
+            );
         }
         // The emulator accepted the request and never answered, which on its own reports as nothing
         // but elapsed time. The reason is in the container's log, and the usual one is the panic
         // above, so the log is what the failure carries. Not the caller's own cancellation, which is
         // the test being torn down and is not this class's to explain.
-        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested) {
+        catch (OperationCanceledException exception)
+            when (!cancellationToken.IsCancellationRequested)
+        {
             var (stdout, stderr) = await _container.GetLogsAsync(ct: CancellationToken.None);
 
             throw new TimeoutException(
-                $"The emulator did not answer an invocation within {InvocationTimeout.TotalSeconds:0} s. " +
-                $"It printed:\n--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}", exception);
+                $"The emulator did not answer an invocation within {InvocationTimeout.TotalSeconds:0} s. "
+                    + $"It printed:\n--- stdout ---\n{stdout}\n--- stderr ---\n{stderr}",
+                exception
+            );
         }
 
         using var _ = response;
@@ -133,8 +159,9 @@ public sealed class LambdaRuntimeInterfaceEmulator : IAsyncDisposable {
 
         // The Invoke API reports a failed function with a 200 and X-Amz-Function-Error; the emulator
         // does the same, and its error document carries errorType and errorMessage either way.
-        var failed = response.Headers.Contains("X-Amz-Function-Error") ||
-                     (body.Contains("\"errorType\"") && body.Contains("\"errorMessage\""));
+        var failed =
+            response.Headers.Contains("X-Amz-Function-Error")
+            || (body.Contains("\"errorType\"") && body.Contains("\"errorMessage\""));
 
         return new InvocationResult(failed, (int)response.StatusCode, body);
     }

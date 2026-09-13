@@ -28,43 +28,56 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// <c>required</c> member is still not allowed to carry.
 /// </para>
 /// </remarks>
-public class RequiredValueMemberTests {
-
+public class RequiredValueMemberTests
+{
     private static string Emit(params PropertyModel[] properties) =>
         EmitterHarness.JsonTypeInfo(
-            [new SchemaModel {
-                Name = "Product",
-                Kind = SchemaKind.Object,
-                Required = properties.Where(p => p.IsRequired).Select(p => p.Name).ToList(),
-                Properties = properties.ToList()
-            }],
-            "depot");
+            [
+                new SchemaModel
+                {
+                    Name = "Product",
+                    Kind = SchemaKind.Object,
+                    Required = properties.Where(p => p.IsRequired).Select(p => p.Name).ToList(),
+                    Properties = properties.ToList(),
+                },
+            ],
+            "depot"
+        );
 
     private static string EmitWithEnum(params PropertyModel[] properties) =>
         EmitterHarness.JsonTypeInfo(
             [
-                new SchemaModel {
+                new SchemaModel
+                {
                     Name = "Product",
                     Kind = SchemaKind.Object,
                     Required = properties.Where(p => p.IsRequired).Select(p => p.Name).ToList(),
-                    Properties = properties.ToList()
+                    Properties = properties.ToList(),
                 },
-                new SchemaModel {
+                new SchemaModel
+                {
                     Name = "Category",
                     Kind = SchemaKind.Enum,
-                    EnumValues = ["tools", "toys"]
-                }
+                    EnumValues = ["tools", "toys"],
+                },
             ],
-            "depot");
+            "depot"
+        );
 
     /// <summary>
     /// A required integer is marked, so absence is a 400 rather than a zero.
     /// </summary>
     [Fact]
-    public void ARequiredIntegerIsMarkedRequired() {
-        var result = Emit(new PropertyModel {
-            Name = "unitPriceCents", Type = "integer", IsRequired = true
-        });
+    public void ARequiredIntegerIsMarkedRequired()
+    {
+        var result = Emit(
+            new PropertyModel
+            {
+                Name = "unitPriceCents",
+                Type = "integer",
+                IsRequired = true,
+            }
+        );
 
         Assert.Contains("Required(JsonMetadataServices.CreatePropertyInfo", result);
         Assert.Contains("property.IsRequired = true", result);
@@ -75,10 +88,16 @@ public class RequiredValueMemberTests {
     /// so the request succeeded and stored a category the caller never sent.
     /// </summary>
     [Fact]
-    public void ARequiredEnumIsMarkedRequired() {
-        var result = EmitWithEnum(new PropertyModel {
-            Name = "category", Ref = "#/components/schemas/Category", IsRequired = true
-        });
+    public void ARequiredEnumIsMarkedRequired()
+    {
+        var result = EmitWithEnum(
+            new PropertyModel
+            {
+                Name = "category",
+                Ref = "#/components/schemas/Category",
+                IsRequired = true,
+            }
+        );
 
         Assert.Contains("Required(JsonMetadataServices.CreatePropertyInfo", result);
     }
@@ -94,10 +113,16 @@ public class RequiredValueMemberTests {
     /// specify a setter</c> - thrown on the first request rather than at build time.
     /// </remarks>
     [Fact]
-    public void AMarkedPropertyCarriesANoOpSetter() {
-        var result = Emit(new PropertyModel {
-            Name = "unitPriceCents", Type = "integer", IsRequired = true
-        });
+    public void AMarkedPropertyCarriesANoOpSetter()
+    {
+        var result = Emit(
+            new PropertyModel
+            {
+                Name = "unitPriceCents",
+                Type = "integer",
+                IsRequired = true,
+            }
+        );
 
         Assert.Contains("Setter = static (obj, value) => { },", result);
     }
@@ -112,8 +137,16 @@ public class RequiredValueMemberTests {
     /// members came back a round trip later, from a validator that never ran the first time.
     /// </remarks>
     [Fact]
-    public void ARequiredStringIsMarkedRequired() {
-        var result = Emit(new PropertyModel { Name = "sku", Type = "string", IsRequired = true });
+    public void ARequiredStringIsMarkedRequired()
+    {
+        var result = Emit(
+            new PropertyModel
+            {
+                Name = "sku",
+                Type = "string",
+                IsRequired = true,
+            }
+        );
 
         Assert.Contains("Required(JsonMetadataServices.CreatePropertyInfo", result);
         Assert.Contains("property.IsRequired = true", result);
@@ -124,25 +157,40 @@ public class RequiredValueMemberTests {
     /// the member, so the reader is satisfied and the validator is what refuses the null.
     /// </summary>
     [Fact]
-    public void ARequiredStringStillCarriesTheValidatorsConstraint() {
+    public void ARequiredStringStillCarriesTheValidatorsConstraint()
+    {
         Assert.Contains(
             "[property: Required]",
-            EmitterHarness.Schema(new SchemaModel {
-                Name = "Product",
-                Kind = SchemaKind.Object,
-                Required = ["sku"],
-                Properties = [new PropertyModel { Name = "sku", Type = "string", IsRequired = true }]
-            }));
+            EmitterHarness.Schema(
+                new SchemaModel
+                {
+                    Name = "Product",
+                    Kind = SchemaKind.Object,
+                    Required = ["sku"],
+                    Properties =
+                    [
+                        new PropertyModel
+                        {
+                            Name = "sku",
+                            Type = "string",
+                            IsRequired = true,
+                        },
+                    ],
+                }
+            )
+        );
     }
 
     /// <summary>
     /// An optional value type is left alone; absence is what optional means.
     /// </summary>
     [Fact]
-    public void AnOptionalIntegerIsNotMarked() {
+    public void AnOptionalIntegerIsNotMarked()
+    {
         Assert.DoesNotContain(
             "Required(JsonMetadataServices.CreatePropertyInfo",
-            Emit(new PropertyModel { Name = "stock", Type = "integer" }));
+            Emit(new PropertyModel { Name = "stock", Type = "integer" })
+        );
     }
 
     /// <summary>
@@ -156,12 +204,20 @@ public class RequiredValueMemberTests {
     /// zero for the one shape where the document most obviously disagrees with itself.
     /// </remarks>
     [Fact]
-    public void ADeclaredDefaultDoesNotExemptARequiredMember() {
+    public void ADeclaredDefaultDoesNotExemptARequiredMember()
+    {
         Assert.Contains(
             "Required(JsonMetadataServices.CreatePropertyInfo",
-            Emit(new PropertyModel {
-                Name = "stock", Type = "integer", IsRequired = true, Default = "0"
-            }));
+            Emit(
+                new PropertyModel
+                {
+                    Name = "stock",
+                    Type = "integer",
+                    IsRequired = true,
+                    Default = "0",
+                }
+            )
+        );
     }
 
     /// <summary>
@@ -170,22 +226,32 @@ public class RequiredValueMemberTests {
     /// call of a client that correctly omitted a value the server assigns.
     /// </summary>
     [Fact]
-    public void ARequiredReadOnlyMemberIsNotMarked() {
+    public void ARequiredReadOnlyMemberIsNotMarked()
+    {
         Assert.DoesNotContain(
             "Required(JsonMetadataServices.CreatePropertyInfo",
-            Emit(new PropertyModel {
-                Name = "id", Type = "integer", IsRequired = true, IsReadOnly = true
-            }));
+            Emit(
+                new PropertyModel
+                {
+                    Name = "id",
+                    Type = "integer",
+                    IsRequired = true,
+                    IsReadOnly = true,
+                }
+            )
+        );
     }
 
     /// <summary>
     /// The helper is emitted only where something uses it.
     /// </summary>
     [Fact]
-    public void TheHelperIsNotEmittedWhenNothingNeedsIt() {
+    public void TheHelperIsNotEmittedWhenNothingNeedsIt()
+    {
         Assert.DoesNotContain(
             "property.IsRequired = true",
-            Emit(new PropertyModel { Name = "sku", Type = "string" }));
+            Emit(new PropertyModel { Name = "sku", Type = "string" })
+        );
     }
 
     // ------------------------------------------------- the reflection deserializer's half
@@ -209,15 +275,25 @@ public class RequiredValueMemberTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public void ARequiredValueMemberAlsoCarriesJsonRequiredOnTheModel() {
-        var result = EmitterHarness.Schema(new SchemaModel {
-            Name = "Product",
-            Kind = SchemaKind.Object,
-            Required = ["unitPriceCents"],
-            Properties = [
-                new PropertyModel { Name = "unitPriceCents", Type = "integer", IsRequired = true }
-            ]
-        });
+    public void ARequiredValueMemberAlsoCarriesJsonRequiredOnTheModel()
+    {
+        var result = EmitterHarness.Schema(
+            new SchemaModel
+            {
+                Name = "Product",
+                Kind = SchemaKind.Object,
+                Required = ["unitPriceCents"],
+                Properties =
+                [
+                    new PropertyModel
+                    {
+                        Name = "unitPriceCents",
+                        Type = "integer",
+                        IsRequired = true,
+                    },
+                ],
+            }
+        );
 
         Assert.Contains("[property: JsonRequired]", result);
     }
@@ -227,13 +303,25 @@ public class RequiredValueMemberTests {
     /// <c>[Required]</c> for "may it be null".
     /// </summary>
     [Fact]
-    public void ARequiredReferenceMemberCarriesBoth() {
-        var result = EmitterHarness.Schema(new SchemaModel {
-            Name = "Product",
-            Kind = SchemaKind.Object,
-            Required = ["sku"],
-            Properties = [new PropertyModel { Name = "sku", Type = "string", IsRequired = true }]
-        });
+    public void ARequiredReferenceMemberCarriesBoth()
+    {
+        var result = EmitterHarness.Schema(
+            new SchemaModel
+            {
+                Name = "Product",
+                Kind = SchemaKind.Object,
+                Required = ["sku"],
+                Properties =
+                [
+                    new PropertyModel
+                    {
+                        Name = "sku",
+                        Type = "string",
+                        IsRequired = true,
+                    },
+                ],
+            }
+        );
 
         Assert.Contains("[property: Required]", result);
         Assert.Contains("[property: JsonRequired]", result);
@@ -244,15 +332,26 @@ public class RequiredValueMemberTests {
     /// demanding it would refuse the create call of a client that correctly left it out.
     /// </summary>
     [Fact]
-    public void ARequiredReadOnlyReferenceMemberCarriesNeither() {
-        var result = EmitterHarness.Schema(new SchemaModel {
-            Name = "Product",
-            Kind = SchemaKind.Object,
-            Required = ["id"],
-            Properties = [
-                new PropertyModel { Name = "id", Type = "string", IsRequired = true, IsReadOnly = true }
-            ]
-        });
+    public void ARequiredReadOnlyReferenceMemberCarriesNeither()
+    {
+        var result = EmitterHarness.Schema(
+            new SchemaModel
+            {
+                Name = "Product",
+                Kind = SchemaKind.Object,
+                Required = ["id"],
+                Properties =
+                [
+                    new PropertyModel
+                    {
+                        Name = "id",
+                        Type = "string",
+                        IsRequired = true,
+                        IsReadOnly = true,
+                    },
+                ],
+            }
+        );
 
         Assert.DoesNotContain("JsonRequired", result);
         Assert.DoesNotContain("[property: Required]", result);

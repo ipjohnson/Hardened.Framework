@@ -23,8 +23,10 @@ namespace Hardened.Web.Runtime.Attributes;
 /// truth behind a hand-written assertion, which is what made the original four dead weight.
 /// </para>
 /// </remarks>
-public class GetAttribute : Attribute {
-    public GetAttribute(string path = "") {
+public class GetAttribute : Attribute
+{
+    public GetAttribute(string path = "")
+    {
         Path = path;
     }
 

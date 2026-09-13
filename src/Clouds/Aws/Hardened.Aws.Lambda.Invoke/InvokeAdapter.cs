@@ -26,7 +26,8 @@ namespace Hardened.Aws.Lambda.Invoke;
 /// would have nothing to receive.
 /// </para>
 /// </remarks>
-public sealed class InvokeAdapter : IPayloadAdapter {
+public sealed class InvokeAdapter : IPayloadAdapter
+{
     /// <summary>
     /// The scheme this adapter routes under. One message, a response that is the payload, and no
     /// HTTP semantics.
@@ -50,21 +51,28 @@ public sealed class InvokeAdapter : IPayloadAdapter {
     /// </summary>
     public bool Handles(JsonElement payload) => true;
 
-    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context) {
+    public IExecutionRequest CreateRequest(LambdaPayload payload, ILambdaContext context)
+    {
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
 
         // The client context's custom values, which is the only header-like channel a direct
         // invocation has. An SDK caller sets them; an event source sets none.
         var custom = context.ClientContext?.Custom;
 
-        if (custom != null) {
-            foreach (var pair in custom) {
+        if (custom != null)
+        {
+            foreach (var pair in custom)
+            {
                 headers[pair.Key] = pair.Value;
             }
         }
 
         return new LambdaPayloadRequest(
-            Scheme, "/" + context.FunctionName, payload.AsStream(), headers);
+            Scheme,
+            "/" + context.FunctionName,
+            payload.AsStream(),
+            headers
+        );
     }
 
     /// <summary>
@@ -73,8 +81,7 @@ public sealed class InvokeAdapter : IPayloadAdapter {
     /// </summary>
     public HostFailurePolicy FailurePolicy => HostFailurePolicy.Rethrow;
 
-    public IExecutionResponse CreateResponse(Stream output) =>
-        new LambdaPayloadResponse(output);
+    public IExecutionResponse CreateResponse(Stream output) => new LambdaPayloadResponse(output);
 
     /// <summary>
     /// The body, which for this family is the whole answer.
@@ -92,10 +99,12 @@ public sealed class InvokeAdapter : IPayloadAdapter {
     /// sends back are two streams, and every direct invocation answered empty.
     /// </para>
     /// </remarks>
-    public async ValueTask WriteResponse(IExecutionContext context, Stream output) {
+    public async ValueTask WriteResponse(IExecutionContext context, Stream output)
+    {
         var body = context.Response.Body;
 
-        if (body.CanSeek) {
+        if (body.CanSeek)
+        {
             body.Position = 0;
         }
 

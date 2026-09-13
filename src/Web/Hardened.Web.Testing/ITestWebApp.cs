@@ -2,7 +2,8 @@ using Hardened.Shared.Testing;
 
 namespace Hardened.Web.Testing;
 
-public interface ITestWebApp : ITestContext {
+public interface ITestWebApp : ITestContext
+{
     IServiceProvider RootServiceProvider { get; }
 
     /// <summary>
@@ -32,7 +33,11 @@ public interface ITestWebApp : ITestContext {
     /// </param>
     /// <param name="webRequest">Headers and cancellation for the request.</param>
     /// <returns></returns>
-    Task<TestWebResponse> Post(object value, string path, Action<TestWebRequest>? webRequest = null);
+    Task<TestWebResponse> Post(
+        object value,
+        string path,
+        Action<TestWebRequest>? webRequest = null
+    );
 
     /// <summary>
     /// Put value to path
@@ -50,7 +55,11 @@ public interface ITestWebApp : ITestContext {
     /// <param name="path"></param>
     /// <param name="webRequest"></param>
     /// <returns></returns>
-    Task<TestWebResponse> Patch(object value, string path, Action<TestWebRequest>? webRequest = null);
+    Task<TestWebResponse> Patch(
+        object value,
+        string path,
+        Action<TestWebRequest>? webRequest = null
+    );
 
     /// <summary>
     /// Delete path
@@ -68,7 +77,12 @@ public interface ITestWebApp : ITestContext {
     /// <param name="path"></param>
     /// <param name="webRequest"></param>
     /// <returns></returns>
-    Task<TestWebResponse> Request(string method, object? value, string path, Action<TestWebRequest>? webRequest = null);
+    Task<TestWebResponse> Request(
+        string method,
+        object? value,
+        string path,
+        Action<TestWebRequest>? webRequest = null
+    );
 
     /// <summary>
     /// An <see cref="HttpClient"/> over the pipeline, for any client library that takes one.
@@ -91,5 +105,6 @@ public interface ITestWebApp : ITestContext {
     /// A type with neither fails naming both. For a credential decided inside the test; a
     /// parameter with <see cref="GrantsAttribute"/> is the same construction with none of the code.
     /// </remarks>
-    TClient CreateClient<TClient>(TestCredential? credential = null) where TClient : class;
+    TClient CreateClient<TClient>(TestCredential? credential = null)
+        where TClient : class;
 }

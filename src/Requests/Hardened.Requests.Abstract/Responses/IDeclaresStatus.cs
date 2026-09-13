@@ -28,8 +28,8 @@ namespace Hardened.Requests.Abstract.Responses;
 /// standing still.
 /// </para>
 /// </remarks>
-public interface IDeclaresStatus {
-
+public interface IDeclaresStatus
+{
     /// <summary>The status, the same one <see cref="HttpStatusAttribute"/> declares.</summary>
     static abstract int StatusCode { get; }
 }

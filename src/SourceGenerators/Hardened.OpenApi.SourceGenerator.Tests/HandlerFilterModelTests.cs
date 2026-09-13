@@ -1,7 +1,7 @@
 using CSharpAuthor;
 using Hardened.Generation.Models;
-using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGeneration.Testing;
+using Hardened.SourceGenerator.Shared;
 using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
@@ -18,55 +18,80 @@ namespace Hardened.OpenApi.SourceGenerator.Tests;
 /// filter — in place.
 /// </para>
 /// </summary>
-public class HandlerFilterModelTests {
+public class HandlerFilterModelTests
+{
+    private static readonly ITypeDefinition Implementation = TypeDefinition.Get(
+        "TestNamespace",
+        "PetServiceImpl"
+    );
+    private static readonly ITypeDefinition Interface = TypeDefinition.Get(
+        "TestNamespace.Services",
+        "IPetService"
+    );
 
-    private static readonly ITypeDefinition Implementation = TypeDefinition.Get("TestNamespace", "PetServiceImpl");
-    private static readonly ITypeDefinition Interface = TypeDefinition.Get("TestNamespace.Services", "IPetService");
-
-    private static AttributeModel Filter(string name, string arguments = "", string properties = "") =>
-        new(TypeDefinition.Get("TestNamespace", name), arguments, properties);
+    private static AttributeModel Filter(
+        string name,
+        string arguments = "",
+        string properties = ""
+    ) => new(TypeDefinition.Get("TestNamespace", name), arguments, properties);
 
     private static HandlerInfo Handler(
         IReadOnlyList<AttributeModel>? classFilters = null,
         IReadOnlyList<HandlerMethodFilterInfo>? methodFilters = null,
         ITypeDefinition? implementation = null,
-        ITypeDefinition? contract = null) =>
-        new(implementation ?? Implementation,
+        ITypeDefinition? contract = null
+    ) =>
+        new(
+            implementation ?? Implementation,
             contract ?? Interface,
             classFilters ?? [],
-            methodFilters ?? []);
+            methodFilters ?? []
+        );
 
     // ── the handler itself ────────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void TwoHandlersDescribingTheSameClassCompareEqual() {
+    public void TwoHandlersDescribingTheSameClassCompareEqual()
+    {
         Assert.Equal(
-            Handler([Filter("AuditAttribute")], [new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")])]),
-            Handler([Filter("AuditAttribute")], [new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")])]));
+            Handler(
+                [Filter("AuditAttribute")],
+                [new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")])]
+            ),
+            Handler(
+                [Filter("AuditAttribute")],
+                [new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")])]
+            )
+        );
     }
 
     [Fact]
-    public void EqualHandlersHashEqual() {
+    public void EqualHandlersHashEqual()
+    {
         Assert.Equal(
             Handler([Filter("AuditAttribute")]).GetHashCode(),
-            Handler([Filter("AuditAttribute")]).GetHashCode());
+            Handler([Filter("AuditAttribute")]).GetHashCode()
+        );
     }
 
     [Fact]
-    public void AHandlerEqualsItself() {
+    public void AHandlerEqualsItself()
+    {
         var handler = Handler();
 
         Assert.True(handler.Equals(handler));
     }
 
     [Fact]
-    public void AHandlerIsNotEqualToNull() {
+    public void AHandlerIsNotEqualToNull()
+    {
         Assert.False(Handler().Equals(null));
         Assert.False(Handler().Equals((object?)null));
     }
 
     [Fact]
-    public void AHandlerIsNotEqualToSomethingElseEntirely() {
+    public void AHandlerIsNotEqualToSomethingElseEntirely()
+    {
         Assert.False(Handler().Equals("PetServiceImpl"));
     }
 
@@ -75,10 +100,12 @@ public class HandlerFilterModelTests {
     /// classes implementing the same interface are two different handlers.
     /// </summary>
     [Fact]
-    public void TwoClassesImplementingTheSameInterfaceAreDifferentHandlers() {
+    public void TwoClassesImplementingTheSameInterfaceAreDifferentHandlers()
+    {
         Assert.NotEqual(
             Handler(implementation: TypeDefinition.Get("TestNamespace", "PetServiceImpl")),
-            Handler(implementation: TypeDefinition.Get("TestNamespace", "OtherPetService")));
+            Handler(implementation: TypeDefinition.Get("TestNamespace", "OtherPetService"))
+        );
     }
 
     /// <summary>
@@ -86,20 +113,27 @@ public class HandlerFilterModelTests {
     /// moves every filter the class carries onto a different set of routes.
     /// </summary>
     [Fact]
-    public void ChangingTheImplementedInterfaceMakesADifferentHandler() {
+    public void ChangingTheImplementedInterfaceMakesADifferentHandler()
+    {
         Assert.NotEqual(
             Handler(contract: TypeDefinition.Get("TestNamespace.Services", "IPetService")),
-            Handler(contract: TypeDefinition.Get("TestNamespace.Services", "IStoreService")));
+            Handler(contract: TypeDefinition.Get("TestNamespace.Services", "IStoreService"))
+        );
     }
 
     [Fact]
-    public void AddingAClassFilterMakesADifferentHandler() {
+    public void AddingAClassFilterMakesADifferentHandler()
+    {
         Assert.NotEqual(Handler(), Handler([Filter("AuditAttribute")]));
     }
 
     [Fact]
-    public void ChangingAClassFiltersTypeMakesADifferentHandler() {
-        Assert.NotEqual(Handler([Filter("AuditAttribute")]), Handler([Filter("AuthorizeAttribute")]));
+    public void ChangingAClassFiltersTypeMakesADifferentHandler()
+    {
+        Assert.NotEqual(
+            Handler([Filter("AuditAttribute")]),
+            Handler([Filter("AuthorizeAttribute")])
+        );
     }
 
     /// <summary>
@@ -107,17 +141,26 @@ public class HandlerFilterModelTests {
     /// two otherwise identical attributes with different arguments are different filters.
     /// </summary>
     [Fact]
-    public void ChangingAFiltersArgumentsMakesADifferentHandler() {
+    public void ChangingAFiltersArgumentsMakesADifferentHandler()
+    {
         Assert.NotEqual(
             Handler([Filter("AuditAttribute", arguments: "\"read\"")]),
-            Handler([Filter("AuditAttribute", arguments: "\"write\"")]));
+            Handler([Filter("AuditAttribute", arguments: "\"write\"")])
+        );
     }
 
     [Fact]
-    public void AddingAMethodFilterMakesADifferentHandler() {
+    public void AddingAMethodFilterMakesADifferentHandler()
+    {
         Assert.NotEqual(
             Handler(),
-            Handler(methodFilters: [new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")])]));
+            Handler(
+                methodFilters:
+                [
+                    new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]),
+                ]
+            )
+        );
     }
 
     /// <summary>
@@ -125,61 +168,92 @@ public class HandlerFilterModelTests {
     /// change even though the set of filters is unchanged.
     /// </summary>
     [Fact]
-    public void MovingAFilterToAnotherMethodMakesADifferentHandler() {
+    public void MovingAFilterToAnotherMethodMakesADifferentHandler()
+    {
         Assert.NotEqual(
-            Handler(methodFilters: [new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")])]),
-            Handler(methodFilters: [new HandlerMethodFilterInfo("DeletePet", [Filter("AuthorizeAttribute")])]));
+            Handler(
+                methodFilters:
+                [
+                    new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]),
+                ]
+            ),
+            Handler(
+                methodFilters:
+                [
+                    new HandlerMethodFilterInfo("DeletePet", [Filter("AuthorizeAttribute")]),
+                ]
+            )
+        );
     }
 
     [Fact]
-    public void AddingASecondMethodFilterMakesADifferentHandler() {
+    public void AddingASecondMethodFilterMakesADifferentHandler()
+    {
         Assert.NotEqual(
-            Handler(methodFilters: [new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")])]),
-            Handler(methodFilters: [
-                new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]),
-                new HandlerMethodFilterInfo("DeletePet", [Filter("AuthorizeAttribute")])
-            ]));
+            Handler(
+                methodFilters:
+                [
+                    new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]),
+                ]
+            ),
+            Handler(
+                methodFilters:
+                [
+                    new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]),
+                    new HandlerMethodFilterInfo("DeletePet", [Filter("AuthorizeAttribute")]),
+                ]
+            )
+        );
     }
 
     // ── the per-method record ─────────────────────────────────────────────────────────────────
 
     [Fact]
-    public void TwoMethodFilterSetsForTheSameMethodCompareEqual() {
+    public void TwoMethodFilterSetsForTheSameMethodCompareEqual()
+    {
         Assert.Equal(
             new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]),
-            new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]));
+            new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")])
+        );
     }
 
     [Fact]
-    public void EqualMethodFilterSetsHashEqual() {
+    public void EqualMethodFilterSetsHashEqual()
+    {
         Assert.Equal(
             new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]).GetHashCode(),
-            new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]).GetHashCode());
+            new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]).GetHashCode()
+        );
     }
 
     [Fact]
-    public void AMethodFilterSetEqualsItself() {
+    public void AMethodFilterSetEqualsItself()
+    {
         var filters = new HandlerMethodFilterInfo("CreatePet", []);
 
         Assert.True(filters.Equals(filters));
     }
 
     [Fact]
-    public void AMethodFilterSetIsNotEqualToNull() {
+    public void AMethodFilterSetIsNotEqualToNull()
+    {
         Assert.False(new HandlerMethodFilterInfo("CreatePet", []).Equals(null));
         Assert.False(new HandlerMethodFilterInfo("CreatePet", []).Equals((object?)null));
     }
 
     [Fact]
-    public void AMethodFilterSetIsNotEqualToSomethingElseEntirely() {
+    public void AMethodFilterSetIsNotEqualToSomethingElseEntirely()
+    {
         Assert.False(new HandlerMethodFilterInfo("CreatePet", []).Equals("CreatePet"));
     }
 
     [Fact]
-    public void ChangingTheFiltersOnAMethodMakesADifferentSet() {
+    public void ChangingTheFiltersOnAMethodMakesADifferentSet()
+    {
         Assert.NotEqual(
             new HandlerMethodFilterInfo("CreatePet", [Filter("AuthorizeAttribute")]),
-            new HandlerMethodFilterInfo("CreatePet", [Filter("AuditAttribute")]));
+            new HandlerMethodFilterInfo("CreatePet", [Filter("AuditAttribute")])
+        );
     }
 
     // ── the same thing, read out of real C# ───────────────────────────────────────────────────
@@ -190,8 +264,10 @@ public class HandlerFilterModelTests {
     /// class-level path is separate — and it has to survive the generated code compiling.
     /// </summary>
     [Fact]
-    public void AFilterOnAHandlerMethodReachesTheGeneratedHandler() {
-        var result = OpenApiGenerator.Run(Specs.Minimal, HandlerWithAMethodFilter)
+    public void AFilterOnAHandlerMethodReachesTheGeneratedHandler()
+    {
+        var result = OpenApiGenerator
+            .Run(Specs.Minimal, HandlerWithAMethodFilter)
             .AssertGenerated("PetController_ListPets")
             .AssertNoErrors();
 
@@ -203,19 +279,26 @@ public class HandlerFilterModelTests {
     /// one of them.
     /// </summary>
     [Fact]
-    public void AFilterOnTheHandlerClassReachesEveryGeneratedHandlerForThatInterface() {
-        var result = OpenApiGenerator.Run(Specs.EveryVerb, HandlerWithAClassFilter)
+    public void AFilterOnTheHandlerClassReachesEveryGeneratedHandlerForThatInterface()
+    {
+        var result = OpenApiGenerator
+            .Run(Specs.EveryVerb, HandlerWithAClassFilter)
             .AssertGenerated(
                 "ItemController_ListItems",
                 "ItemController_CreateItem",
                 "ItemController_GetItem",
                 "ItemController_ReplaceItem",
                 "ItemController_UpdateItem",
-                "ItemController_DeleteItem")
+                "ItemController_DeleteItem"
+            )
             .AssertNoErrors();
 
-        foreach (var hintName in result.HintNamesExceptDiagnostic()
-                     .Where(name => name.StartsWith("ItemController_", StringComparison.Ordinal))) {
+        foreach (
+            var hintName in result
+                .HintNamesExceptDiagnostic()
+                .Where(name => name.StartsWith("ItemController_", StringComparison.Ordinal))
+        )
+        {
             Assert.Contains("AuditAttribute", result.GeneratedSources[hintName]);
         }
     }
@@ -226,24 +309,27 @@ public class HandlerFilterModelTests {
     /// in the pipeline it exists for.
     /// </summary>
     [Fact]
-    public void AnEditInsideTheHandlerThatChangesNoFilterRegeneratesIdenticalOutput() {
+    public void AnEditInsideTheHandlerThatChangesNoFilterRegeneratesIdenticalOutput()
+    {
         var result = GeneratorTestHarness.RunIncremental(
             new Dictionary<string, string> { ["Test.cs"] = HandlerWithAMethodFilter },
-            new Dictionary<string, string> {
-                ["Test.cs"] = HandlerWithAMethodFilter + Environment.NewLine + "// unrelated"
+            new Dictionary<string, string>
+            {
+                ["Test.cs"] = HandlerWithAMethodFilter + Environment.NewLine + "// unrelated",
             },
             [new SpecSourceGenerator()],
             null,
-            new Dictionary<string, string> { ["petstore.yaml"] = Specs.Minimal });
+            new Dictionary<string, string> { ["petstore.yaml"] = Specs.Minimal }
+        );
 
         Assert.NotEmpty(result.FirstRun);
         Assert.Equal(
             result.FirstRun.OrderBy(pair => pair.Key, StringComparer.Ordinal),
-            result.SecondRun.OrderBy(pair => pair.Key, StringComparer.Ordinal));
+            result.SecondRun.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+        );
     }
 
-    private const string HandlerWithAMethodFilter =
-        """
+    private const string HandlerWithAMethodFilter = """
         using System;
         using System.Collections.Generic;
         using System.Threading.Tasks;
@@ -269,8 +355,7 @@ public class HandlerFilterModelTests {
         }
         """;
 
-    private const string HandlerWithAClassFilter =
-        """
+    private const string HandlerWithAClassFilter = """
         using System;
         using System.Collections.Generic;
         using System.Threading.Tasks;

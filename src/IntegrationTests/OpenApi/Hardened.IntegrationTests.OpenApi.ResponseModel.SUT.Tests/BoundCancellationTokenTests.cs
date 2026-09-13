@@ -1,6 +1,6 @@
 using Hardened.Shared.Testing.Attributes;
-using Hardened.Web.Testing;
 using Hardened.Web.Runtime.Responses;
+using Hardened.Web.Testing;
 
 namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 
@@ -20,14 +20,15 @@ namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT.Tests;
 /// which token arrived, which is what the test below is for.
 /// </para>
 /// </remarks>
-public class BoundCancellationTokenTests {
-
+public class BoundCancellationTokenTests
+{
     /// <summary>
     /// The operation carries a <c>[Timeout]</c>, so the token bound to it is the budget's rather
     /// than <c>CancellationToken.None</c> - which compiles just as well and never fires.
     /// </summary>
     [HardenedTest]
-    public async Task ABoundedHandlerIsHandedATokenThatCanFire(ITestWebApp testWebApp) {
+    public async Task ABoundedHandlerIsHandedATokenThatCanFire(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/labels/abc");
 
         response.Assert.Ok();
@@ -44,7 +45,8 @@ public class BoundCancellationTokenTests {
     /// ask.
     /// </remarks>
     [HardenedTest]
-    public async Task ABoundedHandlerCanReadItsDeadline(ITestWebApp testWebApp) {
+    public async Task ABoundedHandlerCanReadItsDeadline(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/labels/abc");
 
         response.Assert.Ok();
@@ -59,7 +61,8 @@ public class BoundCancellationTokenTests {
     /// token the budget cancels.
     /// </summary>
     [HardenedTest]
-    public async Task TheAccessorCarriesTheSameTokenThatWasBound(ITestWebApp testWebApp) {
+    public async Task TheAccessorCarriesTheSameTokenThatWasBound(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/labels/abc");
 
         response.Assert.Ok();

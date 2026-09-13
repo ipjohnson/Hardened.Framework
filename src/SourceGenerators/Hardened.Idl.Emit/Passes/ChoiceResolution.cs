@@ -1,5 +1,5 @@
-using Hardened.Generation;
 using System.Collections.Generic;
+using Hardened.Generation;
 using Hardened.Generation.Models;
 
 namespace Hardened.Idl;
@@ -36,11 +36,13 @@ namespace Hardened.Idl;
 /// available rather than on whichever test happened to be written first.
 /// </para>
 /// </remarks>
-internal static class ChoiceResolution {
-
+internal static class ChoiceResolution
+{
     /// <summary>How one branch is recognised.</summary>
-    internal sealed class Branch {
-        public Branch(ChoiceBranchModel model) {
+    internal sealed class Branch
+    {
+        public Branch(ChoiceBranchModel model)
+        {
             Model = model;
         }
 
@@ -83,11 +85,15 @@ internal static class ChoiceResolution {
         /// still generated and decided by counting matches on the payload.
         /// </summary>
         public bool Proved =>
-            ValueKind != null || DistinctProperty != null || ConstProperty != null ||
-            ValueSet != null || IsWiderFallback;
+            ValueKind != null
+            || DistinctProperty != null
+            || ConstProperty != null
+            || ValueSet != null
+            || IsWiderFallback;
     }
 
-    internal sealed class Plan {
+    internal sealed class Plan
+    {
         public List<Branch> Branches { get; } = new();
 
         /// <summary>Branches no static test separates, which are decided when a payload arrives.</summary>
@@ -104,20 +110,26 @@ internal static class ChoiceResolution {
     }
 
     public static Plan Resolve(
-        IReadOnlyList<ChoiceBranchModel> branches, IReadOnlyList<SchemaModel> schemas) {
+        IReadOnlyList<ChoiceBranchModel> branches,
+        IReadOnlyList<SchemaModel> schemas
+    )
+    {
         var plan = new Plan();
         var byName = new Dictionary<string, SchemaModel>(System.StringComparer.Ordinal);
 
-        foreach (var schema in schemas) {
+        foreach (var schema in schemas)
+        {
             byName[schema.Name] = schema;
         }
 
         var resolved = new List<SchemaModel?>();
 
-        foreach (var branch in branches) {
+        foreach (var branch in branches)
+        {
             SchemaModel? schema = null;
 
-            if (branch.Ref != null) {
+            if (branch.Ref != null)
+            {
                 byName.TryGetValue(TypeMapper.GetRefName(branch.Ref), out schema);
             }
 
@@ -130,8 +142,10 @@ internal static class ChoiceResolution {
         AssignConstProperties(plan, resolved);
         AssignValueSets(plan, resolved);
 
-        foreach (var branch in plan.Branches) {
-            if (!branch.Proved) {
+        foreach (var branch in plan.Branches)
+        {
+            if (!branch.Proved)
+            {
                 plan.Overlapping.Add(branch);
             }
         }
@@ -140,8 +154,10 @@ internal static class ChoiceResolution {
         // made entirely of those has no type to offer.
         var readable = 0;
 
-        for (var index = 0; index < plan.Branches.Count; index++) {
-            if (plan.Branches[index].Model.Ref == null || resolved[index] != null) {
+        for (var index = 0; index < plan.Branches.Count; index++)
+        {
+            if (plan.Branches[index].Model.Ref == null || resolved[index] != null)
+            {
                 readable++;
             }
         }
@@ -155,13 +171,16 @@ internal static class ChoiceResolution {
     /// A kind is a test only where it belongs to one branch alone, so two object branches leave both
     /// to be separated by something else.
     /// </summary>
-    private static void AssignValueKinds(Plan plan, List<SchemaModel?> resolved) {
+    private static void AssignValueKinds(Plan plan, List<SchemaModel?> resolved)
+    {
         var counts = new Dictionary<string, int>(System.StringComparer.Ordinal);
 
-        for (var index = 0; index < resolved.Count; index++) {
+        for (var index = 0; index < resolved.Count; index++)
+        {
             var kind = ValueKindOf(plan.Branches[index].Model, resolved[index]);
 
-            if (kind == null) {
+            if (kind == null)
+            {
                 continue;
             }
 
@@ -169,24 +188,31 @@ internal static class ChoiceResolution {
             counts[kind] = count + 1;
         }
 
-        for (var index = 0; index < resolved.Count; index++) {
+        for (var index = 0; index < resolved.Count; index++)
+        {
             var kind = ValueKindOf(plan.Branches[index].Model, resolved[index]);
 
-            if (kind != null && counts[kind] == 1) {
+            if (kind != null && counts[kind] == 1)
+            {
                 plan.Branches[index].ValueKind = kind;
             }
         }
     }
 
     /// <summary>A property no other branch declares.</summary>
-    private static void AssignDistinctProperties(Plan plan, List<SchemaModel?> resolved) {
-        for (var index = 0; index < resolved.Count; index++) {
-            if (plan.Branches[index].Proved || resolved[index] == null) {
+    private static void AssignDistinctProperties(Plan plan, List<SchemaModel?> resolved)
+    {
+        for (var index = 0; index < resolved.Count; index++)
+        {
+            if (plan.Branches[index].Proved || resolved[index] == null)
+            {
                 continue;
             }
 
-            foreach (var property in resolved[index]!.Properties) {
-                if (!DeclaredElsewhere(property.Name, resolved, index)) {
+            foreach (var property in resolved[index]!.Properties)
+            {
+                if (!DeclaredElsewhere(property.Name, resolved, index))
+                {
                     plan.Branches[index].DistinctProperty = property.Name;
                     break;
                 }
@@ -198,22 +224,28 @@ internal static class ChoiceResolution {
     /// A property pinned to one value is a discriminator the document did not label as one - which
     /// is how a great many descriptions spell it.
     /// </summary>
-    private static void AssignConstProperties(Plan plan, List<SchemaModel?> resolved) {
-        for (var index = 0; index < resolved.Count; index++) {
+    private static void AssignConstProperties(Plan plan, List<SchemaModel?> resolved)
+    {
+        for (var index = 0; index < resolved.Count; index++)
+        {
             var branch = plan.Branches[index];
 
-            if (branch.Proved || resolved[index] == null) {
+            if (branch.Proved || resolved[index] == null)
+            {
                 continue;
             }
 
-            foreach (var property in resolved[index]!.Properties) {
-                if (property.EnumValues is not { Count: 1 }) {
+            foreach (var property in resolved[index]!.Properties)
+            {
+                if (property.EnumValues is not { Count: 1 })
+                {
                     continue;
                 }
 
                 var value = property.EnumValues[0];
 
-                if (!ValueUsedElsewhere(property.Name, value, resolved, index)) {
+                if (!ValueUsedElsewhere(property.Name, value, resolved, index))
+                {
                     branch.ConstProperty = property.Name;
                     branch.ConstValue = value;
                     break;
@@ -231,17 +263,21 @@ internal static class ChoiceResolution {
     /// OpenAI's description and would have refused every model name it names. One branch accepting
     /// strictly fewer values than another is an ordering, not an ambiguity.
     /// </remarks>
-    private static void AssignValueSets(Plan plan, List<SchemaModel?> resolved) {
-        for (var index = 0; index < resolved.Count; index++) {
+    private static void AssignValueSets(Plan plan, List<SchemaModel?> resolved)
+    {
+        for (var index = 0; index < resolved.Count; index++)
+        {
             var branch = plan.Branches[index];
 
-            if (branch.Proved || resolved[index]?.Kind != SchemaKind.Enum) {
+            if (branch.Proved || resolved[index]?.Kind != SchemaKind.Enum)
+            {
                 continue;
             }
 
             var values = resolved[index]!.EnumValues;
 
-            if (values is not { Count: > 0 }) {
+            if (values is not { Count: > 0 })
+            {
                 continue;
             }
 
@@ -249,7 +285,8 @@ internal static class ChoiceResolution {
             // kind already separated it and this adds nothing.
             var wider = WiderOfSameKind(plan, resolved, index);
 
-            if (wider == null) {
+            if (wider == null)
+            {
                 continue;
             }
 
@@ -262,15 +299,19 @@ internal static class ChoiceResolution {
     /// A branch of the same JSON kind that constrains nothing, and so accepts everything the branch
     /// at <paramref name="index"/> does.
     /// </summary>
-    private static Branch? WiderOfSameKind(Plan plan, List<SchemaModel?> resolved, int index) {
+    private static Branch? WiderOfSameKind(Plan plan, List<SchemaModel?> resolved, int index)
+    {
         var kind = ValueKindOf(plan.Branches[index].Model, resolved[index]);
 
-        for (var other = 0; other < resolved.Count; other++) {
-            if (other == index) {
+        for (var other = 0; other < resolved.Count; other++)
+        {
+            if (other == index)
+            {
                 continue;
             }
 
-            if (ValueKindOf(plan.Branches[other].Model, resolved[other]) != kind) {
+            if (ValueKindOf(plan.Branches[other].Model, resolved[other]) != kind)
+            {
                 continue;
             }
 
@@ -278,8 +319,8 @@ internal static class ChoiceResolution {
 
             // Unconstrained: an inline type, or a named schema that is neither an enum nor an
             // object with a shape of its own.
-            if (schema == null ||
-                (schema.Kind != SchemaKind.Enum && schema.Properties.Count == 0)) {
+            if (schema == null || (schema.Kind != SchemaKind.Enum && schema.Properties.Count == 0))
+            {
                 return plan.Branches[other];
             }
         }
@@ -287,14 +328,19 @@ internal static class ChoiceResolution {
         return null;
     }
 
-    private static bool DeclaredElsewhere(string property, List<SchemaModel?> resolved, int skip) {
-        for (var index = 0; index < resolved.Count; index++) {
-            if (index == skip || resolved[index] == null) {
+    private static bool DeclaredElsewhere(string property, List<SchemaModel?> resolved, int skip)
+    {
+        for (var index = 0; index < resolved.Count; index++)
+        {
+            if (index == skip || resolved[index] == null)
+            {
                 continue;
             }
 
-            foreach (var other in resolved[index]!.Properties) {
-                if (string.Equals(other.Name, property, System.StringComparison.Ordinal)) {
+            foreach (var other in resolved[index]!.Properties)
+            {
+                if (string.Equals(other.Name, property, System.StringComparison.Ordinal))
+                {
                     return true;
                 }
             }
@@ -304,20 +350,30 @@ internal static class ChoiceResolution {
     }
 
     private static bool ValueUsedElsewhere(
-        string property, string value, List<SchemaModel?> resolved, int skip) {
-        for (var index = 0; index < resolved.Count; index++) {
-            if (index == skip || resolved[index] == null) {
+        string property,
+        string value,
+        List<SchemaModel?> resolved,
+        int skip
+    )
+    {
+        for (var index = 0; index < resolved.Count; index++)
+        {
+            if (index == skip || resolved[index] == null)
+            {
                 continue;
             }
 
-            foreach (var other in resolved[index]!.Properties) {
-                if (!string.Equals(other.Name, property, System.StringComparison.Ordinal)) {
+            foreach (var other in resolved[index]!.Properties)
+            {
+                if (!string.Equals(other.Name, property, System.StringComparison.Ordinal))
+                {
                     continue;
                 }
 
                 // A property of the same name with no fixed value could carry anything, this value
                 // included.
-                if (other.EnumValues == null || other.EnumValues.Contains(value)) {
+                if (other.EnumValues == null || other.EnumValues.Contains(value))
+                {
                     return true;
                 }
             }
@@ -335,30 +391,36 @@ internal static class ChoiceResolution {
     /// are two kinds in System.Text.Json and one type here, which is why a boolean branch is matched
     /// with a check rather than a switch label.
     /// </remarks>
-    private static string? ValueKindOf(ChoiceBranchModel branch, SchemaModel? schema) {
-        if (schema != null) {
-            if (schema.Kind == SchemaKind.Enum) {
+    private static string? ValueKindOf(ChoiceBranchModel branch, SchemaModel? schema)
+    {
+        if (schema != null)
+        {
+            if (schema.Kind == SchemaKind.Enum)
+            {
                 return "String";
             }
 
-            if (schema.Kind == SchemaKind.Array) {
+            if (schema.Kind == SchemaKind.Array)
+            {
                 return "Array";
             }
 
-            if (schema.Kind == SchemaKind.Object && schema.Properties.Count > 0) {
+            if (schema.Kind == SchemaKind.Object && schema.Properties.Count > 0)
+            {
                 return "Object";
             }
         }
 
         var type = schema?.Type ?? branch.Type;
 
-        return type?.ToLowerInvariant() switch {
+        return type?.ToLowerInvariant() switch
+        {
             "string" => "String",
             "integer" or "number" => "Number",
             "boolean" => "Boolean",
             "array" => "Array",
             "object" => "Object",
-            _ => null
+            _ => null,
         };
     }
 

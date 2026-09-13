@@ -3,7 +3,8 @@ using Hardened.Web.Runtime.Attributes;
 
 namespace Hardened.IntegrationTests.LambdaHttp.SUT;
 
-public class Order {
+public class Order
+{
     public string Id { get; set; } = "";
 
     public int Quantity { get; set; }
@@ -12,7 +13,8 @@ public class Order {
 /// <summary>
 /// Ordinary web handlers, with nothing on them that knows where they are hosted.
 /// </summary>
-public class OrderController {
+public class OrderController
+{
     [Get("/orders/{id}")]
     public Order Get(string id) => new() { Id = id, Quantity = 7 };
 
@@ -33,7 +35,10 @@ public class OrderController {
     /// </remarks>
     [Get("/orders/live")]
     [ServerSentEvents]
-    public async IAsyncEnumerable<Order> Live([EnumeratorCancellation] CancellationToken cancellationToken) {
+    public async IAsyncEnumerable<Order> Live(
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
         yield return new Order { Id = "live-1", Quantity = 1 };
 
         await Task.Yield();
@@ -47,7 +52,10 @@ public class OrderController {
     [Get("/orders/{id:int}/live")]
     [ServerSentEvents]
     public async IAsyncEnumerable<Order> LiveForOrder(
-        int id, [EnumeratorCancellation] CancellationToken cancellationToken) {
+        int id,
+        [EnumeratorCancellation] CancellationToken cancellationToken
+    )
+    {
         yield return new Order { Id = id.ToString(), Quantity = 1 };
 
         await Task.Yield();

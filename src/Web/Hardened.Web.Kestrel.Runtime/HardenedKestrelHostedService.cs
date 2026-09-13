@@ -9,7 +9,8 @@ namespace Hardened.Web.Kestrel.Runtime;
 /// <summary>
 /// Options carrying the Kestrel configuration through DI to <see cref="HardenedKestrelHostedService"/>.
 /// </summary>
-public sealed class HardenedKestrelOptions {
+public sealed class HardenedKestrelOptions
+{
     public Action<KestrelServerOptions>? ConfigureKestrel { get; set; }
 
     public Action<SocketTransportOptions>? ConfigureTransport { get; set; }
@@ -24,13 +25,17 @@ public sealed class HardenedKestrelOptions {
 /// but gives up configuration binding, logging setup, and coordinated shutdown. Registering here
 /// keeps <c>Microsoft.Extensions.Hosting</c> and drops only <c>Microsoft.AspNetCore.Hosting</c>.
 /// </summary>
-public sealed class HardenedKestrelHostedService : IHostedService, IAsyncDisposable {
+public sealed class HardenedKestrelHostedService : IHostedService, IAsyncDisposable
+{
     private readonly KestrelServerRunner _runner;
 
-    public HardenedKestrelHostedService(
-        IServiceProvider provider, HardenedKestrelOptions options) {
+    public HardenedKestrelHostedService(IServiceProvider provider, HardenedKestrelOptions options)
+    {
         _runner = new KestrelServerRunner(
-            provider, options.ConfigureKestrel, options.ConfigureTransport);
+            provider,
+            options.ConfigureKestrel,
+            options.ConfigureTransport
+        );
     }
 
     public IReadOnlyCollection<string> Addresses => _runner.Addresses;
@@ -44,8 +49,8 @@ public sealed class HardenedKestrelHostedService : IHostedService, IAsyncDisposa
     public ValueTask DisposeAsync() => _runner.DisposeAsync();
 }
 
-public static class HardenedKestrelServiceCollectionExtensions {
-
+public static class HardenedKestrelServiceCollectionExtensions
+{
     /// <summary>
     /// Registers Hardened on Kestrel as a hosted service.
     ///
@@ -55,15 +60,21 @@ public static class HardenedKestrelServiceCollectionExtensions {
     public static IServiceCollection AddHardenedKestrel(
         this IServiceCollection services,
         Action<KestrelServerOptions>? configureKestrel = null,
-        Action<SocketTransportOptions>? configureTransport = null) {
-        services.AddSingleton(new HardenedKestrelOptions {
-            ConfigureKestrel = configureKestrel,
-            ConfigureTransport = configureTransport
-        });
+        Action<SocketTransportOptions>? configureTransport = null
+    )
+    {
+        services.AddSingleton(
+            new HardenedKestrelOptions
+            {
+                ConfigureKestrel = configureKestrel,
+                ConfigureTransport = configureTransport,
+            }
+        );
 
         services.AddSingleton<HardenedKestrelHostedService>();
-        services.AddSingleton<IHostedService>(
-            provider => provider.GetRequiredService<HardenedKestrelHostedService>());
+        services.AddSingleton<IHostedService>(provider =>
+            provider.GetRequiredService<HardenedKestrelHostedService>()
+        );
 
         return services;
     }

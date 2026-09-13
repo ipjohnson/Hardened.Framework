@@ -10,10 +10,11 @@ namespace Hardened.Aws.DynamoDbClient.Tests;
 /// another region — each with its own credentials, built when first asked for rather than when the
 /// service collection is assembled.
 /// </summary>
-public class DynamoDbClientProviderTests {
-
+public class DynamoDbClientProviderTests
+{
     [Fact]
-    public void ANamedFactoryDecidesEverythingAboutItsClient() {
+    public void ANamedFactoryDecidesEverythingAboutItsClient()
+    {
         var expected = Substitute.For<IAmazonDynamoDB>();
 
         var provider = Build(options => options.Clients["audit"] = _ => expected);
@@ -22,11 +23,13 @@ public class DynamoDbClientProviderTests {
     }
 
     [Fact]
-    public void NamedClientsAreIndependent() {
+    public void NamedClientsAreIndependent()
+    {
         var audit = Substitute.For<IAmazonDynamoDB>();
         var billing = Substitute.For<IAmazonDynamoDB>();
 
-        var provider = Build(options => {
+        var provider = Build(options =>
+        {
             options.Clients["audit"] = _ => audit;
             options.Clients["billing"] = _ => billing;
         });
@@ -36,8 +39,11 @@ public class DynamoDbClientProviderTests {
     }
 
     [Fact]
-    public void AnUnknownNameFailsLoudlyAndSaysWhatIsConfigured() {
-        var provider = Build(options => options.Clients["audit"] = _ => Substitute.For<IAmazonDynamoDB>());
+    public void AnUnknownNameFailsLoudlyAndSaysWhatIsConfigured()
+    {
+        var provider = Build(options =>
+            options.Clients["audit"] = _ => Substitute.For<IAmazonDynamoDB>()
+        );
 
         var error = Assert.Throws<InvalidOperationException>(() => provider.GetClient("typo"));
 
@@ -46,15 +52,19 @@ public class DynamoDbClientProviderTests {
     }
 
     [Fact]
-    public void AFactoryRunsOnceAndTheClientIsReused() {
+    public void AFactoryRunsOnceAndTheClientIsReused()
+    {
         // AmazonDynamoDBClient owns a connection pool, so building one per call is how sockets run
         // out. Caching is the behaviour, not an optimisation.
         var built = 0;
 
-        var provider = Build(options => options.Clients["audit"] = _ => {
-            built++;
-            return Substitute.For<IAmazonDynamoDB>();
-        });
+        var provider = Build(options =>
+            options.Clients["audit"] = _ =>
+            {
+                built++;
+                return Substitute.For<IAmazonDynamoDB>();
+            }
+        );
 
         provider.GetClient("audit");
         provider.GetClient("audit");
@@ -63,19 +73,24 @@ public class DynamoDbClientProviderTests {
     }
 
     [Fact]
-    public void AFactoryIsNotRunUntilItsClientIsAsked() {
+    public void AFactoryIsNotRunUntilItsClientIsAsked()
+    {
         var built = false;
 
-        Build(options => options.Clients["audit"] = _ => {
-            built = true;
-            return Substitute.For<IAmazonDynamoDB>();
-        });
+        Build(options =>
+            options.Clients["audit"] = _ =>
+            {
+                built = true;
+                return Substitute.For<IAmazonDynamoDB>();
+            }
+        );
 
         Assert.False(built, "constructing the provider should not construct any client");
     }
 
     [Fact]
-    public void TheDefaultClientCanBeReplacedWholesale() {
+    public void TheDefaultClientCanBeReplacedWholesale()
+    {
         var expected = Substitute.For<IAmazonDynamoDB>();
 
         var provider = Build(options => options.DefaultClient = _ => expected);
@@ -88,11 +103,13 @@ public class DynamoDbClientProviderTests {
     /// IDisposable they lived until the process exited, holding their connection pools open.
     /// </summary>
     [Fact]
-    public void DisposingClosesEveryClientItBuilt() {
+    public void DisposingClosesEveryClientItBuilt()
+    {
         var audit = Substitute.For<IAmazonDynamoDB>();
         var billing = Substitute.For<IAmazonDynamoDB>();
 
-        var provider = Build(options => {
+        var provider = Build(options =>
+        {
             options.Clients["audit"] = _ => audit;
             options.Clients["billing"] = _ => billing;
         });
@@ -110,13 +127,17 @@ public class DynamoDbClientProviderTests {
     /// during teardown would be the opposite of what disposal is for.
     /// </summary>
     [Fact]
-    public void DisposingDoesNotBuildClientsNobodyAskedFor() {
+    public void DisposingDoesNotBuildClientsNobodyAskedFor()
+    {
         var built = false;
 
-        var provider = Build(options => options.Clients["audit"] = _ => {
-            built = true;
-            return Substitute.For<IAmazonDynamoDB>();
-        });
+        var provider = Build(options =>
+            options.Clients["audit"] = _ =>
+            {
+                built = true;
+                return Substitute.For<IAmazonDynamoDB>();
+            }
+        );
 
         provider.Dispose();
 
@@ -128,7 +149,8 @@ public class DynamoDbClientProviderTests {
     /// is ordinary — and it is the cache being cleared that makes it so.
     /// </summary>
     [Fact]
-    public void DisposingTwiceClosesEachClientOnce() {
+    public void DisposingTwiceClosesEachClientOnce()
+    {
         var client = Substitute.For<IAmazonDynamoDB>();
 
         var provider = Build(options => options.Clients["audit"] = _ => client);
@@ -140,12 +162,14 @@ public class DynamoDbClientProviderTests {
         client.Received(1).Dispose();
     }
 
-    private static DynamoDbClientProvider Build(Action<DynamoDbOptions> configure) {
+    private static DynamoDbClientProvider Build(Action<DynamoDbOptions> configure)
+    {
         var options = new DynamoDbOptions();
         configure(options);
 
         return new DynamoDbClientProvider(
             Options.Create<IDynamoDbOptions>(options),
-            Substitute.For<IServiceProvider>());
+            Substitute.For<IServiceProvider>()
+        );
     }
 }

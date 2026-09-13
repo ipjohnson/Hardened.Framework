@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -9,10 +10,11 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// signature fell through to the untyped response and the operation returned <c>JsonElement</c> -
 /// while array-of-<c>$ref</c> worked perfectly, which is exactly what kept it hidden.
 /// </remarks>
-public class ArrayResponseTests {
-
+public class ArrayResponseTests
+{
     [HardenedTest]
-    public async Task AnArrayOfPrimitivesIsTypedByItsElement(ITestWebApp testWebApp) {
+    public async Task AnArrayOfPrimitivesIsTypedByItsElement(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/names");
 
         response.Assert.Ok();
@@ -25,7 +27,8 @@ public class ArrayResponseTests {
 
     /// <summary>And it is a JSON array of strings on the wire, not a wrapped scalar.</summary>
     [HardenedTest]
-    public async Task AnArrayOfPrimitivesSerialisesAsAnArray(ITestWebApp testWebApp) {
+    public async Task AnArrayOfPrimitivesSerialisesAsAnArray(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/names");
 
         response.Body.Position = 0;
@@ -39,7 +42,8 @@ public class ArrayResponseTests {
 
     /// <summary>The case that always worked, kept beside it so the pair stays honest.</summary>
     [HardenedTest]
-    public async Task AnArrayOfRefsIsStillTypedByItsElement(ITestWebApp testWebApp) {
+    public async Task AnArrayOfRefsIsStillTypedByItsElement(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets");
 
         response.Assert.Ok();
@@ -64,7 +68,8 @@ public class ArrayResponseTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task AnOptionalMemberWithNoValueIsAbsentRatherThanNull(ITestWebApp testWebApp) {
+    public async Task AnOptionalMemberWithNoValueIsAbsentRatherThanNull(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets");
 
         response.Assert.Ok();

@@ -9,8 +9,10 @@ namespace Hardened.SourceGenerator.Models.Request;
 /// needs to look inside it, and a string compares by value - which is what keeps the handler model
 /// usable as a Roslyn incremental cache key.
 /// </remarks>
-public sealed class SchemaComponent : System.IEquatable<SchemaComponent> {
-    public SchemaComponent(string name, string json) {
+public sealed class SchemaComponent : System.IEquatable<SchemaComponent>
+{
+    public SchemaComponent(string name, string json)
+    {
         Name = name;
         Json = json;
     }
@@ -24,16 +26,20 @@ public sealed class SchemaComponent : System.IEquatable<SchemaComponent> {
 
     public override bool Equals(object? obj) => Equals(obj as SchemaComponent);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             return (Name.GetHashCode() * 397) ^ Json.GetHashCode();
         }
     }
 }
 
 /// <summary>One enum member, and the value it goes on the wire as.</summary>
-public sealed class EnumWireValue : System.IEquatable<EnumWireValue> {
-    public EnumWireValue(string member, string wire) {
+public sealed class EnumWireValue : System.IEquatable<EnumWireValue>
+{
+    public EnumWireValue(string member, string wire)
+    {
         Member = member;
         Wire = wire;
     }
@@ -49,8 +55,10 @@ public sealed class EnumWireValue : System.IEquatable<EnumWireValue> {
 
     public override bool Equals(object? obj) => Equals(obj as EnumWireValue);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             return (Member.GetHashCode() * 397) ^ Wire.GetHashCode();
         }
     }
@@ -65,9 +73,15 @@ public sealed class EnumWireValue : System.IEquatable<EnumWireValue> {
 /// to text there. The routing table generator turns these into converters, so the bytes and the
 /// document are produced from one resolution rather than two.
 /// </remarks>
-public sealed class EnumVocabulary : System.IEquatable<EnumVocabulary> {
+public sealed class EnumVocabulary : System.IEquatable<EnumVocabulary>
+{
     public EnumVocabulary(
-        string qualifiedName, string name, string naming, IReadOnlyList<EnumWireValue> values) {
+        string qualifiedName,
+        string name,
+        string naming,
+        IReadOnlyList<EnumWireValue> values
+    )
+    {
         QualifiedName = qualifiedName;
         Name = name;
         Naming = naming;
@@ -86,15 +100,17 @@ public sealed class EnumVocabulary : System.IEquatable<EnumVocabulary> {
     public IReadOnlyList<EnumWireValue> Values { get; }
 
     public bool Equals(EnumVocabulary? other) =>
-        other is not null &&
-        QualifiedName == other.QualifiedName &&
-        Naming == other.Naming &&
-        Values.SequenceEqual(other.Values);
+        other is not null
+        && QualifiedName == other.QualifiedName
+        && Naming == other.Naming
+        && Values.SequenceEqual(other.Values);
 
     public override bool Equals(object? obj) => Equals(obj as EnumVocabulary);
 
-    public override int GetHashCode() {
-        unchecked {
+    public override int GetHashCode()
+    {
+        unchecked
+        {
             return (QualifiedName.GetHashCode() * 397) ^ Naming.GetHashCode();
         }
     }
@@ -103,11 +119,14 @@ public sealed class EnumVocabulary : System.IEquatable<EnumVocabulary> {
 /// <summary>
 /// A type's JSON Schema, and every named schema it reaches.
 /// </summary>
-public sealed class HandlerSchema : System.IEquatable<HandlerSchema> {
+public sealed class HandlerSchema : System.IEquatable<HandlerSchema>
+{
     public HandlerSchema(
         string schema,
         IReadOnlyList<SchemaComponent> components,
-        IReadOnlyList<EnumVocabulary>? enums = null) {
+        IReadOnlyList<EnumVocabulary>? enums = null
+    )
+    {
         Schema = schema;
         Components = components;
         Enums = enums ?? System.Array.Empty<EnumVocabulary>();
@@ -122,10 +141,10 @@ public sealed class HandlerSchema : System.IEquatable<HandlerSchema> {
     public IReadOnlyList<EnumVocabulary> Enums { get; }
 
     public bool Equals(HandlerSchema? other) =>
-        other is not null &&
-        Schema == other.Schema &&
-        Components.SequenceEqual(other.Components) &&
-        Enums.SequenceEqual(other.Enums);
+        other is not null
+        && Schema == other.Schema
+        && Components.SequenceEqual(other.Components)
+        && Enums.SequenceEqual(other.Enums);
 
     public override bool Equals(object? obj) => Equals(obj as HandlerSchema);
 

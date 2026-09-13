@@ -24,8 +24,10 @@ namespace Hardened.Azure.Functions.Runtime.Modules;
 /// </remarks>
 [DependencyModule]
 [HardenedRequestModule]
-public partial class FunctionsRuntimeModule : IServiceCollectionConfiguration {
-    public void ConfigureServices(IServiceCollection services) {
+public partial class FunctionsRuntimeModule : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.TryAddSingleton<FunctionsInvocationHandler>();
     }
 }

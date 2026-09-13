@@ -11,9 +11,10 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// code, and this turns code into a document — so an attribute-routed application can hand a client
 /// the same contract a specification-first one starts from.
 /// </remarks>
-public class OpenApiDocumentTests {
-
-    private static async Task<JsonDocument> Fetch(ITestWebApp testWebApp) {
+public class OpenApiDocumentTests
+{
+    private static async Task<JsonDocument> Fetch(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.json");
 
         response.Assert.Ok();
@@ -31,23 +32,29 @@ public class OpenApiDocumentTests {
     /// that path.
     /// </remarks>
     [HardenedTest]
-    public async Task TheDocumentIsServedCompressed(ITestWebApp testWebApp) {
+    public async Task TheDocumentIsServedCompressed(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.json");
 
         response.Assert.Ok();
 
         Assert.Equal("gzip", response.Headers["Content-Encoding"].ToString());
         Assert.Equal(
-            response.Body.Length.ToString(), response.Headers["Content-Length"].ToString());
+            response.Body.Length.ToString(),
+            response.Headers["Content-Length"].ToString()
+        );
     }
 
     /// <summary>
     /// A client that does not take gzip gets the document inflated rather than unreadable.
     /// </summary>
     [HardenedTest]
-    public async Task AClientThatDoesNotAcceptGZipGetsPlainJson(ITestWebApp testWebApp) {
+    public async Task AClientThatDoesNotAcceptGZipGetsPlainJson(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get(
-            "/openapi.json", request => request.Headers["Accept-Encoding"] = "identity");
+            "/openapi.json",
+            request => request.Headers["Accept-Encoding"] = "identity"
+        );
 
         response.Assert.Ok();
 
@@ -62,7 +69,8 @@ public class OpenApiDocumentTests {
     }
 
     [HardenedTest]
-    public async Task TheDocumentIsServedAsJson(ITestWebApp testWebApp) {
+    public async Task TheDocumentIsServedAsJson(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.json");
 
         response.Assert.Ok();
@@ -77,7 +85,8 @@ public class OpenApiDocumentTests {
     /// honoured - <c>OpenApiVersionTests</c> covers that.
     /// </remarks>
     [HardenedTest]
-    public async Task TheDocumentIsValidOpenApi(ITestWebApp testWebApp) {
+    public async Task TheDocumentIsValidOpenApi(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
         Assert.Equal("3.2.0", document.RootElement.GetProperty("openapi").GetString());
@@ -86,7 +95,8 @@ public class OpenApiDocumentTests {
 
     /// <summary>Routes declared with attributes appear, at the paths they are served from.</summary>
     [HardenedTest]
-    public async Task DeclaredRoutesAppearInTheDocument(ITestWebApp testWebApp) {
+    public async Task DeclaredRoutesAppearInTheDocument(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
         var paths = document.RootElement.GetProperty("paths");
@@ -95,22 +105,30 @@ public class OpenApiDocumentTests {
         Assert.True(withToken.TryGetProperty("get", out _));
 
         Assert.True(paths.TryGetProperty("/verbs/item/{id}", out var verbs));
-        foreach (var verb in new[] { "get", "delete", "patch" }) {
+        foreach (var verb in new[] { "get", "delete", "patch" })
+        {
             Assert.True(verbs.TryGetProperty(verb, out _), verb + " missing");
         }
     }
 
     /// <summary>A path token is described as a path parameter, not a query one.</summary>
     [HardenedTest]
-    public async Task ParametersCarryTheirLocation(ITestWebApp testWebApp) {
+    public async Task ParametersCarryTheirLocation(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        var parameters = document.RootElement
-            .GetProperty("paths").GetProperty("/binding/mixed/{id}")
-            .GetProperty("get").GetProperty("parameters");
+        var parameters = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/binding/mixed/{id}")
+            .GetProperty("get")
+            .GetProperty("parameters");
 
-        var byName = parameters.EnumerateArray()
-            .ToDictionary(p => p.GetProperty("name").GetString()!, p => p.GetProperty("in").GetString());
+        var byName = parameters
+            .EnumerateArray()
+            .ToDictionary(
+                p => p.GetProperty("name").GetString()!,
+                p => p.GetProperty("in").GetString()
+            );
 
         Assert.Equal("path", byName["id"]);
         Assert.Equal("query", byName["filter"]);
@@ -122,19 +140,27 @@ public class OpenApiDocumentTests {
     /// needed the type walked while its symbol still existed.
     /// </summary>
     [HardenedTest]
-    public async Task ABodyIsDescribedByAGeneratedSchema(ITestWebApp testWebApp) {
+    public async Task ABodyIsDescribedByAGeneratedSchema(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        var reference = document.RootElement
-            .GetProperty("paths").GetProperty("/int/add").GetProperty("post")
-            .GetProperty("requestBody").GetProperty("content")
-            .GetProperty("application/json").GetProperty("schema")
-            .GetProperty("$ref").GetString();
+        var reference = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/int/add")
+            .GetProperty("post")
+            .GetProperty("requestBody")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema")
+            .GetProperty("$ref")
+            .GetString();
 
         Assert.Equal("#/components/schemas/MathAddModel", reference);
 
-        var schema = document.RootElement
-            .GetProperty("components").GetProperty("schemas").GetProperty("MathAddModel");
+        var schema = document
+            .RootElement.GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("MathAddModel");
 
         Assert.Equal("object", schema.GetProperty("type").GetString());
 
@@ -142,8 +168,13 @@ public class OpenApiDocumentTests {
         // rather than a nullable member described as always present.
         Assert.Equal(
             new[] { "array", "null" },
-            schema.GetProperty("properties").GetProperty("values").GetProperty("type")
-                .EnumerateArray().Select(value => value.GetString()));
+            schema
+                .GetProperty("properties")
+                .GetProperty("values")
+                .GetProperty("type")
+                .EnumerateArray()
+                .Select(value => value.GetString())
+        );
     }
 
     /// <summary>
@@ -156,20 +187,29 @@ public class OpenApiDocumentTests {
     /// linter and a request for <c>/boards/%7BboardId:guid%7D</c> from a generated client.
     /// </remarks>
     [HardenedTest]
-    public async Task PathTemplatesCarryNoRoutingSyntax(ITestWebApp testWebApp) {
+    public async Task PathTemplatesCarryNoRoutingSyntax(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        var leaked = document.RootElement.GetProperty("paths").EnumerateObject()
+        var leaked = document
+            .RootElement.GetProperty("paths")
+            .EnumerateObject()
             .Select(path => path.Name)
             .Where(path => path.Contains(':') || path.Contains('*'))
             .ToList();
 
-        Assert.True(leaked.Count == 0,
-            "path templates carry routing syntax a document cannot express: " + string.Join(", ", leaked));
+        Assert.True(
+            leaked.Count == 0,
+            "path templates carry routing syntax a document cannot express: "
+                + string.Join(", ", leaked)
+        );
 
         // The constrained route is still there, under the name its parameter is declared with.
-        Assert.True(document.RootElement.GetProperty("paths")
-            .TryGetProperty("/binding/path-constrained/{count}", out _));
+        Assert.True(
+            document
+                .RootElement.GetProperty("paths")
+                .TryGetProperty("/binding/path-constrained/{count}", out _)
+        );
     }
 
     /// <summary>
@@ -181,12 +221,15 @@ public class OpenApiDocumentTests {
     /// to reject <c>/path-constrained/abc</c> before sending it.
     /// </remarks>
     [HardenedTest]
-    public async Task ParametersCarryTheirDeclaredType(ITestWebApp testWebApp) {
+    public async Task ParametersCarryTheirDeclaredType(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        var schema = document.RootElement.GetProperty("paths")
+        var schema = document
+            .RootElement.GetProperty("paths")
             .GetProperty("/binding/path-constrained/{count}")
-            .GetProperty("get").GetProperty("parameters")[0]
+            .GetProperty("get")
+            .GetProperty("parameters")[0]
             .GetProperty("schema");
 
         Assert.Equal("integer", schema.GetProperty("type").GetString());
@@ -202,19 +245,26 @@ public class OpenApiDocumentTests {
     /// names sorted to rather than by what the application declared.
     /// </remarks>
     [HardenedTest]
-    public async Task TheDocumentDeclaresItsTags(ITestWebApp testWebApp) {
+    public async Task TheDocumentDeclaresItsTags(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        Assert.True(document.RootElement.TryGetProperty("tags", out var tags),
-            "the document declares no tags, so its operations reference groups it never defines");
+        Assert.True(
+            document.RootElement.TryGetProperty("tags", out var tags),
+            "the document declares no tags, so its operations reference groups it never defines"
+        );
 
-        var declared = tags.EnumerateArray().Select(tag => tag.GetProperty("name").GetString()).ToList();
+        var declared = tags.EnumerateArray()
+            .Select(tag => tag.GetProperty("name").GetString())
+            .ToList();
 
         Assert.Contains("Registration", declared);
         Assert.Contains("Binding", declared);
 
         // Every tag an operation uses has to be one of these.
-        var used = document.RootElement.GetProperty("paths").EnumerateObject()
+        var used = document
+            .RootElement.GetProperty("paths")
+            .EnumerateObject()
             .SelectMany(path => path.Value.EnumerateObject())
             .SelectMany(operation => operation.Value.GetProperty("tags").EnumerateArray())
             .Select(tag => tag.GetString())
@@ -240,19 +290,32 @@ public class OpenApiDocumentTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task AValidatedHandlerStillDescribesItsBodyAndResponse(ITestWebApp testWebApp) {
+    public async Task AValidatedHandlerStillDescribesItsBodyAndResponse(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        var operation = document.RootElement.GetProperty("paths")
-            .GetProperty("/registration").GetProperty("post");
+        var operation = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/registration")
+            .GetProperty("post");
 
-        var body = operation.GetProperty("requestBody")
-            .GetProperty("content").GetProperty("application/json").GetProperty("schema");
+        var body = operation
+            .GetProperty("requestBody")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
 
-        Assert.Equal("#/components/schemas/RegistrationModel", body.GetProperty("$ref").GetString());
+        Assert.Equal(
+            "#/components/schemas/RegistrationModel",
+            body.GetProperty("$ref").GetString()
+        );
 
-        var response = operation.GetProperty("responses").GetProperty("200")
-            .GetProperty("content").GetProperty("application/json").GetProperty("schema");
+        var response = operation
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
 
         Assert.Equal("string", response.GetProperty("type").GetString());
     }
@@ -260,12 +323,20 @@ public class OpenApiDocumentTests {
     #region a collection parameter
 
     private static async Task<JsonElement> ParameterSchema(
-        ITestWebApp testWebApp, string path, string name) {
+        ITestWebApp testWebApp,
+        string path,
+        string name
+    )
+    {
         using var document = await Fetch(testWebApp);
 
-        var parameter = document.RootElement
-            .GetProperty("paths").GetProperty(path).GetProperty("get").GetProperty("parameters")
-            .EnumerateArray().Single(p => p.GetProperty("name").GetString() == name);
+        var parameter = document
+            .RootElement.GetProperty("paths")
+            .GetProperty(path)
+            .GetProperty("get")
+            .GetProperty("parameters")
+            .EnumerateArray()
+            .Single(p => p.GetProperty("name").GetString() == name);
 
         return parameter.GetProperty("schema").Clone();
     }
@@ -276,7 +347,8 @@ public class OpenApiDocumentTests {
     /// binder filling it from every value the request carried while the document described one.
     /// </summary>
     [HardenedTest]
-    public async Task ACollectionQueryParameterIsAnArray(ITestWebApp testWebApp) {
+    public async Task ACollectionQueryParameterIsAnArray(ITestWebApp testWebApp)
+    {
         var schema = await ParameterSchema(testWebApp, "/binding/query-list", "symbols");
 
         Assert.Equal("array", schema.GetProperty("type").GetString());
@@ -285,7 +357,8 @@ public class OpenApiDocumentTests {
 
     /// <summary>The item type is the one the handler declared, not a default.</summary>
     [HardenedTest]
-    public async Task ACollectionParametersItemsCarryTheirOwnType(ITestWebApp testWebApp) {
+    public async Task ACollectionParametersItemsCarryTheirOwnType(ITestWebApp testWebApp)
+    {
         var schema = await ParameterSchema(testWebApp, "/binding/query-list-typed", "ids");
 
         Assert.Equal("array", schema.GetProperty("type").GetString());
@@ -294,7 +367,8 @@ public class OpenApiDocumentTests {
     }
 
     [HardenedTest]
-    public async Task AnArrayParameterIsAnArray(ITestWebApp testWebApp) {
+    public async Task AnArrayParameterIsAnArray(ITestWebApp testWebApp)
+    {
         var schema = await ParameterSchema(testWebApp, "/binding/query-array", "tags");
 
         Assert.Equal("array", schema.GetProperty("type").GetString());
@@ -302,7 +376,8 @@ public class OpenApiDocumentTests {
     }
 
     [HardenedTest]
-    public async Task ACollectionHeaderParameterIsAnArray(ITestWebApp testWebApp) {
+    public async Task ACollectionHeaderParameterIsAnArray(ITestWebApp testWebApp)
+    {
         var schema = await ParameterSchema(testWebApp, "/binding/header-list", "X-Tag");
 
         Assert.Equal("array", schema.GetProperty("type").GetString());
@@ -310,7 +385,8 @@ public class OpenApiDocumentTests {
 
     /// <summary>And a scalar parameter is still a scalar.</summary>
     [HardenedTest]
-    public async Task AScalarQueryParameterIsNotAnArray(ITestWebApp testWebApp) {
+    public async Task AScalarQueryParameterIsNotAnArray(ITestWebApp testWebApp)
+    {
         var schema = await ParameterSchema(testWebApp, "/binding/query-typed", "page");
 
         Assert.Equal("integer", schema.GetProperty("type").GetString());
@@ -320,12 +396,19 @@ public class OpenApiDocumentTests {
 
     #region the declared validation status
 
-    private static async Task<string[]> Statuses(ITestWebApp testWebApp, string path) {
+    private static async Task<string[]> Statuses(ITestWebApp testWebApp, string path)
+    {
         using var document = await Fetch(testWebApp);
 
-        return document.RootElement
-            .GetProperty("paths").GetProperty(path).GetProperty("post").GetProperty("responses")
-            .EnumerateObject().Select(status => status.Name).OrderBy(name => name).ToArray();
+        return document
+            .RootElement.GetProperty("paths")
+            .GetProperty(path)
+            .GetProperty("post")
+            .GetProperty("responses")
+            .EnumerateObject()
+            .Select(status => status.Name)
+            .OrderBy(name => name)
+            .ToArray();
     }
 
     /// <summary>
@@ -334,7 +417,8 @@ public class OpenApiDocumentTests {
     /// operation could no longer produce.
     /// </summary>
     [HardenedTest]
-    public async Task AnOperationDeclaring422PublishesItAndNoSynthesized400(ITestWebApp testWebApp) {
+    public async Task AnOperationDeclaring422PublishesItAndNoSynthesized400(ITestWebApp testWebApp)
+    {
         var statuses = await Statuses(testWebApp, "/registration/declared-422");
 
         Assert.Contains("422", statuses);
@@ -346,7 +430,8 @@ public class OpenApiDocumentTests {
     /// synthesis is for.
     /// </summary>
     [HardenedTest]
-    public async Task AnOperationDeclaringNothingStillPublishesThe400(ITestWebApp testWebApp) {
+    public async Task AnOperationDeclaringNothingStillPublishesThe400(ITestWebApp testWebApp)
+    {
         Assert.Contains("400", await Statuses(testWebApp, "/registration/for/{tenant}"));
     }
 
@@ -361,17 +446,24 @@ public class OpenApiDocumentTests {
     /// puts it here.
     /// </remarks>
     [HardenedTest]
-    public async Task ASchemeAnOperationNamesIsPublished(ITestWebApp testWebApp) {
+    public async Task ASchemeAnOperationNamesIsPublished(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        var scheme = document.RootElement
-            .GetProperty("components").GetProperty("securitySchemes").GetProperty("PetsOAuth");
+        var scheme = document
+            .RootElement.GetProperty("components")
+            .GetProperty("securitySchemes")
+            .GetProperty("PetsOAuth");
 
         Assert.Equal("oauth2", scheme.GetProperty("type").GetString());
         Assert.Equal(
             "https://example.invalid/token",
-            scheme.GetProperty("flows").GetProperty("clientCredentials")
-                .GetProperty("tokenUrl").GetString());
+            scheme
+                .GetProperty("flows")
+                .GetProperty("clientCredentials")
+                .GetProperty("tokenUrl")
+                .GetString()
+        );
     }
 
     /// <summary>
@@ -383,15 +475,23 @@ public class OpenApiDocumentTests {
     /// more, which is the rule the OpenAPI reader applies coming the other way.
     /// </remarks>
     [HardenedTest]
-    public async Task GrantsRequiredBesideAnOAuth2SchemeArePublishedAsScopes(ITestWebApp testWebApp) {
+    public async Task GrantsRequiredBesideAnOAuth2SchemeArePublishedAsScopes(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        var requirement = document.RootElement
-            .GetProperty("paths").GetProperty("/authorization/pets-manage").GetProperty("get")
-            .GetProperty("security").EnumerateArray().Single();
+        var requirement = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/authorization/pets-manage")
+            .GetProperty("get")
+            .GetProperty("security")
+            .EnumerateArray()
+            .Single();
 
-        var scopes = requirement.GetProperty("PetsOAuth").EnumerateArray()
-            .Select(scope => scope.GetString()).ToList();
+        var scopes = requirement
+            .GetProperty("PetsOAuth")
+            .EnumerateArray()
+            .Select(scope => scope.GetString())
+            .ToList();
 
         Assert.Equal(new[] { "pets:read", "pets:write" }, scopes);
     }
@@ -406,14 +506,21 @@ public class OpenApiDocumentTests {
     /// <c>AuthorizationTests</c> asserts the same refusal on the wire.
     /// </remarks>
     [HardenedTest]
-    public async Task AnOperationWithARequirementPublishesItsChallenge(ITestWebApp testWebApp) {
+    public async Task AnOperationWithARequirementPublishesItsChallenge(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        var unauthorized = document.RootElement
-            .GetProperty("paths").GetProperty("/authorization/pets").GetProperty("get")
-            .GetProperty("responses").GetProperty("401");
+        var unauthorized = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/authorization/pets")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("401");
 
-        Assert.Equal("Authentication required.", unauthorized.GetProperty("description").GetString());
+        Assert.Equal(
+            "Authentication required.",
+            unauthorized.GetProperty("description").GetString()
+        );
         Assert.True(unauthorized.GetProperty("headers").TryGetProperty("WWW-Authenticate", out _));
     }
 
@@ -426,11 +533,14 @@ public class OpenApiDocumentTests {
     /// document is that one of them said which scheme establishes its caller.
     /// </remarks>
     [HardenedTest]
-    public async Task AGrantWithNoSchemePublishesNoRequirement(ITestWebApp testWebApp) {
+    public async Task AGrantWithNoSchemePublishesNoRequirement(ITestWebApp testWebApp)
+    {
         using var document = await Fetch(testWebApp);
 
-        var operation = document.RootElement
-            .GetProperty("paths").GetProperty("/authorization/pets-unstated").GetProperty("get");
+        var operation = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/authorization/pets-unstated")
+            .GetProperty("get");
 
         Assert.False(operation.TryGetProperty("security", out _));
         Assert.False(operation.GetProperty("responses").TryGetProperty("401", out _));

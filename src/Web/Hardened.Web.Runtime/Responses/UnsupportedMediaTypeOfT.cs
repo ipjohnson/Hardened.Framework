@@ -25,8 +25,10 @@ namespace Hardened.Web.Runtime.Responses;
 /// </remarks>
 [HttpStatus(415)]
 public sealed record UnsupportedMediaType<T>(T Body)
-    : IHttpStatusResponse, ICarriesResponseBody, IResponseExpectation<UnsupportedMediaType<T>> {
-
+    : IHttpStatusResponse,
+        ICarriesResponseBody,
+        IResponseExpectation<UnsupportedMediaType<T>>
+{
     public string Type => ProblemTypes.UnsupportedMediaType;
 
     public string Title => "Unsupported Media Type";
@@ -38,6 +40,7 @@ public sealed record UnsupportedMediaType<T>(T Body)
     object? ICarriesResponseBody.Body => Body;
 
     public static UnsupportedMediaType<T> FromResponse(
-        object? body, IReadOnlyDictionary<string, string> headers) =>
-        new(ResponseExpectation.Body<T>(body));
+        object? body,
+        IReadOnlyDictionary<string, string> headers
+    ) => new(ResponseExpectation.Body<T>(body));
 }

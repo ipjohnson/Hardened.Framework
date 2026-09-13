@@ -7,17 +7,24 @@ using Xunit;
 
 namespace Hardened.Azure.Functions.Runtime.Tests;
 
-public class CosmosDbAdapterTests {
+public class CosmosDbAdapterTests
+{
     private static readonly CosmosDbAdapter Adapter = new();
 
     private static TestFunctionContext Context() =>
-        new("Change_orders", new Dictionary<string, object?>(), new ServiceCollection().BuildServiceProvider());
+        new(
+            "Change_orders",
+            new Dictionary<string, object?>(),
+            new ServiceCollection().BuildServiceProvider()
+        );
 
     private static CosmosDbRequest Request(string feed) =>
-        (CosmosDbRequest)Adapter.CreateRequest(new FunctionsTrigger("CHANGE", "/orders", feed), Context());
+        (CosmosDbRequest)
+            Adapter.CreateRequest(new FunctionsTrigger("CHANGE", "/orders", feed), Context());
 
     [Fact]
-    public void HandlesAStringOnlyUnderTheChangeScheme() {
+    public void HandlesAStringOnlyUnderTheChangeScheme()
+    {
         Assert.True(Adapter.Handles(new FunctionsTrigger("CHANGE", "/orders", "[]")));
         Assert.False(Adapter.Handles(new FunctionsTrigger("TIMER", "/nightly", "{}")));
     }
@@ -26,7 +33,8 @@ public class CosmosDbAdapterTests {
     /// The feed is one array; the batch is one request per document, in the feed's order.
     /// </summary>
     [Fact]
-    public void TheFeedIsSplitIntoOneDocumentPerChange() {
+    public void TheFeedIsSplitIntoOneDocumentPerChange()
+    {
         var batch = Request("""[{"id":"a","_lsn":10},{"id":"b","_lsn":11},{"id":"c","_lsn":12}]""");
 
         Assert.Equal(3, batch.Count);
@@ -40,8 +48,11 @@ public class CosmosDbAdapterTests {
     /// might want without binding the body are headers.
     /// </summary>
     [Fact]
-    public void AForkCarriesTheDocumentAndItsSystemProperties() {
-        var batch = Request("""[{"id":"a-1","quantity":2,"_rid":"r","_etag":"\"00000001\"","_ts":1767225600,"_lsn":42}]""");
+    public void AForkCarriesTheDocumentAndItsSystemProperties()
+    {
+        var batch = Request(
+            """[{"id":"a-1","quantity":2,"_rid":"r","_etag":"\"00000001\"","_ts":1767225600,"_lsn":42}]"""
+        );
 
         var fork = batch.ForItem(0);
 
@@ -55,7 +66,8 @@ public class CosmosDbAdapterTests {
 
         Assert.Equal(
             """{"id":"a-1","quantity":2,"_rid":"r","_etag":"\"00000001\"","_ts":1767225600,"_lsn":42}""",
-            new StreamReader(fork.Body).ReadToEnd());
+            new StreamReader(fork.Body).ReadToEnd()
+        );
     }
 
     /// <summary>
@@ -63,7 +75,8 @@ public class CosmosDbAdapterTests {
     /// parse of the feed.
     /// </summary>
     [Fact]
-    public void ForksAreIndependent() {
+    public void ForksAreIndependent()
+    {
         var batch = Request("""[{"id":"a"},{"id":"b"}]""");
 
         var first = batch.ForItem(0);
@@ -74,7 +87,8 @@ public class CosmosDbAdapterTests {
     }
 
     [Fact]
-    public void AnEmptyFeedIsAnEmptyBatch() {
+    public void AnEmptyFeedIsAnEmptyBatch()
+    {
         Assert.Equal(0, Request("").Count);
         Assert.Equal(0, Request("[]").Count);
     }
@@ -84,9 +98,12 @@ public class CosmosDbAdapterTests {
     /// and says so rather than pretending.
     /// </summary>
     [Fact]
-    public void RecordingAFailureIsRefused() {
+    public void RecordingAFailureIsRefused()
+    {
         var batch = Request("""[{"id":"a"}]""");
 
-        Assert.Throws<NotSupportedException>(() => batch.RecordFailure(0, new InvalidOperationException()));
+        Assert.Throws<NotSupportedException>(() =>
+            batch.RecordFailure(0, new InvalidOperationException())
+        );
     }
 }

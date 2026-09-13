@@ -1,11 +1,11 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Serializer;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Tests.Serializer;
 
@@ -25,8 +25,8 @@ namespace Hardened.Web.Runtime.Tests.Serializer;
 /// verb matrix, which is why it is asserted from here — see TESTING-PLAN.md §6, <c>web-routing</c>.
 /// </para>
 /// </summary>
-public class NullValueResponseStatusTests {
-
+public class NullValueResponseStatusTests
+{
     /// <summary>
     /// The handler under test, with a serializer locator that is never reached.
     /// </summary>
@@ -47,7 +47,8 @@ public class NullValueResponseStatusTests {
     [InlineData("PUT", 404)]
     [InlineData("POST", 200)]
     [InlineData("DELETE", 200)]
-    public void TheStatusForANullResultDependsOnTheVerb(string method, int expectedStatus) {
+    public void TheStatusForANullResultDependsOnTheVerb(string method, int expectedStatus)
+    {
         var context = Context(method);
 
         Handler().Handle(context);
@@ -66,7 +67,8 @@ public class NullValueResponseStatusTests {
     [InlineData("OPTIONS")]
     [InlineData("get")]
     [InlineData("")]
-    public void AnUnnamedVerbFallsThroughTo200(string method) {
+    public void AnUnnamedVerbFallsThroughTo200(string method)
+    {
         var context = Context(method);
 
         Handler().Handle(context);
@@ -85,7 +87,8 @@ public class NullValueResponseStatusTests {
     [InlineData("PUT")]
     [InlineData("DELETE")]
     [InlineData("PATCH")]
-    public void AHandlerDeclaredNullStatusWinsOverTheVerbMatrix(string method) {
+    public void AHandlerDeclaredNullStatusWinsOverTheVerbMatrix(string method)
+    {
         var context = Context(method, nullResponseStatus: 204);
 
         Handler().Handle(context);
@@ -98,7 +101,8 @@ public class NullValueResponseStatusTests {
     /// distinction is <c>HasValue</c>, not the handler being there.
     /// </summary>
     [Fact]
-    public void AHandlerWithNoDeclaredNullStatusLeavesTheVerbMatrixInCharge() {
+    public void AHandlerWithNoDeclaredNullStatusLeavesTheVerbMatrixInCharge()
+    {
         var context = Context("GET", nullResponseStatus: null, withHandlerInfo: true);
 
         Handler().Handle(context);
@@ -111,7 +115,8 @@ public class NullValueResponseStatusTests {
     /// so a null response can be serialized with <c>HandlerInfo</c> still unset.
     /// </summary>
     [Fact]
-    public void ARequestWithNoHandlerInfoStillGetsTheVerbStatus() {
+    public void ARequestWithNoHandlerInfoStillGetsTheVerbStatus()
+    {
         var context = Context("GET", withHandlerInfo: false);
 
         Handler().Handle(context);
@@ -125,7 +130,8 @@ public class NullValueResponseStatusTests {
     /// ticket.
     /// </summary>
     [Fact]
-    public void OnlyA404IsLogged() {
+    public void OnlyA404IsLogged()
+    {
         var notFound = new RecordingLogger();
         var found = new RecordingLogger();
 
@@ -141,7 +147,8 @@ public class NullValueResponseStatusTests {
     /// "resource not found" tells nobody which route to go and look at.
     /// </summary>
     [Fact]
-    public void TheNotFoundLogNamesTheVerbAndPath() {
+    public void TheNotFoundLogNamesTheVerbAndPath()
+    {
         var logger = new RecordingLogger();
 
         Handler(logger).Handle(Context("GET"));
@@ -158,7 +165,8 @@ public class NullValueResponseStatusTests {
     /// verb that would otherwise have produced it.
     /// </summary>
     [Fact]
-    public void AHandlerOverrideOf404IsLoggedAsWell() {
+    public void AHandlerOverrideOf404IsLoggedAsWell()
+    {
         var logger = new RecordingLogger();
 
         Handler(logger).Handle(Context("POST", nullResponseStatus: 404));
@@ -171,7 +179,8 @@ public class NullValueResponseStatusTests {
     /// the request being logged as not found.
     /// </summary>
     [Fact]
-    public void AHandlerOverrideAwayFrom404IsNotLogged() {
+    public void AHandlerOverrideAwayFrom404IsNotLogged()
+    {
         var logger = new RecordingLogger();
 
         Handler(logger).Handle(Context("GET", nullResponseStatus: 204));
@@ -184,12 +193,14 @@ public class NullValueResponseStatusTests {
     /// generic state argument of the logging extension methods is an internal type, so a mock
     /// assertion on it pins the test to a version of the logging package.
     /// </summary>
-    private sealed class RecordingLogger : ILogger<NullValueResponseHandler> {
+    private sealed class RecordingLogger : ILogger<NullValueResponseHandler>
+    {
         private readonly List<(LogLevel Level, string Message)> _entries = [];
 
         public IReadOnlyList<(LogLevel Level, string Message)> Entries => _entries;
 
-        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
 
         public bool IsEnabled(LogLevel logLevel) => true;
 
@@ -198,8 +209,8 @@ public class NullValueResponseStatusTests {
             EventId eventId,
             TState state,
             Exception? exception,
-            Func<TState, Exception?, string> formatter) =>
-            _entries.Add((logLevel, formatter(state, exception)));
+            Func<TState, Exception?, string> formatter
+        ) => _entries.Add((logLevel, formatter(state, exception)));
     }
 
     private static NullValueResponseHandler Handler() =>
@@ -208,7 +219,9 @@ public class NullValueResponseStatusTests {
     private static IExecutionContext Context(
         string method,
         int? nullResponseStatus = null,
-        bool withHandlerInfo = true) {
+        bool withHandlerInfo = true
+    )
+    {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
 
@@ -218,14 +231,16 @@ public class NullValueResponseStatusTests {
         context.Request.Returns(request);
         context.Response.Returns(Substitute.For<IExecutionResponse>());
 
-        if (withHandlerInfo) {
+        if (withHandlerInfo)
+        {
             var handlerInfo = Substitute.For<IExecutionRequestHandlerInfo>();
 
             handlerInfo.NullResponseStatus.Returns(nullResponseStatus);
 
             context.HandlerInfo.Returns(handlerInfo);
         }
-        else {
+        else
+        {
             context.HandlerInfo.Returns((IExecutionRequestHandlerInfo?)null);
         }
 

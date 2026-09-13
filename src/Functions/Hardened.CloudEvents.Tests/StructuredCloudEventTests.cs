@@ -7,7 +7,8 @@ namespace Hardened.CloudEvents.Tests;
 /// The structured JSON form, as Eventarc's structured mode and Event Grid's CloudEvents schema
 /// send it.
 /// </summary>
-public class StructuredCloudEventTests {
+public class StructuredCloudEventTests
+{
     private const string Full = """
         {
           "specversion": "1.0",
@@ -24,10 +25,12 @@ public class StructuredCloudEventTests {
         }
         """;
 
-    private static CloudEvent Read(string json) => CloudEventReader.ReadStructured(Encoding.UTF8.GetBytes(json));
+    private static CloudEvent Read(string json) =>
+        CloudEventReader.ReadStructured(Encoding.UTF8.GetBytes(json));
 
     [Fact]
-    public void TheContextAttributesAreRead() {
+    public void TheContextAttributesAreRead()
+    {
         var cloudEvent = Read(Full);
 
         Assert.Equal("1.0", cloudEvent.SpecVersion);
@@ -41,7 +44,8 @@ public class StructuredCloudEventTests {
     }
 
     [Fact]
-    public void JsonDataIsTheDocumentAsBytes() {
+    public void JsonDataIsTheDocumentAsBytes()
+    {
         var cloudEvent = Read(Full);
 
         Assert.Equal("{\"id\":\"a-1\"}", Encoding.UTF8.GetString(cloudEvent.Data.Span));
@@ -49,45 +53,59 @@ public class StructuredCloudEventTests {
 
     /// <summary>Extensions are strings whatever the JSON carried, so the two forms read alike.</summary>
     [Fact]
-    public void ExtensionsAreKeptAsText() {
+    public void ExtensionsAreKeptAsText()
+    {
         var cloudEvent = Read(Full);
 
-        Assert.Equal("00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01", cloudEvent.Extensions["traceparent"]);
+        Assert.Equal(
+            "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01",
+            cloudEvent.Extensions["traceparent"]
+        );
         Assert.Equal("3", cloudEvent.Extensions["retries"]);
         Assert.False(cloudEvent.Extensions.ContainsKey("data"));
     }
 
     [Fact]
-    public void Base64DataIsDecoded() {
-        var cloudEvent = Read("""
+    public void Base64DataIsDecoded()
+    {
+        var cloudEvent = Read(
+            """
             {"specversion":"1.0","id":"1","source":"/s","type":"t","datacontenttype":"application/octet-stream",
              "data_base64":"AQID"}
-            """);
+            """
+        );
 
         Assert.Equal(new byte[] { 1, 2, 3 }, cloudEvent.Data.ToArray());
     }
 
     /// <summary>A string under a non-JSON content type is the text itself, not a JSON document about a string.</summary>
     [Fact]
-    public void TextDataUnderATextContentTypeIsTheTextItself() {
-        var cloudEvent = Read("""
+    public void TextDataUnderATextContentTypeIsTheTextItself()
+    {
+        var cloudEvent = Read(
+            """
             {"specversion":"1.0","id":"1","source":"/s","type":"t","datacontenttype":"text/plain","data":"hello"}
-            """);
+            """
+        );
 
         Assert.Equal("hello", Encoding.UTF8.GetString(cloudEvent.Data.Span));
     }
 
     [Fact]
-    public void AStringUnderAJsonContentTypeStaysQuoted() {
-        var cloudEvent = Read("""
+    public void AStringUnderAJsonContentTypeStaysQuoted()
+    {
+        var cloudEvent = Read(
+            """
             {"specversion":"1.0","id":"1","source":"/s","type":"t","data":"hello"}
-            """);
+            """
+        );
 
         Assert.Equal("\"hello\"", Encoding.UTF8.GetString(cloudEvent.Data.Span));
     }
 
     [Fact]
-    public void AnEventWithoutDataHasEmptyData() {
+    public void AnEventWithoutDataHasEmptyData()
+    {
         var cloudEvent = Read("""{"specversion":"1.0","id":"1","source":"/s","type":"t"}""");
 
         Assert.True(cloudEvent.Data.IsEmpty);
@@ -100,14 +118,16 @@ public class StructuredCloudEventTests {
     [InlineData("""{"specversion":"1.0","source":"/s","type":"t"}""", "id")]
     [InlineData("""{"specversion":"1.0","id":"1","type":"t"}""", "source")]
     [InlineData("""{"specversion":"1.0","id":"1","source":"/s"}""", "type")]
-    public void AMissingRequiredAttributeIsNamed(string json, string attribute) {
+    public void AMissingRequiredAttributeIsNamed(string json, string attribute)
+    {
         var failure = Assert.Throws<CloudEventFormatException>(() => Read(json));
 
         Assert.Contains(attribute, failure.Message);
     }
 
     [Fact]
-    public void ABodyThatIsNotJsonIsRefused() {
+    public void ABodyThatIsNotJsonIsRefused()
+    {
         Assert.Throws<CloudEventFormatException>(() => Read("not json"));
     }
 
@@ -117,7 +137,8 @@ public class StructuredCloudEventTests {
     [InlineData("APPLICATION/CLOUDEVENTS+JSON", true)]
     [InlineData("application/json", false)]
     [InlineData(null, false)]
-    public void TheStructuredFormIsRecognisedByItsContentType(string? contentType, bool structured) {
+    public void TheStructuredFormIsRecognisedByItsContentType(string? contentType, bool structured)
+    {
         Assert.Equal(structured, CloudEventReader.IsStructured(contentType));
     }
 }

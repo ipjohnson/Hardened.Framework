@@ -48,8 +48,8 @@ namespace Hardened.Generation;
 /// on the member, or to throw the generated exception type, which carries a body the handler wrote.
 /// </para>
 /// </remarks>
-internal static class DefaultErrorBody {
-
+internal static class DefaultErrorBody
+{
     /// <summary>The holder this document's generated instances are fields on.</summary>
     /// <remarks>
     /// Named after the document, the way <c>ErrorFactoryEmitter.HolderName</c> is. It was
@@ -79,13 +79,17 @@ internal static class DefaultErrorBody {
     /// <c>NullValueResponseHandler</c>. Restricted to a 404 the operation itself declares with a
     /// body: a document that never mentions one is not given one here.
     /// </remarks>
-    public static string? SchemaFor(OperationModel operation) {
-        if (operation.HttpMethod != "GET" && operation.HttpMethod != "PUT") {
+    public static string? SchemaFor(OperationModel operation)
+    {
+        if (operation.HttpMethod != "GET" && operation.HttpMethod != "PUT")
+        {
             return null;
         }
 
-        foreach (var error in operation.ErrorResponses) {
-            if (error.StatusCode == 404 && error.Ref != null) {
+        foreach (var error in operation.ErrorResponses)
+        {
+            if (error.StatusCode == 404 && error.Ref != null)
+            {
                 return TypeMapper.GetRefName(error.Ref);
             }
         }
@@ -127,11 +131,15 @@ internal static class DefaultErrorBody {
     /// </para>
     /// </remarks>
     public static IEnumerable<(string SchemaName, int StatusCode)> DeclaredBodies(
-        OperationModel operation) {
+        OperationModel operation
+    )
+    {
         var seen = new HashSet<int>();
 
-        foreach (var error in operation.ErrorResponses) {
-            if (error.Ref == null || !seen.Add(error.StatusCode)) {
+        foreach (var error in operation.ErrorResponses)
+        {
+            if (error.Ref == null || !seen.Add(error.StatusCode))
+            {
                 continue;
             }
 
@@ -144,8 +152,10 @@ internal static class DefaultErrorBody {
     /// member cannot be filled without inventing a value.
     /// </summary>
     public static IReadOnlyList<string>? Arguments(
-        IReadOnlyList<SchemaModel> schemas, string schemaName, int statusCode) =>
-        Arguments(schemas, schemaName, statusCode, BodySource.ForStatus(statusCode));
+        IReadOnlyList<SchemaModel> schemas,
+        string schemaName,
+        int statusCode
+    ) => Arguments(schemas, schemaName, statusCode, BodySource.ForStatus(statusCode));
 
     /// <summary>
     /// The same arguments with <c>type</c>, <c>title</c>, <c>status</c> and <c>detail</c> read off a
@@ -154,32 +164,44 @@ internal static class DefaultErrorBody {
     /// </summary>
     /// <param name="record">The expression that holds the record, in the generated code.</param>
     public static IReadOnlyList<string>? ArgumentsFromRecord(
-        IReadOnlyList<SchemaModel> schemas, string schemaName, int statusCode, string record) =>
-        Arguments(schemas, schemaName, statusCode, BodySource.ForRecord(statusCode, record));
+        IReadOnlyList<SchemaModel> schemas,
+        string schemaName,
+        int statusCode,
+        string record
+    ) => Arguments(schemas, schemaName, statusCode, BodySource.ForRecord(statusCode, record));
 
     private static IReadOnlyList<string>? Arguments(
-        IReadOnlyList<SchemaModel> schemas, string schemaName, int statusCode, BodySource source) {
+        IReadOnlyList<SchemaModel> schemas,
+        string schemaName,
+        int statusCode,
+        BodySource source
+    )
+    {
         var schema = Find(schemas, schemaName);
 
-        if (schema == null || schema.Kind != SchemaKind.Object) {
+        if (schema == null || schema.Kind != SchemaKind.Object)
+        {
             return null;
         }
 
         var isProblem = IsProblemDetails(schema);
         var arguments = new List<string>();
 
-        foreach (var property in SchemaShape.Constructor(schema)) {
+        foreach (var property in SchemaShape.Constructor(schema))
+        {
             var csType = TypeMapper.MapPropertyToCSharpType(property);
             var value = Value(property, csType, source, isProblem, schema.IsErrorShape);
 
-            if (value != null) {
+            if (value != null)
+            {
                 arguments.Add(value);
                 continue;
             }
 
             // Optional in C#, so the type's own default is a legitimate answer rather than an
             // invention - the member simply is not present in the response.
-            if (property.HasDefault) {
+            if (property.HasDefault)
+            {
                 arguments.Add("default");
                 continue;
             }
@@ -192,19 +214,28 @@ internal static class DefaultErrorBody {
         return arguments;
     }
 
-    public static SchemaModel? Find(IReadOnlyList<SchemaModel> schemas, string schemaName) {
+    public static SchemaModel? Find(IReadOnlyList<SchemaModel> schemas, string schemaName)
+    {
         var wanted = NamingHelper.ToPascalCase(schemaName);
 
-        return schemas.FirstOrDefault(
-            candidate => NamingHelper.ToPascalCase(candidate.Name) == wanted);
+        return schemas.FirstOrDefault(candidate =>
+            NamingHelper.ToPascalCase(candidate.Name) == wanted
+        );
     }
 
     private static string? Value(
-        PropertyModel property, string csType, BodySource source, bool isProblem, bool isErrorShape) {
+        PropertyModel property,
+        string csType,
+        BodySource source,
+        bool isProblem,
+        bool isErrorShape
+    )
+    {
         // The document's own default first. It is the one source here that is not an inference.
         var declared = DefaultLiteral.Format(property.Default, csType);
 
-        if (declared != null) {
+        if (declared != null)
+        {
             return declared;
         }
 
@@ -214,15 +245,18 @@ internal static class DefaultErrorBody {
         // than a guess. Keyed on the shape carrying @error rather than on the member's name,
         // because { message: string } is an ordinary shape and an ordinary payload's message is
         // not this.
-        if (isErrorShape && property.Name == "message" && csType == "string") {
+        if (isErrorShape && property.Name == "message" && csType == "string")
+        {
             return source.Message;
         }
 
-        if (!isProblem) {
+        if (!isProblem)
+        {
             return null;
         }
 
-        switch (property.Name) {
+        switch (property.Name)
+        {
             case "type" when csType == "string":
                 return source.Type;
             case "title" when csType == "string":
@@ -249,8 +283,10 @@ internal static class DefaultErrorBody {
     /// with the detail, or the title where no detail was given, which is the same act as the reason
     /// phrase going into it.
     /// </remarks>
-    private readonly struct BodySource {
-        private BodySource(string type, string title, string status, string? detail, string message) {
+    private readonly struct BodySource
+    {
+        private BodySource(string type, string title, string status, string? detail, string message)
+        {
             Type = type;
             Title = title;
             Status = status;
@@ -268,7 +304,8 @@ internal static class DefaultErrorBody {
 
         public string Message { get; }
 
-        public static BodySource ForStatus(int statusCode) {
+        public static BodySource ForStatus(int statusCode)
+        {
             var phrase = "\"" + ReasonPhrase(statusCode) + "\"";
             var problemType = ShippedResponses.ProblemType(statusCode);
 
@@ -279,22 +316,34 @@ internal static class DefaultErrorBody {
                 phrase,
                 statusCode.ToString(CultureInfo.InvariantCulture),
                 detail: null,
-                phrase);
+                phrase
+            );
         }
 
-        public static BodySource ForRecord(int statusCode, string record) {
+        public static BodySource ForRecord(int statusCode, string record)
+        {
             // MethodNotAllowed and NotAcceptable carry a status and nothing else a problem body
             // reads, so their bodies are the status's rather than the record's.
-            if (!ShippedResponses.HasProblemMembers(statusCode)) {
+            if (!ShippedResponses.HasProblemMembers(statusCode))
+            {
                 var fromStatus = ForStatus(statusCode);
 
                 return new BodySource(
-                    fromStatus.Type, fromStatus.Title, record + ".Status", detail: null, fromStatus.Message);
+                    fromStatus.Type,
+                    fromStatus.Title,
+                    record + ".Status",
+                    detail: null,
+                    fromStatus.Message
+                );
             }
 
             return new BodySource(
-                record + ".Type", record + ".Title", record + ".Status", record + ".Detail",
-                "(" + record + ".Detail ?? " + record + ".Title)");
+                record + ".Type",
+                record + ".Title",
+                record + ".Status",
+                record + ".Detail",
+                "(" + record + ".Detail ?? " + record + ".Title)"
+            );
         }
     }
 
@@ -307,17 +356,21 @@ internal static class DefaultErrorBody {
     /// beside it often enough for this to be worth loosening, and the cost of a false positive is a
     /// status code written into a member that never meant one.
     /// </remarks>
-    public static bool IsProblemDetails(SchemaModel schema) {
+    public static bool IsProblemDetails(SchemaModel schema)
+    {
         var hasTitle = false;
         var hasStatus = false;
 
-        foreach (var property in schema.Properties) {
+        foreach (var property in schema.Properties)
+        {
             var csType = TypeMapper.MapPropertyToCSharpType(property);
 
-            if (property.Name == "title" && csType == "string") {
+            if (property.Name == "title" && csType == "string")
+            {
                 hasTitle = true;
             }
-            else if (property.Name == "status" && (csType == "int" || csType == "long")) {
+            else if (property.Name == "status" && (csType == "int" || csType == "long"))
+            {
                 hasStatus = true;
             }
         }
@@ -334,22 +387,38 @@ internal static class DefaultErrorBody {
     /// for 429 is "Too Many Requests" and the framework's record for it is <c>RateLimited</c>.
     /// Naming is <c>ShippedResponses.StatusName</c>'s.
     /// </remarks>
-    public static string ReasonPhrase(int statusCode) {
-        switch (statusCode) {
-            case 400: return "Bad Request";
-            case 401: return "Unauthorized";
-            case 403: return "Forbidden";
-            case 404: return "Not Found";
-            case 405: return "Method Not Allowed";
-            case 406: return "Not Acceptable";
-            case 409: return "Conflict";
-            case 410: return "Gone";
-            case 415: return "Unsupported Media Type";
-            case 422: return "Unprocessable Content";
-            case 429: return "Too Many Requests";
-            case 500: return "Internal Server Error";
-            case 503: return "Service Unavailable";
-            default: return "Error";
+    public static string ReasonPhrase(int statusCode)
+    {
+        switch (statusCode)
+        {
+            case 400:
+                return "Bad Request";
+            case 401:
+                return "Unauthorized";
+            case 403:
+                return "Forbidden";
+            case 404:
+                return "Not Found";
+            case 405:
+                return "Method Not Allowed";
+            case 406:
+                return "Not Acceptable";
+            case 409:
+                return "Conflict";
+            case 410:
+                return "Gone";
+            case 415:
+                return "Unsupported Media Type";
+            case 422:
+                return "Unprocessable Content";
+            case 429:
+                return "Too Many Requests";
+            case 500:
+                return "Internal Server Error";
+            case 503:
+                return "Service Unavailable";
+            default:
+                return "Error";
         }
     }
 }

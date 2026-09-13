@@ -16,10 +16,9 @@ namespace Hardened.Smithy.BuildTask.Tests;
 /// the set is negotiated first-match; it is what lets a declared error answer on an operation
 /// whose success is not JSON.
 /// </remarks>
-public class SmithyProducedContentTypesTests {
-
-    private const string Model =
-        """
+public class SmithyProducedContentTypesTests
+{
+    private const string Model = """
         { "smithy": "2.0", "shapes": {
             "com.example#Svc": {
               "type": "service", "version": "1",
@@ -61,28 +60,32 @@ public class SmithyProducedContentTypesTests {
                 "message": { "target": "smithy.api#String" } } } } }
         """;
 
-    private static OperationModel Operation(string operationId) {
+    private static OperationModel Operation(string operationId)
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(Model, "labels", diagnostics);
 
         Assert.NotNull(model);
 
         return Assert.Single(
-            Assert.Single(model!.Services).Operations, o => o.OperationId == operationId);
+            Assert.Single(model!.Services).Operations,
+            o => o.OperationId == operationId
+        );
     }
 
     [Fact]
-    public void ThePayloadMediaTypeLeadsAndTheErrorRepresentationFollows() {
+    public void ThePayloadMediaTypeLeadsAndTheErrorRepresentationFollows()
+    {
         Assert.Equal(
             new[] { "text/plain", "application/json" },
-            Operation("GetLabel").ProducedContentTypes);
+            Operation("GetLabel").ProducedContentTypes
+        );
     }
 
     [Fact]
-    public void AJsonOperationWithJsonErrorsDeclaresItOnce() {
-        Assert.Equal(
-            new[] { "application/json" },
-            Operation("GetStatus").ProducedContentTypes);
+    public void AJsonOperationWithJsonErrorsDeclaresItOnce()
+    {
+        Assert.Equal(new[] { "application/json" }, Operation("GetStatus").ProducedContentTypes);
     }
 
     /// <summary>
@@ -90,17 +93,22 @@ public class SmithyProducedContentTypesTests {
     /// its operations declare no set.
     /// </summary>
     [Fact]
-    public void ADispatchOperationDeclaresNoSet() {
+    public void ADispatchOperationDeclaresNoSet()
+    {
         var diagnostics = new List<string>();
         var model = SmithySpecParser.Parse(
-            File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "bank-awsjson.json")),
+            File.ReadAllText(
+                Path.Combine(AppContext.BaseDirectory, "Fixtures", "bank-awsjson.json")
+            ),
             "bank",
-            diagnostics);
+            diagnostics
+        );
 
         Assert.NotNull(model);
 
         Assert.All(
             model!.Services[0].Operations,
-            operation => Assert.Empty(operation.ProducedContentTypes));
+            operation => Assert.Empty(operation.ProducedContentTypes)
+        );
     }
 }

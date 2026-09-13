@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using Hardened.Idl.Emitters;
 using Hardened.Generation.Models;
+using Hardened.Idl.Emitters;
 using Xunit;
 
 namespace Hardened.OpenApi.BuildTask.Tests;
@@ -29,19 +29,21 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// a type that compiles and that the dispatch generator does not recognise.
 /// </para>
 /// </remarks>
-public class UnionResponseEmitterTests {
-
+public class UnionResponseEmitterTests
+{
     private static OperationModel Operation(
         string methodName = "GetPet",
         string? responseRef = "#/components/schemas/Pet",
-        params ErrorResponseModel[] errors) =>
-        new() {
+        params ErrorResponseModel[] errors
+    ) =>
+        new()
+        {
             OperationId = methodName,
             MethodName = methodName,
             Path = "/pets/{petId}",
             HttpMethod = "GET",
             ResponseRef = responseRef,
-            ErrorResponses = new List<ErrorResponseModel>(errors)
+            ErrorResponses = new List<ErrorResponseModel>(errors),
         };
 
     private static ErrorResponseModel Error(int status, string? schemaRef) =>
@@ -49,42 +51,76 @@ public class UnionResponseEmitterTests {
 
     /// <summary>An error the shipped set cannot express, with the name the allocator would give it.</summary>
     private static ErrorResponseModel NamedError(
-        int status, string? schemaRef, string name, string typeName) =>
-        new() { StatusCode = status, Ref = schemaRef, Name = name, TypeName = typeName };
+        int status,
+        string? schemaRef,
+        string name,
+        string typeName
+    ) =>
+        new()
+        {
+            StatusCode = status,
+            Ref = schemaRef,
+            Name = name,
+            TypeName = typeName,
+        };
 
     private static string EmitCases(params ErrorResponseModel[] errors) =>
-        EmitterHarness.Write(ns => UnionResponseEmitter.EmitErrorCaseTypes(
-            ns, new List<ErrorResponseModel>(errors), EmitterHarness.ModelsNamespace));
+        EmitterHarness.Write(ns =>
+            UnionResponseEmitter.EmitErrorCaseTypes(
+                ns,
+                new List<ErrorResponseModel>(errors),
+                EmitterHarness.ModelsNamespace
+            )
+        );
 
     /// <summary>The shipped record for a status, spelled as the container names it.</summary>
-    private static string Shipped(string name) =>
-        "Hardened.Web.Runtime.Responses." + name;
+    private static string Shipped(string name) => "Hardened.Web.Runtime.Responses." + name;
 
     private static string Emit(params OperationModel[] operations) =>
         Emit(asLanguageUnion: false, operations);
 
     private static string Emit(bool asLanguageUnion, params OperationModel[] operations) =>
-        EmitterHarness.Write(ns => UnionResponseEmitter.Emit(
-            ns,
-            new ServiceModel { Tag = "pets", Operations = new List<OperationModel>(operations) },
-            EmitterHarness.ModelsNamespace,
-            asLanguageUnion));
+        EmitterHarness.Write(ns =>
+            UnionResponseEmitter.Emit(
+                ns,
+                new ServiceModel
+                {
+                    Tag = "pets",
+                    Operations = new List<OperationModel>(operations),
+                },
+                EmitterHarness.ModelsNamespace,
+                asLanguageUnion
+            )
+        );
 
     /// <summary>The same, with the schemas the errors' bodies resolve against, which is what the shorthand needs.</summary>
-    private static string EmitWithSchemas(IReadOnlyList<SchemaModel> schemas, params OperationModel[] operations) =>
-        EmitWithSchemas(schemas, asLanguageUnion: false, operations);
+    private static string EmitWithSchemas(
+        IReadOnlyList<SchemaModel> schemas,
+        params OperationModel[] operations
+    ) => EmitWithSchemas(schemas, asLanguageUnion: false, operations);
 
     private static string EmitWithSchemas(
-        IReadOnlyList<SchemaModel> schemas, bool asLanguageUnion, params OperationModel[] operations) =>
-        EmitterHarness.Write(ns => UnionResponseEmitter.Emit(
-            ns,
-            new ServiceModel { Tag = "pets", Operations = new List<OperationModel>(operations) },
-            EmitterHarness.ModelsNamespace,
-            asLanguageUnion,
-            schemas: schemas,
-            specFileName: "petstore"));
+        IReadOnlyList<SchemaModel> schemas,
+        bool asLanguageUnion,
+        params OperationModel[] operations
+    ) =>
+        EmitterHarness.Write(ns =>
+            UnionResponseEmitter.Emit(
+                ns,
+                new ServiceModel
+                {
+                    Tag = "pets",
+                    Operations = new List<OperationModel>(operations),
+                },
+                EmitterHarness.ModelsNamespace,
+                asLanguageUnion,
+                schemas: schemas,
+                specFileName: "petstore"
+            )
+        );
 
-    private static SchemaModel ProblemSchema(string name) {
+    private static SchemaModel ProblemSchema(string name)
+    {
         var schema = new SchemaModel { Name = name, Kind = SchemaKind.Object };
 
         schema.Properties.Add(new PropertyModel { Name = "title", Type = "string" });
@@ -101,9 +137,17 @@ public class UnionResponseEmitterTests {
     /// is emitted for it. This is where <c>GetPetNotFound</c> and <c>GetPetConflict</c> used to be.
     /// </summary>
     [Fact]
-    public void ADeclaredErrorResolvesToTheShippedRecord() {
-        var emitted = Emit(Operation(
-            errors: [Error(404, "#/components/schemas/ApiError"), Error(409, "#/components/schemas/ApiError")]));
+    public void ADeclaredErrorResolvesToTheShippedRecord()
+    {
+        var emitted = Emit(
+            Operation(
+                errors:
+                [
+                    Error(404, "#/components/schemas/ApiError"),
+                    Error(409, "#/components/schemas/ApiError"),
+                ]
+            )
+        );
 
         Assert.DoesNotContain("record GetPetNotFound", emitted);
         Assert.DoesNotContain("record GetPetConflict", emitted);
@@ -119,14 +163,26 @@ public class UnionResponseEmitterTests {
     /// wrapper is what clears CS0457; the operation prefix never was.
     /// </remarks>
     [Fact]
-    public void TwoStatusesSharingASchemaBecomeTwoDistinctCaseTypes() {
-        var emitted = Emit(Operation(
-            errors: [Error(404, "#/components/schemas/ApiError"), Error(409, "#/components/schemas/ApiError")]));
+    public void TwoStatusesSharingASchemaBecomeTwoDistinctCaseTypes()
+    {
+        var emitted = Emit(
+            Operation(
+                errors:
+                [
+                    Error(404, "#/components/schemas/ApiError"),
+                    Error(409, "#/components/schemas/ApiError"),
+                ]
+            )
+        );
 
         Assert.Contains(
-            $"GetPetResponse({Shipped("NotFound")}<Test.Api.Models.ApiError> value)", emitted);
+            $"GetPetResponse({Shipped("NotFound")}<Test.Api.Models.ApiError> value)",
+            emitted
+        );
         Assert.Contains(
-            $"GetPetResponse({Shipped("Conflict")}<Test.Api.Models.ApiError> value)", emitted);
+            $"GetPetResponse({Shipped("Conflict")}<Test.Api.Models.ApiError> value)",
+            emitted
+        );
     }
 
     /// <summary>
@@ -134,7 +190,8 @@ public class UnionResponseEmitterTests {
     /// own problem document rather than a schema the description never named.
     /// </summary>
     [Fact]
-    public void AStatusWithNoBodyResolvesToTheBareShippedForm() {
+    public void AStatusWithNoBodyResolvesToTheBareShippedForm()
+    {
         var emitted = Emit(Operation(errors: [Error(503, null)]));
 
         Assert.Contains($"GetPetResponse({Shipped("ServiceUnavailable")} value)", emitted);
@@ -146,23 +203,35 @@ public class UnionResponseEmitterTests {
     /// framework costs a line per status instead of a record.
     /// </summary>
     [Fact]
-    public void AStatusWithNoShippedRecordResolvesToAClosedStatusGeneric() {
+    public void AStatusWithNoShippedRecordResolvesToAClosedStatusGeneric()
+    {
         var emitted = Emit(Operation(errors: [Error(418, "#/components/schemas/ApiError")]));
 
         Assert.Contains(
             $"GetPetResponse({Shipped("Status")}<{Shipped("Http.ImATeapot")},Test.Api.Models.ApiError> value)",
-            emitted);
+            emitted
+        );
     }
 
     /// <summary>
     /// And a status registered nowhere is the one case a table cannot answer, so it gets a type.
     /// </summary>
     [Fact]
-    public void AnUnregisteredStatusStillGetsACaseType() {
-        var emitted = Emit(Operation(
-            errors: [new ErrorResponseModel {
-                StatusCode = 529, Ref = "#/components/schemas/ApiError", TypeName = "Status529ApiError"
-            }]));
+    public void AnUnregisteredStatusStillGetsACaseType()
+    {
+        var emitted = Emit(
+            Operation(
+                errors:
+                [
+                    new ErrorResponseModel
+                    {
+                        StatusCode = 529,
+                        Ref = "#/components/schemas/ApiError",
+                        TypeName = "Status529ApiError",
+                    },
+                ]
+            )
+        );
 
         Assert.Contains("GetPetResponse(Test.Api.Models.Status529ApiError value)", emitted);
     }
@@ -174,10 +243,14 @@ public class UnionResponseEmitterTests {
     /// ends.
     /// </summary>
     [Fact]
-    public void EachCaseTypeCarriesItsStatusAsAnAttribute() {
+    public void EachCaseTypeCarriesItsStatusAsAnAttribute()
+    {
         Assert.Contains(
             "HttpStatus(404)",
-            EmitCases(NamedError(404, "#/components/schemas/ApiError", "PetMissing", "PetMissingError")));
+            EmitCases(
+                NamedError(404, "#/components/schemas/ApiError", "PetMissing", "PetMissingError")
+            )
+        );
     }
 
     /// <summary>
@@ -190,10 +263,14 @@ public class UnionResponseEmitterTests {
     /// and the two modifiers together give the match-order guarantee without that cost.
     /// </remarks>
     [Fact]
-    public void CaseTypesAreSealedPartialRecords() {
+    public void CaseTypesAreSealedPartialRecords()
+    {
         Assert.Contains(
             "public sealed partial record PetMissingError",
-            EmitCases(NamedError(404, "#/components/schemas/ApiError", "PetMissing", "PetMissingError")));
+            EmitCases(
+                NamedError(404, "#/components/schemas/ApiError", "PetMissing", "PetMissingError")
+            )
+        );
     }
 
     /// <summary>
@@ -201,10 +278,12 @@ public class UnionResponseEmitterTests {
     /// declaring the same 404 used to emit the same record twice under two names.
     /// </summary>
     [Fact]
-    public void OneCaseTypePerDistinctError() {
+    public void OneCaseTypePerDistinctError()
+    {
         var emitted = EmitCases(
             NamedError(404, "#/components/schemas/ApiError", "PetMissing", "PetMissingError"),
-            NamedError(409, "#/components/schemas/ApiError", "PetTaken", "PetTakenError"));
+            NamedError(409, "#/components/schemas/ApiError", "PetTaken", "PetTakenError")
+        );
 
         Assert.Contains("public sealed partial record PetMissingError", emitted);
         Assert.Contains("public sealed partial record PetTakenError", emitted);
@@ -216,12 +295,19 @@ public class UnionResponseEmitterTests {
     /// that can be decided.
     /// </summary>
     [Fact]
-    public void ACaseTypeTakesTheNameOnTheModel() {
+    public void ACaseTypeTakesTheNameOnTheModel()
+    {
         Assert.Contains(
             "public sealed partial record AccountNotFoundError",
-            EmitCases(NamedError(
-                400, "#/components/schemas/AccountNotFound", "AccountNotFound",
-                "AccountNotFoundError")));
+            EmitCases(
+                NamedError(
+                    400,
+                    "#/components/schemas/AccountNotFound",
+                    "AccountNotFound",
+                    "AccountNotFoundError"
+                )
+            )
+        );
     }
 
     #endregion
@@ -233,7 +319,8 @@ public class UnionResponseEmitterTests {
     /// this one rather than deriving it a second time.
     /// </summary>
     [Fact]
-    public void TheContainerIsNamedForTheOperation() {
+    public void TheContainerIsNamedForTheOperation()
+    {
         Assert.Equal("GetPetResponse", ResponseSetPlan.ContainerName(Operation()));
     }
 
@@ -242,27 +329,32 @@ public class UnionResponseEmitterTests {
     /// missing either half is a type the dispatch generator does not recognise.
     /// </summary>
     [Fact]
-    public void TheContainerMatchesTheBasicUnionPattern() {
+    public void TheContainerMatchesTheBasicUnionPattern()
+    {
         var emitted = Emit(Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
 
         Assert.Contains("public struct GetPetResponse", emitted);
         Assert.Contains("object? Value", emitted);
         Assert.Contains("public GetPetResponse(Test.Api.Models.Pet value)", emitted);
         Assert.Contains(
-            $"public GetPetResponse({Shipped("NotFound")}<Test.Api.Models.ApiError> value)", emitted);
+            $"public GetPetResponse({Shipped("NotFound")}<Test.Api.Models.ApiError> value)",
+            emitted
+        );
     }
 
     /// <summary>
     /// One conversion per case, so a handler returns the bare value rather than wrapping it.
     /// </summary>
     [Fact]
-    public void TheContainerConvertsFromEveryCase() {
+    public void TheContainerConvertsFromEveryCase()
+    {
         var emitted = Emit(Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
 
         Assert.Contains("implicit operator GetPetResponse(Test.Api.Models.Pet value)", emitted);
         Assert.Contains(
             $"implicit operator GetPetResponse({Shipped("NotFound")}<Test.Api.Models.ApiError> value)",
-            emitted);
+            emitted
+        );
     }
 
     /// <summary>
@@ -270,14 +362,18 @@ public class UnionResponseEmitterTests {
     /// contract's body from it, so a handler returns <c>new NotFound("pet", "...")</c>.
     /// </summary>
     [Fact]
-    public void TheContainerConvertsFromTheBareRecordWhereTheBodyCanBeFilled() {
+    public void TheContainerConvertsFromTheBareRecordWhereTheBodyCanBeFilled()
+    {
         var emitted = EmitWithSchemas(
-            [ProblemSchema("ApiError")], Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+            [ProblemSchema("ApiError")],
+            Operation(errors: [Error(404, "#/components/schemas/ApiError")])
+        );
 
         Assert.Contains(
-            $"public static implicit operator GetPetResponse({Shipped("NotFound")} value) => " +
-            "new(global::Test.Api.Models.PetstoreProblems.NotFoundApiError(value));",
-            emitted);
+            $"public static implicit operator GetPetResponse({Shipped("NotFound")} value) => "
+                + "new(global::Test.Api.Models.PetstoreProblems.NotFoundApiError(value));",
+            emitted
+        );
     }
 
     /// <summary>
@@ -285,18 +381,23 @@ public class UnionResponseEmitterTests {
     /// compile error rather than a body with nothing in it.
     /// </summary>
     [Fact]
-    public void ABodyThatIsNotProblemShapedGetsNoShorthand() {
+    public void ABodyThatIsNotProblemShapedGetsNoShorthand()
+    {
         var plain = new SchemaModel { Name = "ApiError", Kind = SchemaKind.Object };
         plain.Properties.Add(new PropertyModel { Name = "message", Type = "string" });
 
-        var emitted = EmitWithSchemas([plain], Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+        var emitted = EmitWithSchemas(
+            [plain],
+            Operation(errors: [Error(404, "#/components/schemas/ApiError")])
+        );
 
         Assert.DoesNotContain($"operator GetPetResponse({Shipped("NotFound")} value)", emitted);
     }
 
     /// <summary>Without the schemas there is no way to tell, and nothing is written.</summary>
     [Fact]
-    public void WithoutSchemasNoShorthandIsWritten() {
+    public void WithoutSchemasNoShorthandIsWritten()
+    {
         var emitted = Emit(Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
 
         Assert.DoesNotContain("PetstoreProblems", emitted);
@@ -307,7 +408,8 @@ public class UnionResponseEmitterTests {
     /// returns the pet it already had.
     /// </summary>
     [Fact]
-    public void TheSuccessCaseIsNotWrapped() {
+    public void TheSuccessCaseIsNotWrapped()
+    {
         var emitted = Emit(Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
 
         Assert.DoesNotContain("GetPetOk", emitted);
@@ -318,7 +420,8 @@ public class UnionResponseEmitterTests {
     /// only fail or return nothing is legal.
     /// </summary>
     [Fact]
-    public void AnOperationWithNoSuccessBodyStillGetsAContainer() {
+    public void AnOperationWithNoSuccessBodyStillGetsAContainer()
+    {
         var emitted = Emit(Operation(responseRef: null, errors: [Error(404, null)]));
 
         Assert.Contains("public struct GetPetResponse", emitted);
@@ -335,13 +438,17 @@ public class UnionResponseEmitterTests {
     /// why the declaration is the whole of it where there is no shorthand to write.
     /// </summary>
     [Fact]
-    public void UnionModeDeclaresTheContainerWithTheKeyword() {
+    public void UnionModeDeclaresTheContainerWithTheKeyword()
+    {
         var emitted = Emit(
             asLanguageUnion: true,
-            Operation(errors: [Error(404, "#/components/schemas/ApiError"), Error(503, null)]));
+            Operation(errors: [Error(404, "#/components/schemas/ApiError"), Error(503, null)])
+        );
 
         Assert.Contains(
-            "public union GetPetResponse(Pet, NotFound<ApiError>, ServiceUnavailable);", emitted);
+            "public union GetPetResponse(Pet, NotFound<ApiError>, ServiceUnavailable);",
+            emitted
+        );
 
         Assert.DoesNotContain("public struct GetPetResponse", emitted);
         Assert.DoesNotContain("implicit operator GetPetResponse", emitted);
@@ -353,27 +460,35 @@ public class UnionResponseEmitterTests {
     /// <c>new NotFound("pet", "...")</c> whichever container the module chose.
     /// </summary>
     [Fact]
-    public void UnionModeWritesTheShorthandInABody() {
+    public void UnionModeWritesTheShorthandInABody()
+    {
         var emitted = EmitWithSchemas(
-            [ProblemSchema("ApiError")], asLanguageUnion: true,
-            Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+            [ProblemSchema("ApiError")],
+            asLanguageUnion: true,
+            Operation(errors: [Error(404, "#/components/schemas/ApiError")])
+        );
 
         Assert.Contains("public union GetPetResponse(Pet, NotFound<ApiError>)", emitted);
         Assert.DoesNotContain("public union GetPetResponse(Pet, NotFound<ApiError>);", emitted);
         Assert.Contains(
-            $"public static implicit operator GetPetResponse({Shipped("NotFound")} value) => " +
-            "new(global::Test.Api.Models.PetstoreProblems.NotFoundApiError(value));",
-            emitted);
+            $"public static implicit operator GetPetResponse({Shipped("NotFound")} value) => "
+                + "new(global::Test.Api.Models.PetstoreProblems.NotFoundApiError(value));",
+            emitted
+        );
     }
 
     /// <summary>A body the shorthand cannot fill leaves the union on one line.</summary>
     [Fact]
-    public void UnionModeStaysOnOneLineWithoutAShorthandToWrite() {
+    public void UnionModeStaysOnOneLineWithoutAShorthandToWrite()
+    {
         var plain = new SchemaModel { Name = "ApiError", Kind = SchemaKind.Object };
         plain.Properties.Add(new PropertyModel { Name = "message", Type = "string" });
 
         var emitted = EmitWithSchemas(
-            [plain], asLanguageUnion: true, Operation(errors: [Error(404, "#/components/schemas/ApiError")]));
+            [plain],
+            asLanguageUnion: true,
+            Operation(errors: [Error(404, "#/components/schemas/ApiError")])
+        );
 
         Assert.Contains("public union GetPetResponse(Pet, NotFound<ApiError>);", emitted);
         Assert.DoesNotContain("implicit operator GetPetResponse", emitted);
@@ -384,7 +499,8 @@ public class UnionResponseEmitterTests {
     /// them a container swap rather than a migration.
     /// </summary>
     [Fact]
-    public void TheCaseTypesAreIdenticalInBothModes() {
+    public void TheCaseTypesAreIdenticalInBothModes()
+    {
         var operation = Operation("CancelPet", responseRef: null);
 
         operation.SuccessResponses.Add(new SuccessResponseModel { StatusCode = 204 });
@@ -393,12 +509,16 @@ public class UnionResponseEmitterTests {
         var asStruct = Emit(asLanguageUnion: false, operation);
         var asUnion = Emit(asLanguageUnion: true, operation);
 
-        foreach (var line in new[] {
-                     "public sealed partial record CancelPetNoContent",
-                     "HttpStatus(204)",
-                     "public sealed partial record CancelPetAccepted",
-                     "HttpStatus(202)"
-                 }) {
+        foreach (
+            var line in new[]
+            {
+                "public sealed partial record CancelPetNoContent",
+                "HttpStatus(204)",
+                "public sealed partial record CancelPetAccepted",
+                "HttpStatus(202)",
+            }
+        )
+        {
             Assert.Contains(line, asStruct);
             Assert.Contains(line, asUnion);
         }
@@ -409,14 +529,26 @@ public class UnionResponseEmitterTests {
     /// interface.
     /// </summary>
     [Fact]
-    public void BothUnionModesReturnTheSameTypeName() {
+    public void BothUnionModesReturnTheSameTypeName()
+    {
         var operation = Operation(errors: [Error(404, "#/components/schemas/ApiError")]);
 
         Assert.Equal(
-            Argument(ServiceInterfaceEmitter.GetReturnType(
-                operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Response)),
-            Argument(ServiceInterfaceEmitter.GetReturnType(
-                operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Union)));
+            Argument(
+                ServiceInterfaceEmitter.GetReturnType(
+                    operation,
+                    EmitterHarness.ModelsNamespace,
+                    SpecResponseModel.Response
+                )
+            ),
+            Argument(
+                ServiceInterfaceEmitter.GetReturnType(
+                    operation,
+                    EmitterHarness.ModelsNamespace,
+                    SpecResponseModel.Union
+                )
+            )
+        );
     }
 
     #endregion
@@ -427,14 +559,21 @@ public class UnionResponseEmitterTests {
     /// The whole point of the mode: the interface returns the union rather than the bare payload.
     /// </summary>
     [Fact]
-    public void ResponseModeChangesTheReturnType() {
+    public void ResponseModeChangesTheReturnType()
+    {
         var operation = Operation(errors: [Error(404, "#/components/schemas/ApiError")]);
 
         var standard = ServiceInterfaceEmitter.GetReturnType(
-            operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Throws);
+            operation,
+            EmitterHarness.ModelsNamespace,
+            SpecResponseModel.Throws
+        );
 
         var response = ServiceInterfaceEmitter.GetReturnType(
-            operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Response);
+            operation,
+            EmitterHarness.ModelsNamespace,
+            SpecResponseModel.Response
+        );
 
         // Both are Task<T>; what differs is the argument, so the name alone says nothing.
         Assert.Contains("Pet", Argument(standard));
@@ -447,11 +586,15 @@ public class UnionResponseEmitterTests {
     /// unchanged - which keeps the mode from rewriting interfaces it has nothing to add to.
     /// </summary>
     [Fact]
-    public void AnOperationWithNoDeclaredErrorsKeepsItsSignature() {
+    public void AnOperationWithNoDeclaredErrorsKeepsItsSignature()
+    {
         var operation = Operation();
 
         var response = ServiceInterfaceEmitter.GetReturnType(
-            operation, EmitterHarness.ModelsNamespace, SpecResponseModel.Response);
+            operation,
+            EmitterHarness.ModelsNamespace,
+            SpecResponseModel.Response
+        );
 
         Assert.DoesNotContain("GetPetResponse", Argument(response));
     }
@@ -468,7 +611,8 @@ public class UnionResponseEmitterTests {
     /// one.
     /// </summary>
     [Fact]
-    public void StreamedAndRawResponsesAreNotResponseSets() {
+    public void StreamedAndRawResponsesAreNotResponseSets()
+    {
         var streamed = Operation(errors: [Error(404, null)]);
         streamed.ItemSchemaRef = "#/components/schemas/Pet";
 
@@ -477,13 +621,25 @@ public class UnionResponseEmitterTests {
 
         Assert.DoesNotContain(
             "GetPetResponse",
-            Argument(ServiceInterfaceEmitter.GetReturnType(
-                streamed, EmitterHarness.ModelsNamespace, SpecResponseModel.Response)));
+            Argument(
+                ServiceInterfaceEmitter.GetReturnType(
+                    streamed,
+                    EmitterHarness.ModelsNamespace,
+                    SpecResponseModel.Response
+                )
+            )
+        );
 
         Assert.DoesNotContain(
             "GetPetResponse",
-            Argument(ServiceInterfaceEmitter.GetReturnType(
-                raw, EmitterHarness.ModelsNamespace, SpecResponseModel.Response)));
+            Argument(
+                ServiceInterfaceEmitter.GetReturnType(
+                    raw,
+                    EmitterHarness.ModelsNamespace,
+                    SpecResponseModel.Response
+                )
+            )
+        );
     }
 
     #endregion

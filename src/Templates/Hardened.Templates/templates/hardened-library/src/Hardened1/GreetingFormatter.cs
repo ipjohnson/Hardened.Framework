@@ -6,12 +6,13 @@ namespace Hardened1;
 /// A second service, so the library has something to inject and the tests have something to
 /// substitute.
 /// </summary>
-public interface IGreetingFormatter {
+public interface IGreetingFormatter
+{
     string Format(string message);
 }
 
 [SingletonService]
-public class GreetingFormatter : IGreetingFormatter {
-
+public class GreetingFormatter : IGreetingFormatter
+{
     public string Format(string message) => message + "!";
 }

@@ -22,8 +22,8 @@ namespace Hardened.IntegrationTests.LambdaRuntime.Tests;
 /// runs <see cref="HardenedLambdaBootstrap"/> against a real socket speaking the real protocol.
 /// </para>
 /// </summary>
-public class LambdaRuntimeLoopTests {
-
+public class LambdaRuntimeLoopTests
+{
     private const string OneOrder = """
         {"Records":[{
           "messageId":"m0","receiptHandle":"r0",
@@ -43,7 +43,11 @@ public class LambdaRuntimeLoopTests {
     /// than a background loop the test has to chase. The cancellation token is a deadline for the
     /// test itself: without one, a protocol mistake hangs the suite instead of failing it.
     /// </remarks>
-    private static async Task<RuntimeApiStub.Answer> Serve(IServiceProvider provider, string payload) {
+    private static async Task<RuntimeApiStub.Answer> Serve(
+        IServiceProvider provider,
+        string payload
+    )
+    {
         using var runtime = new RuntimeApiStub(payload);
 
         Environment.SetEnvironmentVariable("AWS_LAMBDA_RUNTIME_API", runtime.Address);
@@ -51,7 +55,10 @@ public class LambdaRuntimeLoopTests {
         Environment.SetEnvironmentVariable("AWS_LAMBDA_FUNCTION_NAME", "orders-function");
         Environment.SetEnvironmentVariable("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "512");
         Environment.SetEnvironmentVariable("AWS_LAMBDA_FUNCTION_VERSION", "$LATEST");
-        Environment.SetEnvironmentVariable("AWS_LAMBDA_LOG_GROUP_NAME", "/aws/lambda/orders-function");
+        Environment.SetEnvironmentVariable(
+            "AWS_LAMBDA_LOG_GROUP_NAME",
+            "/aws/lambda/orders-function"
+        );
         Environment.SetEnvironmentVariable("AWS_LAMBDA_LOG_STREAM_NAME", "stream");
 
         using var giveUp = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -67,7 +74,10 @@ public class LambdaRuntimeLoopTests {
     /// </summary>
     [HardenedTest]
     public async Task AnInvocationOverTheRuntimeApiReachesTheHandler(
-        IServiceProvider provider, [Mock] IOrderStore store) {
+        IServiceProvider provider,
+        [Mock] IOrderStore store
+    )
+    {
         var answer = await Serve(provider, OneOrder);
 
         Assert.False(answer.Failed);
@@ -78,7 +88,10 @@ public class LambdaRuntimeLoopTests {
     /// <summary>The batch report is what goes back on the wire, not just what the adapter can produce.</summary>
     [HardenedTest]
     public async Task TheBatchReportIsWhatThePostContains(
-        IServiceProvider provider, [Mock] IOrderStore store) {
+        IServiceProvider provider,
+        [Mock] IOrderStore store
+    )
+    {
         var answer = await Serve(provider, OneOrder);
 
         using var report = JsonDocument.Parse(answer.Body);
@@ -93,8 +106,12 @@ public class LambdaRuntimeLoopTests {
     /// </summary>
     [HardenedTest]
     public async Task AFailedHandlerPostsAnInvocationError(
-        IServiceProvider provider, [Mock] IOrderStore store) {
-        store.When(one => one.Place(Arg.Any<Order>()))
+        IServiceProvider provider,
+        [Mock] IOrderStore store
+    )
+    {
+        store
+            .When(one => one.Place(Arg.Any<Order>()))
             .Do(_ => throw new InvalidOperationException("handler refused the order"));
 
         var answer = await Serve(provider, OneOrder);
@@ -104,10 +121,12 @@ public class LambdaRuntimeLoopTests {
     }
 
     /// <summary>A startup service that records that it ran, and nothing else.</summary>
-    private sealed class Probe : IStartupService {
+    private sealed class Probe : IStartupService
+    {
         public bool Ran;
 
-        public Task<bool> Startup(IServiceProvider rootProvider) {
+        public Task<bool> Startup(IServiceProvider rootProvider)
+        {
             Ran = true;
 
             return Task.FromResult(true);
@@ -137,7 +156,8 @@ public class LambdaRuntimeLoopTests {
     /// </para>
     /// </remarks>
     [Fact]
-    public async Task TheBootstrapRunsTheStartupServicesOnTheProviderItIsGiven() {
+    public async Task TheBootstrapRunsTheStartupServicesOnTheProviderItIsGiven()
+    {
         var probe = new Probe();
 
         var services = new ServiceCollection();

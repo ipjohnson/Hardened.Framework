@@ -23,15 +23,16 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// In this project rather than beside the other document tests because the constraint vocabulary
 /// has to resolve, and this is the test project that references it.
 /// </remarks>
-public class ParameterConstraintDocumentTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),                    // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),               // Hardened.Requests.Abstract
-        typeof(ValidationFilterProvider<object>),// Hardened.Requests.Runtime
-        typeof(IValidatorFor<object>),           // ValidationModules.Runtime
-        typeof(EnableAttribute<>),               // Hardened.Shared.Runtime
-        typeof(OpenApiDocumentPublishing)        // the marker
+public class ParameterConstraintDocumentTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
+        typeof(ValidationFilterProvider<object>), // Hardened.Requests.Runtime
+        typeof(IValidatorFor<object>), // ValidationModules.Runtime
+        typeof(EnableAttribute<>), // Hardened.Shared.Runtime
+        typeof(OpenApiDocumentPublishing), // the marker
     ];
 
     private const string Source = """
@@ -56,22 +57,34 @@ public class ParameterConstraintDocumentTests {
         }
         """;
 
-    private static JsonElement Document() {
-        var result = GeneratorTestHarness.Run(
-            new Dictionary<string, string> { ["Test.cs"] = Source },
-            new IIncrementalGenerator[] {
-                new WebLibrarySourceGenerator(), new HardenedValidationGenerator()
-            },
-            Anchors).AssertNoErrors();
+    private static JsonElement Document()
+    {
+        var result = GeneratorTestHarness
+            .Run(
+                new Dictionary<string, string> { ["Test.cs"] = Source },
+                new IIncrementalGenerator[]
+                {
+                    new WebLibrarySourceGenerator(),
+                    new HardenedValidationGenerator(),
+                },
+                Anchors
+            )
+            .AssertNoErrors();
 
         var match = Regex.Match(
             result.SourceContaining("OpenApiDocument"),
-            @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
+            @"new byte\[\]\s*\{(.*?)\}\s*;",
+            RegexOptions.Singleline
+        );
 
         Assert.True(match.Success, "No document byte array in the generated source.");
 
-        var bytes = match.Groups[1].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var bytes = match
+            .Groups[1]
+            .Value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
             .Select(byte.Parse)
             .ToArray();
 
@@ -84,21 +97,29 @@ public class ParameterConstraintDocumentTests {
         return JsonDocument.Parse(inflated.ToArray()).RootElement.Clone();
     }
 
-    private static JsonElement Parameter(JsonElement document, string name) {
-        var operation = document.GetProperty("paths").GetProperty("/rates/{count}").GetProperty("get");
+    private static JsonElement Parameter(JsonElement document, string name)
+    {
+        var operation = document
+            .GetProperty("paths")
+            .GetProperty("/rates/{count}")
+            .GetProperty("get");
 
-        foreach (var parameter in operation.GetProperty("parameters").EnumerateArray()) {
-            if (parameter.GetProperty("name").GetString() == name) {
+        foreach (var parameter in operation.GetProperty("parameters").EnumerateArray())
+        {
+            if (parameter.GetProperty("name").GetString() == name)
+            {
                 return parameter;
             }
         }
 
         throw new Xunit.Sdk.XunitException(
-            $"No parameter named '{name}'. The operation was: {operation.GetRawText()}");
+            $"No parameter named '{name}'. The operation was: {operation.GetRawText()}"
+        );
     }
 
     [Fact]
-    public void ABoundOnAPathTokenIsPublishedAsMinimumAndMaximum() {
+    public void ABoundOnAPathTokenIsPublishedAsMinimumAndMaximum()
+    {
         var schema = Parameter(Document(), "count").GetProperty("schema");
 
         Assert.Equal("integer", schema.GetProperty("type").GetString());
@@ -107,7 +128,8 @@ public class ParameterConstraintDocumentTests {
     }
 
     [Fact]
-    public void ABoundOnAQueryValueIsPublishedAsMinimumAndMaximum() {
+    public void ABoundOnAQueryValueIsPublishedAsMinimumAndMaximum()
+    {
         var schema = Parameter(Document(), "precision").GetProperty("schema");
 
         Assert.Equal(2, schema.GetProperty("minimum").GetInt32());
@@ -115,7 +137,8 @@ public class ParameterConstraintDocumentTests {
     }
 
     [Fact]
-    public void ALengthOnAHeaderIsPublishedAsMinLengthAndMaxLength() {
+    public void ALengthOnAHeaderIsPublishedAsMinLengthAndMaxLength()
+    {
         var schema = Parameter(Document(), "X-Region").GetProperty("schema");
 
         Assert.Equal("string", schema.GetProperty("type").GetString());
@@ -128,10 +151,14 @@ public class ParameterConstraintDocumentTests {
     /// must send it anyway - so the document says so too, beside the pattern.
     /// </summary>
     [Fact]
-    public void ARequiredNullableQueryValueIsPublishedAsRequiredWithItsPattern() {
+    public void ARequiredNullableQueryValueIsPublishedAsRequiredWithItsPattern()
+    {
         var parameter = Parameter(Document(), "tag");
 
         Assert.True(parameter.GetProperty("required").GetBoolean());
-        Assert.Equal("^[a-z]+$", parameter.GetProperty("schema").GetProperty("pattern").GetString());
+        Assert.Equal(
+            "^[a-z]+$",
+            parameter.GetProperty("schema").GetProperty("pattern").GetString()
+        );
     }
 }

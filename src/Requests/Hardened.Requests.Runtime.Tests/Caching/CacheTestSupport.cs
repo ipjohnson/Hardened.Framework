@@ -15,21 +15,30 @@ namespace Hardened.Requests.Runtime.Tests.Caching;
 /// constraint and leaves no constructor to pass anything to - and a mutable static is shared across
 /// the test classes xUnit runs in parallel.
 /// </remarks>
-internal static class CacheTestSupport {
-
+internal static class CacheTestSupport
+{
     private class Controller;
 
     public static ExecutionRequestHandlerInfo Handler(
         object[] metadata,
         string path = "/catalog",
         string method = "GET",
-        Requirement? requirement = null) =>
-        new(path, method, typeof(Controller), "Browse", metadata: metadata, requirement: requirement);
+        Requirement? requirement = null
+    ) =>
+        new(
+            path,
+            method,
+            typeof(Controller),
+            "Browse",
+            metadata: metadata,
+            requirement: requirement
+        );
 
     /// <summary>
     /// A store that keeps what it was given and records what it was asked.
     /// </summary>
-    public sealed class RecordingStore : IResponseCacheStore {
+    public sealed class RecordingStore : IResponseCacheStore
+    {
         private readonly Dictionary<string, CachedResponse> _entries = new(StringComparer.Ordinal);
 
         public List<string> Reads { get; } = [];
@@ -38,15 +47,22 @@ internal static class CacheTestSupport {
 
         public List<string> Evictions { get; } = [];
 
-        public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken) {
+        public ValueTask<CachedResponse?> Get(string key, CancellationToken cancellationToken)
+        {
             Reads.Add(key);
 
             return new ValueTask<CachedResponse?>(
-                _entries.TryGetValue(key, out var entry) ? entry : null);
+                _entries.TryGetValue(key, out var entry) ? entry : null
+            );
         }
 
         public ValueTask Set(
-            string key, CachedResponse response, TimeSpan duration, CancellationToken cancellationToken) {
+            string key,
+            CachedResponse response,
+            TimeSpan duration,
+            CancellationToken cancellationToken
+        )
+        {
             Writes.Add((key, duration));
             _entries[key] = response;
 
@@ -57,10 +73,12 @@ internal static class CacheTestSupport {
         /// Drops what it was given under that tag, so a test can assert on the entry rather than on
         /// the call.
         /// </summary>
-        public ValueTask EvictByTag(string tag, CancellationToken cancellationToken) {
+        public ValueTask EvictByTag(string tag, CancellationToken cancellationToken)
+        {
             Evictions.Add(tag);
 
-            foreach (var entry in _entries.Where(e => e.Value.Tags.Contains(tag)).ToList()) {
+            foreach (var entry in _entries.Where(e => e.Value.Tags.Contains(tag)).ToList())
+            {
                 _entries.Remove(entry.Key);
             }
 
@@ -71,10 +89,12 @@ internal static class CacheTestSupport {
     /// <summary>
     /// Answers whatever the test's delegate does, so a filter test can key on anything.
     /// </summary>
-    public sealed class Keyed : ICacheKeyProvider {
+    public sealed class Keyed : ICacheKeyProvider
+    {
         private readonly Func<IExecutionContext, string?> _key;
 
-        public Keyed(Func<IExecutionContext, string?> key) {
+        public Keyed(Func<IExecutionContext, string?> key)
+        {
             _key = key;
         }
 
@@ -84,21 +104,24 @@ internal static class CacheTestSupport {
     }
 
     /// <summary>Answers the same key for every request.</summary>
-    public sealed class FixedKey : ICacheKeyProvider {
+    public sealed class FixedKey : ICacheKeyProvider
+    {
         public static ICacheKeyProvider Create(string[] values) => new FixedKey();
 
         public ValueTask<string?> Key(IExecutionContext context) => new("fixed");
     }
 
     /// <summary>A second strategy, so composition has two distinguishable parts.</summary>
-    public sealed class SecondKey : ICacheKeyProvider {
+    public sealed class SecondKey : ICacheKeyProvider
+    {
         public static ICacheKeyProvider Create(string[] values) => new SecondKey();
 
         public ValueTask<string?> Key(IExecutionContext context) => new("second");
     }
 
     /// <summary>Refuses to be built, so a test can assert the failure names the handler.</summary>
-    public sealed class Unbuildable : ICacheKeyProvider {
+    public sealed class Unbuildable : ICacheKeyProvider
+    {
         public static ICacheKeyProvider Create(string[] values) =>
             throw new ArgumentException("Unbuildable takes no values.", nameof(values));
 

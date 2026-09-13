@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 
 /// <summary>
@@ -19,56 +20,80 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests;
 /// - which buries the signal the flag exists to give.
 /// </para>
 /// </remarks>
-public class GeneratedDocumentProseTests {
-
-    private static async Task<JsonElement> Document(ITestWebApp app) {
+public class GeneratedDocumentProseTests
+{
+    private static async Task<JsonElement> Document(ITestWebApp app)
+    {
         var response = await app.Get("/openapi.json");
 
         response.Assert.Ok();
         response.Body.Position = 0;
 
         await using var gzip = new System.IO.Compression.GZipStream(
-            response.Body, System.IO.Compression.CompressionMode.Decompress);
+            response.Body,
+            System.IO.Compression.CompressionMode.Decompress
+        );
 
         return JsonDocument.Parse(await new StreamReader(gzip).ReadToEndAsync()).RootElement;
     }
 
     [HardenedTest]
-    public async Task AHandlersSummaryReachesTheOperation(ITestWebApp app) {
+    public async Task AHandlersSummaryReachesTheOperation(ITestWebApp app)
+    {
         var operation = (await Document(app))
-            .GetProperty("paths").GetProperty("/authorization/unguarded").GetProperty("get");
+            .GetProperty("paths")
+            .GetProperty("/authorization/unguarded")
+            .GetProperty("get");
 
         Assert.Equal(
             "No attribute at all, which is public while nothing has opted in.",
-            operation.GetProperty("summary").GetString());
+            operation.GetProperty("summary").GetString()
+        );
     }
 
     [HardenedTest]
-    public async Task AParamTagReachesTheParameter(ITestWebApp app) {
+    public async Task AParamTagReachesTheParameter(ITestWebApp app)
+    {
         var parameter = (await Document(app))
-            .GetProperty("paths").GetProperty("/binding/path/{id}").GetProperty("get")
+            .GetProperty("paths")
+            .GetProperty("/binding/path/{id}")
+            .GetProperty("get")
             .GetProperty("parameters")[0];
 
         Assert.Equal("id", parameter.GetProperty("name").GetString());
         Assert.Equal(
             "The token to echo, taken from the path.",
-            parameter.GetProperty("description").GetString());
+            parameter.GetProperty("description").GetString()
+        );
     }
 
     [HardenedTest]
-    public async Task ATypesSummaryReachesItsSchema(ITestWebApp app) {
+    public async Task ATypesSummaryReachesItsSchema(ITestWebApp app)
+    {
         var schema = (await Document(app))
-            .GetProperty("components").GetProperty("schemas").GetProperty("RegistrationModel");
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("RegistrationModel");
 
-        Assert.Contains("A body model with constraints on it", schema.GetProperty("description").GetString());
+        Assert.Contains(
+            "A body model with constraints on it",
+            schema.GetProperty("description").GetString()
+        );
     }
 
     [HardenedTest]
-    public async Task APropertysSummaryReachesItsSchema(ITestWebApp app) {
+    public async Task APropertysSummaryReachesItsSchema(ITestWebApp app)
+    {
         var name = (await Document(app))
-            .GetProperty("components").GetProperty("schemas").GetProperty("RegistrationModel")
-            .GetProperty("properties").GetProperty("name");
+            .GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("RegistrationModel")
+            .GetProperty("properties")
+            .GetProperty("name");
 
-        Assert.Equal("The name the registration is filed under.", name.GetProperty("description").GetString());
+        Assert.Equal(
+            "The name the registration is filed under.",
+            name.GetProperty("description").GetString()
+        );
     }
 }

@@ -17,8 +17,8 @@ namespace Hardened.Requests.Abstract.Caching;
 /// its own.
 /// </para>
 /// </remarks>
-public interface ICacheResponseDeclaration {
-
+public interface ICacheResponseDeclaration
+{
     /// <summary>
     /// How long a stored response stays valid, in seconds, or 0 for the default.
     /// </summary>

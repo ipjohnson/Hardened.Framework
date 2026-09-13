@@ -1,17 +1,23 @@
 ﻿using CSharpAuthor;
-using static CSharpAuthor.SyntaxHelpers;
 using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.Shared;
+using static CSharpAuthor.SyntaxHelpers;
 
 namespace Hardened.SourceGenerator.Requests;
 
-public static class InvokeMethodCodeGenerator {
-    public static void Implement(RequestHandlerModel requestHandlerModel, ClassDefinition classDefinition) {
+public static class InvokeMethodCodeGenerator
+{
+    public static void Implement(
+        RequestHandlerModel requestHandlerModel,
+        ClassDefinition classDefinition
+    )
+    {
         var invokeMethod = classDefinition.AddMethod("InvokeMethod");
 
         invokeMethod.Modifiers = ComponentModifier.Private | ComponentModifier.Static;
 
-        if (requestHandlerModel.ResponseInformation.IsAsync) {
+        if (requestHandlerModel.ResponseInformation.IsAsync)
+        {
             invokeMethod.Modifiers |= ComponentModifier.Async;
             invokeMethod.SetReturnType(typeof(Task));
         }
@@ -23,7 +29,9 @@ public static class InvokeMethodCodeGenerator {
         // choose - and for a static handler what arrives is the shared object
         // StaticInstanceFilter assigns.
         var controller = invokeMethod.AddParameter(
-            InvokeClassGenerator.ControllerTypeArgument(requestHandlerModel), "controller");
+            InvokeClassGenerator.ControllerTypeArgument(requestHandlerModel),
+            "controller"
+        );
 
         // Built before the call rather than added to it, because a static invocation takes its
         // arguments at construction and has no AddArgument to call afterwards.
@@ -33,30 +41,46 @@ public static class InvokeMethodCodeGenerator {
         // only place the distinction reaches the call itself; everything else about it is the type
         // argument.
         IOutputComponent invokeStatement = requestHandlerModel.IsStatic
-            ? Invoke(requestHandlerModel.ControllerType, requestHandlerModel.HandlerMethod, arguments)
+            ? Invoke(
+                requestHandlerModel.ControllerType,
+                requestHandlerModel.HandlerMethod,
+                arguments
+            )
             : controller.Invoke(requestHandlerModel.HandlerMethod, arguments);
 
-        if (requestHandlerModel.ResponseInformation.IsAsync) {
+        if (requestHandlerModel.ResponseInformation.IsAsync)
+        {
             invokeStatement = Await(invokeStatement);
         }
 
         AssignOutputFactory(requestHandlerModel, invokeMethod, context);
         AssignRawContentType(requestHandlerModel, invokeMethod, context);
 
-        var cases = UnionResponseSelector.Decode(requestHandlerModel.ResponseInformation.UnionCases);
+        var cases = UnionResponseSelector.Decode(
+            requestHandlerModel.ResponseInformation.UnionCases
+        );
 
-        if (cases.Count > 0) {
+        if (cases.Count > 0)
+        {
             EmitResponseSetDispatch(invokeMethod, invokeStatement, context, cases);
         }
-        else if (requestHandlerModel.ResponseInformation.ReturnType != null &&
-                 requestHandlerModel.ResponseInformation.ReturnType.Name != typeof(void).Name) {
+        else if (
+            requestHandlerModel.ResponseInformation.ReturnType != null
+            && requestHandlerModel.ResponseInformation.ReturnType.Name != typeof(void).Name
+        )
+        {
             EmitSingleResponseDispatch(
-                invokeMethod, invokeStatement, context,
+                invokeMethod,
+                invokeStatement,
+                context,
                 requestHandlerModel.ResponseInformation.ReturnTypeProvidesHeaders,
-                UnionResponseSelector.Decode(
-                    requestHandlerModel.ResponseInformation.DeclaredResponse).FirstOrDefault());
+                UnionResponseSelector
+                    .Decode(requestHandlerModel.ResponseInformation.DeclaredResponse)
+                    .FirstOrDefault()
+            );
         }
-        else {
+        else
+        {
             invokeMethod.AddIndentedStatement(invokeStatement);
         }
     }
@@ -83,17 +107,21 @@ public static class InvokeMethodCodeGenerator {
         IOutputComponent invokeStatement,
         ParameterDefinition context,
         bool providesHeaders,
-        UnionCaseModel declared) {
+        UnionCaseModel declared
+    )
+    {
         // The return type states its status, its headers and which member is its body. Emitted
         // directly rather than through a switch: a set switches on its Value to find out which case
         // it holds, and here the type is the answer.
-        if (declared.TypeName != null) {
+        if (declared.TypeName != null)
+        {
             EmitDeclaredResponseDispatch(invokeMethod, invokeStatement, context, declared);
 
             return;
         }
 
-        if (!providesHeaders) {
+        if (!providesHeaders)
+        {
             invokeMethod.Assign(invokeStatement).To(context.Property("Response.ResponseValue"));
 
             return;
@@ -103,8 +131,12 @@ public static class InvokeMethodCodeGenerator {
 
         invokeMethod.AddIndentedStatement(
             CodeOutputComponent.Get(
-                "if (" + ResultVariable + " is global::Hardened.Requests.Abstract.Responses." +
-                "IProvidesResponseHeaders __headerProvider) __headerProvider.ApplyHeaders(context.Response.Headers)"));
+                "if ("
+                    + ResultVariable
+                    + " is global::Hardened.Requests.Abstract.Responses."
+                    + "IProvidesResponseHeaders __headerProvider) __headerProvider.ApplyHeaders(context.Response.Headers)"
+            )
+        );
 
         invokeMethod.Assign(result).To(context.Property("Response.ResponseValue"));
     }
@@ -133,31 +165,45 @@ public static class InvokeMethodCodeGenerator {
         MethodDefinition invokeMethod,
         IOutputComponent invokeStatement,
         ParameterDefinition context,
-        UnionCaseModel declared) {
+        UnionCaseModel declared
+    )
+    {
         var result = invokeMethod.Assign(invokeStatement).ToVar(ResultVariable);
 
-        invokeMethod.Assign(CodeOutputComponent.Get(declared.Status.ToString()))
+        invokeMethod
+            .Assign(CodeOutputComponent.Get(declared.Status.ToString()))
             .To(context.Property("Response.Status"));
 
-        if (declared.AppliesHeaders) {
+        if (declared.AppliesHeaders)
+        {
             invokeMethod.AddIndentedStatement(
-                CodeOutputComponent.Get(ResultVariable)
-                    .Invoke("ApplyHeaders", context.Property("Response.Headers")));
+                CodeOutputComponent
+                    .Get(ResultVariable)
+                    .Invoke("ApplyHeaders", context.Property("Response.Headers"))
+            );
         }
 
-        if (declared.CarriesBody && declared.HasBody) {
+        if (declared.CarriesBody && declared.HasBody)
+        {
             invokeMethod
-                .Assign(CodeOutputComponent.Get(
-                    "((global::Hardened.Requests.Abstract.Responses.ICarriesResponseBody)" +
-                    ResultVariable + ").Body"))
+                .Assign(
+                    CodeOutputComponent.Get(
+                        "((global::Hardened.Requests.Abstract.Responses.ICarriesResponseBody)"
+                            + ResultVariable
+                            + ").Body"
+                    )
+                )
                 .To(context.Property("Response.ResponseValue"));
         }
-        else {
+        else
+        {
             invokeMethod.Assign(result).To(context.Property("Response.ResponseValue"));
         }
 
-        if (!declared.HasBody) {
-            invokeMethod.Assign(CodeOutputComponent.Get("false"))
+        if (!declared.HasBody)
+        {
+            invokeMethod
+                .Assign(CodeOutputComponent.Get("false"))
                 .To(context.Property("Response.ShouldSerialize"));
         }
     }
@@ -198,7 +244,9 @@ public static class InvokeMethodCodeGenerator {
         MethodDefinition invokeMethod,
         IOutputComponent invokeStatement,
         ParameterDefinition context,
-        IReadOnlyList<UnionCaseModel> cases) {
+        IReadOnlyList<UnionCaseModel> cases
+    )
+    {
         var result = invokeMethod.Assign(invokeStatement).ToVar(ResultVariable);
 
         var payload = result.Property(ValueProperty);
@@ -207,7 +255,8 @@ public static class InvokeMethodCodeGenerator {
 
         var switchBlock = invokeMethod.Switch(payload);
 
-        for (var i = 0; i < cases.Count; i++) {
+        for (var i = 0; i < cases.Count; i++)
+        {
             var unionCase = cases[i];
 
             // A named binding where an arm reads it - to apply headers, or to take the body off a
@@ -220,31 +269,43 @@ public static class InvokeMethodCodeGenerator {
             var binding = reads ? CaseVariable + i : "_";
 
             var caseBlock = switchBlock.AddCase(
-                CodeOutputComponent.Get(unionCase.TypeName + " " + binding));
+                CodeOutputComponent.Get(unionCase.TypeName + " " + binding)
+            );
 
-            caseBlock.Assign(CodeOutputComponent.Get(unionCase.Status.ToString()))
+            caseBlock
+                .Assign(CodeOutputComponent.Get(unionCase.Status.ToString()))
                 .To(context.Property("Response.Status"));
 
-            if (unionCase.AppliesHeaders) {
+            if (unionCase.AppliesHeaders)
+            {
                 caseBlock.AddIndentedStatement(
-                    CodeOutputComponent.Get(binding)
-                        .Invoke("ApplyHeaders", context.Property("Response.Headers")));
+                    CodeOutputComponent
+                        .Get(binding)
+                        .Invoke("ApplyHeaders", context.Property("Response.Headers"))
+                );
             }
 
             // Overrides the assignment made before the switch, for a case whose body is one of its
             // members rather than the case itself - Created<T> and the generic problem types.
             // Sending the wrapper would nest the caller's payload under a member and ship the
             // wrapper's own fields beside it.
-            if (unionCase.CarriesBody && unionCase.HasBody) {
+            if (unionCase.CarriesBody && unionCase.HasBody)
+            {
                 caseBlock
-                    .Assign(CodeOutputComponent.Get(
-                        "((global::Hardened.Requests.Abstract.Responses.ICarriesResponseBody)" +
-                        binding + ").Body"))
+                    .Assign(
+                        CodeOutputComponent.Get(
+                            "((global::Hardened.Requests.Abstract.Responses.ICarriesResponseBody)"
+                                + binding
+                                + ").Body"
+                        )
+                    )
                     .To(context.Property("Response.ResponseValue"));
             }
 
-            if (!unionCase.HasBody) {
-                caseBlock.Assign(CodeOutputComponent.Get("false"))
+            if (!unionCase.HasBody)
+            {
+                caseBlock
+                    .Assign(CodeOutputComponent.Get("false"))
                     .To(context.Property("Response.ShouldSerialize"));
             }
 
@@ -254,7 +315,8 @@ public static class InvokeMethodCodeGenerator {
         var fallback = switchBlock.AddDefault();
 
         fallback.Assign(CodeOutputComponent.Get("500")).To(context.Property("Response.Status"));
-        fallback.Assign(CodeOutputComponent.Get("false"))
+        fallback
+            .Assign(CodeOutputComponent.Get("false"))
             .To(context.Property("Response.ShouldSerialize"));
         fallback.Break();
     }
@@ -281,8 +343,13 @@ public static class InvokeMethodCodeGenerator {
     /// </para>
     /// </remarks>
     private static void AssignOutputFactory(
-        RequestHandlerModel requestHandlerModel, MethodDefinition invokeMethod, ParameterDefinition context) {
-        if (requestHandlerModel.ResponseInformation.OutputType == null) {
+        RequestHandlerModel requestHandlerModel,
+        MethodDefinition invokeMethod,
+        ParameterDefinition context
+    )
+    {
+        if (requestHandlerModel.ResponseInformation.OutputType == null)
+        {
             return;
         }
 
@@ -308,10 +375,15 @@ public static class InvokeMethodCodeGenerator {
     /// </para>
     /// </remarks>
     private static void AssignRawContentType(
-        RequestHandlerModel requestHandlerModel, MethodDefinition invokeMethod, ParameterDefinition context) {
+        RequestHandlerModel requestHandlerModel,
+        MethodDefinition invokeMethod,
+        ParameterDefinition context
+    )
+    {
         var contentType = requestHandlerModel.ResponseInformation.RawResponseContentType;
 
-        if (string.IsNullOrEmpty(contentType)) {
+        if (string.IsNullOrEmpty(contentType))
+        {
             return;
         }
 
@@ -327,16 +399,24 @@ public static class InvokeMethodCodeGenerator {
     /// <c>ExecutionHelper</c> delegate declares.
     /// </remarks>
     private static object[] HandlerArguments(
-        RequestHandlerModel requestHandlerModel, MethodDefinition invokeMethod) {
-        if (requestHandlerModel.RequestParameterInformationList.Count == 0) {
+        RequestHandlerModel requestHandlerModel,
+        MethodDefinition invokeMethod
+    )
+    {
+        if (requestHandlerModel.RequestParameterInformationList.Count == 0)
+        {
             return Array.Empty<object>();
         }
 
         var parameters = invokeMethod.AddParameter(
-            InvokeClassGenerator.ParametersType(requestHandlerModel), "parameters");
+            InvokeClassGenerator.ParametersType(requestHandlerModel),
+            "parameters"
+        );
 
-        return requestHandlerModel.RequestParameterInformationList
-            .Select(information => (object)parameters.Property(information.MemberName))
+        return requestHandlerModel
+            .RequestParameterInformationList.Select(information =>
+                (object)parameters.Property(information.MemberName)
+            )
             .ToArray();
     }
 }

@@ -19,42 +19,45 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// GET; a POST taking a counter and a payload built with a CS7036 in generated code. Nothing named
 /// the convention that decided either.
 /// </remarks>
-public class BodyParameterDiagnosticsTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),              // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),         // Hardened.Requests.Abstract
-        typeof(SingletonServiceAttribute)  // DependencyModules.Runtime
+public class BodyParameterDiagnosticsTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
+        typeof(SingletonServiceAttribute), // DependencyModules.Runtime
     ];
 
     private static GeneratorResult Generate(string handler) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using DependencyModules.Runtime.Attributes;
-                    using Hardened.Requests.Abstract.Attributes;
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
+                using DependencyModules.Runtime.Attributes;
+                using Hardened.Requests.Abstract.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    public partial class TestApplication { }
+                [HardenedModule]
+                public partial class TestApplication { }
 
-                    public interface ICounter { }
+                public interface ICounter { }
 
-                    [SingletonService]
-                    public class Counter : ICounter { }
+                [SingletonService]
+                public class Counter : ICounter { }
 
-                    public record Reading(string Sensor, int Value);
+                public record Reading(string Sensor, int Value);
 
-                    public class EventController {
-                    {{handler}}
-                    }
-                    """
+                public class EventController {
+                {{handler}}
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors);
+            Anchors
+        );
 
     private static IEnumerable<Diagnostic> Reported(GeneratorResult result, string id) =>
         result.GeneratorDiagnostics.Where(reported => reported.Id == id);
@@ -62,13 +65,18 @@ public class BodyParameterDiagnosticsTests {
     // ---------------------------------------------------------------- HRDR009
 
     [Fact]
-    public void TwoBodyParametersAreAnErrorNamingBoth() {
-        var result = Generate("""
+    public void TwoBodyParametersAreAnErrorNamingBoth()
+    {
+        var result = Generate(
+            """
             [Post("/events")]
             public string Handle(Reading first, Reading second) => "";
-            """);
+            """
+        );
 
-        var diagnostic = Assert.Single(Reported(result, BodyParameterDiagnostics.SeveralBodiesDiagnosticId));
+        var diagnostic = Assert.Single(
+            Reported(result, BodyParameterDiagnostics.SeveralBodiesDiagnosticId)
+        );
 
         Assert.Equal(DiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Contains("EventController.Handle", diagnostic.GetMessage());
@@ -88,11 +96,14 @@ public class BodyParameterDiagnosticsTests {
     /// HRDR009 is an error, so nothing reaches a running service either way.
     /// </remarks>
     [Fact]
-    public void TwoBodyParametersReportNothingBesideHRDR009() {
-        var result = Generate("""
+    public void TwoBodyParametersReportNothingBesideHRDR009()
+    {
+        var result = Generate(
+            """
             [Post("/events")]
             public string Handle(Reading first, Reading second) => "";
-            """);
+            """
+        );
 
         var error = Assert.Single(result.Errors).ToString();
 
@@ -105,28 +116,38 @@ public class BodyParameterDiagnosticsTests {
     /// uncompilable output, which is the failure the skip exists to prevent.
     /// </summary>
     [Fact]
-    public void AHandlerWithTwoBodyParametersIsNotRoutedTo() {
-        var result = Generate("""
+    public void AHandlerWithTwoBodyParametersIsNotRoutedTo()
+    {
+        var result = Generate(
+            """
             [Post("/events")]
             public string Handle(Reading first, Reading second) => "";
 
             [Post("/readings")]
             public string One(Reading reading) => "";
-            """);
+            """
+        );
 
-        var routing = result.GeneratedSources
-            .Single(source => source.Key.Contains("Routing", StringComparison.Ordinal)).Value;
+        var routing = result
+            .GeneratedSources.Single(source =>
+                source.Key.Contains("Routing", StringComparison.Ordinal)
+            )
+            .Value;
 
         Assert.DoesNotContain("EventController_Handle", routing);
         Assert.Contains("EventController_One", routing);
     }
 
     [Fact]
-    public void OneBodyParameterIsNotReported() {
-        var result = Generate("""
-            [Post("/events")]
-            public string Handle(Reading reading) => "";
-            """).AssertNoErrors();
+    public void OneBodyParameterIsNotReported()
+    {
+        var result = Generate(
+                """
+                [Post("/events")]
+                public string Handle(Reading reading) => "";
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Empty(Reported(result, BodyParameterDiagnostics.SeveralBodiesDiagnosticId));
     }
@@ -140,11 +161,14 @@ public class BodyParameterDiagnosticsTests {
     [Theory]
     [InlineData("Get")]
     [InlineData("Post")]
-    public void ARegisteredServiceParameterIsHRDR007WhateverTheVerb(string verb) {
-        var result = Generate($$"""
+    public void ARegisteredServiceParameterIsHRDR007WhateverTheVerb(string verb)
+    {
+        var result = Generate(
+            $$"""
             [{{verb}}("/events")]
             public string Handle(Counter counter) => "";
-            """);
+            """
+        );
 
         var diagnostic = Assert.Single(Reported(result, ServiceParameterDiagnostics.DiagnosticId));
 
@@ -156,11 +180,15 @@ public class BodyParameterDiagnosticsTests {
     }
 
     [Fact]
-    public void TheSameServiceAsItsInterfaceReportsNothing() {
-        var result = Generate("""
-            [Get("/events")]
-            public string Handle(ICounter counter) => "";
-            """).AssertNoErrors();
+    public void TheSameServiceAsItsInterfaceReportsNothing()
+    {
+        var result = Generate(
+                """
+                [Get("/events")]
+                public string Handle(ICounter counter) => "";
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Empty(Reported(result, ServiceParameterDiagnostics.DiagnosticId));
         Assert.Empty(Reported(result, BodyParameterDiagnostics.BodylessVerbDiagnosticId));
@@ -171,15 +199,19 @@ public class BodyParameterDiagnosticsTests {
     [Theory]
     [InlineData("Get")]
     [InlineData("Delete")]
-    public void ABodyParameterOnABodylessVerbIsAWarning(string verb) {
-        var result = Generate($$"""
+    public void ABodyParameterOnABodylessVerbIsAWarning(string verb)
+    {
+        var result = Generate(
+            $$"""
             [{{verb}}("/events")]
             public string Handle(Reading reading) => "";
-            """);
+            """
+        );
 
         var reported = Reported(result, BodyParameterDiagnostics.BodylessVerbDiagnosticId).ToList();
 
-        if (verb == "Delete") {
+        if (verb == "Delete")
+        {
             // DELETE is not bodyless: HTTP permits a body on one and some APIs send it.
             Assert.Empty(reported);
 
@@ -196,22 +228,29 @@ public class BodyParameterDiagnosticsTests {
 
     /// <summary>A parameter a route token displaced is HRDR005's, which says why it moved.</summary>
     [Fact]
-    public void AParameterHRDR005ReportsIsLeftToIt() {
-        var result = Generate("""
+    public void AParameterHRDR005ReportsIsLeftToIt()
+    {
+        var result = Generate(
+            """
             [Get("/events/{eventid}")]
             public string Handle(string eventId) => eventId;
-            """);
+            """
+        );
 
         Assert.Single(Reported(result, RouteBindingDiagnostics.DiagnosticId));
         Assert.Empty(Reported(result, BodyParameterDiagnostics.BodylessVerbDiagnosticId));
     }
 
     [Fact]
-    public void ABodyOnAPostIsNotReported() {
-        var result = Generate("""
-            [Post("/events")]
-            public string Handle(Reading reading) => "";
-            """).AssertNoErrors();
+    public void ABodyOnAPostIsNotReported()
+    {
+        var result = Generate(
+                """
+                [Post("/events")]
+                public string Handle(Reading reading) => "";
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Empty(Reported(result, BodyParameterDiagnostics.BodylessVerbDiagnosticId));
     }

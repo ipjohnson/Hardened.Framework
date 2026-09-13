@@ -19,8 +19,13 @@ namespace Hardened.Azure.Functions.ServiceBus;
 /// no host to settle with, and a test that builds a delivery by hand.
 /// </para>
 /// </remarks>
-public sealed class ServiceBusDelivery {
-    public ServiceBusDelivery(ServiceBusReceivedMessage[] messages, ServiceBusMessageActions? actions = null) {
+public sealed class ServiceBusDelivery
+{
+    public ServiceBusDelivery(
+        ServiceBusReceivedMessage[] messages,
+        ServiceBusMessageActions? actions = null
+    )
+    {
         Messages = messages;
         Actions = actions;
     }

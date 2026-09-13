@@ -24,8 +24,8 @@ namespace Hardened.Requests.Runtime.Filters;
 /// published together, and two cells could be read a continuation apart and disagree.
 /// </para>
 /// </remarks>
-internal sealed class RequestDeadline : IRequestDeadline {
-
+internal sealed class RequestDeadline : IRequestDeadline
+{
     private static readonly AsyncLocal<Bound?> Current = new();
 
     /// <inheritdoc />
@@ -42,7 +42,8 @@ internal sealed class RequestDeadline : IRequestDeadline {
         new(deadline, token);
 
     /// <summary>The cell the scope reads and restores. Not part of the contract.</summary>
-    internal static Bound? Value {
+    internal static Bound? Value
+    {
         get => Current.Value;
         set => Current.Value = value;
     }
@@ -67,12 +68,15 @@ internal sealed class RequestDeadline : IRequestDeadline {
 /// for none of it.
 /// </para>
 /// </remarks>
-internal readonly struct DeadlineScope : IDisposable {
+internal readonly struct DeadlineScope : IDisposable
+{
     private readonly RequestDeadline.Bound? _previous;
     private readonly bool _published;
 
-    internal DeadlineScope(MachineTimestamp? deadline, CancellationToken token) {
-        if (deadline is not { } until) {
+    internal DeadlineScope(MachineTimestamp? deadline, CancellationToken token)
+    {
+        if (deadline is not { } until)
+        {
             _previous = null;
             _published = false;
 
@@ -84,8 +88,10 @@ internal readonly struct DeadlineScope : IDisposable {
         RequestDeadline.Value = new RequestDeadline.Bound(until, token);
     }
 
-    public void Dispose() {
-        if (_published) {
+    public void Dispose()
+    {
+        if (_published)
+        {
             RequestDeadline.Value = _previous;
         }
     }

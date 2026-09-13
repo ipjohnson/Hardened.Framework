@@ -13,38 +13,54 @@ namespace Hardened.Web.StaticContent.BuildTask.Tests;
 /// text is the point: a path with a quote in it, bytes that have to stay bytes.
 /// </para>
 /// </summary>
-public class ManifestEmitterTests : IDisposable {
-
+public class ManifestEmitterTests : IDisposable
+{
     private readonly string _root;
 
-    public ManifestEmitterTests() {
+    public ManifestEmitterTests()
+    {
         _root = Path.Combine(Path.GetTempPath(), "hardened-emit-" + Guid.NewGuid().ToString("N"));
 
         Directory.CreateDirectory(_root);
     }
 
-    public void Dispose() {
-        try { Directory.Delete(_root, true); } catch { /* best effort */ }
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_root, true);
+        }
+        catch
+        { /* best effort */
+        }
 
         GC.SuppressFinalize(this);
     }
 
-    private void Write(string relative, string content) {
+    private void Write(string relative, string content)
+    {
         var path = Path.Combine(_root, relative);
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, content);
     }
 
-    private string Emit(string? fallBack = null, long embed = 1024 * 1024,
-        string namespaceName = "Contoso.Orders") =>
+    private string Emit(
+        string? fallBack = null,
+        long embed = 1024 * 1024,
+        string namespaceName = "Contoso.Orders"
+    ) =>
         ManifestEmitter.Emit(
-            StaticContentScan.Scan(_root, "/", fallBack, embed), namespaceName, true);
+            StaticContentScan.Scan(_root, "/", fallBack, embed),
+            namespaceName,
+            true
+        );
 
     #region shape
 
     [Fact]
-    public void TheManifestIsAGeneratedRegisteredImplementation() {
+    public void TheManifestIsAGeneratedRegisteredImplementation()
+    {
         Write("app.js", "console.log('hi');");
 
         var source = Emit();
@@ -53,7 +69,9 @@ public class ManifestEmitterTests : IDisposable {
         Assert.Contains("namespace Contoso.Orders;", source);
         Assert.Contains("[SingletonService(Using = RegistrationType.Try)]", source);
         Assert.Contains(
-            "public sealed class GeneratedStaticContentManifest : IStaticContentManifest {", source);
+            "public sealed class GeneratedStaticContentManifest : IStaticContentManifest {",
+            source
+        );
     }
 
     /// <summary>
@@ -61,18 +79,21 @@ public class ManifestEmitterTests : IDisposable {
     /// test can meaningfully cover and its size swamps everything the assembly actually wrote.
     /// </summary>
     [Fact]
-    public void CoverageExclusionIsOptional() {
+    public void CoverageExclusionIsOptional()
+    {
         Write("app.js", "x");
 
         Assert.Contains("ExcludeFromCodeCoverage", Emit());
 
         Assert.DoesNotContain(
             "ExcludeFromCodeCoverage",
-            ManifestEmitter.Emit(StaticContentScan.Scan(_root, "/", null, 1024), "N", false));
+            ManifestEmitter.Emit(StaticContentScan.Scan(_root, "/", null, 1024), "N", false)
+        );
     }
 
     [Fact]
-    public void EveryFileBecomesAnEntry() {
+    public void EveryFileBecomesAnEntry()
+    {
         Write("app.js", "console.log('hi');");
         Write(Path.Combine("css", "site.css"), "body{}");
 
@@ -83,7 +104,8 @@ public class ManifestEmitterTests : IDisposable {
     }
 
     [Fact]
-    public void TheFallBackRouteIsCarried() {
+    public void TheFallBackRouteIsCarried()
+    {
         Write("index.html", "<html/>");
 
         Assert.Contains("FallBackRoute => \"/index.html\"", Emit(fallBack: "index.html"));
@@ -100,7 +122,8 @@ public class ManifestEmitterTests : IDisposable {
     /// ASCII character; base64 gives back a third of what compression saved.
     /// </summary>
     [Fact]
-    public void EmbeddedContentIsAByteArrayAndNotAString() {
+    public void EmbeddedContentIsAByteArrayAndNotAString()
+    {
         Write("app.js", "hi");
 
         var source = Emit();
@@ -117,7 +140,8 @@ public class ManifestEmitterTests : IDisposable {
     /// both <c>/</c> and <c>/index.html</c> would otherwise ship three copies of itself.
     /// </summary>
     [Fact]
-    public void AnAliasDoesNotDuplicateTheBytes() {
+    public void AnAliasDoesNotDuplicateTheBytes()
+    {
         Write("index.html", new string('x', 200));
 
         var source = Emit();
@@ -130,7 +154,8 @@ public class ManifestEmitterTests : IDisposable {
     }
 
     [Fact]
-    public void ContentOverTheThresholdIsReferencedByPathRatherThanEmbedded() {
+    public void ContentOverTheThresholdIsReferencedByPathRatherThanEmbedded()
+    {
         Write("big.bin", new string('a', 5000));
 
         var source = Emit(embed: 1024);
@@ -149,13 +174,16 @@ public class ManifestEmitterTests : IDisposable {
     /// literal and produce a syntax error in somebody else's project.
     /// </summary>
     [Fact]
-    public void APathNeedingEscapingIsEscaped() {
+    public void APathNeedingEscapingIsEscaped()
+    {
         var awkward = "it's \"quoted\" \\ odd.txt";
 
-        try {
+        try
+        {
             Write(awkward, "content");
         }
-        catch (Exception exception) when (exception is IOException or ArgumentException) {
+        catch (Exception exception) when (exception is IOException or ArgumentException)
+        {
             return; // The file system will not take the name; nothing to assert.
         }
 
@@ -170,11 +198,14 @@ public class ManifestEmitterTests : IDisposable {
     /// literal mid-way through - a syntax error in generated code the author never wrote.
     /// </summary>
     [Fact]
-    public void APathContainingANewlineIsEscaped() {
-        try {
+    public void APathContainingANewlineIsEscaped()
+    {
+        try
+        {
             Write("line\nbreak.txt", "content");
         }
-        catch (Exception exception) when (exception is IOException or ArgumentException) {
+        catch (Exception exception) when (exception is IOException or ArgumentException)
+        {
             return; // The file system will not take the name; nothing to assert.
         }
 
@@ -189,13 +220,15 @@ public class ManifestEmitterTests : IDisposable {
     /// readable part is a convenience; the hash suffix is what actually keeps them apart.
     /// </summary>
     [Fact]
-    public void TwoSimilarlyNamedFilesGetDistinctFields() {
+    public void TwoSimilarlyNamedFilesGetDistinctFields()
+    {
         Write(Path.Combine("a-very-long-directory-name-that-truncates", "one.txt"), "1");
         Write(Path.Combine("a-very-long-directory-name-that-truncates", "two.txt"), "2");
 
         var source = Emit();
 
-        var names = source.Split("private static readonly byte[] ")
+        var names = source
+            .Split("private static readonly byte[] ")
             .Skip(1)
             .Select(part => part.Split(' ')[0])
             .ToList();
@@ -209,10 +242,14 @@ public class ManifestEmitterTests : IDisposable {
     /// rather than a reason to emit a file with a dangling array.
     /// </summary>
     [Fact]
-    public void AnEmptyScanStillEmitsAValidClass() {
+    public void AnEmptyScanStillEmitsAValidClass()
+    {
         var source = Emit();
 
-        Assert.Contains("private static readonly StaticContentManifestEntry[] _entries = {", source);
+        Assert.Contains(
+            "private static readonly StaticContentManifestEntry[] _entries = {",
+            source
+        );
         Assert.Contains("};", source);
         Assert.Contains("FallBackRoute => null", source);
     }
@@ -226,7 +263,8 @@ public class ManifestEmitterTests : IDisposable {
     /// because the file is an input to the compilation.
     /// </summary>
     [Fact]
-    public void TwoEmissionsOfOneTreeAreIdentical() {
+    public void TwoEmissionsOfOneTreeAreIdentical()
+    {
         Write("app.js", "console.log('hi');");
         Write(Path.Combine("css", "site.css"), new string('a', 3000));
         Write("index.html", "<html/>");

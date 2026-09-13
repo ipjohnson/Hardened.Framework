@@ -14,10 +14,11 @@ namespace Hardened.SourceGeneration.Testing;
 /// starts failing when another test happens to run first.
 /// </para>
 /// </summary>
-public static class GeneratorReferences {
-
-    private static readonly Lazy<ImmutableArray<MetadataReference>> PlatformReferences =
-        new(BuildPlatformReferences);
+public static class GeneratorReferences
+{
+    private static readonly Lazy<ImmutableArray<MetadataReference>> PlatformReferences = new(
+        BuildPlatformReferences
+    );
 
     /// <summary>The base class library, and nothing else.</summary>
     public static ImmutableArray<MetadataReference> Platform => PlatformReferences.Value;
@@ -26,24 +27,30 @@ public static class GeneratorReferences {
     /// The base class library plus the assemblies containing <paramref name="anchorTypes"/> and
     /// everything those assemblies reference.
     /// </summary>
-    public static ImmutableArray<MetadataReference> For(IReadOnlyList<Type> anchorTypes) {
+    public static ImmutableArray<MetadataReference> For(IReadOnlyList<Type> anchorTypes)
+    {
         var builder = ImmutableArray.CreateBuilder<MetadataReference>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var reference in Platform) {
+        foreach (var reference in Platform)
+        {
             builder.Add(reference);
 
-            if (reference.Display is { } display) {
+            if (reference.Display is { } display)
+            {
                 seen.Add(Path.GetFileNameWithoutExtension(display));
             }
         }
 
-        foreach (var assembly in ExpandTransitively(anchorTypes.Select(type => type.Assembly))) {
-            if (assembly.IsDynamic || string.IsNullOrEmpty(assembly.Location)) {
+        foreach (var assembly in ExpandTransitively(anchorTypes.Select(type => type.Assembly)))
+        {
+            if (assembly.IsDynamic || string.IsNullOrEmpty(assembly.Location))
+            {
                 continue;
             }
 
-            if (seen.Add(Path.GetFileNameWithoutExtension(assembly.Location))) {
+            if (seen.Add(Path.GetFileNameWithoutExtension(assembly.Location)))
+            {
                 builder.Add(MetadataReference.CreateFromFile(assembly.Location));
             }
         }
@@ -60,30 +67,37 @@ public static class GeneratorReferences {
     /// in <c>Hardened.Requests.Abstract</c> too, or the source under test does not compile and the
     /// failure reads as a generator bug rather than a missing reference.
     /// </summary>
-    private static IEnumerable<Assembly> ExpandTransitively(IEnumerable<Assembly> roots) {
+    private static IEnumerable<Assembly> ExpandTransitively(IEnumerable<Assembly> roots)
+    {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var queue = new Queue<Assembly>();
 
-        foreach (var root in roots) {
+        foreach (var root in roots)
+        {
             queue.Enqueue(root);
         }
 
-        while (queue.Count > 0) {
+        while (queue.Count > 0)
+        {
             var assembly = queue.Dequeue();
 
-            if (assembly.FullName is not { } name || !seen.Add(name)) {
+            if (assembly.FullName is not { } name || !seen.Add(name))
+            {
                 continue;
             }
 
             yield return assembly;
 
-            foreach (var referenced in assembly.GetReferencedAssemblies()) {
+            foreach (var referenced in assembly.GetReferencedAssemblies())
+            {
                 Assembly loaded;
 
-                try {
+                try
+                {
                     loaded = Assembly.Load(referenced);
                 }
-                catch (Exception) {
+                catch (Exception)
+                {
                     // A reference that cannot be resolved is not necessarily needed by the source
                     // under test. If it is, the compiler says so far more clearly than anything
                     // that could be thrown from here.
@@ -95,16 +109,21 @@ public static class GeneratorReferences {
         }
     }
 
-    private static ImmutableArray<MetadataReference> BuildPlatformReferences() {
-        if (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is not string trusted) {
+    private static ImmutableArray<MetadataReference> BuildPlatformReferences()
+    {
+        if (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") is not string trusted)
+        {
             throw new InvalidOperationException(
-                "TRUSTED_PLATFORM_ASSEMBLIES is unavailable, so the base class library cannot be " +
-                "resolved. This library targets .NET Core and above.");
+                "TRUSTED_PLATFORM_ASSEMBLIES is unavailable, so the base class library cannot be "
+                    + "resolved. This library targets .NET Core and above."
+            );
         }
 
         return trusted
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Where(path => path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) && File.Exists(path))
+            .Where(path =>
+                path.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) && File.Exists(path)
+            )
             .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
             .ToImmutableArray();
     }

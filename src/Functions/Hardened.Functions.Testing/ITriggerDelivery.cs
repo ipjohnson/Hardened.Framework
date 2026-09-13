@@ -22,7 +22,8 @@ namespace Hardened.Functions.Testing;
 /// not to what sits behind it.
 /// </para>
 /// </remarks>
-public interface ITriggerDelivery {
+public interface ITriggerDelivery
+{
     /// <summary>
     /// Delivers a batch to the handler that serves one source.
     /// </summary>

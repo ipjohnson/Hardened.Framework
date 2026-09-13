@@ -6,12 +6,14 @@ using Xunit;
 
 namespace Hardened.Shared.Runtime.Tests.Json;
 
-public class PrimitiveJsonTypeInfoResolverTests {
-
-    private static JsonSerializerOptions Options(params JsonConverter[] converters) {
+public class PrimitiveJsonTypeInfoResolverTests
+{
+    private static JsonSerializerOptions Options(params JsonConverter[] converters)
+    {
         var options = new JsonSerializerOptions();
 
-        foreach (var converter in converters) {
+        foreach (var converter in converters)
+        {
             options.Converters.Add(converter);
         }
 
@@ -20,21 +22,59 @@ public class PrimitiveJsonTypeInfoResolverTests {
         return options;
     }
 
-    public static TheoryData<Type> LeafTypes() => new() {
-        typeof(string), typeof(bool), typeof(int), typeof(long), typeof(double),
-        typeof(DateTimeOffset), typeof(JsonElement), typeof(DateOnly), typeof(float),
-        typeof(uint), typeof(byte[]), typeof(decimal), typeof(Guid), typeof(DateTime),
-        typeof(TimeSpan), typeof(TimeOnly), typeof(byte), typeof(sbyte), typeof(short),
-        typeof(ushort), typeof(ulong), typeof(char), typeof(Uri), typeof(Version),
-        typeof(bool?), typeof(int?), typeof(long?), typeof(double?), typeof(DateTimeOffset?),
-        typeof(JsonElement?), typeof(DateOnly?), typeof(float?), typeof(uint?), typeof(decimal?),
-        typeof(Guid?), typeof(DateTime?), typeof(TimeSpan?), typeof(TimeOnly?), typeof(byte?),
-        typeof(sbyte?), typeof(short?), typeof(ushort?), typeof(ulong?), typeof(char?),
-    };
+    public static TheoryData<Type> LeafTypes() =>
+        new()
+        {
+            typeof(string),
+            typeof(bool),
+            typeof(int),
+            typeof(long),
+            typeof(double),
+            typeof(DateTimeOffset),
+            typeof(JsonElement),
+            typeof(DateOnly),
+            typeof(float),
+            typeof(uint),
+            typeof(byte[]),
+            typeof(decimal),
+            typeof(Guid),
+            typeof(DateTime),
+            typeof(TimeSpan),
+            typeof(TimeOnly),
+            typeof(byte),
+            typeof(sbyte),
+            typeof(short),
+            typeof(ushort),
+            typeof(ulong),
+            typeof(char),
+            typeof(Uri),
+            typeof(Version),
+            typeof(bool?),
+            typeof(int?),
+            typeof(long?),
+            typeof(double?),
+            typeof(DateTimeOffset?),
+            typeof(JsonElement?),
+            typeof(DateOnly?),
+            typeof(float?),
+            typeof(uint?),
+            typeof(decimal?),
+            typeof(Guid?),
+            typeof(DateTime?),
+            typeof(TimeSpan?),
+            typeof(TimeOnly?),
+            typeof(byte?),
+            typeof(sbyte?),
+            typeof(short?),
+            typeof(ushort?),
+            typeof(ulong?),
+            typeof(char?),
+        };
 
     [Theory]
     [MemberData(nameof(LeafTypes))]
-    public void GetTypeInfo_AnswersEveryLeafType(Type type) {
+    public void GetTypeInfo_AnswersEveryLeafType(Type type)
+    {
         var info = PrimitiveJsonTypeInfoResolver.Instance.GetTypeInfo(type, Options());
 
         Assert.NotNull(info);
@@ -42,7 +82,8 @@ public class PrimitiveJsonTypeInfoResolverTests {
     }
 
     [Fact]
-    public void GetTypeInfo_ReturnsNullForATypeItDoesNotOwn() {
+    public void GetTypeInfo_ReturnsNullForATypeItDoesNotOwn()
+    {
         Assert.Null(PrimitiveJsonTypeInfoResolver.Instance.GetTypeInfo(typeof(Uri[]), Options()));
     }
 
@@ -51,7 +92,8 @@ public class PrimitiveJsonTypeInfoResolverTests {
     /// handling a generated resolver sets up on the base of a hierarchy.
     /// </summary>
     [Fact]
-    public void GetTypeInfo_DoesNotAnswerForObject() {
+    public void GetTypeInfo_DoesNotAnswerForObject()
+    {
         Assert.Null(PrimitiveJsonTypeInfoResolver.Instance.GetTypeInfo(typeof(object), Options()));
     }
 
@@ -61,33 +103,79 @@ public class PrimitiveJsonTypeInfoResolverTests {
     /// every string property rather than degrading.
     /// </summary>
     [Fact]
-    public void GetTypeInfo_SuppliesTheLeafMetadataAPropertyInfoResolves() {
+    public void GetTypeInfo_SuppliesTheLeafMetadataAPropertyInfoResolves()
+    {
         var options = Options();
 
-        var info = JsonMetadataServices.CreateObjectInfo<Leaf>(options, new JsonObjectInfoValues<Leaf> {
-            ObjectWithParameterizedConstructorCreator = static args => new Leaf((string)args[0], (int?)args[1]),
-            PropertyMetadataInitializer = _ => new JsonPropertyInfo[] {
-                JsonMetadataServices.CreatePropertyInfo<string>(options, new JsonPropertyInfoValues<string> {
-                    IsProperty = true, IsPublic = true, DeclaringType = typeof(Leaf),
-                    PropertyName = "name", Getter = static o => ((Leaf)o).Name, Setter = null,
-                }),
-                JsonMetadataServices.CreatePropertyInfo<int?>(options, new JsonPropertyInfoValues<int?> {
-                    IsProperty = true, IsPublic = true, DeclaringType = typeof(Leaf),
-                    PropertyName = "count", Getter = static o => ((Leaf)o).Count, Setter = null,
-                }),
-            },
-            ConstructorParameterMetadataInitializer = static () => new JsonParameterInfoValues[] {
-                new() { Name = "name", ParameterType = typeof(string), Position = 0 },
-                new() { Name = "count", ParameterType = typeof(int?), Position = 1, DefaultValue = null },
-            },
-        });
+        var info = JsonMetadataServices.CreateObjectInfo<Leaf>(
+            options,
+            new JsonObjectInfoValues<Leaf>
+            {
+                ObjectWithParameterizedConstructorCreator = static args => new Leaf(
+                    (string)args[0],
+                    (int?)args[1]
+                ),
+                PropertyMetadataInitializer = _ =>
+                    new JsonPropertyInfo[]
+                    {
+                        JsonMetadataServices.CreatePropertyInfo<string>(
+                            options,
+                            new JsonPropertyInfoValues<string>
+                            {
+                                IsProperty = true,
+                                IsPublic = true,
+                                DeclaringType = typeof(Leaf),
+                                PropertyName = "name",
+                                Getter = static o => ((Leaf)o).Name,
+                                Setter = null,
+                            }
+                        ),
+                        JsonMetadataServices.CreatePropertyInfo<int?>(
+                            options,
+                            new JsonPropertyInfoValues<int?>
+                            {
+                                IsProperty = true,
+                                IsPublic = true,
+                                DeclaringType = typeof(Leaf),
+                                PropertyName = "count",
+                                Getter = static o => ((Leaf)o).Count,
+                                Setter = null,
+                            }
+                        ),
+                    },
+                ConstructorParameterMetadataInitializer = static () =>
+                    new JsonParameterInfoValues[]
+                    {
+                        new()
+                        {
+                            Name = "name",
+                            ParameterType = typeof(string),
+                            Position = 0,
+                        },
+                        new()
+                        {
+                            Name = "count",
+                            ParameterType = typeof(int?),
+                            Position = 1,
+                            DefaultValue = null,
+                        },
+                    },
+            }
+        );
 
-        Assert.Equal("""{"name":"a","count":2}""", JsonSerializer.Serialize(new Leaf("a", 2), info));
-        Assert.Equal(new Leaf("a", 2), JsonSerializer.Deserialize("""{"name":"a","count":2}""", info));
+        Assert.Equal(
+            """{"name":"a","count":2}""",
+            JsonSerializer.Serialize(new Leaf("a", 2), info)
+        );
+        Assert.Equal(
+            new Leaf("a", 2),
+            JsonSerializer.Deserialize("""{"name":"a","count":2}""", info)
+        );
     }
 
     [Fact]
-    public void GetTypeInfo_PrefersARegisteredConverterOverTheBuiltInOne() {
+    public void GetTypeInfo_PrefersARegisteredConverterOverTheBuiltInOne()
+    {
         var options = Options(new UnixSecondsDateTimeConverter());
 
         var info = (JsonTypeInfo<DateTime>)options.GetTypeInfo(typeof(DateTime));
@@ -97,7 +185,8 @@ public class PrimitiveJsonTypeInfoResolverTests {
     }
 
     [Fact]
-    public void GetTypeInfo_FallsBackToTheBuiltInConverterWhenNoneIsRegistered() {
+    public void GetTypeInfo_FallsBackToTheBuiltInConverterWhenNoneIsRegistered()
+    {
         var info = (JsonTypeInfo<DateTime>)Options().GetTypeInfo(typeof(DateTime));
 
         Assert.Equal("\"2025-08-17T00:00:00Z\"", JsonSerializer.Serialize(Timestamp, info));
@@ -109,7 +198,8 @@ public class PrimitiveJsonTypeInfoResolverTests {
     /// needs.
     /// </summary>
     [Fact]
-    public void GetTypeInfo_RoutesTheNullableFormThroughARegisteredConverter() {
+    public void GetTypeInfo_RoutesTheNullableFormThroughARegisteredConverter()
+    {
         var options = Options(new UnixSecondsDateTimeConverter());
 
         var info = (JsonTypeInfo<DateTime?>)options.GetTypeInfo(typeof(DateTime?));
@@ -118,7 +208,8 @@ public class PrimitiveJsonTypeInfoResolverTests {
     }
 
     [Fact]
-    public void GetTypeInfo_PrefersAConverterAFactoryProduces() {
+    public void GetTypeInfo_PrefersAConverterAFactoryProduces()
+    {
         var options = Options(new ShoutingStringConverterFactory());
 
         var info = (JsonTypeInfo<string>)options.GetTypeInfo(typeof(string));
@@ -130,26 +221,41 @@ public class PrimitiveJsonTypeInfoResolverTests {
 
     private record Leaf(string Name, int? Count);
 
-    private sealed class UnixSecondsDateTimeConverter : JsonConverter<DateTime> {
-        public override DateTime Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) =>
-            DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64()).UtcDateTime;
+    private sealed class UnixSecondsDateTimeConverter : JsonConverter<DateTime>
+    {
+        public override DateTime Read(
+            ref Utf8JsonReader reader,
+            Type type,
+            JsonSerializerOptions options
+        ) => DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64()).UtcDateTime;
 
-        public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options) =>
-            writer.WriteNumberValue(new DateTimeOffset(value, TimeSpan.Zero).ToUnixTimeSeconds());
+        public override void Write(
+            Utf8JsonWriter writer,
+            DateTime value,
+            JsonSerializerOptions options
+        ) => writer.WriteNumberValue(new DateTimeOffset(value, TimeSpan.Zero).ToUnixTimeSeconds());
     }
 
-    private sealed class ShoutingStringConverterFactory : JsonConverterFactory {
+    private sealed class ShoutingStringConverterFactory : JsonConverterFactory
+    {
         public override bool CanConvert(Type type) => type == typeof(string);
 
         public override JsonConverter CreateConverter(Type type, JsonSerializerOptions options) =>
             new ShoutingStringConverter();
 
-        private sealed class ShoutingStringConverter : JsonConverter<string> {
-            public override string Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) =>
-                reader.GetString() ?? "";
+        private sealed class ShoutingStringConverter : JsonConverter<string>
+        {
+            public override string Read(
+                ref Utf8JsonReader reader,
+                Type type,
+                JsonSerializerOptions options
+            ) => reader.GetString() ?? "";
 
-            public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options) =>
-                writer.WriteStringValue(value.ToUpperInvariant());
+            public override void Write(
+                Utf8JsonWriter writer,
+                string value,
+                JsonSerializerOptions options
+            ) => writer.WriteStringValue(value.ToUpperInvariant());
         }
     }
 }

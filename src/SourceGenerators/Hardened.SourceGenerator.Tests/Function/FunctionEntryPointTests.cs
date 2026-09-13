@@ -13,19 +13,26 @@ namespace Hardened.SourceGenerator.Tests.Function;
 /// produces nothing.
 /// </para>
 /// </summary>
-public class FunctionEntryPointTests {
-
+public class FunctionEntryPointTests
+{
     /// <summary>
     /// A library of handlers with no application of its own. The invokers are still emitted — a
     /// handler library is a legitimate thing to compile, and the application that consumes it
     /// supplies the entry point in its own compilation.
     /// </summary>
     [Fact]
-    public void HandlersWithNoEntryPointStillGenerateTheirInvokers() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Handlers("""
-                [HardenedFunction]
-                public void Process() { }
-            """)).AssertNoErrors();
+    public void HandlersWithNoEntryPointStillGenerateTheirInvokers()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Handlers(
+                    """
+                        [HardenedFunction]
+                        public void Process() { }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("INVOKE.Process.FunctionHandler.cs", result.GeneratedSources.Keys);
     }
@@ -35,13 +42,23 @@ public class FunctionEntryPointTests {
     /// handler library without an application is the normal case, not an error.
     /// </summary>
     [Fact]
-    public void HandlersWithNoEntryPointGenerateNoProvider() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Handlers("""
-                [HardenedFunction]
-                public void Process() { }
-            """)).AssertNoErrors();
+    public void HandlersWithNoEntryPointGenerateNoProvider()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Handlers(
+                    """
+                        [HardenedFunction]
+                        public void Process() { }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
-        Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("FunctionHandlers"));
+        Assert.DoesNotContain(
+            result.GeneratedSources.Keys,
+            key => key.Contains("FunctionHandlers")
+        );
         Assert.Empty(result.GeneratorDiagnostics);
     }
 
@@ -50,14 +67,19 @@ public class FunctionEntryPointTests {
     /// an empty provider.
     /// </summary>
     [Fact]
-    public void ACompilationWithNothingToGenerateProducesNoFiles() {
-        var result = FunctionGeneratorHarness.Generate("""
-            namespace TestApp;
+    public void ACompilationWithNothingToGenerateProducesNoFiles()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                """
+                namespace TestApp;
 
-            public class NotAFunction {
-                public void Process() { }
-            }
-            """).AssertNoErrors();
+                public class NotAFunction {
+                    public void Process() { }
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Empty(result.GeneratedSources);
     }
@@ -66,13 +88,20 @@ public class FunctionEntryPointTests {
     /// A method without <c>[HardenedFunction]</c> is not a handler, even beside one that is.
     /// </summary>
     [Fact]
-    public void OnlyAttributedMethodsBecomeHandlers() {
-        var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""
-                [HardenedFunction]
-                public void Process() { }
+    public void OnlyAttributedMethodsBecomeHandlers()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                FunctionGeneratorHarness.Application(
+                    """
+                        [HardenedFunction]
+                        public void Process() { }
 
-                public void NotAHandler() { }
-            """)).AssertNoErrors();
+                        public void NotAHandler() { }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.DoesNotContain(result.GeneratedSources.Keys, key => key.Contains("NotAHandler"));
         Assert.Equal(3, result.GeneratedSources.Count);
@@ -83,26 +112,32 @@ public class FunctionEntryPointTests {
     /// and the one SqsTest has.
     /// </summary>
     [Fact]
-    public void TheEntryPointAndItsHandlersMayLiveInSeparateFiles() {
-        var result = FunctionGeneratorHarness.Generate(new Dictionary<string, string> {
-            ["Application.cs"] = """
-                using Hardened.Shared.Runtime.Attributes;
+    public void TheEntryPointAndItsHandlersMayLiveInSeparateFiles()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                new Dictionary<string, string>
+                {
+                    ["Application.cs"] = """
+                    using Hardened.Shared.Runtime.Attributes;
 
-                namespace TestApp;
+                    namespace TestApp;
 
-                [HardenedModule]
-                public partial class TestApplication { }
-                """,
-            ["Functions.cs"] = """
-                using Hardened.Requests.Abstract.Attributes;
+                    [HardenedModule]
+                    public partial class TestApplication { }
+                    """,
+                    ["Functions.cs"] = """
+                    using Hardened.Requests.Abstract.Attributes;
 
-                namespace TestApp;
+                    namespace TestApp;
 
-                public class TestFunctions {
-                    [HardenedFunction] public void Process() { }
+                    public class TestFunctions {
+                        [HardenedFunction] public void Process() { }
+                    }
+                    """,
                 }
-                """
-        }).AssertNoErrors();
+            )
+            .AssertNoErrors();
 
         Assert.Contains("INVOKE.Process.FunctionHandler.cs", result.GeneratedSources.Keys);
         Assert.Contains("TestApplication.FunctionHandlers.cs", result.GeneratedSources.Keys);
@@ -116,19 +151,24 @@ public class FunctionEntryPointTests {
     /// silently never generated.
     /// </summary>
     [Fact]
-    public void AFullyQualifiedModuleAttributeIsStillAnEntryPoint() {
-        var result = FunctionGeneratorHarness.Generate("""
-            using Hardened.Requests.Abstract.Attributes;
+    public void AFullyQualifiedModuleAttributeIsStillAnEntryPoint()
+    {
+        var result = FunctionGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Requests.Abstract.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [Hardened.Shared.Runtime.Attributes.HardenedModule]
-            public partial class TestApplication { }
+                [Hardened.Shared.Runtime.Attributes.HardenedModule]
+                public partial class TestApplication { }
 
-            public class TestFunctions {
-                [HardenedFunction] public void Process() { }
-            }
-            """).AssertNoErrors();
+                public class TestFunctions {
+                    [HardenedFunction] public void Process() { }
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("TestApplication.FunctionHandlers.cs", result.GeneratedSources.Keys);
     }

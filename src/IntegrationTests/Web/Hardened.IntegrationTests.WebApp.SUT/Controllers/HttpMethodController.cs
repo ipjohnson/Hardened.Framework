@@ -14,8 +14,8 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// them and nothing here could regress. These routes exist so that cannot happen again silently.
 /// </summary>
 [BasePath("/verbs")]
-public class HttpMethodController {
-
+public class HttpMethodController
+{
     [Delete("/item/{id}")]
     public string DeleteItem(string id) => $"deleted:{id}";
 
@@ -70,8 +70,10 @@ public class HttpMethodController {
     /// return type alone decides, and a lone <c>Created&lt;T&gt;</c> is an ordinary body at 200.
     /// </summary>
     [Post("/located")]
-    public Response<Created<MathAddModel>, BadRequest> CreateLocated(MathAddModel model) {
-        if (model.Values is not { Count: > 0 }) {
+    public Response<Created<MathAddModel>, BadRequest> CreateLocated(MathAddModel model)
+    {
+        if (model.Values is not { Count: > 0 })
+        {
             return new BadRequest("Nothing to add.");
         }
 

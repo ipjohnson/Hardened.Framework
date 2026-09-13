@@ -19,10 +19,12 @@ namespace Hardened.Web.Kestrel.Testing.Tests;
 /// pipeline handler's own tests stand on. The handler filter the runner appends sits behind it,
 /// so a path the filter passes on is a 404 from the real not-found handler.
 /// </remarks>
-internal sealed class HostHarness : IAsyncDisposable {
+internal sealed class HostHarness : IAsyncDisposable
+{
     private readonly ServiceProvider _provider;
 
-    private HostHarness(ServiceProvider provider, ITestHost host) {
+    private HostHarness(ServiceProvider provider, ITestHost host)
+    {
         _provider = provider;
         Host = host;
     }
@@ -37,7 +39,10 @@ internal sealed class HostHarness : IAsyncDisposable {
     public List<Seen> Requests { get; } = new();
 
     public static async Task<HostHarness> Start(
-        Func<IExecutionChain, Task> answer, CancellationToken cancellationToken) {
+        Func<IExecutionChain, Task> answer,
+        CancellationToken cancellationToken
+    )
+    {
         var services = new ServiceCollection();
 
         services.AddLogging(builder => builder.SetMinimumLevel(LogLevel.Warning));
@@ -67,24 +72,29 @@ internal sealed class HostHarness : IAsyncDisposable {
     /// <summary>Disposes the container, which is what disposes the host under a runner.</summary>
     public ValueTask DisposeAsync() => _provider.DisposeAsync();
 
-    private sealed class Answering : IExecutionFilter {
+    private sealed class Answering : IExecutionFilter
+    {
         private readonly HostHarness _harness;
         private readonly Func<IExecutionChain, Task> _answer;
 
-        public Answering(HostHarness harness, Func<IExecutionChain, Task> answer) {
+        public Answering(HostHarness harness, Func<IExecutionChain, Task> answer)
+        {
             _harness = harness;
             _answer = answer;
         }
 
-        public Task Execute(IExecutionChain chain) {
+        public Task Execute(IExecutionChain chain)
+        {
             var request = chain.Context.Request;
             var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var header in request.Headers) {
+            foreach (var header in request.Headers)
+            {
                 headers[header.Key] = header.Value.ToString();
             }
 
-            lock (_harness.Requests) {
+            lock (_harness.Requests)
+            {
                 _harness.Requests.Add(new Seen(request.Method, request.Path, headers));
             }
 
@@ -92,5 +102,9 @@ internal sealed class HostHarness : IAsyncDisposable {
         }
     }
 
-    public sealed record Seen(string Method, string Path, IReadOnlyDictionary<string, string> Headers);
+    public sealed record Seen(
+        string Method,
+        string Path,
+        IReadOnlyDictionary<string, string> Headers
+    );
 }

@@ -7,73 +7,101 @@ using Xunit;
 
 namespace Hardened.OpenApi.SourceGenerator.Tests;
 
-public class SpecRoutingTableGeneratorTests {
-    private static EntryPointSelector.Model CreateAppModel() {
-        return new EntryPointSelector.Model {
+public class SpecRoutingTableGeneratorTests
+{
+    private static EntryPointSelector.Model CreateAppModel()
+    {
+        return new EntryPointSelector.Model
+        {
             EntryPointType = TypeDefinition.Get("Test.Api", "TestApp"),
             AttributeModels = Array.Empty<AttributeModel>(),
             RootEntryPoint = true,
-            MethodDefinitions = Array.Empty<HardenedMethodDefinition>()
+            MethodDefinitions = Array.Empty<HardenedMethodDefinition>(),
         };
     }
 
-    private static List<RequestHandlerModel> CreatePetstoreHandlers() {
+    private static List<RequestHandlerModel> CreatePetstoreHandlers()
+    {
         var petServiceType = TypeDefinition.Get("Test.Api.Services", "IPetService");
         var storeServiceType = TypeDefinition.Get("Test.Api.Services", "IStoreService");
 
-        return new List<RequestHandlerModel> {
-            new(new RequestHandlerNameModel("/pets", "GET"),
-                petServiceType, "ListPets",
+        return new List<RequestHandlerModel>
+        {
+            new(
+                new RequestHandlerNameModel("/pets", "GET"),
+                petServiceType,
+                "ListPets",
                 TypeDefinition.Get("Test.Api.Generated", "PetController_ListPets"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>()),
-            new(new RequestHandlerNameModel("/pets", "POST"),
-                petServiceType, "CreatePet",
+                Array.Empty<AttributeModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/pets", "POST"),
+                petServiceType,
+                "CreatePet",
                 TypeDefinition.Get("Test.Api.Generated", "PetController_CreatePet"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>()),
-            new(new RequestHandlerNameModel("/pets/{petId}", "GET"),
-                petServiceType, "GetPet",
+                Array.Empty<AttributeModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/pets/{petId}", "GET"),
+                petServiceType,
+                "GetPet",
                 TypeDefinition.Get("Test.Api.Generated", "PetController_GetPet"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>()),
-            new(new RequestHandlerNameModel("/pets/{petId}", "DELETE"),
-                petServiceType, "DeletePet",
+                Array.Empty<AttributeModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/pets/{petId}", "DELETE"),
+                petServiceType,
+                "DeletePet",
                 TypeDefinition.Get("Test.Api.Generated", "PetController_DeletePet"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>()),
-            new(new RequestHandlerNameModel("/stores", "GET"),
-                storeServiceType, "ListStores",
+                Array.Empty<AttributeModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/stores", "GET"),
+                storeServiceType,
+                "ListStores",
                 TypeDefinition.Get("Test.Api.Generated", "StoreController_ListStores"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>())
+                Array.Empty<AttributeModel>()
+            ),
         };
     }
 
     /// <summary>
     /// An RPC service: every operation at POST /, told apart by a header.
     /// </summary>
-    private static List<RequestHandlerModel> CreateDispatchedHandlers() {
+    private static List<RequestHandlerModel> CreateDispatchedHandlers()
+    {
         var bankServiceType = TypeDefinition.Get("Test.Api.Services", "IBankService");
 
-        return new List<RequestHandlerModel> {
-            new(new RequestHandlerNameModel("/", "POST", "X-Amz-Target", "Bank.GetBalance"),
-                bankServiceType, "GetBalance",
+        return new List<RequestHandlerModel>
+        {
+            new(
+                new RequestHandlerNameModel("/", "POST", "X-Amz-Target", "Bank.GetBalance"),
+                bankServiceType,
+                "GetBalance",
                 TypeDefinition.Get("Test.Api.Generated", "BankController_GetBalance"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>()),
-            new(new RequestHandlerNameModel("/", "POST", "X-Amz-Target", "Bank.Transfer"),
-                bankServiceType, "Transfer",
+                Array.Empty<AttributeModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/", "POST", "X-Amz-Target", "Bank.Transfer"),
+                bankServiceType,
+                "Transfer",
                 TypeDefinition.Get("Test.Api.Generated", "BankController_Transfer"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>())
+                Array.Empty<AttributeModel>()
+            ),
         };
     }
 
@@ -82,10 +110,15 @@ public class SpecRoutingTableGeneratorTests {
     /// literals rather than a route tree - no span slicing, no wildcard node, no verb fallback.
     /// </summary>
     [Fact]
-    public void GenerateCSharpRouteFile_DispatchesOnTheDeclaredHeader() {
+    public void GenerateCSharpRouteFile_DispatchesOnTheDeclaredHeader()
+    {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            CreateAppModel(), CreateDispatchedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            CreateAppModel(),
+            CreateDispatchedHandlers(),
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Contains("Headers.TryGetValue(\"X-Amz-Target\"", result);
         Assert.Contains("case \"Bank.GetBalance\":", result);
@@ -97,10 +130,15 @@ public class SpecRoutingTableGeneratorTests {
     /// and returns.
     /// </summary>
     [Fact]
-    public void GenerateCSharpRouteFile_EmitsNoRouteTreeWhenEveryHandlerIsDispatched() {
+    public void GenerateCSharpRouteFile_EmitsNoRouteTreeWhenEveryHandlerIsDispatched()
+    {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            CreateAppModel(), CreateDispatchedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            CreateAppModel(),
+            CreateDispatchedHandlers(),
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.DoesNotContain("pathSpan", result);
     }
@@ -114,14 +152,19 @@ public class SpecRoutingTableGeneratorTests {
     /// the wrong one for all the others.
     /// </remarks>
     [Fact]
-    public void GenerateCSharpRouteFile_ChecksDispatchBeforeRouting() {
+    public void GenerateCSharpRouteFile_ChecksDispatchBeforeRouting()
+    {
         var handlers = new List<RequestHandlerModel>(CreateDispatchedHandlers());
 
         handlers.AddRange(CreatePetstoreHandlers());
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            CreateAppModel(), handlers, ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            CreateAppModel(),
+            handlers,
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         var dispatch = result.IndexOf("X-Amz-Target", StringComparison.Ordinal);
         var routing = result.IndexOf("pathSpan", StringComparison.Ordinal);
@@ -132,12 +175,18 @@ public class SpecRoutingTableGeneratorTests {
     }
 
     [Fact]
-    public void GenerateCSharpRouteFile_ProducesCompilableCSharp() {
+    public void GenerateCSharpRouteFile_ProducesCompilableCSharp()
+    {
         var appModel = CreateAppModel();
         var handlers = CreatePetstoreHandlers();
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            appModel,
+            handlers,
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Contains("partial class TestApp", result);
         Assert.Contains("SpecRoutingTable", result);
@@ -146,12 +195,18 @@ public class SpecRoutingTableGeneratorTests {
     }
 
     [Fact]
-    public void GenerateCSharpRouteFile_DoesNotContainStandaloneControllerRegistration() {
+    public void GenerateCSharpRouteFile_DoesNotContainStandaloneControllerRegistration()
+    {
         var appModel = CreateAppModel();
         var handlers = CreatePetstoreHandlers();
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            appModel,
+            handlers,
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         // Without [Handler] implementations, there should be no standalone AddTransient for interfaces
         Assert.DoesNotMatch(@"AddTransient<\s*IPetService\s*>\s*\(\s*\)", result);
@@ -159,7 +214,8 @@ public class SpecRoutingTableGeneratorTests {
     }
 
     [Fact]
-    public void GenerateCSharpRouteFile_WithHandlerInfos_ContainsServiceRegistration() {
+    public void GenerateCSharpRouteFile_WithHandlerInfos_ContainsServiceRegistration()
+    {
         var appModel = CreateAppModel();
         var handlers = CreatePetstoreHandlers();
 
@@ -167,12 +223,18 @@ public class SpecRoutingTableGeneratorTests {
             TypeDefinition.Get("Test.Api", "PetServiceImpl"),
             TypeDefinition.Get("Test.Api.Services", "IPetService"),
             Array.Empty<AttributeModel>(),
-            Array.Empty<HandlerMethodFilterInfo>());
+            Array.Empty<HandlerMethodFilterInfo>()
+        );
 
         var handlerInfos = ImmutableArray.Create<HandlerInfo?>(handlerInfo);
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, handlerInfos, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            appModel,
+            handlers,
+            handlerInfos,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Matches(@"AddTransient<[^>]*IPetService[^>]*,[^>]*PetServiceImpl[^>]*>", result);
     }
@@ -187,22 +249,29 @@ public class SpecRoutingTableGeneratorTests {
     /// and every route on that service failed at request time.
     /// </remarks>
     [Fact]
-    public void GenerateCSharpRouteFile_RegistersTheServiceInterfaceRatherThanAPrecedingBaseClass() {
+    public void GenerateCSharpRouteFile_RegistersTheServiceInterfaceRatherThanAPrecedingBaseClass()
+    {
         var appModel = CreateAppModel();
         var handlers = CreatePetstoreHandlers();
 
         var handlerInfo = new HandlerInfo(
             TypeDefinition.Get("Test.Api", "PetServiceImpl"),
-            new ITypeDefinition[] {
+            new ITypeDefinition[]
+            {
                 TypeDefinition.Get("Test.Api", "HandlerBase"),
-                TypeDefinition.Get("Test.Api.Services", "IPetService")
+                TypeDefinition.Get("Test.Api.Services", "IPetService"),
             },
             Array.Empty<AttributeModel>(),
-            Array.Empty<HandlerMethodFilterInfo>());
+            Array.Empty<HandlerMethodFilterInfo>()
+        );
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray.Create<HandlerInfo?>(handlerInfo),
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            appModel,
+            handlers,
+            ImmutableArray.Create<HandlerInfo?>(handlerInfo),
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Matches(@"AddTransient<[^>]*IPetService[^>]*,[^>]*PetServiceImpl[^>]*>", result);
         Assert.DoesNotMatch(@"AddTransient<[^>]*HandlerBase[^>]*,", result);
@@ -213,33 +282,46 @@ public class SpecRoutingTableGeneratorTests {
     /// which is what it did before any of this. HOAG031 reports it; the registration is unchanged.
     /// </summary>
     [Fact]
-    public void GenerateCSharpRouteFile_FallsBackToTheFirstBaseTypeWhenNoneIsADescribedService() {
+    public void GenerateCSharpRouteFile_FallsBackToTheFirstBaseTypeWhenNoneIsADescribedService()
+    {
         var appModel = CreateAppModel();
         var handlers = CreatePetstoreHandlers();
 
         var handlerInfo = new HandlerInfo(
             TypeDefinition.Get("Test.Api", "OrphanImpl"),
-            new ITypeDefinition[] {
+            new ITypeDefinition[]
+            {
                 TypeDefinition.Get("Test.Api", "ISomethingElse"),
-                TypeDefinition.Get("Test.Api", "IAlsoNotDescribed")
+                TypeDefinition.Get("Test.Api", "IAlsoNotDescribed"),
             },
             Array.Empty<AttributeModel>(),
-            Array.Empty<HandlerMethodFilterInfo>());
+            Array.Empty<HandlerMethodFilterInfo>()
+        );
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray.Create<HandlerInfo?>(handlerInfo),
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            appModel,
+            handlers,
+            ImmutableArray.Create<HandlerInfo?>(handlerInfo),
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Matches(@"AddTransient<[^>]*ISomethingElse[^>]*,[^>]*OrphanImpl[^>]*>", result);
     }
 
     [Fact]
-    public void GenerateCSharpRouteFile_ContainsRoutingForEndpointPaths() {
+    public void GenerateCSharpRouteFile_ContainsRoutingForEndpointPaths()
+    {
         var appModel = CreateAppModel();
         var handlers = CreatePetstoreHandlers();
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            appModel,
+            handlers,
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         // Routing should reference handler fields for each endpoint
         Assert.Contains("PetController_ListPets", result);
@@ -253,22 +335,30 @@ public class SpecRoutingTableGeneratorTests {
     /// A handler whose path ends in a constrained token, for the two positions a constraint can
     /// guard: the end of a route and the middle of one.
     /// </summary>
-    private static List<RequestHandlerModel> CreateConstrainedHandlers() {
+    private static List<RequestHandlerModel> CreateConstrainedHandlers()
+    {
         var serviceType = TypeDefinition.Get("Test.Api.Services", "IPetService");
 
-        return new List<RequestHandlerModel> {
-            new(new RequestHandlerNameModel("/pets/{petId:int}", "GET"),
-                serviceType, "GetPet",
+        return new List<RequestHandlerModel>
+        {
+            new(
+                new RequestHandlerNameModel("/pets/{petId:int}", "GET"),
+                serviceType,
+                "GetPet",
                 TypeDefinition.Get("Test.Api.Generated", "PetController_GetPet"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>()),
-            new(new RequestHandlerNameModel("/pets/{petId:guid}/tags", "GET"),
-                serviceType, "GetTags",
+                Array.Empty<AttributeModel>()
+            ),
+            new(
+                new RequestHandlerNameModel("/pets/{petId:guid}/tags", "GET"),
+                serviceType,
+                "GetTags",
                 TypeDefinition.Get("Test.Api.Generated", "PetController_GetTags"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>())
+                Array.Empty<AttributeModel>()
+            ),
         };
     }
 
@@ -279,10 +369,15 @@ public class SpecRoutingTableGeneratorTests {
     /// constrained nothing - the state <c>{id:int}</c> was in before any of this.
     /// </summary>
     [Fact]
-    public void GenerateCSharpRouteFile_TestsAConstraintAtTheEndOfARoute() {
+    public void GenerateCSharpRouteFile_TestsAConstraintAtTheEndOfARoute()
+    {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            CreateAppModel(),
+            CreateConstrainedHandlers(),
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Contains("RouteConstraints.IsInt(", result);
 
@@ -296,15 +391,23 @@ public class SpecRoutingTableGeneratorTests {
     /// it, so a value that fails leaves the scan free to try the next boundary.
     /// </summary>
     [Fact]
-    public void GenerateCSharpRouteFile_TestsAConstraintInTheMiddleOfARoute() {
+    public void GenerateCSharpRouteFile_TestsAConstraintInTheMiddleOfARoute()
+    {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            CreateAppModel(),
+            CreateConstrainedHandlers(),
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Contains("RouteConstraints.IsGuid(", result);
 
         // Not negated, and not a separate statement: it joins the boundary conjunction.
-        Assert.DoesNotContain("!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsGuid(", result);
+        Assert.DoesNotContain(
+            "!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsGuid(",
+            result
+        );
     }
 
     /// <summary>
@@ -314,10 +417,15 @@ public class SpecRoutingTableGeneratorTests {
     /// client it addressed a real endpoint incorrectly about a URL that addresses no endpoint.
     /// </summary>
     [Fact]
-    public void GenerateCSharpRouteFile_RejectsAnEmptyTokenAtTheEndOfARoute() {
+    public void GenerateCSharpRouteFile_RejectsAnEmptyTokenAtTheEndOfARoute()
+    {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            CreateAppModel(), CreatePetstoreHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            CreateAppModel(),
+            CreatePetstoreHandlers(),
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Contains("charSpan.Length <= index", result);
     }
@@ -328,32 +436,46 @@ public class SpecRoutingTableGeneratorTests {
     /// bound to <c>""</c>. The same defect as above, at the other position.
     /// </summary>
     [Fact]
-    public void GenerateCSharpRouteFile_RejectsAnEmptyTokenInTheMiddleOfARoute() {
+    public void GenerateCSharpRouteFile_RejectsAnEmptyTokenInTheMiddleOfARoute()
+    {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            CreateAppModel(), CreateConstrainedHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            CreateAppModel(),
+            CreateConstrainedHandlers(),
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Contains("currentIndex > index", result);
     }
 
     /// <summary>A handler whose path carries a parameterised constraint and a chained one.</summary>
-    private static List<RequestHandlerModel> CreateChainedHandlers(string constraint) {
+    private static List<RequestHandlerModel> CreateChainedHandlers(string constraint)
+    {
         var serviceType = TypeDefinition.Get("Test.Api.Services", "IPetService");
 
-        return new List<RequestHandlerModel> {
-            new(new RequestHandlerNameModel("/pets/{petId:" + constraint + "}", "GET"),
-                serviceType, "GetPet",
+        return new List<RequestHandlerModel>
+        {
+            new(
+                new RequestHandlerNameModel("/pets/{petId:" + constraint + "}", "GET"),
+                serviceType,
+                "GetPet",
                 TypeDefinition.Get("Test.Api.Generated", "PetController_GetPet"),
                 Array.Empty<RequestParameterInformation>(),
                 new ResponseInformationModel { IsAsync = true },
-                Array.Empty<AttributeModel>())
+                Array.Empty<AttributeModel>()
+            ),
         };
     }
 
     private static string Generate(string constraint) =>
         SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            CreateAppModel(), CreateChainedHandlers(constraint), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            CreateAppModel(),
+            CreateChainedHandlers(constraint),
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
     /// <summary>Arguments reach the emitted call as literals.</summary>
     [Theory]
@@ -361,7 +483,8 @@ public class SpecRoutingTableGeneratorTests {
     [InlineData("length(3,9)", "IsLength(charSpan.Slice(index), 3, 9)")]
     [InlineData("min(1)", "IsMin(charSpan.Slice(index), 1)")]
     [InlineData("range(1,500)", "IsRange(charSpan.Slice(index), 1, 500)")]
-    public void GenerateCSharpRouteFile_PassesConstraintArguments(string constraint, string call) {
+    public void GenerateCSharpRouteFile_PassesConstraintArguments(string constraint, string call)
+    {
         Assert.Contains(call, Generate(constraint));
     }
 
@@ -371,7 +494,8 @@ public class SpecRoutingTableGeneratorTests {
     /// match on its own.
     /// </summary>
     [Fact]
-    public void GenerateCSharpRouteFile_JoinsAChainIntoOneNegatedConjunction() {
+    public void GenerateCSharpRouteFile_JoinsAChainIntoOneNegatedConjunction()
+    {
         var result = Generate("int:min(1)");
 
         Assert.Contains("!(global::Hardened.Web.Runtime.Routing.RouteConstraints.IsInt(", result);
@@ -383,8 +507,12 @@ public class SpecRoutingTableGeneratorTests {
     /// existed rather than churning every route table that already worked.
     /// </summary>
     [Fact]
-    public void GenerateCSharpRouteFile_DoesNotBracketASingleTerm() {
-        Assert.Contains("!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsInt(", Generate("int"));
+    public void GenerateCSharpRouteFile_DoesNotBracketASingleTerm()
+    {
+        Assert.Contains(
+            "!global::Hardened.Web.Runtime.Routing.RouteConstraints.IsInt(",
+            Generate("int")
+        );
     }
 
     /// <summary>
@@ -395,27 +523,39 @@ public class SpecRoutingTableGeneratorTests {
     [InlineData("length(1,2,3)")]
     [InlineData("range(1)")]
     [InlineData("length(")]
-    public void GenerateCSharpRouteFile_EmitsNothingForAConstraintItCannotCompile(string constraint) {
+    public void GenerateCSharpRouteFile_EmitsNothingForAConstraintItCannotCompile(string constraint)
+    {
         Assert.DoesNotContain("RouteConstraints.", Generate(constraint));
     }
 
     /// <summary>An unconstrained token emits no test, so the common route pays nothing.</summary>
     [Fact]
-    public void GenerateCSharpRouteFile_EmitsNoConstraintWhenTheTokenDeclaresNone() {
+    public void GenerateCSharpRouteFile_EmitsNoConstraintWhenTheTokenDeclaresNone()
+    {
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            CreateAppModel(), CreatePetstoreHandlers(), ImmutableArray<HandlerInfo?>.Empty,
-            ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            CreateAppModel(),
+            CreatePetstoreHandlers(),
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.DoesNotContain("RouteConstraints.", result);
     }
 
     [Fact]
-    public void GenerateCSharpRouteFile_ContainsDependencyRegistrationStaticField() {
+    public void GenerateCSharpRouteFile_ContainsDependencyRegistrationStaticField()
+    {
         var appModel = CreateAppModel();
         var handlers = CreatePetstoreHandlers();
 
         var result = SpecRoutingTableGenerator.GenerateCSharpRouteFile(
-            appModel, handlers, ImmutableArray<HandlerInfo?>.Empty, ImmutableArray<SpecRegistration>.Empty, CancellationToken.None);
+            appModel,
+            handlers,
+            ImmutableArray<HandlerInfo?>.Empty,
+            ImmutableArray<SpecRegistration>.Empty,
+            CancellationToken.None
+        );
 
         Assert.Contains("DependencyRegistry<TestApp>", result);
         Assert.Contains("SpecRoutingTableDI", result);

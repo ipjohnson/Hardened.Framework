@@ -25,18 +25,23 @@ namespace Hardened.Requests.Runtime.Headers;
 /// forked request there took an override dictionary and lost the property.
 /// </para>
 /// </remarks>
-public class HeaderCollectionStringValues : IHeaderCollection {
+public class HeaderCollectionStringValues : IHeaderCollection
+{
     private readonly IDictionary<string, StringValues> _headers;
 
-    public HeaderCollectionStringValues() {
+    public HeaderCollectionStringValues()
+    {
         _headers = NewCaseInsensitive();
     }
 
-    public HeaderCollectionStringValues(IDictionary<string, string>? values) {
+    public HeaderCollectionStringValues(IDictionary<string, string>? values)
+    {
         _headers = NewCaseInsensitive();
 
-        if (values != null) {
-            foreach (var pair in values) {
+        if (values != null)
+        {
+            foreach (var pair in values)
+            {
                 _headers[pair.Key] = pair.Value.ToStringValues();
             }
         }
@@ -53,7 +58,8 @@ public class HeaderCollectionStringValues : IHeaderCollection {
     /// away, so the reference survives for a dictionary that was built correctly and the copy is the
     /// fallback for one that was not.
     /// </remarks>
-    public HeaderCollectionStringValues(IDictionary<string, StringValues> headers) {
+    public HeaderCollectionStringValues(IDictionary<string, StringValues> headers)
+    {
         _headers = EnsureCaseInsensitive(headers);
     }
 
@@ -67,21 +73,26 @@ public class HeaderCollectionStringValues : IHeaderCollection {
     /// exactly that case.
     /// </remarks>
     public static IDictionary<string, StringValues> EnsureCaseInsensitive(
-        IDictionary<string, StringValues> headers) {
-        if (IsCaseInsensitive(headers)) {
+        IDictionary<string, StringValues> headers
+    )
+    {
+        if (IsCaseInsensitive(headers))
+        {
             return headers;
         }
 
         var copy = NewCaseInsensitive();
 
-        foreach (var pair in headers) {
+        foreach (var pair in headers)
+        {
             copy[pair.Key] = pair.Value;
         }
 
         return copy;
     }
 
-    private static Dictionary<string, StringValues> NewCaseInsensitive() {
+    private static Dictionary<string, StringValues> NewCaseInsensitive()
+    {
         return new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
     }
 
@@ -91,26 +102,32 @@ public class HeaderCollectionStringValues : IHeaderCollection {
     /// a <c>Dictionary</c> - is copied rather than trusted. Those transports do not construct this
     /// type on the path that matters, so the copy lands where it is affordable.
     /// </summary>
-    private static bool IsCaseInsensitive(IDictionary<string, StringValues> headers) {
-        return headers is Dictionary<string, StringValues> dictionary &&
-               ReferenceEquals(dictionary.Comparer, StringComparer.OrdinalIgnoreCase);
+    private static bool IsCaseInsensitive(IDictionary<string, StringValues> headers)
+    {
+        return headers is Dictionary<string, StringValues> dictionary
+            && ReferenceEquals(dictionary.Comparer, StringComparer.OrdinalIgnoreCase);
     }
 
-    public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator() {
+    public IEnumerator<KeyValuePair<string, StringValues>> GetEnumerator()
+    {
         return _headers.GetEnumerator();
     }
 
-    IEnumerator IEnumerable.GetEnumerator() {
+    IEnumerator IEnumerable.GetEnumerator()
+    {
         return GetEnumerator();
     }
 
-    public StringValues Append(string key, object value) {
+    public StringValues Append(string key, object value)
+    {
         value ??= "";
 
-        if (TryGet(key, out var stringValues)) {
+        if (TryGet(key, out var stringValues))
+        {
             stringValues = StringValues.Concat(stringValues, value.ToString());
         }
-        else {
+        else
+        {
             stringValues = value.ToString();
         }
 
@@ -119,25 +136,32 @@ public class HeaderCollectionStringValues : IHeaderCollection {
         return stringValues;
     }
 
-    public void Add(string key, StringValues value) {
+    public void Add(string key, StringValues value)
+    {
         throw new NotImplementedException();
     }
 
-    public bool ContainsKey(string key) {
+    public bool ContainsKey(string key)
+    {
         return _headers.ContainsKey(key);
     }
 
-    public bool Remove(string key) {
+    public bool Remove(string key)
+    {
         return _headers.Remove(key);
     }
 
-    public bool TryGetValue(string key, out StringValues value) {
+    public bool TryGetValue(string key, out StringValues value)
+    {
         return _headers.TryGetValue(key, out value);
     }
 
-    public StringValues this[string key] {
-        get {
-            if (_headers.TryGetValue(key, out var value)) {
+    public StringValues this[string key]
+    {
+        get
+        {
+            if (_headers.TryGetValue(key, out var value))
+            {
                 return value;
             }
             return StringValues.Empty;
@@ -148,16 +172,20 @@ public class HeaderCollectionStringValues : IHeaderCollection {
     public ICollection<string> Keys => _headers.Keys;
     public ICollection<StringValues> Values => _headers.Values;
 
-    public StringValues Get(string key) {
-        if (_headers.TryGetValue(key, out var stringValues)) {
+    public StringValues Get(string key)
+    {
+        if (_headers.TryGetValue(key, out var stringValues))
+        {
             return stringValues;
         }
 
         return StringValues.Empty;
     }
 
-    public StringValues Set(string key, object? value) {
-        if (value == null) {
+    public StringValues Set(string key, object? value)
+    {
+        if (value == null)
+        {
             _headers.Remove(key);
 
             return StringValues.Empty;
@@ -166,27 +194,33 @@ public class HeaderCollectionStringValues : IHeaderCollection {
         return Set(key, value.ToString());
     }
 
-    public StringValues Set(string key, StringValues value) {
+    public StringValues Set(string key, StringValues value)
+    {
         return _headers[key] = value;
     }
 
-    public void Add(KeyValuePair<string, StringValues> item) {
+    public void Add(KeyValuePair<string, StringValues> item)
+    {
         _headers.Add(item);
     }
 
-    public void Clear() {
+    public void Clear()
+    {
         _headers.Clear();
     }
 
-    public bool Contains(KeyValuePair<string, StringValues> item) {
+    public bool Contains(KeyValuePair<string, StringValues> item)
+    {
         return _headers.Contains(item);
     }
 
-    public void CopyTo(KeyValuePair<string, StringValues>[] array, int arrayIndex) {
+    public void CopyTo(KeyValuePair<string, StringValues>[] array, int arrayIndex)
+    {
         _headers.CopyTo(array, arrayIndex);
     }
 
-    public bool Remove(KeyValuePair<string, StringValues> item) {
+    public bool Remove(KeyValuePair<string, StringValues> item)
+    {
         return _headers.Remove(item);
     }
 
@@ -194,14 +228,17 @@ public class HeaderCollectionStringValues : IHeaderCollection {
 
     public bool IsReadOnly => false;
 
-    public bool TryGet(string key, out StringValues value) {
+    public bool TryGet(string key, out StringValues value)
+    {
         return _headers.TryGetValue(key, out value);
     }
 
-    public IDictionary<string, string> ToStringDictionary() {
+    public IDictionary<string, string> ToStringDictionary()
+    {
         var dictionary = new Dictionary<string, string>();
 
-        foreach (var pair in _headers) {
+        foreach (var pair in _headers)
+        {
             dictionary[pair.Key] = pair.Value.ToString();
         }
 

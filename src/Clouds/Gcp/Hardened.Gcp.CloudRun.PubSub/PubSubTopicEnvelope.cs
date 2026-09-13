@@ -27,7 +27,8 @@ namespace Hardened.Gcp.CloudRun.PubSub;
 /// the event id and the topic as well as the message id.
 /// </para>
 /// </remarks>
-public sealed class PubSubTopicEnvelope : ITriggerEnvelope {
+public sealed class PubSubTopicEnvelope : ITriggerEnvelope
+{
     /// <summary>The scheme a topic delivery routes under.</summary>
     public const string TopicScheme = "TOPIC";
 
@@ -39,32 +40,44 @@ public sealed class PubSubTopicEnvelope : ITriggerEnvelope {
     /// says it is a message published.
     /// </summary>
     public bool Recognises(IExecutionRequest request) =>
-        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase) &&
-        (CloudEventReader.IsStructured(request.ContentType) ||
-         string.Equals(TriggerHeaders.Get(request.Headers, CloudEventHeaders.Type), MessagePublishedType, StringComparison.Ordinal));
+        string.Equals(request.Method, "POST", StringComparison.OrdinalIgnoreCase)
+        && (
+            CloudEventReader.IsStructured(request.ContentType)
+            || string.Equals(
+                TriggerHeaders.Get(request.Headers, CloudEventHeaders.Type),
+                MessagePublishedType,
+                StringComparison.Ordinal
+            )
+        );
 
-    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload) {
+    public CloudRunTriggerRequest? Unwrap(IExecutionRequest request, TriggerPayload payload)
+    {
         CloudEvent cloudEvent;
 
-        try {
+        try
+        {
             cloudEvent = CloudEventReader.Read(request.ContentType, request.Headers, payload.Raw);
         }
-        catch (CloudEventFormatException) {
+        catch (CloudEventFormatException)
+        {
             // Not a CloudEvent after all - a structured content type over a body that is not one.
             // Declined, and whatever else recognised the request gets its turn.
             return null;
         }
 
-        if (!string.Equals(cloudEvent.Type, MessagePublishedType, StringComparison.Ordinal)) {
+        if (!string.Equals(cloudEvent.Type, MessagePublishedType, StringComparison.Ordinal))
+        {
             return null;
         }
 
         using var document = ParseData(cloudEvent);
 
-        if (!PubSubPushBody.TryRead(document.RootElement, out var message, out var subscription)) {
+        if (!PubSubPushBody.TryRead(document.RootElement, out var message, out var subscription))
+        {
             throw new InvalidOperationException(
-                "The Eventarc delivery for a published message carries no message: its data is not " +
-                "the push body Pub/Sub sends.");
+                "The Eventarc delivery for a published message carries no message: its data is not "
+                    + "the push body Pub/Sub sends."
+            );
         }
 
         var headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
@@ -74,16 +87,26 @@ public sealed class PubSubTopicEnvelope : ITriggerEnvelope {
         var body = PubSubPushBody.Read(message, subscription, document.RootElement, headers);
 
         return new CloudRunTriggerRequest(
-            TopicScheme, "/" + CloudEventRoutes.LastSegment(cloudEvent.Source), body, headers, request);
+            TopicScheme,
+            "/" + CloudEventRoutes.LastSegment(cloudEvent.Source),
+            body,
+            headers,
+            request
+        );
     }
 
-    private static JsonDocument ParseData(CloudEvent cloudEvent) {
-        try {
+    private static JsonDocument ParseData(CloudEvent cloudEvent)
+    {
+        try
+        {
             return JsonDocument.Parse(cloudEvent.Data);
         }
-        catch (JsonException exception) {
+        catch (JsonException exception)
+        {
             throw new InvalidOperationException(
-                "The Eventarc delivery for a published message carries data that is not JSON.", exception);
+                "The Eventarc delivery for a published message carries data that is not JSON.",
+                exception
+            );
         }
     }
 }

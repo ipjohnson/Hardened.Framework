@@ -20,22 +20,26 @@ namespace Hardened.Web.Testing.Tests.Conformance;
 /// the transport's translation in and out, not what a handler does inside it - the same footing
 /// the Kestrel adapters stand on.
 /// </remarks>
-internal sealed class SubstitutePipeline {
-
-    public SubstitutePipeline(Func<IExecutionContext, Task>? handler = null) {
+internal sealed class SubstitutePipeline
+{
+    public SubstitutePipeline(Func<IExecutionContext, Task>? handler = null)
+    {
         var chain = Substitute.For<IExecutionChain>();
         var middleware = Substitute.For<IMiddlewareService>();
 
-        middleware.GetExecutionChain(Arg.Any<IExecutionContext>()).Returns(callInfo => {
-            var context = callInfo.Arg<IExecutionContext>();
+        middleware
+            .GetExecutionChain(Arg.Any<IExecutionContext>())
+            .Returns(callInfo =>
+            {
+                var context = callInfo.Arg<IExecutionContext>();
 
-            Contexts.Add(context);
+                Contexts.Add(context);
 
-            chain.Context.Returns(context);
-            chain.Next().Returns(_ => handler?.Invoke(context) ?? Task.CompletedTask);
+                chain.Context.Returns(context);
+                chain.Next().Returns(_ => handler?.Invoke(context) ?? Task.CompletedTask);
 
-            return chain;
-        });
+                return chain;
+            });
 
         var services = new ServiceCollection();
 
@@ -43,7 +47,8 @@ internal sealed class SubstitutePipeline {
         services.AddSingleton(middleware);
         services.AddSingleton<IMetricLoggerProvider>(new NullMetricLoggerProvider());
         services.AddSingleton<Hardened.Requests.Abstract.Logging.IRequestLogger>(
-            new RequestLogger(NullLogger<RequestLogger>.Instance));
+            new RequestLogger(NullLogger<RequestLogger>.Instance)
+        );
         services.AddSingleton(new TestCancellationToken(CancellationToken.None));
 
         Provider = services.BuildServiceProvider();
@@ -55,5 +60,8 @@ internal sealed class SubstitutePipeline {
     public List<IExecutionContext> Contexts { get; } = new();
 
     public HttpClient Client(TestCredential? credential = null) =>
-        new(new PipelineHttpMessageHandler(Provider, credential)) { BaseAddress = new Uri("http://harness/") };
+        new(new PipelineHttpMessageHandler(Provider, credential))
+        {
+            BaseAddress = new Uri("http://harness/"),
+        };
 }

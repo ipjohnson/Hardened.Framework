@@ -12,12 +12,17 @@ namespace Hardened.Web.Runtime.Compression;
 /// caller guessing. Thrown from inside the bind, where the decoder is being read, so it reaches the
 /// caller through the same path as any other failure to read the body.
 /// </remarks>
-public class DecompressedBodyTooLargeException : StatusCodeException {
-    public DecompressedBodyTooLargeException(long limit) : base(
-        413,
-        value: null,
-        message: "The request body decodes to more than " +
-                 limit.ToString(CultureInfo.InvariantCulture) + " bytes.") {
+public class DecompressedBodyTooLargeException : StatusCodeException
+{
+    public DecompressedBodyTooLargeException(long limit)
+        : base(
+            413,
+            value: null,
+            message: "The request body decodes to more than "
+                + limit.ToString(CultureInfo.InvariantCulture)
+                + " bytes."
+        )
+    {
         Limit = limit;
     }
 

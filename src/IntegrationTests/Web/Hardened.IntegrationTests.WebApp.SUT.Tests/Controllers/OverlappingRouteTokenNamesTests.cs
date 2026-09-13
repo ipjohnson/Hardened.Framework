@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 
 /// <summary>
@@ -19,10 +20,11 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Tests.Controllers;
 /// This shape is ordinary REST - /users/{id} alongside /users/{userId}/posts/{postId} - and
 /// the old behaviour was triggered by the rename that makes the second route clearer.
 /// </summary>
-public class OverlappingRouteTokenNamesTests {
-
+public class OverlappingRouteTokenNamesTests
+{
     [HardenedTest]
-    public async Task OverlappingRoutesBindTheirOwnTokenNames(ITestWebApp testWebApp) {
+    public async Task OverlappingRoutesBindTheirOwnTokenNames(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/path/alpha/beta");
 
         response.Assert.Ok();
@@ -42,7 +44,8 @@ public class OverlappingRouteTokenNamesTests {
     /// </para>
     /// </summary>
     [HardenedTest]
-    public async Task APathDeeperThanAnyRouteIsNotFound(ITestWebApp testWebApp) {
+    public async Task APathDeeperThanAnyRouteIsNotFound(ITestWebApp testWebApp)
+    {
         (await testWebApp.Get("/binding/path/a/b/c")).Assert.NotFound();
         (await testWebApp.Get("/binding/path-typed/1/2/3")).Assert.NotFound();
     }
@@ -52,7 +55,8 @@ public class OverlappingRouteTokenNamesTests {
     /// unnoticed: whichever route registered first behaved correctly.
     /// </summary>
     [HardenedTest]
-    public async Task TheFirstRegisteredOverlappingRouteStillBinds(ITestWebApp testWebApp) {
+    public async Task TheFirstRegisteredOverlappingRouteStillBinds(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/path/only-one");
 
         response.Assert.Ok();
@@ -64,7 +68,8 @@ public class OverlappingRouteTokenNamesTests {
     /// - so it was never affected. Asserted so a future change cannot regress it silently.
     /// </summary>
     [HardenedTest]
-    public async Task DeeperUnsharedTokenStillBinds(ITestWebApp testWebApp) {
+    public async Task DeeperUnsharedTokenStillBinds(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/binding/pair/one/two");
 
         response.Assert.Ok();

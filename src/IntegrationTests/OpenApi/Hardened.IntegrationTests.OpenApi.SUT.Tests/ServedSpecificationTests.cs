@@ -22,8 +22,8 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// to make impossible rather than to detect.
 /// </para>
 /// </remarks>
-public class ServedSpecificationTests {
-
+public class ServedSpecificationTests
+{
     /// <summary>
     /// The embedded document, inflated.
     /// </summary>
@@ -33,8 +33,10 @@ public class ServedSpecificationTests {
     /// embedding off by default. Compression does not touch fidelity: what inflates is the source
     /// text, byte for byte, which is the claim below.
     /// </remarks>
-    private static string SourceDocument {
-        get {
+    private static string SourceDocument
+    {
+        get
+        {
             using var source = new MemoryStream(PetstoreSpecification.DocumentGZip.ToArray());
             using var gzip = new GZipStream(source, CompressionMode.Decompress);
             using var inflated = new MemoryStream();
@@ -46,7 +48,8 @@ public class ServedSpecificationTests {
     }
 
     [HardenedTest]
-    public async Task TheServedDocumentIsTheSourceSpecification(ITestWebApp testWebApp) {
+    public async Task TheServedDocumentIsTheSourceSpecification(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.yaml");
 
         response.Assert.Ok();
@@ -59,7 +62,8 @@ public class ServedSpecificationTests {
     /// <c>application/json</c> is one a client cannot read.
     /// </summary>
     [HardenedTest]
-    public async Task TheContentTypeMatchesTheSourceFormat(ITestWebApp testWebApp) {
+    public async Task TheContentTypeMatchesTheSourceFormat(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.yaml");
 
         Assert.Equal("application/yaml", response.Headers["Content-Type"].ToString());
@@ -74,7 +78,8 @@ public class ServedSpecificationTests {
     /// re-emitted-but-faithful document could not also pass.
     /// </remarks>
     [HardenedTest]
-    public async Task AYamlCommentReachesTheWire(ITestWebApp testWebApp) {
+    public async Task AYamlCommentReachesTheWire(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.yaml");
 
         Assert.Contains("# This comment is load-bearing.", await response.ReadTextAsync());

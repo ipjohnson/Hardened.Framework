@@ -5,8 +5,8 @@ namespace Hardened.SourceGenerator.OpenApiDocument;
 /// <summary>
 /// What <c>&lt;HardenedOpenApiVersion&gt;</c> reports when it cannot be honoured.
 /// </summary>
-public static class OpenApiVersionDiagnostics {
-
+public static class OpenApiVersionDiagnostics
+{
     /// <summary>An unrecognised value for the property.</summary>
     public const string UnknownVersionId = "HRDOA001";
 
@@ -25,27 +25,29 @@ public static class OpenApiVersionDiagnostics {
     /// and the projects this file is linked into as source do not all run a generator that reports
     /// it.
     /// </remarks>
-    internal static DiagnosticDescriptor UnknownVersionDescriptor() => new(
-        id: UnknownVersionId,
-        title: "Unrecognised OpenAPI document version",
-        messageFormat:
-        "<{0}> is '{1}', which is not a version this generator emits. Use 3.0.0, 3.1.0 or 3.2.0, " +
-        "or remove the property to take the default of {2}.",
-        category: "Hardened.OpenApi",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    internal static DiagnosticDescriptor UnknownVersionDescriptor() =>
+        new(
+            id: UnknownVersionId,
+            title: "Unrecognised OpenAPI document version",
+            messageFormat: "<{0}> is '{1}', which is not a version this generator emits. Use 3.0.0, 3.1.0 or 3.2.0, "
+                + "or remove the property to take the default of {2}.",
+            category: "Hardened.OpenApi",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
-    internal static DiagnosticDescriptor StreamNeedsItemSchemaDescriptor() => new(
-        id: StreamNeedsItemSchemaId,
-        title: "Streamed response is described as an array at this document version",
-        messageFormat:
-        "'{0}' streams its response, and OpenAPI {1} has no itemSchema - it arrived in 3.2. The " +
-        "operation is emitted with its media type and the item type as an array under schema, so " +
-        "a client generated from the document reads a list rather than a stream. Set " +
-        "<{2}>3.2.0</{2}> to describe the stream.",
-        category: "Hardened.OpenApi",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+    internal static DiagnosticDescriptor StreamNeedsItemSchemaDescriptor() =>
+        new(
+            id: StreamNeedsItemSchemaId,
+            title: "Streamed response is described as an array at this document version",
+            messageFormat: "'{0}' streams its response, and OpenAPI {1} has no itemSchema - it arrived in 3.2. The "
+                + "operation is emitted with its media type and the item type as an array under schema, so "
+                + "a client generated from the document reads a list rather than a stream. Set "
+                + "<{2}>3.2.0</{2}> to describe the stream.",
+            category: "Hardened.OpenApi",
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// Reports an unrecognised property value.
@@ -55,14 +57,17 @@ public static class OpenApiVersionDiagnostics {
     /// answer, so quietly emitting a different version than was asked for is the one outcome that
     /// cannot be allowed - it would be discovered by their generator, not by this build.
     /// </remarks>
-    public static void ReportUnknownVersion(SourceProductionContext context, string configured) {
+    public static void ReportUnknownVersion(SourceProductionContext context, string configured)
+    {
         context.ReportDiagnostic(
             Diagnostic.Create(
                 UnknownVersionDescriptor(),
                 Location.None,
                 OpenApiVersionFacts.PropertyName,
                 configured,
-                OpenApiVersionFacts.VersionString(OpenApiVersionFacts.Default)));
+                OpenApiVersionFacts.VersionString(OpenApiVersionFacts.Default)
+            )
+        );
     }
 
     /// <summary>
@@ -74,13 +79,19 @@ public static class OpenApiVersionDiagnostics {
     /// What they must not do is believe the document describes the operation.
     /// </remarks>
     public static void ReportStreamNeedsItemSchema(
-        SourceProductionContext context, string operation, OpenApiVersion version) {
+        SourceProductionContext context,
+        string operation,
+        OpenApiVersion version
+    )
+    {
         context.ReportDiagnostic(
             Diagnostic.Create(
                 StreamNeedsItemSchemaDescriptor(),
                 Location.None,
                 operation,
                 OpenApiVersionFacts.VersionString(version),
-                OpenApiVersionFacts.PropertyName));
+                OpenApiVersionFacts.PropertyName
+            )
+        );
     }
 }

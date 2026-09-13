@@ -8,7 +8,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Hardened.Requests.Runtime.Filters;
 
-public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
+public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter
+{
     private readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> _deserializeRequest;
     private readonly Func<IExecutionContext, Task> _serializeResponse;
     private readonly Action<IExecutionContext>? _headerActions;
@@ -29,7 +30,9 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
         Func<IExecutionContext, Task> serializeResponse,
         Action<IExecutionContext>? headerActions,
         IStreamFraming? framing = null,
-        TimeSpan heartbeatInterval = default) {
+        TimeSpan heartbeatInterval = default
+    )
+    {
         _deserializeRequest = deserializeRequest;
         _serializeResponse = serializeResponse;
         _headerActions = headerActions;
@@ -37,7 +40,8 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
         _heartbeatInterval = heartbeatInterval;
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
         // A request that is already decided does not have its body read, for the same reason it is
@@ -52,63 +56,85 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
         //
         // No bind duration is recorded either, because no bind was attempted - a zero would read as
         // a very fast deserialization rather than none.
-        if (context.Response.ExceptionValue == null) {
+        if (context.Response.ExceptionValue == null)
+        {
             var bindParameterStartTimestamp = MachineTimestamp.Now;
 
-            try {
-                if (context.Request.Parameters == null) {
+            try
+            {
+                if (context.Request.Parameters == null)
+                {
                     context.Request.Parameters = await _deserializeRequest(chain.Context);
                 }
             }
-            catch (Exception exp) {
-                chain.Context.RequestServices.GetRequiredService<IRequestLogger>()
+            catch (Exception exp)
+            {
+                chain
+                    .Context.RequestServices.GetRequiredService<IRequestLogger>()
                     .RequestParameterBindFailed(chain.Context, exp);
 
                 chain.Context.Response.ExceptionValue = exp;
             }
-            finally {
-                context.RequestMetrics.Record(RequestMetrics.ParameterBindDuration,
-                    bindParameterStartTimestamp.GetElapsedMilliseconds());
+            finally
+            {
+                context.RequestMetrics.Record(
+                    RequestMetrics.ParameterBindDuration,
+                    bindParameterStartTimestamp.GetElapsedMilliseconds()
+                );
             }
         }
 
-        if (chain.Context.Response.ExceptionValue == null) {
-            try {
+        if (chain.Context.Response.ExceptionValue == null)
+        {
+            try
+            {
                 await chain.Next();
             }
-            catch (Exception exp) {
+            catch (Exception exp)
+            {
                 chain.Context.Response.ExceptionValue = exp;
             }
         }
 
         var responseTimestamp = MachineTimestamp.Now;
 
-        try {
+        try
+        {
             _headerActions?.Invoke(chain.Context);
 
-            if (chain.Context.Response.ExceptionValue != null) {
+            if (chain.Context.Response.ExceptionValue != null)
+            {
                 await _serializeResponse(chain.Context);
 
                 chain.Context.Response.ShouldSerialize = false;
             }
-            else if (chain.Context.Response.ResponseValue is IAsyncEnumerable<TItem> asyncEnumerable) {
+            else if (
+                chain.Context.Response.ResponseValue is IAsyncEnumerable<TItem> asyncEnumerable
+            )
+            {
                 context.Response.ShouldSerialize = false;
 
                 // A stream that failed before it began is answered the way a refusal is: as an
                 // error document under its own status. The failure is on the response by the time
                 // this returns false, and nothing has reached the wire.
-                if (!await WriteStream(context, asyncEnumerable)) {
+                if (!await WriteStream(context, asyncEnumerable))
+                {
                     await _serializeResponse(chain.Context);
                 }
             }
-            else if (chain.Context.Response.ShouldSerialize) {
+            else if (chain.Context.Response.ShouldSerialize)
+            {
                 await _serializeResponse(chain.Context);
 
                 chain.Context.Response.ShouldSerialize = false;
             }
         }
-        finally {
-            context.RequestMetrics.Record(RequestMetrics.ResponseDuration, responseTimestamp.GetElapsedMilliseconds());
+        finally
+        {
+            context.RequestMetrics.Record(
+                RequestMetrics.ResponseDuration,
+                responseTimestamp.GetElapsedMilliseconds()
+            );
         }
     }
 
@@ -145,7 +171,8 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
     /// - the bytes are with the client, so the only honest answer is to end the stream, and the
     /// client comes back with <c>Last-Event-ID</c>.
     /// </returns>
-    private async Task<bool> WriteStream(IExecutionContext context, IAsyncEnumerable<TItem> stream) {
+    private async Task<bool> WriteStream(IExecutionContext context, IAsyncEnumerable<TItem> stream)
+    {
         var cancellationToken = context.CancellationToken;
         var response = context.Response;
 
@@ -154,23 +181,29 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
 
         await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
 
-        while (true) {
+        while (true)
+        {
             bool hasItem;
 
-            try {
+            try
+            {
                 var moveNext = enumerator.MoveNextAsync();
 
-                hasItem = progress.Heartbeats && !moveNext.IsCompleted
-                    ? await MoveNextWithHeartbeats(context, moveNext.AsTask(), progress)
-                    : await moveNext;
+                hasItem =
+                    progress.Heartbeats && !moveNext.IsCompleted
+                        ? await MoveNextWithHeartbeats(context, moveNext.AsTask(), progress)
+                        : await moveNext;
             }
-            catch (Exception exception) when (!progress.Committed && !cancellationToken.IsCancellationRequested) {
+            catch (Exception exception)
+                when (!progress.Committed && !cancellationToken.IsCancellationRequested)
+            {
                 response.ExceptionValue = exception;
 
                 return false;
             }
 
-            if (!hasItem) {
+            if (!hasItem)
+            {
                 break;
             }
 
@@ -189,7 +222,8 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
 
         // Nothing was written and the handler said there is nothing to write. No content type, no
         // completion bytes: a 204 with a body is not a 204.
-        if (!progress.Committed && response.Status is 204 or 304) {
+        if (!progress.Committed && response.Status is 204 or 304)
+        {
             return true;
         }
 
@@ -207,7 +241,8 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
     /// by the exception filter, which is why it is an object rather than a pair of locals: a
     /// failure after a heartbeat has to be seen as a failure after the first byte.
     /// </summary>
-    private sealed class Progress {
+    private sealed class Progress
+    {
         public bool Committed;
 
         public bool Heartbeats;
@@ -224,30 +259,38 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
     /// wire.
     /// </remarks>
     private async Task<bool> MoveNextWithHeartbeats(
-        IExecutionContext context, Task<bool> moveNext, Progress progress) {
+        IExecutionContext context,
+        Task<bool> moveNext,
+        Progress progress
+    )
+    {
         var cancellationToken = context.CancellationToken;
         var response = context.Response;
 
-        while (!moveNext.IsCompleted && !cancellationToken.IsCancellationRequested) {
+        while (!moveNext.IsCompleted && !cancellationToken.IsCancellationRequested)
+        {
             // Linked so a client that goes away releases the timer with everything else, and
             // cancelled when the item wins so the timer is released rather than left to expire.
             using var pause = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             var delay = Task.Delay(_heartbeatInterval, pause.Token);
 
-            if (await Task.WhenAny(moveNext, delay) == moveNext) {
+            if (await Task.WhenAny(moveNext, delay) == moveNext)
+            {
                 pause.Cancel();
 
                 break;
             }
 
-            if (delay.IsCanceled) {
+            if (delay.IsCanceled)
+            {
                 break;
             }
 
             Commit(response, progress);
 
-            if (!await _framing.WriteHeartbeat(context)) {
+            if (!await _framing.WriteHeartbeat(context))
+            {
                 progress.Heartbeats = false;
 
                 break;
@@ -270,8 +313,10 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
     /// a handler or a filter that already set them. Only for an event stream: a newline-delimited
     /// response is an ordinary representation a cache may keep, so it is left to say for itself.
     /// </remarks>
-    private void Commit(IExecutionResponse response, Progress progress) {
-        if (progress.Committed) {
+    private void Commit(IExecutionResponse response, Progress progress)
+    {
+        if (progress.Committed)
+        {
             return;
         }
 
@@ -279,14 +324,23 @@ public class AsyncEnumerableIoFilter<TItem> : IExecutionFilter {
 
         response.ContentType = _framing.ContentType;
 
-        if (string.Equals(_framing.ContentType, KnownContentType.EventStream, StringComparison.OrdinalIgnoreCase)) {
+        if (
+            string.Equals(
+                _framing.ContentType,
+                KnownContentType.EventStream,
+                StringComparison.OrdinalIgnoreCase
+            )
+        )
+        {
             var headers = response.Headers;
 
-            if (!headers.ContainsKey(KnownHeaders.CacheControl)) {
+            if (!headers.ContainsKey(KnownHeaders.CacheControl))
+            {
                 headers[KnownHeaders.CacheControl] = "no-cache";
             }
 
-            if (!headers.ContainsKey(KnownHeaders.XAccelBuffering)) {
+            if (!headers.ContainsKey(KnownHeaders.XAccelBuffering))
+            {
                 headers[KnownHeaders.XAccelBuffering] = "no";
             }
         }

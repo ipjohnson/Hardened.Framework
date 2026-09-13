@@ -20,27 +20,32 @@ namespace Hardened.Benchmarks.Micro;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(BenchmarkCategories.Micro)]
-public class PoolingBenchmarks {
+public class PoolingBenchmarks
+{
     private StringBuilderPool _stringBuilderPool = null!;
     private MemoryStreamPool _memoryStreamPool = null!;
 
     [GlobalSetup]
-    public void Setup() {
+    public void Setup()
+    {
         _stringBuilderPool = new StringBuilderPool(256);
         _memoryStreamPool = new MemoryStreamPool();
 
         // Prime both pools so the first measured rent is a hit rather than a miss.
-        using (var reservation = _stringBuilderPool.Get()) {
+        using (var reservation = _stringBuilderPool.Get())
+        {
             reservation.Item.Append("prime");
         }
 
-        using (var reservation = _memoryStreamPool.Get()) {
+        using (var reservation = _memoryStreamPool.Get())
+        {
             reservation.Item.WriteByte(1);
         }
     }
 
     [Benchmark(Baseline = true)]
-    public int StringBuilderPooled() {
+    public int StringBuilderPooled()
+    {
         using var reservation = _stringBuilderPool.Get();
 
         reservation.Item.Append("benchmark");
@@ -49,7 +54,8 @@ public class PoolingBenchmarks {
     }
 
     [Benchmark]
-    public int StringBuilderAllocated() {
+    public int StringBuilderAllocated()
+    {
         var builder = new StringBuilder(256);
 
         builder.Append("benchmark");
@@ -58,7 +64,8 @@ public class PoolingBenchmarks {
     }
 
     [Benchmark]
-    public long MemoryStreamPooled() {
+    public long MemoryStreamPooled()
+    {
         using var reservation = _memoryStreamPool.Get();
 
         reservation.Item.WriteByte(42);
@@ -67,7 +74,8 @@ public class PoolingBenchmarks {
     }
 
     [Benchmark]
-    public long MemoryStreamAllocated() {
+    public long MemoryStreamAllocated()
+    {
         using var stream = new MemoryStream(1024);
 
         stream.WriteByte(42);
@@ -80,7 +88,8 @@ public class PoolingBenchmarks {
     /// than taking the uncontended head every time.
     /// </summary>
     [Benchmark]
-    public int StringBuilderPooledNested() {
+    public int StringBuilderPooledNested()
+    {
         using var first = _stringBuilderPool.Get();
         using var second = _stringBuilderPool.Get();
         using var third = _stringBuilderPool.Get();
@@ -92,7 +101,8 @@ public class PoolingBenchmarks {
     }
 
     [GlobalCleanup]
-    public void Cleanup() {
+    public void Cleanup()
+    {
         _memoryStreamPool.Dispose();
     }
 }

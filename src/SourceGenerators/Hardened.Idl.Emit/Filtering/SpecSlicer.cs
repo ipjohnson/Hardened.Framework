@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 
 namespace Hardened.Idl.Filtering;
 
@@ -30,12 +30,13 @@ namespace Hardened.Idl.Filtering;
 /// decides that there is one.
 /// </para>
 /// </remarks>
-internal static class SpecSlicer {
-
+internal static class SpecSlicer
+{
     /// <param name="IncludePaths">Path globs to keep. Empty keeps every path.</param>
     /// <param name="ExcludePaths">Path globs to drop, applied after the include set.</param>
     /// <param name="Tags">Tags to keep. Empty keeps every tag.</param>
-    internal sealed class Filter {
+    internal sealed class Filter
+    {
         public IReadOnlyList<string> IncludePaths { get; set; } = System.Array.Empty<string>();
 
         public IReadOnlyList<string> ExcludePaths { get; set; } = System.Array.Empty<string>();
@@ -46,7 +47,8 @@ internal static class SpecSlicer {
             IncludePaths.Count == 0 && ExcludePaths.Count == 0 && Tags.Count == 0;
     }
 
-    internal sealed class Result {
+    internal sealed class Result
+    {
         public int OperationsKept { get; set; }
 
         public int OperationsDropped { get; set; }
@@ -81,19 +83,26 @@ internal static class SpecSlicer {
     /// Whether schemas nothing reaches are emitted anyway. The escape hatch for a project that
     /// hand-writes calls against types the description declares but never uses in an operation.
     /// </param>
-    public static Result Apply(ServiceSpecModel model, Filter filter, bool keepUnreferenced = false) {
+    public static Result Apply(ServiceSpecModel model, Filter filter, bool keepUnreferenced = false)
+    {
         var result = new Result();
 
         // 1. Operations the filter selects. An empty filter selects them all - it is only the
         // roots of the closure below that a filter changes, not whether there is one.
-        if (!filter.IsEmpty) {
-            foreach (var service in model.Services) {
+        if (!filter.IsEmpty)
+        {
+            foreach (var service in model.Services)
+            {
                 var kept = new List<OperationModel>();
 
-                foreach (var operation in service.Operations) {
-                    if (Selected(operation, service.Tag, filter)) {
+                foreach (var operation in service.Operations)
+                {
+                    if (Selected(operation, service.Tag, filter))
+                    {
                         kept.Add(operation);
-                    } else {
+                    }
+                    else
+                    {
                         result.OperationsDropped++;
                     }
                 }
@@ -106,7 +115,8 @@ internal static class SpecSlicer {
 
         result.OperationsKept = CountOperations(model);
 
-        if (keepUnreferenced) {
+        if (keepUnreferenced)
+        {
             result.SchemasKept = model.Schemas.Count;
             result.MatchedNothing = !filter.IsEmpty && result.OperationsKept == 0;
 
@@ -116,15 +126,18 @@ internal static class SpecSlicer {
         // 2. Schemas those operations reach, transitively.
         var byName = new Dictionary<string, SchemaModel>(StringComparer.Ordinal);
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             byName[schema.Name] = schema;
         }
 
         var reachable = new HashSet<string>(StringComparer.Ordinal);
         var pending = new Stack<string>();
 
-        void Reach(string? reference) {
-            if (reference == null) {
+        void Reach(string? reference)
+        {
+            if (reference == null)
+            {
                 return;
             }
 
@@ -132,13 +145,16 @@ internal static class SpecSlicer {
 
             // A name the document itself never declares is not the slice's doing; the parser has
             // already degraded those.
-            if (byName.ContainsKey(name) && reachable.Add(name)) {
+            if (byName.ContainsKey(name) && reachable.Add(name))
+            {
                 pending.Push(name);
             }
         }
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
                 Reach(operation.RequestBodyRef);
                 Reach(operation.ResponseRef);
                 Reach(operation.ResponseArrayItemsRef);
@@ -153,16 +169,19 @@ internal static class SpecSlicer {
                 // is otherwise pruned as unreferenced, and the case type that carries it names a
                 // type nothing declared. That is a CS0234 in generated code, from a document that
                 // declares the schema perfectly well.
-                foreach (var success in operation.SuccessResponses) {
+                foreach (var success in operation.SuccessResponses)
+                {
                     Reach(success.Ref);
                     Reach(success.ArrayItemsRef);
                 }
 
-                foreach (var error in operation.ErrorResponses) {
+                foreach (var error in operation.ErrorResponses)
+                {
                     Reach(error.Ref);
                 }
 
-                foreach (var parameter in operation.Parameters) {
+                foreach (var parameter in operation.Parameters)
+                {
                     Reach(parameter.Ref);
                     Reach(parameter.ArrayItemsRef);
                 }
@@ -178,45 +197,56 @@ internal static class SpecSlicer {
         // allOf is reuse, and a derived type nothing references really is unreachable.
         var derived = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
-        foreach (var schema in model.Schemas) {
-            if (schema.BaseRef == null) {
+        foreach (var schema in model.Schemas)
+        {
+            if (schema.BaseRef == null)
+            {
                 continue;
             }
 
             var baseName = TypeMapper.GetRefName(schema.BaseRef);
 
-            if (!derived.TryGetValue(baseName, out var subtypes)) {
+            if (!derived.TryGetValue(baseName, out var subtypes))
+            {
                 derived[baseName] = subtypes = new List<string>();
             }
 
             subtypes.Add(schema.Name);
         }
 
-        while (pending.Count > 0) {
+        while (pending.Count > 0)
+        {
             var schema = byName[pending.Pop()];
 
             Reach(schema.BaseRef);
             Reach(schema.ArrayItemsRef);
 
-            foreach (var mapping in schema.DiscriminatorMapping) {
+            foreach (var mapping in schema.DiscriminatorMapping)
+            {
                 Reach(mapping.Ref);
             }
 
             // A choice type's own branches. Without this the choice survives and the schemas it
             // reads into do not, so the generated converter names types nothing declares - CS0234
             // from a file the generator wrote.
-            foreach (var branch in schema.OneOf) {
+            foreach (var branch in schema.OneOf)
+            {
                 Reach(branch.Ref);
             }
 
-            if (!string.IsNullOrEmpty(schema.DiscriminatorPropertyName) &&
-                derived.TryGetValue(schema.Name, out var subtypes)) {
-                foreach (var subtype in subtypes) {
+            if (
+                !string.IsNullOrEmpty(schema.DiscriminatorPropertyName)
+                && derived.TryGetValue(schema.Name, out var subtypes)
+            )
+            {
+                foreach (var subtype in subtypes)
+                {
                     Reach(TypeMapper.MakeRef(subtype));
                 }
             }
 
-            foreach (var property in schema.Properties) {
+            foreach (var property in schema.Properties)
+            {
                 Reach(property.Ref);
                 Reach(property.ArrayItemsRef);
                 Reach(property.DictionaryValueRef);
@@ -224,7 +254,8 @@ internal static class SpecSlicer {
                 // The property is typed JsonElement, so nothing emitted names these - but they are
                 // what the payload is allowed to be, and a caller deserializing into one needs the
                 // type to exist.
-                foreach (var branch in property.OneOf) {
+                foreach (var branch in property.OneOf)
+                {
                     Reach(branch.Ref);
                 }
             }
@@ -232,8 +263,10 @@ internal static class SpecSlicer {
 
         var dropped = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var schema in model.Schemas) {
-            if (!reachable.Contains(schema.Name)) {
+        foreach (var schema in model.Schemas)
+        {
+            if (!reachable.Contains(schema.Name))
+            {
                 dropped.Add(schema.Name);
             }
         }
@@ -251,20 +284,30 @@ internal static class SpecSlicer {
     /// That nothing kept still points at something removed.
     /// </summary>
     private static void VerifyClosure(
-        ServiceSpecModel model, HashSet<string> dropped, Result result) {
-        if (dropped.Count == 0) {
+        ServiceSpecModel model,
+        HashSet<string> dropped,
+        Result result
+    )
+    {
+        if (dropped.Count == 0)
+        {
             return;
         }
 
-        void Check(string? reference, string from) {
-            if (reference != null && dropped.Contains(TypeMapper.GetRefName(reference))) {
+        void Check(string? reference, string from)
+        {
+            if (reference != null && dropped.Contains(TypeMapper.GetRefName(reference)))
+            {
                 result.DanglingReferences.Add(
-                    from + " references '" + TypeMapper.GetRefName(reference) + "'");
+                    from + " references '" + TypeMapper.GetRefName(reference) + "'"
+                );
             }
         }
 
-        foreach (var service in model.Services) {
-            foreach (var operation in service.Operations) {
+        foreach (var service in model.Services)
+        {
+            foreach (var operation in service.Operations)
+            {
                 var from = operation.HttpMethod + " " + operation.Path;
 
                 Check(operation.RequestBodyRef, from);
@@ -272,29 +315,34 @@ internal static class SpecSlicer {
                 Check(operation.ResponseArrayItemsRef, from);
                 Check(operation.ItemSchemaRef, from);
 
-                foreach (var success in operation.SuccessResponses) {
+                foreach (var success in operation.SuccessResponses)
+                {
                     Check(success.Ref, from);
                     Check(success.ArrayItemsRef, from);
                 }
 
-                foreach (var error in operation.ErrorResponses) {
+                foreach (var error in operation.ErrorResponses)
+                {
                     Check(error.Ref, from);
                 }
 
-                foreach (var parameter in operation.Parameters) {
+                foreach (var parameter in operation.Parameters)
+                {
                     Check(parameter.Ref, from);
                     Check(parameter.ArrayItemsRef, from);
                 }
             }
         }
 
-        foreach (var schema in model.Schemas) {
+        foreach (var schema in model.Schemas)
+        {
             var from = "schema '" + schema.Name + "'";
 
             Check(schema.BaseRef, from);
             Check(schema.ArrayItemsRef, from);
 
-            foreach (var property in schema.Properties) {
+            foreach (var property in schema.Properties)
+            {
                 Check(property.Ref, from);
                 Check(property.ArrayItemsRef, from);
                 Check(property.DictionaryValueRef, from);
@@ -302,31 +350,39 @@ internal static class SpecSlicer {
         }
     }
 
-    private static int CountOperations(ServiceSpecModel model) {
+    private static int CountOperations(ServiceSpecModel model)
+    {
         var count = 0;
 
-        foreach (var service in model.Services) {
+        foreach (var service in model.Services)
+        {
             count += service.Operations.Count;
         }
 
         return count;
     }
 
-    private static bool Selected(OperationModel operation, string? tag, Filter filter) {
-        if (filter.Tags.Count > 0 && !Matches(filter.Tags, tag ?? operation.Tag ?? "")) {
+    private static bool Selected(OperationModel operation, string? tag, Filter filter)
+    {
+        if (filter.Tags.Count > 0 && !Matches(filter.Tags, tag ?? operation.Tag ?? ""))
+        {
             return false;
         }
 
-        if (filter.IncludePaths.Count > 0 && !MatchesAnyGlob(filter.IncludePaths, operation.Path)) {
+        if (filter.IncludePaths.Count > 0 && !MatchesAnyGlob(filter.IncludePaths, operation.Path))
+        {
             return false;
         }
 
         return !MatchesAnyGlob(filter.ExcludePaths, operation.Path);
     }
 
-    private static bool Matches(IReadOnlyList<string> candidates, string value) {
-        foreach (var candidate in candidates) {
-            if (string.Equals(candidate, value, StringComparison.OrdinalIgnoreCase)) {
+    private static bool Matches(IReadOnlyList<string> candidates, string value)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (string.Equals(candidate, value, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
             }
         }
@@ -334,9 +390,12 @@ internal static class SpecSlicer {
         return false;
     }
 
-    private static bool MatchesAnyGlob(IReadOnlyList<string> globs, string path) {
-        foreach (var glob in globs) {
-            if (GlobMatches(glob, path)) {
+    private static bool MatchesAnyGlob(IReadOnlyList<string> globs, string path)
+    {
+        foreach (var glob in globs)
+        {
+            if (GlobMatches(glob, path))
+            {
                 return true;
             }
         }
@@ -353,7 +412,8 @@ internal static class SpecSlicer {
     /// parameters are ordinary text here: <c>/repos/*/issues</c> matches
     /// <c>/repos/{owner}/issues</c>.
     /// </remarks>
-    internal static bool GlobMatches(string glob, string path) {
+    internal static bool GlobMatches(string glob, string path)
+    {
         var globParts = Split(glob);
         var pathParts = Split(path);
 
@@ -363,16 +423,22 @@ internal static class SpecSlicer {
     private static string[] Split(string value) =>
         value.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 
-    private static bool MatchFrom(string[] glob, int g, string[] path, int p) {
-        while (g < glob.Length) {
-            if (glob[g] == "**") {
+    private static bool MatchFrom(string[] glob, int g, string[] path, int p)
+    {
+        while (g < glob.Length)
+        {
+            if (glob[g] == "**")
+            {
                 // Trailing ** matches whatever is left, including nothing.
-                if (g == glob.Length - 1) {
+                if (g == glob.Length - 1)
+                {
                     return true;
                 }
 
-                for (var skip = p; skip <= path.Length; skip++) {
-                    if (MatchFrom(glob, g + 1, path, skip)) {
+                for (var skip = p; skip <= path.Length; skip++)
+                {
+                    if (MatchFrom(glob, g + 1, path, skip))
+                    {
                         return true;
                     }
                 }
@@ -380,7 +446,8 @@ internal static class SpecSlicer {
                 return false;
             }
 
-            if (p >= path.Length || !SegmentMatches(glob[g], path[p])) {
+            if (p >= path.Length || !SegmentMatches(glob[g], path[p]))
+            {
                 return false;
             }
 
@@ -391,12 +458,15 @@ internal static class SpecSlicer {
         return p == path.Length;
     }
 
-    private static bool SegmentMatches(string glob, string segment) {
-        if (glob == "*") {
+    private static bool SegmentMatches(string glob, string segment)
+    {
+        if (glob == "*")
+        {
             return true;
         }
 
-        if (glob.IndexOf('*') < 0) {
+        if (glob.IndexOf('*') < 0)
+        {
             return string.Equals(glob, segment, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -404,29 +474,34 @@ internal static class SpecSlicer {
         var parts = glob.Split('*');
         var index = 0;
 
-        for (var i = 0; i < parts.Length; i++) {
+        for (var i = 0; i < parts.Length; i++)
+        {
             var part = parts[i];
 
-            if (part.Length == 0) {
+            if (part.Length == 0)
+            {
                 continue;
             }
 
-            if (i == 0) {
-                if (!segment.StartsWith(part, StringComparison.OrdinalIgnoreCase)) return false;
+            if (i == 0)
+            {
+                if (!segment.StartsWith(part, StringComparison.OrdinalIgnoreCase))
+                    return false;
                 index = part.Length;
                 continue;
             }
 
             var found = segment.IndexOf(part, index, StringComparison.OrdinalIgnoreCase);
 
-            if (found < 0) {
+            if (found < 0)
+            {
                 return false;
             }
 
             index = found + part.Length;
         }
 
-        return parts[parts.Length - 1].Length == 0 ||
-               segment.EndsWith(parts[parts.Length - 1], StringComparison.OrdinalIgnoreCase);
+        return parts[parts.Length - 1].Length == 0
+            || segment.EndsWith(parts[parts.Length - 1], StringComparison.OrdinalIgnoreCase);
     }
 }

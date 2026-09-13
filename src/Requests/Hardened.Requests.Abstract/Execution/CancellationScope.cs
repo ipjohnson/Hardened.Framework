@@ -23,11 +23,13 @@ namespace Hardened.Requests.Abstract.Execution;
 /// a callback for the same reason.
 /// </para>
 /// </remarks>
-public readonly struct CancellationScope : IDisposable {
+public readonly struct CancellationScope : IDisposable
+{
     private readonly IExecutionContext _context;
     private readonly CancellationToken _previous;
 
-    internal CancellationScope(IExecutionContext context, CancellationToken replacement) {
+    internal CancellationScope(IExecutionContext context, CancellationToken replacement)
+    {
         _context = context;
         _previous = context.CancellationToken;
         context.ReplaceCancellationToken(replacement);
@@ -39,8 +41,8 @@ public readonly struct CancellationScope : IDisposable {
 /// <summary>
 /// Opening a <see cref="CancellationScope"/> on a context.
 /// </summary>
-public static class ExecutionContextCancellationExtensions {
-
+public static class ExecutionContextCancellationExtensions
+{
     /// <summary>
     /// Makes <paramref name="replacement"/> what <see cref="IExecutionContext.CancellationToken"/>
     /// returns until the scope is disposed.
@@ -53,6 +55,7 @@ public static class ExecutionContextCancellationExtensions {
     /// already-cancelled token can assign one.
     /// </remarks>
     public static CancellationScope WithCancellation(
-        this IExecutionContext context, CancellationToken replacement) =>
-        new(context, replacement);
+        this IExecutionContext context,
+        CancellationToken replacement
+    ) => new(context, replacement);
 }

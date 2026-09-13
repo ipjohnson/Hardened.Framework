@@ -1,9 +1,9 @@
-using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Serializer;
 using Hardened.Requests.Runtime.Configuration;
 using Hardened.Requests.Runtime.Execution;
 using Hardened.Requests.Runtime.Filters;
+using Hardened.Requests.Runtime.Serializer;
 using Hardened.Requests.Runtime.Streaming;
 using Hardened.Requests.Runtime.Tests.Support;
 using Microsoft.Extensions.Options;
@@ -29,11 +29,13 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// collapsing is an optimisation underneath that.
 /// </para>
 /// </remarks>
-public class IOFilterProviderTests {
-
+public class IOFilterProviderTests
+{
     private static IOFilterProvider Provider(
         Action<ResponseHeaderConfiguration>? configure = null,
-        TimeSpan? heartbeatInterval = null) {
+        TimeSpan? heartbeatInterval = null
+    )
+    {
         var configuration = new ResponseHeaderConfiguration();
 
         configure?.Invoke(configuration);
@@ -41,20 +43,26 @@ public class IOFilterProviderTests {
         var serialization = Substitute.For<IContextSerializationService>();
 
         serialization.SerializeResponse(Arg.Any<IExecutionContext>()).Returns(Task.CompletedTask);
-        serialization.SerializeResponse(
-                Arg.Any<IExecutionContext>(), Arg.Any<IResponseSerializer?>(), Arg.Any<string?>())
+        serialization
+            .SerializeResponse(
+                Arg.Any<IExecutionContext>(),
+                Arg.Any<IResponseSerializer?>(),
+                Arg.Any<string?>()
+            )
             .Returns(Task.CompletedTask);
 
         var streaming = new StreamingConfiguration();
 
-        if (heartbeatInterval != null) {
+        if (heartbeatInterval != null)
+        {
             streaming.HeartbeatInterval = heartbeatInterval.Value;
         }
 
         return new IOFilterProvider(
             serialization,
             Options.Create<IResponseHeaderConfiguration>(configuration),
-            Options.Create<IStreamingConfiguration>(streaming));
+            Options.Create<IStreamingConfiguration>(streaming)
+        );
     }
 
     /// <summary>
@@ -62,25 +70,35 @@ public class IOFilterProviderTests {
     /// for longer than it, because the interval is otherwise invisible from outside.
     /// </summary>
     [Fact]
-    public async Task TheConfiguredHeartbeatIntervalReachesTheStreamedFilter() {
+    public async Task TheConfiguredHeartbeatIntervalReachesTheStreamedFilter()
+    {
         var filter = Provider(heartbeatInterval: TimeSpan.FromMilliseconds(10))
             .ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters, SseFraming.Instance);
 
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, filter,
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = QuietThenOne();
+        await Pipeline
+            .Chain(
+                context,
+                filter,
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = QuietThenOne();
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
-        var body = System.Text.Encoding.UTF8.GetString(((MemoryStream)context.Response.Body).ToArray());
+        var body = System.Text.Encoding.UTF8.GetString(
+            ((MemoryStream)context.Response.Body).ToArray()
+        );
 
         Assert.Contains(": keep-alive\n\n", body);
     }
 
-    private static async IAsyncEnumerable<string> QuietThenOne() {
+    private static async IAsyncEnumerable<string> QuietThenOne()
+    {
         await Task.Delay(100, TestContext.Current.CancellationToken);
 
         yield return "one";
@@ -93,7 +111,8 @@ public class IOFilterProviderTests {
         Task.FromResult<IExecutionRequestParameters>(EmptyParameters.Instance);
 
     /// <summary>Runs the provided filter over a real context and hands back that context.</summary>
-    private static async Task<IExecutionContext> Run(IExecutionFilter filter) {
+    private static async Task<IExecutionContext> Run(IExecutionFilter filter)
+    {
         var context = Pipeline.Context();
 
         await Pipeline.Chain(context, filter).Next();
@@ -102,14 +121,16 @@ public class IOFilterProviderTests {
     }
 
     [Fact]
-    public async Task NoConfiguredHeadersLeavesTheResponseHeadersAlone() {
+    public async Task NoConfiguredHeadersLeavesTheResponseHeadersAlone()
+    {
         var context = await Run(Provider().ProvideFilter(HandlerInfo(), NoParameters));
 
         Assert.Empty(context.Response.Headers);
     }
 
     [Fact]
-    public async Task ACommonHeaderReachesTheResponse() {
+    public async Task ACommonHeaderReachesTheResponse()
+    {
         var filter = Provider(configuration => configuration.Add("X-Frame-Options", "DENY"))
             .ProvideFilter(HandlerInfo(), NoParameters);
 
@@ -119,8 +140,10 @@ public class IOFilterProviderTests {
     }
 
     [Fact]
-    public async Task EveryCommonHeaderReachesTheResponse() {
-        var filter = Provider(configuration => {
+    public async Task EveryCommonHeaderReachesTheResponse()
+    {
+        var filter = Provider(configuration =>
+            {
                 configuration.Add("X-Frame-Options", "DENY");
                 configuration.Add("X-Content-Type-Options", "nosniff");
             })
@@ -133,9 +156,11 @@ public class IOFilterProviderTests {
     }
 
     [Fact]
-    public async Task AConfiguredActionRunsAgainstTheResponse() {
+    public async Task AConfiguredActionRunsAgainstTheResponse()
+    {
         var filter = Provider(configuration =>
-                configuration.Add(context => context.Response.Headers["X-Trace"] = "on"))
+                configuration.Add(context => context.Response.Headers["X-Trace"] = "on")
+            )
             .ProvideFilter(HandlerInfo(), NoParameters);
 
         var context = await Run(filter);
@@ -148,7 +173,8 @@ public class IOFilterProviderTests {
     /// which is the point — the optimisation must not change what runs.
     /// </summary>
     [Fact]
-    public async Task ASingleActionRunsExactlyOnce() {
+    public async Task ASingleActionRunsExactlyOnce()
+    {
         var calls = 0;
 
         var filter = Provider(configuration => configuration.Add(_ => calls++))
@@ -160,10 +186,12 @@ public class IOFilterProviderTests {
     }
 
     [Fact]
-    public async Task SeveralActionsAllRunInOrder() {
+    public async Task SeveralActionsAllRunInOrder()
+    {
         var log = new List<string>();
 
-        var filter = Provider(configuration => {
+        var filter = Provider(configuration =>
+            {
                 configuration.Add(_ => log.Add("first"));
                 configuration.Add(_ => log.Add("second"));
             })
@@ -179,8 +207,10 @@ public class IOFilterProviderTests {
     /// that sets the same name is overwritten by the configured value.
     /// </summary>
     [Fact]
-    public async Task ActionsAndCommonHeadersBothApply() {
-        var filter = Provider(configuration => {
+    public async Task ActionsAndCommonHeadersBothApply()
+    {
+        var filter = Provider(configuration =>
+            {
                 configuration.Add(context => context.Response.Headers["X-Trace"] = "on");
                 configuration.Add("X-Frame-Options", "DENY");
             })
@@ -193,9 +223,11 @@ public class IOFilterProviderTests {
     }
 
     [Fact]
-    public async Task AMultiValueCommonHeaderKeepsEveryValue() {
+    public async Task AMultiValueCommonHeaderKeepsEveryValue()
+    {
         var filter = Provider(configuration =>
-                configuration.Add("Vary", new StringValues(["Accept", "Accept-Encoding"])))
+                configuration.Add("Vary", new StringValues(["Accept", "Accept-Encoding"]))
+            )
             .ProvideFilter(HandlerInfo(), NoParameters);
 
         var context = await Run(filter);
@@ -210,9 +242,9 @@ public class IOFilterProviderTests {
     #region streamed filters
 
     [Fact]
-    public void TheStreamedFilterIsBuiltForTheItemType() {
-        var filter = Provider()
-            .ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters);
+    public void TheStreamedFilterIsBuiltForTheItemType()
+    {
+        var filter = Provider().ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters);
 
         Assert.IsType<AsyncEnumerableIoFilter<string>>(filter);
     }
@@ -222,9 +254,9 @@ public class IOFilterProviderTests {
     /// answering newline-delimited JSON.
     /// </summary>
     [Fact]
-    public async Task TheTwoArgumentStreamedOverloadFramesAsNdjson() {
-        var filter = Provider()
-            .ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters);
+    public async Task TheTwoArgumentStreamedOverloadFramesAsNdjson()
+    {
+        var filter = Provider().ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters);
 
         var context = Pipeline.Context();
 
@@ -236,7 +268,8 @@ public class IOFilterProviderTests {
     }
 
     [Fact]
-    public async Task ANamedFramingIsUsedInsteadOfTheDefault() {
+    public async Task ANamedFramingIsUsedInsteadOfTheDefault()
+    {
         var filter = Provider()
             .ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters, SseFraming.Instance);
 
@@ -250,7 +283,8 @@ public class IOFilterProviderTests {
     }
 
     [Fact]
-    public async Task ConfiguredHeadersReachAStreamedResponseToo() {
+    public async Task ConfiguredHeadersReachAStreamedResponseToo()
+    {
         var filter = Provider(configuration => configuration.Add("X-Frame-Options", "DENY"))
             .ProvideAsyncEnumerableFilter<string>(HandlerInfo(), NoParameters);
 
@@ -263,7 +297,8 @@ public class IOFilterProviderTests {
         Assert.Equal("DENY", context.Response.Headers["X-Frame-Options"].ToString());
     }
 
-    private static async IAsyncEnumerable<string> Values() {
+    private static async IAsyncEnumerable<string> Values()
+    {
         yield return "alpha";
 
         await Task.CompletedTask;

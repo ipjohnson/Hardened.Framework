@@ -23,40 +23,41 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// also looks like. These pin the diagnostic that makes the difference visible.
 /// </para>
 /// </remarks>
-public class OpenApiEmptyDocumentTests {
-
+public class OpenApiEmptyDocumentTests
+{
     private static readonly Type[] Anchors = [typeof(GetAttribute)];
 
     private const string Marker =
-        "[Hardened.Shared.Runtime.Attributes.Enable<" +
-        "Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]";
+        "[Hardened.Shared.Runtime.Attributes.Enable<"
+        + "Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]";
 
     /// <param name="controller">
     /// Empty for the module that composes rather than declares - the host's position.
     /// </param>
     private static GeneratorResult Generate(string controller) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    {{Marker}}
-                    public partial class TestApplication { }
+                [HardenedModule]
+                {{Marker}}
+                public partial class TestApplication { }
 
-                    {{controller}}
-                    """
+                {{controller}}
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
             Anchors,
             additionalTexts: null,
-            buildProperties: null);
+            buildProperties: null
+        );
 
-    private const string Controller =
-        """
+    private const string Controller = """
         public class UserController {
             [Get("/users/{id}")]
             public string ById(string id) => id;
@@ -64,14 +65,16 @@ public class OpenApiEmptyDocumentTests {
         """;
 
     private static Diagnostic? Reported(GeneratorResult result) =>
-        result.GeneratorDiagnostics.FirstOrDefault(
-            diagnostic => diagnostic.Id == OpenApiDocumentDiagnostics.EmptyDocumentId);
+        result.GeneratorDiagnostics.FirstOrDefault(diagnostic =>
+            diagnostic.Id == OpenApiDocumentDiagnostics.EmptyDocumentId
+        );
 
     /// <summary>
     /// A module that publishes a document and declares no routes is told so.
     /// </summary>
     [Fact]
-    public void PublishingFromAModuleWithNoRoutesIsReported() {
+    public void PublishingFromAModuleWithNoRoutesIsReported()
+    {
         var reported = Reported(Generate(controller: ""));
 
         Assert.NotNull(reported);
@@ -85,7 +88,8 @@ public class OpenApiEmptyDocumentTests {
     /// and the fix is not guessable from it.
     /// </summary>
     [Fact]
-    public void TheMessageNamesTheFix() {
+    public void TheMessageNamesTheFix()
+    {
         var message = Reported(Generate(controller: ""))!.GetMessage();
 
         Assert.Contains("same compilation", message);
@@ -98,7 +102,8 @@ public class OpenApiEmptyDocumentTests {
     /// application.
     /// </summary>
     [Fact]
-    public void PublishingBesideTheRoutesReportsNothing() {
+    public void PublishingBesideTheRoutesReportsNothing()
+    {
         Assert.Null(Reported(Generate(Controller)));
     }
 
@@ -109,9 +114,11 @@ public class OpenApiEmptyDocumentTests {
     [Theory]
     [InlineData("", 0)]
     [InlineData(Controller, 1)]
-    public void TheDocumentDescribesOnlyTheRoutesInItsOwnCompilation(string controller, int paths) {
-        var source = Generate(controller).GeneratedSources
-            .First(pair => pair.Key.Contains("OpenApiDocument")).Value;
+    public void TheDocumentDescribesOnlyTheRoutesInItsOwnCompilation(string controller, int paths)
+    {
+        var source = Generate(controller)
+            .GeneratedSources.First(pair => pair.Key.Contains("OpenApiDocument"))
+            .Value;
 
         using var document = JsonDocument.Parse(GeneratedOpenApiDocument.Extract(source));
 

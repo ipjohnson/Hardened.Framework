@@ -20,8 +20,8 @@ namespace Hardened.Web.Testing;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
-public abstract class TestHostProviderAttribute : Attribute {
-
+public abstract class TestHostProviderAttribute : Attribute
+{
     /// <summary>The runtime attribute this provider answers for, on a test.</summary>
     public abstract Type RuntimeAttribute { get; }
 
@@ -30,5 +30,8 @@ public abstract class TestHostProviderAttribute : Attribute {
     /// register what it needs. <c>[WebTesting]</c> registers the instance and starts it once the
     /// container exists.
     /// </summary>
-    public abstract ITestHost CreateHost(ITestMethodContext testMethod, IServiceCollection services);
+    public abstract ITestHost CreateHost(
+        ITestMethodContext testMethod,
+        IServiceCollection services
+    );
 }

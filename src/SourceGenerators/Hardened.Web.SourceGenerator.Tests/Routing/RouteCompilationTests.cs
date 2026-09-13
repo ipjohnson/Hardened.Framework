@@ -21,8 +21,8 @@ namespace Hardened.Web.SourceGenerator.Tests.Routing;
 /// driven through the compiled table in <c>RouteTreeConflictTests</c> instead.
 /// </para>
 /// </summary>
-public class RouteCompilationTests {
-
+public class RouteCompilationTests
+{
     /// <summary>
     /// The header every case is generated against. Every using a case might need lives here rather
     /// than in the case itself: a file-scoped namespace ends the using section, so a using written
@@ -55,22 +55,30 @@ public class RouteCompilationTests {
     /// error, no output, and a green <c>AssertNoErrors</c>. Requiring the file it should have
     /// written is what closes that.
     /// </remarks>
-    private static GeneratorResult CompileApplication(string controllers) {
+    private static GeneratorResult CompileApplication(string controllers)
+    {
         var result = GeneratorTestHarness.Run(
             ModuleEntryPoint + controllers,
             new WebLibrarySourceGenerator(),
-            GeneratedRoutingTable.Anchors);
+            GeneratedRoutingTable.Anchors
+        );
 
         result.AssertNoErrors();
 
-        var crashes = result.GeneratorDiagnostics
-            .Where(diagnostic => diagnostic.Id == "HardenedException")
+        var crashes = result
+            .GeneratorDiagnostics.Where(diagnostic => diagnostic.Id == "HardenedException")
             .ToArray();
 
-        Assert.True(crashes.Length == 0,
-            "The generator caught an exception and downgraded it to a warning, so it emitted " +
-            "nothing and AssertNoErrors passed anyway:" + Environment.NewLine +
-            string.Join(Environment.NewLine, crashes.Select(diagnostic => "  " + diagnostic.GetMessage())));
+        Assert.True(
+            crashes.Length == 0,
+            "The generator caught an exception and downgraded it to a warning, so it emitted "
+                + "nothing and AssertNoErrors passed anyway:"
+                + Environment.NewLine
+                + string.Join(
+                    Environment.NewLine,
+                    crashes.Select(diagnostic => "  " + diagnostic.GetMessage())
+                )
+        );
 
         Assert.Contains("TestApplication.Routing.cs", result.GeneratedSources.Keys);
 
@@ -83,13 +91,16 @@ public class RouteCompilationTests {
     [InlineData("Put")]
     [InlineData("Delete")]
     [InlineData("Patch")]
-    public void EveryVerbCompilesIntoARoutingTable(string verb) {
-        CompileApplication($$"""
+    public void EveryVerbCompilesIntoARoutingTable(string verb)
+    {
+        CompileApplication(
+            $$"""
             public class ItemController {
                 [{{verb}}("/items/{id}")]
                 public string Handle(string id) => id;
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -97,8 +108,10 @@ public class RouteCompilationTests {
     /// switch over the request method, and each carries its own handler field.
     /// </summary>
     [Fact]
-    public void AllFiveVerbsOnOnePathCompileIntoOneRouteTree() {
-        CompileApplication("""
+    public void AllFiveVerbsOnOnePathCompileIntoOneRouteTree()
+    {
+        CompileApplication(
+            """
             public class ItemController {
                 [Get("/items/{id}")]
                 public string GetItem(string id) => id;
@@ -115,7 +128,8 @@ public class RouteCompilationTests {
                 [Patch("/items/{id}")]
                 public string PatchItem(string id) => id;
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -128,23 +142,30 @@ public class RouteCompilationTests {
     [InlineData("Put")]
     [InlineData("Delete")]
     [InlineData("Patch")]
-    public void EveryVerbCompilesUnderBothBasePaths(string verb) {
-        GeneratorTestHarness.Run($$"""
-            using Hardened.Shared.Runtime.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+    public void EveryVerbCompilesUnderBothBasePaths(string verb)
+    {
+        GeneratorTestHarness
+            .Run(
+                $$"""
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            [BasePath("/module")]
-            public partial class TestApplication { }
+                [HardenedModule]
+                [BasePath("/module")]
+                public partial class TestApplication { }
 
-            [BasePath("/api")]
-            public class ItemController {
-                [{{verb}}("/items/{id}")]
-                public string Handle(string id) => id;
-            }
-            """, new WebLibrarySourceGenerator(), GeneratedRoutingTable.Anchors).AssertNoErrors();
+                [BasePath("/api")]
+                public class ItemController {
+                    [{{verb}}("/items/{id}")]
+                    public string Handle(string id) => id;
+                }
+                """,
+                new WebLibrarySourceGenerator(),
+                GeneratedRoutingTable.Anchors
+            )
+            .AssertNoErrors();
     }
 
     [Theory]
@@ -152,26 +173,33 @@ public class RouteCompilationTests {
     [InlineData("[BasePath(\"/module\")]", "")]
     [InlineData("", "[BasePath(\"/api\")]")]
     [InlineData("[BasePath(\"/module\")]", "[BasePath(\"/api\")]")]
-    public void EveryBasePathCombinationCompiles(string moduleAttribute, string controllerAttribute) {
-        GeneratorTestHarness.Run($$"""
-            using Hardened.Shared.Runtime.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+    public void EveryBasePathCombinationCompiles(string moduleAttribute, string controllerAttribute)
+    {
+        GeneratorTestHarness
+            .Run(
+                $$"""
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            {{moduleAttribute}}
-            public partial class TestApplication { }
+                [HardenedModule]
+                {{moduleAttribute}}
+                public partial class TestApplication { }
 
-            {{controllerAttribute}}
-            public class OrderController {
-                [Get("/orders/{id}")]
-                public string GetOrder(string id) => id;
+                {{controllerAttribute}}
+                public class OrderController {
+                    [Get("/orders/{id}")]
+                    public string GetOrder(string id) => id;
 
-                [Delete("/orders/{id}")]
-                public string DeleteOrder(string id) => id;
-            }
-            """, new WebLibrarySourceGenerator(), GeneratedRoutingTable.Anchors).AssertNoErrors();
+                    [Delete("/orders/{id}")]
+                    public string DeleteOrder(string id) => id;
+                }
+                """,
+                new WebLibrarySourceGenerator(),
+                GeneratedRoutingTable.Anchors
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -179,22 +207,29 @@ public class RouteCompilationTests {
     /// degenerate value has to leave the route reachable at its own path rather than at <c>""</c>.
     /// </summary>
     [Fact]
-    public void AnEmptyModuleBasePathCompiles() {
-        GeneratorTestHarness.Run("""
-            using Hardened.Shared.Runtime.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+    public void AnEmptyModuleBasePathCompiles()
+    {
+        GeneratorTestHarness
+            .Run(
+                """
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            [BasePath("")]
-            public partial class TestApplication { }
+                [HardenedModule]
+                [BasePath("")]
+                public partial class TestApplication { }
 
-            public class OrderController {
-                [Get("/orders")]
-                public string List() => "orders";
-            }
-            """, new WebLibrarySourceGenerator(), GeneratedRoutingTable.Anchors).AssertNoErrors();
+                public class OrderController {
+                    [Get("/orders")]
+                    public string List() => "orders";
+                }
+                """,
+                new WebLibrarySourceGenerator(),
+                GeneratedRoutingTable.Anchors
+            )
+            .AssertNoErrors();
     }
 
     /// <summary>
@@ -208,24 +243,31 @@ public class RouteCompilationTests {
     /// produces two working tables rather than a collision.
     /// </remarks>
     [Fact]
-    public void TwoModuleEntryPointsEachCompileTheirOwnRoutingTable() {
-        var result = GeneratorTestHarness.Run("""
-            using Hardened.Shared.Runtime.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+    public void TwoModuleEntryPointsEachCompileTheirOwnRoutingTable()
+    {
+        var result = GeneratorTestHarness
+            .Run(
+                """
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            public partial class FirstApplication { }
+                [HardenedModule]
+                public partial class FirstApplication { }
 
-            [HardenedModule]
-            public partial class SecondApplication { }
+                [HardenedModule]
+                public partial class SecondApplication { }
 
-            public class OrderController {
-                [Get("/orders")]
-                public string List() => "orders";
-            }
-            """, new WebLibrarySourceGenerator(), GeneratedRoutingTable.Anchors).AssertNoErrors();
+                public class OrderController {
+                    [Get("/orders")]
+                    public string List() => "orders";
+                }
+                """,
+                new WebLibrarySourceGenerator(),
+                GeneratedRoutingTable.Anchors
+            )
+            .AssertNoErrors();
 
         Assert.Contains("FirstApplication.Routing.cs", result.GeneratedSources.Keys);
         Assert.Contains("SecondApplication.Routing.cs", result.GeneratedSources.Keys);
@@ -250,13 +292,16 @@ public class RouteCompilationTests {
     [InlineData("/a%20b")]
     [InlineData("/Orders/Summary")]
     [InlineData("/one/two/three/four/five/six")]
-    public void EveryRouteShapeCompiles(string route) {
-        CompileApplication($$"""
+    public void EveryRouteShapeCompiles(string route)
+    {
+        CompileApplication(
+            $$"""
             public class ShapeController {
                 [Get("{{route}}")]
                 public string Handle() => "x";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -265,13 +310,16 @@ public class RouteCompilationTests {
     /// reason it produces a usable route.
     /// </summary>
     [Fact]
-    public void AVerbAttributeWithNoRouteArgumentCompiles() {
-        CompileApplication("""
+    public void AVerbAttributeWithNoRouteArgumentCompiles()
+    {
+        CompileApplication(
+            """
             public class RootController {
                 [Get]
                 public string Root() => "root";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -280,8 +328,10 @@ public class RouteCompilationTests {
     /// to resolve the same way a literal does.
     /// </summary>
     [Fact]
-    public void ARouteDeclaredThroughAConstantCompiles() {
-        CompileApplication("""
+    public void ARouteDeclaredThroughAConstantCompiles()
+    {
+        CompileApplication(
+            """
             public static class Routes {
                 public const string Prefix = "/orders";
                 public const string List = Prefix + "/list";
@@ -291,7 +341,8 @@ public class RouteCompilationTests {
                 [Get(Routes.List)]
                 public string List() => "orders";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -300,8 +351,10 @@ public class RouteCompilationTests {
     /// so <c>GetRouteMethodName</c> has to disambiguate or the second overwrites the first.
     /// </summary>
     [Fact]
-    public void RoutesThatReduceToTheSameGeneratedMethodNameCompile() {
-        CompileApplication("""
+    public void RoutesThatReduceToTheSameGeneratedMethodNameCompile()
+    {
+        CompileApplication(
+            """
             public class SplitController {
                 [Get("/a/x")]
                 public string AX() => "ax";
@@ -309,7 +362,8 @@ public class RouteCompilationTests {
                 [Get("/b/x")]
                 public string BX() => "bx";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -318,8 +372,10 @@ public class RouteCompilationTests {
     /// node the generator can emit in one file.
     /// </summary>
     [Fact]
-    public void ALargeTreeWithSharedPrefixesAndTokensCompiles() {
-        CompileApplication("""
+    public void ALargeTreeWithSharedPrefixesAndTokensCompiles()
+    {
+        CompileApplication(
+            """
             public class CatalogController {
                 [Get("/order")]
                 public string Order() => "order";
@@ -351,7 +407,8 @@ public class RouteCompilationTests {
                 [Delete("/orders/{id}")]
                 public string Remove(string id) => id;
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -359,8 +416,10 @@ public class RouteCompilationTests {
     /// once in the emitted dependency-injection method however many routes it declares.
     /// </summary>
     [Fact]
-    public void RoutesSpreadAcrossControllersCompileIntoOneTable() {
-        CompileApplication("""
+    public void RoutesSpreadAcrossControllersCompileIntoOneTable()
+    {
+        CompileApplication(
+            """
             public class OrderController {
                 [Get("/orders")]
                 public string List() => "orders";
@@ -378,7 +437,8 @@ public class RouteCompilationTests {
                 [Get("/health")]
                 public string Health() => "ok";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -387,8 +447,10 @@ public class RouteCompilationTests {
     /// same class twice.
     /// </summary>
     [Fact]
-    public void OverloadedHandlerMethodsCompileToDistinctInvokeClasses() {
-        var result = CompileApplication("""
+    public void OverloadedHandlerMethodsCompileToDistinctInvokeClasses()
+    {
+        var result = CompileApplication(
+            """
             public class OverloadController {
                 [Get("/one/{id}")]
                 public string Handle(string id) => id;
@@ -396,10 +458,13 @@ public class RouteCompilationTests {
                 [Get("/two/{id}/{name}")]
                 public string Handle(string id, string name) => id + name;
             }
-            """);
+            """
+        );
 
-        var invokeClasses = result.GeneratedSources.Keys
-            .Where(name => name.StartsWith("OverloadController_Handle", StringComparison.Ordinal))
+        var invokeClasses = result
+            .GeneratedSources.Keys.Where(name =>
+                name.StartsWith("OverloadController_Handle", StringComparison.Ordinal)
+            )
             .ToArray();
 
         Assert.Equal(2, invokeClasses.Length);
@@ -407,8 +472,10 @@ public class RouteCompilationTests {
 
     /// <summary>The same method name on two controllers keeps them apart by controller name.</summary>
     [Fact]
-    public void TheSameMethodNameOnTwoControllersCompiles() {
-        CompileApplication("""
+    public void TheSameMethodNameOnTwoControllersCompiles()
+    {
+        CompileApplication(
+            """
             public class OrderController {
                 [Get("/orders")]
                 public string List() => "orders";
@@ -418,7 +485,8 @@ public class RouteCompilationTests {
                 [Get("/customers")]
                 public string List() => "customers";
             }
-            """);
+            """
+        );
     }
 
     [Theory]
@@ -430,13 +498,16 @@ public class RouteCompilationTests {
     [InlineData("public ValueTask<string> Handle() => new ValueTask<string>(\"x\");")]
     [InlineData("public async Task<string> Handle() { await Task.Yield(); return \"x\"; }")]
     [InlineData("public async Task Handle() { await Task.Yield(); }")]
-    public void EveryHandlerReturnShapeCompilesInsideARoutingTable(string handler) {
-        CompileApplication($$"""
+    public void EveryHandlerReturnShapeCompilesInsideARoutingTable(string handler)
+    {
+        CompileApplication(
+            $$"""
             public class ShapeController {
                 [Get("/shape")]
                 {{handler}}
             }
-            """);
+            """
+        );
     }
 
     [Theory]
@@ -447,15 +518,18 @@ public class RouteCompilationTests {
     [InlineData("[FromServices] ITenantService service", "/bind")]
     [InlineData("[FromQueryString] int page = 1", "/bind")]
     [InlineData("[FromQueryString] string? optional", "/bind")]
-    public void EveryBindingShapeCompilesInsideARoutingTable(string parameter, string route) {
-        CompileApplication($$"""
+    public void EveryBindingShapeCompilesInsideARoutingTable(string parameter, string route)
+    {
+        CompileApplication(
+            $$"""
             public interface ITenantService { }
 
             public class BindController {
                 [Get("{{route}}")]
                 public string Handle({{parameter}}) => "x";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -464,8 +538,10 @@ public class RouteCompilationTests {
     /// adjacent positions, which is what a handler carrying both has to keep straight.
     /// </summary>
     [Fact]
-    public void AllBindingSourcesAndMetadataInOneHandlerCompile() {
-        CompileApplication("""
+    public void AllBindingSourcesAndMetadataInOneHandlerCompile()
+    {
+        CompileApplication(
+            """
             public record OrderModel(string Sku);
 
             public interface ITenantService { }
@@ -481,7 +557,8 @@ public class RouteCompilationTests {
                     [FromServices] ITenantService service,
                     [FromBody] OrderModel model) => id + filter + tenant + model.Sku;
             }
-            """);
+            """
+        );
     }
 
     [Theory]
@@ -490,16 +567,18 @@ public class RouteCompilationTests {
     [InlineData("[CacheControl(Type = CacheControlEnum.MaxAge | CacheControlEnum.Public)]")]
     [InlineData("[RawResponse]")]
     [InlineData("[RawResponse(\"text/csv\")]")]
-    public void EveryHandlerOptionAttributeCompiles(string attribute) {
-        CompileApplication($$"""
+    public void EveryHandlerOptionAttributeCompiles(string attribute)
+    {
+        CompileApplication(
+            $$"""
             public class OptionController {
                 [Get("/option")]
                 {{attribute}}
                 public string Handle() => "x";
             }
-            """);
+            """
+        );
     }
-
 
     /// <summary>
     /// <c>[CacheControl]</c> declared on the controller rather than the handler. Class-level
@@ -507,8 +586,10 @@ public class RouteCompilationTests {
     /// once per handler.
     /// </summary>
     [Fact]
-    public void AControllerLevelHandlerOptionCompilesOnEveryRoute() {
-        CompileApplication("""
+    public void AControllerLevelHandlerOptionCompilesOnEveryRoute()
+    {
+        CompileApplication(
+            """
             [CacheControl(MaxAge = 60)]
             public class AssetController {
                 [Get("/one")]
@@ -517,7 +598,8 @@ public class RouteCompilationTests {
                 [Get("/two")]
                 public string Two() => "two";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -527,14 +609,17 @@ public class RouteCompilationTests {
     /// into a file carrying none of the consumer's usings.
     /// </summary>
     [Fact]
-    public void AnUnrecognisedAttributeOnAHandlerBecomesMetadataAndCompiles() {
-        CompileApplication("""
+    public void AnUnrecognisedAttributeOnAHandlerBecomesMetadataAndCompiles()
+    {
+        CompileApplication(
+            """
             public class LegacyController {
                 [Get("/legacy")]
                 [System.Obsolete("superseded by /v2/legacy")]
                 public string Legacy() => "legacy";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -544,14 +629,17 @@ public class RouteCompilationTests {
     /// table, where the handler is also constructed and registered.
     /// </summary>
     [Fact]
-    public void AHandlerWithMetadataAndNoParametersCompilesInsideARoutingTable() {
-        CompileApplication("""
+    public void AHandlerWithMetadataAndNoParametersCompilesInsideARoutingTable()
+    {
+        CompileApplication(
+            """
             public class HealthController {
                 [Get("/health")]
                 [Retry(Retries = 2)]
                 public string Health() => "ok";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -560,12 +648,15 @@ public class RouteCompilationTests {
     /// web application is exactly this shape.
     /// </summary>
     [Fact]
-    public void AnApplicationWithNoRoutesStillCompilesARoutingTable() {
-        CompileApplication("""
+    public void AnApplicationWithNoRoutesStillCompilesARoutingTable()
+    {
+        CompileApplication(
+            """
             public class NotAController {
                 public string Value => "x";
             }
-            """);
+            """
+        );
     }
 
     /// <summary>
@@ -575,8 +666,10 @@ public class RouteCompilationTests {
     /// and anything resolving the controller as a collection gets four instances.
     /// </summary>
     [Fact]
-    public void AControllerIsRegisteredOnceHoweverManyRoutesItDeclares() {
-        var result = CompileApplication("""
+    public void AControllerIsRegisteredOnceHoweverManyRoutesItDeclares()
+    {
+        var result = CompileApplication(
+            """
             public class OrderController {
                 [Get("/orders")]
                 public string List() => "orders";
@@ -590,7 +683,8 @@ public class RouteCompilationTests {
                 [Delete("/orders/{id}")]
                 public string Remove(string id) => id;
             }
-            """);
+            """
+        );
 
         var routing = result.SourceContaining("TestApplication.Routing");
 
@@ -603,13 +697,16 @@ public class RouteCompilationTests {
     /// every route 404s into static content.
     /// </summary>
     [Fact]
-    public void TheRoutingTableRegistersItselfAsTheHandlerProvider() {
-        var result = CompileApplication("""
+    public void TheRoutingTableRegistersItselfAsTheHandlerProvider()
+    {
+        var result = CompileApplication(
+            """
             public class OrderController {
                 [Get("/orders")]
                 public string List() => "orders";
             }
-            """);
+            """
+        );
 
         var routing = result.SourceContaining("TestApplication.Routing");
 
@@ -626,8 +723,10 @@ public class RouteCompilationTests {
     /// and a private method all have to be passed over rather than routed or crashed on.
     /// </summary>
     [Fact]
-    public void MethodsWithoutAVerbAttributeAreNotRoutes() {
-        var result = CompileApplication("""
+    public void MethodsWithoutAVerbAttributeAreNotRoutes()
+    {
+        var result = CompileApplication(
+            """
             public class MixedController {
                 [Get("/orders")]
                 public string List() => Format("orders");
@@ -639,14 +738,18 @@ public class RouteCompilationTests {
 
                 private string Hidden() => "hidden";
             }
-            """);
+            """
+        );
 
         Assert.Contains("MixedController_List.cs", result.GeneratedSources.Keys);
 
-        Assert.DoesNotContain(result.GeneratedSources.Keys, name =>
-            name.Contains("Format", StringComparison.Ordinal) ||
-            name.Contains("Legacy", StringComparison.Ordinal) ||
-            name.Contains("Hidden", StringComparison.Ordinal));
+        Assert.DoesNotContain(
+            result.GeneratedSources.Keys,
+            name =>
+                name.Contains("Format", StringComparison.Ordinal)
+                || name.Contains("Legacy", StringComparison.Ordinal)
+                || name.Contains("Hidden", StringComparison.Ordinal)
+        );
     }
 
     /// <summary>
@@ -656,8 +759,10 @@ public class RouteCompilationTests {
     /// to produce code that compiles rather than an unresolved type name.
     /// </summary>
     [Fact]
-    public void AParameterCarryingAnUnrecognisedAttributeCompiles() {
-        CompileApplication("""
+    public void AParameterCarryingAnUnrecognisedAttributeCompiles()
+    {
+        CompileApplication(
+            """
             [System.AttributeUsage(System.AttributeTargets.Parameter)]
             public class FromTenantAttribute : System.Attribute { }
 
@@ -665,14 +770,17 @@ public class RouteCompilationTests {
                 [Get("/tenant")]
                 public string Handle([FromTenant] string tenant) => tenant;
             }
-            """);
+            """
+        );
     }
 
-    private static int Occurrences(string source, string value) {
+    private static int Occurrences(string source, string value)
+    {
         var count = 0;
         var index = source.IndexOf(value, StringComparison.Ordinal);
 
-        while (index >= 0) {
+        while (index >= 0)
+        {
             count++;
             index = source.IndexOf(value, index + value.Length, StringComparison.Ordinal);
         }

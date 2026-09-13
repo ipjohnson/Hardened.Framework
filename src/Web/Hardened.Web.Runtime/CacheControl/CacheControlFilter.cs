@@ -12,14 +12,17 @@ namespace Hardened.Web.Runtime.CacheControl;
 /// the IO filter serializes at <c>FilterOrder.Serialization</c>. Setting it afterwards would be
 /// too late on a transport that has already begun writing the response.
 /// </remarks>
-public class CacheControlFilter : IExecutionFilter {
+public class CacheControlFilter : IExecutionFilter
+{
     private readonly string _headerValue;
 
-    public CacheControlFilter(string headerValue) {
+    public CacheControlFilter(string headerValue)
+    {
         _headerValue = headerValue;
     }
 
-    public Task Execute(IExecutionChain chain) {
+    public Task Execute(IExecutionChain chain)
+    {
         chain.Context.Response.Headers[KnownHeaders.CacheControl] = new StringValues(_headerValue);
 
         return chain.Next();

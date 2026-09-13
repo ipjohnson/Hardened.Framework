@@ -15,16 +15,21 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// that may differ from it, so a rule that compared the identifier would report every described
 /// path parameter whose member name was allocated.
 /// </remarks>
-public class RouteBindingConflictTests {
-
+public class RouteBindingConflictTests
+{
     private static ITypeDefinition Type(string name) => TypeDefinition.Get("System", name);
 
     private static RequestParameterInformation Parameter(
-        ParameterBindType bindingType, string name, string bindingName = "") =>
-        new(Type("String"), name, true, null, bindingType, bindingName, 0, null);
+        ParameterBindType bindingType,
+        string name,
+        string bindingName = ""
+    ) => new(Type("String"), name, true, null, bindingType, bindingName, 0, null);
 
     private static RequestHandlerModel Handler(
-        string path, string method, params RequestParameterInformation[] parameters) =>
+        string path,
+        string method,
+        params RequestParameterInformation[] parameters
+    ) =>
         new(
             new RequestHandlerNameModel(path, method),
             TypeDefinition.Get("TestApp", "EventController"),
@@ -32,34 +37,46 @@ public class RouteBindingConflictTests {
             TypeDefinition.Get("TestApp.Generated", "EventController_Handle"),
             parameters,
             new ResponseInformationModel { ReturnType = Type("String") },
-            []);
+            []
+        );
 
     /// <summary>
     /// A described parameter binds by its wire name. <c>eventId</c> in the contract becomes the
     /// member <c>EventId</c>, and the route still declares <c>{eventId}</c>.
     /// </summary>
     [Fact]
-    public void ADescribedParameterBindsByItsWireName() {
-        var findings = RouteBindingDiagnostics.Find(Handler(
-            "/events/{eventId}", "GET",
-            Parameter(ParameterBindType.Path, "EventId", "eventId")));
+    public void ADescribedParameterBindsByItsWireName()
+    {
+        var findings = RouteBindingDiagnostics.Find(
+            Handler(
+                "/events/{eventId}",
+                "GET",
+                Parameter(ParameterBindType.Path, "EventId", "eventId")
+            )
+        );
 
         Assert.Empty(findings);
     }
 
     /// <summary>A code-first parameter carries no wire name and binds by its identifier.</summary>
     [Fact]
-    public void ACodeFirstParameterBindsByItsIdentifier() {
-        var findings = RouteBindingDiagnostics.Find(Handler(
-            "/events/{eventId}", "GET", Parameter(ParameterBindType.Path, "eventId")));
+    public void ACodeFirstParameterBindsByItsIdentifier()
+    {
+        var findings = RouteBindingDiagnostics.Find(
+            Handler("/events/{eventId}", "GET", Parameter(ParameterBindType.Path, "eventId"))
+        );
 
         Assert.Empty(findings);
     }
 
     [Fact]
-    public void ATokenDifferingOnlyByCaseIsFound() {
-        var finding = Assert.Single(RouteBindingDiagnostics.Find(Handler(
-            "/events/{eventid}", "GET", Parameter(ParameterBindType.Body, "eventId"))));
+    public void ATokenDifferingOnlyByCaseIsFound()
+    {
+        var finding = Assert.Single(
+            RouteBindingDiagnostics.Find(
+                Handler("/events/{eventid}", "GET", Parameter(ParameterBindType.Body, "eventId"))
+            )
+        );
 
         Assert.Equal("eventid", finding.Token);
         Assert.Equal("eventId", finding.BodyParameter);
@@ -67,9 +84,13 @@ public class RouteBindingConflictTests {
     }
 
     [Fact]
-    public void AMisspeltTokenOnABodylessVerbIsFound() {
-        var finding = Assert.Single(RouteBindingDiagnostics.Find(Handler(
-            "/events/{eventKey}", "GET", Parameter(ParameterBindType.Body, "eventId"))));
+    public void AMisspeltTokenOnABodylessVerbIsFound()
+    {
+        var finding = Assert.Single(
+            RouteBindingDiagnostics.Find(
+                Handler("/events/{eventKey}", "GET", Parameter(ParameterBindType.Body, "eventId"))
+            )
+        );
 
         Assert.False(finding.CaseOnly);
     }
@@ -79,9 +100,13 @@ public class RouteBindingConflictTests {
     /// author meant the token.
     /// </summary>
     [Fact]
-    public void AMisspeltTokenOnABodyCarryingVerbIsNotFound() {
-        Assert.Empty(RouteBindingDiagnostics.Find(Handler(
-            "/events/{eventKey}", "POST", Parameter(ParameterBindType.Body, "body"))));
+    public void AMisspeltTokenOnABodyCarryingVerbIsNotFound()
+    {
+        Assert.Empty(
+            RouteBindingDiagnostics.Find(
+                Handler("/events/{eventKey}", "POST", Parameter(ParameterBindType.Body, "body"))
+            )
+        );
     }
 
     /// <summary>
@@ -89,9 +114,13 @@ public class RouteBindingConflictTests {
     /// body parameter there is a choice rather than a mistake.
     /// </summary>
     [Fact]
-    public void ADeleteIsNotTreatedAsBodyless() {
-        Assert.Empty(RouteBindingDiagnostics.Find(Handler(
-            "/events/{eventKey}", "DELETE", Parameter(ParameterBindType.Body, "body"))));
+    public void ADeleteIsNotTreatedAsBodyless()
+    {
+        Assert.Empty(
+            RouteBindingDiagnostics.Find(
+                Handler("/events/{eventKey}", "DELETE", Parameter(ParameterBindType.Body, "body"))
+            )
+        );
     }
 
     /// <summary>
@@ -99,10 +128,17 @@ public class RouteBindingConflictTests {
     /// base path binds nothing on the handlers under it that do not need it.
     /// </summary>
     [Fact]
-    public void AnUnboundTokenWithNoBodyParameterIsNotFound() {
-        Assert.Empty(RouteBindingDiagnostics.Find(Handler(
-            "/tenants/{tenantId}/events/{eventId}", "GET",
-            Parameter(ParameterBindType.Path, "eventId"))));
+    public void AnUnboundTokenWithNoBodyParameterIsNotFound()
+    {
+        Assert.Empty(
+            RouteBindingDiagnostics.Find(
+                Handler(
+                    "/tenants/{tenantId}/events/{eventId}",
+                    "GET",
+                    Parameter(ParameterBindType.Path, "eventId")
+                )
+            )
+        );
     }
 
     /// <summary>
@@ -110,7 +146,8 @@ public class RouteBindingConflictTests {
     /// operation to <c>POST /</c> - so its path declares nothing to bind.
     /// </summary>
     [Fact]
-    public void ADispatchedHandlerIsNotConsidered() {
+    public void ADispatchedHandlerIsNotConsidered()
+    {
         var model = new RequestHandlerModel(
             new RequestHandlerNameModel("/", "POST", "X-Amz-Target", "PetStore.GetPet"),
             TypeDefinition.Get("TestApp", "EventController"),
@@ -118,17 +155,23 @@ public class RouteBindingConflictTests {
             TypeDefinition.Get("TestApp.Generated", "EventController_Handle"),
             [Parameter(ParameterBindType.Body, "input")],
             new ResponseInformationModel { ReturnType = Type("String") },
-            []);
+            []
+        );
 
         Assert.Empty(RouteBindingDiagnostics.Find(model));
     }
 
     /// <summary>One finding per token, so fixing the first is not how you discover the second.</summary>
     [Fact]
-    public void EveryUnboundTokenIsFound() {
-        var findings = RouteBindingDiagnostics.Find(Handler(
-            "/events/{eventid}/holds/{holdid}", "GET",
-            Parameter(ParameterBindType.Body, "eventId")));
+    public void EveryUnboundTokenIsFound()
+    {
+        var findings = RouteBindingDiagnostics.Find(
+            Handler(
+                "/events/{eventid}/holds/{holdid}",
+                "GET",
+                Parameter(ParameterBindType.Body, "eventId")
+            )
+        );
 
         Assert.Equal(2, findings.Count);
     }

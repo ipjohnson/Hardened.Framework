@@ -31,9 +31,10 @@ namespace Hardened.Generation.Document;
 /// is what this writer is for.
 /// </para>
 /// </remarks>
-internal static class YamlTreeWriter {
-
-    public static string Write(JsonNode node) {
+internal static class YamlTreeWriter
+{
+    public static string Write(JsonNode node)
+    {
         var builder = new StringBuilder();
 
         WriteValue(builder, node, 0, inline: true);
@@ -46,8 +47,10 @@ internal static class YamlTreeWriter {
     /// when the caller has already written the key and a space, and a scalar or an empty container
     /// belongs on the same line; a non-empty container starts on the next line either way.
     /// </summary>
-    private static void WriteValue(StringBuilder builder, JsonNode node, int depth, bool inline) {
-        switch (node) {
+    private static void WriteValue(StringBuilder builder, JsonNode node, int depth, bool inline)
+    {
+        switch (node)
+        {
             case JsonObject obj when obj.Members.Count == 0:
                 builder.Append("{}\n");
                 break;
@@ -55,14 +58,16 @@ internal static class YamlTreeWriter {
                 builder.Append("[]\n");
                 break;
             case JsonObject obj:
-                if (inline) {
+                if (inline)
+                {
                     builder.Append('\n');
                 }
 
                 WriteObject(builder, obj, depth);
                 break;
             case JsonArray array:
-                if (inline) {
+                if (inline)
+                {
                     builder.Append('\n');
                 }
 
@@ -75,8 +80,10 @@ internal static class YamlTreeWriter {
         }
     }
 
-    private static void WriteObject(StringBuilder builder, JsonObject obj, int depth) {
-        foreach (var member in obj.Members) {
+    private static void WriteObject(StringBuilder builder, JsonObject obj, int depth)
+    {
+        foreach (var member in obj.Members)
+        {
             Indent(builder, depth);
             WriteKey(builder, member.Key);
             builder.Append(':');
@@ -89,8 +96,10 @@ internal static class YamlTreeWriter {
     /// The value after a key. A non-empty object goes one level deeper on the following lines; a
     /// non-empty array's entries sit at the key's own depth, which is the common YAML layout.
     /// </summary>
-    private static void WriteMemberValue(StringBuilder builder, JsonNode value, int depth) {
-        switch (value) {
+    private static void WriteMemberValue(StringBuilder builder, JsonNode value, int depth)
+    {
+        switch (value)
+        {
             case JsonObject obj when obj.Members.Count > 0:
                 builder.Append('\n');
                 WriteObject(builder, obj, depth + 1);
@@ -106,12 +115,15 @@ internal static class YamlTreeWriter {
         }
     }
 
-    private static void WriteArray(StringBuilder builder, JsonArray array, int depth) {
-        foreach (var item in array.Items) {
+    private static void WriteArray(StringBuilder builder, JsonArray array, int depth)
+    {
+        foreach (var item in array.Items)
+        {
             Indent(builder, depth);
             builder.Append('-');
 
-            switch (item) {
+            switch (item)
+            {
                 case JsonObject obj when obj.Members.Count > 0:
                     // The first member shares the dash's line, the rest align under it.
                     builder.Append(' ');
@@ -119,7 +131,8 @@ internal static class YamlTreeWriter {
                     builder.Append(':');
                     WriteMemberValue(builder, obj.Members[0].Value, depth + 1);
 
-                    for (var index = 1; index < obj.Members.Count; index++) {
+                    for (var index = 1; index < obj.Members.Count; index++)
+                    {
                         Indent(builder, depth + 1);
                         WriteKey(builder, obj.Members[index].Key);
                         builder.Append(':');
@@ -139,22 +152,29 @@ internal static class YamlTreeWriter {
         }
     }
 
-    private static void WriteKey(StringBuilder builder, string key) {
-        if (IsPlainSafe(key)) {
+    private static void WriteKey(StringBuilder builder, string key)
+    {
+        if (IsPlainSafe(key))
+        {
             builder.Append(key);
         }
-        else {
+        else
+        {
             JsonTreeWriter.WriteString(builder, key);
         }
     }
 
-    private static void WriteScalar(StringBuilder builder, JsonNode node) {
-        switch (node) {
+    private static void WriteScalar(StringBuilder builder, JsonNode node)
+    {
+        switch (node)
+        {
             case JsonString text:
-                if (IsPlainSafe(text.Value)) {
+                if (IsPlainSafe(text.Value))
+                {
                     builder.Append(text.Value);
                 }
-                else {
+                else
+                {
                     JsonTreeWriter.WriteString(builder, text.Value);
                 }
 
@@ -171,7 +191,8 @@ internal static class YamlTreeWriter {
         }
     }
 
-    private static void Indent(StringBuilder builder, int depth) {
+    private static void Indent(StringBuilder builder, int depth)
+    {
         builder.Append(' ', depth * 2);
     }
 
@@ -179,19 +200,24 @@ internal static class YamlTreeWriter {
     /// Whether <paramref name="value"/> can be written without quotes and be read back as the same
     /// string.
     /// </summary>
-    internal static bool IsPlainSafe(string value) {
-        if (value.Length == 0) {
+    internal static bool IsPlainSafe(string value)
+    {
+        if (value.Length == 0)
+        {
             return false;
         }
 
         var first = value[0];
 
-        if (!(IsLetter(first) || IsDigit(first) || first == '_')) {
+        if (!(IsLetter(first) || IsDigit(first) || first == '_'))
+        {
             return false;
         }
 
-        foreach (var ch in value) {
-            if (!(IsLetter(ch) || IsDigit(ch) || ch == '_' || ch == '.' || ch == '/' || ch == '-')) {
+        foreach (var ch in value)
+        {
+            if (!(IsLetter(ch) || IsDigit(ch) || ch == '_' || ch == '.' || ch == '/' || ch == '-'))
+            {
                 return false;
             }
         }
@@ -207,8 +233,10 @@ internal static class YamlTreeWriter {
     /// The words a YAML 1.1 or 1.2 reader turns into a boolean or a null, in any casing. The 1.1
     /// list is the longer one, and a reader on that schema is still common.
     /// </summary>
-    private static bool ReadsAsBooleanOrNull(string value) {
-        switch (value.ToLowerInvariant()) {
+    private static bool ReadsAsBooleanOrNull(string value)
+    {
+        switch (value.ToLowerInvariant())
+        {
             case "true":
             case "false":
             case "yes":
@@ -229,60 +257,75 @@ internal static class YamlTreeWriter {
     /// Whether a scalar built from the safe alphabet reads as a number: an integer, a decimal, an
     /// exponent form, a hex or octal literal, or one of the special floats.
     /// </summary>
-    private static bool ReadsAsNumber(string value) {
+    private static bool ReadsAsNumber(string value)
+    {
         var lowered = value.ToLowerInvariant();
 
-        if (lowered == ".inf" || lowered == "-.inf" || lowered == ".nan") {
+        if (lowered == ".inf" || lowered == "-.inf" || lowered == ".nan")
+        {
             return true;
         }
 
-        if (lowered.StartsWith("0x", StringComparison.Ordinal) || lowered.StartsWith("0o", StringComparison.Ordinal)) {
+        if (
+            lowered.StartsWith("0x", StringComparison.Ordinal)
+            || lowered.StartsWith("0o", StringComparison.Ordinal)
+        )
+        {
             return true;
         }
 
         var index = 0;
 
-        if (index < value.Length && (value[index] == '-' || value[index] == '+')) {
+        if (index < value.Length && (value[index] == '-' || value[index] == '+'))
+        {
             index++;
         }
 
         var digitsBefore = 0;
 
-        while (index < value.Length && IsDigit(value[index])) {
+        while (index < value.Length && IsDigit(value[index]))
+        {
             index++;
             digitsBefore++;
         }
 
         var digitsAfter = 0;
 
-        if (index < value.Length && value[index] == '.') {
+        if (index < value.Length && value[index] == '.')
+        {
             index++;
 
-            while (index < value.Length && IsDigit(value[index])) {
+            while (index < value.Length && IsDigit(value[index]))
+            {
                 index++;
                 digitsAfter++;
             }
         }
 
-        if (digitsBefore == 0 && digitsAfter == 0) {
+        if (digitsBefore == 0 && digitsAfter == 0)
+        {
             return false;
         }
 
-        if (index < value.Length && (value[index] == 'e' || value[index] == 'E')) {
+        if (index < value.Length && (value[index] == 'e' || value[index] == 'E'))
+        {
             index++;
 
-            if (index < value.Length && (value[index] == '-' || value[index] == '+')) {
+            if (index < value.Length && (value[index] == '-' || value[index] == '+'))
+            {
                 index++;
             }
 
             var exponentDigits = 0;
 
-            while (index < value.Length && IsDigit(value[index])) {
+            while (index < value.Length && IsDigit(value[index]))
+            {
                 index++;
                 exponentDigits++;
             }
 
-            if (exponentDigits == 0) {
+            if (exponentDigits == 0)
+            {
                 return false;
             }
         }

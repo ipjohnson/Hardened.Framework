@@ -26,17 +26,20 @@ namespace Hardened.IntegrationTests.StaticContent.Manifest.SUT;
 [HardenedModule]
 [HardenedStaticContent]
 [AspNetCoreRuntime]
-public partial class Application : IServiceCollectionConfiguration {
-
-    public void ConfigureServices(IServiceCollection services) {
-        services.ConfigureStaticContent(content => {
+public partial class Application : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.ConfigureStaticContent(content =>
+        {
             content.CacheMaxAge = 3600;
             content.CacheControlType = CacheControlEnum.MaxAge | CacheControlEnum.Private;
             content.CacheContent = true;
         });
     }
 
-    public static WebApplicationBuilder CreateBuilder(string[] args) {
+    public static WebApplicationBuilder CreateBuilder(string[] args)
+    {
         var hardenedApp = new Application();
         var environment = new EnvironmentImpl(arguments: args);
         var builder = WebApplication.CreateBuilder(args);

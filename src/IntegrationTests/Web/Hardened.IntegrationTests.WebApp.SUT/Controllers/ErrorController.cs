@@ -10,41 +10,35 @@ namespace Hardened.IntegrationTests.WebApp.SUT.Controllers;
 /// pipeline rather than by calling the converter directly.
 /// </summary>
 [BasePath("/errors")]
-public class ErrorController {
-
+public class ErrorController
+{
     /// <summary>An exception deriving from BadRequestException is a client error.</summary>
     [Get("/bad-request")]
-    public string BadRequest() =>
-        throw new BadRequestException("the request was malformed");
+    public string BadRequest() => throw new BadRequestException("the request was malformed");
 
     /// <summary>A consumer-defined client error, identified by its base type.</summary>
     [Get("/derived-client-error")]
-    public string DerivedClientError() =>
-        throw new TenantMismatchException();
+    public string DerivedClientError() => throw new TenantMismatchException();
 
     [Get("/format")]
-    public string Format() =>
-        throw new FormatException("'abc' is not a number");
+    public string Format() => throw new FormatException("'abc' is not a number");
 
     /// <summary>Anything else is a server error.</summary>
     [Get("/server")]
-    public string Server() =>
-        throw new InvalidOperationException("the widget was not ready");
+    public string Server() => throw new InvalidOperationException("the widget was not ready");
 
     /// <summary>
     /// Named so that the old substring classification would have called it a client error.
     /// It derives from Exception, so it must be a 500.
     /// </summary>
     [Get("/badge-missing")]
-    public string BadgeMissing() =>
-        throw new BadgeNotFoundException();
+    public string BadgeMissing() => throw new BadgeNotFoundException();
 
     /// <summary>
     /// Unsupported Content-Encoding is raised by the deserializers and is a client error.
     /// </summary>
     [Get("/bad-encoding")]
-    public string BadEncoding() =>
-        throw new BadContentEncodingException("deflate");
+    public string BadEncoding() => throw new BadContentEncodingException("deflate");
 
     /// <summary>
     /// A status the pipeline could not produce at all before <c>StatusCodeException</c>: every
@@ -58,7 +52,9 @@ public class ErrorController {
     [Get("/declared-body")]
     public string DeclaredBody() =>
         throw new Hardened.Requests.Abstract.Errors.StatusCodeException(
-            409, new ConflictBody("locked", "held by another writer"));
+            409,
+            new ConflictBody("locked", "held by another writer")
+        );
 
     /// <summary>
     /// A declared content type plus a thrown declared status. A single declaration on a handler
@@ -69,7 +65,9 @@ public class ErrorController {
     [Get("/raw-declared-status")]
     public string RawDeclaredStatus() =>
         throw new Hardened.Requests.Abstract.Errors.StatusCodeException(
-            409, new ConflictBody("locked", "held by another writer"));
+            409,
+            new ConflictBody("locked", "held by another writer")
+        );
 
     /// <summary>The same commitment against an unclassified fault.</summary>
     [Produces("image/png")]
@@ -93,15 +91,20 @@ public class ErrorController {
     public record ConflictBody(string Code, string Message);
 
     /// <summary>A payload whose getter throws, so writing it fails and running it does not.</summary>
-    public class UnwritableBody {
+    public class UnwritableBody
+    {
         public string Value => throw new NotSupportedException("this value cannot be written");
     }
 
-    public class TenantMismatchException : BadRequestException {
-        public TenantMismatchException() : base("tenant does not match") { }
+    public class TenantMismatchException : BadRequestException
+    {
+        public TenantMismatchException()
+            : base("tenant does not match") { }
     }
 
-    public class BadgeNotFoundException : Exception {
-        public BadgeNotFoundException() : base("no badge with that id") { }
+    public class BadgeNotFoundException : Exception
+    {
+        public BadgeNotFoundException()
+            : base("no badge with that id") { }
     }
 }

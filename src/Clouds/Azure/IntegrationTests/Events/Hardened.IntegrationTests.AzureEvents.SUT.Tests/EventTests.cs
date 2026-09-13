@@ -18,13 +18,19 @@ namespace Hardened.IntegrationTests.AzureEvents.SUT.Tests;
 /// and reads the route back off it.
 /// </para>
 /// </summary>
-public class EventTests {
-
+public class EventTests
+{
     [HardenedTest]
     public async Task AnEventReachesItsHandlerAndBindsItsData(
-        ITriggerDelivery delivery, [Mock] ITriggerLog log) {
+        ITriggerDelivery delivery,
+        [Mock] ITriggerLog log
+    )
+    {
         await delivery.Deliver(
-            [new Order { Id = "e-1", Quantity = 5 }], "EVENT", "/com.acme.orders/OrderPlaced");
+            [new Order { Id = "e-1", Quantity = 5 }],
+            "EVENT",
+            "/com.acme.orders/OrderPlaced"
+        );
 
         log.Received().Record("event:e-1");
     }
@@ -37,10 +43,13 @@ public class EventTests {
     /// </summary>
     [HardenedTest]
     public async Task AnEventOfAnotherTypeFailsTheInvocation(
-        ITriggerDelivery delivery, [Mock] ITriggerLog log) {
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => delivery.Deliver(
-                [new Order { Id = "e-2" }], "EVENT", "/com.acme.orders/OrderCancelled"));
+        ITriggerDelivery delivery,
+        [Mock] ITriggerLog log
+    )
+    {
+        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            delivery.Deliver([new Order { Id = "e-2" }], "EVENT", "/com.acme.orders/OrderCancelled")
+        );
 
         Assert.Contains("EVENT /com.acme.orders/OrderCancelled", failure.Message);
 

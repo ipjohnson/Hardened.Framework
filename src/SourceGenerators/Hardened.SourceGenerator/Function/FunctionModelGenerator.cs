@@ -8,16 +8,16 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Function;
 
-public class FunctionModelGenerator : BaseRequestModelGenerator {
+public class FunctionModelGenerator : BaseRequestModelGenerator
+{
     /// <summary>
     /// The attributes that declare a handler rather than bind a parameter, so the binder skips
     /// them. Every trigger is one: <c>[Queue("orders-new")]</c> names a route, it does not describe
     /// an argument.
     /// </summary>
-    private readonly List<string> _attributeNames =
-        new List<string> { "HardenedFunction" }
-            .Concat(TriggerModuleGenerator.Triggers.Select(trigger => trigger.Name))
-            .ToList();
+    private readonly List<string> _attributeNames = new List<string> { "HardenedFunction" }
+        .Concat(TriggerModuleGenerator.Triggers.Select(trigger => trigger.Name))
+        .ToList();
 
     /// <summary>
     /// The route and scheme a handler is registered under.
@@ -40,18 +40,24 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
     /// than fixed.
     /// </para>
     /// </remarks>
-    protected override RequestHandlerNameModel GetRequestNameModel(GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation) {
-        foreach (var trigger in TriggerModuleGenerator.Triggers.Where(t => t.NamesItsOwnRoute)) {
+    protected override RequestHandlerNameModel GetRequestNameModel(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        CancellationToken cancellation
+    )
+    {
+        foreach (var trigger in TriggerModuleGenerator.Triggers.Where(t => t.NamesItsOwnRoute))
+        {
             // Every spelling, because the selector that admitted this method accepts every
             // spelling. Looking for the bare name alone let a fully qualified [Queue] through the
             // selector and then find nothing here, so the method fell to the [HardenedFunction]
             // lookup below and the generator threw on a null attribute.
-            var triggerAttribute = trigger.Spellings
-                .Select(spelling => methodDeclaration.GetAttribute(spelling))
+            var triggerAttribute = trigger
+                .Spellings.Select(spelling => methodDeclaration.GetAttribute(spelling))
                 .FirstOrDefault(found => found != null);
 
-            if (triggerAttribute == null) {
+            if (triggerAttribute == null)
+            {
                 continue;
             }
 
@@ -59,19 +65,21 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
 
             var path = string.Join(
                 "/",
-                (arguments ?? default).Select(argument => Value(context, argument)));
+                (arguments ?? default).Select(argument => Value(context, argument))
+            );
 
             return new RequestHandlerNameModel("/" + path, trigger.Scheme);
         }
 
-        var attribute =
-            methodDeclaration.GetAttribute(
-                KnownTypes.Requests.HardenedFunctionAttribute.Name.Replace("Attribute", ""))!;
+        var attribute = methodDeclaration.GetAttribute(
+            KnownTypes.Requests.HardenedFunctionAttribute.Name.Replace("Attribute", "")
+        )!;
         var argument = attribute.ArgumentList?.Arguments.FirstOrDefault();
 
         var functionName = methodDeclaration.Identifier.Text;
 
-        if (argument != null) {
+        if (argument != null)
+        {
             functionName = Value(context, argument);
         }
 
@@ -87,7 +95,8 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
     /// <c>[HardenedFunction]</c> already; the triggers use the same one so a queue named by a
     /// constant routes the same way as one named by a literal.
     /// </remarks>
-    private static string Value(GeneratorSyntaxContext context, AttributeArgumentSyntax argument) {
+    private static string Value(GeneratorSyntaxContext context, AttributeArgumentSyntax argument)
+    {
         var constant = context.SemanticModel.GetConstantValue(argument.Expression);
 
         return constant.HasValue && constant.Value != null
@@ -95,54 +104,87 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
             : argument.Expression.ToString().Trim('"');
     }
 
-    protected override ITypeDefinition GetInvokeHandlerType(GeneratorSyntaxContext context,
-        MethodDeclarationSyntax methodDeclaration, CancellationToken cancellation) {
-        var classDeclarationSyntax =
-            methodDeclaration.Ancestors().OfType<ClassDeclarationSyntax>().First();
+    protected override ITypeDefinition GetInvokeHandlerType(
+        GeneratorSyntaxContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        CancellationToken cancellation
+    )
+    {
+        var classDeclarationSyntax = methodDeclaration
+            .Ancestors()
+            .OfType<ClassDeclarationSyntax>()
+            .First();
 
-        var namespaceSyntax = classDeclarationSyntax.Ancestors().OfType<BaseNamespaceDeclarationSyntax>().First();
+        var namespaceSyntax = classDeclarationSyntax
+            .Ancestors()
+            .OfType<BaseNamespaceDeclarationSyntax>()
+            .First();
 
         var className = classDeclarationSyntax.Identifier + "_" + methodDeclaration.Identifier.Text;
 
-        if (methodDeclaration.ParameterList.Parameters.Count > 0) {
+        if (methodDeclaration.ParameterList.Parameters.Count > 0)
+        {
             var parameterString = "";
 
-            foreach (var parameter in methodDeclaration.ParameterList.Parameters) {
+            foreach (var parameter in methodDeclaration.ParameterList.Parameters)
+            {
                 parameterString += '|' + parameter.Identifier.Text;
             }
 
-            className += "_" + parameterString.Select(c => (int)c).Aggregate((total, c) => total + c);
+            className +=
+                "_" + parameterString.Select(c => (int)c).Aggregate((total, c) => total + c);
         }
 
-        return TypeDefinition.Get(namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated", className);
+        return TypeDefinition.Get(
+            namespaceSyntax.Name.ToFullString().TrimEnd() + ".Generated",
+            className
+        );
     }
 
     protected override RequestParameterInformation? GetParameterInfoFromAttributes(
-        GeneratorSyntaxContext generatorSyntaxContext, MethodDeclarationSyntax methodDeclarationSyntax,
+        GeneratorSyntaxContext generatorSyntaxContext,
+        MethodDeclarationSyntax methodDeclarationSyntax,
         RequestHandlerNameModel requestHandlerNameModel,
-        ParameterSyntax parameter, int parameterIndex) {
-        foreach (var attributeList in parameter.AttributeLists) {
-            foreach (var attribute in attributeList.Attributes) {
+        ParameterSyntax parameter,
+        int parameterIndex
+    )
+    {
+        foreach (var attributeList in parameter.AttributeLists)
+        {
+            foreach (var attribute in attributeList.Attributes)
+            {
                 // See WebRequestHandlerModelGenerator: these are not binding attributes, and
                 // letting one reach the default branch below binds the parameter as a custom
                 // attribute instead of from the payload.
-                if (NonBindingAttributeFacts.IsNonBinding(generatorSyntaxContext, attribute)) {
+                if (NonBindingAttributeFacts.IsNonBinding(generatorSyntaxContext, attribute))
+                {
                     continue;
                 }
 
                 var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
-                switch (attributeName) {
+                switch (attributeName)
+                {
                     case "FromContext":
-                        var headerName =
-                            attribute.GetFirstStringArgumentValue(generatorSyntaxContext);
+                        var headerName = attribute.GetFirstStringArgumentValue(
+                            generatorSyntaxContext
+                        );
 
-                        return GetParameterInfoWithBinding(generatorSyntaxContext, parameter,
-                            ParameterBindType.Header, headerName, parameterIndex);
+                        return GetParameterInfoWithBinding(
+                            generatorSyntaxContext,
+                            parameter,
+                            ParameterBindType.Header,
+                            headerName,
+                            parameterIndex
+                        );
 
                     default:
                         return DefaultGetParameterFromAttribute(
-                            attribute, generatorSyntaxContext, parameter, parameterIndex);
+                            attribute,
+                            generatorSyntaxContext,
+                            parameter,
+                            parameterIndex
+                        );
                 }
             }
         }
@@ -150,10 +192,12 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
         return null;
     }
 
-    protected override bool IsFilterAttribute(AttributeSyntax attribute) {
+    protected override bool IsFilterAttribute(AttributeSyntax attribute)
+    {
         var attributeName = attribute.Name.ToString().Replace("Attribute", "");
 
-        switch (attributeName) {
+        switch (attributeName)
+        {
             case "Template":
             case "RawResponse":
             case "HardenedFunction":
@@ -169,14 +213,18 @@ public class FunctionModelGenerator : BaseRequestModelGenerator {
         ParameterSyntax parameter,
         ParameterBindType bindingType,
         string bindingName,
-        int parameterIndex) {
+        int parameterIndex
+    )
+    {
         var parameterType = parameter.Type?.GetTypeDefinition(generatorSyntaxContext)!;
 
-        return CreateRequestParameterInformation(parameter,
+        return CreateRequestParameterInformation(
+            parameter,
             parameterType,
             bindingType,
             parameterIndex,
             null,
-            bindingName);
+            bindingName
+        );
     }
 }

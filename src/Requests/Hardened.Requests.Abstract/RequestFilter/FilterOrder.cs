@@ -38,8 +38,8 @@ namespace Hardened.Requests.Abstract.RequestFilter;
 /// a stack trace, and an application that has not enabled it pays nothing per request.
 /// </para>
 /// </remarks>
-public static class FilterOrder {
-
+public static class FilterOrder
+{
     /// <summary>The distance between two stages.</summary>
     private const int Gap = 1000;
 

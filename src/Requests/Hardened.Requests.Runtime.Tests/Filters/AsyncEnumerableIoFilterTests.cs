@@ -24,16 +24,17 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// when nothing was produced.
 /// </para>
 /// </summary>
-public class AsyncEnumerableIoFilterTests {
-
-    private static readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> Empty =
-        _ => Task.FromResult(EmptyParameters.Instance);
+public class AsyncEnumerableIoFilterTests
+{
+    private static readonly Func<IExecutionContext, Task<IExecutionRequestParameters>> Empty = _ =>
+        Task.FromResult(EmptyParameters.Instance);
 
     /// <summary>
     /// Stands in for the real serializer by writing the response value's text straight to the
     /// body, so the assertions are about the framing the filter adds rather than about JSON.
     /// </summary>
-    private static Task WriteValue(IExecutionContext context) {
+    private static Task WriteValue(IExecutionContext context)
+    {
         var bytes = Encoding.UTF8.GetBytes(context.Response.ResponseValue?.ToString() ?? "");
 
         return context.Response.Body.WriteAsync(bytes, 0, bytes.Length);
@@ -43,14 +44,16 @@ public class AsyncEnumerableIoFilterTests {
         Func<IExecutionContext, Task>? serialize = null,
         Action<IExecutionContext>? headerActions = null,
         IStreamFraming? framing = null,
-        TimeSpan heartbeat = default) =>
-        new(Empty, serialize ?? WriteValue, headerActions, framing, heartbeat);
+        TimeSpan heartbeat = default
+    ) => new(Empty, serialize ?? WriteValue, headerActions, framing, heartbeat);
 
     private static IStreamFraming Framing(string name) =>
         name == "sse" ? SseFraming.Instance : NdjsonFraming.Instance;
 
-    private static async IAsyncEnumerable<string> Items(params string[] values) {
-        foreach (var value in values) {
+    private static async IAsyncEnumerable<string> Items(params string[] values)
+    {
+        foreach (var value in values)
+        {
             await Task.Yield();
 
             yield return value;
@@ -61,29 +64,43 @@ public class AsyncEnumerableIoFilterTests {
         Encoding.UTF8.GetString(((MemoryStream)context.Response.Body).ToArray());
 
     [Fact]
-    public async Task EachStreamedItemIsWrittenOnItsOwnLine() {
+    public async Task EachStreamedItemIsWrittenOnItsOwnLine()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items("alpha", "beta", "gamma");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items("alpha", "beta", "gamma");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("alpha\nbeta\ngamma\n\n", Body(context));
     }
 
     [Fact]
-    public async Task AStreamedResponseIsMarkedAsNewlineDelimitedJson() {
+    public async Task AStreamedResponseIsMarkedAsNewlineDelimitedJson()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items("only");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items("only");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("application/x-ndjson", context.Response.ContentType);
     }
@@ -94,15 +111,22 @@ public class AsyncEnumerableIoFilterTests {
     /// <c>ToString</c> to the body it had just streamed.
     /// </summary>
     [Fact]
-    public async Task StreamingClearsShouldSerializeSoNothingSerializesTheStreamAgain() {
+    public async Task StreamingClearsShouldSerializeSoNothingSerializesTheStreamAgain()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items("one");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items("one");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.False(context.Response.ShouldSerialize);
     }
@@ -113,15 +137,22 @@ public class AsyncEnumerableIoFilterTests {
     /// zero-byte response and downstream readers hang waiting for it.
     /// </summary>
     [Fact]
-    public async Task AnEmptyStreamStillWritesATrailingNewlineSoTheBodyIsNeverEmpty() {
+    public async Task AnEmptyStreamStillWritesATrailingNewlineSoTheBodyIsNeverEmpty()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items();
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items();
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("\n", Body(context));
     }
@@ -131,15 +162,22 @@ public class AsyncEnumerableIoFilterTests {
     /// to ordinary serialization rather than producing nothing.
     /// </summary>
     [Fact]
-    public async Task ANonStreamingResponseValueIsSerializedNormally() {
+    public async Task ANonStreamingResponseValueIsSerializedNormally()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = "not-a-stream";
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = "not-a-stream";
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("not-a-stream", Body(context));
         Assert.NotEqual("application/x-ndjson", context.Response.ContentType);
@@ -151,15 +189,22 @@ public class AsyncEnumerableIoFilterTests {
     /// never declared.
     /// </summary>
     [Fact]
-    public async Task AStreamOfADifferentItemTypeIsNotStreamed() {
+    public async Task AStreamOfADifferentItemTypeIsNotStreamed()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<int>(),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items("alpha");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<int>(),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items("alpha");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.NotEqual("application/x-ndjson", context.Response.ContentType);
         Assert.DoesNotContain("alpha\n", Body(context));
@@ -170,15 +215,22 @@ public class AsyncEnumerableIoFilterTests {
     /// written, so a caller never sees a half-streamed body followed by an error document.
     /// </summary>
     [Fact]
-    public async Task AnExceptionIsSerializedInsteadOfTheStream() {
+    public async Task AnExceptionIsSerializedInsteadOfTheStream()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items("never-written");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items("never-written");
 
-                throw new InvalidOperationException("handler failed");
-            })).Next();
+                    throw new InvalidOperationException("handler failed");
+                })
+            )
+            .Next();
 
         Assert.IsType<InvalidOperationException>(context.Response.ExceptionValue);
         Assert.DoesNotContain("never-written", Body(context));
@@ -189,24 +241,35 @@ public class AsyncEnumerableIoFilterTests {
     /// route, and the handler does not run.
     /// </summary>
     [Fact]
-    public async Task AFailureBindingParametersSkipsTheStreamEntirely() {
+    public async Task AFailureBindingParametersSkipsTheStreamEntirely()
+    {
         var logger = Substitute.For<IRequestLogger>();
         var handlerRan = false;
 
-        var context = Pipeline.Context(
-            configureServices: services => services.AddSingleton(logger));
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton(logger)
+        );
 
         var failure = new FormatException("bad page size");
 
         var filter = new AsyncEnumerableIoFilter<string>(
-            _ => Task.FromException<IExecutionRequestParameters>(failure), WriteValue, null);
+            _ => Task.FromException<IExecutionRequestParameters>(failure),
+            WriteValue,
+            null
+        );
 
-        await Pipeline.Chain(context, filter,
-            new Pipeline.Inline(_ => {
-                handlerRan = true;
+        await Pipeline
+            .Chain(
+                context,
+                filter,
+                new Pipeline.Inline(_ =>
+                {
+                    handlerRan = true;
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Same(failure, context.Response.ExceptionValue);
         Assert.False(handlerRan);
@@ -225,7 +288,8 @@ public class AsyncEnumerableIoFilterTests {
     /// </para>
     /// </summary>
     [Fact]
-    public async Task ARequestAlreadyRefusedIsNeitherBoundNorStreamed() {
+    public async Task ARequestAlreadyRefusedIsNeitherBoundNorStreamed()
+    {
         var log = new List<string>();
         var context = Pipeline.Context();
         var bound = false;
@@ -233,26 +297,35 @@ public class AsyncEnumerableIoFilterTests {
         context.Response.ExceptionValue = new InvalidOperationException("refused upstream");
 
         var filter = new AsyncEnumerableIoFilter<string>(
-            _ => {
+            _ =>
+            {
                 bound = true;
 
                 return Task.FromResult(EmptyParameters.Instance);
             },
-            _ => {
+            _ =>
+            {
                 log.Add("serialize");
 
                 return Task.CompletedTask;
             },
-            null);
+            null
+        );
 
-        await Pipeline.Chain(context, filter,
-            new Pipeline.Inline(c => {
-                log.Add("handler");
+        await Pipeline
+            .Chain(
+                context,
+                filter,
+                new Pipeline.Inline(c =>
+                {
+                    log.Add("handler");
 
-                c.Context.Response.ResponseValue = Items("never-written");
+                    c.Context.Response.ResponseValue = Items("never-written");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.False(bound);
         Assert.DoesNotContain("handler", log);
@@ -268,7 +341,8 @@ public class AsyncEnumerableIoFilterTests {
     /// would go to that histogram to explain.
     /// </summary>
     [Fact]
-    public async Task ARequestAlreadyRefusedRecordsNoBindDuration() {
+    public async Task ARequestAlreadyRefusedRecordsNoBindDuration()
+    {
         var metrics = Substitute.For<IMetricLogger>();
         var context = Pipeline.Context(metrics: metrics);
 
@@ -284,17 +358,24 @@ public class AsyncEnumerableIoFilterTests {
     /// before the first item goes out.
     /// </summary>
     [Fact]
-    public async Task ConfiguredHeaderActionsApplyToAStreamedResponse() {
+    public async Task ConfiguredHeaderActionsApplyToAStreamedResponse()
+    {
         var context = Pipeline.Context();
 
         var filter = Filter<string>(headerActions: c => c.Response.Headers["X-Stream"] = "yes");
 
-        await Pipeline.Chain(context, filter,
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items("item");
+        await Pipeline
+            .Chain(
+                context,
+                filter,
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items("item");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("yes", context.Response.Headers["X-Stream"].ToString());
         Assert.Equal("item\n\n", Body(context));
@@ -312,15 +393,22 @@ public class AsyncEnumerableIoFilterTests {
     [Theory]
     [InlineData("sse")]
     [InlineData("ndjson")]
-    public async Task A204FromTheHandlerWritesNoFramingAndNoCompletion(string framing) {
+    public async Task A204FromTheHandlerWritesNoFramingAndNoCompletion(string framing)
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(framing: Framing(framing)),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = EndsSubscription(c.Context);
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(framing: Framing(framing)),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = EndsSubscription(c.Context);
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal(204, context.Response.Status);
         Assert.Null(context.Response.ContentType);
@@ -328,7 +416,8 @@ public class AsyncEnumerableIoFilterTests {
         Assert.False(context.Response.ShouldSerialize);
     }
 
-    private static async IAsyncEnumerable<string> EndsSubscription(IExecutionContext context) {
+    private static async IAsyncEnumerable<string> EndsSubscription(IExecutionContext context)
+    {
         await Task.Yield();
 
         context.Response.Status = 204;
@@ -346,26 +435,35 @@ public class AsyncEnumerableIoFilterTests {
     /// there is still a whole response to answer with.
     /// </summary>
     [Fact]
-    public async Task AFailureBeforeTheFirstItemIsAnErrorDocumentNotAStream() {
+    public async Task AFailureBeforeTheFirstItemIsAnErrorDocumentNotAStream()
+    {
         var serialized = new List<string>();
         var context = Pipeline.Context();
 
         var filter = new AsyncEnumerableIoFilter<string>(
             Empty,
-            c => {
+            c =>
+            {
                 serialized.Add(c.Response.ExceptionValue?.Message ?? "no failure");
 
                 return Task.CompletedTask;
             },
             null,
-            SseFraming.Instance);
+            SseFraming.Instance
+        );
 
-        await Pipeline.Chain(context, filter,
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = FailsBeforeFirst();
+        await Pipeline
+            .Chain(
+                context,
+                filter,
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = FailsBeforeFirst();
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("before the first item", Assert.Single(serialized));
         Assert.Null(context.Response.ContentType);
@@ -379,35 +477,47 @@ public class AsyncEnumerableIoFilterTests {
     /// client it is the connection ending, which it reconnects from with <c>Last-Event-ID</c>.
     /// </summary>
     [Fact]
-    public async Task AFailureAfterTheFirstItemEndsTheStream() {
+    public async Task AFailureAfterTheFirstItemEndsTheStream()
+    {
         var context = Pipeline.Context();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            Pipeline.Chain(context, Filter<string>(framing: SseFraming.Instance),
-                new Pipeline.Inline(c => {
-                    c.Context.Response.ResponseValue = FailsAfterFirst();
+            Pipeline
+                .Chain(
+                    context,
+                    Filter<string>(framing: SseFraming.Instance),
+                    new Pipeline.Inline(c =>
+                    {
+                        c.Context.Response.ResponseValue = FailsAfterFirst();
 
-                    return Task.CompletedTask;
-                })).Next());
+                        return Task.CompletedTask;
+                    })
+                )
+                .Next()
+        );
 
         Assert.Equal("data: alpha\n\n", Body(context));
         Assert.Equal(KnownContentType.EventStream, context.Response.ContentType);
     }
 
-    private static async IAsyncEnumerable<string> FailsBeforeFirst() {
+    private static async IAsyncEnumerable<string> FailsBeforeFirst()
+    {
         await Task.Yield();
 
-        if (Throw("before the first item")) {
+        if (Throw("before the first item"))
+        {
             yield return "never";
         }
     }
 
-    private static async IAsyncEnumerable<string> FailsAfterFirst() {
+    private static async IAsyncEnumerable<string> FailsAfterFirst()
+    {
         yield return "alpha";
 
         await Task.Yield();
 
-        if (Throw("after the first item")) {
+        if (Throw("after the first item"))
+        {
             yield return "never";
         }
     }
@@ -422,32 +532,39 @@ public class AsyncEnumerableIoFilterTests {
     /// A body that says when the heartbeat has been written, so the test can hold the handler
     /// quiet until then and release it afterwards, with no clock and no guessed sleep.
     /// </summary>
-    private sealed class WatchedBody : MemoryStream {
+    private sealed class WatchedBody : MemoryStream
+    {
         private readonly TaskCompletionSource _heartbeatSeen;
 
-        public WatchedBody(TaskCompletionSource heartbeatSeen) {
+        public WatchedBody(TaskCompletionSource heartbeatSeen)
+        {
             _heartbeatSeen = heartbeatSeen;
         }
 
-        public override void Write(byte[] buffer, int offset, int count) {
+        public override void Write(byte[] buffer, int offset, int count)
+        {
             base.Write(buffer, offset, count);
 
-            if (Encoding.UTF8.GetString(ToArray()).Contains(": keep-alive\n\n")) {
+            if (Encoding.UTF8.GetString(ToArray()).Contains(": keep-alive\n\n"))
+            {
                 _heartbeatSeen.TrySetResult();
             }
         }
     }
 
-    private static async IAsyncEnumerable<string> Gated(Task release, string value) {
+    private static async IAsyncEnumerable<string> Gated(Task release, string value)
+    {
         await release;
 
         yield return value;
     }
 
-    private static async IAsyncEnumerable<string> QuietThen(TimeSpan quiet, params string[] values) {
+    private static async IAsyncEnumerable<string> QuietThen(TimeSpan quiet, params string[] values)
+    {
         await Task.Delay(quiet, TestContext.Current.CancellationToken);
 
-        foreach (var value in values) {
+        foreach (var value in values)
+        {
             yield return value;
         }
     }
@@ -458,22 +575,36 @@ public class AsyncEnumerableIoFilterTests {
     /// observed on the body, so the order is asserted rather than hoped for.
     /// </summary>
     [Fact]
-    public async Task AQuietStreamGetsAHeartbeat() {
-        var heartbeatSeen = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+    public async Task AQuietStreamGetsAHeartbeat()
+    {
+        var heartbeatSeen = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously
+        );
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var context = Pipeline.Context();
 
         context.Response.Body = new WatchedBody(heartbeatSeen);
 
-        var run = Pipeline.Chain(context,
-            Filter<string>(framing: SseFraming.Instance, heartbeat: TimeSpan.FromMilliseconds(10)),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Gated(release.Task, "alpha");
+        var run = Pipeline
+            .Chain(
+                context,
+                Filter<string>(
+                    framing: SseFraming.Instance,
+                    heartbeat: TimeSpan.FromMilliseconds(10)
+                ),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Gated(release.Task, "alpha");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
-        await heartbeatSeen.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await heartbeatSeen.Task.WaitAsync(
+            TimeSpan.FromSeconds(10),
+            TestContext.Current.CancellationToken
+        );
 
         release.SetResult();
 
@@ -487,30 +618,46 @@ public class AsyncEnumerableIoFilterTests {
     }
 
     [Fact]
-    public async Task AStreamThatYieldsPromptlyGetsNoHeartbeat() {
+    public async Task AStreamThatYieldsPromptlyGetsNoHeartbeat()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context,
-            Filter<string>(framing: SseFraming.Instance, heartbeat: TimeSpan.FromSeconds(1)),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items("alpha", "beta");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(framing: SseFraming.Instance, heartbeat: TimeSpan.FromSeconds(1)),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items("alpha", "beta");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("data: alpha\n\ndata: beta\n\n", Body(context));
     }
 
     [Fact]
-    public async Task AZeroIntervalMeansNoHeartbeat() {
+    public async Task AZeroIntervalMeansNoHeartbeat()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(framing: SseFraming.Instance),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = QuietThen(TimeSpan.FromMilliseconds(100), "alpha");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(framing: SseFraming.Instance),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = QuietThen(
+                        TimeSpan.FromMilliseconds(100),
+                        "alpha"
+                    );
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("data: alpha\n\n", Body(context));
     }
@@ -519,15 +666,25 @@ public class AsyncEnumerableIoFilterTests {
     /// The format has no comment syntax, so the framing declines and the filter stops asking.
     /// </summary>
     [Fact]
-    public async Task NdjsonGetsNoHeartbeatWhateverTheInterval() {
+    public async Task NdjsonGetsNoHeartbeatWhateverTheInterval()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(heartbeat: TimeSpan.FromMilliseconds(10)),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = QuietThen(TimeSpan.FromMilliseconds(100), "alpha");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(heartbeat: TimeSpan.FromMilliseconds(10)),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = QuietThen(
+                        TimeSpan.FromMilliseconds(100),
+                        "alpha"
+                    );
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("alpha\n\n", Body(context));
     }
@@ -537,16 +694,25 @@ public class AsyncEnumerableIoFilterTests {
     /// has none. A stream that heartbeated and then ended without events writes no second comment.
     /// </summary>
     [Fact]
-    public async Task AnEmptyStreamThatHeartbeatedWritesNoCompletionComment() {
+    public async Task AnEmptyStreamThatHeartbeatedWritesNoCompletionComment()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context,
-            Filter<string>(framing: SseFraming.Instance, heartbeat: TimeSpan.FromMilliseconds(10)),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = QuietThen(TimeSpan.FromMilliseconds(100));
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(
+                    framing: SseFraming.Instance,
+                    heartbeat: TimeSpan.FromMilliseconds(10)
+                ),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = QuietThen(TimeSpan.FromMilliseconds(100));
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         var body = Body(context);
 
@@ -559,15 +725,22 @@ public class AsyncEnumerableIoFilterTests {
     #region event-stream headers
 
     [Fact]
-    public async Task AnEventStreamCarriesNoCacheAndNoAccelBuffering() {
+    public async Task AnEventStreamCarriesNoCacheAndNoAccelBuffering()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(framing: SseFraming.Instance),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items("alpha");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(framing: SseFraming.Instance),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items("alpha");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("no-cache", context.Response.Headers[KnownHeaders.CacheControl].ToString());
         Assert.Equal("no", context.Response.Headers[KnownHeaders.XAccelBuffering].ToString());
@@ -575,16 +748,23 @@ public class AsyncEnumerableIoFilterTests {
 
     /// <summary>A handler or filter that already said something about caching is not overruled.</summary>
     [Fact]
-    public async Task AHandlersOwnCacheControlIsKeptOnAnEventStream() {
+    public async Task AHandlersOwnCacheControlIsKeptOnAnEventStream()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(framing: SseFraming.Instance),
-            new Pipeline.Inline(c => {
-                c.Context.Response.Headers[KnownHeaders.CacheControl] = "no-store";
-                c.Context.Response.ResponseValue = Items("alpha");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(framing: SseFraming.Instance),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.Headers[KnownHeaders.CacheControl] = "no-store";
+                    c.Context.Response.ResponseValue = Items("alpha");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Equal("no-store", context.Response.Headers[KnownHeaders.CacheControl].ToString());
     }
@@ -594,15 +774,22 @@ public class AsyncEnumerableIoFilterTests {
     /// to say for itself.
     /// </summary>
     [Fact]
-    public async Task ANewlineDelimitedStreamCarriesNeitherHeader() {
+    public async Task ANewlineDelimitedStreamCarriesNeitherHeader()
+    {
         var context = Pipeline.Context();
 
-        await Pipeline.Chain(context, Filter<string>(),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items("alpha");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items("alpha");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.CacheControl));
         Assert.False(context.Response.Headers.ContainsKey(KnownHeaders.XAccelBuffering));
@@ -623,19 +810,27 @@ public class AsyncEnumerableIoFilterTests {
     [Theory]
     [InlineData("sse", "id: 1\ndata: alpha\n\ndata: beta\n\n")]
     [InlineData("ndjson", "alpha\nbeta\n\n")]
-    public async Task AFramingWritesNothingSynchronously(string framing, string expected) {
+    public async Task AFramingWritesNothingSynchronously(string framing, string expected)
+    {
         var context = Pipeline.Context();
 
         context.Response.Body = new SynchronousWritesRejectedStream();
 
-        await Pipeline.Chain(context, Filter<object>(framing: Framing(framing)),
-            new Pipeline.Inline(c => {
-                // An event with an id for the SSE framing, so the field line is written too;
-                // plain items for NDJSON, which frames whatever it is handed as it is.
-                c.Context.Response.ResponseValue = framing == "sse" ? Events() : Items("alpha", "beta");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<object>(framing: Framing(framing)),
+                new Pipeline.Inline(c =>
+                {
+                    // An event with an id for the SSE framing, so the field line is written too;
+                    // plain items for NDJSON, which frames whatever it is handed as it is.
+                    c.Context.Response.ResponseValue =
+                        framing == "sse" ? Events() : Items("alpha", "beta");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Null(context.Response.ExceptionValue);
         Assert.Equal(expected, Rejecting(context));
@@ -645,17 +840,27 @@ public class AsyncEnumerableIoFilterTests {
     [Theory]
     [InlineData("sse", ":\n\n")]
     [InlineData("ndjson", "\n")]
-    public async Task AnEmptyStreamsCompletionIsWrittenAsynchronously(string framing, string expected) {
+    public async Task AnEmptyStreamsCompletionIsWrittenAsynchronously(
+        string framing,
+        string expected
+    )
+    {
         var context = Pipeline.Context();
 
         context.Response.Body = new SynchronousWritesRejectedStream();
 
-        await Pipeline.Chain(context, Filter<string>(framing: Framing(framing)),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Items();
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(framing: Framing(framing)),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Items();
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Null(context.Response.ExceptionValue);
         Assert.Equal(expected, Rejecting(context));
@@ -663,18 +868,27 @@ public class AsyncEnumerableIoFilterTests {
 
     /// <summary>And so is the heartbeat, which #262 added synchronously beside the others.</summary>
     [Fact]
-    public async Task AHeartbeatIsWrittenAsynchronously() {
+    public async Task AHeartbeatIsWrittenAsynchronously()
+    {
         var context = Pipeline.Context();
 
         context.Response.Body = new SynchronousWritesRejectedStream();
 
-        await Pipeline.Chain(context,
-            Filter<string>(framing: SseFraming.Instance, heartbeat: TimeSpan.FromMilliseconds(10)),
-            new Pipeline.Inline(c => {
-                c.Context.Response.ResponseValue = Slowly("late");
+        await Pipeline
+            .Chain(
+                context,
+                Filter<string>(
+                    framing: SseFraming.Instance,
+                    heartbeat: TimeSpan.FromMilliseconds(10)
+                ),
+                new Pipeline.Inline(c =>
+                {
+                    c.Context.Response.ResponseValue = Slowly("late");
 
-                return Task.CompletedTask;
-            })).Next();
+                    return Task.CompletedTask;
+                })
+            )
+            .Next();
 
         Assert.Null(context.Response.ExceptionValue);
         Assert.Contains(": keep-alive\n\n", Rejecting(context));
@@ -682,7 +896,8 @@ public class AsyncEnumerableIoFilterTests {
     }
 
     /// <summary>One event carrying an id, one bare, so both the field and the data lines are covered.</summary>
-    private static async IAsyncEnumerable<object> Events() {
+    private static async IAsyncEnumerable<object> Events()
+    {
         yield return new SseItem<string>("alpha", Id: "1");
 
         await Task.Yield();
@@ -690,7 +905,8 @@ public class AsyncEnumerableIoFilterTests {
         yield return "beta";
     }
 
-    private static async IAsyncEnumerable<string> Slowly(string value) {
+    private static async IAsyncEnumerable<string> Slowly(string value)
+    {
         await Task.Delay(100);
 
         yield return value;

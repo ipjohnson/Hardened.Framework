@@ -17,7 +17,8 @@ namespace Hardened.SourceGenerator.Shared;
 /// compare two models and see that nothing changed.
 /// </para>
 /// </remarks>
-public interface IEntryPointFilterFacts {
+public interface IEntryPointFilterFacts
+{
     /// <summary>Whether the entry point's declarations say anything about a document at all.</summary>
     bool IsEmpty { get; }
 }

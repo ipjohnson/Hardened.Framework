@@ -1,8 +1,8 @@
 using Hardened.Requests.Testing;
+using Hardened.Web.Runtime.Responses;
 using Hardened.Web.Testing.Tests.Conformance;
 using Microsoft.Extensions.Primitives;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Testing.Tests.Transport;
 
@@ -10,11 +10,13 @@ namespace Hardened.Web.Testing.Tests.Transport;
 /// What <see cref="LastResponse"/> does at the edges: before anything was answered, and outside a
 /// running test altogether.
 /// </summary>
-public class LastResponseTests {
-
+public class LastResponseTests
+{
     [Fact]
-    public async Task ARequestThroughTheHandlerMakesItAvailable() {
-        var host = new SubstitutePipeline(context => {
+    public async Task ARequestThroughTheHandlerMakesItAvailable()
+    {
+        var host = new SubstitutePipeline(context =>
+        {
             context.Response.Status = 204;
 
             return Task.CompletedTask;
@@ -23,7 +25,10 @@ public class LastResponseTests {
         Assert.False(LastResponse.IsAvailable);
 
         using var client = host.Client();
-        using var response = await client.DeleteAsync("/things/1", TestContext.Current.CancellationToken);
+        using var response = await client.DeleteAsync(
+            "/things/1",
+            TestContext.Current.CancellationToken
+        );
 
         Assert.True(LastResponse.IsAvailable);
         Assert.Equal(204, LastResponse.Status);
@@ -35,14 +40,20 @@ public class LastResponseTests {
     /// which is what a request answered from a thread of the harness's own would look like.
     /// </summary>
     [Fact]
-    public async Task OutsideARunningTestItSaysSoAndRecordsNothing() {
+    public async Task OutsideARunningTestItSaysSoAndRecordsNothing()
+    {
         Task<(string Message, bool Available)> outside;
 
-        using (ExecutionContext.SuppressFlow()) {
-            outside = Task.Run(() => {
-                var response = new TestExecutionResponse(new MemoryStream()) {
-                    Headers = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
-                    Status = 200
+        using (ExecutionContext.SuppressFlow())
+        {
+            outside = Task.Run(() =>
+            {
+                var response = new TestExecutionResponse(new MemoryStream())
+                {
+                    Headers = new Dictionary<string, StringValues>(
+                        StringComparer.OrdinalIgnoreCase
+                    ),
+                    Status = 200,
                 };
 
                 LastResponse.Record(response, Array.Empty<byte>());

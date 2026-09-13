@@ -35,7 +35,8 @@ namespace Hardened.DependencyModules.SourceGenerator;
 /// dotnet_diagnostic.HRDR004.severity = none   &lt;!-- or per file, in .editorconfig --&gt;
 /// </code>
 /// </remarks>
-public static class EntryPointDiagnostics {
+public static class EntryPointDiagnostics
+{
     public const string DiagnosticId = "HRDR004";
 
     /// <summary>
@@ -43,18 +44,21 @@ public static class EntryPointDiagnostics {
     /// <c>AmbiguousRouteDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor => new(
-        id: DiagnosticId,
-        title: "More than one Hardened entry point in one assembly",
-        messageFormat:
-        "'{0}' and '{1}' are both Hardened entry points in this assembly. Each gets its own routing " +
-        "table over every handler here, so the two describe identical routes and nothing says which " +
-        "one a host runs. To share routes across applications, move the handlers into a " +
-        "[WebLibrary] project and reference it. To keep both entry points deliberately, set " +
-        "<NoWarn>$(NoWarn);" + DiagnosticId + "</NoWarn>.",
-        category: "Hardened.Modules",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor =>
+        new(
+            id: DiagnosticId,
+            title: "More than one Hardened entry point in one assembly",
+            messageFormat: "'{0}' and '{1}' are both Hardened entry points in this assembly. Each gets its own routing "
+                + "table over every handler here, so the two describe identical routes and nothing says which "
+                + "one a host runs. To share routes across applications, move the handlers into a "
+                + "[WebLibrary] project and reference it. To keep both entry points deliberately, set "
+                + "<NoWarn>$(NoWarn);"
+                + DiagnosticId
+                + "</NoWarn>.",
+            category: "Hardened.Modules",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// Reports once per compilation, naming the first two entry points in a stable order.
@@ -66,11 +70,18 @@ public static class EntryPointDiagnostics {
     /// </remarks>
     public static void ReportMultipleEntryPoints(
         SourceProductionContext context,
-        ImmutableArray<(ModuleEntryPointModel Left, DependencyModuleConfigurationModel Right)> entryPoints) {
+        ImmutableArray<(
+            ModuleEntryPointModel Left,
+            DependencyModuleConfigurationModel Right
+        )> entryPoints
+    )
+    {
         var diagnostic = For(
-            entryPoints.Select(entryPoint => entryPoint.Left.EntryPointType.Name).ToList());
+            entryPoints.Select(entryPoint => entryPoint.Left.EntryPointType.Name).ToList()
+        );
 
-        if (diagnostic != null) {
+        if (diagnostic != null)
+        {
             context.ReportDiagnostic(diagnostic);
         }
     }
@@ -84,8 +95,10 @@ public static class EntryPointDiagnostics {
     /// references one is CS0433 on every CSharpAuthor type - both generators compile it in. Over
     /// names alone, this needs neither.
     /// </remarks>
-    public static Diagnostic? For(IReadOnlyList<string> entryPointNames) {
-        if (entryPointNames.Count < 2) {
+    public static Diagnostic? For(IReadOnlyList<string> entryPointNames)
+    {
+        if (entryPointNames.Count < 2)
+        {
             return null;
         }
 

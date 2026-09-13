@@ -29,14 +29,18 @@ namespace Hardened.Requests.Runtime.Tests.Validation;
 /// validation off on a build that otherwise looks fine. Neither had a test proving it does.
 /// </para>
 /// </remarks>
-public class ValidatorResolutionTests {
-
+public class ValidatorResolutionTests
+{
     private static IExecutionRequestHandlerInfo HandlerInfo() =>
         Substitute.For<IExecutionRequestHandlerInfo>();
 
-    private static IExecutionContext ContextWith(params IValidatorFor<ValidationFilterTests.Payload>[] validators) =>
-        Pipeline.Context(configureServices: services => {
-            foreach (var validator in validators) {
+    private static IExecutionContext ContextWith(
+        params IValidatorFor<ValidationFilterTests.Payload>[] validators
+    ) =>
+        Pipeline.Context(configureServices: services =>
+        {
+            foreach (var validator in validators)
+            {
                 services.AddSingleton(validator);
             }
         });
@@ -44,17 +48,21 @@ public class ValidatorResolutionTests {
     #region ValidateAttribute
 
     [Fact]
-    public void TheAttributeYieldsOneFilterAtTheValidationPosition() {
+    public void TheAttributeYieldsOneFilterAtTheValidationPosition()
+    {
         var info = Assert.Single(
-            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
         Assert.Equal(FilterOrder.Validation, info.Order);
     }
 
     [Fact]
-    public void TheAttributeBuildsAValidationFilterForItsType() {
+    public void TheAttributeBuildsAValidationFilterForItsType()
+    {
         var info = Assert.Single(
-            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
         var filter = info.FilterFunc(ContextWith(ValidationFilterTests.PayloadValidator.Instance));
 
@@ -65,12 +73,15 @@ public class ValidatorResolutionTests {
     /// An empty set is a wiring fault, not an absence of work.
     /// </summary>
     [Fact]
-    public void TheAttributeThrowsWhenNoValidatorIsRegistered() {
+    public void TheAttributeThrowsWhenNoValidatorIsRegistered()
+    {
         var info = Assert.Single(
-            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
-        var exception =
-            Assert.Throws<InvalidOperationException>(() => info.FilterFunc(ContextWith()));
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            info.FilterFunc(ContextWith())
+        );
 
         Assert.Contains(nameof(ValidationFilterTests.Payload), exception.Message);
         Assert.Contains("entry point", exception.Message);
@@ -82,9 +93,11 @@ public class ValidatorResolutionTests {
     /// the steady-state request path of every validated handler.
     /// </summary>
     [Fact]
-    public void TheAttributeBuildsItsFilterOnceAcrossRequests() {
+    public void TheAttributeBuildsItsFilterOnceAcrossRequests()
+    {
         var info = Assert.Single(
-            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
         var first = info.FilterFunc(ContextWith(ValidationFilterTests.PayloadValidator.Instance));
         var second = info.FilterFunc(ContextWith(ValidationFilterTests.PayloadValidator.Instance));
@@ -96,13 +109,16 @@ public class ValidatorResolutionTests {
     /// Two attributes are two filters, and they do not share a cached instance.
     /// </summary>
     [Fact]
-    public void TwoAttributesBuildTheirOwnFilters() {
+    public void TwoAttributesBuildTheirOwnFilters()
+    {
         var context = ContextWith(ValidationFilterTests.PayloadValidator.Instance);
 
         var first = Assert.Single(
-            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
         var second = Assert.Single(
-            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
         Assert.NotSame(first.FilterFunc(context), second.FilterFunc(context));
     }
@@ -112,17 +128,21 @@ public class ValidatorResolutionTests {
     #region ValidationFilterProvider
 
     [Fact]
-    public void TheProviderYieldsOneFilterAtTheValidationPosition() {
+    public void TheProviderYieldsOneFilterAtTheValidationPosition()
+    {
         var info = Assert.Single(
-            new ValidationFilterProvider<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidationFilterProvider<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
         Assert.Equal(FilterOrder.Validation, info.Order);
     }
 
     [Fact]
-    public void TheProviderBuildsAValidationFilterForItsType() {
+    public void TheProviderBuildsAValidationFilterForItsType()
+    {
         var info = Assert.Single(
-            new ValidationFilterProvider<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidationFilterProvider<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
         var filter = info.FilterFunc(ContextWith(ValidationFilterTests.PayloadValidator.Instance));
 
@@ -135,20 +155,25 @@ public class ValidatorResolutionTests {
     /// a different entry point.
     /// </summary>
     [Fact]
-    public void TheProviderThrowsWhenNoValidatorIsRegistered() {
+    public void TheProviderThrowsWhenNoValidatorIsRegistered()
+    {
         var info = Assert.Single(
-            new ValidationFilterProvider<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidationFilterProvider<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
-        var exception =
-            Assert.Throws<InvalidOperationException>(() => info.FilterFunc(ContextWith()));
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            info.FilterFunc(ContextWith())
+        );
 
         Assert.Contains(nameof(ValidationFilterTests.Payload), exception.Message);
     }
 
     [Fact]
-    public void TheProviderBuildsItsFilterOnceAcrossRequests() {
+    public void TheProviderBuildsItsFilterOnceAcrossRequests()
+    {
         var info = Assert.Single(
-            new ValidationFilterProvider<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidationFilterProvider<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
         var first = info.FilterFunc(ContextWith(ValidationFilterTests.PayloadValidator.Instance));
         var second = info.FilterFunc(ContextWith(ValidationFilterTests.PayloadValidator.Instance));
@@ -163,18 +188,23 @@ public class ValidatorResolutionTests {
     /// generated one rather than one replacing the other.
     /// </summary>
     [Fact]
-    public async Task EveryRegisteredValidatorReachesTheFilter() {
+    public async Task EveryRegisteredValidatorReachesTheFilter()
+    {
         var info = Assert.Single(
-            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo()));
+            new ValidateAttribute<ValidationFilterTests.Payload>().GetFilters(HandlerInfo())
+        );
 
         var context = ContextWith(
             ValidationFilterTests.PayloadValidator.Instance,
-            ValidationFilterTests.SecondPayloadValidator.Instance);
+            ValidationFilterTests.SecondPayloadValidator.Instance
+        );
 
         context.Request.Parameters = new ValidationFilterTests.Payload { Name = "" };
 
-        var exception = await Assert.ThrowsAsync<Hardened.Requests.Runtime.Validation.ValidationException>(
-            () => Pipeline.Chain(context, info.FilterFunc(context)).Next());
+        var exception =
+            await Assert.ThrowsAsync<Hardened.Requests.Runtime.Validation.ValidationException>(() =>
+                Pipeline.Chain(context, info.FilterFunc(context)).Next()
+            );
 
         Assert.Contains(exception.ValidationResult.Errors, error => error.Field == "name");
         Assert.Contains(exception.ValidationResult.Errors, error => error.Field == "second");

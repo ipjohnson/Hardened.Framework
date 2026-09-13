@@ -1,9 +1,9 @@
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Web.Runtime.Headers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
-using Hardened.Web.Runtime.Headers;
 
 namespace Hardened.Web.Runtime.Compression;
 
@@ -31,7 +31,8 @@ namespace Hardened.Web.Runtime.Compression;
 /// body already wrapped and stands down, so a slip cannot produce two encoders.
 /// </para>
 /// </remarks>
-public sealed class ResponseCompressionFilter : IExecutionFilter {
+public sealed class ResponseCompressionFilter : IExecutionFilter
+{
     private readonly ICompressionPredicate? _predicate;
     private readonly CompressionType _favor;
 
@@ -54,17 +55,21 @@ public sealed class ResponseCompressionFilter : IExecutionFilter {
     public ResponseCompressionFilter(
         ICompressionPredicate? predicate = null,
         CompressionType favor = CompressionType.Default,
-        ICompressionConfiguration? configuration = null) {
+        ICompressionConfiguration? configuration = null
+    )
+    {
         _predicate = predicate;
         _favor = favor;
         _configuration = configuration;
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
         var response = context.Response;
 
-        if (response.Body is CompressingResponseStream) {
+        if (response.Body is CompressingResponseStream)
+        {
             await chain.Next();
 
             return;
@@ -73,21 +78,30 @@ public sealed class ResponseCompressionFilter : IExecutionFilter {
         var configuration = Configuration(context);
         var coding = Negotiate(context.Request.Headers, configuration, _favor);
 
-        if (coding == null) {
+        if (coding == null)
+        {
             await chain.Next();
 
             return;
         }
 
         var transport = response.Body;
-        var body = new CompressingResponseStream(context, transport, coding, _predicate, configuration);
+        var body = new CompressingResponseStream(
+            context,
+            transport,
+            coding,
+            _predicate,
+            configuration
+        );
 
         response.Body = body;
 
-        try {
+        try
+        {
             await chain.Next();
         }
-        finally {
+        finally
+        {
             response.Body = transport;
 
             // Writes the trailer when an encoder was opened. Never closes the transport.
@@ -106,27 +120,36 @@ public sealed class ResponseCompressionFilter : IExecutionFilter {
     public static string? Negotiate(
         IDictionary<string, StringValues> requestHeaders,
         ICompressionConfiguration configuration,
-        CompressionType favor) {
+        CompressionType favor
+    )
+    {
         var accepted = Read(requestHeaders, KnownHeaders.AcceptEncoding);
 
-        if (StringValues.IsNullOrEmpty(accepted)) {
+        if (StringValues.IsNullOrEmpty(accepted))
+        {
             return null;
         }
 
-        var favored = favor switch {
+        var favored = favor switch
+        {
             CompressionType.GZip => KnownEncoding.GZip,
             CompressionType.Br => KnownEncoding.Br,
-            _ => null
+            _ => null,
         };
 
-        if (favored != null &&
-            Offers(configuration, favored) &&
-            AcceptEncodingHeader.Accepts(accepted, favored)) {
+        if (
+            favored != null
+            && Offers(configuration, favored)
+            && AcceptEncodingHeader.Accepts(accepted, favored)
+        )
+        {
             return favored;
         }
 
-        foreach (var coding in configuration.Encodings) {
-            if (AcceptEncodingHeader.Accepts(accepted, coding)) {
+        foreach (var coding in configuration.Encodings)
+        {
+            if (AcceptEncodingHeader.Accepts(accepted, coding))
+            {
                 return coding;
             }
         }
@@ -134,9 +157,12 @@ public sealed class ResponseCompressionFilter : IExecutionFilter {
         return null;
     }
 
-    private static bool Offers(ICompressionConfiguration configuration, string coding) {
-        foreach (var offered in configuration.Encodings) {
-            if (string.Equals(offered, coding, StringComparison.OrdinalIgnoreCase)) {
+    private static bool Offers(ICompressionConfiguration configuration, string coding)
+    {
+        foreach (var offered in configuration.Encodings)
+        {
+            if (string.Equals(offered, coding, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
             }
         }
@@ -144,23 +170,29 @@ public sealed class ResponseCompressionFilter : IExecutionFilter {
         return false;
     }
 
-    private ICompressionConfiguration Configuration(IExecutionContext context) {
+    private ICompressionConfiguration Configuration(IExecutionContext context)
+    {
         // Racy by construction and harmless: two requests may both resolve the same singleton.
-        return _configuration ??= context.RootServiceProvider
-            .GetRequiredService<IOptions<ICompressionConfiguration>>().Value;
+        return _configuration ??= context
+            .RootServiceProvider.GetRequiredService<IOptions<ICompressionConfiguration>>()
+            .Value;
     }
 
     /// <summary>
     /// A header value, looked up the way HTTP defines header names, because API Gateway delivers
     /// them lowercased and a forked request carries whatever dictionary it was handed.
     /// </summary>
-    private static StringValues Read(IDictionary<string, StringValues> headers, string name) {
-        if (headers.TryGetValue(name, out var value)) {
+    private static StringValues Read(IDictionary<string, StringValues> headers, string name)
+    {
+        if (headers.TryGetValue(name, out var value))
+        {
             return value;
         }
 
-        foreach (var header in headers) {
-            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase)) {
+        foreach (var header in headers)
+        {
+            if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase))
+            {
                 return header.Value;
             }
         }

@@ -36,8 +36,11 @@ namespace Hardened.Functions.Testing;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Assembly | AttributeTargets.Class | AttributeTargets.Method)]
-public class FunctionTestingAttribute : Attribute, ITestServiceSetupAttribute, ISharedTestRegistration {
-
+public class FunctionTestingAttribute
+    : Attribute,
+        ITestServiceSetupAttribute,
+        ISharedTestRegistration
+{
     /// <summary>
     /// The façades this test takes, which are the parameters that must not be pinned.
     /// </summary>
@@ -53,13 +56,18 @@ public class FunctionTestingAttribute : Attribute, ITestServiceSetupAttribute, I
     /// constructor <see cref="TriggerInvoker.Constructor"/> looks for.
     /// </remarks>
     public IReadOnlyList<Type> IsolatedServices(System.Reflection.MethodInfo testMethod) =>
-        testMethod.GetParameters()
+        testMethod
+            .GetParameters()
             .Select(parameter => parameter.ParameterType)
             .Where(type => TriggerInvoker.Constructor(type) != null)
             .Distinct()
             .ToArray();
+
     public void SetupServiceCollection(
-        ITestMethodContext testMethod, IServiceCollection serviceCollection) {
+        ITestMethodContext testMethod,
+        IServiceCollection serviceCollection
+    )
+    {
         serviceCollection.AddTriggerTesting();
 
         RegisterFacadeParameters(testMethod, serviceCollection);
@@ -83,19 +91,31 @@ public class FunctionTestingAttribute : Attribute, ITestServiceSetupAttribute, I
     /// </para>
     /// </remarks>
     private static void RegisterFacadeParameters(
-        ITestMethodContext testMethod, IServiceCollection serviceCollection) {
-        foreach (var parameter in testMethod.Method.GetParameters()) {
+        ITestMethodContext testMethod,
+        IServiceCollection serviceCollection
+    )
+    {
+        foreach (var parameter in testMethod.Method.GetParameters())
+        {
             var type = parameter.ParameterType;
 
-            if (type == typeof(IServiceProvider) ||
-                parameter.GetCustomAttributes(inherit: true).OfType<ITestParameterValueProvider>().Any() ||
-                serviceCollection.Any(descriptor => descriptor.ServiceType == type) ||
-                TriggerInvoker.Constructor(type) == null) {
+            if (
+                type == typeof(IServiceProvider)
+                || parameter
+                    .GetCustomAttributes(inherit: true)
+                    .OfType<ITestParameterValueProvider>()
+                    .Any()
+                || serviceCollection.Any(descriptor => descriptor.ServiceType == type)
+                || TriggerInvoker.Constructor(type) == null
+            )
+            {
                 continue;
             }
 
             serviceCollection.AddScoped(
-                type, provider => provider.GetRequiredService<TriggerInvoker>().Facade(type));
+                type,
+                provider => provider.GetRequiredService<TriggerInvoker>().Facade(type)
+            );
         }
     }
 }

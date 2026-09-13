@@ -20,8 +20,8 @@ namespace Hardened.Generation.Models;
 /// code that names it come to disagree.
 /// </para>
 /// </remarks>
-internal static class ResponseSetPlan {
-
+internal static class ResponseSetPlan
+{
     /// <summary>
     /// Whether this operation answers with a declared response set rather than one type and throws.
     /// </summary>
@@ -45,7 +45,11 @@ internal static class ResponseSetPlan {
     /// one of several responses.
     /// </para>
     /// </remarks>
-    public static bool RequiresResponseSet(OperationModel operation, SpecResponseModel responseModel) {
+    public static bool RequiresResponseSet(
+        OperationModel operation,
+        SpecResponseModel responseModel
+    )
+    {
         var declaresMultipleSuccesses = operation.SuccessResponses.Count > 1;
 
         // A declared header forces a set the same way a second success does, and for the same
@@ -60,22 +64,29 @@ internal static class ResponseSetPlan {
         var declaresSuccessHeaders = DeclaresSuccessResponseHeaders(operation);
         var declaresResponseHeaders = DeclaresResponseHeaders(operation);
 
-        return (responseModel != SpecResponseModel.Throws ||
-                declaresMultipleSuccesses ||
-                declaresSuccessHeaders) &&
-               !operation.RawBytesResponse &&
-               operation.ItemSchemaRef == null &&
-               (operation.ErrorResponses.Count > 0 ||
-                declaresMultipleSuccesses ||
-                declaresResponseHeaders);
+        return (
+                responseModel != SpecResponseModel.Throws
+                || declaresMultipleSuccesses
+                || declaresSuccessHeaders
+            )
+            && !operation.RawBytesResponse
+            && operation.ItemSchemaRef == null
+            && (
+                operation.ErrorResponses.Count > 0
+                || declaresMultipleSuccesses
+                || declaresResponseHeaders
+            );
     }
 
     /// <summary>
     /// Whether the primary success's payload type carries headers of its own.
     /// </summary>
-    public static bool PrimarySuccessCarriesHeaders(OperationModel operation) {
-        foreach (var response in operation.SuccessResponses) {
-            if (response.StatusCode == operation.SuccessStatusCode) {
+    public static bool PrimarySuccessCarriesHeaders(OperationModel operation)
+    {
+        foreach (var response in operation.SuccessResponses)
+        {
+            if (response.StatusCode == operation.SuccessStatusCode)
+            {
                 return response.HeadersOnPayload && response.Headers.Count > 0;
             }
         }
@@ -91,13 +102,17 @@ internal static class ResponseSetPlan {
     /// implements the interface, so the response set it would otherwise be forced into buys nothing
     /// and costs the signature.
     /// </remarks>
-    public static bool DeclaresResponseHeaders(OperationModel operation) {
-        if (DeclaresSuccessResponseHeaders(operation)) {
+    public static bool DeclaresResponseHeaders(OperationModel operation)
+    {
+        if (DeclaresSuccessResponseHeaders(operation))
+        {
             return true;
         }
 
-        foreach (var response in operation.ErrorResponses) {
-            if (response.Headers.Count > 0) {
+        foreach (var response in operation.ErrorResponses)
+        {
+            if (response.Headers.Count > 0)
+            {
                 return true;
             }
         }
@@ -113,9 +128,12 @@ internal static class ResponseSetPlan {
     /// returned, so a header it declares has nowhere to go but the return type; an error is thrown,
     /// and the exception carries its own.
     /// </remarks>
-    public static bool DeclaresSuccessResponseHeaders(OperationModel operation) {
-        foreach (var response in operation.SuccessResponses) {
-            if (response.Headers.Count > 0 && !response.HeadersOnPayload) {
+    public static bool DeclaresSuccessResponseHeaders(OperationModel operation)
+    {
+        foreach (var response in operation.SuccessResponses)
+        {
+            if (response.Headers.Count > 0 && !response.HeadersOnPayload)
+            {
                 return true;
             }
         }
@@ -136,8 +154,7 @@ internal static class ResponseSetPlan {
     /// wants needs the whole document. <c>NameAllocator</c> decided it.
     /// </para>
     /// </remarks>
-    public static string ContainerName(OperationModel operation) =>
-        operation.ResponseContainerName;
+    public static string ContainerName(OperationModel operation) => operation.ResponseContainerName;
 
     /// <summary>The case type for one declared success status.</summary>
     /// <remarks>
@@ -174,8 +191,8 @@ internal static class ResponseSetPlan {
     /// of this condition is an operation that gets a branch and a wrapper, or neither.
     /// </remarks>
     public static bool HasNamedSuccessPayload(OperationModel operation) =>
-        operation.ResponseRef != null ||
-        (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null);
+        operation.ResponseRef != null
+        || (operation.ResponseIsArray && operation.ResponseArrayItemsRef != null);
 
     /// <summary>
     /// Whether a declared success needs a case type of its own rather than being named by its schema.
@@ -187,10 +204,13 @@ internal static class ResponseSetPlan {
     /// sharing one schema would otherwise put the same type in the union twice, and two identical
     /// conversions are ambiguous at the use site.
     /// </remarks>
-    public static bool NeedsSuccessCaseType(OperationModel operation, SuccessResponseModel response) =>
-        response.StatusCode != operation.SuccessStatusCode ||
-        !HasNamedSuccessPayload(operation) ||
-        (response.Headers.Count > 0 && !response.HeadersOnPayload);
+    public static bool NeedsSuccessCaseType(
+        OperationModel operation,
+        SuccessResponseModel response
+    ) =>
+        response.StatusCode != operation.SuccessStatusCode
+        || !HasNamedSuccessPayload(operation)
+        || (response.Headers.Count > 0 && !response.HeadersOnPayload);
 
     /// <summary>
     /// Whether the primary success reaches the union as the payload type itself.
@@ -203,13 +223,17 @@ internal static class ResponseSetPlan {
     /// and only a declared header does, so an operation that declares none keeps the bare payload
     /// and the signature it already had.
     /// </remarks>
-    public static bool PrimarySuccessIsBarePayload(OperationModel operation) {
-        if (!HasNamedSuccessPayload(operation)) {
+    public static bool PrimarySuccessIsBarePayload(OperationModel operation)
+    {
+        if (!HasNamedSuccessPayload(operation))
+        {
             return false;
         }
 
-        foreach (var response in operation.SuccessResponses) {
-            if (response.StatusCode == operation.SuccessStatusCode) {
+        foreach (var response in operation.SuccessResponses)
+        {
+            if (response.StatusCode == operation.SuccessStatusCode)
+            {
                 return response.Headers.Count == 0 || response.HeadersOnPayload;
             }
         }

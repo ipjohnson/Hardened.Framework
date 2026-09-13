@@ -22,4 +22,5 @@ public sealed record OpenApiUiModel(
     /// a page that is on with nowhere to load the decoder from is not a state worth being able to
     /// express.
     /// </remarks>
-    string? MessagePackScriptUrl = null);
+    string? MessagePackScriptUrl = null
+);

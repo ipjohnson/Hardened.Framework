@@ -1,7 +1,7 @@
 using Hardened.Azure.Functions.Http;
 using Hardened.Azure.Functions.Runtime.Adapters;
-using Hardened.IntegrationTests.AzureHttp.SUT.Generated;
 using Hardened.Azure.Functions.Testing;
+using Hardened.IntegrationTests.AzureHttp.SUT.Generated;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Shared.Testing.Attributes;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,13 +20,14 @@ namespace Hardened.IntegrationTests.AzureHttp.SUT.Tests;
 /// build task found.
 /// </para>
 /// </summary>
-public class AdapterRegistrationTests {
-
+public class AdapterRegistrationTests
+{
     /// <summary>
     /// Verbs bound the adapter. Nothing in the application mentions the HTTP trigger or Azure.
     /// </summary>
     [HardenedTest]
-    public void TheVerbsRegisteredTheHttpAdapter(IServiceProvider provider) {
+    public void TheVerbsRegisteredTheHttpAdapter(IServiceProvider provider)
+    {
         Assert.IsType<HttpAdapter>(Assert.Single(provider.GetServices<ITriggerAdapter>()));
     }
 
@@ -36,7 +37,8 @@ public class AdapterRegistrationTests {
     /// application chose in it.
     /// </summary>
     [HardenedTest]
-    public void TheHttpAdapterAnswersFailuresRatherThanRethrowing(IServiceProvider provider) {
+    public void TheHttpAdapterAnswersFailuresRatherThanRethrowing(IServiceProvider provider)
+    {
         var adapter = Assert.Single(provider.GetServices<ITriggerAdapter>());
 
         Assert.Equal(HostFailurePolicy.Answer500, adapter.FailurePolicy);
@@ -47,7 +49,12 @@ public class AdapterRegistrationTests {
     /// describe it the same way.
     /// </summary>
     [Fact]
-    public async Task TheProviderAndTheBuildTaskAgree() {
-        Assert.Empty(await MetadataAgreement.Disagreements(new AzureHttpTestAppAzureFunctionMetadataProvider()));
+    public async Task TheProviderAndTheBuildTaskAgree()
+    {
+        Assert.Empty(
+            await MetadataAgreement.Disagreements(
+                new AzureHttpTestAppAzureFunctionMetadataProvider()
+            )
+        );
     }
 }

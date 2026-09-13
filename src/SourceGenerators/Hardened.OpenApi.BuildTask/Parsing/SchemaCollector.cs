@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Hardened.Idl;
 using Hardened.Generation;
 using Hardened.Generation.Models;
+using Hardened.Idl;
 
 namespace Hardened.OpenApi.SourceGenerator;
 
@@ -26,8 +26,8 @@ namespace Hardened.OpenApi.SourceGenerator;
 /// <c>petAddress</c> are two names in the document and one type here.
 /// </para>
 /// </remarks>
-internal sealed class SchemaCollector {
-
+internal sealed class SchemaCollector
+{
     private readonly List<SchemaModel> _synthesized = new();
 
     private readonly HashSet<string> _taken = new(StringComparer.Ordinal);
@@ -47,12 +47,15 @@ internal sealed class SchemaCollector {
     /// inside a declared schema is lifted while that schema is still being read, so seeding this
     /// afterwards would be too late.
     /// </param>
-    public SchemaCollector(IEnumerable<string>? declared) {
-        if (declared == null) {
+    public SchemaCollector(IEnumerable<string>? declared)
+    {
+        if (declared == null)
+        {
             return;
         }
 
-        foreach (var name in declared) {
+        foreach (var name in declared)
+        {
             _taken.Add(NamingHelper.ToPascalCase(name));
         }
     }
@@ -64,7 +67,8 @@ internal sealed class SchemaCollector {
     /// <summary>Claims a name before its children are parsed, so they cannot take it.</summary>
     public void Reserve(string pascalName) => _taken.Add(pascalName);
 
-    public void Add(SchemaModel model) {
+    public void Add(SchemaModel model)
+    {
         _synthesized.Add(model);
         _taken.Add(NamingHelper.ToPascalCase(model.Name));
     }

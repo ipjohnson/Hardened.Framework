@@ -19,15 +19,16 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// response. A green build says nothing about any of them.
 /// </para>
 /// </remarks>
-public class ValidationTests {
-
+public class ValidationTests
+{
     /// <summary>
     /// A body property the spec marks required. The path is <c>body.name</c> rather than
     /// <c>name</c>: the payload is reached by descending into the parameters' <c>body</c> member, so
     /// a caller can tell a body failure from a path parameter of the same name.
     /// </summary>
     [HardenedTest]
-    public async Task CreatePet_MissingRequiredName_Returns400(ITestWebApp testWebApp) {
+    public async Task CreatePet_MissingRequiredName_Returns400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new CreatePetRequest("", "cat"), "/pets");
 
         response.Assert.BadRequest();
@@ -44,9 +45,12 @@ public class ValidationTests {
     /// <c>[Required]</c> rather than instead of it.
     /// </summary>
     [HardenedTest]
-    public async Task CreatePet_NameTooLong_Returns400(ITestWebApp testWebApp) {
+    public async Task CreatePet_NameTooLong_Returns400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new CreatePetRequest(new string('a', 101), "cat"), "/pets");
+            new CreatePetRequest(new string('a', 101), "cat"),
+            "/pets"
+        );
 
         response.Assert.BadRequest();
 
@@ -60,8 +64,12 @@ public class ValidationTests {
     /// through a <c>[GeneratedRegex]</c> member rather than a Regex built at run time.
     /// </summary>
     [HardenedTest]
-    public async Task CreatePet_TagViolatesPattern_Returns400(ITestWebApp testWebApp) {
-        var response = await testWebApp.Post(new CreatePetRequest("Whiskers", "not a tag!"), "/pets");
+    public async Task CreatePet_TagViolatesPattern_Returns400(ITestWebApp testWebApp)
+    {
+        var response = await testWebApp.Post(
+            new CreatePetRequest("Whiskers", "not a tag!"),
+            "/pets"
+        );
 
         response.Assert.BadRequest();
 
@@ -76,7 +84,8 @@ public class ValidationTests {
     /// wanting it.
     /// </summary>
     [HardenedTest]
-    public async Task ListPets_LimitAboveMaximum_Returns400(ITestWebApp testWebApp) {
+    public async Task ListPets_LimitAboveMaximum_Returns400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets?limit=500");
 
         response.Assert.BadRequest();
@@ -103,7 +112,8 @@ public class ValidationTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task ListPets_LimitNotANumber_Returns400(ITestWebApp testWebApp) {
+    public async Task ListPets_LimitNotANumber_Returns400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets?limit=abc");
 
         response.Assert.BadRequest();
@@ -119,12 +129,14 @@ public class ValidationTests {
     /// about making everything mandatory.
     /// </summary>
     [HardenedTest]
-    public async Task ListPets_WithoutLimit_StillSucceeds(ITestWebApp testWebApp) {
+    public async Task ListPets_WithoutLimit_StillSucceeds(ITestWebApp testWebApp)
+    {
         (await testWebApp.Get("/pets")).Assert.Ok();
     }
 
     [HardenedTest]
-    public async Task SearchPets_QueryTooShort_Returns400(ITestWebApp testWebApp) {
+    public async Task SearchPets_QueryTooShort_Returns400(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets/search?q=a");
 
         response.Assert.BadRequest();
@@ -139,9 +151,12 @@ public class ValidationTests {
     /// because the server only ever names one is the thing this avoids.
     /// </summary>
     [HardenedTest]
-    public async Task CreatePet_SeveralViolations_ReportsAllOfThem(ITestWebApp testWebApp) {
+    public async Task CreatePet_SeveralViolations_ReportsAllOfThem(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new CreatePetRequest(new string('a', 101), "not a tag!"), "/pets");
+            new CreatePetRequest(new string('a', 101), "not a tag!"),
+            "/pets"
+        );
 
         response.Assert.BadRequest();
 
@@ -156,14 +171,16 @@ public class ValidationTests {
     /// filter that rejected everything would pass every test above.
     /// </summary>
     [HardenedTest]
-    public async Task CreatePet_Valid_StillSucceeds(ITestWebApp testWebApp) {
+    public async Task CreatePet_Valid_StillSucceeds(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new CreatePetRequest("Whiskers", "cat"), "/pets");
 
         response.Assert.Ok();
     }
 
     [HardenedTest]
-    public async Task ListPets_LimitWithinRange_StillSucceeds(ITestWebApp testWebApp) {
+    public async Task ListPets_LimitWithinRange_StillSucceeds(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/pets?limit=50");
 
         response.Assert.Ok();
@@ -174,7 +191,8 @@ public class ValidationTests {
     /// working - the attachment is per-operation rather than blanket.
     /// </summary>
     [HardenedTest]
-    public async Task AnUnconstrainedOperationIsUnaffected(ITestWebApp testWebApp) {
+    public async Task AnUnconstrainedOperationIsUnaffected(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/stores");
 
         response.Assert.Ok();
@@ -192,9 +210,13 @@ public class ValidationTests {
     /// generator allocated.
     /// </summary>
     [HardenedTest]
-    public async Task AHeaderFailureNamesTheHeader(ITestWebApp testWebApp) {
+    public async Task AHeaderFailureNamesTheHeader(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            ValidOrder, "/orders", request => request.Headers["Idempotency-Key"] = "not-hex");
+            ValidOrder,
+            "/orders",
+            request => request.Headers["Idempotency-Key"] = "not-hex"
+        );
 
         Assert.Equal(400, response.StatusCode);
 
@@ -209,9 +231,13 @@ public class ValidationTests {
     /// parameter merely being present.
     /// </summary>
     [HardenedTest]
-    public async Task AValidHeaderIsAccepted(ITestWebApp testWebApp) {
+    public async Task AValidHeaderIsAccepted(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            ValidOrder, "/orders", request => request.Headers["Idempotency-Key"] = "0f9ac3b2");
+            ValidOrder,
+            "/orders",
+            request => request.Headers["Idempotency-Key"] = "0f9ac3b2"
+        );
 
         response.Assert.Ok();
     }
@@ -230,10 +256,12 @@ public class ValidationTests {
     /// openapi-generator's - its <c>ModelUtils.isDecimalSchema</c> tests exactly that pair.
     /// </remarks>
     [HardenedTest]
-    public async Task MoneySurvivesTheRoundTripExactly(ITestWebApp testWebApp) {
+    public async Task MoneySurvivesTheRoundTripExactly(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
             """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":3,"unitPrice":19.99,"discount":0.1}]}""",
-            "/orders");
+            "/orders"
+        );
 
         response.Assert.Ok();
 
@@ -252,15 +280,18 @@ public class ValidationTests {
     /// double is the one thing a decimal member exists to avoid.
     /// </summary>
     [HardenedTest]
-    public async Task ABoundOnMoneyIsEnforced(ITestWebApp testWebApp) {
+    public async Task ABoundOnMoneyIsEnforced(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
             """{"species":"cat","weightGrams":3000,"lines":[{"sku":"TLS-0001","quantity":3,"unitPrice":0.001}]}""",
-            "/orders");
+            "/orders"
+        );
 
         Assert.Equal(400, response.StatusCode);
         Assert.Contains(
             response.Deserialize<RequestValidationError>().Errors,
-            e => e.Field.Contains("unitPrice") && e.Code == "range");
+            e => e.Field.Contains("unitPrice") && e.Code == "range"
+        );
     }
 
     /// <summary>
@@ -268,7 +299,8 @@ public class ValidationTests {
     /// back what the author wrote.
     /// </summary>
     [HardenedTest]
-    public async Task TheDocumentPublishesBothSpellings(ITestWebApp testWebApp) {
+    public async Task TheDocumentPublishesBothSpellings(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Get("/openapi.json");
 
         response.Assert.Ok();
@@ -276,13 +308,17 @@ public class ValidationTests {
 
         // Served gzipped, because the harness asks for it by default the way a client does.
         await using var gzip = new System.IO.Compression.GZipStream(
-            response.Body, System.IO.Compression.CompressionMode.Decompress);
+            response.Body,
+            System.IO.Compression.CompressionMode.Decompress
+        );
 
         using var document = JsonDocument.Parse(await new StreamReader(gzip).ReadToEndAsync());
 
-        var properties = document.RootElement
-            .GetProperty("components").GetProperty("schemas")
-            .GetProperty("OrderLine").GetProperty("properties");
+        var properties = document
+            .RootElement.GetProperty("components")
+            .GetProperty("schemas")
+            .GetProperty("OrderLine")
+            .GetProperty("properties");
 
         var unitPrice = properties.GetProperty("unitPrice");
         var discount = properties.GetProperty("discount");

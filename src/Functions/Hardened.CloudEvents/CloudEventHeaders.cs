@@ -18,7 +18,8 @@ namespace Hardened.CloudEvents;
 /// it hands on is.
 /// </para>
 /// </remarks>
-public static class CloudEventHeaders {
+public static class CloudEventHeaders
+{
     public const string SpecVersion = "ce-specversion";
     public const string Id = "ce-id";
     public const string Source = "ce-source";
@@ -31,7 +32,8 @@ public static class CloudEventHeaders {
     /// Writes <paramref name="cloudEvent"/>'s attributes onto <paramref name="headers"/>: the four
     /// required ones, each optional one that is set, and every extension under its prefixed name.
     /// </summary>
-    public static void Write(IDictionary<string, StringValues> headers, CloudEvent cloudEvent) {
+    public static void Write(IDictionary<string, StringValues> headers, CloudEvent cloudEvent)
+    {
         headers[SpecVersion] = cloudEvent.SpecVersion;
         headers[Id] = cloudEvent.Id;
         headers[Source] = cloudEvent.Source;
@@ -41,13 +43,16 @@ public static class CloudEventHeaders {
         Set(headers, Time, cloudEvent.Time);
         Set(headers, DataSchema, cloudEvent.DataSchema);
 
-        foreach (var extension in cloudEvent.Extensions) {
+        foreach (var extension in cloudEvent.Extensions)
+        {
             headers[CloudEventReader.HeaderPrefix + extension.Key] = extension.Value;
         }
     }
 
-    private static void Set(IDictionary<string, StringValues> headers, string name, string? value) {
-        if (!string.IsNullOrEmpty(value)) {
+    private static void Set(IDictionary<string, StringValues> headers, string name, string? value)
+    {
+        if (!string.IsNullOrEmpty(value))
+        {
             headers[name] = value;
         }
     }

@@ -29,7 +29,8 @@ namespace Hardened.Aws.Lambda.Runtime.Development;
 /// the application's own directory for that reason: <c>dotnet</c> finds a manifest by walking up.
 /// </para>
 /// </remarks>
-public static class LambdaEmulator {
+public static class LambdaEmulator
+{
     public const string RuntimeApiVariable = "AWS_LAMBDA_RUNTIME_API";
 
     public const string EmulatorPortVariable = "HARDENED_LAMBDA_EMULATOR_PORT";
@@ -64,12 +65,22 @@ public static class LambdaEmulator {
     /// for the service should present the same interface - which leaves the bootstrap reading the
     /// environment exactly as it does in production, with no local branch anywhere in the host.
     /// </remarks>
-    public static Task<LambdaEmulatorSession> StartIfLocal(Type applicationType, bool apiGateway = false) {
-        var functionName = applicationType.Assembly.GetName().Name
+    public static Task<LambdaEmulatorSession> StartIfLocal(
+        Type applicationType,
+        bool apiGateway = false
+    )
+    {
+        var functionName =
+            applicationType.Assembly.GetName().Name
             ?? throw new InvalidOperationException(
-                $"'{applicationType}' is in an assembly with no name, so there is no function name to register under.");
+                $"'{applicationType}' is in an assembly with no name, so there is no function name to register under."
+            );
 
-        var plan = LambdaEmulatorPlan.From(functionName, apiGateway, Environment.GetEnvironmentVariable);
+        var plan = LambdaEmulatorPlan.From(
+            functionName,
+            apiGateway,
+            Environment.GetEnvironmentVariable
+        );
 
         return plan == null ? Task.FromResult(LambdaEmulatorSession.Passive) : Start(plan);
     }
@@ -81,32 +92,42 @@ public static class LambdaEmulator {
     /// Reuse is what makes the debugger's stop button harmless. It kills this process and not the
     /// tool, so the next start finds the tool listening with the same routes and carries on.
     /// </remarks>
-    public static async Task<LambdaEmulatorSession> Start(LambdaEmulatorPlan plan) {
-        if (await IsListening(plan.EmulatorPort)) {
+    public static async Task<LambdaEmulatorSession> Start(LambdaEmulatorPlan plan)
+    {
+        if (await IsListening(plan.EmulatorPort))
+        {
             Point(plan);
             Announce(plan, started: false);
 
             return new LambdaEmulatorSession(plan, null);
         }
 
-        var startInfo = new ProcessStartInfo("dotnet", plan.Arguments) {
+        var startInfo = new ProcessStartInfo("dotnet", plan.Arguments)
+        {
             UseShellExecute = false,
-            WorkingDirectory = AppContext.BaseDirectory
+            WorkingDirectory = AppContext.BaseDirectory,
         };
 
-        if (plan.RouteConfiguration != null) {
-            startInfo.Environment[LambdaEmulatorPlan.RouteConfigurationVariable] = plan.RouteConfiguration;
+        if (plan.RouteConfiguration != null)
+        {
+            startInfo.Environment[LambdaEmulatorPlan.RouteConfigurationVariable] =
+                plan.RouteConfiguration;
         }
 
-        var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("dotnet did not start, so the Lambda Test Tool could not be started.");
+        var process =
+            Process.Start(startInfo)
+            ?? throw new InvalidOperationException(
+                "dotnet did not start, so the Lambda Test Tool could not be started."
+            );
 
         var session = new LambdaEmulatorSession(plan, process);
 
-        try {
+        try
+        {
             await WaitUntilListening(plan, process);
         }
-        catch {
+        catch
+        {
             session.Dispose();
 
             throw;
@@ -118,43 +139,59 @@ public static class LambdaEmulator {
         return session;
     }
 
-    private static async Task WaitUntilListening(LambdaEmulatorPlan plan, Process process) {
+    private static async Task WaitUntilListening(LambdaEmulatorPlan plan, Process process)
+    {
         var deadline = DateTime.UtcNow + StartupTimeout;
 
-        while (true) {
-            if (process.HasExited) {
+        while (true)
+        {
+            if (process.HasExited)
+            {
                 throw new InvalidOperationException(
-                    $"The AWS Lambda Test Tool exited with code {process.ExitCode} before it was listening. " +
-                    "It is a dotnet tool: pin amazon.lambda.testtool in .config/dotnet-tools.json and run " +
-                    "'dotnet tool restore', or run 'dotnet tool install -g amazon.lambda.testtool'. To run " +
-                    $"against a tool started by hand instead, set {RuntimeApiVariable} to {plan.RuntimeApiEndpoint}.");
+                    $"The AWS Lambda Test Tool exited with code {process.ExitCode} before it was listening. "
+                        + "It is a dotnet tool: pin amazon.lambda.testtool in .config/dotnet-tools.json and run "
+                        + "'dotnet tool restore', or run 'dotnet tool install -g amazon.lambda.testtool'. To run "
+                        + $"against a tool started by hand instead, set {RuntimeApiVariable} to {plan.RuntimeApiEndpoint}."
+                );
             }
 
-            if (await IsListening(plan.EmulatorPort) && (!plan.ApiGateway || await IsListening(plan.GatewayPort))) {
+            if (
+                await IsListening(plan.EmulatorPort)
+                && (!plan.ApiGateway || await IsListening(plan.GatewayPort))
+            )
+            {
                 return;
             }
 
-            if (DateTime.UtcNow > deadline) {
+            if (DateTime.UtcNow > deadline)
+            {
                 throw new TimeoutException(
-                    $"The AWS Lambda Test Tool did not start listening on {plan.EmulatorUrl} within {StartupTimeout.TotalSeconds:0} seconds.");
+                    $"The AWS Lambda Test Tool did not start listening on {plan.EmulatorUrl} within {StartupTimeout.TotalSeconds:0} seconds."
+                );
             }
 
             await Task.Delay(PollInterval);
         }
     }
 
-    private static async Task<bool> IsListening(int port) {
+    private static async Task<bool> IsListening(int port)
+    {
         using var client = new TcpClient();
 
-        try {
-            await client.ConnectAsync(IPAddress.Loopback, port).WaitAsync(TimeSpan.FromMilliseconds(500));
+        try
+        {
+            await client
+                .ConnectAsync(IPAddress.Loopback, port)
+                .WaitAsync(TimeSpan.FromMilliseconds(500));
 
             return true;
         }
-        catch (SocketException) {
+        catch (SocketException)
+        {
             return false;
         }
-        catch (TimeoutException) {
+        catch (TimeoutException)
+        {
             return false;
         }
     }
@@ -167,12 +204,16 @@ public static class LambdaEmulator {
 
     // Plain lines rather than the structured logger: the reader is a person at a console, and the
     // Kestrel host prints the same "Listening on" line.
-    private static void Announce(LambdaEmulatorPlan plan, bool started) {
-        Console.Out.WriteLine(started
-            ? $"Started the AWS Lambda Test Tool on {plan.EmulatorUrl}"
-            : $"Using the AWS Lambda Test Tool already listening on {plan.EmulatorUrl}");
+    private static void Announce(LambdaEmulatorPlan plan, bool started)
+    {
+        Console.Out.WriteLine(
+            started
+                ? $"Started the AWS Lambda Test Tool on {plan.EmulatorUrl}"
+                : $"Using the AWS Lambda Test Tool already listening on {plan.EmulatorUrl}"
+        );
 
-        if (plan.GatewayUrl != null) {
+        if (plan.GatewayUrl != null)
+        {
             Console.Out.WriteLine($"Listening on {plan.GatewayUrl}");
         }
     }

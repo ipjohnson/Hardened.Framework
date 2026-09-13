@@ -1,17 +1,22 @@
-﻿using Hardened.Requests.Abstract.Execution;
+﻿using DependencyModules.Runtime.Attributes;
+using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Serializer;
-using DependencyModules.Runtime.Attributes;
 using Hardened.Shared.Runtime.Collections;
 
 namespace Hardened.Requests.Serializers.Newtonsoft.Impl;
 
 [TransientService]
-public class NewtonsoftSerializer : IResponseSerializer {
+public class NewtonsoftSerializer : IResponseSerializer
+{
     private readonly ISharedSerializer _sharedSerializer;
     private readonly IMemoryStreamPool _memoryStreamPool;
 
-    public NewtonsoftSerializer(ISharedSerializer sharedSerializer, IMemoryStreamPool memoryStreamPool) {
+    public NewtonsoftSerializer(
+        ISharedSerializer sharedSerializer,
+        IMemoryStreamPool memoryStreamPool
+    )
+    {
         _sharedSerializer = sharedSerializer;
         _memoryStreamPool = memoryStreamPool;
     }
@@ -39,7 +44,8 @@ public class NewtonsoftSerializer : IResponseSerializer {
     /// </remarks>
     public string ContentType => KnownContentType.Json;
 
-    public async Task SerializeResponse(IExecutionContext context) {
+    public async Task SerializeResponse(IExecutionContext context)
+    {
         using var outputBuffer = _memoryStreamPool.Get();
         await using var textWriter = new StreamWriter(outputBuffer.Item, null, -1, true);
 

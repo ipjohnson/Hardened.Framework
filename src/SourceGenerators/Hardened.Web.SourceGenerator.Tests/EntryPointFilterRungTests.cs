@@ -29,15 +29,16 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// of them would pass on exactly the disagreement this closes.
 /// </para>
 /// </remarks>
-public class EntryPointFilterRungTests {
-
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),                 // Hardened.Web.Runtime
-        typeof(FromBodyAttribute),            // Hardened.Requests.Abstract
-        typeof(AuthorizeGrantsAttribute),     // Hardened.Requests.Runtime
-        typeof(EnableAttribute<>),            // Hardened.Shared.Runtime
-        typeof(ConditionalGetAttribute),      // the declaration
-        typeof(OpenApiDocumentPublishing)     // the marker
+public class EntryPointFilterRungTests
+{
+    private static readonly Type[] Anchors =
+    [
+        typeof(GetAttribute), // Hardened.Web.Runtime
+        typeof(FromBodyAttribute), // Hardened.Requests.Abstract
+        typeof(AuthorizeGrantsAttribute), // Hardened.Requests.Runtime
+        typeof(EnableAttribute<>), // Hardened.Shared.Runtime
+        typeof(ConditionalGetAttribute), // the declaration
+        typeof(OpenApiDocumentPublishing), // the marker
     ];
 
     private const string Usings = """
@@ -64,33 +65,49 @@ public class EntryPointFilterRungTests {
 
         """;
 
-    private static GeneratorResult Generate(string entryPointAttributes, string controllers) {
-        var source = Usings + """
-            namespace TestApp;
+    private static GeneratorResult Generate(string entryPointAttributes, string controllers)
+    {
+        var source =
+            Usings
+            + """
+                namespace TestApp;
 
-            [HardenedModule]
-            [Enable<OpenApiDocumentPublishing>]
-            """ + entryPointAttributes + """
+                [HardenedModule]
+                [Enable<OpenApiDocumentPublishing>]
+                """
+            + entryPointAttributes
+            + """
 
-            public partial class Application { }
+                public partial class Application { }
 
-            """ + controllers;
+                """
+            + controllers;
 
-        return GeneratorTestHarness.Run(
-            new Dictionary<string, string> { ["Test.cs"] = source },
-            new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
-            Anchors).AssertNoErrors();
+        return GeneratorTestHarness
+            .Run(
+                new Dictionary<string, string> { ["Test.cs"] = source },
+                new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
+                Anchors
+            )
+            .AssertNoErrors();
     }
 
-    private static JsonElement Document(GeneratorResult result) {
+    private static JsonElement Document(GeneratorResult result)
+    {
         var match = Regex.Match(
             result.SourceContaining("OpenApiDocument"),
-            @"new byte\[\]\s*\{(.*?)\}\s*;", RegexOptions.Singleline);
+            @"new byte\[\]\s*\{(.*?)\}\s*;",
+            RegexOptions.Singleline
+        );
 
         Assert.True(match.Success, "No document byte array in the generated source.");
 
-        var bytes = match.Groups[1].Value
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var bytes = match
+            .Groups[1]
+            .Value.Split(
+                ',',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            )
             .Select(byte.Parse)
             .ToArray();
 
@@ -107,13 +124,17 @@ public class EntryPointFilterRungTests {
         document.GetProperty("paths").GetProperty(path).GetProperty(method);
 
     private static string[] Statuses(JsonElement document, string path, string method = "get") =>
-        Operation(document, path, method).GetProperty("responses").EnumerateObject()
+        Operation(document, path, method)
+            .GetProperty("responses")
+            .EnumerateObject()
             .Select(response => response.Name)
             .OrderBy(status => status, StringComparer.Ordinal)
             .ToArray();
 
     private static string[] Headers(JsonElement document, string path, string status) =>
-        Operation(document, path, "get").GetProperty("responses").GetProperty(status)
+        Operation(document, path, "get")
+            .GetProperty("responses")
+            .GetProperty(status)
             .TryGetProperty("headers", out var headers)
             ? headers.EnumerateObject().Select(header => header.Name).ToArray()
             : [];
@@ -128,7 +149,8 @@ public class EntryPointFilterRungTests {
     /// <c>ExecutionHelper</c> to merge into each handler as its chain is built.
     /// </summary>
     [Fact]
-    public void TheDeclarationIsEmittedOnceAndRegistered() {
+    public void TheDeclarationIsEmittedOnceAndRegistered()
+    {
         var routing = Generate("[ConditionalGet]", Controllers).SourceContaining("Routing");
 
         Assert.Contains("class ApplicationFilters", routing);
@@ -144,7 +166,8 @@ public class EntryPointFilterRungTests {
     /// An entry point declaring no filter generates what it generated before this existed.
     /// </summary>
     [Fact]
-    public void AnEntryPointDeclaringNoFilterEmitsNothing() {
+    public void AnEntryPointDeclaringNoFilterEmitsNothing()
+    {
         var routing = Generate("", Controllers).SourceContaining("Routing");
 
         Assert.DoesNotContain("ApplicationFilters", routing);
@@ -156,7 +179,8 @@ public class EntryPointFilterRungTests {
     /// nothing, because the declaration says it reaches GET and HEAD.
     /// </summary>
     [Fact]
-    public void EveryReadPublishesTheStatusTheDeclarationAnswers() {
+    public void EveryReadPublishesTheStatusTheDeclarationAnswers()
+    {
         var document = Document(Generate("[ConditionalGet]", Controllers));
 
         Assert.Equal(["200", "304"], Statuses(document, "/books"));
@@ -169,7 +193,8 @@ public class EntryPointFilterRungTests {
     /// header to send it back in.
     /// </summary>
     [Fact]
-    public void EveryReadPublishesTheHeadersTheDeclarationReadsAndWrites() {
+    public void EveryReadPublishesTheHeadersTheDeclarationReadsAndWrites()
+    {
         var document = Document(Generate("[ConditionalGet]", Controllers));
 
         Assert.Equal(["ETag"], Headers(document, "/books", "200"));
@@ -186,13 +211,19 @@ public class EntryPointFilterRungTests {
     /// declaration states <c>NotWhenStreaming</c>.
     /// </summary>
     [Fact]
-    public void AStreamedReadPublishesNothingFromTheRung() {
-        var document = Document(Generate("[ConditionalGet]", """
-            public class FeedController {
-                [Get("/feed")]
-                public async IAsyncEnumerable<string> Live() { yield return ""; await Task.CompletedTask; }
-            }
-            """));
+    public void AStreamedReadPublishesNothingFromTheRung()
+    {
+        var document = Document(
+            Generate(
+                "[ConditionalGet]",
+                """
+                public class FeedController {
+                    [Get("/feed")]
+                    public async IAsyncEnumerable<string> Live() { yield return ""; await Task.CompletedTask; }
+                }
+                """
+            )
+        );
 
         Assert.Equal(["200"], Statuses(document, "/feed"));
     }
@@ -202,14 +233,20 @@ public class EntryPointFilterRungTests {
     /// half of nearest-rung-wins.
     /// </summary>
     [Fact]
-    public void AHandlerDeclaringItItselfPublishesOneOfEach() {
-        var document = Document(Generate("[ConditionalGet]", """
-            public class RateController {
-                [Get("/rates")]
-                [ConditionalGet]
-                public string Read() => "";
-            }
-            """));
+    public void AHandlerDeclaringItItselfPublishesOneOfEach()
+    {
+        var document = Document(
+            Generate(
+                "[ConditionalGet]",
+                """
+                public class RateController {
+                    [Get("/rates")]
+                    [ConditionalGet]
+                    public string Read() => "";
+                }
+                """
+            )
+        );
 
         Assert.Equal(["200", "304"], Statuses(document, "/rates"));
         Assert.Equal(["ETag"], Headers(document, "/rates", "200"));

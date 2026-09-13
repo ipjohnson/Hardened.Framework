@@ -18,14 +18,17 @@ namespace Hardened.Aws.Lambda.DynamoDb;
 /// This is what <c>[NewImage]</c> and <c>[OldImage]</c> read.
 /// </para>
 /// </remarks>
-public class DynamoDbChange : LambdaPayloadRequest {
+public class DynamoDbChange : LambdaPayloadRequest
+{
     public DynamoDbChange(
         string method,
         string path,
         Stream body,
         IDictionary<string, StringValues> headers,
-        DynamoDBEvent.DynamodbStreamRecord record)
-        : base(method, path, body, headers) {
+        DynamoDBEvent.DynamodbStreamRecord record
+    )
+        : base(method, path, body, headers)
+    {
         Record = record;
     }
 

@@ -1,13 +1,13 @@
-using Xunit;
 using Hardened.Web.Runtime.Compression;
+using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Compression;
 
 /// <summary>
 /// The default media-type rule, and the pattern language it is written in.
 /// </summary>
-public class CompressionConfigurationTests {
-
+public class CompressionConfigurationTests
+{
     private static readonly CompressionConfiguration Defaults = new();
 
     [Theory]
@@ -25,7 +25,8 @@ public class CompressionConfigurationTests {
     [InlineData("text/html; charset=utf-8")]
     [InlineData("text/css")]
     [InlineData("text/xml")]
-    public void TheDefaultRuleCompressesTextLikeTypes(string contentType) {
+    public void TheDefaultRuleCompressesTextLikeTypes(string contentType)
+    {
         Assert.True(Defaults.Compresses(contentType));
     }
 
@@ -44,12 +45,14 @@ public class CompressionConfigurationTests {
     [InlineData("")]
     [InlineData(null)]
     [InlineData("nonsense")]
-    public void TheDefaultRuleLeavesTheRestAlone(string? contentType) {
+    public void TheDefaultRuleLeavesTheRestAlone(string? contentType)
+    {
         Assert.False(Defaults.Compresses(contentType));
     }
 
     [Fact]
-    public void ATypeAddedToTheListIsCompressed() {
+    public void ATypeAddedToTheListIsCompressed()
+    {
         var configuration = new CompressionConfiguration();
 
         configuration.MediaTypes.Add("application/wasm");
@@ -58,7 +61,8 @@ public class CompressionConfigurationTests {
     }
 
     [Fact]
-    public void AnExclusionBeatsAPatternThatAdmitsIt() {
+    public void AnExclusionBeatsAPatternThatAdmitsIt()
+    {
         var configuration = new CompressionConfiguration();
 
         configuration.ExcludedMediaTypes.Add("text/csv");
@@ -68,14 +72,16 @@ public class CompressionConfigurationTests {
     }
 
     [Fact]
-    public void AWildcardTypeMatchesAnything() {
+    public void AWildcardTypeMatchesAnything()
+    {
         var configuration = new CompressionConfiguration { MediaTypes = ["*/*"] };
 
         Assert.True(configuration.Compresses("application/octet-stream"));
     }
 
     [Fact]
-    public void ASuffixPatternMatchesTheSuffixOnly() {
+    public void ASuffixPatternMatchesTheSuffixOnly()
+    {
         var configuration = new CompressionConfiguration { MediaTypes = ["application/*+json"] };
 
         Assert.True(configuration.Compresses("application/hal+json"));
@@ -84,7 +90,8 @@ public class CompressionConfigurationTests {
     }
 
     [Fact]
-    public void APatternWithoutASlashMatchesNothing() {
+    public void APatternWithoutASlashMatchesNothing()
+    {
         var configuration = new CompressionConfiguration { MediaTypes = ["json"] };
 
         Assert.False(configuration.Compresses("application/json"));
@@ -95,7 +102,8 @@ public class CompressionConfigurationTests {
     /// Both name the same lists.
     /// </summary>
     [Fact]
-    public void TheInterfaceReadsTheSameListsTheClassEdits() {
+    public void TheInterfaceReadsTheSameListsTheClassEdits()
+    {
         var configuration = new CompressionConfiguration();
         ICompressionConfiguration view = configuration;
 
@@ -109,7 +117,8 @@ public class CompressionConfigurationTests {
     }
 
     [Fact]
-    public void TheDefaultsAreGzipThenBrotliAtTheFastestLevel() {
+    public void TheDefaultsAreGzipThenBrotliAtTheFastestLevel()
+    {
         Assert.Equal(["gzip", "br"], Defaults.Encodings);
         Assert.Equal(System.IO.Compression.CompressionLevel.Fastest, Defaults.Level);
         Assert.Equal(30_000_000, Defaults.MaxDecompressedRequestBytes);

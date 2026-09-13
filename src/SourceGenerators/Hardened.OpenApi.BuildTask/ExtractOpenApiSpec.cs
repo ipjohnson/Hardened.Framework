@@ -1,5 +1,5 @@
-using Hardened.Idl.BuildTask;
 using Hardened.Generation.Models;
+using Hardened.Idl.BuildTask;
 using Hardened.OpenApi.SourceGenerator;
 
 namespace Hardened.OpenApi.BuildTask;
@@ -28,8 +28,8 @@ namespace Hardened.OpenApi.BuildTask;
 /// that name this front end in diagnostics.
 /// </para>
 /// </remarks>
-public sealed class ExtractOpenApiSpec : ExtractSpecTask {
-
+public sealed class ExtractOpenApiSpec : ExtractSpecTask
+{
     /// <summary>
     /// Whether operations with no tag are grouped by first path segment.
     /// </summary>
@@ -75,9 +75,18 @@ public sealed class ExtractOpenApiSpec : ExtractSpecTask {
     /// - operates on <see cref="ServiceSpecModel"/> and contains no OpenAPI concept.
     /// </remarks>
     internal override ServiceSpecModel? Parse(
-        string document, string fileName, string specPath, ICollection<string> diagnostics) =>
+        string document,
+        string fileName,
+        string specPath,
+        ICollection<string> diagnostics
+    ) =>
         OpenApiSpecParser.Parse(
-            document, fileName, CancellationToken.None, ApplyServerBasePath, diagnostics,
+            document,
+            fileName,
+            CancellationToken.None,
+            ApplyServerBasePath,
+            diagnostics,
             GroupUntaggedByPath,
-            LoadExternalRefs ? Path.GetDirectoryName(Path.GetFullPath(specPath)) : null);
+            LoadExternalRefs ? Path.GetDirectoryName(Path.GetFullPath(specPath)) : null
+        );
 }

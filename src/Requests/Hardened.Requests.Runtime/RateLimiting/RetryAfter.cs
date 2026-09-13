@@ -24,8 +24,8 @@ namespace Hardened.Requests.Runtime.RateLimiting;
 /// clocks between a caller and a server that may be behind a proxy that rewrites neither.
 /// </para>
 /// </remarks>
-public static class RetryAfter {
-
+public static class RetryAfter
+{
     /// <summary>
     /// <paramref name="delay"/> as whole seconds, rounded up, never below one.
     /// </summary>
@@ -33,8 +33,7 @@ public static class RetryAfter {
     /// Never zero: <c>Retry-After: 0</c> reads as "immediately", which is the one answer that is
     /// certainly wrong when the reason for the header is that the caller must wait.
     /// </remarks>
-    public static int Seconds(TimeSpan delay) =>
-        Math.Max(1, (int)Math.Ceiling(delay.TotalSeconds));
+    public static int Seconds(TimeSpan delay) => Math.Max(1, (int)Math.Ceiling(delay.TotalSeconds));
 
     /// <summary>
     /// <paramref name="delay"/> as the header's string value.

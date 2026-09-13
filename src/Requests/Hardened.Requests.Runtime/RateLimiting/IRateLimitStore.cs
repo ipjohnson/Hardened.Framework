@@ -8,7 +8,11 @@ namespace Hardened.Requests.Runtime.RateLimiting;
 /// <param name="Name">
 /// Which allowance this is, so two policies on the same partition key do not share a counter.
 /// </param>
-public readonly record struct RateLimitPolicy(int PermitLimit, TimeSpan Window, string Name = "default");
+public readonly record struct RateLimitPolicy(
+    int PermitLimit,
+    TimeSpan Window,
+    string Name = "default"
+);
 
 /// <summary>
 /// What a store said about one request.
@@ -22,8 +26,12 @@ public readonly record struct RateLimitPolicy(int PermitLimit, TimeSpan Window, 
 /// to ask would double the cost of the request that was just refused.
 /// </param>
 public readonly record struct RateLimitDecision(
-    bool Allowed, int Limit, int Remaining, TimeSpan RetryAfter) {
-
+    bool Allowed,
+    int Limit,
+    int Remaining,
+    TimeSpan RetryAfter
+)
+{
     public static RateLimitDecision Allow(int limit, int remaining) =>
         new(true, limit, remaining, TimeSpan.Zero);
 
@@ -69,8 +77,8 @@ public readonly record struct RateLimitDecision(
 /// dependency on that thing, and the framework does not need one to define the seam.
 /// </para>
 /// </remarks>
-public interface IRateLimitStore {
-
+public interface IRateLimitStore
+{
     /// <summary>
     /// Takes one permit from <paramref name="partition"/>'s allowance, if there is one.
     /// </summary>
@@ -78,5 +86,8 @@ public interface IRateLimitStore {
     /// Who is being limited - see <see cref="IRateLimitPartitioner"/>. Opaque to the store.
     /// </param>
     ValueTask<RateLimitDecision> Acquire(
-        string partition, RateLimitPolicy policy, CancellationToken cancellationToken);
+        string partition,
+        RateLimitPolicy policy,
+        CancellationToken cancellationToken
+    );
 }

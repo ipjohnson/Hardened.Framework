@@ -13,8 +13,8 @@ namespace Hardened.Requests.Abstract.Tests.Execution;
 /// GET flush and the response cache's store - so a scope that forgot to restore would hand both of
 /// them an already-cancelled token on exactly the requests that took longest.
 /// </remarks>
-public class CancellationScopeTests {
-
+public class CancellationScopeTests
+{
     /// <summary>
     /// A context whose token slot actually stores what is written to it, which is all the scope
     /// touches.
@@ -25,32 +25,37 @@ public class CancellationScopeTests {
     /// every one of these tests while the scope did nothing at all, which is the failure they
     /// exist to catch.
     /// </remarks>
-    private static IExecutionContext Context(CancellationToken transport) {
+    private static IExecutionContext Context(CancellationToken transport)
+    {
         var context = Substitute.For<IExecutionContext>();
         var current = transport;
 
         context.CancellationToken.Returns(_ => current);
 
-        context.When(replaced => replaced.ReplaceCancellationToken(Arg.Any<CancellationToken>()))
+        context
+            .When(replaced => replaced.ReplaceCancellationToken(Arg.Any<CancellationToken>()))
             .Do(call => current = call.Arg<CancellationToken>());
 
         return context;
     }
 
     [Fact]
-    public void TheScopedTokenIsWhatTheContextReturnsInside() {
+    public void TheScopedTokenIsWhatTheContextReturnsInside()
+    {
         using var transport = new CancellationTokenSource();
         using var deadline = new CancellationTokenSource();
 
         var context = Context(transport.Token);
 
-        using (context.WithCancellation(deadline.Token)) {
+        using (context.WithCancellation(deadline.Token))
+        {
             Assert.Equal(deadline.Token, context.CancellationToken);
         }
     }
 
     [Fact]
-    public void TheTransportTokenIsBackAfterANormalReturn() {
+    public void TheTransportTokenIsBackAfterANormalReturn()
+    {
         using var transport = new CancellationTokenSource();
         using var deadline = new CancellationTokenSource();
 
@@ -62,14 +67,17 @@ public class CancellationScopeTests {
     }
 
     [Fact]
-    public void TheTransportTokenIsBackAfterAThrow() {
+    public void TheTransportTokenIsBackAfterAThrow()
+    {
         using var transport = new CancellationTokenSource();
         using var deadline = new CancellationTokenSource();
 
         var context = Context(transport.Token);
 
-        void Failing() {
-            using (context.WithCancellation(deadline.Token)) {
+        void Failing()
+        {
+            using (context.WithCancellation(deadline.Token))
+            {
                 throw new InvalidOperationException("the handler failed");
             }
         }
@@ -84,15 +92,18 @@ public class CancellationScopeTests {
     /// application-wide one leaves the application-wide one in place rather than the transport's.
     /// </summary>
     [Fact]
-    public void NestedScopesRestoreOneLevelEach() {
+    public void NestedScopesRestoreOneLevelEach()
+    {
         using var transport = new CancellationTokenSource();
         using var outer = new CancellationTokenSource();
         using var inner = new CancellationTokenSource();
 
         var context = Context(transport.Token);
 
-        using (context.WithCancellation(outer.Token)) {
-            using (context.WithCancellation(inner.Token)) {
+        using (context.WithCancellation(outer.Token))
+        {
+            using (context.WithCancellation(inner.Token))
+            {
                 Assert.Equal(inner.Token, context.CancellationToken);
             }
 
@@ -107,13 +118,15 @@ public class CancellationScopeTests {
     /// starts out cancelled.
     /// </summary>
     [Fact]
-    public void ThePreviousTokenIsWhateverWasThereRatherThanNone() {
+    public void ThePreviousTokenIsWhateverWasThereRatherThanNone()
+    {
         using var already = new CancellationTokenSource();
         already.Cancel();
 
         var context = Context(already.Token);
 
-        using (context.WithCancellation(CancellationToken.None)) {
+        using (context.WithCancellation(CancellationToken.None))
+        {
             Assert.False(context.CancellationToken.IsCancellationRequested);
         }
 

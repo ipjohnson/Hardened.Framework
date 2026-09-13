@@ -9,16 +9,18 @@ namespace Hardened.Requests.Runtime.Tests.Headers;
 /// session cookie out of reach of script and cross-site requests - so the emitted string is
 /// asserted exactly.
 /// </summary>
-public class CookieSetOptionsTests {
-
-    private static string Render(CookieSetOptions options) {
+public class CookieSetOptionsTests
+{
+    private static string Render(CookieSetOptions options)
+    {
         var builder = new StringBuilder();
         options.AppendSettings(builder);
         return builder.ToString();
     }
 
     [Fact]
-    public void DefaultsAreSecureAndHttpOnly() {
+    public void DefaultsAreSecureAndHttpOnly()
+    {
         var options = new CookieSetOptions();
 
         Assert.True(options.Secure);
@@ -30,7 +32,8 @@ public class CookieSetOptionsTests {
     }
 
     [Fact]
-    public void SecureAndHttpOnlyAreOmittedWhenDisabled() {
+    public void SecureAndHttpOnlyAreOmittedWhenDisabled()
+    {
         var rendered = Render(new CookieSetOptions(Secure: false, HttpOnly: false));
 
         Assert.DoesNotContain("Secure", rendered);
@@ -41,32 +44,41 @@ public class CookieSetOptionsTests {
     [InlineData(SameSite.Strict, "; SameSite=Strict")]
     [InlineData(SameSite.Lax, "; SameSite=Lax")]
     [InlineData(SameSite.None, "; SameSite=None")]
-    public void SameSiteIsEmittedWhenSet(SameSite sameSite, string expected) {
+    public void SameSiteIsEmittedWhenSet(SameSite sameSite, string expected)
+    {
         Assert.Contains(expected, Render(new CookieSetOptions(SameSite: sameSite)));
     }
 
     [Fact]
-    public void SameSiteIsOmittedWhenNull() {
+    public void SameSiteIsOmittedWhenNull()
+    {
         Assert.DoesNotContain("SameSite", Render(new CookieSetOptions()));
     }
 
     [Fact]
-    public void MaxAgeIsEmittedWhenSet() {
+    public void MaxAgeIsEmittedWhenSet()
+    {
         Assert.Contains("; Max-Age=3600", Render(new CookieSetOptions(MaxAge: 3600)));
     }
 
     [Fact]
-    public void DomainIsEmittedWhenSet() {
-        Assert.Contains("; Domain=example.com", Render(new CookieSetOptions(Domain: "example.com")));
+    public void DomainIsEmittedWhenSet()
+    {
+        Assert.Contains(
+            "; Domain=example.com",
+            Render(new CookieSetOptions(Domain: "example.com"))
+        );
     }
 
     [Fact]
-    public void DomainIsOmittedWhenEmpty() {
+    public void DomainIsOmittedWhenEmpty()
+    {
         Assert.DoesNotContain("Domain", Render(new CookieSetOptions(Domain: "")));
     }
 
     [Fact]
-    public void EmptyIsAReusableDefaultInstance() {
+    public void EmptyIsAReusableDefaultInstance()
+    {
         Assert.NotNull(CookieSetOptions.Empty);
         Assert.True(CookieSetOptions.Empty.Secure);
         Assert.True(CookieSetOptions.Empty.HttpOnly);
@@ -77,12 +89,14 @@ public class CookieSetOptionsTests {
     /// applies it to the whole origin and it is sent on requests it was never meant for.
     /// </summary>
     [Fact]
-    public void PathIsEmittedWhenSet() {
+    public void PathIsEmittedWhenSet()
+    {
         Assert.Contains("; Path=/admin", Render(new CookieSetOptions(Path: "/admin")));
     }
 
     [Fact]
-    public void PathIsOmittedWhenNotSet() {
+    public void PathIsOmittedWhenNotSet()
+    {
         Assert.DoesNotContain("Path=", Render(new CookieSetOptions()));
     }
 
@@ -92,9 +106,11 @@ public class CookieSetOptionsTests {
     /// session cookie.
     /// </summary>
     [Fact]
-    public void ExpiresUsesTheRfcAttributeNameAndGmtFormat() {
-        var rendered = Render(new CookieSetOptions(
-            Expires: new DateTime(2026, 6, 9, 10, 18, 14, DateTimeKind.Utc)));
+    public void ExpiresUsesTheRfcAttributeNameAndGmtFormat()
+    {
+        var rendered = Render(
+            new CookieSetOptions(Expires: new DateTime(2026, 6, 9, 10, 18, 14, DateTimeKind.Utc))
+        );
 
         Assert.Contains("; Expires=", rendered);
         Assert.Contains("GMT", rendered);
@@ -102,7 +118,8 @@ public class CookieSetOptionsTests {
     }
 
     [Fact]
-    public void ExpiresIsConvertedToUtcBeforeFormatting() {
+    public void ExpiresIsConvertedToUtcBeforeFormatting()
+    {
         var local = new DateTime(2026, 6, 9, 10, 18, 14, DateTimeKind.Utc).ToLocalTime();
 
         var rendered = Render(new CookieSetOptions(Expires: local));
@@ -111,16 +128,17 @@ public class CookieSetOptionsTests {
     }
 
     [Fact]
-    public void ExpiresIsOmittedWhenNotSet() {
+    public void ExpiresIsOmittedWhenNotSet()
+    {
         Assert.DoesNotContain("Expires", Render(new CookieSetOptions()));
     }
 
     [Fact]
-    public void AttributesCombineInASingleRender() {
-        var rendered = Render(new CookieSetOptions(
-            MaxAge: 600,
-            Domain: "example.com",
-            SameSite: SameSite.Strict));
+    public void AttributesCombineInASingleRender()
+    {
+        var rendered = Render(
+            new CookieSetOptions(MaxAge: 600, Domain: "example.com", SameSite: SameSite.Strict)
+        );
 
         Assert.Contains("; Max-Age=600", rendered);
         Assert.Contains("; Domain=example.com", rendered);

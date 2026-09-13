@@ -29,8 +29,8 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT.Tests;
 /// </para>
 /// </remarks>
 [LambdaWebTesting(ResponseMode = LambdaResponseMode.Stream)]
-public class StreamedEventStreamTests {
-
+public class StreamedEventStreamTests
+{
     /// <summary>
     /// That the invocation streamed at all, which nothing else here can tell you.
     /// </summary>
@@ -42,7 +42,10 @@ public class StreamedEventStreamTests {
     /// </remarks>
     [HardenedTest]
     public async Task TheInvocationOpensALambdaResponseStream(
-        ITestWebApp app, IResponseStreamFactory streams) {
+        ITestWebApp app,
+        IResponseStreamFactory streams
+    )
+    {
         await app.Get("/orders/live");
 
         var capture = Assert.IsType<StreamedResponseCapture>(streams);
@@ -53,17 +56,21 @@ public class StreamedEventStreamTests {
     }
 
     [HardenedTest]
-    public async Task TheEventsArriveAsFramesOnTheResponseStream(ITestWebApp app) {
+    public async Task TheEventsArriveAsFramesOnTheResponseStream(ITestWebApp app)
+    {
         var response = await app.Get("/orders/live");
 
         response.Assert.Ok();
 
         Assert.Equal(
-            KnownContentType.EventStream, response.Headers[KnownHeaders.ContentType].ToString());
+            KnownContentType.EventStream,
+            response.Headers[KnownHeaders.ContentType].ToString()
+        );
 
         Assert.Equal(
             "data: {\"id\":\"live-1\",\"quantity\":1}\n\n",
-            Body(response).ReplaceLineEndings("\n"));
+            Body(response).ReplaceLineEndings("\n")
+        );
     }
 
     /// <summary>
@@ -75,7 +82,8 @@ public class StreamedEventStreamTests {
     /// opens and nothing after can change it.
     /// </remarks>
     [HardenedTest]
-    public async Task AConstrainedTokenStreamsTheSameWay(ITestWebApp app) {
+    public async Task AConstrainedTokenStreamsTheSameWay(ITestWebApp app)
+    {
         var response = await app.Get("/orders/7/live");
 
         response.Assert.Ok();
@@ -92,7 +100,8 @@ public class StreamedEventStreamTests {
     /// working, or the mode would be unusable for any application that has both.
     /// </remarks>
     [HardenedTest]
-    public async Task ANonStreamingHandlerStillAnswersUnderStreamMode(ITestWebApp app) {
+    public async Task ANonStreamingHandlerStillAnswersUnderStreamMode(ITestWebApp app)
+    {
         var response = await app.Get("/orders/o-1");
 
         response.Assert.Ok();
@@ -100,7 +109,8 @@ public class StreamedEventStreamTests {
         Assert.Contains("o-1", Body(response));
     }
 
-    private static string Body(TestWebResponse response) {
+    private static string Body(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
         return new StreamReader(response.Body, Encoding.UTF8).ReadToEnd();

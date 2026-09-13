@@ -24,7 +24,8 @@ namespace Hardened.SourceGenerator.Requests;
 /// model or a silently empty set of fields, on a handler that compiles and routes correctly.
 /// </para>
 /// </remarks>
-public static class FormAndBodyDiagnostics {
+public static class FormAndBodyDiagnostics
+{
     public const string DiagnosticId = "HRDW002";
 
     /// <summary>
@@ -32,16 +33,17 @@ public static class FormAndBodyDiagnostics {
     /// <c>AmbiguousRouteDiagnostics.Descriptor</c> is: RS2008 looks for the field, and these
     /// projects set <c>EnforceExtendedAnalyzerRules</c>.
     /// </summary>
-    private static DiagnosticDescriptor Descriptor() => new(
-        id: DiagnosticId,
-        title: "Handler binds both a form and a body",
-        messageFormat:
-        "'{0}' binds '{1}' with [FromForm] and '{2}' from the request body. There is one body and " +
-        "the two read it differently, so whichever runs second sees a consumed stream. Bind the " +
-        "fields individually with [FromForm], or take the body as a model - not both.",
-        category: "Hardened.Web",
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
+    private static DiagnosticDescriptor Descriptor() =>
+        new(
+            id: DiagnosticId,
+            title: "Handler binds both a form and a body",
+            messageFormat: "'{0}' binds '{1}' with [FromForm] and '{2}' from the request body. There is one body and "
+                + "the two read it differently, so whichever runs second sees a consumed stream. Bind the "
+                + "fields individually with [FromForm], or take the body as a model - not both.",
+            category: "Hardened.Web",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     /// <summary>
     /// The offending pair, or null when the handler binds at most one of the two.
@@ -51,16 +53,22 @@ public static class FormAndBodyDiagnostics {
     /// inside a running generator, and the decision this makes is worth testing on its own. Same
     /// split as <c>AmbiguousRouteDiagnostics.Severity</c>.
     /// </remarks>
-    public static (RequestParameterInformation Form, RequestParameterInformation Body)? FindConflict(
-        RequestHandlerModel model) {
+    public static (
+        RequestParameterInformation Form,
+        RequestParameterInformation Body
+    )? FindConflict(RequestHandlerModel model)
+    {
         RequestParameterInformation? form = null;
         RequestParameterInformation? body = null;
 
-        foreach (var parameter in model.RequestParameterInformationList) {
-            if (form == null && parameter.BindingType == ParameterBindType.Form) {
+        foreach (var parameter in model.RequestParameterInformationList)
+        {
+            if (form == null && parameter.BindingType == ParameterBindType.Form)
+            {
                 form = parameter;
             }
-            else if (body == null && parameter.BindingType == ParameterBindType.Body) {
+            else if (body == null && parameter.BindingType == ParameterBindType.Body)
+            {
                 body = parameter;
             }
         }
@@ -71,10 +79,12 @@ public static class FormAndBodyDiagnostics {
     /// <summary>
     /// Reports the combination, if the handler has it.
     /// </summary>
-    public static void Report(SourceProductionContext context, RequestHandlerModel model) {
+    public static void Report(SourceProductionContext context, RequestHandlerModel model)
+    {
         var conflict = FindConflict(model);
 
-        if (conflict == null) {
+        if (conflict == null)
+        {
             return;
         }
 
@@ -86,6 +96,8 @@ public static class FormAndBodyDiagnostics {
                 Location.None,
                 model.ControllerType.Name + "." + model.HandlerMethod,
                 form.Name,
-                body.Name));
+                body.Name
+            )
+        );
     }
 }

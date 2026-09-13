@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Headers;
 using Hardened.Requests.Abstract.Responses;
-using Microsoft.Extensions.Primitives;
 using Hardened.Web.Runtime.Responses;
+using Microsoft.Extensions.Primitives;
 using Xunit;
 
 namespace Hardened.Web.Runtime.Tests.Responses;
@@ -22,9 +22,10 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// them serialize nothing at all. Both are wire behaviour and neither is checkable by reflection.
 /// </para>
 /// </remarks>
-public class WidenedResponseSetTests {
-
-    private static Dictionary<string, StringValues> Applied(IProvidesResponseHeaders response) {
+public class WidenedResponseSetTests
+{
+    private static Dictionary<string, StringValues> Applied(IProvidesResponseHeaders response)
+    {
         var headers = new Dictionary<string, StringValues>();
 
         response.ApplyHeaders(headers);
@@ -40,23 +41,27 @@ public class WidenedResponseSetTests {
     /// reason, so this is the whole of the behaviour.
     /// </summary>
     [Fact]
-    public void MethodNotAllowed_SendsTheMethodsThatAreAllowed() {
+    public void MethodNotAllowed_SendsTheMethodsThatAreAllowed()
+    {
         Assert.Equal("GET, HEAD", Applied(new MethodNotAllowed("GET, HEAD"))[KnownHeaders.Allow]);
     }
 
     /// <summary>And the generic form sends it too, which is the copy that could have been missed.</summary>
     [Fact]
-    public void AGenericMethodNotAllowedSendsItToo() {
+    public void AGenericMethodNotAllowedSendsItToo()
+    {
         Assert.Equal(
             "GET, HEAD",
-            Applied(new MethodNotAllowed<string>("nope", "GET, HEAD"))[KnownHeaders.Allow]);
+            Applied(new MethodNotAllowed<string>("nope", "GET, HEAD"))[KnownHeaders.Allow]
+        );
     }
 
     /// <summary>
     /// A 304 answered from <c>If-None-Match</c> repeats the validator the client sent.
     /// </summary>
     [Fact]
-    public void NotModified_SendsTheETagItWasGiven() {
+    public void NotModified_SendsTheETagItWasGiven()
+    {
         Assert.Equal("\"v1\"", Applied(new NotModified("\"v1\""))[KnownHeaders.ETag]);
     }
 
@@ -65,7 +70,8 @@ public class WidenedResponseSetTests {
     /// one would tell the client it can revalidate against a value the store does not know.
     /// </summary>
     [Fact]
-    public void NotModified_WithNoETagSendsNoHeader() {
+    public void NotModified_WithNoETagSendsNoHeader()
+    {
         Assert.Empty(Applied(new NotModified()));
     }
 
@@ -80,7 +86,8 @@ public class WidenedResponseSetTests {
     /// it cannot read.
     /// </summary>
     [Fact]
-    public void TheBodylessAdditionsSerializeNothing() {
+    public void TheBodylessAdditionsSerializeNothing()
+    {
         Assert.False(HasBody(new NotModified()));
         Assert.False(HasBody(new MethodNotAllowed("GET")));
         Assert.False(HasBody(new NotAcceptable()));
@@ -91,7 +98,8 @@ public class WidenedResponseSetTests {
     /// worth having over the <c>ErrorModel</c> a bodyless status used to answer with.
     /// </summary>
     [Fact]
-    public void TheProblemAdditionsCarryABody() {
+    public void TheProblemAdditionsCarryABody()
+    {
         Assert.True(HasBody(new UnprocessableContent()));
         Assert.True(HasBody(new InternalServerError()));
         Assert.True(HasBody(new ContentTooLarge()));
@@ -103,12 +111,17 @@ public class WidenedResponseSetTests {
     /// caller's document under a <c>Body</c> member and ship the wrapper's own fields beside it.
     /// </summary>
     [Fact]
-    public void AGenericAdditionCarriesItsBodyRatherThanItself() {
+    public void AGenericAdditionCarriesItsBodyRatherThanItself()
+    {
         Assert.Equal(
-            "detail", ((ICarriesResponseBody)new UnprocessableContent<string>("detail")).Body);
+            "detail",
+            ((ICarriesResponseBody)new UnprocessableContent<string>("detail")).Body
+        );
 
         Assert.Equal(
-            "detail", ((ICarriesResponseBody)new MethodNotAllowed<string>("detail", "GET")).Body);
+            "detail",
+            ((ICarriesResponseBody)new MethodNotAllowed<string>("detail", "GET")).Body
+        );
     }
 
     private static bool HasBody(IHttpStatusResponse response) => response.HasBody;

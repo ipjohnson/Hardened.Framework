@@ -22,8 +22,8 @@ namespace Hardened.OpenApi.BuildTask.Tests;
 /// generated file. Both answers have to come from one place to stay in step, and this is it.
 /// </para>
 /// </remarks>
-public class OperationParametersTests {
-
+public class OperationParametersTests
+{
     private static PatternRegistry Patterns() =>
         new(EmitterHarness.RootNamespace + ".Validation", "petstore");
 
@@ -36,8 +36,10 @@ public class OperationParametersTests {
         string? refName = null,
         string @in = "path",
         string? pattern = null,
-        string? routeConstraint = null) =>
-        new() {
+        string? routeConstraint = null
+    ) =>
+        new()
+        {
             Name = name,
             In = @in,
             Type = type,
@@ -46,28 +48,36 @@ public class OperationParametersTests {
             MaxLength = maxLength,
             Ref = refName,
             Pattern = pattern,
-            RouteConstraint = routeConstraint
+            RouteConstraint = routeConstraint,
         };
 
     private static OperationModel Operation(params ParameterModel[] parameters) =>
-        new() {
+        new()
+        {
             OperationId = "getPet",
             MethodName = "GetPet",
             Path = "/pets/{petId}",
             HttpMethod = "GET",
-            Parameters = new List<ParameterModel>(parameters)
+            Parameters = new List<ParameterModel>(parameters),
         };
 
     private static ServiceSpecModel Spec(OperationModel operation, params SchemaModel[] schemas) =>
-        new() {
+        new()
+        {
             Services = [new ServiceModel { Tag = "pets", Operations = [operation] }],
-            Schemas = new List<SchemaModel>(schemas)
+            Schemas = new List<SchemaModel>(schemas),
         };
 
     private static OperationParameters.Model? Build(
-        OperationModel operation, params SchemaModel[] schemas) =>
+        OperationModel operation,
+        params SchemaModel[] schemas
+    ) =>
         OperationParameters.Build(
-            operation, Spec(operation, schemas), EmitterHarness.ModelsNamespace, Patterns());
+            operation,
+            Spec(operation, schemas),
+            EmitterHarness.ModelsNamespace,
+            Patterns()
+        );
 
     #region whether an interface is emitted at all
 
@@ -76,17 +86,20 @@ public class OperationParametersTests {
     /// produce a validator with nothing to check.
     /// </summary>
     [Fact]
-    public void AnOperationWithNoConstraintsGetsNoInterface() {
+    public void AnOperationWithNoConstraintsGetsNoInterface()
+    {
         Assert.Null(Build(Operation(Parameter())));
     }
 
     [Fact]
-    public void AnOperationWithNoParametersAtAllGetsNoInterface() {
+    public void AnOperationWithNoParametersAtAllGetsNoInterface()
+    {
         Assert.Null(Build(Operation()));
     }
 
     [Fact]
-    public void OneConstrainedParameterIsEnough() {
+    public void OneConstrainedParameterIsEnough()
+    {
         Assert.NotNull(Build(Operation(Parameter(minLength: 1))));
     }
 
@@ -95,7 +108,8 @@ public class OperationParametersTests {
     #region shape
 
     [Fact]
-    public void TheInterfaceIsNamedForTheOperationsMethodName() {
+    public void TheInterfaceIsNamedForTheOperationsMethodName()
+    {
         Assert.Equal("IGetPetParameters", Build(Operation(Parameter(minLength: 1)))!.InterfaceName);
     }
 
@@ -104,7 +118,8 @@ public class OperationParametersTests {
     /// against, and it is not always a legal C# name.
     /// </summary>
     [Fact]
-    public void TheDocumentsOperationIdIsCarried() {
+    public void TheDocumentsOperationIdIsCarried()
+    {
         Assert.Equal("getPet", Build(Operation(Parameter(minLength: 1)))!.OperationId);
     }
 
@@ -113,19 +128,17 @@ public class OperationParametersTests {
     /// what the handler's <c>Parameters</c> class declares.
     /// </summary>
     [Fact]
-    public void EveryParameterBecomesAMember() {
-        var model = Build(Operation(
-            Parameter("petId", minLength: 1),
-            Parameter("name")));
+    public void EveryParameterBecomesAMember()
+    {
+        var model = Build(Operation(Parameter("petId", minLength: 1), Parameter("name")));
 
         Assert.Equal(["petId", "name"], model!.Members.Select(member => member.Name));
     }
 
     [Fact]
-    public void OnlyTheConstrainedParameterCarriesAttributes() {
-        var model = Build(Operation(
-            Parameter("petId", minLength: 1),
-            Parameter("name")));
+    public void OnlyTheConstrainedParameterCarriesAttributes()
+    {
+        var model = Build(Operation(Parameter("petId", minLength: 1), Parameter("name")));
 
         Assert.NotEmpty(model!.Members[0].Attributes);
         Assert.Empty(model.Members[1].Attributes);
@@ -136,11 +149,14 @@ public class OperationParametersTests {
     #region requiredness
 
     [Fact]
-    public void ARequiredStringParameterCarriesRequired() {
+    public void ARequiredStringParameterCarriesRequired()
+    {
         var model = Build(Operation(Parameter(@in: "query", required: true, minLength: 1)));
 
         Assert.Contains(
-            model!.Members[0].Attributes, attribute => attribute.Type.Name == "RequiredAttribute");
+            model!.Members[0].Attributes,
+            attribute => attribute.Type.Name == "RequiredAttribute"
+        );
     }
 
     /// <summary>
@@ -150,7 +166,8 @@ public class OperationParametersTests {
     /// way used to get a validator - and a 400 in its document that no caller could provoke.
     /// </summary>
     [Fact]
-    public void ARequiredPathParameterDoesNotCarryRequired() {
+    public void ARequiredPathParameterDoesNotCarryRequired()
+    {
         Assert.Null(Build(Operation(Parameter(required: true))));
     }
 
@@ -160,12 +177,16 @@ public class OperationParametersTests {
     /// <c>value.petId is null</c> against a <c>long</c> — CS0037.
     /// </summary>
     [Fact]
-    public void ARequiredNonNullableValueTypeDoesNotCarryRequired() {
+    public void ARequiredNonNullableValueTypeDoesNotCarryRequired()
+    {
         // A second, constrained parameter so an interface is produced at all — the integer's own
         // constraints are exactly what is expected to come back empty.
-        var model = Build(Operation(
-            Parameter("petId", type: "integer", required: true),
-            Parameter("name", minLength: 1)));
+        var model = Build(
+            Operation(
+                Parameter("petId", type: "integer", required: true),
+                Parameter("name", minLength: 1)
+            )
+        );
 
         Assert.Equal("petId", model!.Members[0].Name);
         Assert.Empty(model.Members[0].Attributes);
@@ -175,18 +196,27 @@ public class OperationParametersTests {
     /// A generated enum is a value type too, and the spec's own schemas are what say so.
     /// </summary>
     [Fact]
-    public void ARequiredParameterTypedAsAGeneratedEnumDoesNotCarryRequired() {
+    public void ARequiredParameterTypedAsAGeneratedEnumDoesNotCarryRequired()
+    {
         var operation = Operation(
             Parameter("status", required: true, refName: "#/components/schemas/PetStatus"),
-            Parameter("name", minLength: 1));
+            Parameter("name", minLength: 1)
+        );
 
         var model = OperationParameters.Build(
             operation,
-            Spec(operation, new SchemaModel {
-                Name = "PetStatus", Kind = SchemaKind.Enum, EnumValues = ["available", "sold"]
-            }),
+            Spec(
+                operation,
+                new SchemaModel
+                {
+                    Name = "PetStatus",
+                    Kind = SchemaKind.Enum,
+                    EnumValues = ["available", "sold"],
+                }
+            ),
             EmitterHarness.ModelsNamespace,
-            Patterns());
+            Patterns()
+        );
 
         Assert.NotNull(model);
         Assert.Equal("status", model!.Members[0].Name);
@@ -198,14 +228,20 @@ public class OperationParametersTests {
     /// carry <c>[Required]</c>.
     /// </summary>
     [Fact]
-    public void ARequiredStringParameterStillCarriesRequiredAlongsideAValueType() {
-        var model = Build(Operation(
-            Parameter("petId", type: "integer", required: true),
-            Parameter("name", @in: "query", required: true, minLength: 1)));
+    public void ARequiredStringParameterStillCarriesRequiredAlongsideAValueType()
+    {
+        var model = Build(
+            Operation(
+                Parameter("petId", type: "integer", required: true),
+                Parameter("name", @in: "query", required: true, minLength: 1)
+            )
+        );
 
         Assert.Empty(model!.Members[0].Attributes);
         Assert.Contains(
-            model.Members[1].Attributes, attribute => attribute.Type.Name == "RequiredAttribute");
+            model.Members[1].Attributes,
+            attribute => attribute.Type.Name == "RequiredAttribute"
+        );
     }
 
     #endregion
@@ -219,9 +255,11 @@ public class OperationParametersTests {
     /// operation whose only declaration was that pattern.
     /// </summary>
     [Fact]
-    public void APathPatternCompiledIntoTheRouteIsNotAlsoAValidatorCheck() {
-        Assert.Null(Build(Operation(
-            Parameter(pattern: "^[a-z]+$", routeConstraint: "spec_p_18b2c15a"))));
+    public void APathPatternCompiledIntoTheRouteIsNotAlsoAValidatorCheck()
+    {
+        Assert.Null(
+            Build(Operation(Parameter(pattern: "^[a-z]+$", routeConstraint: "spec_p_18b2c15a")))
+        );
     }
 
     /// <summary>
@@ -229,11 +267,14 @@ public class OperationParametersTests {
     /// on the validation path, which is the behaviour before route constraints existed.
     /// </summary>
     [Fact]
-    public void APathPatternWithNoRouteConstraintIsStillAValidatorCheck() {
+    public void APathPatternWithNoRouteConstraintIsStillAValidatorCheck()
+    {
         var model = Build(Operation(Parameter(pattern: "^[a-z]+$")));
 
         Assert.Contains(
-            model!.Members[0].Attributes, attribute => attribute.Type.Name == "PatternAttribute");
+            model!.Members[0].Attributes,
+            attribute => attribute.Type.Name == "PatternAttribute"
+        );
     }
 
     /// <summary>
@@ -241,11 +282,14 @@ public class OperationParametersTests {
     /// a resource - so it is unaffected.
     /// </summary>
     [Fact]
-    public void AQueryPatternIsAValidatorCheck() {
+    public void AQueryPatternIsAValidatorCheck()
+    {
         var model = Build(Operation(Parameter(@in: "query", pattern: "^[a-z]+$")));
 
         Assert.Contains(
-            model!.Members[0].Attributes, attribute => attribute.Type.Name == "PatternAttribute");
+            model!.Members[0].Attributes,
+            attribute => attribute.Type.Name == "PatternAttribute"
+        );
     }
 
     #endregion
@@ -253,34 +297,48 @@ public class OperationParametersTests {
     #region the request body
 
     private static SchemaModel Body(params PropertyModel[] properties) =>
-        new() {
+        new()
+        {
             Name = "Pet",
             Kind = SchemaKind.Object,
-            Properties = new List<PropertyModel>(properties)
+            Properties = new List<PropertyModel>(properties),
         };
 
     private static PropertyModel BodyProperty(
-        string name = "name", string type = "string", int? minLength = null, bool readOnly = false) =>
-        new() { Name = name, Type = type, MinLength = minLength, IsReadOnly = readOnly };
+        string name = "name",
+        string type = "string",
+        int? minLength = null,
+        bool readOnly = false
+    ) =>
+        new()
+        {
+            Name = name,
+            Type = type,
+            MinLength = minLength,
+            IsReadOnly = readOnly,
+        };
 
     private static OperationModel PostWithBody() =>
-        new() {
+        new()
+        {
             OperationId = "addPet",
             MethodName = "AddPet",
             Path = "/pets",
             HttpMethod = "POST",
-            RequestBodyRef = "#/components/schemas/Pet"
+            RequestBodyRef = "#/components/schemas/Pet",
         };
 
     [Fact]
-    public void AConstrainedBodyAddsABodyMember() {
+    public void AConstrainedBodyAddsABodyMember()
+    {
         var operation = PostWithBody();
 
         var model = OperationParameters.Build(
             operation,
             Spec(operation, Body(BodyProperty(minLength: 1))),
             EmitterHarness.ModelsNamespace,
-            Patterns());
+            Patterns()
+        );
 
         Assert.NotNull(model);
         Assert.Equal("body", Assert.Single(model!.Members).Name);
@@ -292,18 +350,21 @@ public class OperationParametersTests {
     /// same name.
     /// </summary>
     [Fact]
-    public void AConstrainedBodyCarriesValidateNested() {
+    public void AConstrainedBodyCarriesValidateNested()
+    {
         var operation = PostWithBody();
 
         var model = OperationParameters.Build(
             operation,
             Spec(operation, Body(BodyProperty(minLength: 1))),
             EmitterHarness.ModelsNamespace,
-            Patterns());
+            Patterns()
+        );
 
         Assert.Equal(
             "ValidateNestedAttribute",
-            Assert.Single(Assert.Single(model!.Members).Attributes).Type.Name);
+            Assert.Single(Assert.Single(model!.Members).Attributes).Type.Name
+        );
     }
 
     /// <summary>
@@ -312,14 +373,18 @@ public class OperationParametersTests {
     /// CS0234 in a generated file.
     /// </summary>
     [Fact]
-    public void AnUnconstrainedBodyProducesNoInterface() {
+    public void AnUnconstrainedBodyProducesNoInterface()
+    {
         var operation = PostWithBody();
 
-        Assert.Null(OperationParameters.Build(
-            operation,
-            Spec(operation, Body(BodyProperty())),
-            EmitterHarness.ModelsNamespace,
-            Patterns()));
+        Assert.Null(
+            OperationParameters.Build(
+                operation,
+                Spec(operation, Body(BodyProperty())),
+                EmitterHarness.ModelsNamespace,
+                Patterns()
+            )
+        );
     }
 
     /// <summary>
@@ -327,26 +392,38 @@ public class OperationParametersTests {
     /// property is read-only has nothing to descend into.
     /// </summary>
     [Fact]
-    public void ABodyConstrainedOnlyOnAReadOnlyPropertyDoesNotValidateNested() {
+    public void ABodyConstrainedOnlyOnAReadOnlyPropertyDoesNotValidateNested()
+    {
         var operation = PostWithBody();
 
-        Assert.Null(OperationParameters.Build(
-            operation,
-            Spec(operation, Body(BodyProperty(minLength: 1, readOnly: true))),
-            EmitterHarness.ModelsNamespace,
-            Patterns()));
+        Assert.Null(
+            OperationParameters.Build(
+                operation,
+                Spec(operation, Body(BodyProperty(minLength: 1, readOnly: true))),
+                EmitterHarness.ModelsNamespace,
+                Patterns()
+            )
+        );
     }
 
     [Fact]
-    public void ABodyRefThatMatchesNoObjectSchemaAddsNoMember() {
+    public void ABodyRefThatMatchesNoObjectSchemaAddsNoMember()
+    {
         var operation = PostWithBody();
 
-        Assert.Null(OperationParameters.Build(
-            operation, Spec(operation), EmitterHarness.ModelsNamespace, Patterns()));
+        Assert.Null(
+            OperationParameters.Build(
+                operation,
+                Spec(operation),
+                EmitterHarness.ModelsNamespace,
+                Patterns()
+            )
+        );
     }
 
     [Fact]
-    public void AnOperationWithNoBodyRefAddsNoBodyMember() {
+    public void AnOperationWithNoBodyRefAddsNoBodyMember()
+    {
         var model = Build(Operation(Parameter(minLength: 1)));
 
         Assert.DoesNotContain(model!.Members, member => member.Name == "body");
@@ -357,7 +434,8 @@ public class OperationParametersTests {
     /// and the body member comes along so the interface matches the Parameters class.
     /// </summary>
     [Fact]
-    public void AConstrainedParameterCarriesAnUnconstrainedBodyAlong() {
+    public void AConstrainedParameterCarriesAnUnconstrainedBodyAlong()
+    {
         var operation = PostWithBody();
 
         operation.Parameters = [Parameter("petId", minLength: 1)];
@@ -366,7 +444,8 @@ public class OperationParametersTests {
             operation,
             Spec(operation, Body(BodyProperty())),
             EmitterHarness.ModelsNamespace,
-            Patterns());
+            Patterns()
+        );
 
         Assert.NotNull(model);
         Assert.Equal(["petId", "body"], model!.Members.Select(member => member.Name));

@@ -10,13 +10,13 @@ using Hardened.Requests.Testing;
 using Hardened.Shared.Runtime.Application;
 using Hardened.Web.AspNetCore.Runtime;
 using Hardened.Web.Runtime.Handlers;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Benchmarks.Infrastructure;
 
@@ -30,14 +30,15 @@ namespace Hardened.Benchmarks.Infrastructure;
 /// request — a benchmark that still produces a valid-looking response while measuring double the
 /// work.
 /// </summary>
-internal static class HardenedAppFactory {
-
+internal static class HardenedAppFactory
+{
     /// <param name="terminalHost">
     /// Whether this harness owns the whole response. Every Hardened host does except the ASP.NET
     /// adapter, which sits in a pipeline that may have static files, another middleware or MVC
     /// behind it.
     /// </param>
-    public static ServiceProvider BuildProvider(bool terminalHost) {
+    public static ServiceProvider BuildProvider(bool terminalHost)
+    {
         var services = new ServiceCollection();
 
         // No providers: logging is registered because the framework requires it, but anything
@@ -64,7 +65,8 @@ internal static class HardenedAppFactory {
         //
         // Put back here rather than by splitting the SUT in two, because one assembly serving both
         // deployments is the thing that makes the two columns comparable.
-        if (terminalHost) {
+        if (terminalHost)
+        {
             services.RemoveAll<IResourceNotFoundHandler>();
             services.AddSingleton<IResourceNotFoundHandler, ResourceNotFoundHandler>();
         }
@@ -77,8 +79,10 @@ internal static class HardenedAppFactory {
     /// here, so a provider that skips this step routes correctly but runs a different filter set
     /// than a real application would.
     /// </summary>
-    public static void RunStartup(IServiceProvider provider) {
-        foreach (var startupService in provider.GetServices<IStartupService>()) {
+    public static void RunStartup(IServiceProvider provider)
+    {
+        foreach (var startupService in provider.GetServices<IStartupService>())
+        {
             startupService.Startup(provider).GetAwaiter().GetResult();
         }
     }
@@ -89,13 +93,15 @@ internal static class HardenedAppFactory {
 /// middleware chain. This is the shape Hardened runs in on Lambda and on any other non-ASP.NET
 /// compute, and it is the floor the other measurements are read against.
 /// </summary>
-public sealed class HardenedNativeHarness : IPipelineHarness {
+public sealed class HardenedNativeHarness : IPipelineHarness
+{
     private readonly ServiceProvider _provider;
     private readonly IMiddlewareService _middleware;
 
     public string Name => "hardened-native";
 
-    public HardenedNativeHarness() {
+    public HardenedNativeHarness()
+    {
         _provider = HardenedAppFactory.BuildProvider(terminalHost: true);
         HardenedAppFactory.RunStartup(_provider);
 
@@ -117,14 +123,20 @@ public sealed class HardenedNativeHarness : IPipelineHarness {
     /// could drift.
     /// </summary>
     public TestExecutionContext CreateContext(
-        RequestScenario scenario, IServiceScope scope, MemoryStream responseBody) {
+        RequestScenario scenario,
+        IServiceScope scope,
+        MemoryStream responseBody
+    )
+    {
         var headers = new Dictionary<string, StringValues>();
 
-        foreach (var header in scenario.Headers) {
+        foreach (var header in scenario.Headers)
+        {
             headers[header.Key] = header.Value;
         }
 
-        if (scenario.ContentType is not null) {
+        if (scenario.ContentType is not null)
+        {
             headers["Content-Type"] = scenario.ContentType;
         }
 
@@ -132,13 +144,16 @@ public sealed class HardenedNativeHarness : IPipelineHarness {
             scenario.Method,
             scenario.Path,
             null,
-            ParseQueryString(scenario.QueryString)) {
+            ParseQueryString(scenario.QueryString)
+        )
+        {
             Headers = headers,
-            Body = scenario.Body is null ? Stream.Null : new MemoryStream(scenario.Body, false)
+            Body = scenario.Body is null ? Stream.Null : new MemoryStream(scenario.Body, false),
         };
 
-        var response = new TestExecutionResponse(responseBody) {
-            Headers = new Dictionary<string, StringValues>()
+        var response = new TestExecutionResponse(responseBody)
+        {
+            Headers = new Dictionary<string, StringValues>(),
         };
 
         return new TestExecutionContext(
@@ -147,10 +162,12 @@ public sealed class HardenedNativeHarness : IPipelineHarness {
             scope.ServiceProvider.GetRequiredService<IKnownServices>(),
             request,
             response,
-            CancellationToken.None);
+            CancellationToken.None
+        );
     }
 
-    public async Task<int> Execute(RequestScenario scenario, MemoryStream responseBody) {
+    public async Task<int> Execute(RequestScenario scenario, MemoryStream responseBody)
+    {
         using var scope = _provider.CreateScope();
 
         var context = CreateContext(scenario, scope, responseBody);
@@ -160,20 +177,25 @@ public sealed class HardenedNativeHarness : IPipelineHarness {
         return context.Response.Status ?? 200;
     }
 
-    private static IQueryStringCollection ParseQueryString(string? queryString) {
-        if (string.IsNullOrEmpty(queryString)) {
+    private static IQueryStringCollection ParseQueryString(string? queryString)
+    {
+        if (string.IsNullOrEmpty(queryString))
+        {
             return EmptyQueryStringCollection.Instance;
         }
 
         var values = new Dictionary<string, string>();
 
-        foreach (var pair in queryString.Split('&')) {
+        foreach (var pair in queryString.Split('&'))
+        {
             var separator = pair.IndexOf('=');
 
-            if (separator > -1) {
+            if (separator > -1)
+            {
                 values[pair[..separator]] = pair[(separator + 1)..];
             }
-            else {
+            else
+            {
                 values[pair] = "";
             }
         }
@@ -192,13 +214,15 @@ public sealed class HardenedNativeHarness : IPipelineHarness {
 /// <c>AspNetCoreRequestHandler</c> and <c>AspNetExecutionContext</c> on their own, because
 /// everything below the adapter is the identical chain.
 /// </summary>
-public sealed class HardenedAspNetHarness : IPipelineHarness {
+public sealed class HardenedAspNetHarness : IPipelineHarness
+{
     private readonly ServiceProvider _provider;
     private readonly RequestDelegate _pipeline;
 
     public string Name => "hardened-aspnet";
 
-    public HardenedAspNetHarness() {
+    public HardenedAspNetHarness()
+    {
         _provider = HardenedAppFactory.BuildProvider(terminalHost: false);
         HardenedAppFactory.RunStartup(_provider);
 
@@ -212,7 +236,8 @@ public sealed class HardenedAspNetHarness : IPipelineHarness {
 
     public IServiceProvider Provider => _provider;
 
-    public async Task<int> Execute(RequestScenario scenario, MemoryStream responseBody) {
+    public async Task<int> Execute(RequestScenario scenario, MemoryStream responseBody)
+    {
         using var scope = _provider.CreateScope();
 
         var context = HttpContextFactory.Create(scenario, scope.ServiceProvider, responseBody);

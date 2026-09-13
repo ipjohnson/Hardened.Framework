@@ -8,11 +8,15 @@ using Microsoft.Extensions.Options;
 
 namespace Hardened.Requests.Runtime.Serializer;
 
-public class AotResponseSerializer : IResponseSerializer {
+public class AotResponseSerializer : IResponseSerializer
+{
     private readonly JsonSerializerOptions _serializerOptions;
 
-    public AotResponseSerializer(IOptions<IJsonSerializerConfiguration> configuration,
-        IEnumerable<IJsonTypeInfoResolver> resolvers) {
+    public AotResponseSerializer(
+        IOptions<IJsonSerializerConfiguration> configuration,
+        IEnumerable<IJsonTypeInfoResolver> resolvers
+    )
+    {
         // No reflection resolver, on any host. This used to install one while building the options,
         // which did two things wrong at once: it sat at the head of the chain, where it answered for
         // nearly every type and the resolvers added below were never reached; and it meant the class
@@ -26,16 +30,19 @@ public class AotResponseSerializer : IResponseSerializer {
         //
         // StreamingJsonResponseSerializer deliberately does not do this: it has no Aot twin and
         // serves both hosts from one class, so it keeps a reflection tail that the trimmer removes.
-        _serializerOptions = configuration.Value.SerializeOptions ??
-                             new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        _serializerOptions =
+            configuration.Value.SerializeOptions
+            ?? new JsonSerializerOptions(JsonSerializerDefaults.Web);
 
-        foreach (var resolver in resolvers) {
+        foreach (var resolver in resolvers)
+        {
             _serializerOptions.TypeInfoResolverChain.Add(resolver);
         }
 
         // Last, so a registered context still answers first - see PrimitiveJsonTypeInfoResolver.
         _serializerOptions.TypeInfoResolverChain.Add(
-            Hardened.Shared.Runtime.Json.PrimitiveJsonTypeInfoResolver.Instance);
+            Hardened.Shared.Runtime.Json.PrimitiveJsonTypeInfoResolver.Instance
+        );
     }
 
     public bool IsDefaultSerializer => true;
@@ -60,16 +67,22 @@ public class AotResponseSerializer : IResponseSerializer {
     /// </remarks>
     public string ContentType => KnownContentType.Json;
 
-    public async Task SerializeResponse(IExecutionContext context) {
+    public async Task SerializeResponse(IExecutionContext context)
+    {
         context.Response.ContentType = "application/json";
 
-        if (context.Response.ResponseValue == null) {
+        if (context.Response.ResponseValue == null)
+        {
             return;
         }
 
         await System.Text.Json.JsonSerializer.SerializeAsync(
             context.Response.Body,
             context.Response.ResponseValue,
-            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For(_serializerOptions, context.Response.ResponseValue));
+            Hardened.Shared.Runtime.Json.JsonTypeInfoLookup.For(
+                _serializerOptions,
+                context.Response.ResponseValue
+            )
+        );
     }
 }

@@ -47,17 +47,19 @@ namespace Hardened.Requests.Runtime.Filters;
 /// <c>AddRequestTimeouts</c> and collides with nothing.
 /// </remarks>
 [DependencyModule]
-public partial class RequestTimeouts : IServiceCollectionConfiguration {
-
+public partial class RequestTimeouts : IServiceCollectionConfiguration
+{
     /// <summary>
     /// The default budget. What <c>[Enable&lt;RequestTimeouts&gt;]</c> installs.
     /// </summary>
-    public RequestTimeouts() : this(TimeoutPolicy.DefaultMilliseconds) { }
+    public RequestTimeouts()
+        : this(TimeoutPolicy.DefaultMilliseconds) { }
 
     /// <summary>
     /// The budget written at the entry point, as <c>[RequestTimeouts(5000)]</c>.
     /// </summary>
-    public RequestTimeouts(int milliseconds) {
+    public RequestTimeouts(int milliseconds)
+    {
         Milliseconds = milliseconds;
     }
 
@@ -82,7 +84,8 @@ public partial class RequestTimeouts : IServiceCollectionConfiguration {
     /// from whatever the cascade resolved, so there is nothing here to stand down for a handler
     /// that declared its own.
     /// </summary>
-    public void ConfigureServices(IServiceCollection services) {
+    public void ConfigureServices(IServiceCollection services)
+    {
         services.AddSingleton(new TimeoutPolicy(Milliseconds));
     }
 

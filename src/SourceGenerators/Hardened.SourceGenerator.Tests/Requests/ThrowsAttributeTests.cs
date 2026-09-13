@@ -1,7 +1,7 @@
 using Hardened.SourceGeneration.Testing;
 using Hardened.SourceGenerator.Tests.Infrastructure;
-using Xunit;
 using Hardened.Web.Runtime.Responses;
+using Xunit;
 
 namespace Hardened.SourceGenerator.Tests.Requests;
 
@@ -15,41 +15,47 @@ namespace Hardened.SourceGenerator.Tests.Requests;
 /// reaches the document — not that the handler throws it, and not that it throws nothing else. An
 /// unmapped exception is unplanned, and the runtime already has somewhere to put it.
 /// </remarks>
-public class ThrowsAttributeTests {
+public class ThrowsAttributeTests
+{
+    private static string Application(string handler) =>
+        $$"""
+            using System;
+            using System.Threading.Tasks;
+            using Hardened.Requests.Abstract.Attributes;
+            using Hardened.Requests.Abstract.Responses;
+            using Hardened.Web.Runtime.Responses;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
+            using Hardened.Web.Runtime.OpenApi;
 
-    private static string Application(string handler) => $$"""
-        using System;
-        using System.Threading.Tasks;
-        using Hardened.Requests.Abstract.Attributes;
-        using Hardened.Requests.Abstract.Responses;
-        using Hardened.Web.Runtime.Responses;
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Web.Runtime.Attributes;
-        using Hardened.Web.Runtime.OpenApi;
+            namespace TestApp;
 
-        namespace TestApp;
+            [HardenedModule]
+            [Enable<OpenApiDocumentPublishing>]
+            public partial class Application { }
 
-        [HardenedModule]
-        [Enable<OpenApiDocumentPublishing>]
-        public partial class Application { }
+            public record Pet(string Id, string Name);
 
-        public record Pet(string Id, string Name);
-
-        {{handler}}
-        """;
+            {{handler}}
+            """;
 
     /// <summary>
     /// The status comes from the type, exactly as a union case's does.
     /// </summary>
     [Fact]
-    public void AThrownTypeCarryingItsStatusNeedsNoArgument() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class PetController {
-                [Get("/pets/{id}")]
-                [Throws<RateLimited>]
-                public Task<Pet> Get(string id) => Task.FromResult(new Pet(id, "x"));
-            }
-            """));
+    public void AThrownTypeCarryingItsStatusNeedsNoArgument()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public class PetController {
+                    [Get("/pets/{id}")]
+                    [Throws<RateLimited>]
+                    public Task<Pet> Get(string id) => Task.FromResult(new Pet(id, "x"));
+                }
+                """
+            )
+        );
 
         result.AssertNoErrors();
 
@@ -68,15 +74,20 @@ public class ThrowsAttributeTests {
     /// one thrown error erase the 200, publishing a contract for a handler that can only fail.
     /// </remarks>
     [Fact]
-    public void DeclaringAThrownErrorKeepsTheSuccessResponse() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class PetController {
-                [Get("/pets/{id}")]
-                [Throws<NotFound>]
-                [Throws<Conflict>]
-                public Task<Pet> Get(string id) => Task.FromResult(new Pet(id, "x"));
-            }
-            """));
+    public void DeclaringAThrownErrorKeepsTheSuccessResponse()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public class PetController {
+                    [Get("/pets/{id}")]
+                    [Throws<NotFound>]
+                    [Throws<Conflict>]
+                    public Task<Pet> Get(string id) => Task.FromResult(new Pet(id, "x"));
+                }
+                """
+            )
+        );
 
         result.AssertNoErrors();
 
@@ -91,16 +102,21 @@ public class ThrowsAttributeTests {
     /// A type carrying no status has to say which one it means.
     /// </summary>
     [Fact]
-    public void AThrownTypeWithoutAStatusCanStateOne() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public record OutOfStock(string Sku);
+    public void AThrownTypeWithoutAStatusCanStateOne()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public record OutOfStock(string Sku);
 
-            public class PetController {
-                [Get("/pets/{id}")]
-                [Throws<OutOfStock>(409)]
-                public Task<Pet> Get(string id) => Task.FromResult(new Pet(id, "x"));
-            }
-            """));
+                public class PetController {
+                    [Get("/pets/{id}")]
+                    [Throws<OutOfStock>(409)]
+                    public Task<Pet> Get(string id) => Task.FromResult(new Pet(id, "x"));
+                }
+                """
+            )
+        );
 
         result.AssertNoErrors();
 
@@ -116,16 +132,21 @@ public class ThrowsAttributeTests {
     /// something it can.
     /// </remarks>
     [Fact]
-    public void AThrownTypeWithNoStatusAnywhereIsRefused() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public record OutOfStock(string Sku);
+    public void AThrownTypeWithNoStatusAnywhereIsRefused()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public record OutOfStock(string Sku);
 
-            public class PetController {
-                [Get("/pets/{id}")]
-                [Throws<OutOfStock>]
-                public Task<Pet> Get(string id) => Task.FromResult(new Pet(id, "x"));
-            }
-            """));
+                public class PetController {
+                    [Get("/pets/{id}")]
+                    [Throws<OutOfStock>]
+                    public Task<Pet> Get(string id) => Task.FromResult(new Pet(id, "x"));
+                }
+                """
+            )
+        );
 
         Assert.Contains(result.GeneratorDiagnostics, diagnostic => diagnostic.Id == "HRDT001");
     }
@@ -151,14 +172,19 @@ public class ThrowsAttributeTests {
     /// declaration the document already reads keeps that: there is still one place to write it.
     /// </remarks>
     [Fact]
-    public void DeclaringTheValidationEnvelopeSetsTheHandlersValidationStatus() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class PetController {
-                [Post("/pets")]
-                [Throws<Hardened.Requests.Runtime.Validation.RequestValidationError>(422)]
-                public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
-            }
-            """));
+    public void DeclaringTheValidationEnvelopeSetsTheHandlersValidationStatus()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public class PetController {
+                    [Post("/pets")]
+                    [Throws<Hardened.Requests.Runtime.Validation.RequestValidationError>(422)]
+                    public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
+                }
+                """
+            )
+        );
 
         result.AssertNoErrors();
 
@@ -170,14 +196,19 @@ public class ThrowsAttributeTests {
     /// vocabulary, not a status from every declaration.
     /// </summary>
     [Fact]
-    public void DeclaringAnotherThrownTypeSetsNoValidationStatus() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class PetController {
-                [Post("/pets")]
-                [Throws<RateLimited>]
-                public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
-            }
-            """));
+    public void DeclaringAnotherThrownTypeSetsNoValidationStatus()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public class PetController {
+                    [Post("/pets")]
+                    [Throws<RateLimited>]
+                    public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
+                }
+                """
+            )
+        );
 
         result.AssertNoErrors();
 
@@ -190,17 +221,22 @@ public class ThrowsAttributeTests {
     /// validation answers.
     /// </summary>
     [Fact]
-    public void ATypeMerelySharingTheNameSetsNoValidationStatus() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            [HttpStatus(422)]
-            public class RequestValidationError { }
+    public void ATypeMerelySharingTheNameSetsNoValidationStatus()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                [HttpStatus(422)]
+                public class RequestValidationError { }
 
-            public class PetController {
-                [Post("/pets")]
-                [Throws<RequestValidationError>]
-                public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
-            }
-            """));
+                public class PetController {
+                    [Post("/pets")]
+                    [Throws<RequestValidationError>]
+                    public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
+                }
+                """
+            )
+        );
 
         result.AssertNoErrors();
 
@@ -216,14 +252,19 @@ public class ThrowsAttributeTests {
     /// that over an application whose model carries real constraints.
     /// </remarks>
     [Fact]
-    public void TheDocumentCarriesTheDeclaredStatus() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class PetController {
-                [Post("/pets")]
-                [Throws<Hardened.Requests.Runtime.Validation.RequestValidationError>(422)]
-                public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
-            }
-            """));
+    public void TheDocumentCarriesTheDeclaredStatus()
+    {
+        var result = RequestGeneratorHarness.Generate(
+            Application(
+                """
+                public class PetController {
+                    [Post("/pets")]
+                    [Throws<Hardened.Requests.Runtime.Validation.RequestValidationError>(422)]
+                    public Task<Pet> Create(Pet pet) => Task.FromResult(pet);
+                }
+                """
+            )
+        );
 
         Assert.Contains("\"422\"", Document(result));
     }
@@ -233,21 +274,26 @@ public class ThrowsAttributeTests {
 
     #endregion
 
-    private static string Document(GeneratorResult result) {
-        var source = result.GeneratedSources
-            .First(candidate => candidate.Key.Contains("OpenApiDocument")).Value;
+    private static string Document(GeneratorResult result)
+    {
+        var source = result
+            .GeneratedSources.First(candidate => candidate.Key.Contains("OpenApiDocument"))
+            .Value;
 
         var start = source.IndexOf("new byte[]", StringComparison.Ordinal);
 
         Assert.True(start >= 0, "The document source carries no byte array.");
 
-        var bytes = System.Text.RegularExpressions.Regex
-            .Matches(source.Substring(start), @"\b\d{1,3}\b")
+        var bytes = System
+            .Text.RegularExpressions.Regex.Matches(source.Substring(start), @"\b\d{1,3}\b")
             .Select(match => byte.Parse(match.Value))
             .ToArray();
 
         using var compressed = new MemoryStream(bytes);
-        using var gzip = new System.IO.Compression.GZipStream(compressed, System.IO.Compression.CompressionMode.Decompress);
+        using var gzip = new System.IO.Compression.GZipStream(
+            compressed,
+            System.IO.Compression.CompressionMode.Decompress
+        );
         using var reader = new StreamReader(gzip);
 
         return reader.ReadToEnd();

@@ -13,41 +13,55 @@ namespace Hardened.SourceGenerator.Tests.Web;
 /// into the service collection, and doing it in a file that builds.
 /// </para>
 /// </summary>
-public class RoutingTableCompilesTests {
-
+public class RoutingTableCompilesTests
+{
     /// <summary>
     /// The routing table is only generated for a class carrying <c>[HardenedModule]</c>, and it is
     /// emitted as a partial of that class, so the application declaration has to be partial too.
     /// </summary>
-    private static string Application(string controllers, string moduleAttributes = "") => $$"""
-        using System;
-        using System.Collections.Generic;
-        using System.Threading.Tasks;
-        using Hardened.Shared.Runtime.Attributes;
-        using Hardened.Web.Runtime.Attributes;
+    private static string Application(string controllers, string moduleAttributes = "") =>
+        $$"""
+            using System;
+            using System.Collections.Generic;
+            using System.Threading.Tasks;
+            using Hardened.Shared.Runtime.Attributes;
+            using Hardened.Web.Runtime.Attributes;
 
-        namespace TestApp;
+            namespace TestApp;
 
-        [HardenedModule]
-        {{moduleAttributes}}
-        public partial class Application { }
+            [HardenedModule]
+            {{moduleAttributes}}
+            public partial class Application { }
 
-        {{controllers}}
-        """;
+            {{controllers}}
+            """;
 
     [Fact]
-    public void ARoutingTableIsGeneratedForTheApplicationModule() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            public class OrderController {
-                [Get("/orders/{id}")]
-                public string GetOrder(string id) => id;
-            }
-            """)).AssertNoErrors();
+    public void ARoutingTableIsGeneratedForTheApplicationModule()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders/{id}")]
+                        public string GetOrder(string id) => id;
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         var routing = result.SourceContaining("Routing");
 
-        Assert.Contains("private class RoutingTable : IWebExecutionRequestHandlerProvider", routing);
-        Assert.Contains("public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)", routing);
+        Assert.Contains(
+            "private class RoutingTable : IWebExecutionRequestHandlerProvider",
+            routing
+        );
+        Assert.Contains(
+            "public RequestHandlerInfo? GetExecutionRequestHandler(IExecutionContext context)",
+            routing
+        );
     }
 
     /// <summary>
@@ -55,18 +69,26 @@ public class RoutingTableCompilesTests {
     /// Miss the controller registration and every route resolves and then fails to construct.
     /// </summary>
     [Fact]
-    public void TheRoutingTableRegistersItselfAndEveryController() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class OrderController {
-                [Get("/orders")]
-                public string All() => "x";
-            }
+    public void TheRoutingTableRegistersItselfAndEveryController()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        public string All() => "x";
+                    }
 
-            public class CustomerController {
-                [Get("/customers")]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+                    public class CustomerController {
+                        [Get("/customers")]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains("serviceCollection.AddTransient<OrderController>();", routing);
         Assert.Contains("serviceCollection.AddTransient<CustomerController>();", routing);
@@ -78,16 +100,24 @@ public class RoutingTableCompilesTests {
     /// is legal C# but silently doubles the service descriptors.
     /// </summary>
     [Fact]
-    public void AControllerWithSeveralHandlersIsRegisteredOnce() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class OrderController {
-                [Get("/orders")]
-                public string All() => "x";
+    public void AControllerWithSeveralHandlersIsRegisteredOnce()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        public string All() => "x";
 
-                [Get("/orders/{id}")]
-                public string One(string id) => id;
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+                        [Get("/orders/{id}")]
+                        public string One(string id) => id;
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         var occurrences = routing.Split("AddTransient<OrderController>()").Length - 1;
 
@@ -99,7 +129,8 @@ public class RoutingTableCompilesTests {
     /// registered, and still has to compile — it is what a freshly scaffolded project builds.
     /// </summary>
     [Fact]
-    public void AnApplicationWithNoRoutesStillCompiles() {
+    public void AnApplicationWithNoRoutesStillCompiles()
+    {
         var result = RequestGeneratorHarness.Generate(Application("")).AssertNoErrors();
 
         Assert.Contains("RoutingTable", result.SourceContaining("Routing"));
@@ -111,13 +142,21 @@ public class RoutingTableCompilesTests {
     [InlineData("Put", "PUT")]
     [InlineData("Delete", "DELETE")]
     [InlineData("Patch", "PATCH")]
-    public void EveryVerbReachesTheRoutingTableUppercased(string verb, string expected) {
-        var routing = RequestGeneratorHarness.Generate(Application($$"""
-            public class ItemController {
-                [{{verb}}("/items")]
-                public string Handle() => "x";
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+    public void EveryVerbReachesTheRoutingTableUppercased(string verb, string expected)
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    $$"""
+                    public class ItemController {
+                        [{{verb}}("/items")]
+                        public string Handle() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains($"case \"{expected}\":", routing);
     }
@@ -127,16 +166,24 @@ public class RoutingTableCompilesTests {
     /// keeps them apart.
     /// </summary>
     [Fact]
-    public void ThePathIsMatchedOnceAndTheVerbSelectsTheHandler() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class ItemController {
-                [Get("/items")]
-                public string Read() => "x";
+    public void ThePathIsMatchedOnceAndTheVerbSelectsTheHandler()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class ItemController {
+                        [Get("/items")]
+                        public string Read() => "x";
 
-                [Post("/items")]
-                public string Write() => "x";
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+                        [Post("/items")]
+                        public string Write() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains("case \"GET\":", routing);
         Assert.Contains("case \"POST\":", routing);
@@ -156,16 +203,24 @@ public class RoutingTableCompilesTests {
     /// <para>Asserted here at the emit level; OverlappingRouteTokenNamesTests covers the request.</para>
     /// </summary>
     [Fact]
-    public void OverlappingRoutesEachGetTheirOwnTokenNames() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class BindingController {
-                [Get("/path/{id}")]
-                public string One(string id) => id;
+    public void OverlappingRoutesEachGetTheirOwnTokenNames()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class BindingController {
+                        [Get("/path/{id}")]
+                        public string One(string id) => id;
 
-                [Get("/path/{first}/{second}")]
-                public string Two(string first, string second) => first + second;
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+                        [Get("/path/{first}/{second}")]
+                        public string Two(string first, string second) => first + second;
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains("new string[] { \"id\" }", routing);
         Assert.Contains("new string[] { \"first\", \"second\" }", routing);
@@ -176,16 +231,24 @@ public class RoutingTableCompilesTests {
     /// at the same depth under different names each keep their own.
     /// </summary>
     [Fact]
-    public void TwoRoutesWithADifferentlyNamedTokenAtTheSameDepthKeepBothNames() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class UserController {
-                [Get("/users/{id}")]
-                public string One(string id) => id;
+    public void TwoRoutesWithADifferentlyNamedTokenAtTheSameDepthKeepBothNames()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class UserController {
+                        [Get("/users/{id}")]
+                        public string One(string id) => id;
 
-                [Get("/users/{userId}/posts/{postId}")]
-                public string Post(string userId, string postId) => userId + postId;
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+                        [Get("/users/{userId}/posts/{postId}")]
+                        public string Post(string userId, string postId) => userId + postId;
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains("new string[] { \"id\" }", routing);
         Assert.Contains("new string[] { \"userId\", \"postId\" }", routing);
@@ -196,13 +259,21 @@ public class RoutingTableCompilesTests {
     /// request.
     /// </summary>
     [Fact]
-    public void ARouteWithNoTokensUsesTheEmptyTokenCollection() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class HealthController {
-                [Get("/health")]
-                public string Health() => "ok";
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+    public void ARouteWithNoTokensUsesTheEmptyTokenCollection()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class HealthController {
+                        [Get("/health")]
+                        public string Health() => "ok";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains("PathTokenCollection.Empty", routing);
     }
@@ -212,14 +283,21 @@ public class RoutingTableCompilesTests {
     /// the handler info as well as the tree.
     /// </summary>
     [Fact]
-    public void ABasePathOnTheControllerPrefixesItsRoutes() {
-        var result = RequestGeneratorHarness.Generate(Application("""
-            [BasePath("/api/orders")]
-            public class OrderController {
-                [Get("/{id}")]
-                public string One(string id) => id;
-            }
-            """)).AssertNoErrors();
+    public void ABasePathOnTheControllerPrefixesItsRoutes()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    [BasePath("/api/orders")]
+                    public class OrderController {
+                        [Get("/{id}")]
+                        public string One(string id) => id;
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors();
 
         Assert.Contains("\"/api/orders/{id}\"", result.SourceContaining("One"));
     }
@@ -229,13 +307,22 @@ public class RoutingTableCompilesTests {
     /// how a whole service is mounted under one path.
     /// </summary>
     [Fact]
-    public void ABasePathOnTheModulePrefixesEveryRoute() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class OrderController {
-                [Get("/orders")]
-                public string All() => "x";
-            }
-            """, "[BasePath(\"/v1\")]")).AssertNoErrors().SourceContaining("Routing");
+    public void ABasePathOnTheModulePrefixesEveryRoute()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        public string All() => "x";
+                    }
+                    """,
+                    "[BasePath(\"/v1\")]"
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains("'v'", routing);
         Assert.Contains("'1'", routing);
@@ -247,13 +334,21 @@ public class RoutingTableCompilesTests {
     /// RFC 3986 does not have.
     /// </summary>
     [Fact]
-    public void PathMatchingComparesEachCharacterOnce() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class OrderController {
-                [Get("/orders")]
-                public string All() => "x";
-            }
-            """)).AssertNoErrors().SourceContaining("Routing");
+    public void PathMatchingComparesEachCharacterOnce()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        public string All() => "x";
+                    }
+                    """
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains("== 'o')", routing);
         Assert.DoesNotContain("== 'O')", routing);
@@ -263,13 +358,22 @@ public class RoutingTableCompilesTests {
     /// Unless the module asks for the old behaviour, which emits both comparisons again.
     /// </summary>
     [Fact]
-    public void CaseInsensitiveRoutesComparesBothCases() {
-        var routing = RequestGeneratorHarness.Generate(Application("""
-            public class OrderController {
-                [Get("/orders")]
-                public string All() => "x";
-            }
-            """, "[CaseInsensitiveRoutes]")).AssertNoErrors().SourceContaining("Routing");
+    public void CaseInsensitiveRoutesComparesBothCases()
+    {
+        var routing = RequestGeneratorHarness
+            .Generate(
+                Application(
+                    """
+                    public class OrderController {
+                        [Get("/orders")]
+                        public string All() => "x";
+                    }
+                    """,
+                    "[CaseInsensitiveRoutes]"
+                )
+            )
+            .AssertNoErrors()
+            .SourceContaining("Routing");
 
         Assert.Contains("== 'o')", routing);
         Assert.Contains("== 'O')", routing);
@@ -280,37 +384,43 @@ public class RoutingTableCompilesTests {
     /// compilation, so a controller in another file has to reach the same table.
     /// </summary>
     [Fact]
-    public void HandlersFromSeveralFilesReachOneRoutingTable() {
-        var result = RequestGeneratorHarness.Generate(new Dictionary<string, string> {
-            ["Application.cs"] = """
-                using Hardened.Shared.Runtime.Attributes;
+    public void HandlersFromSeveralFilesReachOneRoutingTable()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                new Dictionary<string, string>
+                {
+                    ["Application.cs"] = """
+                    using Hardened.Shared.Runtime.Attributes;
 
-                namespace TestApp;
+                    namespace TestApp;
 
-                [HardenedModule]
-                public partial class Application { }
-                """,
-            ["OrderController.cs"] = """
-                using Hardened.Web.Runtime.Attributes;
+                    [HardenedModule]
+                    public partial class Application { }
+                    """,
+                    ["OrderController.cs"] = """
+                    using Hardened.Web.Runtime.Attributes;
 
-                namespace TestApp;
+                    namespace TestApp;
 
-                public class OrderController {
-                    [Get("/orders")]
-                    public string All() => "x";
+                    public class OrderController {
+                        [Get("/orders")]
+                        public string All() => "x";
+                    }
+                    """,
+                    ["CustomerController.cs"] = """
+                    using Hardened.Web.Runtime.Attributes;
+
+                    namespace TestApp;
+
+                    public class CustomerController {
+                        [Get("/customers")]
+                        public string All() => "x";
+                    }
+                    """,
                 }
-                """,
-            ["CustomerController.cs"] = """
-                using Hardened.Web.Runtime.Attributes;
-
-                namespace TestApp;
-
-                public class CustomerController {
-                    [Get("/customers")]
-                    public string All() => "x";
-                }
-                """
-        }).AssertNoErrors();
+            )
+            .AssertNoErrors();
 
         var routing = result.SourceContaining("Routing");
 
@@ -324,24 +434,29 @@ public class RoutingTableCompilesTests {
     /// AssertNoErrors also checks.
     /// </summary>
     [Fact]
-    public void TwoApplicationModulesEachGetTheirOwnRoutingTable() {
-        var result = RequestGeneratorHarness.Generate("""
-            using Hardened.Shared.Runtime.Attributes;
-            using Hardened.Web.Runtime.Attributes;
+    public void TwoApplicationModulesEachGetTheirOwnRoutingTable()
+    {
+        var result = RequestGeneratorHarness
+            .Generate(
+                """
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-            namespace TestApp;
+                namespace TestApp;
 
-            [HardenedModule]
-            public partial class FirstApplication { }
+                [HardenedModule]
+                public partial class FirstApplication { }
 
-            [HardenedModule]
-            public partial class SecondApplication { }
+                [HardenedModule]
+                public partial class SecondApplication { }
 
-            public class OrderController {
-                [Get("/orders")]
-                public string All() => "x";
-            }
-            """).AssertNoErrors();
+                public class OrderController {
+                    [Get("/orders")]
+                    public string All() => "x";
+                }
+                """
+            )
+            .AssertNoErrors();
 
         Assert.Contains("FirstApplication.Routing.cs", result.GeneratedSources.Keys);
         Assert.Contains("SecondApplication.Routing.cs", result.GeneratedSources.Keys);

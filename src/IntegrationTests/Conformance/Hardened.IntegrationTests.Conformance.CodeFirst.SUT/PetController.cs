@@ -8,24 +8,23 @@ namespace Hardened.IntegrationTests.Conformance.CodeFirst.SUT;
 /// <summary>
 /// The three operations the conformance suite requires, declared with attributes.
 /// </summary>
-public class PetController {
-    private static readonly List<Pet> Pets = [
-        new Pet("1", "Buddy"),
-        new Pet("2", "Luna", "dog")
-    ];
+public class PetController
+{
+    private static readonly List<Pet> Pets = [new Pet("1", "Buddy"), new Pet("2", "Luna", "dog")];
 
     [Get("/pets")]
-    public Task<List<Pet>> ListPets() =>
-        Task.FromResult(Pets.ToList());
+    public Task<List<Pet>> ListPets() => Task.FromResult(Pets.ToList());
 
     /// <summary>Null for an absent pet, which the framework answers as 404.</summary>
     [Get("/pets/{petId:slug}")]
     [Throws<RateLimited>]
-    public Task<Pet?> GetPet(string petId) {
+    public Task<Pet?> GetPet(string petId)
+    {
         // Code-first declares an error by throwing one of the built-in response types. The
         // described front-ends generate an exception per operation and status; both land on
         // StatusCodeException, which is the shared spine.
-        if (petId == "throttled") {
+        if (petId == "throttled")
+        {
             throw new ResponseException(new RateLimited(TimeSpan.FromSeconds(30), "Slow down."));
         }
 
@@ -47,6 +46,5 @@ public class PetController {
     /// <summary>Requires a caller holding pets:read.</summary>
     [Get("/pets/secured")]
     [AuthorizeGrants("pets:read")]
-    public Task<Pet> GetSecuredPet() =>
-        Task.FromResult(Pets[0]);
+    public Task<Pet> GetSecuredPet() => Task.FromResult(Pets[0]);
 }

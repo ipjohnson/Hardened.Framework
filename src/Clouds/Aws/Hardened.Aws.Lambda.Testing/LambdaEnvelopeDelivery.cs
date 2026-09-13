@@ -26,7 +26,8 @@ namespace Hardened.Aws.Lambda.Testing;
 /// built by round-tripping a DTO would agree with the type it came from and not with AWS.
 /// </para>
 /// </remarks>
-public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
+public sealed class LambdaEnvelopeDelivery : ITriggerDelivery
+{
     private readonly Func<ValueTask<LambdaInvocationHandler>> _handler;
     private readonly string _region;
     private readonly string _account;
@@ -34,7 +35,9 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
     public LambdaEnvelopeDelivery(
         LambdaInvocationHandler handler,
         string region = "us-east-1",
-        string account = "123456789012") {
+        string account = "123456789012"
+    )
+    {
         _handler = () => new ValueTask<LambdaInvocationHandler>(handler);
         _region = region;
         _account = account;
@@ -65,7 +68,9 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
     public LambdaEnvelopeDelivery(
         ITestContainerSource source,
         string region = "us-east-1",
-        string account = "123456789012") {
+        string account = "123456789012"
+    )
+    {
         _handler = async () =>
             (await source.CreateAsync()).GetRequiredService<LambdaInvocationHandler>();
         _region = region;
@@ -75,14 +80,18 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
     /// <summary>
     /// camelCase, which is what a publisher sends and what the handler's binder is set up to read.
     /// </summary>
-    private static readonly JsonSerializerOptions Wire =
-        new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions Wire = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
 
-    public async Task Deliver(IReadOnlyList<object> messages, string scheme, string path) {
+    public async Task Deliver(IReadOnlyList<object> messages, string scheme, string path)
+    {
         var name = path.TrimStart('/');
         var items = messages;
 
-        var payload = scheme switch {
+        var payload = scheme switch
+        {
             "QUEUE" => Sqs(name, items),
             "TOPIC" => Sns(name, items),
             "TIMER" => Scheduled(name),
@@ -90,9 +99,10 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
             "STREAM" => Kinesis(name, items),
             "BLOB" => S3(name, items),
             _ => throw new NotSupportedException(
-                $"No test envelope is built for the {scheme} scheme yet. Queues, topics, timers, " +
-                "changes, streams and blobs have one; events are addressed by source and detail type and need " +
-                "their own shape.")
+                $"No test envelope is built for the {scheme} scheme yet. Queues, topics, timers, "
+                    + "changes, streams and blobs have one; events are addressed by source and detail type and need "
+                    + "their own shape."
+            ),
         };
 
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(payload));
@@ -109,34 +119,40 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
     /// envelope path does add is the invocation loop and the invoke adapter, so the answer is read
     /// back out of the response stream exactly as a caller would receive it.
     /// </remarks>
-    public async Task<object?> Call(object message, string scheme, string path, Type? responseType) {
+    public async Task<object?> Call(object message, string scheme, string path, Type? responseType)
+    {
         var payload = JsonSerializer.Serialize(message, Wire);
 
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(payload));
 
         var output = await (await _handler()).Invoke(input, new TestContext(path.TrimStart('/')));
 
-        if (responseType == null) {
+        if (responseType == null)
+        {
             return null;
         }
 
         return await JsonSerializer.DeserializeAsync(output, responseType, Wire);
     }
 
-    private string Sqs(string queue, System.Collections.IEnumerable messages) {
+    private string Sqs(string queue, System.Collections.IEnumerable messages)
+    {
         var records = new List<string>();
         var index = 0;
 
-        foreach (var message in messages) {
+        foreach (var message in messages)
+        {
             var body = JsonSerializer.Serialize(message, Wire);
 
-            records.Add($$"""
+            records.Add(
+                $$"""
                 {"messageId":"{{queue}}-{{index}}","receiptHandle":"receipt-{{index}}",
                  "body":{{JsonSerializer.Serialize(body)}},
                  "eventSource":"aws:sqs",
                  "eventSourceARN":"arn:aws:sqs:{{_region}}:{{_account}}:{{queue}}",
                  "awsRegion":"{{_region}}"}
-                """);
+                """
+            );
 
             index++;
         }
@@ -144,25 +160,28 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
         return "{\"Records\":[" + string.Join(",", records) + "]}";
     }
 
-    private string Sns(string topic, System.Collections.IEnumerable messages) {
+    private string Sns(string topic, System.Collections.IEnumerable messages)
+    {
         var records = new List<string>();
         var index = 0;
 
-        foreach (var message in messages) {
+        foreach (var message in messages)
+        {
             var body = JsonSerializer.Serialize(message, Wire);
 
-            var sns =
-                $$"""
-                  {"Type":"Notification","MessageId":"{{topic}}-{{index}}",
-                   "TopicArn":"arn:aws:sns:{{_region}}:{{_account}}:{{topic}}",
-                   "Message":{{JsonSerializer.Serialize(body)}}}
-                  """;
+            var sns = $$"""
+                {"Type":"Notification","MessageId":"{{topic}}-{{index}}",
+                 "TopicArn":"arn:aws:sns:{{_region}}:{{_account}}:{{topic}}",
+                 "Message":{{JsonSerializer.Serialize(body)}}}
+                """;
 
-            records.Add($$"""
+            records.Add(
+                $$"""
                 {"EventVersion":"1.0","EventSource":"aws:sns",
                  "EventSubscriptionArn":"arn:aws:sns:{{_region}}:{{_account}}:{{topic}}:sub-{{index}}",
                  "Sns":{{sns}}}
-                """);
+                """
+            );
 
             index++;
         }
@@ -186,16 +205,20 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
     /// what a checkpoint report is read against.
     /// </para>
     /// </remarks>
-    private string DynamoDb(string table, System.Collections.IEnumerable messages) {
-        var arn = $"arn:aws:dynamodb:{_region}:{_account}:table/{table}/stream/2026-01-01T00:00:00.000";
+    private string DynamoDb(string table, System.Collections.IEnumerable messages)
+    {
+        var arn =
+            $"arn:aws:dynamodb:{_region}:{_account}:table/{table}/stream/2026-01-01T00:00:00.000";
 
         var records = new List<string>();
         var index = 0;
 
-        foreach (var message in messages) {
+        foreach (var message in messages)
+        {
             var image = AttributeValueWire.Item(JsonSerializer.Serialize(message, Wire));
 
-            records.Add($$"""
+            records.Add(
+                $$"""
                 {"eventID":"{{table}}-{{index}}","eventName":"MODIFY","eventVersion":"1.1",
                  "eventSource":"aws:dynamodb","awsRegion":"{{_region}}",
                  "dynamodb":{"ApproximateCreationDateTime":1767225600,
@@ -203,7 +226,8 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
                    "SequenceNumber":"{{Sequence(index)}}","SizeBytes":64,
                    "StreamViewType":"NEW_AND_OLD_IMAGES"},
                  "eventSourceARN":"{{arn}}"}
-                """);
+                """
+            );
 
             index++;
         }
@@ -220,15 +244,18 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
     /// whole of the envelope's effect on the payload. The sequence numbers ascend, which is what a
     /// shard guarantees and what a checkpoint report is read against.
     /// </remarks>
-    private string Kinesis(string stream, System.Collections.IEnumerable messages) {
+    private string Kinesis(string stream, System.Collections.IEnumerable messages)
+    {
         var arn = $"arn:aws:kinesis:{_region}:{_account}:stream/{stream}";
 
         var records = new List<string>();
         var index = 0;
 
-        foreach (var message in messages) {
+        foreach (var message in messages)
+        {
             var data = Convert.ToBase64String(
-                Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, Wire)));
+                Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, Wire))
+            );
 
             // The inner object built first, the way the SNS builder does it: a raw interpolated
             // string cannot carry two adjacent closing braces, and a Kinesis record ends with them.
@@ -238,12 +265,14 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
                  "approximateArrivalTimestamp":1767225600.0}
                 """;
 
-            records.Add($$"""
+            records.Add(
+                $$"""
                 {"eventSource":"aws:kinesis","eventVersion":"1.0",
                  "eventID":"shardId-000000000000:{{Sequence(index)}}",
                  "eventSourceARN":"{{arn}}","awsRegion":"{{_region}}",
                  "kinesis":{{kinesis}}}
-                """);
+                """
+            );
 
             index++;
         }
@@ -261,24 +290,28 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
     /// handler binds. The key is form-encoded on the way in, because that is what S3 does and
     /// undoing it is the adapter's job.
     /// </remarks>
-    private string S3(string bucket, System.Collections.IEnumerable messages) {
+    private string S3(string bucket, System.Collections.IEnumerable messages)
+    {
         var records = new List<string>();
         var index = 0;
 
-        foreach (var message in messages) {
+        foreach (var message in messages)
+        {
             var written = JsonSerializer.Serialize(message, Wire);
 
             using var document = JsonDocument.Parse(written);
 
-            var key = document.RootElement.TryGetProperty("key", out var k) &&
-                      k.ValueKind == JsonValueKind.String
-                ? k.GetString() ?? ""
-                : $"object-{index}";
+            var key =
+                document.RootElement.TryGetProperty("key", out var k)
+                && k.ValueKind == JsonValueKind.String
+                    ? k.GetString() ?? ""
+                    : $"object-{index}";
 
-            var size = document.RootElement.TryGetProperty("size", out var z) &&
-                       z.ValueKind == JsonValueKind.Number
-                ? z.GetRawText()
-                : "0";
+            var size =
+                document.RootElement.TryGetProperty("size", out var z)
+                && z.ValueKind == JsonValueKind.Number
+                    ? z.GetRawText()
+                    : "0";
 
             // Built in two pieces, because a raw interpolated string cannot carry two adjacent
             // closing braces and an S3 record nests three objects deep.
@@ -293,11 +326,13 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
                  "object":{{obj}}}
                 """;
 
-            records.Add($$"""
+            records.Add(
+                $$"""
                 {"eventVersion":"2.1","eventSource":"aws:s3","awsRegion":"{{_region}}",
                  "eventTime":"2026-01-01T00:00:00.000Z","eventName":"ObjectCreated:Put",
                  "s3":{{s3}}}
-                """);
+                """
+            );
 
             index++;
         }
@@ -310,18 +345,22 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
     /// string, and a test that asserted on the shape of the one it was reported would otherwise be
     /// asserting on an integer.
     /// </summary>
-    private static string Sequence(int index) => "44215845000000000174504390" + index.ToString("D2");
+    private static string Sequence(int index) =>
+        "44215845000000000174504390" + index.ToString("D2");
 
-    private string Scheduled(string rule) => $$"""
-        {"version":"0","id":"{{rule}}-fired","detail-type":"Scheduled Event","source":"aws.events",
-         "account":"{{_account}}","time":"2026-01-01T00:00:00Z","region":"{{_region}}",
-         "resources":["arn:aws:events:{{_region}}:{{_account}}:rule/{{rule}}"],
-         "detail":{} }
-        """;
+    private string Scheduled(string rule) =>
+        $$"""
+            {"version":"0","id":"{{rule}}-fired","detail-type":"Scheduled Event","source":"aws.events",
+             "account":"{{_account}}","time":"2026-01-01T00:00:00Z","region":"{{_region}}",
+             "resources":["arn:aws:events:{{_region}}:{{_account}}:rule/{{rule}}"],
+             "detail":{} }
+            """;
 
     /// <summary>Enough context to invoke, with a deadline the host turns into a token.</summary>
-    private sealed class TestContext : ILambdaContext {
-        public TestContext(string name) {
+    private sealed class TestContext : ILambdaContext
+    {
+        public TestContext(string name)
+        {
             FunctionName = name;
         }
 
@@ -331,7 +370,8 @@ public sealed class LambdaEnvelopeDelivery : ITriggerDelivery {
         public IClientContext ClientContext => null!;
         public string FunctionVersion => "$LATEST";
         public ICognitoIdentity Identity => null!;
-        public string InvokedFunctionArn => "arn:aws:lambda:us-east-1:123456789012:function:" + FunctionName;
+        public string InvokedFunctionArn =>
+            "arn:aws:lambda:us-east-1:123456789012:function:" + FunctionName;
         public ILambdaLogger Logger => null!;
         public string LogGroupName => "/aws/lambda/" + FunctionName;
         public string LogStreamName => "test";

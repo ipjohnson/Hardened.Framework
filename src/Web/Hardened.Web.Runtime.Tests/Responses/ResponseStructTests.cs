@@ -18,19 +18,25 @@ namespace Hardened.Web.Runtime.Tests.Responses;
 /// that edit fail.
 /// </para>
 /// </summary>
-public class ResponseStructTests {
-
+public class ResponseStructTests
+{
     /// <summary>
     /// Every arity, found by reflection rather than listed, so a ninth added later is covered
     /// without anyone remembering to add it.
     /// </summary>
-    public static TheoryData<Type> Arities {
-        get {
+    public static TheoryData<Type> Arities
+    {
+        get
+        {
             var data = new TheoryData<Type>();
 
-            foreach (var type in typeof(Response<,>).Assembly.GetExportedTypes()) {
-                if (type.IsGenericTypeDefinition &&
-                    type.Name.StartsWith("Response`", StringComparison.Ordinal)) {
+            foreach (var type in typeof(Response<,>).Assembly.GetExportedTypes())
+            {
+                if (
+                    type.IsGenericTypeDefinition
+                    && type.Name.StartsWith("Response`", StringComparison.Ordinal)
+                )
+                {
                     data.Add(type);
                 }
             }
@@ -42,10 +48,14 @@ public class ResponseStructTests {
     #region the structural contract
 
     [Fact]
-    public void EveryArityFromTwoToEight_Exists() {
-        var arities = typeof(Response<,>).Assembly.GetExportedTypes()
-            .Where(t => t.IsGenericTypeDefinition &&
-                        t.Name.StartsWith("Response`", StringComparison.Ordinal))
+    public void EveryArityFromTwoToEight_Exists()
+    {
+        var arities = typeof(Response<,>)
+            .Assembly.GetExportedTypes()
+            .Where(t =>
+                t.IsGenericTypeDefinition
+                && t.Name.StartsWith("Response`", StringComparison.Ordinal)
+            )
             .Select(t => t.GetGenericArguments().Length)
             .OrderBy(n => n)
             .ToList();
@@ -60,13 +70,14 @@ public class ResponseStructTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void EveryArity_IsAReadonlyStruct(Type type) {
+    public void EveryArity_IsAReadonlyStruct(Type type)
+    {
         Assert.True(type.IsValueType, type.Name + " must be a struct.");
 
         Assert.True(
-            type.GetCustomAttributes()
-                .Any(a => a.GetType().Name == "IsReadOnlyAttribute"),
-            type.Name + " must be a readonly struct.");
+            type.GetCustomAttributes().Any(a => a.GetType().Name == "IsReadOnlyAttribute"),
+            type.Name + " must be a readonly struct."
+        );
     }
 
     /// <summary>
@@ -75,7 +86,8 @@ public class ResponseStructTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void EveryArity_ExposesAPublicObjectValue(Type type) {
+    public void EveryArity_ExposesAPublicObjectValue(Type type)
+    {
         var value = type.GetProperty("Value", BindingFlags.Public | BindingFlags.Instance);
 
         Assert.NotNull(value);
@@ -90,7 +102,8 @@ public class ResponseStructTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void EveryArity_HasExactlyOneSingleParameterConstructorPerCase(Type type) {
+    public void EveryArity_HasExactlyOneSingleParameterConstructorPerCase(Type type)
+    {
         var arity = type.GetGenericArguments().Length;
 
         var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
@@ -107,11 +120,11 @@ public class ResponseStructTests {
 
     [Theory]
     [MemberData(nameof(Arities))]
-    public void EveryArity_HasOneImplicitConversionPerCase(Type type) {
+    public void EveryArity_HasOneImplicitConversionPerCase(Type type)
+    {
         var arity = type.GetGenericArguments().Length;
 
-        var conversions = type
-            .GetMethods(BindingFlags.Public | BindingFlags.Static)
+        var conversions = type.GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Where(m => m.Name == "op_Implicit")
             .ToList();
 
@@ -125,9 +138,11 @@ public class ResponseStructTests {
     /// </summary>
     [Theory]
     [MemberData(nameof(Arities))]
-    public void EveryArity_CarriesOneFieldOnly(Type type) {
+    public void EveryArity_CarriesOneFieldOnly(Type type)
+    {
         var fields = type.GetFields(
-            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance
+        );
 
         Assert.Single(fields);
     }
@@ -141,7 +156,8 @@ public class ResponseStructTests {
     /// the signature readable at the call site.
     /// </summary>
     [Fact]
-    public void ImplicitConversion_AcceptsEachCase() {
+    public void ImplicitConversion_AcceptsEachCase()
+    {
         Response<string, NotFound> fromFirst = "todo";
         Response<string, NotFound> fromSecond = new NotFound("todo");
 
@@ -154,15 +170,18 @@ public class ResponseStructTests {
     /// while it is.
     /// </summary>
     [Fact]
-    public void ImplicitConversion_WorksAtTheHighestArity() {
-        Response<string, int, bool, Guid, TimeSpan, Uri, NotFound, Conflict> last =
-            new Conflict("clash");
+    public void ImplicitConversion_WorksAtTheHighestArity()
+    {
+        Response<string, int, bool, Guid, TimeSpan, Uri, NotFound, Conflict> last = new Conflict(
+            "clash"
+        );
 
         Assert.IsType<Conflict>(last.Value);
     }
 
     [Fact]
-    public void Constructor_HoldsTheCaseItWasGiven() {
+    public void Constructor_HoldsTheCaseItWasGiven()
+    {
         var response = new Response<string, NotFound>(new NotFound("todo"));
 
         Assert.IsType<NotFound>(response.Value);
@@ -174,7 +193,8 @@ public class ResponseStructTests {
     /// this is the test that says it can occur.
     /// </summary>
     [Fact]
-    public void Default_HasNoCase() {
+    public void Default_HasNoCase()
+    {
         Response<string, NotFound> uninitialised = default;
 
         Assert.Null(uninitialised.Value);
@@ -187,21 +207,24 @@ public class ResponseStructTests {
     [Theory]
     [InlineData(true, "found")]
     [InlineData(false, null)]
-    public void TargetTypedSwitch_BindsThroughTheConversion(bool hit, string? expected) {
+    public void TargetTypedSwitch_BindsThroughTheConversion(bool hit, string? expected)
+    {
         Response<string, NotFound> result = hit ? "found" : new NotFound("todo");
 
         Assert.Equal(expected, result.Value as string);
     }
 
     [Fact]
-    public void ToString_RendersTheCaseRatherThanTheWrapper() {
+    public void ToString_RendersTheCaseRatherThanTheWrapper()
+    {
         Response<string, NotFound> response = "todo";
 
         Assert.Equal("todo", response.ToString());
     }
 
     [Fact]
-    public void ToString_IsEmptyForADefault() {
+    public void ToString_IsEmptyForADefault()
+    {
         Response<string, NotFound> uninitialised = default;
 
         Assert.Equal("", uninitialised.ToString());

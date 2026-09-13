@@ -16,15 +16,18 @@ namespace Hardened.IntegrationTests.AzureBlob.SUT.Tests;
 /// worker rung, and passes in both.
 /// </para>
 /// </summary>
-public class BlobTests {
-
+public class BlobTests
+{
     [HardenedTest]
     public async Task ANotificationReachesTheHandler(
-        AzureBlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+        AzureBlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
         await blobs.Uploads(new Upload { Name = "report.pdf", Size = 1024 });
 
-        sink.Received().Arrived(Arg.Is<Upload>(
-            upload => upload.Name == "report.pdf" && upload.Size == 1024));
+        sink.Received()
+            .Arrived(Arg.Is<Upload>(upload => upload.Name == "report.pdf" && upload.Size == 1024));
     }
 
     /// <summary>
@@ -33,7 +36,10 @@ public class BlobTests {
     /// </summary>
     [HardenedTest]
     public async Task ANameWithASpaceArrivesDecoded(
-        AzureBlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+        AzureBlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
         await blobs.Uploads(new Upload { Name = "my report.pdf" });
 
         sink.Received().Arrived(Arg.Is<Upload>(upload => upload.Name == "my report.pdf"));
@@ -46,7 +52,10 @@ public class BlobTests {
     /// </summary>
     [HardenedTest]
     public async Task TheContainerComesFromTheNotification(
-        AzureBlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+        AzureBlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
         await blobs.Uploads(new Upload { Container = "uploads", Name = "a.txt" });
 
         sink.Received().Arrived(Arg.Is<Upload>(upload => upload.Container == "uploads"));
@@ -58,9 +67,15 @@ public class BlobTests {
     /// </summary>
     [HardenedTest]
     public async Task EveryNotificationInABatchIsHandledSeparately(
-        AzureBlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+        AzureBlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
         await blobs.Uploads(
-            new Upload { Name = "a.txt" }, new Upload { Name = "b.txt" }, new Upload { Name = "c.txt" });
+            new Upload { Name = "a.txt" },
+            new Upload { Name = "b.txt" },
+            new Upload { Name = "c.txt" }
+        );
 
         sink.Received(3).Arrived(Arg.Any<Upload>());
         sink.Received().Arrived(Arg.Is<Upload>(upload => upload.Name == "b.txt"));
@@ -71,11 +86,15 @@ public class BlobTests {
     /// </summary>
     [HardenedTest]
     public async Task AFailedNotificationFailsTheInvocation(
-        AzureBlobTestApp.Blobs blobs, [Mock] IUploadSink sink) {
+        AzureBlobTestApp.Blobs blobs,
+        [Mock] IUploadSink sink
+    )
+    {
         sink.When(one => one.Arrived(Arg.Is<Upload>(upload => upload.Name == "b.txt")))
             .Do(_ => throw new InvalidOperationException("refused"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => blobs.Uploads(new Upload { Name = "a.txt" }, new Upload { Name = "b.txt" }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            blobs.Uploads(new Upload { Name = "a.txt" }, new Upload { Name = "b.txt" })
+        );
     }
 }

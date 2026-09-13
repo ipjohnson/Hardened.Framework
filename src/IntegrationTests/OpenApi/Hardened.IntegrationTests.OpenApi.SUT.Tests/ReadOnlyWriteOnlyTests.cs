@@ -1,4 +1,5 @@
 using Hardened.Web.Runtime.Responses;
+
 namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 
 /// <summary>
@@ -21,9 +22,10 @@ namespace Hardened.IntegrationTests.OpenApi.SUT.Tests;
 /// today and why.
 /// </para>
 /// </remarks>
-public class ReadOnlyWriteOnlyTests {
-
-    private static async Task<string> BodyText(TestWebResponse response) {
+public class ReadOnlyWriteOnlyTests
+{
+    private static async Task<string> BodyText(TestWebResponse response)
+    {
         response.Body.Position = 0;
 
         using var reader = new StreamReader(response.Body, leaveOpen: true);
@@ -37,7 +39,8 @@ public class ReadOnlyWriteOnlyTests {
     /// response", and validating it against the request would reject every correct client.
     /// </summary>
     [HardenedTest]
-    public async Task OmittingARequiredReadOnlyPropertyIsNotAValidationError(ITestWebApp testWebApp) {
+    public async Task OmittingARequiredReadOnlyPropertyIsNotAValidationError(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(new { email = "someone@example.com" }, "/accounts");
 
         response.Assert.Ok();
@@ -47,9 +50,12 @@ public class ReadOnlyWriteOnlyTests {
     /// A write-only property is accepted, so the keyword does not simply drop the value everywhere.
     /// </summary>
     [HardenedTest]
-    public async Task AWriteOnlyValueReachesTheHandler(ITestWebApp testWebApp) {
+    public async Task AWriteOnlyValueReachesTheHandler(ITestWebApp testWebApp)
+    {
         await testWebApp.Post(
-            new { email = "someone@example.com", password = "correct-horse" }, "/accounts");
+            new { email = "someone@example.com", password = "correct-horse" },
+            "/accounts"
+        );
 
         Assert.Equal("correct-horse", AccountServiceImpl.LastPasswordSeen);
     }
@@ -79,10 +85,17 @@ public class ReadOnlyWriteOnlyTests {
     /// </para>
     /// </remarks>
     [HardenedTest]
-    public async Task TheDirectionsAreNotEnforcedWithoutTheAotResolver(ITestWebApp testWebApp) {
+    public async Task TheDirectionsAreNotEnforcedWithoutTheAotResolver(ITestWebApp testWebApp)
+    {
         var response = await testWebApp.Post(
-            new { id = "injected-by-client", email = "someone@example.com", password = "hunter2" },
-            "/accounts");
+            new
+            {
+                id = "injected-by-client",
+                email = "someone@example.com",
+                password = "hunter2",
+            },
+            "/accounts"
+        );
 
         response.Assert.Ok();
 

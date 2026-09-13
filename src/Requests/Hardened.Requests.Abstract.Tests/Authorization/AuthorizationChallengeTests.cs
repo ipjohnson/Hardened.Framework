@@ -12,8 +12,8 @@ namespace Hardened.Requests.Abstract.Tests.Authorization;
 /// down the wrong branch of that decision, so the exact strings are asserted rather than the shape.
 /// </para>
 /// </summary>
-public class AuthorizationChallengeTests {
-
+public class AuthorizationChallengeTests
+{
     #region no credential
 
     /// <summary>
@@ -22,7 +22,8 @@ public class AuthorizationChallengeTests {
     /// never sent one, which sends it to refresh rather than to obtain.
     /// </summary>
     [Fact]
-    public void AuthenticationRequired_CarriesNoErrorParameter() {
+    public void AuthenticationRequired_CarriesNoErrorParameter()
+    {
         var challenge = AuthorizationChallenge.AuthenticationRequired();
 
         Assert.Equal(401, challenge.StatusCode);
@@ -31,7 +32,8 @@ public class AuthorizationChallengeTests {
     }
 
     [Fact]
-    public void AuthenticationRequired_NamesTheRealmWhenThereIsOne() {
+    public void AuthenticationRequired_NamesTheRealmWhenThereIsOne()
+    {
         var challenge = AuthorizationChallenge.AuthenticationRequired("pets");
 
         Assert.Equal("Bearer realm=\"pets\"", challenge.HeaderValue);
@@ -42,7 +44,8 @@ public class AuthorizationChallengeTests {
     #region invalid credential
 
     [Fact]
-    public void InvalidToken_IsA401NamingTheError() {
+    public void InvalidToken_IsA401NamingTheError()
+    {
         var challenge = AuthorizationChallenge.InvalidToken();
 
         Assert.Equal(401, challenge.StatusCode);
@@ -50,12 +53,14 @@ public class AuthorizationChallengeTests {
     }
 
     [Fact]
-    public void InvalidToken_PutsRealmBeforeError() {
+    public void InvalidToken_PutsRealmBeforeError()
+    {
         var challenge = AuthorizationChallenge.InvalidToken("pets", "the token expired");
 
         Assert.Equal(
             "Bearer realm=\"pets\", error=\"invalid_token\", error_description=\"the token expired\"",
-            challenge.HeaderValue);
+            challenge.HeaderValue
+        );
     }
 
     #endregion
@@ -67,7 +72,8 @@ public class AuthorizationChallengeTests {
     /// it is what the enum member is named after so the wire and the source use one term.
     /// </summary>
     [Fact]
-    public void InsufficientAuthentication_IsA401WithRfc9470sErrorCode() {
+    public void InsufficientAuthentication_IsA401WithRfc9470sErrorCode()
+    {
         var challenge = AuthorizationChallenge.InsufficientAuthentication();
 
         Assert.Equal(401, challenge.StatusCode);
@@ -84,27 +90,31 @@ public class AuthorizationChallengeTests {
     /// client can act on.
     /// </summary>
     [Fact]
-    public void InsufficientScope_IsA403NamingTheGrantsThatWouldHaveWorked() {
+    public void InsufficientScope_IsA403NamingTheGrantsThatWouldHaveWorked()
+    {
         var challenge = AuthorizationChallenge.InsufficientScope(["pets:read", "pets:write"]);
 
         Assert.Equal(403, challenge.StatusCode);
         Assert.Equal(
             "Bearer error=\"insufficient_scope\", scope=\"pets:read pets:write\"",
-            challenge.HeaderValue);
+            challenge.HeaderValue
+        );
     }
 
     /// <summary>
     /// Space-delimited, which is how OAuth writes a scope list everywhere else.
     /// </summary>
     [Fact]
-    public void InsufficientScope_JoinsGrantsWithSpaces() {
+    public void InsufficientScope_JoinsGrantsWithSpaces()
+    {
         var challenge = AuthorizationChallenge.InsufficientScope(["a", "b", "c"]);
 
         Assert.Contains("scope=\"a b c\"", challenge.HeaderValue);
     }
 
     [Fact]
-    public void InsufficientScope_WithNoGrantsOmitsTheScopeParameter() {
+    public void InsufficientScope_WithNoGrantsOmitsTheScopeParameter()
+    {
         var challenge = AuthorizationChallenge.InsufficientScope([]);
 
         Assert.Equal("Bearer error=\"insufficient_scope\"", challenge.HeaderValue);
@@ -125,14 +135,16 @@ public class AuthorizationChallengeTests {
     [InlineData("a\"b", "a\\\"b")]
     [InlineData("a\\b", "a\\\\b")]
     [InlineData("plain", "plain")]
-    public void ParameterValuesAreEscapedForAQuotedString(string realm, string expected) {
+    public void ParameterValuesAreEscapedForAQuotedString(string realm, string expected)
+    {
         var challenge = AuthorizationChallenge.AuthenticationRequired(realm);
 
         Assert.Equal($"Bearer realm=\"{expected}\"", challenge.HeaderValue);
     }
 
     [Fact]
-    public void Apply_WritesTheHeaderOntoTheResponse() {
+    public void Apply_WritesTheHeaderOntoTheResponse()
+    {
         var headers = new Dictionary<string, StringValues>();
 
         AuthorizationChallenge.InvalidToken().Apply(headers);
@@ -145,14 +157,18 @@ public class AuthorizationChallengeTests {
     /// sends one challenge rather than two.
     /// </summary>
     [Fact]
-    public void Apply_TwiceLeavesOneValue() {
+    public void Apply_TwiceLeavesOneValue()
+    {
         var headers = new Dictionary<string, StringValues>();
         var challenge = AuthorizationChallenge.InvalidToken();
 
         challenge.Apply(headers);
         challenge.Apply(headers);
 
-        Assert.Equal(new StringValues("Bearer error=\"invalid_token\""), headers["WWW-Authenticate"]);
+        Assert.Equal(
+            new StringValues("Bearer error=\"invalid_token\""),
+            headers["WWW-Authenticate"]
+        );
     }
 
     #endregion
@@ -160,26 +176,32 @@ public class AuthorizationChallengeTests {
     #region carried on an exception
 
     [Fact]
-    public void TheExceptionTakesItsStatusFromTheChallenge() {
+    public void TheExceptionTakesItsStatusFromTheChallenge()
+    {
         Assert.Equal(
             403,
-            new AuthorizationException(AuthorizationChallenge.InsufficientScope(["a"])).StatusCode);
+            new AuthorizationException(AuthorizationChallenge.InsufficientScope(["a"])).StatusCode
+        );
 
         Assert.Equal(
             401,
-            new AuthorizationException(AuthorizationChallenge.AuthenticationRequired()).StatusCode);
+            new AuthorizationException(AuthorizationChallenge.AuthenticationRequired()).StatusCode
+        );
     }
 
     [Fact]
-    public void TheExceptionAppliesTheChallengesHeader() {
+    public void TheExceptionAppliesTheChallengesHeader()
+    {
         var headers = new Dictionary<string, StringValues>();
 
-        new AuthorizationException(AuthorizationChallenge.InsufficientScope(["pets:read"]))
-            .ApplyHeaders(headers);
+        new AuthorizationException(
+            AuthorizationChallenge.InsufficientScope(["pets:read"])
+        ).ApplyHeaders(headers);
 
         Assert.Equal(
             "Bearer error=\"insufficient_scope\", scope=\"pets:read\"",
-            headers["WWW-Authenticate"]);
+            headers["WWW-Authenticate"]
+        );
     }
 
     /// <summary>
@@ -188,16 +210,19 @@ public class AuthorizationChallengeTests {
     /// in the challenge, where it is machine-readable.
     /// </summary>
     [Fact]
-    public void TheExceptionMessageSaysNothingAboutWhyTheCheckFailed() {
+    public void TheExceptionMessageSaysNothingAboutWhyTheCheckFailed()
+    {
         var forbidden = new AuthorizationException(
-            AuthorizationChallenge.InsufficientScope(["internal:admin"]));
+            AuthorizationChallenge.InsufficientScope(["internal:admin"])
+        );
 
         Assert.DoesNotContain("internal:admin", forbidden.Message);
         Assert.Equal("This request is not permitted.", forbidden.Message);
 
         Assert.Equal(
             "This request requires authentication.",
-            new AuthorizationException(AuthorizationChallenge.AuthenticationRequired()).Message);
+            new AuthorizationException(AuthorizationChallenge.AuthenticationRequired()).Message
+        );
     }
 
     #endregion
@@ -212,18 +237,21 @@ public class AuthorizationChallengeTests {
     /// written in one place and read in another and the only thing that matters is that they are
     /// the same format. A parameter added to <c>Format</c> and not to the parser fails here.
     /// </remarks>
-    public static TheoryData<AuthorizationChallenge> EveryChallenge => new() {
-        AuthorizationChallenge.AuthenticationRequired(),
-        AuthorizationChallenge.AuthenticationRequired("api"),
-        AuthorizationChallenge.InvalidToken(),
-        AuthorizationChallenge.InvalidToken("api", "the token expired"),
-        AuthorizationChallenge.InsufficientAuthentication("api", "a second factor is required"),
-        AuthorizationChallenge.InsufficientScope(["todos:read", "todos:write"], "api"),
-    };
+    public static TheoryData<AuthorizationChallenge> EveryChallenge =>
+        new()
+        {
+            AuthorizationChallenge.AuthenticationRequired(),
+            AuthorizationChallenge.AuthenticationRequired("api"),
+            AuthorizationChallenge.InvalidToken(),
+            AuthorizationChallenge.InvalidToken("api", "the token expired"),
+            AuthorizationChallenge.InsufficientAuthentication("api", "a second factor is required"),
+            AuthorizationChallenge.InsufficientScope(["todos:read", "todos:write"], "api"),
+        };
 
     [Theory]
     [MemberData(nameof(EveryChallenge))]
-    public void AChallenge_ReadsBackAsTheHeaderItWrote(AuthorizationChallenge challenge) {
+    public void AChallenge_ReadsBackAsTheHeaderItWrote(AuthorizationChallenge challenge)
+    {
         var parsed = AuthorizationChallenge.Parse(challenge.HeaderValue, challenge.StatusCode);
 
         Assert.Equal(challenge.HeaderValue, parsed.HeaderValue);
@@ -240,16 +268,19 @@ public class AuthorizationChallengeTests {
     /// the one an application chooses, so both reach the parser in practice.
     /// </summary>
     [Fact]
-    public void AQuotedValue_MayHoldACommaAndAQuote() {
+    public void AQuotedValue_MayHoldACommaAndAQuote()
+    {
         var parsed = AuthorizationChallenge.Parse(
-            AuthorizationChallenge.InvalidToken("a \"realm\", quoted").HeaderValue);
+            AuthorizationChallenge.InvalidToken("a \"realm\", quoted").HeaderValue
+        );
 
         Assert.Equal("a \"realm\", quoted", parsed.Realm);
         Assert.Equal("invalid_token", parsed.Error);
     }
 
     [Fact]
-    public void AChallengeThatIsOnlyAScheme_ReadsBackAsThatScheme() {
+    public void AChallengeThatIsOnlyAScheme_ReadsBackAsThatScheme()
+    {
         var parsed = AuthorizationChallenge.Parse("Bearer");
 
         Assert.Equal("Bearer", parsed.Scheme);
@@ -262,9 +293,11 @@ public class AuthorizationChallengeTests {
     /// type does not model is skipped rather than refused.
     /// </summary>
     [Fact]
-    public void AParameterThisTypeDoesNotModel_IsIgnored() {
+    public void AParameterThisTypeDoesNotModel_IsIgnored()
+    {
         var parsed = AuthorizationChallenge.Parse(
-            "Bearer realm=\"api\", error=invalid_token, max_age=60");
+            "Bearer realm=\"api\", error=invalid_token, max_age=60"
+        );
 
         Assert.Equal("api", parsed.Realm);
         Assert.Equal("invalid_token", parsed.Error);
@@ -275,11 +308,14 @@ public class AuthorizationChallengeTests {
     /// the caller does.
     /// </summary>
     [Fact]
-    public void TheStatusIsTheCallersToState() {
+    public void TheStatusIsTheCallersToState()
+    {
         Assert.Equal(
             403,
-            AuthorizationChallenge.Parse(
-                AuthorizationChallenge.InsufficientScope(["todos:read"]).HeaderValue, 403).StatusCode);
+            AuthorizationChallenge
+                .Parse(AuthorizationChallenge.InsufficientScope(["todos:read"]).HeaderValue, 403)
+                .StatusCode
+        );
     }
 
     /// <summary>
@@ -287,7 +323,8 @@ public class AuthorizationChallengeTests {
     /// challenge this malformed says nothing about what the client should do next.
     /// </summary>
     [Fact]
-    public void AParameterWithNoValue_EndsTheHeader() {
+    public void AParameterWithNoValue_EndsTheHeader()
+    {
         var parsed = AuthorizationChallenge.Parse("Bearer realm=\"api\", error");
 
         Assert.Equal("api", parsed.Realm);
@@ -295,7 +332,8 @@ public class AuthorizationChallengeTests {
     }
 
     [Fact]
-    public void AnEmptyHeader_IsRefused() {
+    public void AnEmptyHeader_IsRefused()
+    {
         Assert.Throws<ArgumentException>(() => AuthorizationChallenge.Parse("  "));
     }
 

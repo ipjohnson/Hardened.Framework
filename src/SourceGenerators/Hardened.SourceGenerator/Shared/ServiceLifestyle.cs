@@ -1,7 +1,8 @@
 namespace Hardened.SourceGenerator.Shared;
 
-public enum ServiceLifestyle {
+public enum ServiceLifestyle
+{
     Transient,
     Scoped,
-    Singleton
+    Singleton,
 }

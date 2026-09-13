@@ -2,10 +2,10 @@ using System.Text.Json;
 using Hardened.Requests.Abstract.Responses;
 using Hardened.SourceGeneration.Testing;
 using Hardened.Web.Runtime.Attributes;
+using Hardened.Web.Runtime.Responses;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using Xunit;
-using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.SourceGenerator.Tests;
 
@@ -25,14 +25,12 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// <c>SuccessStatus</c>. The first test below is that assertion.
 /// </para>
 /// </summary>
-public class ResponseSetDocumentTests {
+public class ResponseSetDocumentTests
+{
+    private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(Response<,>)];
 
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),
-        typeof(Response<,>)
-    ];
-
-    private static JsonElement Document(string handlers) {
+    private static JsonElement Document(string handlers)
+    {
         var result = GeneratorTestHarness.Run(
             $$"""
             using System.Threading.Tasks;
@@ -55,16 +53,22 @@ public class ResponseSetDocumentTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
-        var source = result.GeneratedSources
-            .First(pair => pair.Key.Contains("OpenApiDocument")).Value;
+        var source = result
+            .GeneratedSources.First(pair => pair.Key.Contains("OpenApiDocument"))
+            .Value;
 
         return JsonDocument.Parse(GeneratedOpenApiDocument.Extract(source)).RootElement;
     }
 
     private static JsonElement Responses(JsonElement document, string path, string method) =>
-        document.GetProperty("paths").GetProperty(path).GetProperty(method).GetProperty("responses");
+        document
+            .GetProperty("paths")
+            .GetProperty(path)
+            .GetProperty(method)
+            .GetProperty("responses");
 
     private static IEnumerable<string> Statuses(JsonElement responses) =>
         responses.EnumerateObject().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal);
@@ -76,14 +80,24 @@ public class ResponseSetDocumentTests {
     /// client acts on the difference.
     /// </summary>
     [Fact]
-    public void ADeclaredSuccessStatusReachesTheDocument() {
-        var responses = Responses(Document("""
-                [Post("/todos", SuccessStatus = 201)]
-                public Todo Create() => new Todo(1, "t");
-            """), "/todos", "post");
+    public void ADeclaredSuccessStatusReachesTheDocument()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Post("/todos", SuccessStatus = 201)]
+                    public Todo Create() => new Todo(1, "t");
+                """
+            ),
+            "/todos",
+            "post"
+        );
 
         Assert.Equal(new[] { "201" }, Statuses(responses));
-        Assert.Equal("Created", responses.GetProperty("201").GetProperty("description").GetString());
+        Assert.Equal(
+            "Created",
+            responses.GetProperty("201").GetProperty("description").GetString()
+        );
     }
 
     /// <summary>
@@ -91,11 +105,18 @@ public class ResponseSetDocumentTests {
     /// before this changed.
     /// </summary>
     [Fact]
-    public void AnUndeclaredSuccessStatusIsStillTwoHundred() {
-        var responses = Responses(Document("""
-                [Get("/todos/{id}")]
-                public Todo ById(string id) => new Todo(1, "t");
-            """), "/todos/{id}", "get");
+    public void AnUndeclaredSuccessStatusIsStillTwoHundred()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}")]
+                    public Todo ById(string id) => new Todo(1, "t");
+                """
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(new[] { "200" }, Statuses(responses));
         Assert.Equal("OK", responses.GetProperty("200").GetProperty("description").GetString());
@@ -111,11 +132,18 @@ public class ResponseSetDocumentTests {
     /// with.
     /// </summary>
     [Fact]
-    public void EveryDeclaredCaseBecomesAResponse() {
-        var responses = Responses(Document("""
-                [Get("/todos/{id}")]
-                public Response<Todo, NotFound, Conflict> ById(string id) => new Todo(1, "t");
-            """), "/todos/{id}", "get");
+    public void EveryDeclaredCaseBecomesAResponse()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}")]
+                    public Response<Todo, NotFound, Conflict> ById(string id) => new Todo(1, "t");
+                """
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(new[] { "200", "404", "409" }, Statuses(responses));
     }
@@ -125,14 +153,24 @@ public class ResponseSetDocumentTests {
     /// the document and that is the one thing they already know the status by.
     /// </summary>
     [Fact]
-    public void EachResponseCarriesItsReasonPhrase() {
-        var responses = Responses(Document("""
-                [Get("/todos/{id}")]
-                public Response<Todo, NotFound, Gone> ById(string id) => new Todo(1, "t");
-            """), "/todos/{id}", "get");
+    public void EachResponseCarriesItsReasonPhrase()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}")]
+                    public Response<Todo, NotFound, Gone> ById(string id) => new Todo(1, "t");
+                """
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal("OK", responses.GetProperty("200").GetProperty("description").GetString());
-        Assert.Equal("Not Found", responses.GetProperty("404").GetProperty("description").GetString());
+        Assert.Equal(
+            "Not Found",
+            responses.GetProperty("404").GetProperty("description").GetString()
+        );
         Assert.Equal("Gone", responses.GetProperty("410").GetProperty("description").GetString());
     }
 
@@ -141,11 +179,18 @@ public class ResponseSetDocumentTests {
     /// annotated cases moving and the success case staying at 200.
     /// </summary>
     [Fact]
-    public void TheSuccessCaseOfASetTakesTheEndpointStatus() {
-        var responses = Responses(Document("""
-                [Post("/todos", SuccessStatus = 201)]
-                public Response<Todo, Conflict> Create() => new Todo(1, "t");
-            """), "/todos", "post");
+    public void TheSuccessCaseOfASetTakesTheEndpointStatus()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Post("/todos", SuccessStatus = 201)]
+                    public Response<Todo, Conflict> Create() => new Todo(1, "t");
+                """
+            ),
+            "/todos",
+            "post"
+        );
 
         Assert.Equal(new[] { "201", "409" }, Statuses(responses));
     }
@@ -155,11 +200,18 @@ public class ResponseSetDocumentTests {
     /// a body that is not coming.
     /// </summary>
     [Fact]
-    public void ABodylessCaseDeclaresNoContent() {
-        var responses = Responses(Document("""
-                [Delete("/todos/{id}")]
-                public Response<NoContent, NotFound> Remove(string id) => new NoContent();
-            """), "/todos/{id}", "delete");
+    public void ABodylessCaseDeclaresNoContent()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Delete("/todos/{id}")]
+                    public Response<NoContent, NotFound> Remove(string id) => new NoContent();
+                """
+            ),
+            "/todos/{id}",
+            "delete"
+        );
 
         Assert.Equal(new[] { "204", "404" }, Statuses(responses));
         Assert.False(responses.GetProperty("204").TryGetProperty("content", out _));
@@ -171,16 +223,26 @@ public class ResponseSetDocumentTests {
     /// not silently win.
     /// </summary>
     [Fact]
-    public void TwoCasesSharingAStatusBecomeAOneOf() {
-        var responses = Responses(Document("""
-                [Get("/todos/{id}")]
-                public Response<Todo, Archived, NotFound> ById(string id) => new Todo(1, "t");
-            """), "/todos/{id}", "get");
+    public void TwoCasesSharingAStatusBecomeAOneOf()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}")]
+                    public Response<Todo, Archived, NotFound> ById(string id) => new Todo(1, "t");
+                """
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(new[] { "200", "404" }, Statuses(responses));
 
-        var schema = responses.GetProperty("200").GetProperty("content")
-            .GetProperty("application/json").GetProperty("schema");
+        var schema = responses
+            .GetProperty("200")
+            .GetProperty("content")
+            .GetProperty("application/json")
+            .GetProperty("schema");
 
         Assert.True(schema.TryGetProperty("oneOf", out var oneOf));
         Assert.Equal(2, oneOf.GetArrayLength());
@@ -191,14 +253,19 @@ public class ResponseSetDocumentTests {
     /// is an untyped <c>Value</c> as the contract for the 200.
     /// </summary>
     [Fact]
-    public void TheResponseWrapperIsNeverASchemaComponent() {
-        var document = Document("""
+    public void TheResponseWrapperIsNeverASchemaComponent()
+    {
+        var document = Document(
+            """
                 [Get("/todos/{id}")]
                 public Response<Todo, NotFound> ById(string id) => new Todo(1, "t");
-            """);
+            """
+        );
 
-        if (document.TryGetProperty("components", out var components)) {
-            foreach (var schema in components.GetProperty("schemas").EnumerateObject()) {
+        if (document.TryGetProperty("components", out var components))
+        {
+            foreach (var schema in components.GetProperty("schemas").EnumerateObject())
+            {
                 Assert.DoesNotContain("Response", schema.Name, StringComparison.Ordinal);
             }
         }
@@ -211,12 +278,19 @@ public class ResponseSetDocumentTests {
     /// names away as a boolean.
     /// </summary>
     [Fact]
-    public void ACaseThatCarriesHeadersDeclaresThem() {
-        var responses = Responses(Document("""
-                [Post("/todos")]
-                public Response<Created<Todo>, Conflict> Create() =>
-                    new Created<Todo>(new Todo(1, "t"), "/todos/1");
-            """), "/todos", "post");
+    public void ACaseThatCarriesHeadersDeclaresThem()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Post("/todos")]
+                    public Response<Created<Todo>, Conflict> Create() =>
+                        new Created<Todo>(new Todo(1, "t"), "/todos/1");
+                """
+            ),
+            "/todos",
+            "post"
+        );
 
         var created = responses.GetProperty("201");
 
@@ -233,11 +307,18 @@ public class ResponseSetDocumentTests {
     /// ones.
     /// </summary>
     [Fact]
-    public void AHeaderTheConventionCannotNameIsOmitted() {
-        var responses = Responses(Document("""
-                [Get("/todos/{id}")]
-                public Response<Todo, RateLimited> ById(string id) => new Todo(1, "t");
-            """), "/todos/{id}", "get");
+    public void AHeaderTheConventionCannotNameIsOmitted()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}")]
+                    public Response<Todo, RateLimited> ById(string id) => new Todo(1, "t");
+                """
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.False(responses.GetProperty("429").TryGetProperty("headers", out _));
         Assert.False(responses.GetProperty("429").TryGetProperty("Detail", out _));
@@ -257,12 +338,19 @@ public class ResponseSetDocumentTests {
     /// fixed declares nothing, which is the truth about it.
     /// </remarks>
     [Fact]
-    public void AResponseWithRuntimeChosenHeadersDeclaresNone() {
-        var responses = Responses(Document("""
-                [Get("/todos/{id}")]
-                public Response<Ok<Todo>, NotFound> ById(string id) =>
-                    new Ok<Todo>(new Todo(1, "t"));
-            """), "/todos/{id}", "get");
+    public void AResponseWithRuntimeChosenHeadersDeclaresNone()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}")]
+                    public Response<Ok<Todo>, NotFound> ById(string id) =>
+                        new Ok<Todo>(new Todo(1, "t"));
+                """
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         var ok = responses.GetProperty("200");
 
@@ -274,15 +362,23 @@ public class ResponseSetDocumentTests {
     /// <c>Ok&lt;T&gt;</c> rather than to the convention.
     /// </summary>
     [Fact]
-    public void ACaseWithOneConstructorStillDeclaresItsHeader() {
-        var responses = Responses(Document("""
-                [Post("/todos")]
-                public Response<Created<Todo>, Ok<Todo>> Create() =>
-                    new Created<Todo>(new Todo(1, "t"), "/todos/1");
-            """), "/todos", "post");
+    public void ACaseWithOneConstructorStillDeclaresItsHeader()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Post("/todos")]
+                    public Response<Created<Todo>, Ok<Todo>> Create() =>
+                        new Created<Todo>(new Todo(1, "t"), "/todos/1");
+                """
+            ),
+            "/todos",
+            "post"
+        );
 
-        Assert.True(responses.GetProperty("201").GetProperty("headers")
-            .TryGetProperty("Location", out _));
+        Assert.True(
+            responses.GetProperty("201").GetProperty("headers").TryGetProperty("Location", out _)
+        );
 
         Assert.False(responses.GetProperty("200").TryGetProperty("headers", out _));
     }
@@ -299,27 +395,47 @@ public class ResponseSetDocumentTests {
     /// said nothing.
     /// </summary>
     [Fact]
-    public void ABindingRefusalPublishesTheFourHundred() {
-        var responses = Responses(Document("""
-                [Get("/todos/{id}")]
-                public Todo ById(int id) => new Todo(id, "t");
-            """), "/todos/{id}", "get");
+    public void ABindingRefusalPublishesTheFourHundred()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id}")]
+                    public Todo ById(int id) => new Todo(id, "t");
+                """
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(new[] { "200", "400" }, Statuses(responses));
 
         Assert.Equal(
             "#/components/schemas/RequestValidationError",
-            responses.GetProperty("400").GetProperty("content").GetProperty("application/json")
-                .GetProperty("schema").GetProperty("$ref").GetString());
+            responses
+                .GetProperty("400")
+                .GetProperty("content")
+                .GetProperty("application/json")
+                .GetProperty("schema")
+                .GetProperty("$ref")
+                .GetString()
+        );
     }
 
     /// <summary>A string binds as itself and cannot fail conversion, so nothing is added.</summary>
     [Fact]
-    public void AStringBoundOperationPublishesNoFourHundred() {
-        var responses = Responses(Document("""
-                [Get("/todos/{title}")]
-                public Todo ByTitle(string title) => new Todo(1, title);
-            """), "/todos/{title}", "get");
+    public void AStringBoundOperationPublishesNoFourHundred()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{title}")]
+                    public Todo ByTitle(string title) => new Todo(1, title);
+                """
+            ),
+            "/todos/{title}",
+            "get"
+        );
 
         Assert.Equal(new[] { "200" }, Statuses(responses));
     }
@@ -336,11 +452,18 @@ public class ResponseSetDocumentTests {
     /// </para>
     /// </summary>
     [Fact]
-    public void AConstrainedPathTokenPublishesTheFourOhFourAndNoFourHundred() {
-        var responses = Responses(Document("""
-                [Get("/todos/{id:int}")]
-                public Todo ById(int id) => new Todo(id, "t");
-            """), "/todos/{id}", "get");
+    public void AConstrainedPathTokenPublishesTheFourOhFourAndNoFourHundred()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id:int}")]
+                    public Todo ById(int id) => new Todo(id, "t");
+                """
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(new[] { "200", "404" }, Statuses(responses));
         Assert.False(responses.GetProperty("404").TryGetProperty("content", out _));
@@ -352,11 +475,18 @@ public class ResponseSetDocumentTests {
     /// the one a document cannot key separately.
     /// </summary>
     [Fact]
-    public void ADeclaredFourOhFourIsNotOverwritten() {
-        var responses = Responses(Document("""
-                [Get("/todos/{id:int}")]
-                public Response<Todo, NotFound> ById(int id) => new Todo(id, "t");
-            """), "/todos/{id}", "get");
+    public void ADeclaredFourOhFourIsNotOverwritten()
+    {
+        var responses = Responses(
+            Document(
+                """
+                    [Get("/todos/{id:int}")]
+                    public Response<Todo, NotFound> ById(int id) => new Todo(id, "t");
+                """
+            ),
+            "/todos/{id}",
+            "get"
+        );
 
         Assert.Equal(new[] { "200", "404" }, Statuses(responses));
 
@@ -365,7 +495,8 @@ public class ResponseSetDocumentTests {
         Assert.True(notFound.TryGetProperty("content", out _));
         Assert.Contains(
             "A token that fails its route constraint answers this status too",
-            notFound.GetProperty("description").GetString());
+            notFound.GetProperty("description").GetString()
+        );
     }
 
     #endregion
@@ -378,7 +509,8 @@ public class ResponseSetDocumentTests {
     /// between a writer and its own reader agrees with itself and passes.
     /// </summary>
     [Fact]
-    public void AResponseSetDocumentParsesAsOpenApi() {
+    public void AResponseSetDocumentParsesAsOpenApi()
+    {
         var result = GeneratorTestHarness.Run(
             $$"""
             using Hardened.Requests.Abstract.Responses;
@@ -401,10 +533,12 @@ public class ResponseSetDocumentTests {
             }
             """,
             new WebLibrarySourceGenerator(),
-            Anchors);
+            Anchors
+        );
 
         var json = GeneratedOpenApiDocument.Extract(
-            result.GeneratedSources.First(pair => pair.Key.Contains("OpenApiDocument")).Value);
+            result.GeneratedSources.First(pair => pair.Key.Contains("OpenApiDocument")).Value
+        );
 
         var read = OpenApiDocument.Parse(json, "json");
 
@@ -414,7 +548,8 @@ public class ResponseSetDocumentTests {
 
         Assert.Equal(
             new[] { "200", "204", "404", "409" },
-            operation.Responses!.Keys.OrderBy(k => k, StringComparer.Ordinal));
+            operation.Responses!.Keys.OrderBy(k => k, StringComparer.Ordinal)
+        );
     }
 
     #endregion

@@ -1,3 +1,5 @@
+using Hardened.Shared.Testing.Attributes;
+using Hardened1;
 #if (nsubstitute)
 using DependencyModules.NSubstitute;
 #endif
@@ -7,8 +9,6 @@ using DependencyModules.Moq;
 #if (fakeiteasy)
 using DependencyModules.FakeItEasy;
 #endif
-using Hardened.Shared.Testing.Attributes;
-using Hardened1;
 
 // The module under test. The real module graph is applied and startup services run, so there is
 // no separate test wiring to keep in step with the library.

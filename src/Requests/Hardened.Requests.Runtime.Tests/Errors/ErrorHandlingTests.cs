@@ -13,8 +13,8 @@ namespace Hardened.Requests.Runtime.Tests.Errors;
 /// not-found handler, which runs the routing chain and fills in a status if nothing did, and
 /// the controller error helper, which every generated handler funnels its exceptions through.
 /// </summary>
-public class ErrorHandlingTests {
-
+public class ErrorHandlingTests
+{
     // ------------------------------------------------------------- IResourceNotFoundHandler
 
     /// <summary>
@@ -23,7 +23,8 @@ public class ErrorHandlingTests {
     /// produced a response.
     /// </summary>
     [Fact]
-    public async Task ARequestNothingSetAStatusForBecomesA404() {
+    public async Task ARequestNothingSetAStatusForBecomesA404()
+    {
         var context = Pipeline.Context(path: "/no-such-route");
 
         var chain = Pipeline.Chain(context, new Pipeline.Recording(new List<string>(), "router"));
@@ -44,14 +45,19 @@ public class ErrorHandlingTests {
     [InlineData(302)]
     [InlineData(401)]
     [InlineData(500)]
-    public async Task AStatusThatWasAlreadySetSurvives(int status) {
+    public async Task AStatusThatWasAlreadySetSurvives(int status)
+    {
         var context = Pipeline.Context();
 
-        var chain = Pipeline.Chain(context, new Pipeline.Inline(c => {
-            c.Context.Response.Status = status;
+        var chain = Pipeline.Chain(
+            context,
+            new Pipeline.Inline(c =>
+            {
+                c.Context.Response.Status = status;
 
-            return Task.CompletedTask;
-        }));
+                return Task.CompletedTask;
+            })
+        );
 
         await new ResourceNotFoundHandler(Pipeline.Logger<ResourceNotFoundHandler>()).Handle(chain);
 
@@ -63,13 +69,16 @@ public class ErrorHandlingTests {
     /// the application.
     /// </summary>
     [Fact]
-    public async Task TheRestOfTheChainRunsBeforeTheNotFoundDecisionIsMade() {
+    public async Task TheRestOfTheChainRunsBeforeTheNotFoundDecisionIsMade()
+    {
         var log = new List<string>();
         var context = Pipeline.Context();
 
-        var chain = Pipeline.Chain(context,
+        var chain = Pipeline.Chain(
+            context,
             new Pipeline.Recording(log, "first"),
-            new Pipeline.Recording(log, "second"));
+            new Pipeline.Recording(log, "second")
+        );
 
         await new ResourceNotFoundHandler(Pipeline.Logger<ResourceNotFoundHandler>()).Handle(chain);
 
@@ -82,14 +91,18 @@ public class ErrorHandlingTests {
     /// a broken route is not a missing one.
     /// </summary>
     [Fact]
-    public async Task AnExceptionWhileRoutingIsNotTurnedIntoA404() {
+    public async Task AnExceptionWhileRoutingIsNotTurnedIntoA404()
+    {
         var context = Pipeline.Context();
 
-        var chain = Pipeline.Chain(context,
-            new Pipeline.Inline(_ => throw new InvalidOperationException("route table broken")));
+        var chain = Pipeline.Chain(
+            context,
+            new Pipeline.Inline(_ => throw new InvalidOperationException("route table broken"))
+        );
 
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            new ResourceNotFoundHandler(Pipeline.Logger<ResourceNotFoundHandler>()).Handle(chain));
+            new ResourceNotFoundHandler(Pipeline.Logger<ResourceNotFoundHandler>()).Handle(chain)
+        );
 
         Assert.Null(context.Response.Status);
     }
@@ -102,7 +115,8 @@ public class ErrorHandlingTests {
     /// request.
     /// </summary>
     [Fact]
-    public async Task AHandlerExceptionIsRecordedOnTheResponseRatherThanRethrown() {
+    public async Task AHandlerExceptionIsRecordedOnTheResponseRatherThanRethrown()
+    {
         var context = Pipeline.Context();
         var failure = new InvalidOperationException("handler failed");
 
@@ -121,9 +135,12 @@ public class ErrorHandlingTests {
     /// that produced a line. Restoring it here would report a handler fault twice.
     /// </remarks>
     [Fact]
-    public async Task AHandlerExceptionIsNotLoggedHere() {
+    public async Task AHandlerExceptionIsNotLoggedHere()
+    {
         var logger = Substitute.For<IRequestLogger>();
-        var context = Pipeline.Context(configureServices: services => services.AddSingleton(logger));
+        var context = Pipeline.Context(configureServices: services =>
+            services.AddSingleton(logger)
+        );
         var failure = new InvalidOperationException("handler failed");
 
         await ControllerErrorHelper.HandleException(context, failure);
@@ -137,7 +154,8 @@ public class ErrorHandlingTests {
     /// recovered from.
     /// </summary>
     [Fact]
-    public async Task TheMostRecentFailureIsTheOneReported() {
+    public async Task TheMostRecentFailureIsTheOneReported()
+    {
         var context = Pipeline.Context();
 
         await ControllerErrorHelper.HandleException(context, new Exception("first"));

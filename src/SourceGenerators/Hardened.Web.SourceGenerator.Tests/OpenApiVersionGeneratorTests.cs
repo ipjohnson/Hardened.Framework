@@ -25,21 +25,16 @@ namespace Hardened.Web.SourceGenerator.Tests;
 /// other end - the document, or the diagnostic.
 /// </para>
 /// </remarks>
-public class OpenApiVersionGeneratorTests {
+public class OpenApiVersionGeneratorTests
+{
+    private static readonly Type[] Anchors = [typeof(GetAttribute), typeof(FromBodyAttribute)];
 
-    private static readonly Type[] Anchors = [
-        typeof(GetAttribute),
-        typeof(FromBodyAttribute)
-    ];
-
-    private const string Handlers =
-        """
+    private const string Handlers = """
             [Get("/users/{id}")]
             public string ById(string id) => id;
         """;
 
-    private const string StreamingHandler =
-        """
+    private const string StreamingHandler = """
             [Get("/users/{id}")]
             public string ById(string id) => id;
 
@@ -53,33 +48,37 @@ public class OpenApiVersionGeneratorTests {
 
     private static GeneratorResult Generate(string handlers, string? version) =>
         GeneratorTestHarness.Run(
-            new Dictionary<string, string> {
+            new Dictionary<string, string>
+            {
                 ["Test.cs"] = $$"""
-                    using Hardened.Shared.Runtime.Attributes;
-                    using Hardened.Web.Runtime.Attributes;
+                using Hardened.Shared.Runtime.Attributes;
+                using Hardened.Web.Runtime.Attributes;
 
-                    namespace TestApp;
+                namespace TestApp;
 
-                    [HardenedModule]
-                    [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
-                    public partial class TestApplication { }
+                [HardenedModule]
+                [Hardened.Shared.Runtime.Attributes.Enable<Hardened.Web.Runtime.OpenApi.OpenApiDocumentPublishing>]
+                public partial class TestApplication { }
 
-                    public class UserController {
-                    {{handlers}}
-                    }
-                    """
+                public class UserController {
+                {{handlers}}
+                }
+                """,
             },
             new IIncrementalGenerator[] { new WebLibrarySourceGenerator() },
             Anchors,
             additionalTexts: null,
             buildProperties: version == null
                 ? null
-                : new Dictionary<string, string> { [OpenApiVersionFacts.PropertyName] = version });
+                : new Dictionary<string, string> { [OpenApiVersionFacts.PropertyName] = version }
+        );
 
     /// <summary>The <c>openapi</c> field of the document the generator wrote.</summary>
-    private static string? DeclaredVersion(GeneratorResult result) {
-        var source = result.GeneratedSources
-            .First(pair => pair.Key.Contains("OpenApiDocument")).Value;
+    private static string? DeclaredVersion(GeneratorResult result)
+    {
+        var source = result
+            .GeneratedSources.First(pair => pair.Key.Contains("OpenApiDocument"))
+            .Value;
 
         // The document is emitted gzipped; take it back to JSON the way CI's extractor does.
         using var document = JsonDocument.Parse(GeneratedOpenApiDocument.Extract(source));
@@ -91,15 +90,21 @@ public class OpenApiVersionGeneratorTests {
         result.GeneratorDiagnostics.FirstOrDefault(diagnostic => diagnostic.Id == id);
 
     /// <summary>The media type object under the streamed operation's 200, whatever it is framed as.</summary>
-    private static JsonElement StreamedMediaType(GeneratorResult result) {
-        var source = result.GeneratedSources
-            .First(pair => pair.Key.Contains("OpenApiDocument")).Value;
+    private static JsonElement StreamedMediaType(GeneratorResult result)
+    {
+        var source = result
+            .GeneratedSources.First(pair => pair.Key.Contains("OpenApiDocument"))
+            .Value;
 
         using var document = JsonDocument.Parse(GeneratedOpenApiDocument.Extract(source));
 
-        var content = document.RootElement
-            .GetProperty("paths").GetProperty("/feed").GetProperty("get")
-            .GetProperty("responses").GetProperty("200").GetProperty("content");
+        var content = document
+            .RootElement.GetProperty("paths")
+            .GetProperty("/feed")
+            .GetProperty("get")
+            .GetProperty("responses")
+            .GetProperty("200")
+            .GetProperty("content");
 
         return content.EnumerateObject().Single().Value.Clone();
     }
@@ -116,7 +121,8 @@ public class OpenApiVersionGeneratorTests {
     /// <c>IAsyncEnumerable&lt;object&gt;</c>.
     /// </remarks>
     [Fact]
-    public void AStreamedResponseCarriesTheItemAndTheArrayAtThreeTwo() {
+    public void AStreamedResponseCarriesTheItemAndTheArrayAtThreeTwo()
+    {
         var media = StreamedMediaType(Generate(StreamingHandler, "3.2.0"));
 
         var item = media.GetProperty("itemSchema");
@@ -133,7 +139,8 @@ public class OpenApiVersionGeneratorTests {
     [Theory]
     [InlineData("3.0.0")]
     [InlineData("3.1.0")]
-    public void AStreamedResponseKeepsTheArrayBelowThreeTwo(string version) {
+    public void AStreamedResponseKeepsTheArrayBelowThreeTwo(string version)
+    {
         var media = StreamedMediaType(Generate(StreamingHandler, version));
 
         Assert.False(media.TryGetProperty("itemSchema", out _));
@@ -145,7 +152,8 @@ public class OpenApiVersionGeneratorTests {
     /// Unset emits the default, and the default is 3.2.0.
     /// </summary>
     [Fact]
-    public void AnUnsetPropertyEmitsTheDefault() {
+    public void AnUnsetPropertyEmitsTheDefault()
+    {
         Assert.Equal("3.2.0", DeclaredVersion(Generate(Handlers, null)));
     }
 
@@ -160,7 +168,8 @@ public class OpenApiVersionGeneratorTests {
     [InlineData("3.0.0")]
     [InlineData("3.1.0")]
     [InlineData("3.2.0")]
-    public void ASetPropertyReachesTheDocument(string version) {
+    public void ASetPropertyReachesTheDocument(string version)
+    {
         Assert.Equal(version, DeclaredVersion(Generate(Handlers, version)));
     }
 
@@ -174,9 +183,12 @@ public class OpenApiVersionGeneratorTests {
     /// cannot afford that.
     /// </remarks>
     [Fact]
-    public void AnUnrecognisedVersionIsABuildError() {
+    public void AnUnrecognisedVersionIsABuildError()
+    {
         var reported = Reported(
-            Generate(Handlers, "3.9.9"), OpenApiVersionDiagnostics.UnknownVersionId);
+            Generate(Handlers, "3.9.9"),
+            OpenApiVersionDiagnostics.UnknownVersionId
+        );
 
         Assert.NotNull(reported);
         Assert.Equal(DiagnosticSeverity.Error, reported!.Severity);
@@ -185,9 +197,11 @@ public class OpenApiVersionGeneratorTests {
     }
 
     [Fact]
-    public void ARecognisedVersionReportsNothing() {
+    public void ARecognisedVersionReportsNothing()
+    {
         Assert.Null(
-            Reported(Generate(Handlers, "3.0.0"), OpenApiVersionDiagnostics.UnknownVersionId));
+            Reported(Generate(Handlers, "3.0.0"), OpenApiVersionDiagnostics.UnknownVersionId)
+        );
     }
 
     /// <summary>
@@ -201,10 +215,12 @@ public class OpenApiVersionGeneratorTests {
     [Theory]
     [InlineData("3.0.0")]
     [InlineData("3.1.0")]
-    public void AStreamedHandlerIsReportedWhenItCannotBeDescribed(string version) {
+    public void AStreamedHandlerIsReportedWhenItCannotBeDescribed(string version)
+    {
         var reported = Reported(
             Generate(StreamingHandler, version),
-            OpenApiVersionDiagnostics.StreamNeedsItemSchemaId);
+            OpenApiVersionDiagnostics.StreamNeedsItemSchemaId
+        );
 
         Assert.NotNull(reported);
         Assert.Equal(DiagnosticSeverity.Warning, reported!.Severity);
@@ -214,11 +230,14 @@ public class OpenApiVersionGeneratorTests {
 
     /// <summary>At 3.2 there is nothing to report, because the document can say it.</summary>
     [Fact]
-    public void AStreamedHandlerIsNotReportedAtThreeTwo() {
+    public void AStreamedHandlerIsNotReportedAtThreeTwo()
+    {
         Assert.Null(
             Reported(
                 Generate(StreamingHandler, "3.2.0"),
-                OpenApiVersionDiagnostics.StreamNeedsItemSchemaId));
+                OpenApiVersionDiagnostics.StreamNeedsItemSchemaId
+            )
+        );
     }
 
     /// <summary>
@@ -229,10 +248,10 @@ public class OpenApiVersionGeneratorTests {
     /// 3.0 application would make the property unusable.
     /// </remarks>
     [Fact]
-    public void ANonStreamingApplicationIsNeverReported() {
+    public void ANonStreamingApplicationIsNeverReported()
+    {
         Assert.Null(
-            Reported(
-                Generate(Handlers, "3.0.0"),
-                OpenApiVersionDiagnostics.StreamNeedsItemSchemaId));
+            Reported(Generate(Handlers, "3.0.0"), OpenApiVersionDiagnostics.StreamNeedsItemSchemaId)
+        );
     }
 }

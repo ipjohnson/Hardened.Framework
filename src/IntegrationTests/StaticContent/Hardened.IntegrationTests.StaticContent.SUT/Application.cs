@@ -32,10 +32,12 @@ namespace Hardened.IntegrationTests.StaticContent.SUT;
 [HardenedModule]
 [HardenedStaticContent(FallBackFile = "/index.html")]
 [AspNetCoreRuntime]
-public partial class Application : IServiceCollectionConfiguration {
-
-    public void ConfigureServices(IServiceCollection services) {
-        services.ConfigureStaticContent(content => {
+public partial class Application : IServiceCollectionConfiguration
+{
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.ConfigureStaticContent(content =>
+        {
             // The only way to see a Cache-Control at all, and Private rather than the default
             // Public because rendering anything but max-age is what the configuration could not
             // express until recently.
@@ -49,7 +51,8 @@ public partial class Application : IServiceCollectionConfiguration {
         });
     }
 
-    public static WebApplicationBuilder CreateBuilder(string[] args) {
+    public static WebApplicationBuilder CreateBuilder(string[] args)
+    {
         var hardenedApp = new Application();
         var environment = new EnvironmentImpl(arguments: args);
         var builder = WebApplication.CreateBuilder(args);

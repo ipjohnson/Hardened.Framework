@@ -11,15 +11,17 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// Both have to work, because which one a request went through is not something a handler should
 /// have to know.
 /// </remarks>
-public class CookieCollectionExtensionsTests {
-
+public class CookieCollectionExtensionsTests
+{
     [Fact]
-    public void ASinglePairIsFound() {
+    public void ASinglePairIsFound()
+    {
         Assert.Equal("abc123", new[] { "session=abc123" }.Get("session").ToString());
     }
 
     [Fact]
-    public void OnePairPerEntryIsFound() {
+    public void OnePairPerEntryIsFound()
+    {
         var cookies = new[] { "session=abc123", "theme=dark" };
 
         Assert.Equal("abc123", cookies.Get("session").ToString());
@@ -28,7 +30,8 @@ public class CookieCollectionExtensionsTests {
 
     /// <summary>A whole header value, which is how ASP.NET hands them over.</summary>
     [Fact]
-    public void SeveralPairsInOneEntryAreFound() {
+    public void SeveralPairsInOneEntryAreFound()
+    {
         var cookies = new[] { "session=abc123; theme=dark; lang=en" };
 
         Assert.Equal("abc123", cookies.Get("session").ToString());
@@ -41,7 +44,8 @@ public class CookieCollectionExtensionsTests {
     /// collections do — the binder turns an empty value into a validation error or a default.
     /// </summary>
     [Fact]
-    public void AMissIsEmpty() {
+    public void AMissIsEmpty()
+    {
         Assert.Equal(StringValuesEmpty, new[] { "session=abc" }.Get("absent").ToString());
         Assert.Equal(StringValuesEmpty, System.Array.Empty<string>().Get("session").ToString());
     }
@@ -50,25 +54,29 @@ public class CookieCollectionExtensionsTests {
 
     /// <summary>Names are case-sensitive, as cookie names are.</summary>
     [Fact]
-    public void NamesAreMatchedExactly() {
+    public void NamesAreMatchedExactly()
+    {
         Assert.Equal("", new[] { "Session=abc" }.Get("session").ToString());
     }
 
     /// <summary>A value containing an equals sign keeps all of it.</summary>
     [Fact]
-    public void AValueMayContainAnEqualsSign() {
+    public void AValueMayContainAnEqualsSign()
+    {
         Assert.Equal("a=b=c", new[] { "token=a=b=c" }.Get("token").ToString());
     }
 
     [Fact]
-    public void AnEmptyValueIsFoundAndEmpty() {
+    public void AnEmptyValueIsFoundAndEmpty()
+    {
         Assert.Equal("", new[] { "session=; theme=dark" }.Get("session").ToString());
         Assert.Equal("dark", new[] { "session=; theme=dark" }.Get("theme").ToString());
     }
 
     /// <summary>Entries that are not pairs at all are skipped rather than throwing.</summary>
     [Fact]
-    public void MalformedEntriesAreSkipped() {
+    public void MalformedEntriesAreSkipped()
+    {
         var cookies = new[] { "", "novalue", "=novalue", "theme=dark" };
 
         Assert.Equal("dark", cookies.Get("theme").ToString());

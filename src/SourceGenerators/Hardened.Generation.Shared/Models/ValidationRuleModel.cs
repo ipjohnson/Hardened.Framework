@@ -1,6 +1,7 @@
 namespace Hardened.Generation.Models;
 
-internal class ValidationRuleModel {
+internal class ValidationRuleModel
+{
     public string ParameterName { get; set; } = "";
     public bool IsRequired { get; set; }
     public int? MinLength { get; set; }
@@ -15,14 +16,22 @@ internal class ValidationRuleModel {
     public List<string>? EnumValues { get; set; }
 
     public bool HasAnyRules =>
-        IsRequired || MinLength.HasValue || MaxLength.HasValue ||
-        Minimum.HasValue || Maximum.HasValue ||
-        ExclusiveMinimum || ExclusiveMaximum ||
-        Pattern != null || MinItems.HasValue || MaxItems.HasValue ||
-        EnumValues is { Count: > 0 };
+        IsRequired
+        || MinLength.HasValue
+        || MaxLength.HasValue
+        || Minimum.HasValue
+        || Maximum.HasValue
+        || ExclusiveMinimum
+        || ExclusiveMaximum
+        || Pattern != null
+        || MinItems.HasValue
+        || MaxItems.HasValue
+        || EnumValues is { Count: > 0 };
 
-    public static ValidationRuleModel FromParameter(ParameterModel param) {
-        return new ValidationRuleModel {
+    public static ValidationRuleModel FromParameter(ParameterModel param)
+    {
+        return new ValidationRuleModel
+        {
             ParameterName = param.MemberName,
             IsRequired = param.IsRequired,
             MinLength = param.MinLength,
@@ -34,12 +43,14 @@ internal class ValidationRuleModel {
             Pattern = param.Pattern,
             MinItems = param.MinItems,
             MaxItems = param.MaxItems,
-            EnumValues = param.EnumValues
+            EnumValues = param.EnumValues,
         };
     }
 
-    public static ValidationRuleModel FromProperty(PropertyModel prop) {
-        return new ValidationRuleModel {
+    public static ValidationRuleModel FromProperty(PropertyModel prop)
+    {
+        return new ValidationRuleModel
+        {
             ParameterName = prop.Name,
             IsRequired = prop.IsRequired,
             MinLength = prop.MinLength,
@@ -51,7 +62,7 @@ internal class ValidationRuleModel {
             Pattern = prop.Pattern,
             MinItems = prop.MinItems,
             MaxItems = prop.MaxItems,
-            EnumValues = prop.EnumValues
+            EnumValues = prop.EnumValues,
         };
     }
 }

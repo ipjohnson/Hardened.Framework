@@ -18,10 +18,12 @@ namespace Hardened.IntegrationTests.AzureQueue.Host.Tests;
 /// </para>
 /// </remarks>
 [Trait("Category", "Simulator")]
-public sealed class HostImageTests : IClassFixture<HostImageTests.Function> {
+public sealed class HostImageTests : IClassFixture<HostImageTests.Function>
+{
     private readonly Function _function;
 
-    public HostImageTests(Function function) {
+    public HostImageTests(Function function)
+    {
         _function = function;
     }
 
@@ -32,9 +34,12 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.Function> {
     /// function and nothing else.
     /// </summary>
     [Fact]
-    public async Task TheHostIndexesExactlyTheFunctionsTheProviderDeclares() {
+    public async Task TheHostIndexesExactlyTheFunctionsTheProviderDeclares()
+    {
         var log = await _function.Simulator.HostLogContaining(
-            "Found the following functions:", cancellationToken: TestContext.Current.CancellationToken);
+            "Found the following functions:",
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         // The host lists each function on its own line as Host.Functions.<name> under that
         // heading, and nowhere else. Found by substring rather than at the start of the line,
@@ -44,8 +49,14 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.Function> {
         var indexed = log.Split('\n')
             .Select(line => line.TrimEnd('\r'))
             .Where(line => line.Contains(prefix, StringComparison.Ordinal))
-            .Select(line => line.Substring(line.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length).Trim())
-            .Where(name => name.Length > 0 && name.All(character => char.IsLetterOrDigit(character) || character == '_'))
+            .Select(line =>
+                line.Substring(line.IndexOf(prefix, StringComparison.Ordinal) + prefix.Length)
+                    .Trim()
+            )
+            .Where(name =>
+                name.Length > 0
+                && name.All(character => char.IsLetterOrDigit(character) || character == '_')
+            )
             .Distinct()
             .ToArray();
 
@@ -59,11 +70,14 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.Function> {
     /// handler's binder, and reported on the container's output. Nothing here is in-process.
     /// </summary>
     [Fact]
-    public async Task AMessagePublishedToTheEmulatorReachesTheHandler() {
+    public async Task AMessagePublishedToTheEmulatorReachesTheHandler()
+    {
         await _function.Publish("""{"id":"host-1","quantity":4}""");
 
         var observed = await _function.Simulator.Observed.WaitFor(
-            one => one.Has("id", "host-1"), cancellationToken: TestContext.Current.CancellationToken);
+            one => one.Has("id", "host-1"),
+            cancellationToken: TestContext.Current.CancellationToken
+        );
 
         Assert.Equal("queue", observed.Get("kind"));
         Assert.Equal(4, observed.Fields.GetProperty("quantity").GetInt32());
@@ -71,7 +85,9 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.Function> {
         // Succeeded, as the host reports it: the worker answered the invocation rather than only
         // printing on its way to failing it.
         await _function.Simulator.HostLogContaining(
-            "Executed 'Functions.Queue_orders' (Succeeded", cancellationToken: TestContext.Current.CancellationToken);
+            "Executed 'Functions.Queue_orders' (Succeeded",
+            cancellationToken: TestContext.Current.CancellationToken
+        );
     }
 
     /// <summary>
@@ -80,65 +96,90 @@ public sealed class HostImageTests : IClassFixture<HostImageTests.Function> {
     /// is the evidence; the emulator is configured to deliver three times before dead-lettering.
     /// </summary>
     [Fact]
-    public async Task AHandlerThatThrowsAbandonsTheBatchAndTheMessageIsRedelivered() {
+    public async Task AHandlerThatThrowsAbandonsTheBatchAndTheMessageIsRedelivered()
+    {
         await _function.Publish("""{"id":"host-refused","quantity":-1}""");
 
-        var observations = await Redelivered("host-refused", 2, TestContext.Current.CancellationToken);
+        var observations = await Redelivered(
+            "host-refused",
+            2,
+            TestContext.Current.CancellationToken
+        );
 
-        Assert.True(observations.Count >= 2, "the refused order was handled once and never delivered again");
+        Assert.True(
+            observations.Count >= 2,
+            "the refused order was handled once and never delivered again"
+        );
 
         await _function.Simulator.HostLogContaining(
-            "Executed 'Functions.Queue_orders' (Failed", cancellationToken: TestContext.Current.CancellationToken);
+            "Executed 'Functions.Queue_orders' (Failed",
+            cancellationToken: TestContext.Current.CancellationToken
+        );
     }
 
     /// <summary>
     /// Every observation of <paramref name="id"/> once at least <paramref name="count"/> exist.
     /// </summary>
-    private async Task<IReadOnlyList<Observation>> Redelivered(string id, int count, CancellationToken cancellationToken) {
+    private async Task<IReadOnlyList<Observation>> Redelivered(
+        string id,
+        int count,
+        CancellationToken cancellationToken
+    )
+    {
         var deadline = DateTime.UtcNow + ObservedInvocations.DefaultTimeout;
 
-        while (true) {
+        while (true)
+        {
             var matching = (await _function.Simulator.Observed.Current(cancellationToken))
                 .Where(one => one.Has("id", id))
                 .ToList();
 
-            if (matching.Count >= count) {
+            if (matching.Count >= count)
+            {
                 return matching;
             }
 
-            if (DateTime.UtcNow > deadline) {
+            if (DateTime.UtcNow > deadline)
+            {
                 throw new TimeoutException(
-                    $"Waited for {count} deliveries of '{id}' and saw {matching.Count}. The host printed:\n" +
-                    await _function.Simulator.HostLog(cancellationToken));
+                    $"Waited for {count} deliveries of '{id}' and saw {matching.Count}. The host printed:\n"
+                        + await _function.Simulator.HostLog(cancellationToken)
+                );
             }
 
             await Task.Delay(250, cancellationToken);
         }
     }
 
-    public sealed class Function : IAsyncLifetime {
-        public FunctionsHostSimulator Simulator { get; } = new(
-            ApplicationOutput.Of("Hardened.IntegrationTests.AzureQueue.SUT"));
+    public sealed class Function : IAsyncLifetime
+    {
+        public FunctionsHostSimulator Simulator { get; } =
+            new(ApplicationOutput.Of("Hardened.IntegrationTests.AzureQueue.SUT"));
 
         private ServiceBusClient? _client;
 
-        public async ValueTask InitializeAsync() {
+        public async ValueTask InitializeAsync()
+        {
             await Simulator.StartAsync(TestContext.Current.CancellationToken);
 
             _client = new ServiceBusClient(Simulator.PublisherConnectionString);
         }
 
         /// <summary>Publishes one JSON message to the queue, as an application would.</summary>
-        public async Task Publish(string body) {
+        public async Task Publish(string body)
+        {
             await using var sender = _client!.CreateSender(FunctionsHostSimulator.Queue);
 
             await sender.SendMessageAsync(
                 new ServiceBusMessage(body) { ContentType = "application/json" },
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken
+            );
         }
 
-        public async ValueTask DisposeAsync() {
-            if (_client != null) {
+        public async ValueTask DisposeAsync()
+        {
+            if (_client != null)
+            {
                 await _client.DisposeAsync();
             }
 

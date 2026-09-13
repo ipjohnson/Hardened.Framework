@@ -31,7 +31,8 @@ namespace Hardened1.Tests;
 /// ITestWebApp sends the request through the pipeline.
 #endif
 /// </remarks>
-public class TodoStoreMockTests {
+public class TodoStoreMockTests
+{
 #if (!hasClient)
 
     /// <summary>The response shape as a client sees it, asserted on the wire rather than on an internal type.</summary>
@@ -41,24 +42,30 @@ public class TodoStoreMockTests {
     [HardenedTest]
 #if (moq)
 #if (kiotaClient)
-    public async Task GetTodo_ReadsTheMockedStore(TemplateModuleNameClient client, Mock<ITodoStore> store) {
+    public async Task GetTodo_ReadsTheMockedStore(TemplateModuleNameClient client, Mock<ITodoStore> store)
+    {
 #endif
 #if (refitClient)
-    public async Task GetTodo_ReadsTheMockedStore(ITemplateModuleNameClient client, Mock<ITodoStore> store) {
+    public async Task GetTodo_ReadsTheMockedStore(ITemplateModuleNameClient client, Mock<ITodoStore> store)
+    {
 #endif
 #if (!hasClient)
-    public async Task GetTodo_ReadsTheMockedStore(ITestWebApp app, Mock<ITodoStore> store) {
+    public async Task GetTodo_ReadsTheMockedStore(ITestWebApp app, Mock<ITodoStore> store)
+    {
 #endif
         store.Setup(s => s.Find(1)).ReturnsAsync(new Todo(1, "from the mock", false));
 #else
 #if (kiotaClient)
-    public async Task GetTodo_ReadsTheMockedStore(TemplateModuleNameClient client, [Mock] ITodoStore store) {
+    public async Task GetTodo_ReadsTheMockedStore(TemplateModuleNameClient client, [Mock] ITodoStore store)
+    {
 #endif
 #if (refitClient)
-    public async Task GetTodo_ReadsTheMockedStore(ITemplateModuleNameClient client, [Mock] ITodoStore store) {
+    public async Task GetTodo_ReadsTheMockedStore(ITemplateModuleNameClient client, [Mock] ITodoStore store)
+    {
 #endif
 #if (!hasClient)
-    public async Task GetTodo_ReadsTheMockedStore(ITestWebApp app, [Mock] ITodoStore store) {
+    public async Task GetTodo_ReadsTheMockedStore(ITestWebApp app, [Mock] ITodoStore store)
+    {
 #endif
 #if (nsubstitute)
         store.Find(1).Returns(new Todo(1, "from the mock", false));

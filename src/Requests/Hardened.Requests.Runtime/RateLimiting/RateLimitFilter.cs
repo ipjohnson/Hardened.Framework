@@ -24,7 +24,8 @@ namespace Hardened.Requests.Runtime.RateLimiting;
 /// from the order it was registered at.
 /// </para>
 /// </remarks>
-public class RateLimitFilter : IExecutionFilter {
+public class RateLimitFilter : IExecutionFilter
+{
     private readonly RateLimitPolicy _policy;
     private readonly bool _beforeSerialization;
 
@@ -33,17 +34,20 @@ public class RateLimitFilter : IExecutionFilter {
     /// the order the filter was registered at, which is why both are decided together in
     /// <see cref="RateLimitAttribute"/> rather than passed in from two places.
     /// </param>
-    public RateLimitFilter(RateLimitPolicy policy, bool beforeSerialization) {
+    public RateLimitFilter(RateLimitPolicy policy, bool beforeSerialization)
+    {
         _policy = policy;
         _beforeSerialization = beforeSerialization;
     }
 
-    public async Task Execute(IExecutionChain chain) {
+    public async Task Execute(IExecutionChain chain)
+    {
         var context = chain.Context;
 
         var store = context.RequestServices.GetService<IRateLimitStore>();
 
-        if (store == null) {
+        if (store == null)
+        {
             await chain.Next();
 
             return;
@@ -52,13 +56,20 @@ public class RateLimitFilter : IExecutionFilter {
         var partitioner = context.RequestServices.GetRequiredService<IRateLimitPartitioner>();
 
         var decision = await store.Acquire(
-            partitioner.Partition(context), _policy, context.CancellationToken);
+            partitioner.Partition(context),
+            _policy,
+            context.CancellationToken
+        );
 
-        if (decision.Allowed) {
+        if (decision.Allowed)
+        {
             // Told before being refused, so a client can slow down rather than discover the limit
             // by hitting it.
             RateLimitExceededException.ApplyRateLimitHeaders(
-                context.Response.Headers, decision, (int)_policy.Window.TotalSeconds);
+                context.Response.Headers,
+                decision,
+                (int)_policy.Window.TotalSeconds
+            );
 
             await chain.Next();
 
@@ -67,7 +78,8 @@ public class RateLimitFilter : IExecutionFilter {
 
         context.Response.ExceptionValue = new RateLimitExceededException(decision);
 
-        if (_beforeSerialization) {
+        if (_beforeSerialization)
+        {
             await chain.Next();
         }
     }

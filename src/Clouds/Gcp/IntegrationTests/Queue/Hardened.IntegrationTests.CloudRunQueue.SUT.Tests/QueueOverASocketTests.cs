@@ -19,11 +19,14 @@ namespace Hardened.IntegrationTests.CloudRunQueue.SUT.Tests;
 /// exception itself.
 /// </remarks>
 [KestrelRuntime]
-public class QueueOverASocketTests {
-
+public class QueueOverASocketTests
+{
     [HardenedTest]
     public async Task AQueueMessageReachesTheHandler(
-        CloudRunQueueApp.Queues queues, [Mock] IOrderStore store) {
+        CloudRunQueueApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
         await queues.Orders(new Order { Id = "s-1", Quantity = 2 });
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "s-1" && order.Quantity == 2));
@@ -31,9 +34,15 @@ public class QueueOverASocketTests {
 
     [HardenedTest]
     public async Task EveryMessageIsHandledSeparately(
-        CloudRunQueueApp.Queues queues, [Mock] IOrderStore store) {
+        CloudRunQueueApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
         await queues.Orders(
-            new Order { Id = "s-1" }, new Order { Id = "s-2" }, new Order { Id = "s-3" });
+            new Order { Id = "s-1" },
+            new Order { Id = "s-2" },
+            new Order { Id = "s-3" }
+        );
 
         store.Received(3).Place(Arg.Any<Order>());
         store.Received().Place(Arg.Is<Order>(order => order.Id == "s-2"));
@@ -41,9 +50,14 @@ public class QueueOverASocketTests {
 
     [HardenedTest]
     public async Task EachMessageBindsItsOwnBody(
-        CloudRunQueueApp.Queues queues, [Mock] IOrderStore store) {
+        CloudRunQueueApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
         await queues.Orders(
-            new Order { Id = "s-1", Quantity = 10 }, new Order { Id = "s-2", Quantity = 20 });
+            new Order { Id = "s-1", Quantity = 10 },
+            new Order { Id = "s-2", Quantity = 20 }
+        );
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "s-1" && order.Quantity == 10));
         store.Received().Place(Arg.Is<Order>(order => order.Id == "s-2" && order.Quantity == 20));
@@ -51,12 +65,21 @@ public class QueueOverASocketTests {
 
     [HardenedTest]
     public async Task AFailedMessageIsNotAcknowledged(
-        CloudRunQueueApp.Queues queues, [Mock] IOrderStore store) {
-        store.When(one => one.Place(Arg.Is<Order>(order => order.Id == "s-2")))
+        CloudRunQueueApp.Queues queues,
+        [Mock] IOrderStore store
+    )
+    {
+        store
+            .When(one => one.Place(Arg.Is<Order>(order => order.Id == "s-2")))
             .Do(_ => throw new InvalidOperationException("refused"));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => queues.Orders(new Order { Id = "s-1" }, new Order { Id = "s-2" }, new Order { Id = "s-3" }));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            queues.Orders(
+                new Order { Id = "s-1" },
+                new Order { Id = "s-2" },
+                new Order { Id = "s-3" }
+            )
+        );
 
         store.Received().Place(Arg.Is<Order>(order => order.Id == "s-3"));
     }

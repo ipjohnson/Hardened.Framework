@@ -20,8 +20,8 @@ namespace Hardened.Requests.Abstract.Serializer;
 /// </para>
 /// </remarks>
 /// <typeparam name="TValue">The type parsed, which is what <see cref="ConvertType"/> reports.</typeparam>
-public sealed class DelegatingStringConverter<TValue> : IStringConverter {
-
+public sealed class DelegatingStringConverter<TValue> : IStringConverter
+{
     /// <summary>The shape a generated <c>TryParseWire</c> has.</summary>
     public delegate bool TryParse(string value, out TValue parsed);
 
@@ -33,15 +33,18 @@ public sealed class DelegatingStringConverter<TValue> : IStringConverter {
     /// What the type is called in a failure message. The document's name for it rather than the C#
     /// one where they differ, since the caller is reading the document.
     /// </param>
-    public DelegatingStringConverter(TryParse tryParse, string? typeName = null) {
+    public DelegatingStringConverter(TryParse tryParse, string? typeName = null)
+    {
         _tryParse = tryParse;
         _typeName = typeName ?? typeof(TValue).Name;
     }
 
     public Type ConvertType => typeof(TValue);
 
-    public T Convert<T>(string value) {
-        if (!_tryParse(value, out var parsed)) {
+    public T Convert<T>(string value)
+    {
+        if (!_tryParse(value, out var parsed))
+        {
             throw new FormatException($"'{value}' is not a value {_typeName} declares.");
         }
 

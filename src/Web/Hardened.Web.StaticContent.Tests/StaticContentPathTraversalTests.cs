@@ -1,7 +1,7 @@
 using Hardened.Requests.Abstract.Execution;
-using Hardened.Web.Runtime.CacheControl;
 using Hardened.Shared.Runtime.Collections;
 using Hardened.Shared.Runtime.Utilities;
+using Hardened.Web.Runtime.CacheControl;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
@@ -19,17 +19,21 @@ namespace Hardened.Web.StaticContent.Tests;
 /// These tests exercise the handler directly, which is the position a transport that does
 /// not normalise leaves it in.
 /// </summary>
-public class StaticContentPathTraversalTests : IDisposable {
-
+public class StaticContentPathTraversalTests : IDisposable
+{
     private readonly string _tempRoot;
     private readonly string _staticRoot;
     private readonly string _secretFile;
     private readonly string _originalCurrentDirectory;
 
-    public StaticContentPathTraversalTests() {
+    public StaticContentPathTraversalTests()
+    {
         _originalCurrentDirectory = Directory.GetCurrentDirectory();
 
-        _tempRoot = Path.Combine(Path.GetTempPath(), "hardened-static-" + Guid.NewGuid().ToString("N"));
+        _tempRoot = Path.Combine(
+            Path.GetTempPath(),
+            "hardened-static-" + Guid.NewGuid().ToString("N")
+        );
         _staticRoot = Path.Combine(_tempRoot, "wwwroot");
         Directory.CreateDirectory(_staticRoot);
 
@@ -43,17 +47,24 @@ public class StaticContentPathTraversalTests : IDisposable {
         Directory.SetCurrentDirectory(_tempRoot);
     }
 
-    public void Dispose() {
+    public void Dispose()
+    {
         Directory.SetCurrentDirectory(_originalCurrentDirectory);
-        try { Directory.Delete(_tempRoot, true); } catch { /* best effort */ }
+        try
+        {
+            Directory.Delete(_tempRoot, true);
+        }
+        catch
+        { /* best effort */
+        }
     }
 
-    private static StaticContentPipeline Handler() {
+    private static StaticContentPipeline Handler()
+    {
         var configuration = Substitute.For<IStaticContentConfiguration>();
         configuration.Path.Returns("wwwroot");
         configuration.CacheContent.Returns(true);
-        configuration.CacheControlType.Returns(
-            CacheControlEnum.MaxAge | CacheControlEnum.Public);
+        configuration.CacheControlType.Returns(CacheControlEnum.MaxAge | CacheControlEnum.Public);
         configuration.EnableRangeRequests.Returns(true);
         configuration.EnableETag.Returns(false);
         configuration.CompressTextContent.Returns(false);
@@ -72,20 +83,27 @@ public class StaticContentPathTraversalTests : IDisposable {
                 mimeHelper,
                 Substitute.For<IGZipStaticContentCompressor>(),
                 etag,
-                NullLogger<FileSystemContentSource>.Instance),
-            configuration);
+                NullLogger<FileSystemContentSource>.Instance
+            ),
+            configuration
+        );
     }
 
-    private static (IExecutionContext context, MemoryStream body) Context(string path) {
+    private static (IExecutionContext context, MemoryStream body) Context(string path)
+    {
         var context = Substitute.For<IExecutionContext>();
         var request = Substitute.For<IExecutionRequest>();
         var response = Substitute.For<IExecutionResponse>();
         var body = new MemoryStream();
 
         request.Path.Returns(path);
-        request.Headers.Returns(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase));
+        request.Headers.Returns(
+            new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        );
         response.Body.Returns(body);
-        response.Headers.Returns(new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase));
+        response.Headers.Returns(
+            new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase)
+        );
         context.Request.Returns(request);
         context.Response.Returns(response);
 
@@ -93,7 +111,8 @@ public class StaticContentPathTraversalTests : IDisposable {
     }
 
     [Fact]
-    public async Task ServesAFileInsideTheConfiguredRoot() {
+    public async Task ServesAFileInsideTheConfiguredRoot()
+    {
         var (context, body) = Context("/public.txt");
 
         var handled = await Handler().Handle(context);
@@ -103,7 +122,8 @@ public class StaticContentPathTraversalTests : IDisposable {
     }
 
     [Fact]
-    public async Task DoesNotHandleAMissingFile() {
+    public async Task DoesNotHandleAMissingFile()
+    {
         var (context, _) = Context("/does-not-exist.txt");
 
         Assert.False(await Handler().Handle(context));
@@ -115,26 +135,29 @@ public class StaticContentPathTraversalTests : IDisposable {
     /// see.
     /// </summary>
     [Fact]
-    public async Task TraversalOutsideTheRootIsNotServed() {
+    public async Task TraversalOutsideTheRootIsNotServed()
+    {
         var (context, body) = Context("/../secret.txt");
 
         var handled = await Handler().Handle(context);
         var served = System.Text.Encoding.UTF8.GetString(body.ToArray());
 
-        Assert.False(handled,
-            "a path traversal escaped the configured static root and was served");
+        Assert.False(handled, "a path traversal escaped the configured static root and was served");
         Assert.DoesNotContain("SECRET-CONTENT", served);
     }
 
     [Fact]
-    public async Task DeepTraversalOutsideTheRootIsNotServed() {
+    public async Task DeepTraversalOutsideTheRootIsNotServed()
+    {
         var (context, body) = Context("/assets/../../secret.txt");
 
         var handled = await Handler().Handle(context);
         var served = System.Text.Encoding.UTF8.GetString(body.ToArray());
 
-        Assert.False(handled,
-            "a nested path traversal escaped the configured static root and was served");
+        Assert.False(
+            handled,
+            "a nested path traversal escaped the configured static root and was served"
+        );
         Assert.DoesNotContain("SECRET-CONTENT", served);
     }
 }

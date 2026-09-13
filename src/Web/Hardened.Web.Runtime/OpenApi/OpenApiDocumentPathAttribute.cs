@@ -22,8 +22,10 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public class OpenApiDocumentPathAttribute : Attribute {
-    public OpenApiDocumentPathAttribute(string path) {
+public class OpenApiDocumentPathAttribute : Attribute
+{
+    public OpenApiDocumentPathAttribute(string path)
+    {
         Path = path;
     }
 

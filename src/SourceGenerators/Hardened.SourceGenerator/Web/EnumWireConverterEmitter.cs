@@ -29,8 +29,8 @@ namespace Hardened.SourceGenerator.Web;
 /// and any declared value that is not a valid C# identifier is unreachable as a parameter.
 /// </para>
 /// </remarks>
-internal static class EnumWireConverterEmitter {
-
+internal static class EnumWireConverterEmitter
+{
     public const string ContainerName = "JsonEnums";
     private const string ResolverName = "Resolver";
 
@@ -42,11 +42,14 @@ internal static class EnumWireConverterEmitter {
     /// vocabulary - it is a property of the type, not of the route - and emitting it twice would
     /// not compile.
     /// </remarks>
-    public static IReadOnlyList<EnumVocabulary> Collect(IReadOnlyList<RequestHandlerModel> handlers) =>
-        EnumVocabularies.Collect(handlers);
+    public static IReadOnlyList<EnumVocabulary> Collect(
+        IReadOnlyList<RequestHandlerModel> handlers
+    ) => EnumVocabularies.Collect(handlers);
 
-    public static void Emit(ClassDefinition appClass, IReadOnlyList<EnumVocabulary> enums) {
-        if (enums.Count == 0) {
+    public static void Emit(ClassDefinition appClass, IReadOnlyList<EnumVocabulary> enums)
+    {
+        if (enums.Count == 0)
+        {
             return;
         }
 
@@ -56,7 +59,8 @@ internal static class EnumWireConverterEmitter {
         container.Comment =
             "The wire vocabulary of every enum this application serializes. See [JsonEnumNaming].";
 
-        foreach (var vocabulary in enums) {
+        foreach (var vocabulary in enums)
+        {
             EmitConverter(container, vocabulary);
         }
 
@@ -64,25 +68,32 @@ internal static class EnumWireConverterEmitter {
         EmitStringConverters(container, enums);
     }
 
-    private static string ConverterName(EnumVocabulary vocabulary) => vocabulary.Name + "WireConverter";
+    private static string ConverterName(EnumVocabulary vocabulary) =>
+        vocabulary.Name + "WireConverter";
 
-    private static void EmitConverter(ClassDefinition container, EnumVocabulary vocabulary) {
+    private static void EmitConverter(ClassDefinition container, EnumVocabulary vocabulary)
+    {
         var enumType = TypeDefinition.Get("", vocabulary.QualifiedName);
         var converter = container.AddClass(ConverterName(vocabulary));
 
         converter.Modifiers |= ComponentModifier.Public | ComponentModifier.Sealed;
-        converter.AddBaseType(new GenericTypeDefinition(
-            TypeDefinitionEnum.ClassDefinition,
-            "System.Text.Json.Serialization",
-            "JsonConverter",
-            new[] { enumType }));
+        converter.AddBaseType(
+            new GenericTypeDefinition(
+                TypeDefinitionEnum.ClassDefinition,
+                "System.Text.Json.Serialization",
+                "JsonConverter",
+                new[] { enumType }
+            )
+        );
 
         converter.Comment =
-            $"Reads and writes {vocabulary.Name} as the values the document declares " +
-            $"({vocabulary.Naming}).";
+            $"Reads and writes {vocabulary.Name} as the values the document declares "
+            + $"({vocabulary.Naming}).";
 
         var instance = converter.AddField(
-            TypeDefinition.Get("", ConverterName(vocabulary)), "Instance");
+            TypeDefinition.Get("", ConverterName(vocabulary)),
+            "Instance"
+        );
 
         instance.Modifiers |=
             ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
@@ -96,59 +107,88 @@ internal static class EnumWireConverterEmitter {
         // does not override them: an enum-keyed dictionary serialized until any handler bound the
         // enum and this converter was registered, and then answered 500 with an empty body.
         EmitRead(converter, vocabulary, enumType, "ReadAsPropertyName");
-        EmitWrite(converter, vocabulary, enumType, "WriteAsPropertyName", "writer.WritePropertyName(wire);");
+        EmitWrite(
+            converter,
+            vocabulary,
+            enumType,
+            "WriteAsPropertyName",
+            "writer.WritePropertyName(wire);"
+        );
         EmitTryParseWire(converter, vocabulary, enumType);
     }
 
     private static void EmitRead(
-        ClassDefinition converter, EnumVocabulary vocabulary, ITypeDefinition enumType, string name) {
+        ClassDefinition converter,
+        EnumVocabulary vocabulary,
+        ITypeDefinition enumType,
+        string name
+    )
+    {
         var method = converter.AddMethod(name);
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
         method.SetReturnType(enumType);
-        method.AddParameter(
-            TypeDefinition.Get("System.Text.Json", "Utf8JsonReader"), "reader").Modifier =
-            ParameterModifier.Ref;
+        method
+            .AddParameter(TypeDefinition.Get("System.Text.Json", "Utf8JsonReader"), "reader")
+            .Modifier = ParameterModifier.Ref;
         method.AddParameter(TypeDefinition.Get(typeof(System.Type)), "typeToConvert");
         method.AddParameter(
-            TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"), "options");
+            TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"),
+            "options"
+        );
 
-        var lines = new List<string> {
+        var lines = new List<string>
+        {
             "var value = reader.GetString();",
             "",
             "return value switch",
-            "{"
+            "{",
         };
 
-        foreach (var value in vocabulary.Values) {
-            lines.Add($"    \"{Escape(value.Wire)}\" => {vocabulary.QualifiedName}.{value.Member},");
+        foreach (var value in vocabulary.Values)
+        {
+            lines.Add(
+                $"    \"{Escape(value.Wire)}\" => {vocabulary.QualifiedName}.{value.Member},"
+            );
         }
 
         // A value the application does not declare is not guessed at. The JsonException lands as a
         // 400, which is the same answer a malformed body gets and the right one for a value that is
         // not in the document.
         lines.Add("    _ => throw new global::System.Text.Json.JsonException(");
-        lines.Add($"        \"'\" + value + \"' is not a value {Escape(vocabulary.Name)} declares.\")");
+        lines.Add(
+            $"        \"'\" + value + \"' is not a value {Escape(vocabulary.Name)} declares.\")"
+        );
         lines.Add("};");
 
         Write(method, lines);
     }
 
     private static void EmitWrite(
-        ClassDefinition converter, EnumVocabulary vocabulary, ITypeDefinition enumType,
-        string name, string write) {
+        ClassDefinition converter,
+        EnumVocabulary vocabulary,
+        ITypeDefinition enumType,
+        string name,
+        string write
+    )
+    {
         var method = converter.AddMethod(name);
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Override;
         method.AddParameter(TypeDefinition.Get("System.Text.Json", "Utf8JsonWriter"), "writer");
         method.AddParameter(enumType, "value");
         method.AddParameter(
-            TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"), "options");
+            TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"),
+            "options"
+        );
 
         var lines = new List<string> { "string wire = value switch", "{" };
 
-        foreach (var value in vocabulary.Values) {
-            lines.Add($"    {vocabulary.QualifiedName}.{value.Member} => \"{Escape(value.Wire)}\",");
+        foreach (var value in vocabulary.Values)
+        {
+            lines.Add(
+                $"    {vocabulary.QualifiedName}.{value.Member} => \"{Escape(value.Wire)}\","
+            );
         }
 
         // Reachable by casting an undeclared number to the enum. Refused rather than written, since
@@ -163,7 +203,11 @@ internal static class EnumWireConverterEmitter {
     }
 
     private static void EmitTryParseWire(
-        ClassDefinition converter, EnumVocabulary vocabulary, ITypeDefinition enumType) {
+        ClassDefinition converter,
+        EnumVocabulary vocabulary,
+        ITypeDefinition enumType
+    )
+    {
         var method = converter.AddMethod("TryParseWire");
 
         method.Modifiers |= ComponentModifier.Public | ComponentModifier.Static;
@@ -176,7 +220,8 @@ internal static class EnumWireConverterEmitter {
 
         var lines = new List<string> { "switch (value)", "{" };
 
-        foreach (var value in vocabulary.Values) {
+        foreach (var value in vocabulary.Values)
+        {
             lines.Add($"    case \"{Escape(value.Wire)}\":");
             lines.Add($"        parsed = {vocabulary.QualifiedName}.{value.Member};");
             lines.Add("        return true;");
@@ -199,12 +244,14 @@ internal static class EnumWireConverterEmitter {
     /// any converter a model declared for itself; a <c>JsonTypeInfo</c> answers only for the type it
     /// is asked about. <c>JsonMetadataServices.CreateValueInfo</c> is the AOT-safe construction.
     /// </remarks>
-    private static void EmitResolver(ClassDefinition container, IReadOnlyList<EnumVocabulary> enums) {
+    private static void EmitResolver(ClassDefinition container, IReadOnlyList<EnumVocabulary> enums)
+    {
         var resolver = container.AddClass(ResolverName);
 
         resolver.Modifiers |= ComponentModifier.Public | ComponentModifier.Sealed;
         resolver.AddBaseType(
-            TypeDefinition.Get("System.Text.Json.Serialization.Metadata", "IJsonTypeInfoResolver"));
+            TypeDefinition.Get("System.Text.Json.Serialization.Metadata", "IJsonTypeInfoResolver")
+        );
         resolver.Comment = "Metadata for this application's enums, ahead of reflection.";
 
         var instance = resolver.AddField(TypeDefinition.Get("", ResolverName), "Instance");
@@ -217,18 +264,25 @@ internal static class EnumWireConverterEmitter {
 
         method.Modifiers |= ComponentModifier.Public;
         method.SetReturnType(
-            TypeDefinition.Get("System.Text.Json.Serialization.Metadata", "JsonTypeInfo")
-                .MakeNullable());
+            TypeDefinition
+                .Get("System.Text.Json.Serialization.Metadata", "JsonTypeInfo")
+                .MakeNullable()
+        );
         method.AddParameter(TypeDefinition.Get(typeof(System.Type)), "type");
-        method.AddParameter(TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"), "options");
+        method.AddParameter(
+            TypeDefinition.Get("System.Text.Json", "JsonSerializerOptions"),
+            "options"
+        );
 
         var lines = new List<string>();
 
-        foreach (var vocabulary in enums) {
+        foreach (var vocabulary in enums)
+        {
             lines.Add($"if (type == typeof({vocabulary.QualifiedName})) {{");
             lines.Add(
-                "    return global::System.Text.Json.Serialization.Metadata.JsonMetadataServices" +
-                $".CreateValueInfo<{vocabulary.QualifiedName}>(");
+                "    return global::System.Text.Json.Serialization.Metadata.JsonMetadataServices"
+                    + $".CreateValueInfo<{vocabulary.QualifiedName}>("
+            );
             lines.Add($"        options, {ConverterName(vocabulary)}.Instance);");
             lines.Add("}");
             lines.Add("");
@@ -244,30 +298,40 @@ internal static class EnumWireConverterEmitter {
     /// The same vocabularies as the parameter binder consumes them.
     /// </summary>
     private static void EmitStringConverters(
-        ClassDefinition container, IReadOnlyList<EnumVocabulary> enums) {
+        ClassDefinition container,
+        IReadOnlyList<EnumVocabulary> enums
+    )
+    {
         var converters = enums
             .Select(vocabulary =>
-                "new global::Hardened.Requests.Abstract.Serializer.DelegatingStringConverter<" +
-                $"{vocabulary.QualifiedName}>({ConverterName(vocabulary)}.TryParseWire, " +
-                $"\"{Escape(vocabulary.Name)}\")")
+                "new global::Hardened.Requests.Abstract.Serializer.DelegatingStringConverter<"
+                + $"{vocabulary.QualifiedName}>({ConverterName(vocabulary)}.TryParseWire, "
+                + $"\"{Escape(vocabulary.Name)}\")"
+            )
             .ToList();
 
         var field = container.AddField(
-            TypeDefinition.Get("Hardened.Requests.Abstract.Serializer", "IStringConverter").MakeArray(),
-            "StringConverters");
+            TypeDefinition
+                .Get("Hardened.Requests.Abstract.Serializer", "IStringConverter")
+                .MakeArray(),
+            "StringConverters"
+        );
 
         field.Modifiers |=
             ComponentModifier.Public | ComponentModifier.Static | ComponentModifier.Readonly;
-        field.InitializeValue =
-            new CodeOutputComponent("{ " + string.Join(", ", converters) + " }") { Indented = false };
+        field.InitializeValue = new CodeOutputComponent("{ " + string.Join(", ", converters) + " }")
+        {
+            Indented = false,
+        };
     }
 
-    private static void Write(MethodDefinition method, List<string> lines) {
-        foreach (var line in lines) {
+    private static void Write(MethodDefinition method, List<string> lines)
+    {
+        foreach (var line in lines)
+        {
             method.Add(new CodeOutputComponent(line) { Indented = true });
         }
     }
 
-    private static string Escape(string value) =>
-        value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 }

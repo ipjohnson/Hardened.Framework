@@ -22,8 +22,8 @@ namespace Hardened.Requests.Runtime.Tests.Authorization;
 /// it - through <c>HardenedRequestModule</c>'s registrations.
 /// </para>
 /// </summary>
-public class AuthenticationStartupServiceTests {
-
+public class AuthenticationStartupServiceTests
+{
     private sealed class BearerScheme : IAuthenticationScheme;
 
     private sealed class CookieScheme : IAuthenticationScheme;
@@ -32,18 +32,21 @@ public class AuthenticationStartupServiceTests {
     /// Records what it was asked, so a source that was collected and never reached is
     /// distinguishable from one that was not collected at all.
     /// </summary>
-    private class RecordingSource : IPrincipalSource {
+    private class RecordingSource : IPrincipalSource
+    {
         private readonly string? _subject;
 
         protected RecordingSource(string? subject) => _subject = subject;
 
         public int Calls { get; private set; }
 
-        public ValueTask<ICallerPrincipal?> Authenticate(IExecutionContext context) {
+        public ValueTask<ICallerPrincipal?> Authenticate(IExecutionContext context)
+        {
             Calls++;
 
             return new ValueTask<ICallerPrincipal?>(
-                _subject == null ? null : new CallerPrincipal("test", subject: _subject));
+                _subject == null ? null : new CallerPrincipal("test", subject: _subject)
+            );
         }
     }
 
@@ -52,15 +55,18 @@ public class AuthenticationStartupServiceTests {
     /// <c>[Authorize&lt;TScheme&gt;]</c> vocabulary writes.
     /// </summary>
     private sealed class BearerSource(string? subject = "ada")
-        : RecordingSource(subject), IPrincipalSource<BearerScheme>;
+        : RecordingSource(subject),
+            IPrincipalSource<BearerScheme>;
 
     private sealed class CookieSource(string? subject = "grace")
-        : RecordingSource(subject), IPrincipalSource<CookieScheme>;
+        : RecordingSource(subject),
+            IPrincipalSource<CookieScheme>;
 
     private sealed class PlainSource(string? subject = null) : RecordingSource(subject);
 
     private sealed class OpenSource<TScheme>(string? subject = null)
-        : RecordingSource(subject), IPrincipalSource<TScheme>
+        : RecordingSource(subject),
+            IPrincipalSource<TScheme>
         where TScheme : IAuthenticationScheme;
 
     /// <summary>
@@ -75,7 +81,9 @@ public class AuthenticationStartupServiceTests {
     /// depend on.
     /// </remarks>
     private static async Task<IReadOnlyList<IExecutionFilter>> Installed(
-        Action<IServiceCollection> register) {
+        Action<IServiceCollection> register
+    )
+    {
         var services = new ServiceCollection();
 
         new HardenedRequestModule().ConfigureServices(services);
@@ -87,18 +95,24 @@ public class AuthenticationStartupServiceTests {
 
         middlewareService
             .When(m => m.Use(Arg.Any<Func<IExecutionContext, IExecutionFilter>>()))
-            .Do(call => installed.Add(
-                call.Arg<Func<IExecutionContext, IExecutionFilter>>()(
-                    Substitute.For<IExecutionContext>())));
+            .Do(call =>
+                installed.Add(
+                    call.Arg<Func<IExecutionContext, IExecutionFilter>>()(
+                        Substitute.For<IExecutionContext>()
+                    )
+                )
+            );
 
         services.AddSingleton(middlewareService);
         services.AddSingleton(Substitute.For<IGlobalFilterRegistry>());
         services.AddSingleton<IOptions<IAuthorizationConfiguration>>(
-            Options.Create(Substitute.For<IAuthorizationConfiguration>()));
+            Options.Create(Substitute.For<IAuthorizationConfiguration>())
+        );
 
         var provider = services.BuildServiceProvider();
 
-        foreach (var startupService in provider.GetServices<IStartupService>()) {
+        foreach (var startupService in provider.GetServices<IStartupService>())
+        {
             Assert.True(await startupService.Startup(provider));
         }
 
@@ -108,7 +122,8 @@ public class AuthenticationStartupServiceTests {
     /// <summary>
     /// The caller a request comes out of the installed middleware with.
     /// </summary>
-    private static async Task<string?> Caller(IExecutionFilter middleware) {
+    private static async Task<string?> Caller(IExecutionFilter middleware)
+    {
         var context = Pipeline.Context();
         var chain = Substitute.For<IExecutionChain>();
 
@@ -126,17 +141,21 @@ public class AuthenticationStartupServiceTests {
     /// answered 401 and nothing said why.
     /// </summary>
     [Fact]
-    public async Task ATypedSourceInstallsTheMiddleware() {
-        var installed = await Installed(
-            services => services.AddSingleton<IPrincipalSource<BearerScheme>, BearerSource>());
+    public async Task ATypedSourceInstallsTheMiddleware()
+    {
+        var installed = await Installed(services =>
+            services.AddSingleton<IPrincipalSource<BearerScheme>, BearerSource>()
+        );
 
         Assert.IsType<AuthenticationMiddleware>(Assert.Single(installed));
     }
 
     [Fact]
-    public async Task ATypedSourceAuthenticatesTheRequest() {
-        var installed = await Installed(
-            services => services.AddSingleton<IPrincipalSource<BearerScheme>, BearerSource>());
+    public async Task ATypedSourceAuthenticatesTheRequest()
+    {
+        var installed = await Installed(services =>
+            services.AddSingleton<IPrincipalSource<BearerScheme>, BearerSource>()
+        );
 
         Assert.Equal("ada", await Caller(Assert.Single(installed)));
     }
@@ -145,9 +164,11 @@ public class AuthenticationStartupServiceTests {
     /// The workaround the arms found, which has to keep working.
     /// </summary>
     [Fact]
-    public async Task ASourceRegisteredAsThePlainInterfaceStillInstallsTheMiddleware() {
-        var installed = await Installed(
-            services => services.AddSingleton<IPrincipalSource, BearerSource>());
+    public async Task ASourceRegisteredAsThePlainInterfaceStillInstallsTheMiddleware()
+    {
+        var installed = await Installed(services =>
+            services.AddSingleton<IPrincipalSource, BearerSource>()
+        );
 
         Assert.Single(installed);
     }
@@ -157,11 +178,13 @@ public class AuthenticationStartupServiceTests {
     /// application registered.
     /// </summary>
     [Fact]
-    public async Task EverySchemeIsCollected() {
+    public async Task EverySchemeIsCollected()
+    {
         var bearer = new BearerSource(subject: null);
         var cookie = new CookieSource();
 
-        var installed = await Installed(services => {
+        var installed = await Installed(services =>
+        {
             services.AddSingleton<IPrincipalSource<BearerScheme>>(bearer);
             services.AddSingleton<IPrincipalSource<CookieScheme>>(cookie);
         });
@@ -176,8 +199,10 @@ public class AuthenticationStartupServiceTests {
     /// typed one registered after it. The two forms are one ordered list, not two.
     /// </summary>
     [Fact]
-    public async Task RegistrationOrderHoldsAcrossBothForms() {
-        var installed = await Installed(services => {
+    public async Task RegistrationOrderHoldsAcrossBothForms()
+    {
+        var installed = await Installed(services =>
+        {
             services.AddSingleton<IPrincipalSource, PlainSource>();
             services.AddSingleton<IPrincipalSource<CookieScheme>, CookieSource>();
         });
@@ -190,10 +215,12 @@ public class AuthenticationStartupServiceTests {
     /// cost a request a second read of a credential it has already declined.
     /// </summary>
     [Fact]
-    public async Task ASourceRegisteredUnderBothInterfacesIsAskedOnce() {
+    public async Task ASourceRegisteredUnderBothInterfacesIsAskedOnce()
+    {
         var source = new BearerSource(subject: null);
 
-        var installed = await Installed(services => {
+        var installed = await Installed(services =>
+        {
             services.AddSingleton<IPrincipalSource>(source);
             services.AddSingleton<IPrincipalSource<BearerScheme>>(source);
         });
@@ -208,7 +235,8 @@ public class AuthenticationStartupServiceTests {
     /// default free.
     /// </summary>
     [Fact]
-    public async Task NoSourceInstallsNoMiddleware() {
+    public async Task NoSourceInstallsNoMiddleware()
+    {
         Assert.Empty(await Installed(_ => { }));
     }
 
@@ -217,8 +245,12 @@ public class AuthenticationStartupServiceTests {
     /// source for every scheme, and asking the container for an unbound type throws.
     /// </summary>
     [Fact]
-    public async Task AnOpenGenericRegistrationIsPassedOver() {
-        Assert.Empty(await Installed(
-            services => services.AddSingleton(typeof(IPrincipalSource<>), typeof(OpenSource<>))));
+    public async Task AnOpenGenericRegistrationIsPassedOver()
+    {
+        Assert.Empty(
+            await Installed(services =>
+                services.AddSingleton(typeof(IPrincipalSource<>), typeof(OpenSource<>))
+            )
+        );
     }
 }
