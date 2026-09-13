@@ -99,6 +99,27 @@ public class RouteConstraintChainTests
         Assert.False(RouteConstraintChain.Passes(tests, "six"));
     }
 
+    /// <remarks>
+    /// A declared constraint is a <c>bool(ReadOnlySpan&lt;char&gt;)</c> and takes nothing, so a
+    /// template calling one with arguments is told that rather than told the name is unknown.
+    /// </remarks>
+    [Fact]
+    public void ADeclaredConstraintCalledWithArgumentsIsReported()
+    {
+        var declared = new Dictionary<string, RouteConstraintTest>
+        {
+            { "isbn", static value => value.Length == 13 },
+        };
+
+        Assert.False(
+            RouteConstraintChain.TryResolve("isbn(13)", declared, out _, out _, out var error)
+        );
+        Assert.Contains("takes no arguments", error);
+
+        Assert.False(RouteConstraintChain.TryResolve("ean(13)", declared, out _, out _, out error));
+        Assert.Contains("nothing declares a route constraint", error);
+    }
+
     [Fact]
     public void ADeclaredConstraintSortsAfterEveryBuiltIn()
     {
@@ -125,6 +146,11 @@ public class RouteConstraintChainTests
     [InlineData("length(x)", "takes whole numbers")]
     [InlineData("int(3)", "takes no arguments")]
     [InlineData("length(1,2,3)", "does not take 3")]
+    [InlineData("minlength(1,2)", "does not take 2")]
+    [InlineData("maxlength(1,2)", "does not take 2")]
+    [InlineData("min(1,2)", "does not take 2")]
+    [InlineData("max(1,2)", "does not take 2")]
+    [InlineData("range(1)", "does not take 1")]
     [InlineData("isbn(3)", "nothing declares a route constraint")]
     public void AChainThatIsNotOneIsReported(string chain, string expected)
     {

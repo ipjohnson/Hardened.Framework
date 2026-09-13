@@ -162,6 +162,20 @@ public class RouteRegistryTests
         Assert.Contains("could never be reached", Assert.Single(registry.Failures));
     }
 
+    /// <remarks>
+    /// A path is a public argument, so a null one is a reported failure rather than a
+    /// <c>NullReferenceException</c> out of a registration callback.
+    /// </remarks>
+    [Fact]
+    public void ANullPathIsReported()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Get(null!, typeof(Orders), nameof(Orders.Get));
+
+        Assert.Contains("cannot be empty", Assert.Single(registry.Failures));
+    }
+
     [Fact]
     public void AHandlerNobodyGeneratedIsReported()
     {
@@ -209,6 +223,18 @@ public class RouteRegistryTests
 
         Assert.Equal(3, thrown.Failures.Count);
         Assert.Contains("3 routes could not be registered", thrown.Message);
+    }
+
+    [Fact]
+    public void OneFailureReadsAsOne()
+    {
+        var registry = new RouteRegistry(Provider, Catalog());
+
+        registry.Get("/one/orders/{orderId:int}", typeof(Orders), nameof(Orders.Get));
+
+        var thrown = Assert.Throws<RouteRegistrationException>(() => registry.Close());
+
+        Assert.Contains("A route could not be registered:", thrown.Message);
     }
 
     [Fact]

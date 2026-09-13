@@ -5,10 +5,8 @@ using DependencyModules.Runtime.Helpers;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Runtime.PathTokens;
 using Hardened.Web.Runtime.Handlers;
-using Hardened.Web.Runtime.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using TestApp.Generated;
 
@@ -27,11 +25,8 @@ namespace TestApp
                 Application.RoutingTable
             >();
             serviceCollection.AddTransient<TenantController>();
-            serviceCollection.AddSingleton<
-                IGeneratedRouteHandlerCatalog,
-                Application.RegisteredRouteHandlers
-            >();
             serviceCollection.AddTransient<Application.Links>();
+            serviceCollection.AddSingleton<global::Hardened.Web.Runtime.Routing.IGeneratedRouteHandlerCatalog, TestApp.Application.RegisteredRouteHandlers>();
         }
 
         private class RoutingTable : IWebExecutionRequestHandlerProvider
@@ -132,23 +127,6 @@ namespace TestApp
                         return _methodNotAllowedGETHEAD;
                 }
             }
-        }
-
-        /// <summary>
-        /// Every handler this entry point generated, so a route registered at startup can point at one. See IGeneratedRouteHandlerCatalog.
-        /// </summary>
-        private sealed class RegisteredRouteHandlers : IGeneratedRouteHandlerCatalog
-        {
-            private static readonly GeneratedRouteHandler[] _handlers = new global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler[] { new global::Hardened.Web.Runtime.Routing.GeneratedRouteHandler(typeof(global::TestApp.TenantController), "Get", "GET", "/orders/{id:int}", static (serviceProvider, routePath) => new global::TestApp.Generated.TenantController_Get_329(serviceProvider, routePath)) };
-            private static readonly IReadOnlyDictionary<string,RouteConstraintTest> _constraints = new global::System.Collections.Generic.Dictionary<string, global::Hardened.Web.Runtime.Routing.RouteConstraintTest>();
-
-            public IReadOnlyList<GeneratedRouteHandler> Handlers => _handlers;
-
-            public bool CaseInsensitiveRoutes => false;
-
-            public string BasePath => "";
-
-            public IReadOnlyDictionary<string,RouteConstraintTest> Constraints => _constraints;
         }
     }
 }

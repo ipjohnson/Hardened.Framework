@@ -185,7 +185,13 @@ public static class WebIncrementalGenerator
                         context,
                         pair.Left.Left,
                         pair.Left.Right,
-                        pair.Right
+                        pair.Right,
+                        RouteHandlerCatalogEmitter.For(
+                            pair.Left.Left.Left,
+                            pair.Left.Left.Right,
+                            pair.Right,
+                            pair.Left.Right.RouteRegistrationDeclared
+                        )
                     )
             )
         );

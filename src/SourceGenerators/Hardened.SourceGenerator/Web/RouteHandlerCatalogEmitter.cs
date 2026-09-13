@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using CSharpAuthor;
 using Hardened.SourceGenerator.Models.Request;
+using Hardened.SourceGenerator.Requests;
 using Hardened.SourceGenerator.Shared;
 using Hardened.SourceGenerator.Web.Routing;
+using static CSharpAuthor.SyntaxHelpers;
 
 namespace Hardened.SourceGenerator.Web;
 
@@ -53,13 +55,90 @@ internal static class RouteHandlerCatalogEmitter
         "IGeneratedRouteHandlerCatalog"
     );
 
-    public static ITypeDefinition Type(EntryPointSelector.Model appModel) =>
+    private static ITypeDefinition Type(EntryPointSelector.Model appModel) =>
         TypeDefinition.Get(
             appModel.EntryPointType.Namespace,
             appModel.EntryPointType.Name + "." + ContainerName
         );
 
-    public static void Emit(
+    /// <summary>
+    /// The statement that registers the catalog, appended to the generated dependency method
+    /// through <c>RoutingTableOptions.AdditionalRegistrations</c>.
+    /// </summary>
+    private static IOutputComponent Registration(EntryPointSelector.Model appModel) =>
+        CodeOutputComponent.Get(
+            "serviceCollection.AddSingleton<global::Hardened.Web.Runtime.Routing.IGeneratedRouteHandlerCatalog, "
+                + appModel.EntryPointType.Namespace
+                + "."
+                + appModel.EntryPointType.Name
+                + "."
+                + ContainerName
+                + ">()"
+        );
+
+    /// <summary>
+    /// The catalog for <paramref name="appModel"/>, or null where the compilation declares no
+    /// <c>IRouteRegistration</c>.
+    /// </summary>
+    /// <remarks>
+    /// Called from the incremental generator rather than from the shared route walk, and that is
+    /// the point: every generator that compiles the walk would otherwise compile this too,
+    /// including the described one, which never registers a route.
+    /// </remarks>
+    public static (string Source, IOutputComponent Registration)? For(
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers,
+        IReadOnlyList<RouteConstraintModel>? constraints,
+        bool declared
+    )
+    {
+        if (!declared)
+        {
+            return null;
+        }
+
+        // The same filter the routing table applies. A handler that was not generated must not be
+        // in a catalog that names its class.
+        var routable = handlers.Where(handler => !handler.CannotBeEmitted()).ToList();
+
+        return (
+            Write(
+                appModel,
+                routable,
+                constraints ?? System.Array.Empty<RouteConstraintModel>(),
+                RoutingTableGenerator.IsCaseInsensitive(appModel),
+                RoutingTableGenerator.GetBasePath(appModel)
+            ),
+            Registration(appModel)
+        );
+    }
+
+    /// <summary>The catalog as its own source file, a partial of the entry point.</summary>
+    private static string Write(
+        EntryPointSelector.Model appModel,
+        IReadOnlyList<RequestHandlerModel> handlers,
+        IReadOnlyList<RouteConstraintModel> constraints,
+        bool caseInsensitive,
+        string basePath
+    )
+    {
+        var file = new CSharpFileDefinition(appModel.EntryPointType.Namespace);
+        var appClass = file.AddClass(appModel.EntryPointType.Name);
+
+        appClass.Modifiers |= ComponentModifier.Partial;
+
+        Emit(appClass, handlers, constraints, caseInsensitive, basePath);
+
+        var outputContext = new OutputContext(
+            new OutputContextOptions { TypeOutputMode = TypeOutputMode.Global }
+        );
+
+        file.WriteOutput(outputContext);
+
+        return outputContext.Output();
+    }
+
+    private static void Emit(
         ClassDefinition appClass,
         IReadOnlyList<RequestHandlerModel> handlers,
         IReadOnlyList<RouteConstraintModel> constraints,

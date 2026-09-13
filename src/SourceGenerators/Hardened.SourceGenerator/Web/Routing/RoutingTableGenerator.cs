@@ -59,11 +59,19 @@ public static class RoutingTableGenerator
     [ThreadStatic]
     private static string? _basePath;
 
+    /// <param name="catalog">
+    /// The handler catalog a route registered at startup resolves through, already emitted by the
+    /// caller, or null where the compilation declares no <c>IRouteRegistration</c>. Passed in rather
+    /// than built here for the reason <see cref="RoutingTableOptions.AdditionalRegistrations"/>
+    /// gives, and for one more: the emitter would otherwise be compiled into every generator that
+    /// shares this route walk, including the described one, which never registers a route.
+    /// </param>
     public static void GenerateRoute(
         SourceProductionContext context,
         (EntryPointSelector.Model Left, ImmutableArray<RequestHandlerModel> Right) models,
         WebGeneratorOptions? options = null,
-        IReadOnlyList<RouteConstraintModel>? constraints = null
+        IReadOnlyList<RouteConstraintModel>? constraints = null,
+        (string Source, IOutputComponent Registration)? catalog = null
     )
     {
         _constraints = constraints;
@@ -146,12 +154,27 @@ public static class RoutingTableGenerator
             models.Left,
             routable,
             context.CancellationToken,
-            new RoutingTableOptions { EmitRouteHandlerCatalog = options.RouteRegistrationDeclared }
+            new RoutingTableOptions
+            {
+                AdditionalRegistrations = catalog is { } declared
+                    ? new[] { declared.Registration }
+                    : Array.Empty<IOutputComponent>(),
+            }
         );
 
         var fileName = models.Left.EntryPointType.Name + ".Routing";
 
         context.AddSource(fileName, GeneratedSource.Header(outputString));
+
+        // Its own file rather than a class inside the routing table, so an entry point that
+        // registers nothing generates the same bytes it always did.
+        if (catalog is { } emitted)
+        {
+            context.AddSource(
+                models.Left.EntryPointType.Name + ".RouteHandlers",
+                GeneratedSource.Header(emitted.Source)
+            );
+        }
 
         var documentVersion = version ?? OpenApiVersionFacts.Default;
 
@@ -332,17 +355,6 @@ public static class RoutingTableGenerator
 
         ServerSentEventManifestEmitter.Emit(appClass, eventStreams);
 
-        if (options.EmitRouteHandlerCatalog)
-        {
-            RouteHandlerCatalogEmitter.Emit(
-                appClass,
-                endPointModels,
-                _constraints ?? System.Array.Empty<RouteConstraintModel>(),
-                _caseInsensitive,
-                _basePath ?? ""
-            );
-        }
-
         ApplicationFilterEmitter.Emit(appClass, appModel.FilterDeclarations);
 
         GenerateDependencyInjection(
@@ -495,20 +507,6 @@ public static class RoutingTableGenerator
                     serviceCollection.InvokeGeneric("AddTransient", new[] { controllerType })
                 );
             }
-        }
-
-        if (options.EmitRouteHandlerCatalog)
-        {
-            diMethod.AddIndentedStatement(
-                serviceCollection.InvokeGeneric(
-                    "AddSingleton",
-                    new[]
-                    {
-                        KnownTypes.Web.IGeneratedRouteHandlerCatalog,
-                        RouteHandlerCatalogEmitter.Type(applicationModel),
-                    }
-                )
-            );
         }
 
         RegisterLinks(diMethod, serviceCollection, applicationModel, webEndPointModels);
@@ -1751,7 +1749,7 @@ public static class RoutingTableGenerator
     /// Whether the entry point asked for case-insensitive matching, which every application used to
     /// get whether it wanted it or not.
     /// </summary>
-    private static bool IsCaseInsensitive(EntryPointSelector.Model appModel) =>
+    public static bool IsCaseInsensitive(EntryPointSelector.Model appModel) =>
         appModel.AttributeModels != null
         && appModel.AttributeModels.Any(model =>
             model.TypeDefinition.Name.StartsWith("CaseInsensitiveRoutes", StringComparison.Ordinal)
@@ -1781,7 +1779,7 @@ public static class RoutingTableGenerator
         );
     }
 
-    private static string GetBasePath(EntryPointSelector.Model appModel)
+    public static string GetBasePath(EntryPointSelector.Model appModel)
     {
         if (appModel.AttributeModels != null)
         {

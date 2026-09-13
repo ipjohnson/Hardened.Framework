@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Hardened.SourceGenerator.Web.Routing;
+namespace Hardened.SourceGenerator.Web;
 
 /// <summary>
 /// Whether the compilation declares a type that registers routes at startup.

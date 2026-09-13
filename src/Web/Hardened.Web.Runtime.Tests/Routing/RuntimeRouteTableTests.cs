@@ -193,6 +193,19 @@ public class RuntimeRouteTableTests
         Assert.Null(Table(("/orders/{id}", "GET")).Match("/orders/", "GET"));
     }
 
+    /// <remarks>
+    /// The node for <c>orders</c> exists only to be passed through. Reaching it as the last segment
+    /// is not a match, and the walk has to say so rather than answer from a node with no route on
+    /// it.
+    /// </remarks>
+    [Fact]
+    public void ASegmentThatOnlyLeadsSomewhereIsNotAMatch()
+    {
+        var table = Table(("/orders/lines", "GET"));
+
+        Assert.Null(table.Match("/orders", "GET"));
+    }
+
     [Fact]
     public void ATokenDoesNotCrossASeparator()
     {
