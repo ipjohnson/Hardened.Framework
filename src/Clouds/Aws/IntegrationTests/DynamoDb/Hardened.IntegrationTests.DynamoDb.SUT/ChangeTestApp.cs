@@ -14,5 +14,4 @@ namespace Hardened.IntegrationTests.DynamoDb.SUT;
 /// package reference and nothing else.
 /// </remarks>
 [HardenedModule]
-public partial class ChangeTestApp {
-}
+public partial class ChangeTestApp;

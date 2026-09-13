@@ -14,5 +14,4 @@ namespace Hardened.IntegrationTests.LambdaHttp.SUT;
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
-public partial class LambdaHttpTestApp {
-}
+public partial class LambdaHttpTestApp;

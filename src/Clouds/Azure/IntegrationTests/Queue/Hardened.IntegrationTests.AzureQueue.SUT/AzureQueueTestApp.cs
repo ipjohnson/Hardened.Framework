@@ -14,5 +14,4 @@ namespace Hardened.IntegrationTests.AzureQueue.SUT;
 /// package reference and nothing else - <c>SqsTestApp</c> is this file with another name.
 /// </remarks>
 [HardenedModule]
-public partial class AzureQueueTestApp {
-}
+public partial class AzureQueueTestApp;

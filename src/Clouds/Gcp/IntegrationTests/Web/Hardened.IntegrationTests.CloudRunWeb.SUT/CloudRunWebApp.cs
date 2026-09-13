@@ -10,8 +10,7 @@ namespace Hardened.IntegrationTests.CloudRunWeb.SUT;
 /// </summary>
 [HardenedModule]
 [CloudRunRuntime]
-public partial class CloudRunWebApp {
-}
+public partial class CloudRunWebApp;
 
 public class Order {
     public string Id { get; set; } = "";

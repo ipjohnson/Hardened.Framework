@@ -23,8 +23,7 @@ namespace Hardened.Generation.Document;
 /// integer - so a number round-trips as the characters it arrived as.
 /// </para>
 /// </remarks>
-internal abstract class JsonNode {
-}
+internal abstract class JsonNode { }
 
 /// <summary>An object, as an ordered list of members.</summary>
 internal sealed class JsonObject : JsonNode {

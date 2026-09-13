@@ -14,11 +14,11 @@ public class HostResolutionTests {
 
     /// <summary>Stands in for a runtime attribute an application names its host with.</summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly)]
-    private sealed class SomeRuntimeAttribute : Attribute { }
+    private sealed class SomeRuntimeAttribute : Attribute;
 
     /// <summary>A runtime attribute no provider in scope answers for.</summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly)]
-    private sealed class OtherRuntimeAttribute : Attribute { }
+    private sealed class OtherRuntimeAttribute : Attribute;
 
     private sealed class SomeHost : ITestHost {
         public bool IsTerminal => true;

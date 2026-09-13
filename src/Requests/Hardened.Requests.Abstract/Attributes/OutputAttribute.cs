@@ -48,4 +48,4 @@ namespace Hardened.Requests.Abstract.Attributes;
 /// </summary>
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
 public sealed class OutputAttribute<TOutput> : Attribute
-    where TOutput : IHardenedResponseOutput, new() { }
+    where TOutput : IHardenedResponseOutput, new();

@@ -24,7 +24,7 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// </summary>
 public class FilterChainLogTests {
 
-    private class Controller { }
+    private class Controller;
 
     private sealed class InstanceStandIn : IExecutionFilter {
         public Task Execute(IExecutionChain chain) => chain.Next();

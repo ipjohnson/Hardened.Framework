@@ -69,4 +69,4 @@ public interface IHardenedResponseOutput {
 /// Contravariant, so an output written against a base model serves a handler returning a derived
 /// one.
 /// </typeparam>
-public interface IHardenedResponseOutput<in TModel> : IHardenedResponseOutput { }
+public interface IHardenedResponseOutput<in TModel> : IHardenedResponseOutput;

@@ -24,7 +24,7 @@ namespace Hardened.Aws.Lambda.DynamoDb;
 /// </remarks>
 [JsonSerializable(typeof(DynamoDBEvent))]
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
-public partial class DynamoDbSerializerContext : JsonSerializerContext { }
+public partial class DynamoDbSerializerContext : JsonSerializerContext;
 
 /// <summary>
 /// The event's metadata, resolved once, with the epoch converter installed.

@@ -29,7 +29,7 @@ public class FilterOrderingTests {
     private const string Io = "io";
     private const string Invoke = "invoke";
 
-    private class Controller { }
+    private class Controller;
 
     /// <summary>
     /// Builds the real filter array through <c>ExecutionHelper</c> and runs it, returning the

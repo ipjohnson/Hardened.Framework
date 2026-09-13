@@ -14,7 +14,7 @@ namespace Hardened.Web.Runtime.Tests.Compression;
 /// </summary>
 public class CompressAttributeTests {
 
-    private class Controller { }
+    private class Controller;
 
     private static ExecutionRequestHandlerInfo Handler(params object[] metadata) =>
         new("/pets", "GET", typeof(Controller), "List", metadata: metadata);

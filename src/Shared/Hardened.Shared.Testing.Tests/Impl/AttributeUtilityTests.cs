@@ -39,7 +39,7 @@ public class AttributeUtilityTests {
         public string Scope { get; }
     }
 
-    private sealed class UnrelatedAttribute : Attribute { }
+    private sealed class UnrelatedAttribute : Attribute;
 
     private static MethodInfo MethodOf(Type type, string name) =>
         type.GetMethod(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic)!;

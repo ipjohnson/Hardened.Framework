@@ -1,3 +1,3 @@
 ﻿namespace Hardened.Shared.Runtime.Attributes;
 
-public class ConfigurationProviderAttribute : Attribute { }
+public class ConfigurationProviderAttribute : Attribute;

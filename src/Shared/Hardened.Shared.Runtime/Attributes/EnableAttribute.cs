@@ -51,4 +51,4 @@ namespace Hardened.Shared.Runtime.Attributes;
 /// engine needs no generator change at all.
 /// </typeparam>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = true, Inherited = false)]
-public class EnableAttribute<TFeature> : Attribute where TFeature : new() { }
+public class EnableAttribute<TFeature> : Attribute where TFeature : new();

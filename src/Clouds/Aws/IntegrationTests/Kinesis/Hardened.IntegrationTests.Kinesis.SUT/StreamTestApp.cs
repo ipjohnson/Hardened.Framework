@@ -12,5 +12,4 @@ namespace Hardened.IntegrationTests.Kinesis.SUT;
 /// Hubs changes a package reference and nothing else.
 /// </remarks>
 [HardenedModule]
-public partial class StreamTestApp {
-}
+public partial class StreamTestApp;

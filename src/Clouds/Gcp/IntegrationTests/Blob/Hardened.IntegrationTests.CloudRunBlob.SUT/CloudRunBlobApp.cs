@@ -10,8 +10,7 @@ namespace Hardened.IntegrationTests.CloudRunBlob.SUT;
 /// </summary>
 [HardenedModule]
 [CloudRunRuntime]
-public partial class CloudRunBlobApp {
-}
+public partial class CloudRunBlobApp;
 
 /// <summary>
 /// What Cloud Storage says about an object, which is all a notification carries. The object itself

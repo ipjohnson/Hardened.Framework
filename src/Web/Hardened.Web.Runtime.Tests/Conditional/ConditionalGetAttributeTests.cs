@@ -14,7 +14,7 @@ namespace Hardened.Web.Runtime.Tests.Conditional;
 /// </summary>
 public class ConditionalGetAttributeTests {
 
-    private class Controller { }
+    private class Controller;
 
     private static ExecutionRequestHandlerInfo Handler(string method, params object[] metadata) =>
         new("/rates", method, typeof(Controller), "Read", metadata: metadata);

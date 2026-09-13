@@ -11,5 +11,4 @@ namespace Hardened.Aws.Lambda.Sns;
     PropertyNameCaseInsensitive = true,
     GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(SNSEvent))]
-internal partial class SnsSerializerContext : JsonSerializerContext {
-}
+internal partial class SnsSerializerContext : JsonSerializerContext;

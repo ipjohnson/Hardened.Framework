@@ -10,8 +10,7 @@ namespace Hardened.Gcp.CloudRun.Runtime.Tests.Dispatch;
 /// </summary>
 [HardenedModule]
 [CloudRunRuntime]
-public partial class MixedApp {
-}
+public partial class MixedApp;
 
 public class Order {
     public string Id { get; set; } = "";

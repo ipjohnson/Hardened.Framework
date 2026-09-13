@@ -32,4 +32,4 @@ namespace Hardened.Templates.RazorBlade;
 /// </summary>
 [TemplateBase(typeof(HardenedHtmlTemplate<>))]
 [TemplateContentType("text/html; charset=utf-8")]
-public sealed class RazorTemplates { }
+public sealed class RazorTemplates;

@@ -30,7 +30,7 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// </remarks>
 public class ContentTypeCascadeTests {
 
-    private class Controller { }
+    private class Controller;
 
     private sealed class IoStandIn : IExecutionFilter {
         public Task Execute(IExecutionChain chain) => chain.Next();

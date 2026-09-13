@@ -18,7 +18,7 @@ namespace Hardened.Requests.Runtime.Tests.Filters;
 /// </remarks>
 public class InstanceFilterTests {
 
-    public interface IClock { }
+    public interface IClock;
 
     public sealed class NeedsAClock {
         public NeedsAClock(IClock clock) {
@@ -26,7 +26,7 @@ public class InstanceFilterTests {
         }
     }
 
-    public sealed class NeedsNothing { }
+    public sealed class NeedsNothing;
 
     [Fact]
     public async Task ASatisfiableHandlerIsConstructedOntoTheContext() {

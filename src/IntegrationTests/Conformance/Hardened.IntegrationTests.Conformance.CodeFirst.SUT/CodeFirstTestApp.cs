@@ -19,5 +19,4 @@ namespace Hardened.IntegrationTests.Conformance.CodeFirst.SUT;
 // The described front-ends ask with <PublishUrl> metadata on the spec item. Three vocabularies,
 // one behaviour - which is the row of the conformance suite this enables.
 [Enable<OpenApiDocumentPublishing>]
-public partial class CodeFirstTestApp {
-}
+public partial class CodeFirstTestApp;

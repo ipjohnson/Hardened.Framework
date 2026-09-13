@@ -3,4 +3,4 @@
 namespace Hardened.Requests.Serializers.Newtonsoft;
 
 [DependencyModule]
-public partial class NewtonsoftSerializerLibrary { }
+public partial class NewtonsoftSerializerLibrary;

@@ -12,4 +12,4 @@ namespace Hardened.IntegrationTests.Kestrel.SUT;
 [HardenedModule]
 [HardenedWebModule]
 [KestrelRuntime]
-public partial class Application { }
+public partial class Application;

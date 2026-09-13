@@ -20,7 +20,7 @@ namespace Hardened.IntegrationTests.Aot.SUT;
 [HardenedWebModule]
 [KestrelRuntime]
 [AotSerializerModule]
-public partial class Application { }
+public partial class Application;
 
 public record Echo(string Message, int Length);
 
@@ -35,7 +35,7 @@ public record Echo(string Message, int Length);
 /// </remarks>
 [JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(Echo))]
-public partial class AotContext : JsonSerializerContext { }
+public partial class AotContext : JsonSerializerContext;
 
 /// <summary>A route per thing worth proving survives ILC: routing, binding, serialization.</summary>
 public class EchoController {

@@ -3,4 +3,4 @@
 /// <summary>
 /// Module entry point
 /// </summary>
-public class HardenedModuleAttribute : Attribute { }
+public class HardenedModuleAttribute : Attribute;

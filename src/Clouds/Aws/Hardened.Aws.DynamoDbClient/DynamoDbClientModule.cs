@@ -17,4 +17,4 @@ namespace Hardened.Aws.DynamoDbClient;
 /// doing both could not name either without qualifying it.
 /// </remarks>
 [HardenedModule]
-public partial class DynamoDbClientModule { }
+public partial class DynamoDbClientModule;

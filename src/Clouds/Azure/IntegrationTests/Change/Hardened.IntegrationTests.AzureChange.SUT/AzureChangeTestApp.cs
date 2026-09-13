@@ -22,5 +22,4 @@ namespace Hardened.IntegrationTests.AzureChange.SUT;
 /// </remarks>
 [HardenedModule]
 [CosmosDbModule(Database = "orders-db")]
-public partial class AzureChangeTestApp {
-}
+public partial class AzureChangeTestApp;

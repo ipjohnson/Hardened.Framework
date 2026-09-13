@@ -23,4 +23,4 @@ namespace Hardened.Web.Runtime.Attributes;
 /// </para>
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
-public class CaseInsensitiveRoutesAttribute : Attribute { }
+public class CaseInsensitiveRoutesAttribute : Attribute;

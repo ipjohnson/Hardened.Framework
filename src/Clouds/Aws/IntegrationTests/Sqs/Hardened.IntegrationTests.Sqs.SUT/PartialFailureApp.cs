@@ -23,5 +23,4 @@ namespace Hardened.IntegrationTests.Sqs.SUT;
 /// </remarks>
 [HardenedModule]
 [SqsModule(ReportBatchItemFailures = true)]
-public partial class PartialFailureApp {
-}
+public partial class PartialFailureApp;

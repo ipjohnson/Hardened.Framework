@@ -16,5 +16,4 @@ namespace Hardened.IntegrationTests.CloudRunQueue.SUT;
 /// </remarks>
 [HardenedModule]
 [CloudRunRuntime]
-public partial class CloudRunQueueApp {
-}
+public partial class CloudRunQueueApp;

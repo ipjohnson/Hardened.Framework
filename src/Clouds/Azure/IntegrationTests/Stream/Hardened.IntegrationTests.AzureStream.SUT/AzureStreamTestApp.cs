@@ -13,5 +13,4 @@ namespace Hardened.IntegrationTests.AzureStream.SUT;
 /// another name.
 /// </remarks>
 [HardenedModule]
-public partial class AzureStreamTestApp {
-}
+public partial class AzureStreamTestApp;

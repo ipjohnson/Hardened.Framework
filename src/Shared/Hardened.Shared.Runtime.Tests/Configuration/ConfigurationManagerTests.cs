@@ -9,13 +9,13 @@ namespace Hardened.Shared.Runtime.Tests.Configuration;
 
 [SubFixtureInitialize]
 public class ConfigurationManagerTests {
-    public interface ITestConfig { }
+    public interface ITestConfig;
 
-    public class TestConfig : ITestConfig { }
+    public class TestConfig : ITestConfig;
 
-    public interface IOtherConfig { }
+    public interface IOtherConfig;
 
-    public class OtherConfig : IOtherConfig { }
+    public class OtherConfig : IOtherConfig;
 
     [Fact]
     public void GetConfiguration_ReturnsValueFromProvider() {

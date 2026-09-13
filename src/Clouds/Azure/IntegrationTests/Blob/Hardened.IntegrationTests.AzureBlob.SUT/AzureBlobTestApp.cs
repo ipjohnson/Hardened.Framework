@@ -11,5 +11,4 @@ namespace Hardened.IntegrationTests.AzureBlob.SUT;
 /// file names Azure - <c>BlobTestApp</c> is this file with another name.
 /// </remarks>
 [HardenedModule]
-public partial class AzureBlobTestApp {
-}
+public partial class AzureBlobTestApp;

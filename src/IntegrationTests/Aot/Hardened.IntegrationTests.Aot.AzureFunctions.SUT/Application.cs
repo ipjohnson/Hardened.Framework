@@ -26,14 +26,14 @@ namespace Hardened.IntegrationTests.Aot.AzureFunctions.SUT;
 [HardenedModule]
 [HardenedWebModule]
 [AotSerializerModule]
-public partial class Application { }
+public partial class Application;
 
 public record Order(string Id, int Quantity);
 
 /// <summary>The metadata the AOT serializers resolve <see cref="Order"/> through.</summary>
 [JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(Order))]
-public partial class AotContext : JsonSerializerContext { }
+public partial class AotContext : JsonSerializerContext;
 
 /// <summary>
 /// One handler per dispatch, exercising the parts a trimmer could break.

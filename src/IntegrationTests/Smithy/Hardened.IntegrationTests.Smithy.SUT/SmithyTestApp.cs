@@ -14,5 +14,4 @@ namespace Hardened.IntegrationTests.Smithy.SUT;
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
-public partial class SmithyTestApp {
-}
+public partial class SmithyTestApp;

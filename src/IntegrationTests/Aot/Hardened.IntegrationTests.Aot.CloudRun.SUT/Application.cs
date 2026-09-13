@@ -27,14 +27,14 @@ namespace Hardened.IntegrationTests.Aot.CloudRun.SUT;
 [HardenedModule]
 [CloudRunRuntime]
 [AotSerializerModule]
-public partial class Application { }
+public partial class Application;
 
 public record Order(string Id, int Quantity);
 
 /// <summary>The metadata the AOT serializers resolve <see cref="Order"/> through.</summary>
 [JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(Order))]
-public partial class AotContext : JsonSerializerContext { }
+public partial class AotContext : JsonSerializerContext;
 
 /// <summary>
 /// One handler per path a Cloud Run service serves, exercising the parts a trimmer could break.
