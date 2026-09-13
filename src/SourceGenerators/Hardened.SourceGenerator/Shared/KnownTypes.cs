@@ -282,6 +282,12 @@ public static class KnownTypes
             "RequestBody"
         );
 
+        /// <summary>The binder's reader for a byte[] or Stream body - see <c>RawBody</c>.</summary>
+        public static readonly ITypeDefinition RawBody = TypeDefinition.Get(
+            Namespace.Hardened.Requests.Runtime.Serializer,
+            "RawBody"
+        );
+
         public static ITypeDefinition DefaultOutputFunc = TypeDefinition.Get(
             Namespace.Hardened.Requests.Abstract.Execution,
             "DefaultOutputFunc"

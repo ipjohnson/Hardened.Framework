@@ -740,7 +740,7 @@ public abstract class BaseRequestModelGenerator
             );
         }
 
-        return CreateRequestParameterInformation(
+        var body = CreateRequestParameterInformation(
             parameter,
             parameterType,
             ParameterBindType.Body,
@@ -751,6 +751,10 @@ public abstract class BaseRequestModelGenerator
             ),
             registeredAsService: RegisteredAsService(generatorSyntaxContext, parameter)
         );
+
+        body.IsRawBody = IsRawBodyType(generatorSyntaxContext, parameter);
+
+        return body;
     }
 
     /// <summary>
@@ -1303,6 +1307,49 @@ public abstract class BaseRequestModelGenerator
     /// however it is named and a model called <c>EventStream</c> is not.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// Whether a parameter's type is the payload rather than a shape to read out of one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The same two types <see cref="WritesRawBytes"/> recognises on a return type, asked the same
+    /// way and for the same reason: <c>byte[]</c> and <c>Stream</c> are bytes, so nothing
+    /// serializes them in either direction. Base types are walked, so a <c>MemoryStream</c>
+    /// parameter is a stream.
+    /// </para>
+    /// <para>
+    /// Asked here, where the symbol exists. The type definition carried forward to the binder has
+    /// a name and a namespace and no base type, so the answer cannot be recovered there.
+    /// </para>
+    /// </remarks>
+    public static bool IsRawBodyType(GeneratorSyntaxContext context, ParameterSyntax parameter)
+    {
+        if (parameter.Type == null)
+        {
+            return false;
+        }
+
+        var type = context.SemanticModel.GetTypeInfo(parameter.Type).Type;
+
+        if (type is IArrayTypeSymbol array)
+        {
+            return array.ElementType.SpecialType == SpecialType.System_Byte;
+        }
+
+        for (var current = type; current != null; current = current.BaseType)
+        {
+            if (
+                current.Name == "Stream"
+                && current.ContainingNamespace?.ToDisplayString() == "System.IO"
+            )
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool WritesRawBytes(
         GeneratorSyntaxContext context,
         MethodDeclarationSyntax methodDeclaration

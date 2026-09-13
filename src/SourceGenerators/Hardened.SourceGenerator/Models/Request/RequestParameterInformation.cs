@@ -133,6 +133,27 @@ public class RequestParameterInformation
     /// </summary>
     public bool RegisteredAsService { get; }
 
+    /// <summary>
+    /// Whether this body parameter is the payload rather than a shape to read out of one -
+    /// <c>byte[]</c>, or a <c>Stream</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Recorded at the syntax transform, where the semantic model is in hand, because the answer
+    /// needs a symbol: a <c>MemoryStream</c> parameter is a stream and the type definition carried
+    /// forward from here has no base type to walk. Same reason
+    /// <see cref="ConstructorRequiresServices"/> is recorded there. The response side asks the same
+    /// question of a return type and carries it the same way, as
+    /// <c>ResponseInformationModel.WritesRawBytes</c>.
+    /// </para>
+    /// <para>
+    /// Two things read it. The binder hands the bytes over with no deserializer - see
+    /// <c>RawBody</c> - and the document writer publishes <c>application/octet-stream</c> for the
+    /// request body rather than <c>application/json</c>.
+    /// </para>
+    /// </remarks>
+    public bool IsRawBody { get; set; }
+
     public int ParameterIndex { get; }
 
     /// <summary>
@@ -163,6 +184,7 @@ public class RequestParameterInformation
             SpecParameter = SpecParameter,
             SchemaFacets = SchemaFacets,
             RequiredByConstraint = RequiredByConstraint,
+            IsRawBody = IsRawBody,
         };
 
     public override bool Equals(object obj)
@@ -236,6 +258,11 @@ public class RequestParameterInformation
             return false;
         }
 
+        if (IsRawBody != requestParameterInformation.IsRawBody)
+        {
+            return false;
+        }
+
         if (RegisteredAsService != requestParameterInformation.RegisteredAsService)
         {
             return false;
@@ -267,6 +294,7 @@ public class RequestParameterInformation
 
             hashCode = (hashCode * 397) ^ ConstructorRequiresServices.GetHashCode();
             hashCode = (hashCode * 397) ^ RegisteredAsService.GetHashCode();
+            hashCode = (hashCode * 397) ^ IsRawBody.GetHashCode();
 
             return hashCode;
         }

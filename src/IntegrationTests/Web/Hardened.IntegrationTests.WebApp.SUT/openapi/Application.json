@@ -54,6 +54,9 @@
       "name": "MessagePack"
     },
     {
+      "name": "RawBody"
+    },
+    {
       "name": "Registration"
     },
     {
@@ -4069,6 +4072,134 @@
         "x-hardened-timeout": 300000
       }
     },
+    "/raw-body/bytes": {
+      "put": {
+        "tags": [
+          "RawBody"
+        ],
+        "operationId": "bytes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Received"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/raw-body/optional": {
+      "put": {
+        "tags": [
+          "RawBody"
+        ],
+        "operationId": "optionalBytes",
+        "summary": "Nullable, so a request with no body reaches the handler rather than being refused.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Received"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/raw-body/stream": {
+      "put": {
+        "tags": [
+          "RawBody"
+        ],
+        "operationId": "streamed",
+        "summary": "A handler that does its own reading, which is what asking for a stream means.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Received"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
     "/registration": {
       "post": {
         "tags": [
@@ -6416,6 +6547,28 @@
             "type": "integer",
             "format": "int32",
             "x-message-pack-index": 1
+          }
+        }
+      },
+      "Received": {
+        "type": "object",
+        "required": [
+          "length",
+          "first",
+          "last"
+        ],
+        "properties": {
+          "length": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "first": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "last": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },

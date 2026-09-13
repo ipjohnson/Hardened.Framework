@@ -27,6 +27,7 @@ public string Mixed(
 | Cookie | `[FromCookie]`, or `[FromCookie("session")]` to name it |
 | Form field | `[FromForm]`, or `[FromForm("username")]` to name it |
 | Request body | `[FromBody]`, or inferred for a complex type with no other source |
+| Request body, unread | A `byte[]` or `Stream` parameter — see [A body that is bytes](#a-body-that-is-bytes) |
 | Container | `[FromServices]`, or inferred for a registered service type |
 | Custom | An attribute implementing `ICustomBindingAttribute` |
 
@@ -72,6 +73,35 @@ public int TypedQuery([FromQueryString] int page) => page + 1;
 
 The body is deserialized as JSON into the parameter type. A value that fails to parse as its type
 answers 400 with the [validation envelope](/guide/validation#the-failure-response).
+
+### A body that is bytes
+
+A body parameter declared `byte[]` or `Stream` is the payload. Nothing deserializes it and the
+inbound `Content-Type` does not select anything, because there is nothing to select between.
+
+```csharp
+[Put("/devices/{id}/firmware")]
+public Task<Response<NoContent, NotFound>> Upload(string id, byte[] image) => ...;
+```
+
+This is the same rule the response side applies to the same two types. A handler that returns
+`byte[]` or `Stream` writes its own bytes and no serializer is consulted, and one that takes them
+reads its own bytes for the same reason.
+
+`Stream` is the transport's own body, unread, which is the point of asking for one rather than a
+`byte[]`: an upload larger than the process wants to hold goes to its destination a chunk at a
+time. It is readable only while the request is.
+
+A request carrying no bytes answers 400 naming the parameter, the same refusal any other missing
+body gets. Declare `byte[]?` to accept one instead. A `Stream` parameter cannot be checked that
+way, because emptiness is not a property of a stream that can be read without consuming it, so a
+handler that cares finds out by reading.
+
+The published operation says `application/octet-stream` with a body of
+`{"type": "string", "format": "binary"}`.
+
+Base64 inside a JSON document is still read as `byte[]` on a *member* of a model. It is only the
+whole body that changes meaning.
 
 ## Naming
 
