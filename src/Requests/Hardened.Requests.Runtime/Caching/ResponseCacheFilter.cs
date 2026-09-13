@@ -4,6 +4,7 @@ using Hardened.Requests.Abstract.Authorization;
 using Hardened.Requests.Abstract.Caching;
 using Hardened.Requests.Abstract.Execution;
 using Hardened.Requests.Abstract.Headers;
+using Hardened.Requests.Abstract.Serializer;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 
@@ -109,11 +110,37 @@ public sealed class ResponseCacheFilter : IExecutionFilter
         KnownHeaders.Server,
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// What a request asking for a representation the operation does not have is keyed as.
+    /// </summary>
+    /// <remarks>
+    /// Every such request is answered the same way - a 406 under the strict negotiation mode, the
+    /// default serializer under the lenient one - so they share one entry rather than each getting
+    /// their own. A 406 is not storable, so under the strict mode the entry is never filled.
+    /// </remarks>
+    private const string NothingOnOffer = "\u001e";
+
     private readonly ICacheKeyProvider[] _keyProviders;
     private readonly string _handlerKey;
     private readonly TimeSpan _duration;
     private readonly CacheScope _scope;
     private readonly string[] _tags;
+
+    /// <summary>
+    /// The representations this operation declared, or empty where it declared none.
+    /// </summary>
+    /// <remarks>
+    /// <b>An operation that declared nothing is keyed as it was.</b> What such a response is
+    /// serialized as depends on which serializers the container holds and which of them will take
+    /// the response value, which is <c>SerializationLocatorService</c>'s decision and not one this
+    /// filter can reach ahead of the handler - and the registered content types are not the answer
+    /// either, since two of the framework's own serializers are registered under media types they
+    /// only ever write for a response that already committed to one. So the fix covers what an
+    /// operation states, and an operation that negotiates should state it: that is what
+    /// <c>[Produces]</c> is, and a described operation's <c>content:</c> keys arrive here the same
+    /// way.
+    /// </remarks>
+    private readonly IReadOnlyList<string> _declared;
 
     /// <summary>
     /// Resolved once, on the first request this filter serves. There is no service provider where
@@ -131,12 +158,17 @@ public sealed class ResponseCacheFilter : IExecutionFilter
     /// <param name="tags">
     /// The names an entry from this handler can be invalidated by, or none.
     /// </param>
+    /// <param name="declared">
+    /// What the operation says it produces, so an entry is keyed on the representation it holds.
+    /// Empty where the operation declared nothing, which keys as it always did.
+    /// </param>
     public ResponseCacheFilter(
         ICacheKeyProvider[] keyProviders,
         string handlerKey,
         int duration,
         CacheScope scope = CacheScope.AllCallers,
-        string[]? tags = null
+        string[]? tags = null,
+        IReadOnlyList<string>? declared = null
     )
     {
         _keyProviders = keyProviders;
@@ -144,6 +176,7 @@ public sealed class ResponseCacheFilter : IExecutionFilter
         _duration = TimeSpan.FromSeconds(duration <= 0 ? DefaultDuration : duration);
         _scope = scope;
         _tags = tags ?? [];
+        _declared = declared ?? [];
     }
 
     /// <summary>
@@ -243,7 +276,14 @@ public sealed class ResponseCacheFilter : IExecutionFilter
             scope = CacheScope.AllCallers;
         }
 
-        return new ResponseCacheFilter(providers, handlerKey, duration, scope, tags?.ToArray());
+        return new ResponseCacheFilter(
+            providers,
+            handlerKey,
+            duration,
+            scope,
+            tags?.ToArray(),
+            handlerInfo.ProducedContentTypes
+        );
     }
 
     public async Task Execute(IExecutionChain chain)
@@ -317,9 +357,19 @@ public sealed class ResponseCacheFilter : IExecutionFilter
     /// no partial key: a response varying on something a strategy could not read is a response that
     /// must not be shared.
     /// </para>
+    /// <para>
+    /// And by the representation, ahead of every strategy, for an operation that has more than one
+    /// - see <see cref="Representation"/>. No strategy asks for that and none should have to: it is
+    /// not a way of varying the answer that an author chose, it is what the operation already said
+    /// it produces.
+    /// </para>
     /// </remarks>
     private async ValueTask<string?> Key(IExecutionContext context)
     {
+        // Before the caller check, so a negotiating operation advertises Vary on every request it
+        // serves rather than only on the ones it went on to key.
+        var representation = Representation(context);
+
         string? caller = null;
 
         if (_scope == CacheScope.PerCaller)
@@ -332,9 +382,9 @@ public sealed class ResponseCacheFilter : IExecutionFilter
             }
         }
 
-        // One strategy and one audience is the ordinary case, and needs neither a builder nor a
-        // separator.
-        if (_keyProviders.Length == 1 && caller == null)
+        // One strategy, one audience and one representation is the ordinary case, and needs neither
+        // a builder nor a separator.
+        if (_keyProviders.Length == 1 && caller == null && representation == null)
         {
             var only = await _keyProviders[0].Key(context);
 
@@ -346,6 +396,11 @@ public sealed class ResponseCacheFilter : IExecutionFilter
         if (caller != null)
         {
             key.Append(Separator).Append(caller);
+        }
+
+        if (representation != null)
+        {
+            key.Append(Separator).Append(representation);
         }
 
         foreach (var provider in _keyProviders)
@@ -361,6 +416,49 @@ public sealed class ResponseCacheFilter : IExecutionFilter
         }
 
         return key.ToString();
+    }
+
+    /// <summary>
+    /// Which of the operation's representations this request is answered with, or null where it has
+    /// only one and nothing can vary.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Without this, whoever filled the entry decided for everyone after.</b> An operation
+    /// declaring <c>[Produces(Json, MessagePack)]</c> stored the bytes and the <c>Content-Type</c>
+    /// of whichever representation was asked for first, and served them to the next caller under a
+    /// <c>200</c> - not a miss and not a <c>406</c>, the other representation with the other
+    /// content type on it. The two features compose now because the entry is per representation.
+    /// </para>
+    /// <para>
+    /// <b>It writes <c>Vary: Accept</c> too</b>, for the same reason <c>VaryByHeader</c> writes one:
+    /// keying correctly here settles this service's own store and says nothing to the shared cache
+    /// in front of it, which would go on serving one representation to every client. Written on a
+    /// hit as well as a miss, because it is a fact about the operation rather than about the
+    /// response that filled the entry.
+    /// </para>
+    /// <para>
+    /// <b>Null where one representation is on offer</b> - which is a handler declaring one media
+    /// type, and an application with one serializer registered, so the ordinary JSON service keys
+    /// and advertises exactly as it did. Vary is not free: it is what a shared cache fragments on.
+    /// </para>
+    /// </remarks>
+    private string? Representation(IExecutionContext context)
+    {
+        if (_declared.Count < 2)
+        {
+            return null;
+        }
+
+        VaryHeader.Add(context.Response.Headers, KnownHeaders.Accept);
+
+        // The same function negotiation itself runs, over the same set: the client's preferences on
+        // the outside, the operation's representations on the inside. So the key names the
+        // representation the response will carry rather than approximating it, and two headers that
+        // reach the same one share an entry.
+        var index = MediaType.FirstAccepted(context.Request.Accept, _declared);
+
+        return index < 0 ? NothingOnOffer : _declared[index];
     }
 
     /// <summary>

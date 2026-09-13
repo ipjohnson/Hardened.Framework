@@ -109,7 +109,8 @@ with the unit separator, `U+001F`. The parts appear in this order.
 
 1. The handler's method and path, as `GET /catalog`.
 2. The caller's issuer and subject, when the scope is `CacheScope.PerCaller`.
-3. Each strategy's part, in the order the attributes were declared.
+3. The representation, when the operation produces more than one.
+4. Each strategy's part, in the order the attributes were declared.
 
 Two handlers keyed the same way never answer each other's requests. The method and path sit in
 front of every key.
@@ -209,6 +210,37 @@ built.
 
 A module declaration stands down only for the identical closed type. `AddGlobalFilter` is the
 looser rule. There, any declaration on the handler stands the global one down.
+
+## Caching an operation that negotiates
+
+An operation that produces more than one representation gets one entry per representation. No
+strategy asks for that and none needs to.
+
+```csharp
+[Get("/devices")]
+[Produces(KnownContentType.Json, MessagePackContentType.Value)]
+[CacheResponse<VaryByRoute>(Duration = 30)]
+public IReadOnlyList<Device> Devices() => _store.All();
+```
+
+A JSON caller and a MessagePack caller fill separate entries and each hits its own. Without this
+the first caller to arrive decided for everyone after: the second got a 200 carrying the first
+caller's bytes under the first caller's `Content-Type`, which is neither a miss nor a 406.
+
+The key part is the representation, not the header. Two `Accept` headers that negotiate to the
+same one share an entry, so `application/json` and a browser's long header are one entry rather
+than two. A caller asking for a representation the operation does not produce is one more entry,
+shared by all of them, and under the default `Strict` negotiation mode that is a 406 and never
+stored.
+
+The response carries `Vary: Accept`, so a shared cache in front of the service keys the way the
+store does. It is written on a hit as well as a miss. An operation producing one representation
+writes no `Vary` and keys as it always did.
+
+The representation comes from what the operation declared — `[Produces]`, or a described
+operation's `content:` keys. An operation that declares nothing is keyed as it was: what such a
+response is serialized as depends on which serializers the container holds, which is decided after
+this filter runs. Declare what an operation produces if it negotiates and you cache it.
 
 ## Cache scope
 
