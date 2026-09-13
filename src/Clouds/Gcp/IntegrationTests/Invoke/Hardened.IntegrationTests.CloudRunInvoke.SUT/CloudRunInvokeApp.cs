@@ -10,8 +10,7 @@ namespace Hardened.IntegrationTests.CloudRunInvoke.SUT;
 /// </summary>
 [HardenedModule]
 [CloudRunRuntime]
-public partial class CloudRunInvokeApp {
-}
+public partial class CloudRunInvokeApp;
 
 /// <summary>
 /// A payload with fields named the way AWS names its own. On Cloud Run nothing inspects a

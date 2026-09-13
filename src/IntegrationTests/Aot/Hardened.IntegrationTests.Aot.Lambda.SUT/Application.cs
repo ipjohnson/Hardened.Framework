@@ -22,14 +22,14 @@ namespace Hardened.IntegrationTests.Aot.Lambda.SUT;
 /// </remarks>
 [HardenedModule]
 [AotSerializerModule]
-public partial class Application { }
+public partial class Application;
 
 public record Order(string Id, int Quantity);
 
 /// <summary>The metadata the AOT serializers resolve <see cref="Order"/> through.</summary>
 [JsonSourceGenerationOptions(System.Text.Json.JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(Order))]
-public partial class AotContext : JsonSerializerContext { }
+public partial class AotContext : JsonSerializerContext;
 
 /// <summary>
 /// One handler, exercising the parts of the function path a trimmer could break.

@@ -34,4 +34,4 @@ namespace Hardened.Web.Runtime.OpenApi;
 /// </para>
 /// </summary>
 [OpenApiDocumentPath("/openapi.json")]
-public sealed class OpenApiDocumentPublishing { }
+public sealed class OpenApiDocumentPublishing;

@@ -24,14 +24,14 @@ public class TemplateMarkerAttributeTests {
     /// <summary>An engine package's marker, as it would ship.</summary>
     [TemplateBase(typeof(FakeTemplateBase<>))]
     [TemplateContentType("text/html")]
-    private class HtmlMarker { }
+    private class HtmlMarker;
 
     /// <summary>A second engine producing something else, which is how a new format is added.</summary>
     [TemplateBase(typeof(FakeTemplateBase<>))]
     [TemplateContentType("text/calendar")]
-    private class CalendarMarker { }
+    private class CalendarMarker;
 
-    private class FakeTemplateBase<TModel> { }
+    private class FakeTemplateBase<TModel>;
 
     /// <summary>
     /// The base type survives being read back as an <em>unbound</em> generic. That is the reason

@@ -11,4 +11,4 @@ namespace Hardened.IntegrationTests.OpenApi.ResponseModel.SUT;
 /// </summary>
 [HardenedModule]
 [HardenedWebModule]
-public partial class LabelsApp { }
+public partial class LabelsApp;

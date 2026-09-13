@@ -11,5 +11,4 @@ namespace Hardened.IntegrationTests.Events.SUT;
 /// adapter is registered, this is the fixture where an arriving payload is actually asked about.
 /// </remarks>
 [HardenedModule]
-public partial class EventsTestApp {
-}
+public partial class EventsTestApp;

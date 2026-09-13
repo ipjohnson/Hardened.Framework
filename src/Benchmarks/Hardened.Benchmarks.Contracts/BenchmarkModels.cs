@@ -65,4 +65,4 @@ public class BindingResponse {
 [JsonSerializable(typeof(SumRequest))]
 [JsonSerializable(typeof(SumResponse))]
 [JsonSerializable(typeof(BindingResponse))]
-public partial class BenchmarkJsonContext : JsonSerializerContext { }
+public partial class BenchmarkJsonContext : JsonSerializerContext;

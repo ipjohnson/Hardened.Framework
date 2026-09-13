@@ -20,4 +20,4 @@ public class UnsatisfiableController {
     public string Get() => "unreachable";
 }
 
-public interface IUnregisteredService { }
+public interface IUnregisteredService;

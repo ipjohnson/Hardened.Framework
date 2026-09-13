@@ -10,5 +10,4 @@ namespace Hardened.IntegrationTests.S3.SUT;
 /// <c>HardenedBlobModule</c> property the adapter package declares. Nothing in this file names S3.
 /// </remarks>
 [HardenedModule]
-public partial class BlobTestApp {
-}
+public partial class BlobTestApp;

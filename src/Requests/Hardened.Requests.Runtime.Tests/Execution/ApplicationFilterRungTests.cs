@@ -32,7 +32,7 @@ public class ApplicationFilterRungTests {
     private const string Io = "io";
     private const string Invoke = "invoke";
 
-    private class Controller { }
+    private class Controller;
 
     /// <summary>
     /// A filter attribute of the shape an application declares on its module class: it decides for

@@ -26,4 +26,4 @@ namespace Hardened.Benchmarks.Sut;
 [HardenedWebModule]
 [AspNetCoreRuntime]
 [KestrelRuntime]
-public partial class BenchmarkApplication { }
+public partial class BenchmarkApplication;

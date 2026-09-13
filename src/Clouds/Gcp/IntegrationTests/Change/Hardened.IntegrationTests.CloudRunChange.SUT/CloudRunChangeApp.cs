@@ -11,8 +11,7 @@ namespace Hardened.IntegrationTests.CloudRunChange.SUT;
 /// </summary>
 [HardenedModule]
 [CloudRunRuntime]
-public partial class CloudRunChangeApp {
-}
+public partial class CloudRunChangeApp;
 
 public class Order {
     public string Id { get; set; } = "";

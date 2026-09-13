@@ -20,7 +20,7 @@ public class AttributeCollectionTests {
         public string Scope { get; }
     }
 
-    private sealed class Unrelated : Attribute { }
+    private sealed class Unrelated : Attribute;
 
     private sealed class OrderedMarker : Attribute, IHardenedOrderedAttribute {
         public OrderedMarker(string scope, int order) {

@@ -12,5 +12,4 @@ namespace Hardened.IntegrationTests.Invoke.SUT;
 /// parse something that may not parse.
 /// </remarks>
 [HardenedModule]
-public partial class InvokeTestApp {
-}
+public partial class InvokeTestApp;

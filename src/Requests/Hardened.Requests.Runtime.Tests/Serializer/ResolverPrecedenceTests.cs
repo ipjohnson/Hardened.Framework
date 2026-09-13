@@ -264,4 +264,4 @@ internal record Undeclared(string Name);
 /// </summary>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web, UseStringEnumConverter = true)]
 [JsonSerializable(typeof(Listing))]
-internal partial class CatalogContext : JsonSerializerContext { }
+internal partial class CatalogContext : JsonSerializerContext;

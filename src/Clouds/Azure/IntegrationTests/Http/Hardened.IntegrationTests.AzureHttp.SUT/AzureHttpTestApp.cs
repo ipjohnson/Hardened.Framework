@@ -15,5 +15,4 @@ namespace Hardened.IntegrationTests.AzureHttp.SUT;
 /// </remarks>
 [HardenedModule]
 [HardenedWebModule]
-public partial class AzureHttpTestApp {
-}
+public partial class AzureHttpTestApp;

@@ -55,5 +55,4 @@ internal sealed class CloudEventDocument {
 /// </summary>
 [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(CloudEventDocument))]
-internal partial class CloudEventSerializerContext : JsonSerializerContext {
-}
+internal partial class CloudEventSerializerContext : JsonSerializerContext;

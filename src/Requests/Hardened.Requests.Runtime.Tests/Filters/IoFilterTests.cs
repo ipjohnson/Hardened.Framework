@@ -343,5 +343,5 @@ public class IoFilterTests {
         Assert.Null(context.Response.ExceptionValue);
     }
 
-    private class Handler { }
+    private class Handler;
 }

@@ -10,8 +10,7 @@ namespace Hardened.IntegrationTests.CloudRunTimer.SUT;
 /// </summary>
 [HardenedModule]
 [CloudRunRuntime]
-public partial class CloudRunTimerApp {
-}
+public partial class CloudRunTimerApp;
 
 /// <summary>What the handlers in this application did, in order; injected so each test observes only its own.</summary>
 public interface ITriggerLog {

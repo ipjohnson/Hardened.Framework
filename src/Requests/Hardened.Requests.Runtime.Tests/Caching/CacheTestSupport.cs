@@ -17,7 +17,7 @@ namespace Hardened.Requests.Runtime.Tests.Caching;
 /// </remarks>
 internal static class CacheTestSupport {
 
-    private class Controller { }
+    private class Controller;
 
     public static ExecutionRequestHandlerInfo Handler(
         object[] metadata,

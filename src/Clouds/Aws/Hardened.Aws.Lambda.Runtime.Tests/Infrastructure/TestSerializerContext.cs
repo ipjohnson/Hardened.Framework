@@ -28,5 +28,4 @@ namespace Hardened.Aws.Lambda.Runtime.Tests.Infrastructure;
 // and hold one event each.
 [JsonSerializable(typeof(SQSEvent.MessageAttribute), TypeInfoPropertyName = "SqsMessageAttribute")]
 [JsonSerializable(typeof(SNSEvent.MessageAttribute), TypeInfoPropertyName = "SnsMessageAttribute")]
-internal partial class TestSerializerContext : JsonSerializerContext {
-}
+internal partial class TestSerializerContext : JsonSerializerContext;

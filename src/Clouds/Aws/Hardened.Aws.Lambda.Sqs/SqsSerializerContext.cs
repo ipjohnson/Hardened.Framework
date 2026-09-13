@@ -13,5 +13,4 @@ namespace Hardened.Aws.Lambda.Sqs;
     PropertyNameCaseInsensitive = true,
     GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(SQSEvent))]
-internal partial class SqsSerializerContext : JsonSerializerContext {
-}
+internal partial class SqsSerializerContext : JsonSerializerContext;

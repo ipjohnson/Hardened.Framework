@@ -17,7 +17,7 @@ namespace Hardened.Requests.Runtime.Tests.Execution;
 /// </summary>
 public class ShortCircuitTests {
 
-    private class Controller { }
+    private class Controller;
 
     /// <summary>
     /// Everything ordered after the short-circuiting filter is skipped, including the

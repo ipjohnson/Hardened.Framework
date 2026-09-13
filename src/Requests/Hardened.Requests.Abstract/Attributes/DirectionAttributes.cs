@@ -22,8 +22,7 @@ namespace Hardened.Requests.Abstract.Attributes;
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
-public sealed class ResponseOnlyAttribute : Attribute {
-}
+public sealed class ResponseOnlyAttribute : Attribute;
 
 /// <summary>
 /// The client owns this value: it is accepted in requests, and never returned.
@@ -34,5 +33,4 @@ public sealed class ResponseOnlyAttribute : Attribute {
 /// unserializable, so a model could not write the request body it exists to describe.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
-public sealed class RequestOnlyAttribute : Attribute {
-}
+public sealed class RequestOnlyAttribute : Attribute;

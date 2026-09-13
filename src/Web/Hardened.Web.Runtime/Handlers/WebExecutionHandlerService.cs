@@ -11,7 +11,7 @@ using Hardened.Web.Runtime.Responses;
 
 namespace Hardened.Web.Runtime.Handlers;
 
-public interface IWebExecutionHandlerService : IHandlerDispatch { }
+public interface IWebExecutionHandlerService : IHandlerDispatch;
 
 [SingletonService(Using = RegistrationType.Try)]
 public partial class WebExecutionHandlerService : IWebExecutionHandlerService {

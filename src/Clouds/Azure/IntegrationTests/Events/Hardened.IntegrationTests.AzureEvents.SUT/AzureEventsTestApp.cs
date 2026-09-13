@@ -19,5 +19,4 @@ namespace Hardened.IntegrationTests.AzureEvents.SUT;
 /// </remarks>
 [HardenedModule]
 [ServiceBusModule(Subscription = "events-function")]
-public partial class AzureEventsTestApp {
-}
+public partial class AzureEventsTestApp;

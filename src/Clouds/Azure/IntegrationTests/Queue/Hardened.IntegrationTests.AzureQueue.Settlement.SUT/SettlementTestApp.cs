@@ -24,5 +24,4 @@ namespace Hardened.IntegrationTests.AzureQueue.Settlement.SUT;
 /// </remarks>
 [HardenedModule]
 [ServiceBusModule(ReportsItemFailures = true)]
-public partial class SettlementTestApp {
-}
+public partial class SettlementTestApp;

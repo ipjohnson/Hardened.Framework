@@ -36,4 +36,4 @@ namespace Hardened.Web.Kestrel.Runtime;
 /// </summary>
 [DependencyModule]
 [HardenedWebModule]
-public partial class KestrelRuntime { }
+public partial class KestrelRuntime;

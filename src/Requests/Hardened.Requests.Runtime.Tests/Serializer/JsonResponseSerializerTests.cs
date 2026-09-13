@@ -169,4 +169,4 @@ internal record Payload(string Name, int Value);
 /// </remarks>
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(Payload))]
-internal partial class PayloadContext : JsonSerializerContext { }
+internal partial class PayloadContext : JsonSerializerContext;

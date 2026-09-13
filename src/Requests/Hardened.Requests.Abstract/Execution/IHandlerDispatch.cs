@@ -17,4 +17,4 @@ namespace Hardened.Requests.Abstract.Execution;
 /// function one - it asks the container what was registered.
 /// </para>
 /// </remarks>
-public interface IHandlerDispatch : IExecutionFilter { }
+public interface IHandlerDispatch : IExecutionFilter;

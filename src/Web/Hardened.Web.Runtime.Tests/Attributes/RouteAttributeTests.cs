@@ -46,7 +46,7 @@ public class RouteAttributeTests {
     }
 
     [BasePath("/api")]
-    private class BasePathController { }
+    private class BasePathController;
 
     private static class ConstraintController {
         [RouteConstraint("isbn")]
@@ -55,13 +55,13 @@ public class RouteAttributeTests {
 
     [Server("https://api.example.com", "Production")]
     [Server("https://staging.example.com")]
-    private class ServedApplication { }
+    private class ServedApplication;
 
     [Tag("Products")]
-    private class V2ProductsController { }
+    private class V2ProductsController;
 
     [CaseInsensitiveRoutes]
-    private class LenientApplication { }
+    private class LenientApplication;
 
     private class BindingController {
         public string Named(

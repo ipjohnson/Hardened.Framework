@@ -14,5 +14,4 @@ namespace Hardened.IntegrationTests.Sqs.SUT;
 /// and nothing else.
 /// </remarks>
 [HardenedModule]
-public partial class SqsTestApp {
-}
+public partial class SqsTestApp;
