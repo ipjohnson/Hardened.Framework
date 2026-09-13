@@ -51,6 +51,32 @@ jobs:
 
       - run: npm ci
 
+      # A page that spells a version instead of the token is a page a release has to sweep by hand,
+      # which is the state .vitepress/version.json exists to end. Caught here, on the pull request
+      # that adds one, rather than by release.yaml - whose version step used to be the last in the
+      # job and therefore ran after the packages were already on nuget.org.
+      #
+      # The AWS pages are the exemption. Hardened.Amz stopped at 0.22.0-rc1000 and is being
+      # replaced rather than renamed, so its pins name a release that does not move and a token
+      # would be wrong for them.
+      #
+      # Finding nothing is the pass here, unlike the check this replaces: the token is what the
+      # pages carry, and its substitution is proven by the build below rather than by a grep.
+      - name: Check no page hardcodes a version
+        run: |
+          set -euo pipefail
+          COPYABLE='(Version="|<HardenedVersion>|Hardened\.Templates@)[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+'
+
+          HARDCODED=$(grep -rnE "$COPYABLE" . --include='*.md' --exclude-dir=design \
+                      | grep -v 'Hardened\.Amz\.' || true)
+
+          if [ -n "$HARDCODED" ]; then
+            echo "::error::These pages spell a version instead of 0.0.0-HARDENED-VERSION:"
+            echo "$HARDCODED"
+            exit 1
+          fi
+          echo "Every documented version comes from .vitepress/version.json."
+
       # Dead internal links fail the build rather than shipping. The pages cross-reference heavily
       # and a rename would otherwise rot links silently.
       #

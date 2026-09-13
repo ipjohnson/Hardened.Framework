@@ -36,16 +36,16 @@ see [Triggers](/guide/triggers).
 
 ```xml
 <ItemGroup>
-    <PackageReference Include="Hardened.Shared.Runtime" Version="0.35.0-rc1000" />
-    <PackageReference Include="Hardened.Requests.Runtime" Version="0.35.0-rc1000" />
-    <PackageReference Include="Hardened.Functions.Runtime" Version="0.35.0-rc1000" />
+    <PackageReference Include="Hardened.Shared.Runtime" Version="0.0.0-HARDENED-VERSION" />
+    <PackageReference Include="Hardened.Requests.Runtime" Version="0.0.0-HARDENED-VERSION" />
+    <PackageReference Include="Hardened.Functions.Runtime" Version="0.0.0-HARDENED-VERSION" />
 
     <!-- The host, and one adapter for the trigger the handler declares. -->
-    <PackageReference Include="Hardened.Aws.Lambda.Runtime" Version="0.35.0-rc1000" />
-    <PackageReference Include="Hardened.Aws.Lambda.Invoke" Version="0.35.0-rc1000" />
+    <PackageReference Include="Hardened.Aws.Lambda.Runtime" Version="0.0.0-HARDENED-VERSION" />
+    <PackageReference Include="Hardened.Aws.Lambda.Invoke" Version="0.0.0-HARDENED-VERSION" />
 
-    <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.35.0-rc1000" />
-    <PackageReference Include="Hardened.Function.SourceGenerator" Version="0.35.0-rc1000"
+    <PackageReference Include="Hardened.Library.SourceGenerator" Version="0.0.0-HARDENED-VERSION" />
+    <PackageReference Include="Hardened.Function.SourceGenerator" Version="0.0.0-HARDENED-VERSION"
                       PrivateAssets="all" />
 </ItemGroup>
 ```

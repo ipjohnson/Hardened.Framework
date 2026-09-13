@@ -15,8 +15,8 @@ public class Rollups {
 ## Packages
 
 ```xml
-<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.35.0-rc1000" />
-<PackageReference Include="Hardened.Gcp.CloudRun.Scheduler" Version="0.35.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.0.0-HARDENED-VERSION" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Scheduler" Version="0.0.0-HARDENED-VERSION" />
 ```
 
 `dotnet new hardened-function --host gcp --trigger timer` writes this shape with tests.

@@ -221,6 +221,20 @@ A `v*` tag drives `release.yaml`, and the tag is the source of truth for the ver
 line is `0.35.0-rc1000`; there was no 0.7.0, and 0.23.0 through 0.29.0 were skipped. Do not
 describe versions as `1.0.0-*`.
 
+**The release pull request is three edits.** `hardened` in `docs/.vitepress/version.json`, the
+version the pages build at; `RELEASE_LINE` in `build-package.yaml`, bumped to the line the release
+*opens* rather than the one it ships; and the line above. It was fifty-five citations swept by hand
+across twenty pages until the pages took a token, and `release.yaml` checked the sweep in its last
+step, below the push to nuget.org.
+
+**A page names no version.** It carries `0.0.0-HARDENED-VERSION`, the same token
+`stage-templates.py` stamps into each template's `Directory.Packages.props`, and a Vite plugin in
+`.vitepress/config.ts` substitutes the constant into markdown before VitePress renders it. A
+build-time replacement rather than `{{ }}`, because VitePress wraps fenced code blocks in `v-pre`
+and every citation is inside one. `docs.yaml` fails a pull request that spells a version instead,
+and the `Hardened.Amz.*` pins are the one exemption: that line stopped at `0.22.0-rc1000` and does
+not move.
+
 **The pack list in `release.yaml` is hand-maintained and has drifted six times.** A new packable
 project has to be added to it *and* to `EXPECTED`, which is a literal on purpose. Adding it to the
 solution alone ships a release missing that package.
