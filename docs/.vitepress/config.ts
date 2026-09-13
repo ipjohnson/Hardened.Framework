@@ -1,4 +1,52 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitepress';
+
+/**
+ * The one place the documented package version is written.
+ *
+ * Every page that tells a reader what to install carries the token below instead of a version,
+ * and the Vite plugin below substitutes this into them. It was 55
+ * literals across 20 pages, swept by hand in the release pull request, and release.yaml carried a
+ * step that failed the release when one was missed - after the packages had already been pushed,
+ * because that step sits below the push.
+ *
+ * JSON rather than a constant in this file so that release.yaml can read it without parsing
+ * TypeScript. The same reason the templates keep theirs in Directory.Packages.props: the check
+ * that holds it to the tag has to be a one-liner in bash.
+ */
+const version = JSON.parse(
+  readFileSync(fileURLToPath(new URL('./version.json', import.meta.url)), 'utf-8'),
+) as { hardened: string };
+
+/**
+ * The token the pages carry, spelled the way the templates already spell theirs.
+ *
+ * One spelling in the repository rather than two: stage-templates.py stamps this same token into
+ * each template's Directory.Packages.props at pack time, so a search for it finds both halves of
+ * how a version reaches a reader.
+ */
+const versionToken = '0.0.0-HARDENED-VERSION';
+
+/**
+ * Substitutes the version into markdown before VitePress renders it.
+ *
+ * A build-time replacement rather than a `{{ }}` expression, because VitePress wraps fenced code
+ * blocks in `v-pre` and every citation is inside one - interpolation is off in exactly the place
+ * the versions are. `enforce: 'pre'` puts this ahead of VitePress's own markdown transform, so
+ * what it hands on is ordinary markdown with no trace of the token.
+ */
+const hardenedVersion = {
+  name: 'hardened-version',
+  enforce: 'pre' as const,
+  transform(code: string, id: string) {
+    if (!id.endsWith('.md')) {
+      return null;
+    }
+
+    return code.split(versionToken).join(version.hardened);
+  },
+};
 
 // Published under the repository name on GitHub Pages, so every absolute path needs it as a base.
 //
@@ -155,6 +203,10 @@ export default defineConfig({
     // Shiki ships no Smithy grammar. Kotlin's is close enough for annotations, braces and strings,
     // and the fence still reads `smithy`.
     languageAlias: { smithy: 'kotlin' },
+  },
+
+  vite: {
+    plugins: [hardenedVersion],
   },
 
   head: [

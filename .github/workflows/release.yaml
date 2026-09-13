@@ -83,6 +83,27 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Releasing $VERSION"
 
+      # Above the build rather than below the push, which is where this used to sit.
+      #
+      # It used to sweep every page for a hardcoded version, and it was the last step in the job -
+      # so a page it caught was caught after the packages were on nuget.org, where a version can be
+      # unlisted and never removed. The pages carry a token now and docs/.vitepress/version.json is
+      # the only place a version is written, so the check is one comparison and can run before
+      # anything is built.
+      #
+      # The sweep did not disappear. docs.yaml runs it on every pull request that touches docs/,
+      # which is where a reintroduced literal can still be fixed for free.
+      - name: Check the documented version is this one
+        run: |
+          set -euo pipefail
+          DOCUMENTED=$(jq -r '.hardened' docs/.vitepress/version.json)
+
+          if [ "$DOCUMENTED" != "${{ steps.version.outputs.version }}" ]; then
+            echo "::error::docs/.vitepress/version.json says $DOCUMENTED, and this release is ${{ steps.version.outputs.version }}."
+            exit 1
+          fi
+          echo "The documentation builds at $DOCUMENTED."
+
       - run: dotnet restore Hardened.slnx
       - run: dotnet restore Hardened.Simulators.slnx
 
@@ -445,49 +466,3 @@ jobs:
             --generate-notes \
             ${prerelease} \
             ./artifacts/*.nupkg
-
-      # The documented version used to be an issue opened in another repository from here, by a
-      # step that could not fail the release: the site declared its own package version, nothing
-      # checked it, and the pages sat a release behind for as long as nobody acted on the issue.
-      # They were on 0.21.0-rc1000 when 0.22.0-rc1000 shipped. The pages are in this repository
-      # now, so the release checks them.
-      #
-      # Only versions a reader would copy - a PackageReference, HardenedVersion, a template
-      # install - so prose naming an older release on purpose does not trip it. docs/design is
-      # maintainer notes and is a record of when things happened, not of what to install.
-      #
-      # Hardened.Amz is the one exemption. That line stopped at 0.22.0-rc1000 and is being
-      # replaced by Hardened.Aws rather than renamed, so the AWS pages pin a release that does not
-      # move. Prose is how the other frozen references say so, and a PackageReference has no way
-      # to phrase itself as historical, so it is named here instead.
-      #
-      # Finding nothing is a failure rather than a pass. The check is one regex away from matching
-      # none of the pages, and a silent green is the state it was written to end.
-      - name: Check the documented version is this one
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          set -euo pipefail
-          VERSION="${{ steps.version.outputs.version }}"
-          COPYABLE='(Version="|<HardenedVersion>|Hardened\.Templates@)[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+'
-
-          CITED=$(grep -rnE "$COPYABLE" \
-                    docs --include='*.md' \
-                    --exclude-dir=design \
-                  | grep -v 'Hardened\.Amz\.' || true)
-
-          FOUND=$(echo "$CITED" | grep -oE "$COPYABLE" \
-                  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+' | sort -u || true)
-
-          if [ -z "$FOUND" ]; then
-            echo "::error::No page under docs/ tells a reader which version to install, so this check proved nothing."
-            exit 1
-          fi
-
-          WRONG=$(echo "$FOUND" | grep -vxF "$VERSION" || true)
-
-          if [ -n "$WRONG" ]; then
-            echo "::error::Pages under docs/ tell a reader to install a version that is not $VERSION: $(echo $WRONG)."
-            echo "$CITED" | grep -E "($(echo $WRONG | tr ' ' '|'))" || true
-            exit 1
-          fi
-          echo "Every version the documentation tells a reader to install is $VERSION."

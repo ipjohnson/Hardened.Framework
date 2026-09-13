@@ -28,8 +28,8 @@ declare one for a queue message.
 ## Packages
 
 ```xml
-<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.35.0-rc1000" />
-<PackageReference Include="Hardened.Gcp.CloudRun.Storage" Version="0.35.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.0.0-HARDENED-VERSION" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Storage" Version="0.0.0-HARDENED-VERSION" />
 ```
 
 `dotnet new hardened-function --host gcp --trigger blob` writes this shape with tests.

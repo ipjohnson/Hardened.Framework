@@ -17,8 +17,8 @@ public class OrderEventHandlers {
 ## Packages
 
 ```xml
-<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.35.0-rc1000" />
-<PackageReference Include="Hardened.Gcp.CloudRun.PubSub" Version="0.35.0-rc1000" />
+<PackageReference Include="Hardened.Gcp.CloudRun.Runtime" Version="0.0.0-HARDENED-VERSION" />
+<PackageReference Include="Hardened.Gcp.CloudRun.PubSub" Version="0.0.0-HARDENED-VERSION" />
 ```
 
 `dotnet new hardened-function --host gcp --trigger topic` writes this shape with tests.
