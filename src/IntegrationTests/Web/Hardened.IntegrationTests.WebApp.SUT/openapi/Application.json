@@ -63,6 +63,12 @@
       "name": "ResponseCookie"
     },
     {
+      "name": "StaticHandler"
+    },
+    {
+      "name": "MixedHandler"
+    },
+    {
       "name": "Streaming"
     },
     {
@@ -1929,7 +1935,7 @@
         "tags": [
           "Compression"
         ],
-        "operationId": "echo",
+        "operationId": "compressionEcho",
         "requestBody": {
           "required": true,
           "content": {
@@ -3508,7 +3514,7 @@
         "tags": [
           "IntMath"
         ],
-        "operationId": "add",
+        "operationId": "intMathAdd",
         "requestBody": {
           "required": true,
           "content": {
@@ -3695,6 +3701,89 @@
                 "schema": {
                   "type": "integer",
                   "format": "int32"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/mixed/instance": {
+      "post": {
+        "tags": [
+          "MixedHandler"
+        ],
+        "operationId": "instance",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/mixed/static/{value}": {
+      "get": {
+        "tags": [
+          "MixedHandler"
+        ],
+        "operationId": "stat",
+        "parameters": [
+          {
+            "name": "value",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -4690,6 +4779,131 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/static/add": {
+      "post": {
+        "tags": [
+          "StaticHandler"
+        ],
+        "operationId": "staticHandlerAdd",
+        "summary": "Dependencies as parameters, which is the whole of what a static handler gives up the constructor for.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MathAddModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/static/async/{value}": {
+      "get": {
+        "tags": [
+          "StaticHandler"
+        ],
+        "operationId": "async",
+        "parameters": [
+          {
+            "name": "value",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "The operation did not finish inside its budget.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            }
+          }
+        },
+        "x-hardened-timeout": 300000
+      }
+    },
+    "/static/echo/{value}": {
+      "get": {
+        "tags": [
+          "StaticHandler"
+        ],
+        "operationId": "staticHandlerEcho",
+        "parameters": [
+          {
+            "name": "value",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
                 }
               }
             }

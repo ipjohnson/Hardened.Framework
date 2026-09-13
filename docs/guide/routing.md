@@ -148,6 +148,38 @@ reports that as `HRDR006`.
 A verb attribute on an interface member compiles to no route. An interface member has no
 implementation to call. The build reports `HRDR013` as a warning and names the attribute.
 
+## Static handlers
+
+A handler method can be static. The class holding it can be static too.
+
+```csharp
+using Hardened.Web.Runtime.Attributes;
+
+namespace Todos;
+
+[BasePath("/todos")]
+public static class TodoRoutes {
+
+    [Get("/{id:int}")]
+    public static string ById(ITodoStore store, int id) => store.Find(id);
+}
+```
+
+A static handler takes its dependencies as parameters. `ITodoStore` above resolves from the request
+scope, the same scope a constructor parameter would have resolved from. There is no constructor and
+no field to hold one in.
+
+Nothing else about the route changes. The path, the parameter binding, the filters, the status codes
+and the published document are what they would be on an instance method.
+
+The container never sees the declaring type. A class whose handlers are all static is not
+registered, because nothing resolves it. A class holding both kinds is registered, for the instance
+handlers.
+
+A described handler cannot be static. The contract generates an interface, and the class
+implementing it is built by the container. See [generating from Smithy](/guide/smithy) and
+[generating from OpenAPI](/guide/openapi).
+
 ## Path tokens
 
 A token is a name in braces. It binds to the handler parameter of the same name.

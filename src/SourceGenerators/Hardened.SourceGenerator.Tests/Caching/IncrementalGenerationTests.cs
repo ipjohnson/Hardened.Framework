@@ -160,6 +160,18 @@ public class IncrementalGenerationTests {
             Controller(signature: "public Task<string> GetOrder(string id) => Task.FromResult(id);")));
     }
 
+    /// <summary>
+    /// Instance to static. Nothing about the signature changes except the modifier, and it changes
+    /// the controller type argument, the invocation and whether the declaring type is registered -
+    /// so a cached result here is a handler calling an instance method that is no longer one.
+    /// </summary>
+    [Fact]
+    public void MakingAHandlerStaticRegeneratesTheHandler() {
+        AssertRegenerated(Rerun(
+            Controller(),
+            Controller(signature: "public static string GetOrder(string id) => id;")));
+    }
+
     [Fact]
     public void AddingAFilterToTheMethodRegeneratesTheHandler() {
         AssertRegenerated(Rerun(Controller(), Controller(methodAttributes: "[Retry(Retries = 2)]")));

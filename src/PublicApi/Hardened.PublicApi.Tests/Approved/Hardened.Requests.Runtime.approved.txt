@@ -457,6 +457,7 @@ namespace Hardened.Requests.Runtime.Filters
     }
     public class InstanceFilter<TController> : Hardened.Requests.Abstract.Execution.IExecutionFilter
     {
+        public static readonly Hardened.Requests.Runtime.Filters.InstanceFilter<TController> Instance;
         public InstanceFilter() { }
         public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
@@ -522,6 +523,13 @@ namespace Hardened.Requests.Runtime.Filters
         public System.Threading.Tasks.ValueTask WriteCompletion(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask<bool> WriteHeartbeat(Hardened.Requests.Abstract.Execution.IExecutionContext context) { }
         public System.Threading.Tasks.ValueTask WriteItem(Hardened.Requests.Abstract.Execution.IExecutionContext context, System.Func<Hardened.Requests.Abstract.Execution.IExecutionContext, System.Threading.Tasks.Task> serialize) { }
+    }
+    public class StaticInstanceFilter : Hardened.Requests.Abstract.Execution.IExecutionFilter
+    {
+        public static readonly object HandlerInstance;
+        public static readonly Hardened.Requests.Runtime.Filters.StaticInstanceFilter Instance;
+        public StaticInstanceFilter() { }
+        public System.Threading.Tasks.Task Execute(Hardened.Requests.Abstract.Execution.IExecutionChain chain) { }
     }
     [Hardened.Requests.Abstract.Responses.AnswersStatus(504, typeof(Hardened.Requests.Abstract.Errors.ErrorModel), Description="The operation did not finish inside its budget.", StatusFrom="Status")]
     [System.AttributeUsage(System.AttributeTargets.Assembly | System.AttributeTargets.Class | System.AttributeTargets.Method, AllowMultiple=false)]

@@ -75,7 +75,8 @@ public class RequestHandlerModel {
             ParameterEnums = ParameterEnums,
             MisplacedSchemeAttributes = MisplacedSchemeAttributes,
             AdditionalBodyParameters = AdditionalBodyParameters,
-            HasGeneratedValidation = HasGeneratedValidation
+            HasGeneratedValidation = HasGeneratedValidation,
+            IsStatic = IsStatic
         };
 
     public RequestHandlerNameModel Name { get; }
@@ -91,6 +92,23 @@ public class RequestHandlerModel {
     public ResponseInformationModel ResponseInformation { get; }
 
     public IReadOnlyList<AttributeModel> Filters { get; }
+
+    /// <summary>
+    /// Whether the handler method is declared <c>static</c>.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Three things read it, all of them emitting: the invocation calls the type rather than a
+    /// controller variable, the controller type argument becomes <c>object</c> so that a static
+    /// class is never used as one, and the declaring type is left out of the container - nothing
+    /// resolves it, and <c>AddTransient&lt;T&gt;</c> of a static class does not compile.
+    /// </para>
+    /// <para>
+    /// Always false for a described handler. The bridge builds an implementation the application
+    /// writes and the container constructs, which is the shape this cannot take.
+    /// </para>
+    /// </remarks>
+    public bool IsStatic { get; set; }
 
     /// <summary>
     /// An interface the generated <c>Parameters</c> class implements, or null.
@@ -460,6 +478,10 @@ public class RequestHandlerModel {
             return false;
         }
 
+        if (IsStatic != requestHandlerModel.IsStatic) {
+            return false;
+        }
+
         return true;
     }
 
@@ -492,6 +514,7 @@ public class RequestHandlerModel {
             hashCode = (hashCode * 397) ^ (Summary?.GetHashCode() ?? 0);
             hashCode = (hashCode * 397) ^ (Description?.GetHashCode() ?? 0);
             hashCode = (hashCode * 397) ^ IsDeprecated.GetHashCode();
+            hashCode = (hashCode * 397) ^ IsStatic.GetHashCode();
 
             return hashCode;
         }
