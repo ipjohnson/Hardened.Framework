@@ -27,8 +27,8 @@ namespace Hardened1.Client;
 /// hand, is an edit here.
 /// </para>
 /// </remarks>
-public sealed class MessagePackContentSerializer : IHttpContentSerializer {
-
+public sealed class MessagePackContentSerializer : IHttpContentSerializer
+{
     /// <summary>
     /// The media type this writes, and the one the service declares.
     /// </summary>
@@ -56,17 +56,21 @@ public sealed class MessagePackContentSerializer : IHttpContentSerializer {
                     BuiltinResolver.Instance,
                     AttributeFormatterResolver.Instance,
                     DynamicGenericResolver.Instance,
-                    PrimitiveObjectResolver.Instance
-                ]));
+                    PrimitiveObjectResolver.Instance,
+                ]
+            )
+        );
 
-    public HttpContent ToHttpContent<T>(T item) {
+    public HttpContent ToHttpContent<T>(T item)
+    {
         // The runtime type, not T. Refit hands a request body in as object, and asking for
         // Serialize<object> reaches PrimitiveObjectResolver, which refuses anything that is not a
         // primitive - "Not supported primitive object resolver. type:NewTodo".
         var content = new ByteArrayContent(
             item is null
                 ? MessagePackSerializer.Serialize(item, Options)
-                : MessagePackSerializer.Serialize(item.GetType(), item, Options));
+                : MessagePackSerializer.Serialize(item.GetType(), item, Options)
+        );
 
         content.Headers.ContentType = new MediaTypeHeaderValue(ContentType);
 
@@ -74,14 +78,18 @@ public sealed class MessagePackContentSerializer : IHttpContentSerializer {
     }
 
     public async Task<T?> FromHttpContentAsync<T>(
-        HttpContent content, CancellationToken cancellationToken = default) {
+        HttpContent content,
+        CancellationToken cancellationToken = default
+    )
+    {
         ArgumentNullException.ThrowIfNull(content);
 
         // An empty body is not a MessagePack nil, and asking the deserializer to read one throws
         // rather than answering null. A 204 and a 404 with no body both arrive this way.
         var bytes = await content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
 
-        if (bytes.Length == 0) {
+        if (bytes.Length == 0)
+        {
             return default;
         }
 
@@ -114,9 +122,12 @@ public sealed class MessagePackContentSerializer : IHttpContentSerializer {
     /// skipped because a formatted body is still JSON.
     /// </para>
     /// </remarks>
-    private static bool LooksLikeJson(byte[] bytes) {
-        foreach (var b in bytes) {
-            if (b is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n') {
+    private static bool LooksLikeJson(byte[] bytes)
+    {
+        foreach (var b in bytes)
+        {
+            if (b is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n')
+            {
                 continue;
             }
 

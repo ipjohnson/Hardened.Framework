@@ -7,16 +7,18 @@
 *.config
 *.slnx
 
-# dotnet new template sources. These carry <!--#if (unionMode) --> conditionals and
-# placeholder identifiers, so three of them do not parse as C# at all, and re-indenting
-# the conditional comments changes what the template engine emits. Formatting them needs
-# its own pass, verified with build/verify-templates.sh.
-src/Templates/Hardened.Templates/templates/
-
-# CSharpier 1.3.0 ships a Roslyn that does not parse the C# union keyword, so this file
-# reports CS1001 and is left unformatted. Excluding it keeps `csharpier check` usable as a
-# gate. Revisit when CSharpier picks up a Roslyn that knows the syntax.
+# CSharpier 1.3.0 ships a Roslyn that does not parse the C# union keyword, so these files
+# report CS1001. They are formatted to match the rest of the repository, by hand, and nothing
+# checks that they stay that way. Match the surrounding style when you edit them.
+# Revisit when CSharpier picks up a Roslyn that knows the syntax.
 src/IntegrationTests/Union/Hardened.IntegrationTests.Union.SUT/TodoController.cs
+src/Templates/Hardened.Templates/templates/hardened-web/src/Hardened1/TodoController.cs
+
+# Not valid C# until the template engine has processed it. The #if branches open and close
+# braces in different arms, so the file only balances once dotnet new has picked a mocking
+# library and a client. Roslyn reports CS1022 on it as written. Formatted by hand, like the
+# two above, and unchecked for the same reason.
+src/Templates/Hardened.Templates/templates/hardened-web/tests/Hardened1.Tests/TodoStoreMockTests.cs
 
 # Recorded generator output, compared byte for byte by the golden tests. These files are a
 # record of what the generators emit, not code this repository writes, so formatting them

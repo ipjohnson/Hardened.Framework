@@ -14,10 +14,11 @@ namespace Hardened1.Tests;
 /// [HardenedTest] boots the module and resolves the test's parameters from its container, so what
 /// runs is the registration a consuming application would get rather than a fresh `new`.
 /// </summary>
-public class GreetingServiceTests {
-
+public class GreetingServiceTests
+{
     [HardenedTest]
-    public void GreetsByName(IGreetingService greeting) {
+    public void GreetsByName(IGreetingService greeting)
+    {
 #if (xunit)
         Assert.Equal("Hello, world!", greeting.Greet("world"));
 #else
@@ -42,12 +43,16 @@ public class GreetingServiceTests {
 #if (moq)
     public void ASubstitutedDependencyIsUsedByTheRealService(
         IGreetingService greeting,
-        Mock<IGreetingFormatter> formatter) {
+        Mock<IGreetingFormatter> formatter
+    )
+    {
         formatter.Setup(f => f.Format(It.IsAny<string>())).Returns("substituted");
 #else
     public void ASubstitutedDependencyIsUsedByTheRealService(
         IGreetingService greeting,
-        [Mock] IGreetingFormatter formatter) {
+        [Mock] IGreetingFormatter formatter
+    )
+    {
 #if (nsubstitute)
         formatter.Format(Arg.Any<string>()).Returns("substituted");
 #endif

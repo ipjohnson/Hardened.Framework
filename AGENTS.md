@@ -97,18 +97,25 @@ The hook checks and refuses rather than formatting in place, because formatting 
 re-adding them also stages the unstaged hunks of a partially staged file. `--no-verify` skips it,
 which is why CI checks as well.
 
+The `dotnet new` template sources are formatted too, and that is the point of the exercise. A
+scaffolded project lands in someone else's repository under their team's cleanup profile, and
+Allman is what their IDE leaves alone.
+
 `.csharpierignore` lists what is left alone, and each entry says why. Two are worth knowing:
 
 - **Recorded generator output** under the `Fixtures` directories. The golden tests compare it byte
   for byte against what the generators emit, so a formatter passing over it fails
   `RouteTable_OutputIsByteIdentical`. Rewrite those files with `HARDENED_RECORD_FIXTURES=1`.
-- **`dotnet new` template sources** under `src/Templates/Hardened.Templates/templates`. They carry
-  `<!--#if (unionMode) -->` conditionals that the template engine reads positionally, and three of
-  them do not parse as C# at all. Formatting them needs its own pass, verified with
-  `build/verify-templates.sh`.
+- **Three files CSharpier cannot parse**, formatted by hand and kept that way by review. Two use
+  the `union` keyword, which the Roslyn CSharpier 1.3.0 ships does not know.
+  `TodoStoreMockTests.cs` opens and closes braces in different `#if` arms, so it only balances
+  once `dotnet new` has picked a mocking library and a client. **If you edit one of these, match
+  the surrounding style yourself. Nothing checks them.**
 
 CSharpier 1.3.0 also formats `.csproj` and `.props`. That is turned off. A project file is read as
-build configuration, and reformatting one buries a single changed pin in a whole-file diff.
+build configuration, and reformatting one buries a single changed pin in a whole-file diff. It is
+also how the templates keep their `<!--#if (unionMode) -->` conditionals, which the template engine
+reads positionally and a formatter would re-indent.
 
 Blame skips the reformat commit through `.git-blame-ignore-revs`:
 

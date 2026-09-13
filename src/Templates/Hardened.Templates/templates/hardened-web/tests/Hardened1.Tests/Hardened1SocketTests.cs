@@ -25,11 +25,13 @@ namespace Hardened1.Tests;
 #if (aspnet)
 [AspNetCoreRuntime]
 #endif
-public class TemplateModuleNameSocketTests {
+public class TemplateModuleNameSocketTests
+{
 #if (kiotaClient)
 
     [HardenedTest]
-    public async Task ListTodos_OverTheSocket(TemplateModuleNameClient client) {
+    public async Task ListTodos_OverTheSocket(TemplateModuleNameClient client)
+    {
         var todos = await client.Todos.GetAsync().Returns<Ok<List<ClientModels.Todo>>>();
 
 #if (xunit)
@@ -44,7 +46,8 @@ public class TemplateModuleNameSocketTests {
 #if (refitClient)
 
     [HardenedTest]
-    public async Task ListTodos_OverTheSocket(ITemplateModuleNameClient client) {
+    public async Task ListTodos_OverTheSocket(ITemplateModuleNameClient client)
+    {
         var todos = await client.ListTodos().Returns<Ok<ICollection<ClientModels.Todo>>>();
 
 #if (xunit)
@@ -59,7 +62,8 @@ public class TemplateModuleNameSocketTests {
 #if (!hasClient)
 
     [HardenedTest]
-    public async Task ListTodos_OverTheSocket(ITestWebApp app) {
+    public async Task ListTodos_OverTheSocket(ITestWebApp app)
+    {
         var response = await app.Get("/todos");
 
         response.Assert.Ok();

@@ -1,3 +1,6 @@
+using Hardened.Shared.Testing.Attributes;
+using Hardened.Web.Testing;
+using Hardened1;
 #if (nsubstitute)
 using DependencyModules.NSubstitute;
 #endif
@@ -7,9 +10,7 @@ using DependencyModules.Moq;
 #if (fakeiteasy)
 using DependencyModules.FakeItEasy;
 #endif
-using Hardened.Shared.Testing.Attributes;
-using Hardened.Web.Testing;
-using Hardened1;
+
 #if (kestrel || cloudRun)
 using Hardened.Web.Kestrel.Testing;
 #endif

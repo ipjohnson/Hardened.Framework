@@ -16,8 +16,8 @@ namespace Hardened1;
 /// dependencies from the container, and registers whatever serves that trigger on the host you
 /// chose.
 /// </remarks>
-public class OrderHandler(OrderLog log) {
-
+public class OrderHandler(OrderLog log)
+{
 #if (invoke)
     /// <summary>
     /// A direct invocation, which is the one shape that answers: the caller waits on the return
@@ -29,7 +29,8 @@ public class OrderHandler(OrderLog log) {
     /// a synchronous return is what lets a test assert on the answer.
     /// </remarks>
     [HardenedFunction]
-    public OrderAccepted Process(Order order) {
+    public OrderAccepted Process(Order order)
+    {
         log.Record(order);
 
         return new OrderAccepted(order.Id, log.Orders.Count);

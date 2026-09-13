@@ -29,7 +29,8 @@ namespace Hardened1;
 public partial record Todo(
     [property: Key(0)] int Id,
     [property: Key(1)] string Title,
-    [property: Key(2)] bool Done);
+    [property: Key(2)] bool Done
+);
 #endif
 #if (messagePackNamed)
 /// <summary>A todo, as it goes over the wire.</summary>
@@ -46,7 +47,8 @@ public partial record Todo(
 public partial record Todo(
     [property: Key("id")] int Id,
     [property: Key("title")] string Title,
-    [property: Key("done")] bool Done);
+    [property: Key("done")] bool Done
+);
 #endif
 #if (!messagePack)
 /// <summary>A todo, as it goes over the wire.</summary>
@@ -93,8 +95,8 @@ public record NewTodo([property: StringLength(1, 64)] string Title);
 /// so injecting TodoStore directly generates DeserializeRequestBody&lt;TodoStore&gt;, and on a route
 /// that also takes a real body, two of them. [FromServices] says the same thing explicitly.
 /// </remarks>
-public interface ITodoStore {
-
+public interface ITodoStore
+{
     Task<IReadOnlyList<Todo>> All();
 
     Task<Todo?> Find(int id);
@@ -120,11 +122,12 @@ public interface ITodoStore {
 #endif
 /// </remarks>
 [SingletonService]
-public class TodoStore : ITodoStore {
-
-    private readonly Dictionary<int, Todo> _todos = new() {
+public class TodoStore : ITodoStore
+{
+    private readonly Dictionary<int, Todo> _todos = new()
+    {
         [1] = new Todo(1, "Read the generated code", true),
-        [2] = new Todo(2, "Add an endpoint", false)
+        [2] = new Todo(2, "Add an endpoint", false),
     };
 
     private int _nextId = 3;
@@ -138,9 +141,13 @@ public class TodoStore : ITodoStore {
     /// <summary>Titles are unique, which is what gives the sample a real 409.</summary>
     public Task<bool> TitleExists(string title) =>
         Task.FromResult(
-            _todos.Values.Any(todo => string.Equals(todo.Title, title, StringComparison.OrdinalIgnoreCase)));
+            _todos.Values.Any(todo =>
+                string.Equals(todo.Title, title, StringComparison.OrdinalIgnoreCase)
+            )
+        );
 
-    public Task<Todo> Add(string title) {
+    public Task<Todo> Add(string title)
+    {
         var todo = new Todo(_nextId++, title, false);
 
         _todos[todo.Id] = todo;

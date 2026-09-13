@@ -1,13 +1,6 @@
-#if (nsubstitute)
-using DependencyModules.NSubstitute;
-#endif
-#if (moq)
-using DependencyModules.Moq;
-#endif
-#if (fakeiteasy)
-using DependencyModules.FakeItEasy;
-#endif
 using Hardened.Functions.Testing;
+using Hardened.Shared.Testing.Attributes;
+using Hardened1;
 #if (aws)
 using Hardened.Aws.Lambda.Testing;
 #endif
@@ -18,8 +11,16 @@ using Hardened.Web.Testing;
 #if (azure)
 using Hardened.Azure.Functions.Testing;
 #endif
-using Hardened.Shared.Testing.Attributes;
-using Hardened1;
+
+#if (nsubstitute)
+using DependencyModules.NSubstitute;
+#endif
+#if (moq)
+using DependencyModules.Moq;
+#endif
+#if (fakeiteasy)
+using DependencyModules.FakeItEasy;
+#endif
 
 // The application under test. The real module graph is applied and startup services run, so there
 // is no separate test wiring to keep in step.

@@ -9,8 +9,8 @@ namespace Hardened1.Tests;
 /// exercised at 200 is indistinguishable from one that has no declared set at all, which is the
 /// thing these tests exist to tell apart.
 /// </remarks>
-public class TodoTests {
-
+public class TodoTests
+{
     /// <summary>
     /// The response shapes as a client sees them, declared here rather than reused from the
     /// application - so these tests read the same whether the models were hand-written or generated
@@ -21,22 +21,25 @@ public class TodoTests {
     private record NewTodoRequest(string Title);
 
     [HardenedTest]
-    public async Task ListTodos_ReturnsEveryTodo(ITestWebApp app) {
+    public async Task ListTodos_ReturnsEveryTodo(ITestWebApp app)
+    {
         var response = await app.Get("/todos");
 
         response.Assert.Ok();
 
 #if (xunit)
-        Assert.Equal(
-            [1, 2], response.Deserialize<List<TodoResponse>>().Select(todo => todo.Id));
+        Assert.Equal([1, 2], response.Deserialize<List<TodoResponse>>().Select(todo => todo.Id));
 #else
         Assert.That(
-            response.Deserialize<List<TodoResponse>>().Select(todo => todo.Id), Is.EqualTo(new[] { 1, 2 }));
+            response.Deserialize<List<TodoResponse>>().Select(todo => todo.Id),
+            Is.EqualTo(new[] { 1, 2 })
+        );
 #endif
     }
 
     [HardenedTest]
-    public async Task GetTodo_ReturnsTheTodo(ITestWebApp app) {
+    public async Task GetTodo_ReturnsTheTodo(ITestWebApp app)
+    {
         var response = await app.Get("/todos/1");
 
         response.Assert.Ok();
@@ -49,12 +52,14 @@ public class TodoTests {
     }
 
     [HardenedTest]
-    public async Task GetTodo_UnknownId_IsNotFound(ITestWebApp app) {
+    public async Task GetTodo_UnknownId_IsNotFound(ITestWebApp app)
+    {
         (await app.Get("/todos/9999")).Assert.NotFound();
     }
 
     [HardenedTest]
-    public async Task CreateTodo_DuplicateTitle_IsConflict(ITestWebApp app) {
+    public async Task CreateTodo_DuplicateTitle_IsConflict(ITestWebApp app)
+    {
         var response = await app.Post(new NewTodoRequest("Add an endpoint"), "/todos");
 
 #if (xunit)
@@ -65,7 +70,8 @@ public class TodoTests {
     }
 
     [HardenedTest]
-    public async Task RemoveTodo_UnknownId_IsNotFound(ITestWebApp app) {
+    public async Task RemoveTodo_UnknownId_IsNotFound(ITestWebApp app)
+    {
         (await app.Delete("/todos/9999")).Assert.NotFound();
     }
 
@@ -80,7 +86,8 @@ public class TodoTests {
     /// signature. This test is what makes that difference visible rather than a claim in a comment.
     /// </remarks>
     [HardenedTest]
-    public async Task CreateTodo_AnswersTwoHundred(ITestWebApp app) {
+    public async Task CreateTodo_AnswersTwoHundred(ITestWebApp app)
+    {
         var response = await app.Post(new NewTodoRequest("Write a test"), "/todos");
 
         response.Assert.Ok();
@@ -88,14 +95,16 @@ public class TodoTests {
 
     /// <summary>200 with the removed todo, for the same reason.</summary>
     [HardenedTest]
-    public async Task RemoveTodo_AnswersTwoHundred(ITestWebApp app) {
+    public async Task RemoveTodo_AnswersTwoHundred(ITestWebApp app)
+    {
         (await app.Delete("/todos/1")).Assert.Ok();
     }
 #endif
 #if (declaredMode)
     /// <summary>201 and a Location header, both declared in the response set.</summary>
     [HardenedTest]
-    public async Task CreateTodo_AnswersCreatedWithALocation(ITestWebApp app) {
+    public async Task CreateTodo_AnswersCreatedWithALocation(ITestWebApp app)
+    {
         var response = await app.Post(new NewTodoRequest("Write a test"), "/todos");
 
 #if (xunit)
@@ -113,7 +122,8 @@ public class TodoTests {
     /// is an empty body rather than the four characters "null".
     /// </remarks>
     [HardenedTest]
-    public async Task RemoveTodo_AnswersNoContent(ITestWebApp app) {
+    public async Task RemoveTodo_AnswersNoContent(ITestWebApp app)
+    {
         var response = await app.Delete("/todos/1");
 
 #if (xunit)
@@ -123,6 +133,7 @@ public class TodoTests {
 #endif
     }
 #endif
+
     /// <summary>
     /// The constraints on the request are enforced before the handler runs.
     /// </summary>
@@ -131,7 +142,8 @@ public class TodoTests {
     /// in front of the handler, so a value too long never reaches the code.
     /// </remarks>
     [HardenedTest]
-    public async Task ATitleOverItsLimitIsRejected(ITestWebApp app) {
+    public async Task ATitleOverItsLimitIsRejected(ITestWebApp app)
+    {
         var response = await app.Post(new NewTodoRequest(new string('x', 100)), "/todos");
 
 #if (xunit)
@@ -146,7 +158,8 @@ public class TodoTests {
     /// document says so, which DocumentStatusTests holds it to.
     /// </summary>
     [HardenedTest]
-    public async Task GetTodo_IdBelowItsMinimum_IsBadRequest(ITestWebApp app) {
+    public async Task GetTodo_IdBelowItsMinimum_IsBadRequest(ITestWebApp app)
+    {
 #if (xunit)
         Assert.Equal(400, (await app.Get("/todos/0")).StatusCode);
 #else
@@ -155,20 +168,23 @@ public class TodoTests {
     }
 
     [HardenedTest]
-    public async Task RemoveTodo_IdBelowItsMinimum_IsBadRequest(ITestWebApp app) {
+    public async Task RemoveTodo_IdBelowItsMinimum_IsBadRequest(ITestWebApp app)
+    {
 #if (xunit)
         Assert.Equal(400, (await app.Delete("/todos/0")).StatusCode);
 #else
         Assert.That((await app.Delete("/todos/0")).StatusCode, Is.EqualTo(400));
 #endif
     }
+
     /// <summary>
     /// An id the parameter's type cannot carry is refused before the handler, with the same
     /// field-level envelope a failed validation answers - and the published document says so,
     /// which DocumentStatusTests holds it to.
     /// </summary>
     [HardenedTest]
-    public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app) {
+    public async Task GetTodo_MalformedId_IsBadRequest(ITestWebApp app)
+    {
 #if (xunit)
         Assert.Equal(400, (await app.Get("/todos/not-a-number")).StatusCode);
 #else
@@ -177,7 +193,8 @@ public class TodoTests {
     }
 
     [HardenedTest]
-    public async Task RemoveTodo_MalformedId_IsBadRequest(ITestWebApp app) {
+    public async Task RemoveTodo_MalformedId_IsBadRequest(ITestWebApp app)
+    {
 #if (xunit)
         Assert.Equal(400, (await app.Delete("/todos/not-a-number")).StatusCode);
 #else

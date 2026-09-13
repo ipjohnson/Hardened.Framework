@@ -10,7 +10,8 @@ namespace Hardened1;
 /// assert against. Replace it with whatever the function actually talks to.
 /// </remarks>
 [SingletonService]
-public class OrderLog {
+public class OrderLog
+{
 #if (blob)
     private readonly List<Upload> _uploads = [];
 
