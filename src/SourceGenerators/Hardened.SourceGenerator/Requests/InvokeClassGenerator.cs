@@ -19,6 +19,31 @@ public static class InvokeClassGenerator {
         TypeDefinition.Get(handlerModel.InvokeHandlerType.Namespace,
             handlerModel.InvokeHandlerType.Name + ".Parameters");
 
+    /// <summary>
+    /// What the pipeline is told the controller type is: the declaring type, or <c>object</c> for a
+    /// static handler.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The substitution is what makes a static handler compile at all. <c>TController</c> reaches
+    /// three generics from here - the base class, the <c>ExecutionHelper</c> overload and, through
+    /// it, the invoke filter - and a static class cannot be a type argument to any of them.
+    /// </para>
+    /// <para>
+    /// <c>object</c> rather than a marker type declared in a runtime package, because the generated
+    /// file has to name it and every assembly can already name this one. The runtime reads it as
+    /// the signal to skip constructing an instance; see
+    /// <c>Hardened.Requests.Runtime.Filters.InstanceFilterProvider</c>.
+    /// </para>
+    /// <para>
+    /// It is only the type argument that changes. <c>_handlerInfo</c> still carries the real
+    /// declaring type, so a convention, a global filter or the document sees no difference between
+    /// a static handler and an instance one.
+    /// </para>
+    /// </remarks>
+    public static ITypeDefinition ControllerTypeArgument(RequestHandlerModel handlerModel) =>
+        handlerModel.IsStatic ? TypeDefinition.Get(typeof(object)) : handlerModel.ControllerType;
+
     public static void GenerateInvokeClass(RequestHandlerModel handlerModel, IConstructContainer constructContainer,
         CancellationToken cancellationToken, bool excludeFromCoverage = false) {
         var invokeClass = constructContainer.AddClass(handlerModel.InvokeHandlerType.Name);
@@ -56,7 +81,7 @@ public static class InvokeClassGenerator {
                 KnownTypes.Namespace.Hardened.Requests.Runtime.Execution,
                 "BaseExecutionHandler",
                 new[] {
-                    handlerModel.ControllerType
+                    ControllerTypeArgument(handlerModel)
                 }));
     }
 
@@ -133,7 +158,7 @@ public static class InvokeClassGenerator {
             KnownTypes.Requests.ExecutionHelper,
             "AsyncStandardFilterEmptyParameters",
             new[] {
-                handlerModel.ControllerType
+                ControllerTypeArgument(handlerModel)
             },
             "serviceProvider",
             "_handlerInfo.WithPath(routePath)",
@@ -152,7 +177,7 @@ public static class InvokeClassGenerator {
             KnownTypes.Requests.ExecutionHelper,
             "AsyncStandardFilterWithParameters",
             new[] {
-                handlerModel.ControllerType, ParametersType(handlerModel)
+                ControllerTypeArgument(handlerModel), ParametersType(handlerModel)
             },
             "serviceProvider",
             "_handlerInfo.WithPath(routePath)",
@@ -173,7 +198,7 @@ public static class InvokeClassGenerator {
             KnownTypes.Requests.ExecutionHelper,
             "StandardFilterEmptyParameters",
             new[] {
-                handlerModel.ControllerType
+                ControllerTypeArgument(handlerModel)
             },
             "serviceProvider",
             "_handlerInfo.WithPath(routePath)",
@@ -192,7 +217,7 @@ public static class InvokeClassGenerator {
             KnownTypes.Requests.ExecutionHelper,
             "StandardFilterWithParameters",
             new[] {
-                handlerModel.ControllerType, ParametersType(handlerModel)
+                ControllerTypeArgument(handlerModel), ParametersType(handlerModel)
             },
             "serviceProvider",
             "_handlerInfo.WithPath(routePath)",
@@ -213,7 +238,7 @@ public static class InvokeClassGenerator {
             KnownTypes.Requests.ExecutionHelper,
             "AsyncEnumerableFilterEmptyParameters",
             new[] {
-                handlerModel.ControllerType,
+                ControllerTypeArgument(handlerModel),
                 handlerModel.ResponseInformation.AsyncEnumerableItemType!
             },
             "serviceProvider",
@@ -234,7 +259,7 @@ public static class InvokeClassGenerator {
             KnownTypes.Requests.ExecutionHelper,
             "AsyncEnumerableFilterWithParameters",
             new[] {
-                handlerModel.ControllerType, ParametersType(handlerModel),
+                ControllerTypeArgument(handlerModel), ParametersType(handlerModel),
                 handlerModel.ResponseInformation.AsyncEnumerableItemType!
             },
             "serviceProvider",

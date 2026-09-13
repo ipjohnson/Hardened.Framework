@@ -212,7 +212,12 @@ public static class FunctionIncrementalGenerator {
                 TypeDefinition.Get(appNamespace, appClass.Name + ".FunctionHandlerProvider")
             }));
 
-        var handlerTypes = requestHandlers.Select(m => m.ControllerType).Distinct();
+        // Static handlers excluded on the terms RoutingTableGenerator gives: nothing resolves a
+        // type whose handlers are all static, and a static class cannot be registered at all.
+        var handlerTypes = requestHandlers
+            .Where(m => !m.IsStatic)
+            .Select(m => m.ControllerType)
+            .Distinct();
 
         foreach (var handlerType in handlerTypes) {
             cancellationToken.ThrowIfCancellationRequested();

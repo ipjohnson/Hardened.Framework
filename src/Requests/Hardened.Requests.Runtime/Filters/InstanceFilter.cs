@@ -15,6 +15,17 @@ namespace Hardened.Requests.Runtime.Filters;
 /// <see cref="HandlerCreationException"/>.
 /// </remarks>
 public class InstanceFilter<TController> : IExecutionFilter {
+    /// <summary>
+    /// The one instance of this filter a closed <typeparamref name="TController"/> needs.
+    /// </summary>
+    /// <remarks>
+    /// It holds nothing: every request reads the controller out of its own scope. One per handler
+    /// was allocated before, which is once at startup rather than per request, so this is shape
+    /// rather than throughput - it lets <see cref="InstanceFilterProvider"/> answer both of its
+    /// cases with a field.
+    /// </remarks>
+    public static readonly InstanceFilter<TController> Instance = new();
+
     public Task Execute(IExecutionChain chain) {
         var context = chain.Context;
 

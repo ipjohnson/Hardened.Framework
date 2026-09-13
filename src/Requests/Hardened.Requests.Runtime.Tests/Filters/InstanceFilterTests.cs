@@ -73,6 +73,39 @@ public class InstanceFilterTests {
         Assert.True(reached);
     }
 
+    /// <summary>
+    /// <c>object</c> is how the generator says the handler is a static method, and the provider has
+    /// to read it as one - a static handler's declaring type is registered by nobody, so building
+    /// an instance filter for it would refuse every request at HandlerCreation.
+    /// </summary>
+    [Fact]
+    public void ObjectAsksForTheStaticFilter() {
+        Assert.Same(
+            StaticInstanceFilter.Instance,
+            new InstanceFilterProvider().ProvideFilter<object>(Substitute.For<IServiceProvider>()));
+    }
+
+    [Fact]
+    public void EveryOtherControllerTypeStillConstructsAnInstance() {
+        Assert.IsType<InstanceFilter<NeedsNothing>>(
+            new InstanceFilterProvider().ProvideFilter<NeedsNothing>(
+                Substitute.For<IServiceProvider>()));
+    }
+
+    /// <summary>
+    /// The invoke filters read <c>HandlerInstance</c> back and refuse a null, so the static filter
+    /// has to leave something there even though nothing reads it.
+    /// </summary>
+    [Fact]
+    public async Task TheStaticFilterLeavesANonNullHandlerInstance() {
+        var context = Pipeline.Context();
+
+        await Pipeline.Chain(context, StaticInstanceFilter.Instance).Next();
+
+        Assert.Same(StaticInstanceFilter.HandlerInstance, context.HandlerInstance);
+        Assert.Null(context.Response.ExceptionValue);
+    }
+
     private static IExecutionRequestHandlerInfo Handler(string method, string path) {
         var info = Substitute.For<IExecutionRequestHandlerInfo>();
 

@@ -28,6 +28,28 @@ public class FunctionHandlerShapeTests {
         Assert.DoesNotContain("ResponseValue", source);
     }
 
+    /// <summary>
+    /// A static function handler, which reaches the same InvokeClassGenerator a static route does.
+    /// </summary>
+    /// <remarks>
+    /// Covered here as well as in StaticHandlerTests because the registration it skips is the
+    /// function generator's own, written in a different file from the routing table's.
+    /// </remarks>
+    [Fact]
+    public void AStaticHandlerIsCalledOnItsDeclaringTypeAndNotRegistered() {
+        var result = FunctionGeneratorHarness.Generate(
+            FunctionGeneratorHarness.Application("""
+                [HardenedFunction]
+                public static string Process() => "x";
+            """)).AssertNoErrors();
+
+        Assert.Contains("context.Response.ResponseValue = global::TestApp.TestFunctions.Process();",
+            result.SourceContaining("Process.FunctionHandler"));
+
+        Assert.DoesNotContain("AddTransient<TestFunctions>",
+            result.SourceContaining("TestApplication.FunctionHandlers"));
+    }
+
     [Fact]
     public void AValueReturningHandlerAssignsTheResponseValue() {
         var result = FunctionGeneratorHarness.Generate(FunctionGeneratorHarness.Application("""

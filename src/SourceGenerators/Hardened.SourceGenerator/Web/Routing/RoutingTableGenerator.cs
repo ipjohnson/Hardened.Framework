@@ -356,8 +356,14 @@ public static class RoutingTableGenerator {
         }
 
         if (options.RegisterControllerTypes) {
-            var distinctControllers =
-                webEndPointModels.Select(model => model.ControllerType).Distinct();
+            // Static handlers excluded rather than their declaring types, which is what makes a
+            // controller holding both kinds still register: its instance handlers keep it in the
+            // list. A type left with only static handlers is registered by nobody and resolved by
+            // nobody, and where that type is a static class the registration would not compile.
+            var distinctControllers = webEndPointModels
+                .Where(model => !model.IsStatic)
+                .Select(model => model.ControllerType)
+                .Distinct();
 
             foreach (var controllerType in distinctControllers) {
                 cancellationToken.ThrowIfCancellationRequested();

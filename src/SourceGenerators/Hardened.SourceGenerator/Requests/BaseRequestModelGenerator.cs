@@ -3,6 +3,7 @@ using Hardened.SourceGenerator.Models.Request;
 using Hardened.SourceGenerator.OpenApiDocument;
 using Hardened.SourceGenerator.Shared;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Hardened.SourceGenerator.Requests;
@@ -96,6 +97,12 @@ public abstract class BaseRequestModelGenerator {
             ?? (typeHeaders.Count > 0 ? typeHeaders : null);
 
         model.ParameterEnums = ParameterEnums(context, methodDeclaration);
+
+        // Off the modifier list rather than the symbol: a method is static exactly when it says so,
+        // including in a static class, where the compiler requires the keyword rather than
+        // implying it. Reading syntax keeps this out of the semantic model, which the whole
+        // transform is shaped to stay cheap in.
+        model.IsStatic = methodDeclaration.Modifiers.Any(SyntaxKind.StaticKeyword);
 
         return model;
     }

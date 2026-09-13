@@ -17,13 +17,24 @@ public static class InvokeMethodCodeGenerator {
         }
 
         var context = invokeMethod.AddParameter(KnownTypes.Requests.IExecutionContext, "context");
-        var controller = invokeMethod.AddParameter(requestHandlerModel.ControllerType, "controller");
 
-        InvokeDefinition invoke = controller.Invoke(requestHandlerModel.HandlerMethod);
+        // Declared even for a static handler, and unused there. The delegate the ExecutionHelper
+        // overload takes has the parameter in its signature, so the shape is not this emitter's to
+        // choose - and for a static handler what arrives is the shared object
+        // StaticInstanceFilter assigns.
+        var controller = invokeMethod.AddParameter(
+            InvokeClassGenerator.ControllerTypeArgument(requestHandlerModel), "controller");
 
-        ProcessArguments(requestHandlerModel, invoke, invokeMethod);
+        // Built before the call rather than added to it, because a static invocation takes its
+        // arguments at construction and has no AddArgument to call afterwards.
+        var arguments = HandlerArguments(requestHandlerModel, invokeMethod);
 
-        IOutputComponent invokeStatement = invoke;
+        // The declaring type for a static handler, the parameter for an instance one. This is the
+        // only place the distinction reaches the call itself; everything else about it is the type
+        // argument.
+        IOutputComponent invokeStatement = requestHandlerModel.IsStatic
+            ? Invoke(requestHandlerModel.ControllerType, requestHandlerModel.HandlerMethod, arguments)
+            : controller.Invoke(requestHandlerModel.HandlerMethod, arguments);
 
         if (requestHandlerModel.ResponseInformation.IsAsync) {
             invokeStatement = Await(invokeStatement);
@@ -307,15 +318,25 @@ public static class InvokeMethodCodeGenerator {
         invokeMethod.Assign(QuoteString(contentType!)).To(context.Property("Response.ContentType"));
     }
 
-    private static void ProcessArguments(RequestHandlerModel requestHandlerModel, InvokeDefinition invoke,
-        MethodDefinition invokeMethod) {
-        if (requestHandlerModel.RequestParameterInformationList.Count > 0) {
-            var parameters = invokeMethod.AddParameter(
-                InvokeClassGenerator.ParametersType(requestHandlerModel), "parameters");
-
-            foreach (var parameterInformation in requestHandlerModel.RequestParameterInformationList) {
-                invoke.AddArgument(parameters.Property(parameterInformation.MemberName));
-            }
+    /// <summary>
+    /// The handler's arguments, read off the bound <c>Parameters</c> class.
+    /// </summary>
+    /// <remarks>
+    /// Declaring the <c>parameters</c> parameter is a side effect of calling this, and calling it
+    /// after the controller is what keeps that parameter third - the order every
+    /// <c>ExecutionHelper</c> delegate declares.
+    /// </remarks>
+    private static object[] HandlerArguments(
+        RequestHandlerModel requestHandlerModel, MethodDefinition invokeMethod) {
+        if (requestHandlerModel.RequestParameterInformationList.Count == 0) {
+            return Array.Empty<object>();
         }
+
+        var parameters = invokeMethod.AddParameter(
+            InvokeClassGenerator.ParametersType(requestHandlerModel), "parameters");
+
+        return requestHandlerModel.RequestParameterInformationList
+            .Select(information => (object)parameters.Property(information.MemberName))
+            .ToArray();
     }
 }
