@@ -472,6 +472,47 @@ public static class BindRequestParametersMethodGenerator
         return invokeStatement;
     }
 
+    /// <summary>
+    /// A <c>byte[]</c> or <c>Stream</c> body, handed over with nothing between it and the wire.
+    /// </summary>
+    /// <remarks>
+    /// The required check is the one every other body gets. <c>RawBody</c> answers null for a
+    /// request that carried no body at all, so a handler declaring the parameter non-nullable
+    /// refuses that with the same 400 naming the same parameter, and one declaring it nullable
+    /// gets the null.
+    /// </remarks>
+    private static void BindRawBodyParameter(
+        RequestParameterInformation parameterInformation,
+        MethodDefinition invokeMethod,
+        ParameterDefinition context,
+        InstanceDefinition parametersVar
+    )
+    {
+        var isArray = parameterInformation.ParameterType.IsArray;
+
+        IOutputComponent read = Invoke(
+            KnownTypes.Requests.RawBody,
+            isArray ? "Bytes" : "Body",
+            context
+        );
+
+        if (isArray)
+        {
+            read = Await(read);
+        }
+
+        IOutputComponent bound = parameterInformation.ParameterType.IsNullable
+            ? read
+            : Invoke(
+                KnownTypes.Requests.RequestBody,
+                "Required",
+                read,
+                QuoteString(parameterInformation.Name)
+            );
+
+        invokeMethod.Assign(bound).To(parametersVar.Property(parameterInformation.MemberName));
+    }
+
     private static void BindBodyParameter(
         RequestParameterInformation parameterInformation,
         MethodDefinition invokeMethod,
@@ -479,6 +520,15 @@ public static class BindRequestParametersMethodGenerator
         InstanceDefinition parametersVar
     )
     {
+        // Before the serialization service is even resolved: these two types are the payload, so
+        // there is no deserializer to locate and nothing for one to do.
+        if (parameterInformation.IsRawBody)
+        {
+            BindRawBodyParameter(parameterInformation, invokeMethod, context, parametersVar);
+
+            return;
+        }
+
         var getRequiredService = context
             .Property("KnownServices")
             .Property("ContextSerializationService");

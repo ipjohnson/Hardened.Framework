@@ -77,6 +77,18 @@ public sealed class OperationSymbols
     /// </summary>
     public bool RequestBodyRegisteredAsService { get; set; }
 
+    /// <summary>
+    /// Whether the body parameter is the payload rather than a shape to read out of one -
+    /// <c>byte[]</c>, or a <c>Stream</c>.
+    /// </summary>
+    /// <remarks>
+    /// Carried for the reason <see cref="RequestBodyRequiresServices"/> is: the front end asked it
+    /// of a symbol, which is the only way to see that a <c>MemoryStream</c> parameter is a stream,
+    /// and the symbol does not survive to here. A described operation has no symbol to ask, so the
+    /// bridge falls back to the bound type's own name - see <c>SpecHandlerModelBuilder</c>.
+    /// </remarks>
+    public bool RequestBodyIsRaw { get; set; }
+
     /// <summary>Parameter types by parameter name, for the ones already resolved.</summary>
     public Dictionary<string, ITypeDefinition>? ParameterTypes { get; set; }
 
